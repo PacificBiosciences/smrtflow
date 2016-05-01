@@ -1,0 +1,281 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "pacbio.secondary.schemas.datasets.subreads",
+    "version": "1.0.0",
+    "title": "Subread",
+    "description": "Subread DataSet Schema",
+    "type": "object",
+    "properties": {
+
+        "id": {
+            "title": "UUID",
+            "description": "UUID of the Subread DataSet XML",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+            "readOnly": true
+        },
+        "name": {
+            "title": "Subread",
+            "description": "Name of this Subread",
+            "type": "string",
+            "minLength": 1,
+            "readOnly": true
+        },
+        "createdAt": {
+            "title": "Created at",
+            "description": "Time when the DataSet XML was created",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+        },
+        "version": {
+            "title": "Version",
+            "description": "Version of this DataSet",
+            "type": "string",
+            "format": "sem-ver",
+            "minLength": 5,
+            "readOnly": true
+        },
+        "numRecords": {
+            "title": "Num records",
+            "description": "Number of subreads in this DataSet",
+            "type": "integer",
+            "minimum": 0,
+            "readOnly": true
+        },
+        "totalLength": {
+            "title": "Total length",
+            "description": "Total length (in bp) of Subreads in this DataSet",
+            "type": "integer",
+            "minimum": 0,
+            "readOnly": true
+        },
+        "tags": {
+            "title": "DataSet tags",
+            "description": "Tags assigned to the DataSet upon creation",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+
+
+        "cellPacBarcodes": {
+            "title": "Cell Pac Barcodes",
+            "description": "Cell Pac Barcodes (aka SMRT Cell Ids)",
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[0-9]{32}$", "readOnly": true },
+            "uniqueItems": true
+        },
+        "collectionMetadataContexts": {
+            "title": "Contexts",
+            "description": "Collection metadata contexts",
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[mcsp_0-9]{61}$", "readOnly": true },
+            "uniqueItems": true
+        },
+        "wellNames": {
+            "title": "Well Names",
+            "description": "Well names of the samples sequenced",
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[A-H][0-1][0-9]$", "readOnly": true },
+            "uniqueItems": true
+        },
+        "wellSampleNames": {
+            "title": "Well Sample Names",
+            "description": "Well sample name(s)",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "bioSampleNames": {
+            "title": "Biological Sample Name",
+            "description": "Names from biological sample(s)",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "plateIds": {
+            "title": "Plate Ids",
+            "description": "Sample plate ids",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "instrumentIds": {
+            "title": "Instrument ids",
+            "description": "Instrument ids (assigned by Instrument Control)",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "instrumentNames": {
+            "title": "Instrument Names",
+            "description": "Customer assigned instrument name(s)",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "runIds": {
+            "title": "Run id",
+            "description": "Pacbio run id (assigned by Run Control). RunDetails/RunId",
+            "type": "array",
+            "items": { "type": "string", "format": "uuid", "readOnly": true },
+            "uniqueItems": true
+        },
+        "runNames": {
+            "title": "Run Name",
+            "description": "Pacbio Run Name. RunDetails/Name",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "instrumentControlVersions": {
+            "title": "Instrument Control Versions",
+            "description": "Version of the instrument control software",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "automationNames": {
+            "title": "Collection protocol",
+            "description": "Instrument automation protocol names (aka Collection Protocols)",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "primaryVersions": {
+            "title": "Primary Version",
+            "description": "Primary Version",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+        "primaryAutomationNames": {
+            "title": "Primary Automation Names",
+            "description": "Automation Primary Protocols",
+            "type": "array",
+            "items": { "type": "string", "readOnly": true },
+            "uniqueItems": true
+        },
+
+
+        "path": {
+            "title": "DataSet path",
+            "description": "Path to Subreads DataSet XML",
+            "type": "string",
+            "format": "uri",
+            "readOnly": true
+        },
+        "description": {
+            "title": "Description",
+            "description": "User description and comments",
+            "type": "string"
+        },
+        "importedAt": {
+            "title": "Imported at",
+            "description": "Time when DataSet was imported",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+        },
+        "modifiedAt": {
+            "title": "Modified at",
+            "description": "Time when DataSet metadata was last modified",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+        },
+        "status": {
+            "title": "DataSet Status",
+            "description": "Status of DataSet (New, Pending, Complete, Error). For 3.0.0-rc1 all DataSets will be Complete",
+            "type": "string",
+            "enum": ["New", "Pending", "Complete", "Error"],
+            "readOnly": true
+        },
+        "md5": {
+            "title": "md5", 
+            "description": "md5 checksum of the Dataset XML file",
+            "type": "string",
+            "format": "md5",
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "readOnly": true
+        },
+        "parentAnalysisJobId": {
+            "title": "Parent Job Id",
+            "description": "Id of job that generated this DataSet",
+            "type": "integer",
+            "minimum": 0,
+            "readOnly": true
+        },
+        "userId": {
+            "title": "User Id",
+            "description": "User Id that imported the DataSet",
+            "type": "string",
+            "minLength": 1,
+            "readOnly": true
+        },
+        "smrtanalysisInstallId": {
+            "title": "SMRT Analysis Install  Id",
+            "description": "SMRT Analysis Install  that the DataSet belongs to. TODO in DataModel?",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+            "readOnly": true
+        },
+        "projectId": {
+            "title": "Project Id",
+            "description": "Project that the DataSet belongs to. TODO in DataModel?",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+            "readOnly": true
+        },
+        "serviceTags": {
+            "title": "User defined tags",
+            "description": "Tags defined and set at the services level",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        }
+    },
+
+    "required": [   
+        "id", 
+        "name", 
+        "createdAt", 
+        "version", 
+        "numRecords", 
+        "totalLength", 
+        "tags",  
+
+        "cellPacBarcodes", 
+        "collectionMetadataContexts",
+        "wellNames",
+        "wellSampleNames",
+        "bioSampleNames",
+        "plateIds",
+        "instrumentIds", 
+        "instrumentNames", 
+        "runIds", 
+        "runNames", 
+        "instrumentControlVersions",
+        "automationNames", 
+        "primaryVersions",
+        "primaryAutomationNames",
+
+        "path", 
+        "description", 
+        "importedAt", 
+        "modifiedAt", 
+        "status", 
+        "md5",
+        "parentAnalysisJobId",
+        "userId",
+        "smrtanalysisInstallId",
+        "projectId",
+        "serviceTags"
+    ],
+
+    "additionalProperties": false
+}
