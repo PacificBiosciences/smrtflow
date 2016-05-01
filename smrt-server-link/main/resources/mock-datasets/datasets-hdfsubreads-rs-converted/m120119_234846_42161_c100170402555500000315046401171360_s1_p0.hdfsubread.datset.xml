@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HdfSubreadSet xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:ns0="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:ns2="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:ns1="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:ns3="http://pacificbiosciences.com/PacBioReagentKit.xsd" Name="Subreads from runr000145_42161_120119" Description="Merged dataset from 1 files using DatasetMerger 0.1.2" Tags="pacbio.secondary.instrument=RS" Version="0.5" UniqueId="dad5b77b-8868-4213-998d-ef53122b527e" MetaType="PacBio.DataSet.HdfSubreadSet" TimeStampedName="hdfsubreadset_2015-09-08T10:50:12.854-07:00">
+   <ns0:ExternalResources>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.1.bax.h5" UniqueId="cb0c1c5c-ceca-4dda-9077-171c039084d8" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:50:12.854-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.2.bax.h5" UniqueId="0ed30d43-4c4c-4786-8fc8-fbf0ae4889c6" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:50:12.854-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.3.bax.h5" UniqueId="1b3dac68-de41-447f-9f8a-620415913f06" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubreadset_file_2015-09-08T10:50:12.854-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.1.bax.h5" UniqueId="cb0c1c5c-ceca-4dda-9077-171c039084d8" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:50:12.854-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.2.bax.h5" UniqueId="0ed30d43-4c4c-4786-8fc8-fbf0ae4889c6" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:50:12.854-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2450129/0036/Analysis_Results/m120119_234846_42161_c100170402555500000315046401171360_s1_p0.3.bax.h5" UniqueId="1b3dac68-de41-447f-9f8a-620415913f06" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubreadset_file_2015-09-08T10:50:12.854-07:00"/>
+   </ns0:ExternalResources>
+   <DataSetMetadata>
+      <TotalLength>50000000</TotalLength>
+      <NumRecords>150000</NumRecords>
+      <ns2:Collections>
+         <ns2:CollectionMetadata UniqueId="5f81c7c0-f53c-4478-be67-9bd3ffc12f71" MetaType="PacBio.Collection" TimeStampedName="m120119_234846_42161_c100170402555500000315046401171360_s1_p0" Context="m120119_234846_42161_c100170402555500000315046401171360_s1_p0" InstrumentId="1" InstrumentName="42161">
+            <ns2:InstCtrlVer>1.2.3.1.97721</ns2:InstCtrlVer>
+            <ns2:SigProcVer>NRT@172.31.128.10:8082, SwVer=1231.97721, HwVer=1.0</ns2:SigProcVer>
+            <ns2:RunDetails>
+               <ns2:TimeStampedName>r000145_42161_120119</ns2:TimeStampedName>
+               <ns2:Name>NS5a_4091_75min_0.3nM_IMT_20120119_161</ns2:Name>
+            </ns2:RunDetails>
+            <ns2:WellSample Name="HCV NS5A H77_100">
+               <ns2:PlateId>NS5a_4091_75min_0.3nM_IMT_20120119_161</ns2:PlateId>
+               <ns2:WellName>HCV NS5A H77_100</ns2:WellName>
+               <ns2:Concentration>0.0</ns2:Concentration>
+               <ns2:SampleReuseEnabled>false</ns2:SampleReuseEnabled>
+               <ns2:StageHotstartEnabled>false</ns2:StageHotstartEnabled>
+               <ns2:SizeSelectionEnabled>false</ns2:SizeSelectionEnabled>
+               <ns2:UseCount>0</ns2:UseCount>
+               <ns1:BioSamplePointers>
+                  <ns1:BioSamplePointer>be8d0058-1de0-4e2a-9b27-48c1454627f8</ns1:BioSamplePointer>
+               </ns1:BioSamplePointers>
+            </ns2:WellSample>
+            <ns2:Automation>
+               <ns0:AutomationParameters>
+                  <ns0:AutomationParameter/>
+               </ns0:AutomationParameters>
+            </ns2:Automation>
+            <ns2:CollectionNumber>1</ns2:CollectionNumber>
+            <ns2:CellIndex>0</ns2:CellIndex>
+            <ns2:CellPac Barcode="10017040255550000031504640117136"/>
+            <ns2:Primary>
+               <ns2:AutomationName>BasecallerV1</ns2:AutomationName>
+               <ns2:ConfigFileName>1-2-3_Standard_C2.xml</ns2:ConfigFileName>
+               <ns2:SequencingCondition></ns2:SequencingCondition>
+               <ns2:OutputOptions>
+                  <ns2:ResultsFolder>Analysis_Results</ns2:ResultsFolder>
+                  <ns2:CollectionPathUri>rsy://mp-f030/vol60/RS_DATA_STAGING/rs42161/NS5a_4091_75min_0.3nM_IMT_20120119_161_145/A01_1/</ns2:CollectionPathUri>
+                  <ns2:CopyFiles>
+                     <ns2:CollectionFileCopy>Fasta</ns2:CollectionFileCopy>
+                  </ns2:CopyFiles>
+                  <ns2:Readout>Bases</ns2:Readout>
+                  <ns2:MetricsVerbosity>Minimal</ns2:MetricsVerbosity>
+               </ns2:OutputOptions>
+            </ns2:Primary>
+         </ns2:CollectionMetadata>
+      </ns2:Collections>
+      <ns1:BioSamples>
+         <ns1:BioSample Name="HCV NS5A H77_100" Description="" UniqueId="be8d0058-1de0-4e2a-9b27-48c1454627f8" MetaType="PacBio.Sample" TimeStampedName="biosample_2015-09-08T10:50:12.854-07:00"/>
+      </ns1:BioSamples>
+   </DataSetMetadata>
+</HdfSubreadSet>

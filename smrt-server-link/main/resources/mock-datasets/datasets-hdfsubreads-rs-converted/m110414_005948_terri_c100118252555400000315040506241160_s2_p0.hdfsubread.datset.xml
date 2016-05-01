@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HdfSubreadSet xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:ns0="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:ns2="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:ns1="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:ns3="http://pacificbiosciences.com/PacBioReagentKit.xsd" Name="Subreads from runr000922_terri_110413" Description="Merged dataset from 1 files using DatasetMerger 0.1.2" Tags="pacbio.secondary.instrument=RS" Version="0.5" UniqueId="996e8387-4e3d-40b2-8e91-b2760d23c4be" MetaType="PacBio.DataSet.HdfSubreadSet" TimeStampedName="hdfsubreadset_2015-09-08T10:49:04.625-07:00">
+   <ns0:ExternalResources>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.1.bax.h5" UniqueId="82fc4f6c-ec94-49c2-b941-b001b86cc0aa" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:49:04.625-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.2.bax.h5" UniqueId="0a27837f-8039-4c2f-ad01-461ad1da4243" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:49:04.625-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.3.bax.h5" UniqueId="b1db5478-3e8f-42fd-940a-ed09fb9fa31a" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubreadset_file_2015-09-08T10:49:04.625-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.1.bax.h5" UniqueId="82fc4f6c-ec94-49c2-b941-b001b86cc0aa" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:49:04.625-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.2.bax.h5" UniqueId="0a27837f-8039-4c2f-ad01-461ad1da4243" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubread_file_2015-09-08T10:49:04.625-07:00"/>
+      <ns0:ExternalResource ResourceId="file:///mnt/secondary-siv/testdata/LIMS/2420097/0001/Analysis_Results/m110414_005948_terri_c100118252555400000315040506241160_s2_p0.3.bax.h5" UniqueId="b1db5478-3e8f-42fd-940a-ed09fb9fa31a" MetaType="PacBio.SubreadFile.BaxFile" TimeStampedName="hdfsubreadset_file_2015-09-08T10:49:04.625-07:00"/>
+   </ns0:ExternalResources>
+   <DataSetMetadata>
+      <TotalLength>50000000</TotalLength>
+      <NumRecords>150000</NumRecords>
+      <ns2:Collections>
+         <ns2:CollectionMetadata UniqueId="dcd9939a-a559-4526-b19a-3ba5929ae299" MetaType="PacBio.Collection" TimeStampedName="m110414_005948_terri_c100118252555400000315040506241160_s2_p0" Context="m110414_005948_terri_c100118252555400000315040506241160_s2_p0" InstrumentId="1" InstrumentName="terri">
+            <ns2:InstCtrlVer>1.2.1.0.86276</ns2:InstCtrlVer>
+            <ns2:SigProcVer>NRT@172.31.128.10:8082, SwVer=1210.86276, HwVer=1.0</ns2:SigProcVer>
+            <ns2:RunDetails>
+               <ns2:TimeStampedName>r000922_terri_110413</ns2:TimeStampedName>
+               <ns2:Name>E Coli 4091P 9p5kB vs 4p5kB Control Training </ns2:Name>
+            </ns2:RunDetails>
+            <ns2:WellSample Name="4p5 kB EColi 0p33 nM">
+               <ns2:WellName>4p5 kB EColi 0p33 nM</ns2:WellName>
+               <ns2:Concentration>0.0</ns2:Concentration>
+               <ns2:SampleReuseEnabled>false</ns2:SampleReuseEnabled>
+               <ns2:StageHotstartEnabled>false</ns2:StageHotstartEnabled>
+               <ns2:SizeSelectionEnabled>false</ns2:SizeSelectionEnabled>
+               <ns2:UseCount>0</ns2:UseCount>
+               <ns1:BioSamplePointers>
+                  <ns1:BioSamplePointer>16b08441-869a-4587-84be-696aeefcee69</ns1:BioSamplePointer>
+               </ns1:BioSamplePointers>
+            </ns2:WellSample>
+            <ns2:Automation>
+               <ns0:AutomationParameters>
+                  <ns0:AutomationParameter/>
+               </ns0:AutomationParameters>
+            </ns2:Automation>
+            <ns2:CollectionNumber>1</ns2:CollectionNumber>
+            <ns2:CellIndex>0</ns2:CellIndex>
+            <ns2:CellPac Barcode="10011825255540000031504050624116"/>
+            <ns2:Primary>
+               <ns2:AutomationName>BasecallerV1</ns2:AutomationName>
+               <ns2:ConfigFileName>1-2-0_Standard_1-3.xml</ns2:ConfigFileName>
+               <ns2:SequencingCondition></ns2:SequencingCondition>
+               <ns2:OutputOptions>
+                  <ns2:ResultsFolder>Analysis_Results</ns2:ResultsFolder>
+                  <ns2:CollectionPathUri>smb://usmp-data3/vol51/2420097/E+Coli+4091P+9p5kB+vs+4p5kB+Control+Training+Set_922/A01_1/</ns2:CollectionPathUri>
+                  <ns2:CopyFiles>
+                     <ns2:CollectionFileCopy>Fasta</ns2:CollectionFileCopy>
+                  </ns2:CopyFiles>
+                  <ns2:Readout>Bases</ns2:Readout>
+                  <ns2:MetricsVerbosity>Minimal</ns2:MetricsVerbosity>
+               </ns2:OutputOptions>
+            </ns2:Primary>
+         </ns2:CollectionMetadata>
+      </ns2:Collections>
+      <ns1:BioSamples>
+         <ns1:BioSample Name="4p5 kB EColi 0p33 nM" Description="" UniqueId="16b08441-869a-4587-84be-696aeefcee69" MetaType="PacBio.Sample" TimeStampedName="biosample_2015-09-08T10:49:04.625-07:00"/>
+      </ns1:BioSamples>
+   </DataSetMetadata>
+</HdfSubreadSet>
