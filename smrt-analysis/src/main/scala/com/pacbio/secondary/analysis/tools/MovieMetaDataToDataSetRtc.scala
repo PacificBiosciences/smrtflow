@@ -1,0 +1,75 @@
+package com.pacbio.secondary.analysis.tools
+
+import java.nio.file.Paths
+
+import com.pacbio.secondary.analysis.contracts.ContractLoaders
+import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
+
+import collection.JavaConversions._
+import collection.JavaConverters._
+
+import com.pacbio.secondary.analysis.converters.MovieMetadataConverter._
+import org.joda.time.{DateTime => JodaDateTime}
+import scopt.OptionParser
+
+case class MovieMetaDataToDataSetRtcConfig(rtcAvroPath: String,
+                                           debug: Boolean = false) extends ToolConfig
+
+object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaDataToDataSetRtcConfig] {
+
+  val toolId = "pbscala.tasks.rs_movie_to_ds_rtc"
+  val VERSION = "0.2.0"
+  val defaults = MovieMetaDataToDataSetRtcConfig("", debug = true)
+
+  val parser = new OptionParser[MovieMetaDataToDataSetRtcConfig]("movie-metadata-to-dataset-rtc") {
+    head("Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract", VERSION)
+    note("Tool to convert a RS movie.metadata.xml to a HdfSubreadSet Dataset XML using Resolved Tool Contract")
+
+    arg[String]("resolved-tool-contract") required() action { (x, c) =>
+      c.copy(rtcAvroPath = x)
+    } text "Path to Resolved Tool Contract"
+
+    opt[Unit]('d', "debug") action { (x, c) =>
+      c.copy(debug = true)
+    } text "Emit logging to stdout."
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show Options and exit"
+
+  }
+
+  def run(c: MovieMetaDataToDataSetRtcConfig): Either[ToolFailure, ToolSuccess] = {
+    val startedAt = JodaDateTime.now()
+
+    val rtcPath = Paths.get(c.rtcAvroPath)
+
+    val rtc = ContractLoaders.loadResolvedToolContract(rtcPath)
+
+    val inputFiles = rtc.getResolvedToolContract.getInputFiles.asScala.toList
+    val movieMetaDataXMLPath = inputFiles.head.toString
+    // Output Path
+    val dsPath = rtc.getResolvedToolContract.getOutputFiles.asScala.toList.head.toString
+
+    val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath)
+
+    x match {
+      case Right(ds) =>
+        DataSetWriter.writeHdfSubreadSet(ds, Paths.get(dsPath))
+        println(s"Successfully converted $movieMetaDataXMLPath")
+        println(s"Writing HdfSubreadSet Dataset XML to $dsPath")
+        Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
+      case Left(e) =>
+        System.err.println(s"Failed to convert $movieMetaDataXMLPath")
+        Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), e.msg))
+    }
+  }
+}
+
+object MovieMetaDataToDataSetRtcApp extends App {
+
+  import MovieMetaDataToDataSetRtcTool._
+
+  runner(args)
+}

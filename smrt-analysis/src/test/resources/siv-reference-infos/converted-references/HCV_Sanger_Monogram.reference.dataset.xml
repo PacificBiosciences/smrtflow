@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="59588d37-bac8-419b-af6d-f0f24d0f070f" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/HCV_Sanger_Monogram.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/HCV_Sanger_Monogram.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/HCV_Sanger_Monogram.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>10341</TotalLength>
+          <NumRecords>6</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="NS3/4A_Con1" Length="2055" Digest="6902748952391dfc415419f06edafc9c"/><Contig Name="ref000002" Description="NS3/4A_H77" Length="2055" Digest="a02d13b368e8fc0812f26d5eaf9bc204"/><Contig Name="ref000003" Description="NS5A_Con1" Length="1341" Digest="345262ff4efeee8bcbff741961149f83"/><Contig Name="ref000004" Description="NS5A_H77" Length="1344" Digest="f93ddab1f8e7c6c6d5f26e6d44244bde"/><Contig Name="ref000005" Description="NS5B_Con1" Length="1773" Digest="88ea54e10fb94a0f4bbbec2f89c95a2d"/><Contig Name="ref000006" Description="NS5B_H77" Length="1773" Digest="ac931ff822827853bb5e7bd1cff45621"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

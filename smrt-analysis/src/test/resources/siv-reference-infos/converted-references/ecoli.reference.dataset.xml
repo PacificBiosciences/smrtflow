@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="27d1eb8b-242b-4085-b3b5-8bbce7463224" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/ecoli.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/ecoli.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/ecoli.fasta.sa"/><FileIndex MetaType="sam_idx" ResourceId="./sequence/ecoli.fasta.fai"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>4639675</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="ecoli K12 MG1655" Length="4639675" Digest="05dc7a37701cdc6bcf154344a227983d"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

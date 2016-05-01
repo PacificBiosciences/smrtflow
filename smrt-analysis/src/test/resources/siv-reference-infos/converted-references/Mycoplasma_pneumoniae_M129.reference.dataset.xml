@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="d72df6a3-11c6-4c76-9dcc-50f5011b74f0" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>816394</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="Mycoplasma pneumoniae M129" Length="816394" Digest="c341de222fc7a6bda20d93d71e9c14fe"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>
