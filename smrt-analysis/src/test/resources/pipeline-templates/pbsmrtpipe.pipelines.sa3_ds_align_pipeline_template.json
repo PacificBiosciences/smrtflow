@@ -1,0 +1,124 @@
+{
+    "_comment": "Created pipeline pbsmrtpipe.pipelines.sa3_align with pbsmrtpipe v0.35.11",
+    "bindings": [
+        {
+            "in": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbalign.tasks.consolidate_bam"
+            },
+            "out": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbalign.tasks.pbalign"
+            }
+        },
+        {
+            "in": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbalign.tasks.pbalign"
+            },
+            "out": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbsmrtpipe.tasks.h5_subreads_to_subread"
+            }
+        },
+        {
+            "in": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbreports.tasks.mapping_stats"
+            },
+            "out": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbalign.tasks.pbalign"
+            }
+        },
+        {
+            "in": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbsmrtpipe.tasks.h5_subreads_to_subread"
+            },
+            "out": {
+                "index": 0,
+                "instanceId": 0,
+                "taskTypeId": "pbscala.tasks.rs_movie_to_ds_rtc"
+            }
+        }
+    ],
+    "description": "\n    Perform mapping to reference sequence, starting from RS movie XML\n    ",
+    "entryPoints": [
+        {
+            "entryId": "rs_movie_xml",
+            "fileTypeId": "PacBio.FileTypes.rs_movie_metadata",
+            "name": "Entry Name: PacBio.FileTypes.rs_movie_metadata"
+        },
+        {
+            "entryId": "eid_ref_dataset",
+            "fileTypeId": "PacBio.DataSet.ReferenceSet",
+            "name": "Entry Name: PacBio.DataSet.ReferenceSet"
+        }
+    ],
+    "id": "pbsmrtpipe.pipelines.sa3_align",
+    "name": "RS movie Align",
+    "options": [],
+    "tags": [
+        "mapping"
+    ],
+    "taskOptions": [
+        {
+            "default": 70.0,
+            "description": "Minimum required alignment accuracy (percent)",
+            "id": "pbalign.task_options.min_accuracy",
+            "name": "Min. accuracy",
+            "optionTypeId": "pbsmrtpipe.option_types.float"
+        },
+        {
+            "default": "-useQuality -minMatch 12 -bestn 10 -minPctSimilarity 70.0",
+            "description": "List of space-separated arguments passed to BLASR",
+            "id": "pbalign.task_options.algorithm_options",
+            "name": "Algorithm options",
+            "optionTypeId": "pbsmrtpipe.option_types.string"
+        },
+        {
+            "default": 50,
+            "description": "Minimum required alignment length",
+            "id": "pbalign.task_options.min_length",
+            "name": "Min. length",
+            "optionTypeId": "pbsmrtpipe.option_types.integer"
+        },
+        {
+            "default": false,
+            "description": "Merge chunked/gathered .bam files",
+            "id": "pbalign.task_options.consolidate_aligned_bam",
+            "name": "Consolidate .bam",
+            "optionTypeId": "pbsmrtpipe.option_types.boolean"
+        },
+        {
+            "default": "randombest",
+            "description": "Specify a policy for how to treat multiple hit\n  random    : selects a random hit.\n  all       : selects all hits.\n  allbest   : selects all the best score hits.\n  randombest: selects a random hit from all best score hits.\n  leftmost  : selects a hit which has the best score and the\n              smallest mapping coordinate in any reference.\nDefault value is randombest.",
+            "id": "pbalign.task_options.hit_policy",
+            "name": "Hit policy",
+            "optionTypeId": "pbsmrtpipe.option_types.string"
+        },
+        {
+            "default": false,
+            "description": "Map subreads of a ZMW to the same genomic location",
+            "id": "pbalign.task_options.concordant",
+            "name": "Concordant alignment",
+            "optionTypeId": "pbsmrtpipe.option_types.boolean"
+        },
+        {
+            "default": 1,
+            "description": "Number of .bam files to create in consolidate mode",
+            "id": "pbalign.task_options.consolidate_n_files",
+            "name": "Number of .bam files",
+            "optionTypeId": "pbsmrtpipe.option_types.integer"
+        }
+    ],
+    "version": "0.1.0"
+}

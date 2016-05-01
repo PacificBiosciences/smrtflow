@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="c26d016a-3479-4313-8d8d-7c9e9394a994" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/HP_V1_02_fasta.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/HP_V1_02_fasta.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/HP_V1_02_fasta.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>129</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="HP.V1.02" Length="129" Digest="8fb8a10d20a846edd76eea44a52e72e1"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

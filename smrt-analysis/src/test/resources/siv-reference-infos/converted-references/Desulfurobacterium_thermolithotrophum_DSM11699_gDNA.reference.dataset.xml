@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="7f3d7b46-0abd-4d1a-94d3-84722c221fba" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699_gDNA.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699_gDNA.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699_gDNA.fasta.sa"/><FileIndex MetaType="sam_idx" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699_gDNA.fasta.fai"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>1541968</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="gi|325064654|gb|CP002543.1| Desulfurobacterium thermolithotrophu" Length="1541968" Digest="66689276c61feb423c8edaf6328e0137"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

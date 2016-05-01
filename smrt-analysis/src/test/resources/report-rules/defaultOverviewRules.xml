@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<overviewRules>
+
+
+    <reportGroups>
+
+        <reportGroup name="GENERAL">
+            <reports>
+                <report title="Reads Of Insert" key="Reads-Of-Insert-Report"
+                        rules="readsOfInsertRules.xml" />
+                <report title="Summary" key="Summary" rules="movieSummaryRules.xml" />
+                <report title="Filtering" key="Filtering" rules="filterStatsRules.xml" />
+                <report title="Subread Filtering" key="Subread-Filtering"
+                        rules="filterSubreadStatsRules.xml" />
+                <report title="Barcoding" key="Barcoding" rules="barcodeRules.xml" />
+            </reports>
+        </reportGroup>
+
+        <!-- Added because the internal-addon does not allow file overwrite -->
+        <reportGroup name="INTERNAL">
+            <reports>
+                <report title="Missing Dot" key="Missing-Dot"
+                        rules="missingDotRules.xml" />
+                <report title="Chimera Dot" key="Chimera-Dot"
+                        rules="chimeraDotRules.xml" />
+                <report title="Undetected Dot" key="Undetected-Dot"
+                        rules="undetectedDotRules.xml" />
+                <report title="Overhang Dot" key="Overhang-Dot"
+                        rules="overhangDotRules.xml" />
+                <report title="Rainbow" key="Rainbow"
+                        rules="rainbowRules.xml" />
+            </reports>
+        </reportGroup>
+        <reportGroup name="DIAGNOSTIC">
+            <reports>
+                <report title="Adapters" key="Adapters" rules="filterAdaptersRules.xml" />
+                <report title="Loading" key="Loading" rules="filterLoadingRules.xml" />
+                <report title="Spike-In Control" key="Spike-In-Control"
+                        rules="controlReportRules.xml" />
+                <report title="Site Acceptance Test" key="Site-Acceptance-Test"
+                        rules="satRules.xml" />
+            </reports>
+        </reportGroup>
+
+        <reportGroup name="RESEQUENCING">
+            <reports>
+                <report title="Mapping" key="Mapping" rules="mappingStatsRules.xml" />
+                <report title="Coverage" key="Coverage" rules="coverageRules.xml" />
+            </reports>
+        </reportGroup>
+
+        <reportGroup name="ANALYSIS">
+            <reports>
+                <report title="Variants" key="Variants" rules="variantsRules.xml" />
+                <report title="Top Variants" key="Top-Variants" rules="topVariantsRules.xml" />
+                <report title="Top Rare Variants" key="Top-Rare-Variants"
+                        rules="topRareVariantsRules.xml" />
+            </reports>
+        </reportGroup>
+
+        <reportGroup name="MODIFICATIONS">
+            <reports>
+                <report title="Modifications" key="Modifications" rules="kineticsReportRules.xml" />
+                <report title="Motifs" key="Motifs" rules="motifSummaryRules.xml" />
+            </reports>
+        </reportGroup>
+
+        <reportGroup name="ASSEMBLY">
+            <reports>
+                <report title="Draft Assembly" key="Draft-Assembly" rules="draftAssemblyRules.xml" />
+                <report title="Pre-Assembly" key="Pre-Assembly"
+                        rules="preAssemblerReportRules.xml" />
+                <report title="Final Assembly" key="Final-Assembly"
+                        rules="hybridAssemblyFinalRules.xml" />
+                <report title="Assembly Iterations" key="Assembly-Iterations"
+                        rules="hybridAssemblyIterationsRules.xml" />
+                <report title="Polished Assembly" key="Polished-Assembly"
+                        rules="polishedRules.xml" />
+
+                <!-- Only HGAP shows corrects, I think. It has its own rules. -->
+                <!-- report title="Top Corrections" key="Top-Corrections" rules="topCorrectionsRules.xml"
+                    /> <report title="Corrections" key="Corrections" rules="correctionsRules.xml"
+                    / -->
+            </reports>
+        </reportGroup>
+
+        <reportGroup name="AMPLICONS">
+            <reports>
+                <report title="Input Metrics" key="Input-Metrics"
+                        rules="ampliconAnalysisInputRules.xml" />
+                <report title="Consensus Summary" key="Consensus-Summary"
+                        rules="ampliconAnalysisConsensusRules.xml" />
+            </reports>
+        </reportGroup>
+
+    </reportGroups>
+
+
+    <attributesRules>
+        <attributeRules id="adapter.adapter_dimers" />
+        <attributeRules id="adapter.short_inserts" />
+        <attributeRules id="filtering_report.base_n_post_filter">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.reads_n_post_filter">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.n50_read_length_post_filter">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.mean_read_length_post_filter">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.mean_read_score_post_filter">
+            <valueFormat type="double" />
+        </attributeRules>
+        <attributeRules id="mapping_stats.mapped_reads_n">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="mapping_stats.mean_max_subread_readlength">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="variants.mean_contig_length">
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="variants.weighted_mean_bases_called">
+            <valueFormat type="double" pattern="#0.0#%" />
+        </attributeRules>
+        <attributeRules id="variants.weighted_mean_concordance">
+            <valueFormat type="double" pattern="#0.0#%" />
+        </attributeRules>
+        <attributeRules id="variants.weighted_mean_coverage">
+            <valueFormat type="double" />
+        </attributeRules>
+        <attributeRules id="variants.longest_contig_name" />
+    </attributesRules>
+
+    <coreAttributesRules>
+        <attributeRules id="variants.weighted_mean_coverage" >
+            <valueFormat type="double" />
+        </attributeRules>
+        <attributeRules id="filtering_report.base_n_post_filter" >
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.n50_read_length_post_filter" >
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="filtering_report.mean_read_length_post_filter"  >
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="mapping_stats.mapped_subreadlength_n50"  >
+            <valueFormat type="int" />
+        </attributeRules>
+        <attributeRules id="mapping_stats.mapped_subread_readlength_mean"  >
+            <valueFormat type="int" />
+        </attributeRules>
+    </coreAttributesRules>
+
+    <thumbnailRules>
+        <thumbnailRule id="adapter.observed_insert_length_distribution"
+                       caption="Observed Insert Length Distribution Histogram" title="Adapters"
+                       key="Adapters" />
+        <thumbnailRule id="filter_subread.subread" caption="Subread Filtering"
+                       title="Subread Filtering" key="Subread-Filtering" />
+
+        <thumbnailRule id="control.polymerase_read_quality"
+                       title="Spike-In Control" key="Spike-In-Control" />
+
+        <thumbnailRule id="control.polymerase_read_length"
+                       title="Spike-In Control" key="Spike-In-Control" />
+
+        <thumbnailRule id="mapping_stats.subread_accuracy_group"
+                       caption="Mapped Subread Concordance" title="Mapping" key="Mapping" />
+        <thumbnailRule id="mapping_stats.subreadlength_plot"
+                       caption="Mapped Subread Length" title="Mapping" key="Mapping" />
+        <thumbnailRule id="mapping_stats.readlength_plot"
+                       caption="Mapped Polymerase Read Length" title="Mapping" key="Mapping" />
+        <thumbnailRule id="coverage.coverage_plots" caption="Coverage Across Reference"
+                       title="Coverage" key="Coverage" />
+        <thumbnailRule id="coverage.coverage_histogram_plot_group"
+                       caption="Depth of Coverage" title="Coverage" key="Coverage" />
+        <thumbnailRule id="variants.variants_plots" caption="Variants Across Contigs"
+                       title="Variants" key="Variants" />
+
+        <thumbnailRule id="modifications.kinetic_detections"
+                       caption="Modifications" title="Modifications" key="Modifications" />
+
+    </thumbnailRules>
+</overviewRules>

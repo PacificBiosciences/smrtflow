@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="a5cd3517-6e80-42d6-90ba-3a38d49567f0" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/OneMillionRandomBases.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/OneMillionRandomBases.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/OneMillionRandomBases.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>1000000</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="One Million Random Bases" Length="1000000" Digest="da6414262fcb8e9f06283aa76d6653a2"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

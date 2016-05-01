@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="139a3672-7b83-4676-aa39-f5705a1e9431" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Rhodobacter_palustris_CGA0009.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/Rhodobacter_palustris_CGA0009.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/Rhodobacter_palustris_CGA0009.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>5459213</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="Rhodopseudomonas palustris CGA009 chromosome, complete genome" Length="5459213" Digest="393f13aa5f60b5801cd08e779ae75f28"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>
