@@ -89,6 +89,8 @@ def PacBioProject(name: String): Project = (
       "com.jsuereth" %% "scala-arm" % "1.4",
       "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
       "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
+      "org.scalaj" %% "scalaj-http" % "1.1.5",
+      "org.flywaydb" % "flyway-core" % "4.0",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full
     )
     )
@@ -128,12 +130,12 @@ lazy val smrtServerBase = (
 
 lazy val smrtServerLink = (
   PacBioProject("smrt-server-link")
-    dependsOn(common, smrtAnalysis)
+    dependsOn(common, smrtAnalysis, smrtServerBase)
     settings()
   )
 
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
-    dependsOn(common, smrtAnalysis, smrtServerLink)
+    dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink)
     settings()
   )
