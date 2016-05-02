@@ -1,0 +1,17 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_ds_laa",
+  "name": "Override Pipeline Display Name",
+  "description": "Override Description",
+  "taskOptions": [
+    {"id": "pblaa.task_options.full_length",       "hidden": false},
+    {"id": "pblaa.task_options.min_barcode_score", "hidden": false},
+    {"id": "pblaa.task_options.max_length",        "hidden": false},
+    {"id": "pblaa.task_options.max_phasing_reads", "hidden": false},
+    {"id": "pblaa.task_options.max_reads",         "hidden": false},
+    {"id": "pblaa.task_options.min_length",        "hidden": false},
+    {"id": "pblaa.task_options.min_read_score",    "hidden": false},
+    {"id": "pblaa.task_options.min_snr",           "hidden": false},
+    {"id": "pblaa.task_options.min_split_reads",   "hidden": false},
+    {"id": "pblaa.task_options.no_clustering",     "hidden": false}
+  ]
+}

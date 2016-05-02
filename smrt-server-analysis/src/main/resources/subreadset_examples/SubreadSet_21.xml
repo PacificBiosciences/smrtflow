@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataSet MetaType="PacBio.DataSet.SubreadSet" Name="DataSet_SubreadSet_21" Tags="mySpecial-Tags barcode moreTags mytags" UniqueId="25f746d0-962f-4596-bf4b-7cc686cbf040">
+    <MetaData>
+        <CreatedAt>2014-10-24T19:17:30+00:00</CreatedAt>
+        <Version>0.3.0</Version>
+        <NumRecords>95</NumRecords>
+        <TotalLength>79</TotalLength>
+        <CellIds>
+            <CellId>788034</CellId>
+            <CellId>956118</CellId>
+            <CellId>543459</CellId>
+            <CellId>825884</CellId>
+            <CellId>190304</CellId>
+            <CellId>712947</CellId>
+            <CellId>554253</CellId>
+            <CellId>182041</CellId>
+            <CellId>383020</CellId>
+            <CellId>593939</CellId>
+        </CellIds>
+        <WellSampleName>well_sample_420</WellSampleName>
+        <SampleName>sample_639</SampleName>
+        <PlateName>plate_596</PlateName>
+        <InstrumentId>Random string</InstrumentId>
+        <InstrumentName>instrument_388</InstrumentName>
+        <RunId>Random string</RunId>
+        <RunName>run_407</RunName>
+        <CollectionProtocol>Random string</CollectionProtocol>
+        <PrimaryVersion>0.2.0</PrimaryVersion>
+        <PrimaryProtocol>Random string</PrimaryProtocol>
+        <Chemistry>P6-C4</Chemistry>
+    </MetaData>
+    <ExternalDataReferences>
+        <InputOutputData path="/first/path/to/2.bax.h5">
+            <MetaData>
+                <RunName>run_407</RunName>
+            </MetaData>
+        </InputOutputData>
+        <InputOutputData path="/second/path/to/1.bax.h5">
+            <MetaData>
+                <RunName>run_407</RunName>
+            </MetaData>
+        </InputOutputData>
+    </ExternalDataReferences>
+    <SubsetDefinition MetaType="Subset.ReadSubset.ByZmwList">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+            <Zmw>2</Zmw>
+        </Movie>
+    </SubsetDefinition>
+    <SubsetLabel MetaType="SubsetLabel.ReadSubsetLabel.ByZmwList" Name="First ZMW Label">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+        </Movie>
+    </SubsetLabel>
+</DataSet>

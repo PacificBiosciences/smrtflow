@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataSet MetaType="PacBio.DataSet.SubreadSet" Name="DataSet_SubreadSet_28" Tags="barcode" UniqueId="14e1c827-2448-4bc2-bea6-e40811439fca">
+    <MetaData>
+        <CreatedAt>2014-10-24T19:17:30+00:00</CreatedAt>
+        <Version>0.1.0</Version>
+        <NumRecords>95</NumRecords>
+        <TotalLength>81</TotalLength>
+        <CellIds>
+            <CellId>201341</CellId>
+            <CellId>405089</CellId>
+        </CellIds>
+        <WellSampleName>well_sample_834</WellSampleName>
+        <SampleName>sample_733</SampleName>
+        <PlateName>plate_938</PlateName>
+        <InstrumentId>Random string</InstrumentId>
+        <InstrumentName>instrument_578</InstrumentName>
+        <RunId>Random string</RunId>
+        <RunName>run_872</RunName>
+        <CollectionProtocol>Random string</CollectionProtocol>
+        <PrimaryVersion>0.5.0</PrimaryVersion>
+        <PrimaryProtocol>Random string</PrimaryProtocol>
+        <Chemistry>[Multiple]</Chemistry>
+    </MetaData>
+    <ExternalDataReferences>
+        <InputOutputData path="/first/path/to/2.bax.h5">
+            <MetaData>
+                <RunName>run_872</RunName>
+            </MetaData>
+        </InputOutputData>
+        <InputOutputData path="/second/path/to/1.bax.h5">
+            <MetaData>
+                <RunName>run_872</RunName>
+            </MetaData>
+        </InputOutputData>
+    </ExternalDataReferences>
+    <SubsetDefinition MetaType="Subset.ReadSubset.ByZmwList">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+            <Zmw>2</Zmw>
+        </Movie>
+    </SubsetDefinition>
+    <SubsetLabel MetaType="SubsetLabel.ReadSubsetLabel.ByZmwList" Name="First ZMW Label">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+        </Movie>
+    </SubsetLabel>
+</DataSet>

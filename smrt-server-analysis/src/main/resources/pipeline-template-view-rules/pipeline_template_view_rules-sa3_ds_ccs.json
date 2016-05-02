@@ -1,0 +1,9 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_ds_ccs",
+  "name": "Override Pipeline Display Name",
+  "description": "Override Description",
+  "taskOptions": [
+    {"id": "pbccs.task_options.min_passes", "hidden": false},
+    {"id": "pbccs.task_options.min_predicted_accuracy", "hidden": false}
+  ]
+}

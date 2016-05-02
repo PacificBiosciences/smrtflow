@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="Staphylococcus_aureus_USA300" CreatedAt="2015-09-08T17:10:44.206-07:00" UniqueId="b2a1307e-f81b-4137-928a-1dfde90761d3" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Staphylococcus_aureus_USA300.fasta" UniqueId="1055e11c-9156-4701-9dd9-4ff8153094e6" TimeStampedName="1055e11c-9156-4701-9dd9-4ff8153094e6_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="a3b3650b-ffe9-4b29-b4e3-7d51fdf49688" TimeStampedName="a3b3650b-ffe9-4b29-b4e3-7d51fdf49688_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/Staphylococcus_aureus_USA300.fasta.index"/><pbbase:FileIndex UniqueId="a068d9fc-965c-4fbd-aef7-9d149314eb73" TimeStampedName="a068d9fc-965c-4fbd-aef7-9d149314eb73_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/Staphylococcus_aureus_USA300.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            2872769
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            Staphylococcus_aureus_USA300
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="gi|87125858|gb|CP000255.1| Staphylococcus aureus subsp. aureus U" Length="2872769" Digest="3bff10c950fbe7434aa6c82ffdd76689"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

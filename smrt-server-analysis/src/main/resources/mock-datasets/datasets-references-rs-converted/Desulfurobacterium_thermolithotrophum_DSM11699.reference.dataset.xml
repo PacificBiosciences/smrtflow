@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="Desulfurobacterium_thermolithotrophum_DSM11699" CreatedAt="2015-09-08T17:10:54.231-07:00" UniqueId="e960cd3a-72e5-48a8-bf10-e832d61ed7fd" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699.fasta" UniqueId="a48d71fa-3376-486d-b817-b7aed128a276" TimeStampedName="a48d71fa-3376-486d-b817-b7aed128a276_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="8cdc7592-d2c6-413d-8589-6fe9b54d9d9e" TimeStampedName="8cdc7592-d2c6-413d-8589-6fe9b54d9d9e_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699.fasta.index"/><pbbase:FileIndex UniqueId="25deb3b4-4a9c-4a60-81ec-4f391a0c0f67" TimeStampedName="25deb3b4-4a9c-4a60-81ec-4f391a0c0f67_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699.fasta.sa"/><pbbase:FileIndex UniqueId="5d683928-faf7-4c17-9a59-79d70eaefcb9" TimeStampedName="5d683928-faf7-4c17-9a59-79d70eaefcb9_tsn" MetaType="sam_idx" ResourceId="./sequence/Desulfurobacterium_thermolithotrophum_DSM11699.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            1541968
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            Desulfurobacterium_thermolithotrophum_DSM11699
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="gi|325064654|gb|CP002543.1| Desulfurobacterium thermolithotrophu" Length="1541968" Digest="66689276c61feb423c8edaf6328e0137"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

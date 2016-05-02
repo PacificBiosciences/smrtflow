@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="lambda_plus_garbage" CreatedAt="2015-09-08T17:10:50.718-07:00" UniqueId="8230a559-c979-4d05-947c-6f00765da605" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/lambda_plus_garbage.fasta" UniqueId="f26a2f75-bb5e-444a-8108-c2e82464e62a" TimeStampedName="f26a2f75-bb5e-444a-8108-c2e82464e62a_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="d83443d6-cf91-428a-9fe1-643af00a94e3" TimeStampedName="d83443d6-cf91-428a-9fe1-643af00a94e3_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/lambda_plus_garbage.fasta.index"/><pbbase:FileIndex UniqueId="325f7308-1ec7-4a00-bcc3-a29e4098e62b" TimeStampedName="325f7308-1ec7-4a00-bcc3-a29e4098e62b_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/lambda_plus_garbage.fasta.sa"/><pbbase:FileIndex UniqueId="adff4adc-4029-49b6-8ebe-70f006163a23" TimeStampedName="adff4adc-4029-49b6-8ebe-70f006163a23_tsn" MetaType="sam_idx" ResourceId="./sequence/lambda_plus_garbage.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            53502
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            2
+          </pbds:NumRecords>
+          <pbds:Organism>
+            lambda_plus_garbage
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="lambda_NEB3011" Length="48502" Digest="a1319ff90e994c8190a4fe6569d0822a"/><pbds:Contig Name="ref000002" Description="garbage" Length="5000" Digest="a3652ccf4309f914e3d9de4434387951"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

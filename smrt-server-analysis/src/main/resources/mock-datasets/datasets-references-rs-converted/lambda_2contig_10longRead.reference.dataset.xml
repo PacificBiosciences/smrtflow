@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="lambda_2contig_10longRead" CreatedAt="2015-09-08T17:10:40.720-07:00" UniqueId="68aa2963-9477-421e-b3c7-e383f31cafd9" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/lambda_2contig_10longRead.fasta" UniqueId="36e5f203-083a-4dff-b31a-1cf008066d21" TimeStampedName="36e5f203-083a-4dff-b31a-1cf008066d21_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="bb450cb8-0d07-48ec-8f13-66377823c756" TimeStampedName="bb450cb8-0d07-48ec-8f13-66377823c756_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/lambda_2contig_10longRead.fasta.index"/><pbbase:FileIndex UniqueId="50ba5500-861c-44f2-bfc4-8e6544058806" TimeStampedName="50ba5500-861c-44f2-bfc4-8e6544058806_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/lambda_2contig_10longRead.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            6000
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            2
+          </pbds:NumRecords>
+          <pbds:Organism>
+            lambda_2contig_10longRead
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="contig_0" Length="3000" Digest="c4ae2180cce102c9a8c27a9c445216a9"/><pbds:Contig Name="ref000002" Description="contig_1" Length="3000" Digest="a2991915ab199470af7c953e9a9f2141"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

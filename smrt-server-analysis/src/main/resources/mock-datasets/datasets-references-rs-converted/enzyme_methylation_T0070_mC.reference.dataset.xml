@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="enzyme_methylation_T0070_mC" CreatedAt="2015-09-08T17:10:36.471-07:00" UniqueId="856cd26e-fdf9-428f-a797-dbdc3f79392c" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/enzyme_methylation_T0070_mC.fasta" UniqueId="4a2cab98-08b8-4784-a850-8344fbb82eca" TimeStampedName="4a2cab98-08b8-4784-a850-8344fbb82eca_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="f9197503-67f0-4220-bc39-a1f03cb42ce8" TimeStampedName="f9197503-67f0-4220-bc39-a1f03cb42ce8_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/enzyme_methylation_T0070_mC.fasta.index"/><pbbase:FileIndex UniqueId="7e30db82-aa33-4407-808a-63f4174b8222" TimeStampedName="7e30db82-aa33-4407-808a-63f4174b8222_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/enzyme_methylation_T0070_mC.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            64
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            enzyme_methylation_T0070_mC
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="enzyme_methylation_insert" Length="64" Digest="5e280dfc01af79a656ac79799cf3d038"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

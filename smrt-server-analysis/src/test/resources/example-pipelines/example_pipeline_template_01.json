@@ -1,0 +1,28 @@
+{
+  "_comment": "Created pipeline pbsmrtpipe.pipelines.dev_01 with pbsmrtpipe v0.34.0",
+  "bindings": [],
+  "description": "Simplest possible pipeline, a single Task",
+  "entryPoints": [
+    {
+      "entryId": "e_01",
+      "fileTypeId": "PacBio.FileTypes.txt",
+      "name": "Entry Name: PacBio.FileTypes.txt"
+    }
+  ],
+  "id": "pbsmrtpipe.pipelines.dev_01",
+  "name": "Example Dev 01 pipeline",
+  "options": [],
+  "tags": [
+    "dev"
+  ],
+  "taskOptions": [
+    {
+      "default": "Hello Dev message",
+      "description": "Option dev_message description",
+      "id": "pbsmrtpipe.task_options.dev_message",
+      "name": "Option dev_message",
+      "optionTypeId": "string"
+    }
+  ],
+  "version": "0.1.0"
+}

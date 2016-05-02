@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<pipeline-template-preset id="pbsmrtpipe.pipeline_presets.sa3_ds_resequencing_fat_rsii" pipeline-id="pbsmrtpipe.pipelines.sa3_ds_resequencing_fat">
+
+    <!-- For Official pipeline presets, the Pbsmrtpipe Engine Options should NOT be overridden -->
+    <options />
+
+    <!-- Default override for task options -->
+    <task-options>
+        <option id="genomic_consensus.task_options.algorithm">
+            <value>quiver</value>
+        </option>
+    </task-options>
+
+</pipeline-template-preset>

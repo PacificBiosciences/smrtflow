@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="ecoliK12_pbi_March2013" CreatedAt="2015-09-08T17:10:41.411-07:00" UniqueId="9bd954c3-6533-4836-b2b5-b466989b4bf4" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/ecoliK12_pbi_March2013.fasta" UniqueId="90800f16-9044-4234-911e-279ccee740ca" TimeStampedName="90800f16-9044-4234-911e-279ccee740ca_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="c71861f2-b160-499a-80cd-54c30221905f" TimeStampedName="c71861f2-b160-499a-80cd-54c30221905f_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/ecoliK12_pbi_March2013.fasta.index"/><pbbase:FileIndex UniqueId="d04979ca-5875-473f-9806-ddce0904d2cc" TimeStampedName="d04979ca-5875-473f-9806-ddce0904d2cc_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/ecoliK12_pbi_March2013.fasta.sa"/><pbbase:FileIndex UniqueId="b2240182-5e36-418a-a8ad-d0ace0756746" TimeStampedName="b2240182-5e36-418a-a8ad-d0ace0756746_tsn" MetaType="sam_idx" ResourceId="./sequence/ecoliK12_pbi_March2013.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            4642522
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            ecoliK12_pbi_March2013
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="ecoliK12_pbi_March2013" Length="4642522" Digest="52cd7c5fa92877152fa487906ae484c5"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

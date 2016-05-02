@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="pacbio_smrtbell_barcodes_4x" CreatedAt="2015-09-08T17:10:39.229-07:00" UniqueId="8ffe4040-a067-4785-b78e-c6a1719efe45" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/pacbio_smrtbell_barcodes_4x.fasta" UniqueId="82b07a85-ee55-4318-9592-f7d1dbb38d83" TimeStampedName="82b07a85-ee55-4318-9592-f7d1dbb38d83_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="c0703a48-6a74-43ce-8981-cc0193a10516" TimeStampedName="c0703a48-6a74-43ce-8981-cc0193a10516_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/pacbio_smrtbell_barcodes_4x.fasta.index"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            56
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            8
+          </pbds:NumRecords>
+          <pbds:Organism>
+            pacbio_smrtbell_barcodes_4x
+          </pbds:Organism>
+          <pbds:Ploidy>
+            haploid
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="F3" Length="7" Digest="67c5667d5605f70666f2a1ce8ac71ad6"/><pbds:Contig Name="ref000002" Description="R3" Length="7" Digest="99de6de9cc2292e6dade923a07f87f70"/><pbds:Contig Name="ref000003" Description="F4" Length="7" Digest="e77cd0724b42b589712d89493398de2d"/><pbds:Contig Name="ref000004" Description="R4" Length="7" Digest="5b5ec146487e6e3e725960ce292b0fc0"/><pbds:Contig Name="ref000005" Description="F6" Length="7" Digest="199de43ab5aea6a5d1dd5df14325ed51"/><pbds:Contig Name="ref000006" Description="R6" Length="7" Digest="5b180392651501b7bffc6b5462e76a11"/><pbds:Contig Name="ref000007" Description="F7" Length="7" Digest="1f2db818cb27acbdda3ce8b57b1a9361"/><pbds:Contig Name="ref000008" Description="R7" Length="7" Digest="22c4ad07274ab3e07bfc08da418f3e22"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="pipeline-template-preset" type="pipeline-template-presetType"/>
+  <xs:complexType name="optionType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="value"/>
+    </xs:sequence>
+    <xs:attribute type="xs:string" name="id" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="pipeline-template-presetType">
+    <xs:sequence>
+      <xs:element type="optionsType" name="options">
+        <xs:annotation>
+          <xs:documentation>For Official pipeline presets, the Pbsmrtpipe Engine Options should NOT be overridden</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="task-optionsType" name="task-options">
+        <xs:annotation>
+          <xs:documentation>Default override for task options</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute type="xs:string" name="id"/>
+    <xs:attribute type="xs:string" name="pipeline-id"/>
+  </xs:complexType>
+  <xs:complexType name="optionsType">
+    <xs:sequence>
+      <xs:element type="optionType" name="option"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="task-optionsType">
+    <xs:sequence>
+      <xs:element type="optionType" name="option"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

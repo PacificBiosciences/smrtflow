@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="lambdaNEB" CreatedAt="2015-09-08T17:10:24.382-07:00" UniqueId="6ce64419-a762-4d2f-91be-6e17bec21ba8" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/lambdaNEB.fasta" UniqueId="2a72e769-6467-438c-8f3b-98d15bfe4763" TimeStampedName="2a72e769-6467-438c-8f3b-98d15bfe4763_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="c6b00fb1-823f-43ee-aef2-1168749225c4" TimeStampedName="c6b00fb1-823f-43ee-aef2-1168749225c4_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/lambdaNEB.fasta.index"/><pbbase:FileIndex UniqueId="71c05181-7c3b-40b8-be53-45710cea1236" TimeStampedName="71c05181-7c3b-40b8-be53-45710cea1236_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/lambdaNEB.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            48502
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            lambdaNEB
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="lambda_NEB3011" Length="48502" Digest="a1319ff90e994c8190a4fe6569d0822a"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

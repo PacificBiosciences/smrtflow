@@ -1,0 +1,58 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "pacbio.secondary.schemas.workflow-templates",
+    "version": "1.0.0",
+    "title": "Analysis Template",
+    "description": "Analysis Template Schema",
+    "type": "object",
+    "properties": {
+        "id": {
+            "title": "Id",
+            "description": "Unique Workflow Template Id",
+            "type": "string"
+        },
+        "name": {
+            "title": "Analysis Template",
+            "description": "Name of this Analysis Template",
+            "type": "string",
+            "minLength": 1
+        },
+        "group": {
+          "title": "Analysis Template Group",
+          "description": "",
+          "type": "string"
+        },
+        "application": {
+          "title": "Analysis Application",
+          "description": "One of: De Novo Assembly, Sequence Alignment, or Data QC.",
+          "type": "string",
+          "enum": ["Data QC", "De Novo Assembly", "Sequence Alignment"]
+        },
+        "version": {
+            "title": "Version",
+            "description": "A semantic-versioning version number for this template",
+            "type": "string",
+            "format": "sem-ver",
+            "minLength": 5
+        },
+        "options": {
+            "title": "Workflow Options",
+            "description": "Workflow Level Options",
+            "type": "array"
+        },
+        "taskOptions": {
+            "title": "Task Options",
+            "description": "Task Options",
+            "type": "array"
+        },
+        "createdAt": {
+            "title": "Created at",
+            "description": "Time when the Analysis Template was created",
+            "type": "string",
+            "format": "date-time"
+        }
+    },
+
+    "required": ["id", "options", "taskOptions", "version"],
+    "additionalProperties": true
+}
