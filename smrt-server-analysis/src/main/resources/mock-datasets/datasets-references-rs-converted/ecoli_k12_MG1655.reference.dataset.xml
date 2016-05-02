@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="ecoli_k12_MG1655" CreatedAt="2015-09-08T17:10:46.946-07:00" UniqueId="bc6bb947-f3ad-4c9f-bc91-49c9d861a637" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/ecoli_k12_MG1655.fasta" UniqueId="2f8dcdf0-c88d-4fa8-9c72-e24d0c855873" TimeStampedName="2f8dcdf0-c88d-4fa8-9c72-e24d0c855873_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="7c95bf9d-634c-47dd-8430-24a9e966c3e9" TimeStampedName="7c95bf9d-634c-47dd-8430-24a9e966c3e9_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/ecoli_k12_MG1655.fasta.index"/><pbbase:FileIndex UniqueId="a016d6ee-aa59-40a0-8447-79e65cf9f11c" TimeStampedName="a016d6ee-aa59-40a0-8447-79e65cf9f11c_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/ecoli_k12_MG1655.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            4639675
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            ecoli_k12_MG1655
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="Escherichia_coli_K12" Length="4639675" Digest="05dc7a37701cdc6bcf154344a227983d"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

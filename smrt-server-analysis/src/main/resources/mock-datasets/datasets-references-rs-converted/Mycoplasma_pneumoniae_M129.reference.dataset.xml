@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="Mycoplasma_pneumoniae_M129" CreatedAt="2015-09-08T17:10:29.478-07:00" UniqueId="b310210c-9481-43c7-aa96-bf248946230a" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta" UniqueId="e9a09b6b-3f3e-45e2-b537-ea35ac904faa" TimeStampedName="e9a09b6b-3f3e-45e2-b537-ea35ac904faa_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="07636b2e-5993-411b-9db5-a17426200eb5" TimeStampedName="07636b2e-5993-411b-9db5-a17426200eb5_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta.index"/><pbbase:FileIndex UniqueId="d5b21143-bb0d-4e02-bf34-f14f984a3d5a" TimeStampedName="d5b21143-bb0d-4e02-bf34-f14f984a3d5a_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/Mycoplasma_pneumoniae_M129.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            816394
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            Mycoplasma_pneumoniae_M129
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="Mycoplasma pneumoniae M129" Length="816394" Digest="c341de222fc7a6bda20d93d71e9c14fe"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

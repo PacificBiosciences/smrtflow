@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataSet MetaType="PacBio.DataSet.SubreadSet" Name="DataSet_SubreadSet_1" Tags="filter barcode moreTags mytags" UniqueId="8e30c765-e366-4902-a08f-92cad87e348d">
+    <MetaData>
+        <CreatedAt>2014-10-24T19:17:30+00:00</CreatedAt>
+        <Version>0.1.0</Version>
+        <NumRecords>47</NumRecords>
+        <TotalLength>94</TotalLength>
+        <CellIds>
+            <CellId>734873</CellId>
+            <CellId>665962</CellId>
+            <CellId>115489</CellId>
+            <CellId>144838</CellId>
+            <CellId>174425</CellId>
+        </CellIds>
+        <WellSampleName>well_sample_278</WellSampleName>
+        <SampleName>sample_153</SampleName>
+        <PlateName>plate_80</PlateName>
+        <InstrumentId>Random string</InstrumentId>
+        <InstrumentName>instrument_349</InstrumentName>
+        <RunId>Random string</RunId>
+        <RunName>run_824</RunName>
+        <CollectionProtocol>Random string</CollectionProtocol>
+        <PrimaryVersion>0.5.0</PrimaryVersion>
+        <PrimaryProtocol>Random string</PrimaryProtocol>
+        <Chemistry>P6-C4</Chemistry>
+    </MetaData>
+    <ExternalDataReferences>
+        <InputOutputData path="/first/path/to/2.bax.h5">
+            <MetaData>
+                <RunName>run_824</RunName>
+            </MetaData>
+        </InputOutputData>
+        <InputOutputData path="/second/path/to/1.bax.h5">
+            <MetaData>
+                <RunName>run_824</RunName>
+            </MetaData>
+        </InputOutputData>
+    </ExternalDataReferences>
+    <SubsetDefinition MetaType="Subset.ReadSubset.ByZmwList">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+            <Zmw>2</Zmw>
+        </Movie>
+    </SubsetDefinition>
+    <SubsetLabel MetaType="SubsetLabel.ReadSubsetLabel.ByZmwList" Name="First ZMW Label">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+        </Movie>
+    </SubsetLabel>
+</DataSet>

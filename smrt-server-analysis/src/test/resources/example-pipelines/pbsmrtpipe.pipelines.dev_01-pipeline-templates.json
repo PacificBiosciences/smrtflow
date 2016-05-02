@@ -1,0 +1,17 @@
+{
+  "entryPoints": [
+    {
+      "etype": "pbsmrtpipe.files.txt",
+      "entryId": "e_01"
+    }
+  ],
+  "tags": [
+    "my-tag"
+  ],
+  "taskOptions": [],
+  "options": [],
+  "name": "Example dev01",
+  "description": "Desc dev 01",
+  "version": "0.1.0",
+  "id": "pbsmrtpipe.pipelines.dev_01"
+}

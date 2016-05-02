@@ -1,0 +1,22 @@
+{
+    "id": "b095d0a3-94b8-4918-b3af-a3f81bbe519c",
+    "name": "DataSet_ReferenceSet",
+    "createdAt": "2015-01-27T09:00:01",
+    "version": "3.0.0",
+    "numRecords": 23,
+    "totalLength": 3000000001,
+    "tags": ["human", "2kb insert"],
+    "organism": "H. sapiens",
+    "ploidy": 1,
+    "path": "/mnt/absolute/path/to/reference.dataset.xml",
+    "description": "This was my first DataSet ... sniff.",
+    "importedAt": "2015-01-28T09:00:01",
+    "modifiedAt": "2015-01-29T09:00:01",
+    "status": "Complete",
+    "md5": "f627c795efad7ce0050ed42b942d408e",
+    "parentAnalysisJobId": 123456,
+    "userId": "aklammer@pacificbiosciences.com",
+    "smrtanalysisInstallId": "zwxy1234-94b8-4918-b3af-a3f81bbe519c",
+    "projectId": "abcdefgh-94b8-4918-b3af-a3f81bbe519c",
+    "serviceTags": ["favorite_ref", "AGBT 2015"]
+}

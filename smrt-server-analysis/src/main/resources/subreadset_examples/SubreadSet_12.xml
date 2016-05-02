@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataSet MetaType="PacBio.DataSet.SubreadSet" Name="DataSet_SubreadSet_12" Tags="barcode" UniqueId="ca2fa71d-ce3b-408a-8621-caaf4bdb951e">
+    <MetaData>
+        <CreatedAt>2014-10-24T19:17:30+00:00</CreatedAt>
+        <Version>0.3.0</Version>
+        <NumRecords>57</NumRecords>
+        <TotalLength>23</TotalLength>
+        <CellIds>
+            <CellId>842902</CellId>
+            <CellId>218858</CellId>
+            <CellId>531723</CellId>
+            <CellId>998034</CellId>
+            <CellId>533420</CellId>
+            <CellId>926026</CellId>
+            <CellId>2685</CellId>
+            <CellId>992918</CellId>
+        </CellIds>
+        <WellSampleName>well_sample_431</WellSampleName>
+        <SampleName>sample_311</SampleName>
+        <PlateName>plate_862</PlateName>
+        <InstrumentId>Random string</InstrumentId>
+        <InstrumentName>instrument_132</InstrumentName>
+        <RunId>Random string</RunId>
+        <RunName>run_38</RunName>
+        <CollectionProtocol>Random string</CollectionProtocol>
+        <PrimaryVersion>0.4.0</PrimaryVersion>
+        <PrimaryProtocol>Random string</PrimaryProtocol>
+        <Chemistry>XL-C2</Chemistry>
+    </MetaData>
+    <ExternalDataReferences>
+        <InputOutputData path="/first/path/to/2.bax.h5">
+            <MetaData>
+                <RunName>run_38</RunName>
+            </MetaData>
+        </InputOutputData>
+        <InputOutputData path="/second/path/to/1.bax.h5">
+            <MetaData>
+                <RunName>run_38</RunName>
+            </MetaData>
+        </InputOutputData>
+    </ExternalDataReferences>
+    <SubsetDefinition MetaType="Subset.ReadSubset.ByZmwList">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+            <Zmw>2</Zmw>
+        </Movie>
+    </SubsetDefinition>
+    <SubsetLabel MetaType="SubsetLabel.ReadSubsetLabel.ByZmwList" Name="First ZMW Label">
+        <Movie id="m130110_062238_00114_c100480560100000001823075906281381_s1_p0">
+            <Zmw>1</Zmw>
+        </Movie>
+    </SubsetLabel>
+</DataSet>

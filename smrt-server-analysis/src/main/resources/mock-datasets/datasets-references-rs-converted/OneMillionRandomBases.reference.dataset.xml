@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="OneMillionRandomBases" CreatedAt="2015-09-08T17:10:27.308-07:00" UniqueId="4888fa87-d852-4016-a718-7f2778fbd822" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/OneMillionRandomBases.fasta" UniqueId="28b25d73-2300-4cfc-b2a9-5d75ab81726c" TimeStampedName="28b25d73-2300-4cfc-b2a9-5d75ab81726c_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="14586249-158d-47b3-acd8-38dbf2fa3398" TimeStampedName="14586249-158d-47b3-acd8-38dbf2fa3398_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/OneMillionRandomBases.fasta.index"/><pbbase:FileIndex UniqueId="25dbb19b-3eec-4258-aa32-2c142d033e6e" TimeStampedName="25dbb19b-3eec-4258-aa32-2c142d033e6e_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/OneMillionRandomBases.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            1000000
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            OneMillionRandomBases
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="One Million Random Bases" Length="1000000" Digest="da6414262fcb8e9f06283aa76d6653a2"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

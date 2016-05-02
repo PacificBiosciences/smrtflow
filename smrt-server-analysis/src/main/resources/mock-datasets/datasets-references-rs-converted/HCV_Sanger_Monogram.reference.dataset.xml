@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="HCV_Sanger_Monogram" CreatedAt="2015-09-08T17:10:52.106-07:00" UniqueId="a4a5732d-1318-460a-a459-9f9408aeb26d" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/HCV_Sanger_Monogram.fasta" UniqueId="b724e239-3536-4bd1-9e5f-6974830db239" TimeStampedName="b724e239-3536-4bd1-9e5f-6974830db239_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="1ee654c4-e4f2-4516-9060-fee7d096b31a" TimeStampedName="1ee654c4-e4f2-4516-9060-fee7d096b31a_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/HCV_Sanger_Monogram.fasta.index"/><pbbase:FileIndex UniqueId="0843b3f1-feff-431a-ba28-24a853c0b0a3" TimeStampedName="0843b3f1-feff-431a-ba28-24a853c0b0a3_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/HCV_Sanger_Monogram.fasta.sa"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            10341
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            6
+          </pbds:NumRecords>
+          <pbds:Organism>
+            HCV_Sanger_Monogram
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="NS3/4A_Con1" Length="2055" Digest="6902748952391dfc415419f06edafc9c"/><pbds:Contig Name="ref000002" Description="NS3/4A_H77" Length="2055" Digest="a02d13b368e8fc0812f26d5eaf9bc204"/><pbds:Contig Name="ref000003" Description="NS5A_Con1" Length="1341" Digest="345262ff4efeee8bcbff741961149f83"/><pbds:Contig Name="ref000004" Description="NS5A_H77" Length="1344" Digest="f93ddab1f8e7c6c6d5f26e6d44244bde"/><pbds:Contig Name="ref000005" Description="NS5B_Con1" Length="1773" Digest="88ea54e10fb94a0f4bbbec2f89c95a2d"/><pbds:Contig Name="ref000006" Description="NS5B_H77" Length="1773" Digest="ac931ff822827853bb5e7bd1cff45621"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

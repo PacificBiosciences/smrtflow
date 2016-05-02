@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="hg19_M_sorted" CreatedAt="2015-09-08T17:10:30.190-07:00" UniqueId="a0209d6a-8d2b-4d57-9d40-cf078b0132e7" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/hg19_M_sorted.fasta" UniqueId="c9b8693b-b927-4e35-8a6c-6fb58d7d136e" TimeStampedName="c9b8693b-b927-4e35-8a6c-6fb58d7d136e_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="176606f0-5230-41c6-8402-683780b9aa79" TimeStampedName="176606f0-5230-41c6-8402-683780b9aa79_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/hg19_M_sorted.fasta.index"/><pbbase:FileIndex UniqueId="7f8b886f-896f-4137-82ce-1d09fe8b85f2" TimeStampedName="7f8b886f-896f-4137-82ce-1d09fe8b85f2_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/hg19_M_sorted.fasta.sa"/><pbbase:FileIndex UniqueId="9af6b0ec-f8a1-4af9-a7ca-626862463b3e" TimeStampedName="9af6b0ec-f8a1-4af9-a7ca-626862463b3e_tsn" MetaType="sam_idx" ResourceId="./sequence/hg19_M_sorted.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            -1199273313
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            25
+          </pbds:NumRecords>
+          <pbds:Organism>
+            hg19_M_sorted
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="chr1" Length="249250621" Digest="1b22b98cdeb4a9304cb5d48026a85128"/><pbds:Contig Name="ref000002" Description="chr2" Length="243199373" Digest="a0d9851da00400dec1098a9255ac712e"/><pbds:Contig Name="ref000003" Description="chr3" Length="198022430" Digest="641e4338fa8d52a5b781bd2a2c08d3c3"/><pbds:Contig Name="ref000004" Description="chr4" Length="191154276" Digest="23dccd106897542ad87d2765d28a19a1"/><pbds:Contig Name="ref000005" Description="chr5" Length="180915260" Digest="0740173db9ffd264d728f32784845cd7"/><pbds:Contig Name="ref000006" Description="chr6" Length="171115067" Digest="1d3a93a248d92a729ee764823acbbc6b"/><pbds:Contig Name="ref000007" Description="chr7" Length="159138663" Digest="618366e953d6aaad97dbe4777c29375e"/><pbds:Contig Name="ref000008" Description="chr8" Length="146364022" Digest="96f514a9929e410c6651697bded59aec"/><pbds:Contig Name="ref000009" Description="chr9" Length="141213431" Digest="3e273117f15e0a400f01055d9f393768"/><pbds:Contig Name="ref000010" Description="chr10" Length="135534747" Digest="988c28e000e84c26d552359af1ea2e1d"/><pbds:Contig Name="ref000011" Description="chr11" Length="135006516" Digest="98c59049a2df285c76ffb1c6db8f8b96"/><pbds:Contig Name="ref000012" Description="chr12" Length="133851895" Digest="51851ac0e1a115847ad36449b0015864"/><pbds:Contig Name="ref000013" Description="chr13" Length="115169878" Digest="283f8d7892baa81b510a015719ca7b0b"/><pbds:Contig Name="ref000014" Description="chr14" Length="107349540" Digest="98f3cae32b2a2e9524bc19813927542e"/><pbds:Contig Name="ref000015" Description="chr15" Length="102531392" Digest="e5645a794a8238215b2cd77acb95a078"/><pbds:Contig Name="ref000016" Description="chr16" Length="90354753" Digest="fc9b1a7b42b97a864f56b348b06095e6"/><pbds:Contig Name="ref000017" Description="chr17" Length="81195210" Digest="351f64d4f4f9ddd45b35336ad97aa6de"/><pbds:Contig Name="ref000018" Description="chr18" Length="78077248" Digest="b15d4b2d29dde9d3e4f93d1d0f2cbc9c"/><pbds:Contig Name="ref000019" Description="chr19" Length="59128983" Digest="1aacd71f30db8e561810913e0b72636d"/><pbds:Contig Name="ref000020" Description="chr20" Length="63025520" Digest="0dec9660ec1efaaf33281c0d5ea2560f"/><pbds:Contig Name="ref000021" Description="chr21" Length="48129895" Digest="2979a6085bfe28e3ad6f552f361ed74d"/><pbds:Contig Name="ref000022" Description="chr22" Length="51304566" Digest="a718acaa6135fdca8357d5bfe94211dd"/><pbds:Contig Name="ref000023" Description="chrM" Length="16571" Digest="d2ed829b8a1628d16cbeee88e88e39eb"/><pbds:Contig Name="ref000024" Description="chrX" Length="155270560" Digest="7e0e2e580297b7764e31dbc80c2540dd"/><pbds:Contig Name="ref000025" Description="chrY" Length="59373566" Digest="1e86411d73e6f00a10590f976be01623"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

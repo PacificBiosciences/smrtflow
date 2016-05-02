@@ -1,0 +1,37 @@
+{
+    "id": "cd95d0a3-94b8-4918-b3af-a3f81bbe519c",
+    "name": "DataSet_SubreadSet",
+    "createdAt": "2015-01-27T09:00:01",
+    "version": "3.0.0",
+    "numRecords": 1000000,
+    "totalLength": 20000000000,
+    "tags": ["human", "2kb insert"],
+
+    "cellPacBarcodes": [ "100480560100000001823075906281381", "100480560100000001823075906281382" ],
+    "collectionMetadataContexts": ["m152720_092723_00114_c100480560100000001823075906281381_s1_p0"],
+    "wellNames": ["B01"],
+    "wellSampleNames": ["Well Sample 1"],
+    "bioSampleNames": ["Craig Venter DNA 1"],
+    "plateIds": ["2014-12-24_141_NGAT_Igor_bisPNA Enrichment_Mag Bead Elution Buffers"],
+    "instrumentIds": ["43210"],
+    "instrumentNames": ["Sequel2"],
+    "runIds": ["e903682f-e502-465c-a2b6-9dd77c9f43fc"],
+    "runNames": ["beta4_130726_biotin_DEV_vs_MFG_PB11K_9458p"],
+    "instrumentControlVersions": ["2.3.0.0.140640"],
+    "automationNames": ["POC protocol"],
+    "primaryVersions": ["2.3.0.150699"],
+    "primaryAutomationNames": ["BasecallerV1"],
+
+
+    "path": "/mnt/absolute/path/to/subread.dataset.xml",
+    "description": "This was my second DataSet ... Wow!",
+    "importedAt": "2015-01-28T09:00:01",
+    "modifiedAt": "2015-01-29T09:00:01",
+    "status": "Complete",
+    "md5": "f627c795efad7ce0050ed42b942d408e",
+    "parentAnalysisJobId": 234567,
+    "userId": "aklammer@pacificbiosciences.com",
+    "smrtanalysisInstallId": "zwxy1234-94b8-4918-b3af-a3f81bbe519c",
+    "projectId": "abcdefgh-94b8-4918-b3af-a3f81bbe519c",
+    "serviceTags": ["favorite_reads", "AGBT 2015"]
+}

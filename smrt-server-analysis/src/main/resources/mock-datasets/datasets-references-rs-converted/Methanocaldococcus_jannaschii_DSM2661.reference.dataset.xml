@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="Methanocaldococcus_jannaschii_DSM2661" CreatedAt="2015-09-08T17:10:37.840-07:00" UniqueId="e0024fb5-7df1-41a4-a6b3-39ea83e1a738" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Methanocaldococcus_jannaschii_DSM2661.fasta" UniqueId="baa4b087-b848-457d-a0bd-6b8de14a5cc8" TimeStampedName="baa4b087-b848-457d-a0bd-6b8de14a5cc8_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="7bb7a641-1946-45c3-9715-5745bb90da40" TimeStampedName="7bb7a641-1946-45c3-9715-5745bb90da40_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/Methanocaldococcus_jannaschii_DSM2661.fasta.index"/><pbbase:FileIndex UniqueId="b59f66a8-8146-435f-b9eb-bbcdd26988ab" TimeStampedName="b59f66a8-8146-435f-b9eb-bbcdd26988ab_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/Methanocaldococcus_jannaschii_DSM2661.fasta.sa"/><pbbase:FileIndex UniqueId="515180de-543a-4186-9cdd-e817a0ce919b" TimeStampedName="515180de-543a-4186-9cdd-e817a0ce919b_tsn" MetaType="gatk_dict" ResourceId="./sequence/Methanocaldococcus_jannaschii_DSM2661.dict"/><pbbase:FileIndex UniqueId="54f5b0fd-200d-4907-9e5f-f964d758604c" TimeStampedName="54f5b0fd-200d-4907-9e5f-f964d758604c_tsn" MetaType="sam_idx" ResourceId="./sequence/Methanocaldococcus_jannaschii_DSM2661.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            1739927
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            3
+          </pbds:NumRecords>
+          <pbds:Organism>
+            Methanocaldococcus_jannaschii_DSM2661
+          </pbds:Organism>
+          <pbds:Ploidy>
+            haploid
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="gi|6626255|gb|L77117.1| Methanocaldococcus jannaschii DSM 2661, " Length="1664970" Digest="b0279b74eee29d4d2ccfbc4d04104466"/><pbds:Contig Name="ref000002" Description="gi|1500644|gb|L77118.1|MII2CG Methanocaldococcus jannaschii DSM " Length="58407" Digest="d50931f0257ec99ae44df464ed052306"/><pbds:Contig Name="ref000003" Description="gi|1500688|gb|L77119.1|MII1CG Methanocaldococcus jannaschii DSM " Length="16550" Digest="3db305a4bd1b322d1cb1ccc3a14ca596"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>

@@ -1,0 +1,28 @@
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="B_subtilis_strW23" CreatedAt="2015-09-08T17:10:28.801-07:00" UniqueId="422a0ddf-7e18-4a2d-b956-f5a74c9795e0" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+        <!-- Written by reference-info-to-dataset-->
+        <pbbase:ExternalResources>
+          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/B_subtilis_strW23.fasta" UniqueId="3579857e-1d48-454f-964e-eb1b3dee1f4c" TimeStampedName="3579857e-1d48-454f-964e-eb1b3dee1f4c_tsn" Tags="converted">
+            <pbbase:FileIndices>
+              <pbbase:FileIndex UniqueId="d731f27b-359f-49a0-ae09-5ec12778f09c" TimeStampedName="d731f27b-359f-49a0-ae09-5ec12778f09c_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/B_subtilis_strW23.fasta.index"/><pbbase:FileIndex UniqueId="1ca57b09-3323-4eb8-b4ad-8672927cf895" TimeStampedName="1ca57b09-3323-4eb8-b4ad-8672927cf895_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/B_subtilis_strW23.fasta.sa"/><pbbase:FileIndex UniqueId="1c676193-1e81-4497-a2e0-607d188a5bd3" TimeStampedName="1c676193-1e81-4497-a2e0-607d188a5bd3_tsn" MetaType="gatk_dict" ResourceId="./sequence/B_subtilis_strW23.dict"/><pbbase:FileIndex UniqueId="b1eabe1e-28af-447c-b53b-ce249f060a37" TimeStampedName="b1eabe1e-28af-447c-b53b-ce249f060a37_tsn" MetaType="sam_idx" ResourceId="./sequence/B_subtilis_strW23.fasta.fai"/>
+            </pbbase:FileIndices>
+          </pbbase:ExternalResource>
+        </pbbase:ExternalResources>
+
+        <pbds:DataSetMetadata>
+          <pbds:TotalLength>
+            4027676
+          </pbds:TotalLength>
+          <pbds:NumRecords>
+            1
+          </pbds:NumRecords>
+          <pbds:Organism>
+            B_subtilis_strW23
+          </pbds:Organism>
+          <pbds:Ploidy>
+            unknown
+          </pbds:Ploidy>
+          <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="NC_014479.1 Bacillus subtilis subsp. spizizenii str. W23 chromos" Length="4027676" Digest="67d9e633945350f77cfca0d2d072f9c6"/>
+          </pbds:Contigs>
+        </pbds:DataSetMetadata>
+      </pbds:ReferenceSet>
