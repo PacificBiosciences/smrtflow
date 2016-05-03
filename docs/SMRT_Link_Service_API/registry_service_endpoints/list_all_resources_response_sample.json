@@ -1,0 +1,114 @@
+[
+  {
+    "resourceId": "54033",
+    "updatedAt": "2016-02-23T09:42:24.538",
+    "uuid": "93a2d3f6-9837-4efc-86b4-e6644a4ed389",
+    "host": "icc-54033.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T09:42:24.538"
+  },
+  {
+    "resourceId": "54003",
+    "updatedAt": "2016-02-24T01:06:56.273",
+    "uuid": "0dc7a9a7-6a60-4f42-b209-f11f648e3774",
+    "host": "icc-alpha3",
+    "port": 8888,
+    "createdAt": "2016-02-24T01:06:56.273"
+  },
+  {
+    "resourceId": "54011",
+    "updatedAt": "2016-02-23T10:33:10.748",
+    "uuid": "0e373f9c-830b-46b5-ae3e-a04b3cd24ef5",
+    "host": "icc-alpha11",
+    "port": 8888,
+    "createdAt": "2016-02-23T10:33:10.748"
+  },
+  {
+    "resourceId": "54031",
+    "updatedAt": "2016-02-23T18:07:39.531",
+    "uuid": "63b1a4c7-156c-473c-b9c1-1be2bdd3a829",
+    "host": "icc-54031.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T18:07:39.531"
+  },
+  {
+    "resourceId": "54004",
+    "updatedAt": "2016-02-23T13:34:57.751",
+    "uuid": "0f2e935f-22f4-444b-b822-f1a28b1842fa",
+    "host": "icc-alpha4",
+    "port": 8888,
+    "createdAt": "2016-02-23T13:34:57.751"
+  },
+  {
+    "resourceId": "54029",
+    "updatedAt": "2016-02-23T17:26:09.732",
+    "uuid": "7afeb98b-b63b-4d27-9d51-0d40744b3bbd",
+    "host": "icc-54029.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T17:26:09.732"
+  },
+  {
+    "resourceId": "54012",
+    "updatedAt": "2016-02-23T10:37:16.592",
+    "uuid": "d147e089-7e9b-4824-a56d-c08e4bae11fd",
+    "host": "icc-alpha12",
+    "port": 8888,
+    "createdAt": "2016-02-23T10:37:16.592"
+  },
+  {
+    "resourceId": "54036",
+    "updatedAt": "2016-02-23T14:15:16.163",
+    "uuid": "1281c476-0e66-472f-971d-1268f18fc82e",
+    "host": "icc-54036.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T14:15:16.163"
+  },
+  {
+    "resourceId": "54006",
+    "updatedAt": "2016-02-23T14:32:23.879",
+    "uuid": "98fea91e-1174-4a1e-8c60-693504c2750f",
+    "host": "icc-alpha6.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T14:32:23.879"
+  },
+  {
+    "resourceId": "54034",
+    "updatedAt": "2016-02-23T14:43:14.180",
+    "uuid": "f4b54605-832a-4d8b-82ce-e2b5fe18feb7",
+    "host": "icc-54034.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T14:43:14.180"
+  },
+  {
+    "resourceId": "54009",
+    "updatedAt": "2016-02-24T13:52:06.194",
+    "uuid": "22344b7d-3892-4205-8c1b-5829320536b2",
+    "host": "icc-alpha9.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-24T13:52:06.194"
+  },
+  {
+    "resourceId": "54008",
+    "updatedAt": "2016-02-23T10:28:51.605",
+    "uuid": "b2d20fa6-15c3-4442-b985-edc1e3ca8dcf",
+    "host": "icc-alpha8",
+    "port": 8888,
+    "createdAt": "2016-02-23T10:28:51.605"
+  },
+  {
+    "resourceId": "54007",
+    "updatedAt": "2016-02-23T14:36:25.147",
+    "uuid": "8ce7cb8d-5493-4ab6-95fe-98cb8f1922cb",
+    "host": "icc-alpha7.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T14:36:25.147"
+  },
+  {
+    "resourceId": "54002i",
+    "updatedAt": "2016-02-23T15:22:10.123",
+    "uuid": "d480e5f6-b11e-4fcc-bd3a-d07ffa28ad82",
+    "host": "alpha2i.nanofluidics.com",
+    "port": 8888,
+    "createdAt": "2016-02-23T15:22:10.123"
+  }
+]

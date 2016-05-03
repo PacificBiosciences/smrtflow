@@ -1,0 +1,246 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "pacbio.secondary.schemas.datasets.ccsreads",
+    "version": "0.1.0",
+    "title": "CCS Reads DataSet Schema",
+    "description": "CCS Reads DataSet Schema",
+    "type": "object",
+    "properties": {
+
+        "id": {
+            "title": "DataSet id",
+            "description": "UUID of the DataSet XML",
+            "type": "string", "format" : "uuid"
+        },
+        "name": {
+            "title": "DataSet name",
+            "description": "Name of this DataSet XML",
+            "type": "string"
+        },
+        "createdAt": {
+            "title": "Created at",
+            "description": "Time when the DataSet XML was created",
+            "type": "string", "format" : "date-time"
+        },
+        "version": {
+            "title": "Version",
+            "description": "Version of this DataSet",
+            "type": "string"
+        },
+        "numRecords": {
+            "title": "Num records",
+            "description": "Number of CCS reads in this DataSet",
+            "type": "integer"
+        },
+        "totalLength": {
+            "title": "Total length",
+            "description": "Total length in bp of CCS reads in this DataSet",
+            "type": "integer"
+        },
+        "tags": {
+            "title": "DataSet tags",
+            "description": "Tags assigned to the DataSet upon creation",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+
+
+        "cellPacBarcodes": {
+            "title": "Cell Pac Barcodes",
+            "description": "Cell Pac Barcodes (aka SMRT Cell Ids)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "collectionMetadataContexts": {
+            "title": "Contexts",
+            "description": "Collection metadata contexts (aka Movie Names)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "wellNames": {
+            "title": "Well Names",
+            "description": "Well names of the samples sequenced",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "wellSampleNames": {
+            "title": "Well Sample Names",
+            "description": "Well sample names",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "bioSampleNames": {
+            "title": "Biological Sample Name",
+            "description": "Names from biological sample(s)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "plateIds": {
+            "title": "Plate Ids",
+            "description": "Sample plate ids",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "instrumentIds": {
+            "title": "Instrument ids",
+            "description": "Instrument ids (assigned by Instrument Control)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "instrumentNames": {
+            "title": "Instrument Names",
+            "description": "Customer assigned instrument name(s)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "runIds": {
+            "title": "Run id",
+            "description": "Pacbio run id (assigned by Run Control). RunDetails/RunId",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "runNames": {
+            "title": "Run Name",
+            "description": "Pacbio Run Name. RunDetails/Name",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "instrumentControlVersions": {
+            "title": "Instrument Control Versions",
+            "description": "Version of the instrument control software",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "automationNames": {
+            "title": "Collection protocol",
+            "description": "Instrument automation protocol names (aka Collection Protocols)",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "primaryVersions": {
+            "title": "Primary Version",
+            "description": "Primary Version",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "primaryAutomationNames": {
+            "title": "Primary Automation Names",
+            "description": "Automation Primary Protocols",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+
+
+        "path": {
+            "title": "DataSet path",
+            "description": "Path to CCS reads DataSet XML",
+            "type": "string"
+        },
+        "description": {
+            "title": "Description",
+            "description": "User description and comments",
+            "type": "string"
+        },
+        "importedAt": {
+            "title": "Imported at",
+            "description": "Time when DataSet was imported",
+            "type": "string", "format" : "date-time"
+        },
+        "modifiedAt": {
+            "title": "Modified at",
+            "description": "Time when DataSet metadata was last modified",
+            "type": "string", "format" : "date-time"
+        },
+        "status": {
+            "title": "DataSet Status",
+            "description": "Status of DataSet (New, Pending, Complete, Error). For 3.0.0-rc1 all DataSets will be Complete",
+            "type": "string"
+        },
+        "md5": {
+            "title": "md5", 
+            "description": "md5 checksum of the Dataset XML file",
+            "type": "string", "format" : "md5"
+        },
+        "parentAnalysisJobId": {
+            "title": "Parent Job Id",
+            "description": "Id of job that generated this DataSet",
+            "type": "integer"
+        },
+        "userId": {
+            "title": "User Id",
+            "description": "User Id that imported the DataSet",
+            "type": "string"
+        },
+        "smrtanalysisInstallId": {
+            "title": "SMRT Analysis Install  Id",
+            "description": "SMRT Analysis Install  that the DataSet belongs to. TODO in DataModel?",
+            "type": "string"
+        },
+        "projectId": {
+            "title": "Project Id",
+            "description": "Project that the DataSet belongs to. TODO in DataModel?",
+            "type": "string"
+        },
+        "serviceTags": {
+            "title": "User defined tags",
+            "description": "Tags defined and set at the services level",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        }
+    },
+
+    "required": [   
+        "id", 
+        "name", 
+        "createdAt", 
+        "version", 
+        "numRecords", 
+        "totalLength", 
+        "tags",  
+
+        "cellPacBarcodes", 
+        "collectionMetadataContexts",
+        "wellNames",
+        "wellSampleNames",
+        "bioSampleNames",
+        "plateIds",
+        "instrumentIds", 
+        "instrumentNames", 
+        "runIds", 
+        "runNames", 
+        "instrumentControlVersions",
+        "automationNames", 
+        "primaryVersions",
+        "primaryAutomationNames",
+
+        "path", 
+        "description", 
+        "importedAt", 
+        "modifiedAt", 
+        "status", 
+        "md5",
+        "parentAnalysisJobId",
+        "userId",
+        "smrtanalysisInstallId",
+        "projectId",
+        "serviceTags"
+    ],
+
+    "additionalProperties": false
+}

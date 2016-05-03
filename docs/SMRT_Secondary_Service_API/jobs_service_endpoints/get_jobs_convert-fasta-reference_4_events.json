@@ -1,0 +1,37 @@
+[
+  {
+    "state": "CREATED",
+    "eventId": "d4ab8b0b-25c1-4e76-ae5d-2669afaf9ac2",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:37.665-08:00",
+    "message": "Created job 4 type convert-fasta-reference with d0a65373-ac76-44c6-afbe-614bc15c6d0e"
+  },
+  {
+    "state": "SUBMITTED",
+    "eventId": "9f040d25-2876-45dd-9438-44fe49ef1361",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:39.107-08:00",
+    "message": "Updating job id d0a65373-ac76-44c6-afbe-614bc15c6d0e to SUBMITTED"
+  },
+  {
+    "state": "RUNNING",
+    "eventId": "8c6ef1c7-055e-464d-84fc-e74db65fa518",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:39.184-08:00",
+    "message": "Updating job id d0a65373-ac76-44c6-afbe-614bc15c6d0e to RUNNING"
+  },
+  {
+    "state": "RUNNING",
+    "eventId": "6694db93-4092-41c4-97fb-da680753a86b",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:39.275-08:00",
+    "message": "Updating job id d0a65373-ac76-44c6-afbe-614bc15c6d0e to RUNNING"
+  },
+  {
+    "state": "SUCCESSFUL",
+    "eventId": "6ebb1934-b4cd-407f-af68-92be513a3d39",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:40.654-08:00",
+    "message": "Updating job id d0a65373-ac76-44c6-afbe-614bc15c6d0e to SUCCESSFUL"
+  }
+]

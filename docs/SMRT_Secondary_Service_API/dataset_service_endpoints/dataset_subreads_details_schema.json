@@ -1,0 +1,479 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.secondary.schemas.datasets.subreads.details",
+  "version": "0.1.0",
+  "title": "Subread Dataset Details",
+  "description": "The raw XML of Subread DataSet de-serialized into JSON",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "title": "Dataset Name",
+      "description": "Name of this dataset",
+      "type": "string"
+    },
+    "Tags": {
+      "title": "Dataset Tags",
+      "description": "Tags of this dataset",
+      "type": "string"
+    },
+    "Version": {
+      "title": "Dataset Version",
+      "description": "Software version corresponding to this dataset",
+      "type": "string"
+    },
+    "UniqueId": {
+      "title": "Dataset UUID",
+      "description": "UUID of the dataset XML",
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+    },
+    "MetaType": {
+      "title": "Dataset MetaType",
+      "description": "MetaType of this dataset, e.g. PacBio.DataSet.SubreadSet",
+      "type": "string"
+    },
+    "TimeStampedName": {
+      "title": "Time-stamped Dataset Name",
+      "description": "Time-stamped name of the dataset XML, e.g. subreadbamfile_151116_221101",
+      "type": "string"
+    },
+    "ExternalResources": {
+      "title": "Dataset External Resources",
+      "description": "External resources of this dataset",
+      "type": "object",
+      "properties": {
+        "ExternalResource": {
+          "title": "Dataset External Resource",
+          "description": "External resource of this dataset",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": {
+                "title": "External Resource Name",
+                "description": "Name of this external resource",
+                "type": "string"
+              },
+              "Description": {
+                "title": "External Resource Description",
+                "description": "Description of this external resource",
+                "type": "string"
+              },
+              "ResourceId": {
+                "title": "External Resource ID",
+                "description": "ID of this external resource, in form of file path",
+                "type": "string"
+              },
+              "Version": {
+                "title": "External Resource Version",
+                "description": "Software version corresponding to this external resource",
+                "type": "string"
+              },
+              "UniqueId": {
+                "title": "External Resource UUID",
+                "description": "UUID of this external resource",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+              },
+              "MetaType": {
+                "title": "External Resource MetaType",
+                "description": "MetaType of this external resource, e.g. PacBio.SubreadFile.ScrapsBamFile",
+                "type": "string"
+              },
+              "TimeStampedName": {
+                "title": "Time-stamped External Resource Name",
+                "description": "Time-stamped name of this external resource",
+                "type": "string"
+              },
+              "FileIndices": {
+                "title": "File Indices of External Resource",
+                "description": "File indices of this external resource",
+                "type": "object",
+                "properties": {
+                  "FileIndex": {
+                    "title": "File Index of External Resource",
+                    "description": "File index of this external resource",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ResourceId": {
+                          "title": "File Index Resource ID",
+                          "description": "Resource ID of this file index, in form of file path",
+                          "type": "string"
+                        }
+                        "Version": {
+                          "title": "File Index Version",
+                          "description": "Software version corresponding to this file index",
+                          "type": "string"
+                        },
+                        "UniqueId": {
+                          "title": "File Index UUID",
+                          "description": "UUID of this file index",
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+                        },
+                        "MetaType": {
+                          "title": "File Index MetaType",
+                          "description": "MetaType of this file index, e.g. PacBio.Index.PacBioIndex",
+                          "type": "string"
+                        },
+                        "TimeStampedName": {
+                          "title": "Time-stamped File Index Name",
+                          "description": "Time-stamped name of this file index",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "DataSetMetadata": {
+      "title": "Dataset Metadata",
+      "description": "Metadata of this dataset",
+      "type": "object",
+      "properties": {
+        "TotalLength": {
+          "title": "Dataset Total Length",
+          "description": "Total length of this dataset",
+          "type": "integer"
+        },
+        "NumRecords": {
+          "title": "Number of Records",
+          "description": "Number of records in this dataset",
+          "type": "integer"
+        },
+        "Collections": {
+          "title": "Dataset Collections",
+          "description": "Collections for this dataset",
+          "type": "object"
+          "properties": {
+            "CollectionMetadata": {
+              "title": "Dataset Collection",
+              "description": "Collection of this dataset",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "CreatedAt": {
+                    "title": "Created at",
+                    "description": "Time when the dataset collection was created",
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "ModifiedAt": {
+                    "title": "Modified at",
+                    "description": "Time when the dataset collection was modified",
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "UniqueId": {
+                    "title": "Collection UUID",
+                    "description": "UUID of this collection",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+                  },
+                  "MetaType": {
+                    "title": "Collection MetaType",
+                    "description": "MetaType of this collection",
+                    "type": "string"
+                  },
+                  "Context": {
+                    "title": "Collection Context",
+                    "description": "Context of this collection",
+                    "type": "string"
+                  },
+                  "InstrumentId": {
+                    "title": "Instrument Id",
+                    "description": "Instrument Id corresponding to this collection",
+                    "type": "string"
+                  },
+                  "InstrumentName": {
+                    "title": "Instrument Name",
+                    "description": "Instrument name corresponding to this collection",
+                    "type": "string"
+                  },
+                  "WellSample": {
+                    "title": "Collection Well Sample",
+                    "description": "Well sample of this collection",
+                    "type": "object"
+                    "properties": {
+                      "Name": {
+                        "title": "Sample Name",
+                        "description": "Name of this sample",
+                        "type": "string"
+                      },
+                      "CreatedAt": {
+                        "title": "Created at",
+                        "description": "Time when this well sample was created",
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "ModifiedAt": {
+                        "title": "Modified at",
+                        "description": "Time when this well sample was modified",
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "Well Name": {
+                        "title": "Well Name",
+                        "description": "Name of this well",
+                        "type": "string"
+                      },
+                      "Concentration": {
+                        "title": "Concentration",
+                        "description": "Concentration of this well sample",
+                        "type": "number"
+                      },
+                      "InsertSize": {
+                        "title": "Insert Size",
+                        "description": "Insert size of this well sample",
+                        "type": "integer"
+                      },
+                      "SampleReuseEnabled": {
+                        "title": "Sample Reuse Enabled",
+                        "description": "Whether sample reuse is enabled",
+                        "type": "boolean"
+                      },
+                      "StageHotstartEnabled": {
+                        "title": "Stage Hotstart Enabled",
+                        "description": "Whether stage hotstart is enabled",
+                        "type": "boolean"
+                      },
+                      "SizeSelectionEnabled": {
+                        "title": "Size Selection Enabled",
+                        "description": "Whether size selection is enabled",
+                        "type": "boolean"
+                      },
+                      "UseCount": {
+                        "title": "Use Count",
+                        "description": "Use count of this well sample",
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "Automation": {
+                    "title": "Collection Automation",
+                    "description": "Automation of this collection",
+                    "type": "object"
+                    "properties": {
+                      "AutomationParameters": {
+                        "title": "Collection Automation Parameters",
+                        "description": "Automation parameters of this collection",
+                        "type": "object"
+                        "properties": {
+                          "AutomationParameter": {
+                            "title": "Collection Automation Parameter",
+                            "description": "Automation parameter of this collection",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "Name": {
+                                  "title": "Automation Parameter Name",
+                                  "description": "Name of this automation parameter",
+                                  "type": "string"
+                                },
+                                "CreatedAt": {
+                                  "title": "Created at",
+                                  "description": "Time when this automation parameter was created",
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "ModifiedAt": {
+                                  "title": "Modified at",
+                                  "description": "Time when this automation parameter was modified",
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "ValueDataType": {
+                                  "title": "Automation Parameter Value Data Type",
+                                  "description": "Data type of this automation parameter",
+                                  "type": "string"
+                                },
+                                "SimpleValue": {
+                                  "title": "Automation Parameter Simple Value",
+                                  "description": "Value of this automation parameter",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "CollectionNumber": {
+                    "title": "Collection Number",
+                    "description": "Collection number",
+                    "type": "integer"
+                  },
+                  "CellIndex": {
+                    "title": "Cell Index",
+                    "description": "Cell index of this collection",
+                    "type": "integer"
+                  },
+                  "CellPac": {
+                    "title": "Cell Pac",
+                    "description": "Cell pack of this collection",
+                    "type": "object"
+                    "properties": {
+                      "PartNumber": {
+                        "title": "Part Number",
+                        "description": "Part number",
+                        "type": "string"
+                      },
+                      "LotNumber": {
+                        "title": "Lot Number",
+                        "description": "Lot number",
+                        "type": "string"
+                      },
+                      "Barcode": {
+                        "title": "Barcode",
+                        "description": "Barcode",
+                        "type": "string"
+                      },
+                      "ExpirationDate": {
+                        "title": "Expiration Date",
+                        "description": "Expiration date",
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  },
+                  "TemplatePrepKit": {
+                    "title": "Template Prep Kit",
+                    "description": "Template prep kit of this collection",
+                    "type": "object"
+                    "properties": {
+                      "Name": {
+                        "title": "Name",
+                        "description": "Name",
+                        "type": "string"
+                      },
+                      "PartNumber": {
+                        "title": "Part Number",
+                        "description": "Part number",
+                        "type": "string"
+                      },
+                      "LotNumber": {
+                        "title": "Lot Number",
+                        "description": "Lot number",
+                        "type": "string"
+                      },
+                      "Barcode": {
+                        "title": "Barcode",
+                        "description": "Barcode",
+                        "type": "string"
+                      },
+                      "ExpirationDate": {
+                        "title": "Expiration Date",
+                        "description": "Expiration date",
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "MinInsertSize": {
+                        "title": "Min Insert Size",
+                        "description": "Min insert size",
+                        "type": "integer"
+                      },
+                      "MaxInsertSize": {
+                        "title": "Max Insert Size",
+                        "description": "Max insert size",
+                        "type": "integer"
+                      },
+                      "LeftAdaptorSequence": {
+                        "title": "Left Adaptor Sequence",
+                        "description": "Left adaptor sequence",
+                        "type": "string"
+                      },
+                      "RightAdaptorSequence": {
+                        "title": "Right Adaptor Sequence",
+                        "description": "Right adaptor sequence",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "BindingKit": {
+                    "title": "Binding Kit",
+                    "description": "Binding kit of this collection",
+                    "type": "object"
+                    "properties": {
+                      "Name": {
+                        "title": "Name",
+                        "description": "Name",
+                        "type": "string"
+                      },
+                      "PartNumber": {
+                        "title": "Part Number",
+                        "description": "Part number",
+                        "type": "string"
+                      },
+                      "LotNumber": {
+                        "title": "Lot Number",
+                        "description": "Lot number",
+                        "type": "string"
+                      },
+                      "Barcode": {
+                        "title": "Barcode",
+                        "description": "Barcode",
+                        "type": "string"
+                      },
+                      "ExpirationDate": {
+                        "title": "Expiration Date",
+                        "description": "Expiration date",
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  },
+                  "SequencingKitPlate": {
+                    "title": "Sequencing Kit Plate",
+                    "description": "Sequencing kit plate of this collection",
+                    "type": "object"
+                    "properties": {
+                      "PartNumber": {
+                        "title": "Part Number",
+                        "description": "Part number",
+                        "type": "string"
+                      },
+                      "LotNumber": {
+                        "title": "Lot Number",
+                        "description": "Lot number",
+                        "type": "string"
+                      },
+                      "Barcode": {
+                        "title": "Barcode",
+                        "description": "Barcode",
+                        "type": "string"
+                      },
+                      "ExpirationDate": {
+                        "title": "Expiration Date",
+                        "description": "Expiration date",
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

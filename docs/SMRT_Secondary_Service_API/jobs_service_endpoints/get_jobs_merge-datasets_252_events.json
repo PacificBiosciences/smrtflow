@@ -1,0 +1,37 @@
+[
+  {
+    "state": "CREATED",
+    "eventId": "fe5eeae7-dbcd-4e93-a55c-1467b3a9b50d",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:10.531-08:00",
+    "message": "Created job 252 type merge-datasets with 1576c753-478c-46c6-ad44-9936665df1b7"
+  },
+  {
+    "state": "SUBMITTED",
+    "eventId": "362b2722-456c-4781-a953-a4c5e8d5eca2",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:12.010-08:00",
+    "message": "Updating job id 1576c753-478c-46c6-ad44-9936665df1b7 to SUBMITTED"
+  },
+  {
+    "state": "RUNNING",
+    "eventId": "b4d94bf5-bd00-4778-9e89-1d73cf9d9336",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:12.171-08:00",
+    "message": "Updating job id 1576c753-478c-46c6-ad44-9936665df1b7 to RUNNING"
+  },
+  {
+    "state": "RUNNING",
+    "eventId": "5516a6b9-3d72-4d04-bd14-108e71ab217e",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:12.232-08:00",
+    "message": "Updating job id 1576c753-478c-46c6-ad44-9936665df1b7 to RUNNING"
+  },
+  {
+    "state": "SUCCESSFUL",
+    "eventId": "7d2b03ab-2aa8-4488-aeee-e3a2b4540485",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:12.556-08:00",
+    "message": "Updating job id 1576c753-478c-46c6-ad44-9936665df1b7 to SUCCESSFUL"
+  }
+]

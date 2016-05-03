@@ -1,0 +1,6 @@
+{
+  "path": "/pbi/analysis/smrtportal/alpha/userdata/references/lambda/sequence/lambda.fasta.fai",
+  "name": "my-lambda-reference",
+  "ploidy": "haploid",
+  "organism": "lambda"
+}

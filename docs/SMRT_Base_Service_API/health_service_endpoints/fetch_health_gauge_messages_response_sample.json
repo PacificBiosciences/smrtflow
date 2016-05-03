@@ -1,0 +1,9 @@
+[
+  {
+    "uuid": "ab9fe280-a19c-444a-a18b-afb0bb776cdb",
+    "createdAt": "2016-04-01T14:36:24.599",
+    "message": "Found 95% disk full",
+    "severity": "ALERT",
+    "sourceId": "scan-util"
+  }
+]

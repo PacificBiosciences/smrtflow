@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-13T11:50:07.389-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000001",
+    "state": "SUCCESSFUL",
+    "uuid": "535b9671-4f2d-435a-a4d6-34333dac39d0",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 1,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/install/smrtsuite-fromsrc_3.0.0.166987/admin/bin/../../../../current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaNEB.fasta,lambdaNEB,haploid,lambda_phage)",
+    "createdAt": "2015-11-13T11:50:07.389-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/install/smrtsuite-fromsrc_3.0.0.166987/admin/bin/../../../../current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaNEB.fasta\",\"name\":\"lambdaNEB\",\"ploidy\":\"haploid\",\"organism\":\"lambda_phage\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-13T11:57:37.473-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000004",
+    "state": "SUCCESSFUL",
+    "uuid": "d0a65373-ac76-44c6-afbe-614bc15c6d0e",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 4,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/install/smrtsuite-fromsrc_3.0.0.166987/admin/bin/../../../../current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaNEB.fasta,lambdaNEB,haploid,lambda_phage)",
+    "createdAt": "2015-11-13T11:57:37.473-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/install/smrtsuite-fromsrc_3.0.0.166987/admin/bin/../../../../current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaNEB.fasta\",\"name\":\"lambdaNEB\",\"ploidy\":\"haploid\",\"organism\":\"lambda_phage\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-16T11:16:47.758-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000008",
+    "state": "SUCCESSFUL",
+    "uuid": "a82f550b-0ad2-4d5b-97bc-bfe3a0698905",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 8,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/mnt/secondary/iSmrtanalysis/current/common/references/All4mer_V2_44_circular_72x_l50256/sequence/All4mer_V2_44_circular_72x_l50256.fasta,All4mer_V2_44_circular_72x_l50256,haploid,NA)",
+    "createdAt": "2015-11-16T11:16:47.758-08:00",
+    "jsonSettings": "{\"path\":\"/mnt/secondary/iSmrtanalysis/current/common/references/All4mer_V2_44_circular_72x_l50256/sequence/All4mer_V2_44_circular_72x_l50256.fasta\",\"name\":\"All4mer_V2_44_circular_72x_l50256\",\"ploidy\":\"haploid\",\"organism\":\"NA\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-16T13:15:59.267-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000011",
+    "state": "SUCCESSFUL",
+    "uuid": "d8cb3d9e-e6ee-48c9-9631-1ac29c01fd36",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 11,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/mnt/secondary/iSmrtanalysis/current/common/references/tkb_C5_circular_23x_l92782/sequence/tkb_C5_circular_23x_l92782.fasta,tkb_C5_circular_23x_l92782,haploid,NA)",
+    "createdAt": "2015-11-16T13:15:59.267-08:00",
+    "jsonSettings": "{\"path\":\"/mnt/secondary/iSmrtanalysis/current/common/references/tkb_C5_circular_23x_l92782/sequence/tkb_C5_circular_23x_l92782.fasta\",\"name\":\"tkb_C5_circular_23x_l92782\",\"ploidy\":\"haploid\",\"organism\":\"NA\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-20T09:58:41.035-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000092",
+    "state": "FAILED",
+    "uuid": "65e2f87f-d361-400d-88e3-42609035bc8f",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 92,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/lustre/hpcprod/mhsieh/quiver/hummingbird/reference/sequence/reference.fasta,hummingbird_falcon,haploid,bird)",
+    "createdAt": "2015-11-20T09:58:41.035-08:00",
+    "jsonSettings": "{\"path\":\"/lustre/hpcprod/mhsieh/quiver/hummingbird/reference/sequence/reference.fasta\",\"name\":\"hummingbird_falcon\",\"ploidy\":\"haploid\",\"organism\":\"bird\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-23T10:16:52.771-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000131",
+    "state": "SUCCESSFUL",
+    "uuid": "50835c35-4f41-44d6-b2fc-7950caf4c5f5",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 131,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/pbi/analysis/smrtportal/internal/userdata/references/pBR322_plasmidbell_4361bp_circular_6x_l52872/sequence/pBR322_plasmidbell_4361bp_circular_6x_l52872.fasta,pBR322_plasmidbell_4361bp_circular_6x_l52872,haploid,NA)",
+    "createdAt": "2015-11-23T10:16:52.771-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/analysis/smrtportal/internal/userdata/references/pBR322_plasmidbell_4361bp_circular_6x_l52872/sequence/pBR322_plasmidbell_4361bp_circular_6x_l52872.fasta\",\"name\":\"pBR322_plasmidbell_4361bp_circular_6x_l52872\",\"ploidy\":\"haploid\",\"organism\":\"NA\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-23T13:20:02.706-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000139",
+    "state": "SUCCESSFUL",
+    "uuid": "82c73b2a-9a8c-4fcd-b622-e75329d300b9",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 139,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/pbi/dept/secondary/siv/references/ecoliK12_pbi_March2013/sequence/ecoliK12_pbi_March2013.fasta,ecoliK12_pbi_March2013,haploid,Ecoli)",
+    "createdAt": "2015-11-23T13:20:02.706-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/references/ecoliK12_pbi_March2013/sequence/ecoliK12_pbi_March2013.fasta\",\"name\":\"ecoliK12_pbi_March2013\",\"ploidy\":\"haploid\",\"organism\":\"Ecoli\"}"
+  },
+  {
+    "name": "Job convert-fasta-reference",
+    "updatedAt": "2015-11-23T13:20:52.834-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000140",
+    "state": "FAILED",
+    "uuid": "e0e36d53-32de-48e8-8c5c-c246db842d93",
+    "jobTypeId": "convert-fasta-reference",
+    "id": 140,
+    "comment": "Import/Convert Fasta File to DataSet ConvertImportFastaOptions(/pbi/dept/secondary/siv/references/Rhodobacter_palustris_CGA0009/sequence/Rhodobacter_palustris_CGA0009.fasta,Rhodobacter_palustris_CGA0009,haploid,Rhodobacter_palustris)",
+    "createdAt": "2015-11-23T13:20:52.834-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/references/Rhodobacter_palustris_CGA0009/sequence/Rhodobacter_palustris_CGA0009.fasta\",\"name\":\"Rhodobacter_palustris_CGA0009\",\"ploidy\":\"haploid\",\"organism\":\"Rhodobacter_palustris\"}"
+  }
+]

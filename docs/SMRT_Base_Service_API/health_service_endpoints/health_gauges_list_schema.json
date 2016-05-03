@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.smrtbase.schemas.healthgauges.list",
+  "version": "0.1.0",
+  "title": "Health Gauges List",
+  "description": "Array of Health Gauge objects",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Health Gauge Name",
+        "description": "Name of this health gauge",
+        "type": "string"
+      },
+      "id": {
+        "title": "Health Gauge Id",
+        "description": "Identifier of this health gauge, for example pacbio.health.gauges.disk_space_full",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "description": "Description of the current condition of this health gauge",
+        "type": "string"
+      },
+      "createdAt": {
+        "title": "Created at",
+        "description": "Time when this health gauge was created",
+        "type": "string",
+        "format": "date-time"
+      },
+      "severity": {
+        "title": "Severity Level",
+        "description": "Severity level of the health gauge condition, one of OK, CAUTION, ALERT, CRITICAL",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "id",
+      "description",
+      "createdAt",
+      "severity"
+    ]
+  },
+  "additionalItems": false
+}
+

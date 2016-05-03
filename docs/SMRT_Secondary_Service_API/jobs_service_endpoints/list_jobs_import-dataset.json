@@ -1,0 +1,122 @@
+[
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-13T11:50:17.801-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000002",
+    "state": "SUCCESSFUL",
+    "uuid": "72804c90-1868-481a-9b55-4b734e858a17",
+    "jobTypeId": "import-dataset",
+    "id": 2,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-13T11:50:17.801-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-13T11:57:44.743-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000005",
+    "state": "SUCCESSFUL",
+    "uuid": "6831fc97-38f3-4122-9472-045fbc9c2536",
+    "jobTypeId": "import-dataset",
+    "id": 5,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-13T11:57:44.743-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/current/bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T12:05:46.156-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000009",
+    "state": "SUCCESSFUL",
+    "uuid": "2f5fc160-0264-4bdf-8445-47a4fb8259ef",
+    "jobTypeId": "import-dataset",
+    "id": 9,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130022/r54004_20151116_190652/1_A01/m54004_151116_190700.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T12:05:46.156-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130022/r54004_20151116_190652/1_A01/m54004_151116_190700.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T14:21:48.359-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000012",
+    "state": "SUCCESSFUL",
+    "uuid": "50f8b1d7-c1f7-42f6-accd-93611de7bd7f",
+    "jobTypeId": "import-dataset",
+    "id": 12,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130022/r54004_20151116_214425/1_A01/m54004_151116_214433.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T14:21:48.359-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130022/r54004_20151116_214425/1_A01/m54004_151116_214433.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T18:57:38.991-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000014",
+    "state": "SUCCESSFUL",
+    "uuid": "0c7fe101-8b49-45e6-bc83-0852b10fabef",
+    "jobTypeId": "import-dataset",
+    "id": 14,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130023/r54012_20151116_234924/1_A01/m54012_151116_235506.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T18:57:38.991-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130023/r54012_20151116_234924/1_A01/m54012_151116_235506.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T19:13:52.152-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000015",
+    "state": "SUCCESSFUL",
+    "uuid": "a5df53e8-c286-43a5-93bf-671137271f43",
+    "jobTypeId": "import-dataset",
+    "id": 15,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130023/r54011_20151116_235523/1_A01/m54011_151117_000014.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T19:13:52.152-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130023/r54011_20151116_235523/1_A01/m54011_151117_000014.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T20:30:50.396-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000016",
+    "state": "SUCCESSFUL",
+    "uuid": "00057a50-5b6d-476e-8b6a-fa7a19382cbc",
+    "jobTypeId": "import-dataset",
+    "id": 16,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130024/r54008_20151117_002008/2_B01/m54008_151117_011028.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T20:30:50.396-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130024/r54008_20151117_002008/2_B01/m54008_151117_011028.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T21:42:04.686-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000017",
+    "state": "SUCCESSFUL",
+    "uuid": "14bac755-2357-4ade-b26a-eb6af41e7c77",
+    "jobTypeId": "import-dataset",
+    "id": 17,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130023/r54012_20151116_234924/2_B01/m54012_151117_023631.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T21:42:04.686-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130023/r54012_20151116_234924/2_B01/m54012_151117_023631.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-16T21:55:31.586-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000018",
+    "state": "SUCCESSFUL",
+    "uuid": "9ffacda6-4d8c-405f-a3d8-2fbe16f13014",
+    "jobTypeId": "import-dataset",
+    "id": 18,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130023/r54011_20151116_235523/2_B01/m54011_151117_024041.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-16T21:55:31.586-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130023/r54011_20151116_235523/2_B01/m54011_151117_024041.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  },
+  {
+    "name": "Job import-dataset",
+    "updatedAt": "2015-11-17T00:26:51.391-08:00",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000019",
+    "state": "SUCCESSFUL",
+    "uuid": "65fa2786-3b7d-46d5-a34b-bc47ea56d56d",
+    "jobTypeId": "import-dataset",
+    "id": 19,
+    "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/313/3130023/r54012_20151116_234924/3_C01/m54012_151117_052037.subreadset.xml,PacBio.DataSet.SubreadSet)",
+    "createdAt": "2015-11-17T00:26:51.391-08:00",
+    "jsonSettings": "{\"path\":\"/pbi/collections/313/3130023/r54012_20151116_234924/3_C01/m54012_151117_052037.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "name": "Job import-dataset",
+  "updatedAt": "2016-02-23T11:54:26.429-08:00",
+  "path": "",
+  "state": "CREATED",
+  "uuid": "18671448-ff4e-4ed9-a740-1bf8a8f4fcd1",
+  "jobTypeId": "import-dataset",
+  "id": 135,
+  "comment": "Importing DataSet ImportDataSetOptions(/pbi/collections/315/3150104/r54007_20160221_004312/1_A01/m54007_160221_004320.subreadset.xml,PacBio.DataSet.SubreadSet)",
+  "createdAt": "2016-02-23T11:54:26.429-08:00",
+  "jsonSettings": "{\"path\":\"/pbi/collections/315/3150104/r54007_20160221_004312/1_A01/m54007_160221_004320.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+}

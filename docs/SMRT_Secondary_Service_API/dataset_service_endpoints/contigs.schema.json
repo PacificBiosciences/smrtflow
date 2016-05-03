@@ -1,0 +1,131 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "pacbio.secondary.schemas.datasets.contigs",
+    "version": "0.1.0",
+    "title": "Contig DataSet Schema",
+    "description": "Contig DataSet Schema",
+    "type": "object",
+    "properties": {
+
+        "id": {
+            "title": "DataSet id",
+            "description": "UUID of the DataSet XML",
+            "type": "string", "format" : "uuid"
+        },
+        "name": {
+            "title": "DataSet name",
+            "description": "Name of this DataSet XML",
+            "type": "string"
+        },
+        "createdAt": {
+            "title": "Created at",
+            "description": "Time when the DataSet XML was created",
+            "type": "string", "format" : "date-time"
+        },
+        "version": {
+            "title": "Version",
+            "description": "Version of this DataSet XML",
+            "type": "string"
+        },
+        "numRecords": {
+            "title": "Num records",
+            "description": "Number of contigs in this DataSet",
+            "type": "integer"
+        },
+        "totalLength": {
+            "title": "Total length",
+            "description": "Total length of contigs in bp in this DataSet",
+            "type": "integer"
+        },
+        "tags": {
+            "title": "DataSet tags",
+            "description": "Tags assigned to the DataSet upon creation.",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+
+
+        "path": {
+            "title": "DataSet path",
+            "description": "Path to Contig DataSet XML",
+            "type": "string"
+        },
+        "description": {
+            "title": "Comments",
+            "description": "User description and comments",
+            "type": "string"
+        },
+        "importedAt": {
+            "title": "Imported at",
+            "description": "Time when DataSet was imported",
+            "type": "string", "format" : "date-time"
+        },
+        "modifiedAt": {
+            "title": "Updated at",
+            "description": "Time when DataSet metadata was last updated",
+            "type": "string", "format" : "date-time"
+        },
+        "status": {
+            "title": "DataSet Status",
+            "description": "Status of DataSet (New, Pending, Complete, Error). For 3.0.0-rc1 all DataSets will be Complete",
+            "type": "string"
+        },
+        "md5": {
+            "title": "md5", 
+            "description": "md5 checksum of the Dataset XML file",
+            "type": "string", "format" : "md5"
+        },
+        "parentAnalysisJobId": {
+            "title": "Parent Job Id",
+            "description": "Id of job that generated this DataSet",
+            "type": "integer"
+        },
+        "userId": {
+            "title": "User Id",
+            "description": "User Id that imported the DataSet",
+            "type": "string"
+        },
+        "smrtanalysisInstallId": {
+            "title": "SMRT Analysis Install  Id",
+            "description": "SMRT Analysis Install  that the DataSet belongs to. TODO in DataModel?",
+            "type": "string"
+        },
+        "projectId": {
+            "title": "Project Id",
+            "description": "Project that the DataSet belongs to. TODO in DataModel?",
+            "type": "string"
+        },
+        "serviceTags": {
+            "title": "User defined tags",
+            "description": "Tags defined and set at the services level",
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        }
+    },
+
+    "required": [   
+        "id", 
+        "name", 
+        "createdAt", 
+        "version", 
+        "numRecords", 
+        "totalLength", 
+        "tags",  
+
+        "path", 
+        "description", 
+        "importedAt", 
+        "modifiedAt", 
+        "status", 
+        "md5",
+        "parentAnalysisJobId",
+        "userId",
+        "smrtanalysisInstallId",
+        "projectId",
+        "serviceTags"
+    ],
+
+    "additionalProperties": false
+}

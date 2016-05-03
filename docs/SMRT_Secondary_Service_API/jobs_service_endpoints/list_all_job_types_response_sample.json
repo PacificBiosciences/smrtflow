@@ -1,0 +1,34 @@
+[
+  {
+    "jobTypeId": "convert-rs-movie",
+    "description": "Import RS metadata.xml and create an HdfSubread DataSet XML file"
+  },
+  {
+    "jobTypeId": "mock-pbsmrtpipe",
+    "description": "Mock Pbmsrtpipe Job used for Development purposes"
+  },
+  {
+    "jobTypeId": "pbsmrtpipe",
+    "description": "Run a secondary analysis pbsmrtpipe job."
+  },
+  {
+    "jobTypeId": "simple",
+    "description": "Simple Job for debugging and development"
+  },
+  {
+    "jobTypeId": "merge-datasets",
+    "description": "Merge PacBio XML DataSets (Subread, HdfSubread datasets types are supported)"
+  },
+  {
+    "jobTypeId": "import-datastore",
+    "description": "Import a PacBio DataStore JSON file"
+  },
+  {
+    "jobTypeId": "convert-fasta-reference",
+    "description": "Import fasta reference and create a generated a Reference DataSet XML file."
+  },
+  {
+    "jobTypeId": "import-dataset",
+    "description": "Import a Pacbio DataSet XML file"
+  }
+]

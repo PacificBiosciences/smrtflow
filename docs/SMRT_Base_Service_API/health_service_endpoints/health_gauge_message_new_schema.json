@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.smrtbase.schemas.healthgauge.message.new",
+  "version": "0.1.0",
+  "title": "New Health Gauge Message",
+  "description": "A sub-set of Health Gauge Message object, necessary to create a new health gauge message",
+  "type": "object",
+  "properties": {
+    "message": {
+      "title": "Information Message",
+      "description": "Message with information, used to update 'description' field of the corresponding health gauge",
+      "type": "string"
+    },
+    "severity": {
+      "title": "Severity Level",
+      "description": "Severity level of the message, one of OK, CAUTION, ALERT, CRITICAL",
+      "type": "string"
+    },
+    "sourceId": {
+      "title": "Source Id",
+      "description": "Identifier of the source which generated this message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "message",
+    "severity",
+    "sourceId"
+  ],
+  "additionalProperties": false
+}
