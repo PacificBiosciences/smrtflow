@@ -1,0 +1,47 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.smrtbase.schemas.system.config",
+	"version": "0.1.0",
+	"title": "System Configuration",
+	"description": "The current configuration of the system",
+	"type" : "object",
+	"properties": {
+		"entries" : {
+			"title" : "Configuration Parameters Array",
+			"description" : "Key-value array of configuration parameters",
+			"type" : "array",
+			"minItems" : 1,
+			"items" : {
+				"type" : "object",
+				"properties" : {
+					"key" : {
+						"title" : "Parameter Key",
+						"description" : "Name of a configuration parameter",
+						"type" : "string"
+					},
+					"value" : {
+						"title" : "Parameter Value",
+						"description" : "Value of the configuration parameter",
+						"type" : "string"
+					}
+				},
+				"required" : [
+					"key",
+					"value"
+				],
+				"additionalProperties" : false
+			},
+			"additionalItems" : false
+		},
+		"origin": {
+			"title": "Configuration Origin",
+			"description": "Location and name of configuration files used to compose the key-value configuration parameters array",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"entries",
+		"origin"
+	],
+    "additionalProperties": false
+}

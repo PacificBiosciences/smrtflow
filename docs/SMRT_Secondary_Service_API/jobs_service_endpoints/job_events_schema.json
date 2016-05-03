@@ -1,0 +1,52 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.secondary.schemas.job.events",
+	"version": "0.1.0",
+	"title": "Job Events",
+	"description": "Array of job events",
+	"type": "array",
+	"minItems": 1,
+	"items": {
+		"type" : "object",
+		"properties": {
+			"state": {
+				"title": "Job State",
+				"description": "Current job state, one of CREATED, SUBMITTED, RUNNING, SUCCESSFUL, FAILED, KILLED, STOPPED states",
+				"type": "string"
+			},
+			"eventId": {
+				"title": "Event Id",
+				"description": "UUID of the event",
+				"type": "string",
+				"format": "uuid",
+				"pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+			},
+			"jobId": {
+				"title": "Job Id",
+				"description": "Identifier of the job that the event belongs to",
+				"type": "integer"
+			},
+			"createdAt": {
+				"title": "Created at",
+				"description": "Time when this event was created",
+				"type": "string",
+				"format" : "date-time"
+			},
+			"message": {
+				"title": "Message",
+				"description": "Message describing this event",
+				"type": "string"
+			}
+		},
+		"required" : [
+			"state",
+			"eventId",
+			"jobId",
+			"createdAt",
+			"message"
+		]
+	},
+	"additionalItems" : false
+}
+
+		

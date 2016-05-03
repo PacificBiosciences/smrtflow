@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.secondary.schemas.job.convert-rs-movie.create",
+	"version": "0.1.0",
+	"title": "Create Convert-rs-movie Job",
+	"description": "Schema of request body for creating convert-rs-movie job",
+	"type" : "object",
+	"properties": {
+		"path": {
+			"title": "RS Movie File Path",
+			"description": "Path to the RS movie file",
+			"type": "string",
+			"format": "uri"
+		},
+		"name": {
+			"title": "RS Movie Name",
+			"description": "Name of this RS movie",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"path",
+		"name"
+	],
+	"additionalProperties" : false
+}
+

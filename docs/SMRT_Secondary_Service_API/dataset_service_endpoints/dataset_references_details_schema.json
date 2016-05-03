@@ -1,0 +1,203 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.secondary.schemas.datasets.references.details",
+	"version": "0.1.0",
+	"title": "Reference Dataset Details",
+	"description": "The raw XML of Reference DataSet de-serialized into JSON",
+    "type": "object",
+    "properties": {
+        "Name": {
+            "title": "Dataset Name",
+            "description": "Name of this dataset",
+            "type": "string"
+        },
+        "Version": {
+            "title": "Dataset Version",
+            "description": "Software version corresponding to this dataset",
+            "type": "string"
+        },
+		"CreatedAt": {
+			"title": "Created at",
+			"description": "Time when the dataset XML was created",
+			"type": "string",
+			"format" : "date-time"
+		},
+         "UniqueId": {
+            "title": "Dataset UUID",
+            "description": "UUID of the dataset XML",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+       "MetaType": {
+            "title": "Dataset MetaType",
+            "description": "MetaType of this dataset, e.g. PacBio.DataSet.ReferenceSet",
+            "type": "string"
+        },
+        "TimeStampedName": {
+            "title": "Time-stamped Dataset Name",
+            "description": "Time-stamped name of the dataset XML, e.g. referenceset_150304_231155",
+            "type": "string"
+        },
+        "ExternalResources": {
+            "title": "Dataset External Resources",
+            "description": "External resources of this dataset",
+            "type": "object",
+			"properties": {
+				"ExternalResource": {
+					"title": "Dataset External Resource",
+					"description": "External resource of this dataset",
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type" : "object",
+						"properties": {
+							"Name": {
+								"title": "External Resource Name",
+								"description": "Name of this external resource",
+								"type": "string"
+							},
+							"Description": {
+								"title": "External Resource Description",
+								"description": "Description of this external resource",
+								"type": "string"
+							},
+							"Tags": {
+								"title": "External Resource Tags",
+								"description": "Tags of this external resource",
+								"type": "string"
+							},
+							"ResourceId": {
+								"title": "External Resource ID",
+								"description": "ID of this external resource, in form of file path",
+								"type": "string"
+							},
+							"UniqueId": {
+								"title": "External Resource UUID",
+								"description": "UUID of this external resource",
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+							},
+							"MetaType": {
+								"title": "External Resource MetaType",
+								"description": "MetaType of this external resource, e.g. PacBio.ReferenceFile.ReferenceFastaFile",
+								"type": "string"
+							},
+							"TimeStampedName": {
+								"title": "Time-stamped External Resource Name",
+								"description": "Time-stamped name of this external resource",
+								"type": "string"
+							},
+							"FileIndices": {
+								"title": "File Indices of External Resource",
+								"description": "File indices of this external resource",
+								"type": "object",
+								"properties": {
+									"FileIndex": {
+										"title": "File Index of External Resource",
+										"description": "File index of this external resource",
+										"type": "array",
+										"minItems": 1,
+										"items": {
+											"type" : "object",
+											"properties": {
+												"ResourceId": {
+													"title": "File Index Resource ID",
+													"description": "Resource ID of this file index, in form of file path",
+													"type": "string"
+													}
+												"UniqueId": {
+													"title": "File Index UUID",
+													"description": "UUID of this file index",
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+												},
+											   "MetaType": {
+													"title": "File Index MetaType",
+													"description": "MetaType of this file index, e.g. PacBio.Index.FastaContigIndex",
+													"type": "string"
+												},
+												"TimeStampedName": {
+													"title": "Time-stamped File Index Name",
+													"description": "Time-stamped name of this file index",
+													"type": "string"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+        },
+        "DataSetMetadata": {
+            "title": "Dataset Metadata",
+            "description": "Metadata of this dataset",
+			"type" : "object",
+			"properties": {
+				"TotalLength": {
+					"title": "Dataset Total Length",
+					"description": "Total length of this dataset",
+					"type": "integer"
+				},
+				"NumRecords": {
+					"title": "Number of Records",
+					"description": "Number of records in this dataset",
+					"type": "integer"
+				},
+				"Organism": {
+					"title": "Organism",
+					"description": "Organism corresponding to this dataset",
+					"type": "string"
+				},
+				"Ploidy": {
+					"title": "Ploidy",
+					"description": "Ploidy corresponding to this dataset",
+					"type": "string"
+				},
+				"Contigs": {
+					"title": "Dataset Contigs",
+					"description": "Contigs for this dataset",
+					"type": "object"
+					"properties": {
+						"Contig": {
+							"title": "Dataset Contig",
+							"description": "Contig of this dataset",
+							"type": "array",
+							"minItems": 1,
+							"items": {
+								"type" : "object",
+								"properties": {
+									"Name": {
+										"title": "Contig Name",
+										"description": "Name of this contig",
+										"type": "string"
+									},
+									"Description": {
+										"title": "Contig Description",
+										"description": "Description of this contig",
+										"type": "string"
+									},
+									"Length": {
+										"title": "Contig Length",
+										"description": "Length of this contig",
+										"type": "integer"
+									},
+									"Digest": {
+										"title": "Contig Digest",
+										"description": "Digest of this contig",
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}	
+			} 
+        } 
+	}
+}

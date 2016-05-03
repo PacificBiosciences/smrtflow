@@ -1,0 +1,30 @@
+{
+	"$schema" : "http://json-schema.org/draft-04/schema#",
+	"id" : "pacbio.smrtbase.schemas.system.components",
+	"version" : "0.1.0",
+	"title" : "System Components",
+	"description" : "Array of required system components",
+	"type" : "array",
+	"minItems" : 1,
+	"items" : {
+		"type" : "object",
+		"properties" : {
+			"id" : {
+				"title" : "Component Id",
+				"description" : "Identifier of this component, e.g. pacbio.smrtservices.components",
+				"type" : "string"
+			},
+			"version" : {
+				"title" : "Component Version",
+				"description" : "The version number of the component, e.g. 0.2.0",
+				"type" : "string"
+			}
+		},
+		"required" : [
+			"id",
+			"version"
+		],
+		"additionalProperties" : false
+	},
+	"additionalItems" : false
+}

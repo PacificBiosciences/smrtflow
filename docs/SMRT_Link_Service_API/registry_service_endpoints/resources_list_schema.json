@@ -1,0 +1,58 @@
+{
+	"$schema" : "http://json-schema.org/draft-04/schema#",
+	"id" : "pacbio.smrtlink.schemas.resources.list",
+	"version" : "0.1.0",
+	"title" : "Resources List",
+	"description" : "Array of Resource objects",
+	"type" : "array",
+	"minItems" : 1,
+	"items" : {
+		"type" : "object",
+		"properties" : {
+			"resourceId" : {
+				"title" : "Resource Id",
+				"description" : "User-defined identifier of this resource",
+				"type" : "string"
+			},
+			"uuid" : {
+				"title" : "Resource UUID",
+				"description" : "Server-generated UUID of this resource",
+				"type" : "string",
+				"format" : "uuid",
+				"pattern" : "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+			},
+			"host" : {
+				"title" : "Host",
+				"description" : "Host name assigned to this resource",
+				"type" : "string",
+				"format" : "hostname"
+			},
+			"port" : {
+				"title" : "Port",
+				"description" : "Port number assigned to this resource",
+				"type" : "integer"
+			},
+			"createdAt" : {
+				"title" : "Created at",
+				"description" : "Time when this resource was created",
+				"type" : "string",
+				"format" : "date-time"
+			},
+			"updatedAt" : {
+				"title" : "Updated at",
+				"description" : "Time when this resource was updated",
+				"type" : "string",
+				"format" : "date-time"
+			}
+		},
+		"required" : [
+			"resourceId",
+			"uuid",
+			"host",
+			"port",
+			"createdAt",
+			"updatedAt"
+		]
+	},
+	"additionalItems" : false
+}

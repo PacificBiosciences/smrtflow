@@ -1,0 +1,12 @@
+{
+	"name" : "Job import-datastore",
+	"updatedAt" : "2016-02-23T13:20:46.953-08:00",
+	"path" : "",
+	"state" : "CREATED",
+	"uuid" : "2975ddb9-9cde-4543-bda1-beed3b20d0da",
+	"jobTypeId" : "import-datastore",
+	"id" : 137,
+	"comment" : "Importing DataStore ImportDataStoreOptions(/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000017/datastore.json)",
+	"createdAt" : "2016-02-23T13:20:46.953-08:00",
+	"jsonSettings" : "{\"path\":\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000017/datastore.json\"}"
+}

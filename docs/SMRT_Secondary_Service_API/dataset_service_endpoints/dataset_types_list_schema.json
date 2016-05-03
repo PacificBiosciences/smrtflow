@@ -1,0 +1,56 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.secondary.schemas.datasets.types.list",
+	"version": "0.1.0",
+	"title": "Dataset Types List",
+	"description": "Array of objects describing Dataset Types",
+	"type": "array",
+	"minItems": 1,
+	"items": {
+		"type" : "object",
+		"properties": {
+			"name": {
+				"title": "Dataset Type Display Name",
+				"description": "Display name of this dataset type",
+				"type": "string"
+			},
+			"updatedAt": {
+				"title": "Updated at",
+				"description": "Time when this dataset type was updated",
+				"type": "string",
+				"format" : "date-time"
+			},
+			"description": {
+				"title": "Dataset Type Description",
+				"description": "Description of this dataset type",
+				"type": "string"
+			},
+			"id": {
+				"title": "Dataset Type Id",
+				"description": "Identifier of this dataset type",
+				"type": "string"
+			},
+			"createdAt": {
+				"title": "Created at",
+				"description": "Time when this dataset type was created",
+				"type": "string",
+				"format" : "date-time"
+			},
+			"shortName": {
+				"title": "Dataset Type Short Name",
+				"description": "Short name of this dataset type",
+				"type": "string"
+			}
+		},
+		"required" : [
+			"name",
+			"updatedAt",
+			"description",
+			"id",
+			"createdAt",
+			"shortName"
+		]
+	},
+	"additionalItems" : false
+}
+

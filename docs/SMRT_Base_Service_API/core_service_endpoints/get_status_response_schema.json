@@ -1,0 +1,51 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.smrtbase.schemas.system.status",
+	"version": "0.1.0",
+	"title": "System Status",
+	"description": "The current status of the system and uptime",
+	"type" : "object",
+	"properties": {
+		"uuid" : {
+			"title" : "System UUID",
+			"description" : "UUID of the system",
+			"type" : "string",
+			"format" : "uuid",
+			"pattern" : "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+		},
+		"version": {
+			"title": "System Version",
+			"description": "The version number of the system, e.g. 0.50.14-SNAPSHOT",
+			"type": "string"
+		},
+		"id": {
+			"title": "System Id",
+			"description": "Identifier of the system, e.g. pacbio.smrtservices.smrtlink_analysis",
+			"type": "string"
+		},
+		"uptime": {
+			"title": "System Uptime",
+			"description": "Uptime of the system in milliseconds",
+			"type": "integer"
+		},
+		"message": {
+			"title": "System Message",
+			"description": "A narrative description of the system status",
+			"type": "string"
+		},
+		"user": {
+			"title": "System User",
+			"description": "Login name of the system user",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"uuid",
+		"version",
+		"id",
+		"uptime",
+		"message",
+		"user"
+	],
+    "additionalProperties": false
+}

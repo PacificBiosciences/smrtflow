@@ -1,0 +1,16 @@
+[{
+		"dataStoreFile" : {
+			"modifiedAt" : "2015-11-18T13:00:21.104",
+			"fileTypeId" : "PacBio.FileTypes.JsonReport",
+			"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000038/tasks/pbreports.tasks.mapping_stats-0/mapping_stats_report.json",
+			"uuid" : "63e31de0-d295-41e6-bf1a-8d3beda06892",
+			"fileSize" : 6326,
+			"importedAt" : "2015-11-18T13:00:21.104",
+			"jobId" : 38,
+			"createdAt" : "2015-11-18T13:00:21.104",
+			"jobUUID" : "ea3c0962-f37b-43b6-82b3-051d41dc82c0",
+			"sourceId" : "pbreports.tasks.mapping_stats-PacBio.FileTypes.JsonReport"
+		},
+		"reportTypeId" : "mock-report-type-id"
+	}
+]

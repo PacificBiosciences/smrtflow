@@ -1,0 +1,63 @@
+{
+	"name" : "A4_All4mer_1hr_launchChem",
+	"entryPoints" :
+	[{
+			"entryId" : "eid_subread",
+			"fileTypeId" : "PacBio.DataSet.SubreadSet",
+			"datasetId" : 74
+		}, {
+			"entryId" : "eid_ref_dataset",
+			"fileTypeId" : "PacBio.DataSet.ReferenceSet",
+			"datasetId" : 133
+		}
+	],
+	"workflowOptions" : [],
+	"taskOptions" :
+	[{
+			"optionId" : "genomic_consensus.task_options.algorithm",
+			"value" : "quiver",
+			"optionTypeId" : "pbsmrtpipe.option_types.string"
+		}, {
+			"optionId" : "genomic_consensus.task_options.diploid",
+			"value" : false,
+			"optionTypeId" : "pbsmrtpipe.option_types.boolean"
+		}, {
+			"optionId" : "genomic_consensus.task_options.min_confidence",
+			"value" : 40,
+			"optionTypeId" : "pbsmrtpipe.option_types.integer"
+		}, {
+			"optionId" : "genomic_consensus.task_options.min_coverage",
+			"value" : 5,
+			"optionTypeId" : "pbsmrtpipe.option_types.integer"
+		}, {
+			"optionId" : "pbalign.task_options.algorithm_options",
+			"value" : "-minMatch 12 -bestn 10 -minPctIdentity 70.0",
+			"optionTypeId" : "pbsmrtpipe.option_types.string"
+		}, {
+			"optionId" : "pbalign.task_options.concordant",
+			"value" : true,
+			"optionTypeId" : "pbsmrtpipe.option_types.boolean"
+		}, {
+			"optionId" : "pbalign.task_options.consolidate_aligned_bam",
+			"value" : false,
+			"optionTypeId" : "pbsmrtpipe.option_types.boolean"
+		}, {
+			"optionId" : "pbalign.task_options.consolidate_n_files",
+			"value" : 1,
+			"optionTypeId" : "pbsmrtpipe.option_types.integer"
+		}, {
+			"optionId" : "pbalign.task_options.hit_policy",
+			"value" : "randombest",
+			"optionTypeId" : "pbsmrtpipe.option_types.string"
+		}, {
+			"optionId" : "pbalign.task_options.min_accuracy",
+			"value" : 70.0,
+			"optionTypeId" : "pbsmrtpipe.option_types.float"
+		}, {
+			"optionId" : "pbalign.task_options.min_length",
+			"value" : 50,
+			"optionTypeId" : "pbsmrtpipe.option_types.integer"
+		}
+	],
+	"pipelineId" : "pbsmrtpipe.pipelines.sa3_ds_resequencing"
+}

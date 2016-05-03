@@ -1,0 +1,38 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.secondary.schemas.job.convert-fasta-reference.create",
+	"version": "0.1.0",
+	"title": "Create Convert-fasta-reference Job",
+	"description": "Schema of request body for creating convert-fasta-reference job",
+	"type" : "object",
+	"properties": {
+		"path": {
+			"title": "Reference File Path",
+			"description": "Path to the reference FASTA file",
+			"type": "string",
+			"format": "uri"
+		},
+		"name": {
+			"title": "Reference Name",
+			"description": "Name of this reference",
+			"type": "string"
+		},
+		"ploidy": {
+			"title": "Reference Ploidy",
+			"description": "Ploidy corresponding to this reference, e.g. diploid, haploid",
+			"type": "string"
+		},
+		"organism": {
+			"title": "Reference Organism",
+			"description": "Organism presented by this reference",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"path",
+		"name",
+		"ploidy",
+		"organism"
+	],
+	"additionalProperties" : false
+}

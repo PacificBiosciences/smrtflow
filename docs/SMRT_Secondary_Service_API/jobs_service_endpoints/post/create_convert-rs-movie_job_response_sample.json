@@ -1,0 +1,12 @@
+{
+	"name" : "Job convert-rs-movie",
+	"updatedAt" : "2016-02-23T12:16:21.391-08:00",
+	"path" : "",
+	"state" : "CREATED",
+	"uuid" : "92804077-bd0f-41ef-913f-0d7da0ef5656",
+	"jobTypeId" : "convert-rs-movie",
+	"id" : 136,
+	"comment" : "RS movie convert to HdfSubread XML MovieMetadataToHdfSubreadOptions(/pbi/collections/315/3150104/r54007_20160221_004312/1_A01/m54007_160221_004320.metadata.xml,movie-run-metadata)",
+	"createdAt" : "2016-02-23T12:16:21.391-08:00",
+	"jsonSettings" : "{\"path\":\"/pbi/collections/315/3150104/r54007_20160221_004312/1_A01/m54007_160221_004320.metadata.xml\",\"name\":\"movie-run-metadata\"}"
+}

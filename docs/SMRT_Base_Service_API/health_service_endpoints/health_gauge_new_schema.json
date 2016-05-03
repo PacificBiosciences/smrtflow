@@ -1,0 +1,26 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.smrtbase.schemas.healthgauge.new",
+	"version": "0.1.0",
+	"title": "New Health Gauge",
+	"description": "A sub-set of Health Gauge object, necessary to create a new health gauge",
+	"type" : "object",
+	"properties": {
+		"name": {
+			"title": "Health Gauge Name",
+			"description": "Name of this health gauge",
+			"type": "string"
+		},
+		"id": {
+			"title": "Health Gauge Id",
+			"description": "Identifier of this health gauge, for example pacbio.health.gauges.disk_space_full",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"name",
+		"id"
+	],
+	"additionalProperties" : false
+}
+

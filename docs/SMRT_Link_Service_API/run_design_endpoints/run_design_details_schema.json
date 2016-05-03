@@ -1,0 +1,57 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"id": "pacbio.smrtlink.schemas.rundesign.details",
+	"version": "0.1.0",
+	"title": "Run Design Details",
+	"description": "Complete record of Run Design object",
+	"type" : "object",
+	"properties": {
+		"reserved": {
+			"title": "Reserved State",
+			"description": "Reserved state of this run design",
+			"type": "boolean"
+		},
+		"name": {
+			"title": "Run Design Name",
+			"description": "Name of this run design",
+			"type": "string"
+		},
+		"runDataModel": {
+			"title": "Run Data Model",
+			"description": "Serialized XML file specifying metadata of this run design, according to PacBioDataModel.xsd schema",
+			"type": "string"
+		},
+		"id": {
+			"title": "Run Design Id",
+			"description": "Identifier of this run design",
+			"type": "integer"
+		},
+		"createdAt": {
+			"title": "Created at",
+			"description": "Time when this run design was created",
+			"type": "string",
+			"format" : "date-time"
+		},
+		"createdBy": {
+			"title": "Created by",
+			"description": "Login name of the user who created this run design",
+			"type": "string"
+		},
+		"summary": {
+			"title": "Summary",
+			"description": "Summary description of this run design",
+			"type": "string"
+		}
+	},
+	"required" : [
+		"reserved",
+		"name",
+		"runDataModel",
+		"id",
+		"createdAt",
+		"createdBy",
+		"summary"
+	],
+    "additionalProperties": false
+}
+

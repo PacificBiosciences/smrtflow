@@ -1,0 +1,16 @@
+[{
+		"dataStoreFile" : {
+			"modifiedAt" : "2015-11-13T11:57:46.727",
+			"fileTypeId" : "PacBio.FileTypes.JsonReport",
+			"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000005/import-datastore-report.json",
+			"uuid" : "3f623691-587a-4231-9faf-10988b374fbd",
+			"fileSize" : 1634,
+			"importedAt" : "2015-11-13T11:57:46.727",
+			"jobId" : 5,
+			"createdAt" : "2015-11-13T11:57:46.727",
+			"jobUUID" : "6831fc97-38f3-4122-9472-045fbc9c2536",
+			"sourceId" : "pbscala::import_dataset"
+		},
+		"reportTypeId" : "mock-report-type-id"
+	}
+]
