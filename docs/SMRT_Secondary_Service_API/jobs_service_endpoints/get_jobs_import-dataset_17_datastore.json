@@ -1,24 +1,26 @@
-[{
-		"modifiedAt" : "2015-11-16T21:42:05.882",
-		"fileTypeId" : "PacBio.DataSet.SubreadSet",
-		"path" : "/pbi/collections/313/3130023/r54012_20151116_234924/2_B01/m54012_151117_023631.subreadset.xml",
-		"uuid" : "9d372452-b24b-41a9-9a3d-3ab9d477b953",
-		"fileSize" : 9592,
-		"importedAt" : "2015-11-16T21:42:05.882",
-		"jobId" : 17,
-		"createdAt" : "2015-11-16T21:42:05.882",
-		"jobUUID" : "14bac755-2357-4ade-b26a-eb6af41e7c77",
-		"sourceId" : "pbscala::import_dataset"
-	}, {
-		"modifiedAt" : "2015-11-16T21:42:06.023",
-		"fileTypeId" : "PacBio.FileTypes.JsonReport",
-		"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000017/import-datastore-report.json",
-		"uuid" : "1ab22884-c789-4767-b269-3055c2b68e29",
-		"fileSize" : 1634,
-		"importedAt" : "2015-11-16T21:42:06.023",
-		"jobId" : 17,
-		"createdAt" : "2015-11-16T21:42:06.023",
-		"jobUUID" : "14bac755-2357-4ade-b26a-eb6af41e7c77",
-		"sourceId" : "pbscala::import_dataset"
-	}
+[
+  {
+    "modifiedAt": "2015-11-16T21:42:05.882",
+    "fileTypeId": "PacBio.DataSet.SubreadSet",
+    "path": "/pbi/collections/313/3130023/r54012_20151116_234924/2_B01/m54012_151117_023631.subreadset.xml",
+    "uuid": "9d372452-b24b-41a9-9a3d-3ab9d477b953",
+    "fileSize": 9592,
+    "importedAt": "2015-11-16T21:42:05.882",
+    "jobId": 17,
+    "createdAt": "2015-11-16T21:42:05.882",
+    "jobUUID": "14bac755-2357-4ade-b26a-eb6af41e7c77",
+    "sourceId": "pbscala::import_dataset"
+  },
+  {
+    "modifiedAt": "2015-11-16T21:42:06.023",
+    "fileTypeId": "PacBio.FileTypes.JsonReport",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000017/import-datastore-report.json",
+    "uuid": "1ab22884-c789-4767-b269-3055c2b68e29",
+    "fileSize": 1634,
+    "importedAt": "2015-11-16T21:42:06.023",
+    "jobId": 17,
+    "createdAt": "2015-11-16T21:42:06.023",
+    "jobUUID": "14bac755-2357-4ade-b26a-eb6af41e7c77",
+    "sourceId": "pbscala::import_dataset"
+  }
 ]

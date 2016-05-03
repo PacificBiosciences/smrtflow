@@ -1,13 +1,14 @@
-[{
-		"modifiedAt" : "2015-11-13T11:57:39.331",
-		"fileTypeId" : "PacBio.DataSet.ReferenceSet",
-		"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000004/pacbio-reference/lambdaNEB/referenceset.xml",
-		"uuid" : "e5433224-d185-4e73-af45-ee7c8154a768",
-		"fileSize" : 2427,
-		"importedAt" : "2015-11-13T11:57:39.331",
-		"jobId" : 4,
-		"createdAt" : "2015-11-13T11:57:39.331",
-		"jobUUID" : "d0a65373-ac76-44c6-afbe-614bc15c6d0e",
-		"sourceId" : "pbscala::convert_fasta_to_dataset"
-	}
+[
+  {
+    "modifiedAt": "2015-11-13T11:57:39.331",
+    "fileTypeId": "PacBio.DataSet.ReferenceSet",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000004/pacbio-reference/lambdaNEB/referenceset.xml",
+    "uuid": "e5433224-d185-4e73-af45-ee7c8154a768",
+    "fileSize": 2427,
+    "importedAt": "2015-11-13T11:57:39.331",
+    "jobId": 4,
+    "createdAt": "2015-11-13T11:57:39.331",
+    "jobUUID": "d0a65373-ac76-44c6-afbe-614bc15c6d0e",
+    "sourceId": "pbscala::convert_fasta_to_dataset"
+  }
 ]

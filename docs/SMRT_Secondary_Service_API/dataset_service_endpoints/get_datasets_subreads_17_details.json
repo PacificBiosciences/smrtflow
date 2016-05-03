@@ -1,253 +1,284 @@
 {
-	"Name" : "SubreadSetFromMetadata",
-	"Tags" : "subreadset",
-	"Version" : "3.0.0",
-	"UniqueId" : "c8d700d8-f159-408e-bfb9-31253bc58c22",
-	"MetaType" : "PacBio.DataSet.SubreadSet",
-	"TimeStampedName" : "SubreadSetCollection_151116_221101282",
-	"ExternalResources" : {
-		"ExternalResource" : [{
-				"Name" : "subreads bam",
-				"Description" : "Points to the subreads bam file.",
-				"ResourceId" : "m54004_151116_214433.subreads.bam",
-				"Version" : "3.0.1",
-				"UniqueId" : "4dc1f25a-63f4-453b-a43f-b98e3bda1ca3",
-				"MetaType" : "PacBio.SubreadFile.SubreadBamFile",
-				"TimeStampedName" : "pacbio_subreadfile_subreadbamfile-151116_221101342",
-				"FileIndices" : {
-					"FileIndex" : [{
-							"ResourceId" : "m54004_151116_214433.subreads.bam.pbi",
-							"Version" : "3.0.1",
-							"UniqueId" : "5ab7b3cf-3689-49f0-b984-924dd3c95d91",
-							"MetaType" : "PacBio.Index.PacBioIndex",
-							"TimeStampedName" : "pacbio_index_pacbioindex-151116_221101342"
-						}
-					]
-				},
-				"ExternalResources" : {
-					"ExternalResource" : [{
-							"Name" : "scraps bam",
-							"Description" : "Points to the scraps bam file.",
-							"ResourceId" : "m54004_151116_214433.scraps.bam",
-							"Version" : "3.0.1",
-							"UniqueId" : "61963fe2-e408-4fba-aa5d-a4169d306520",
-							"MetaType" : "PacBio.SubreadFile.ScrapsBamFile",
-							"TimeStampedName" : "pacbio_subreadfile_scrapsbamfile-151116_221101344",
-							"FileIndices" : {
-								"FileIndex" : [{
-										"ResourceId" : "m54004_151116_214433.scraps.bam.pbi",
-										"Version" : "3.0.1",
-										"UniqueId" : "a229e5d7-9587-42a7-819a-9b232c2bf3ee",
-										"MetaType" : "PacBio.Index.PacBioIndex",
-										"TimeStampedName" : "pacbio_index_pacbioindex-151116_221101344"
-									}
-								]
-							}
-						}, {
-							"Name" : "subreads bam",
-							"Description" : "Points to the control subreads bam file.",
-							"ResourceId" : "m54004_151116_214433.control.subreads.bam",
-							"Version" : "3.0.1",
-							"UniqueId" : "7437fca6-9481-4002-9a59-eb91459a3941",
-							"MetaType" : "PacBio.SubreadFile.Control.SubreadBamFile",
-							"TimeStampedName" : "pacbio_subreadfile_control_subreadbamfile-151116_221101346",
-							"FileIndices" : {
-								"FileIndex" : [{
-										"ResourceId" : "m54004_151116_214433.control.subreads.bam.pbi",
-										"Version" : "3.0.1",
-										"UniqueId" : "434911ae-1dad-4224-bd3a-258fe4469d97",
-										"MetaType" : "PacBio.Index.PacBioIndex",
-										"TimeStampedName" : "pacbio_index_pacbioindex-151116_221101346"
-									}
-								]
-							},
-							"ExternalResources" : {
-								"ExternalResource" : [{
-										"Name" : "scraps bam",
-										"Description" : "Points to the control scraps bam file.",
-										"ResourceId" : "m54004_151116_214433.control.scraps.bam",
-										"Version" : "3.0.1",
-										"UniqueId" : "b3e7fe7f-1a64-4a24-94c6-29d9531914c0",
-										"MetaType" : "PacBio.SubreadFile.Control.ScrapsBamFile",
-										"TimeStampedName" : "pacbio_subreadfile_control_scrapsbamfile-151116_221101348",
-										"FileIndices" : {
-											"FileIndex" : [{
-													"ResourceId" : "m54004_151116_214433.control.scraps.bam.pbi",
-													"Version" : "3.0.1",
-													"UniqueId" : "8e81bf02-93f2-4858-be2b-4c2a533bd41e",
-													"MetaType" : "PacBio.Index.PacBioIndex",
-													"TimeStampedName" : "pacbio_index_pacbioindex-151116_221101348"
-												}
-											]
-										}
-									}
-								]
-							}
-						}
-					]
-				}
-			}
-		]
-	},
-	"DataSetMetadata" : {
-		"TotalLength" : 840213826,
-		"NumRecords" : 1036808,
-		"Collections" : {
-			"CollectionMetadata" : [{
-					"CreatedAt" : "0001-01-01T00:00:00",
-					"ModifiedAt" : "0001-01-01T00:00:00",
-					"UniqueId" : "edafcb47-8bd8-427f-be3f-49aee347791e",
-					"MetaType" : "CollectionMetadata",
-					"Context" : "m54004_151116_214433",
-					"InstrumentId" : "54004",
-					"InstrumentName" : "Inst54004",
-					"WellSample" : {
-						"Name" : "\"TestSample\"",
-						"CreatedAt" : "0001-01-01T00:00:00",
-						"ModifiedAt" : "0001-01-01T00:00:00",
-						"WellName" : "SamplePlate-1-A-1",
-						"Concentration" : 0.0,
-						"InsertSize" : 0,
-						"SampleReuseEnabled" : false,
-						"StageHotstartEnabled" : true,
-						"SizeSelectionEnabled" : false,
-						"UseCount" : 0
-					},
-					"Automation" : {
-						"Name" : "manualcellprep.py",
-						"AutomationParameters" : {
-							"AutomationParameter" : [{
-									"Name" : "Exposure",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "Double",
-									"SimpleValue" : "0.0125"
-								}, {
-									"Name" : "CouplerLaserPower",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "Double",
-									"SimpleValue" : "15.0"
-								}, {
-									"Name" : "ActiveLaserPower",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "String",
-									"SimpleValue" : "False"
-								}, {
-									"Name" : "MovieLength",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "Double",
-									"SimpleValue" : "20.0"
-								}, {
-									"Name" : "CellAtStage",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "String",
-									"SimpleValue" : "True"
-								}, {
-									"Name" : "sequencingPixelROI",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "JSON",
-									"SimpleValue" : "[[0,0,1080,1920]]"
-								}, {
-									"Name" : "traceFilePixelROI",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "JSON",
-									"SimpleValue" : "[[103,192,64,128],[103,672,64,128],[103,1152,64,128],[103,1632,64,128],[373,192,64,128],[373,672,64,128],[373,1152,64,128],[373,1632,64,128],[643,192,64,128],[643,672,64,128],[643,1152,64,128],[643,1632,64,128],[913,192,64,128],[913,672,64,128],[913,1152,64,128],[913,1632,64,128]]"
-								}, {
-									"Name" : "UseStageHotStart",
-									"CreatedAt" : "0001-01-01T00:00:00",
-									"ModifiedAt" : "0001-01-01T00:00:00",
-									"ValueDataType" : "String",
-									"SimpleValue" : "False"
-								}, {
-									"Name" : "CollectionNumber",
-									"ValueDataType" : "Int32",
-									"SimpleValue" : "0"
-								}, {
-									"Name" : "CellReuseIndex",
-									"ValueDataType" : "Int32",
-									"SimpleValue" : "0"
-								}, {
-									"Name" : "CollectionNumber",
-									"ValueDataType" : "Int32",
-									"SimpleValue" : "0"
-								}, {
-									"Name" : "CellReuseIndex",
-									"ValueDataType" : "Int32",
-									"SimpleValue" : "0"
-								}
-							]
-						}
-					},
-					"CollectionNumber" : 0,
-					"CellIndex" : 0,
-					"CellPac" : {
-						"PartNumber" : "100-513-100",
-						"LotNumber" : "007777",
-						"Barcode" : "00000133635833070737064980",
-						"ExpirationDate" : "2015-02-14"
-					},
-					"TemplatePrepKit" : {
-						"Name" : "SMRTbell™ Template Prep Kit",
-						"PartNumber" : "100259100",
-						"LotNumber" : "333333",
-						"Barcode" : "333333100259100092215",
-						"ExpirationDate" : "2020-09-22",
-						"MinInsertSize" : 500,
-						"MaxInsertSize" : 20000,
-						"LeftAdaptorSequence" : "ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT",
-						"RightAdaptorSequence" : "ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT"
-					},
-					"BindingKit" : {
-						"Name" : "Sequel Binding Kit v1",
-						"PartNumber" : "100-619-300",
-						"LotNumber" : "444444",
-						"Barcode" : "444444100619300092215",
-						"ExpirationDate" : "2020-09-22"
-					},
-					"SequencingKitPlate" : {
-						"PartNumber" : "100-620-000",
-						"LotNumber" : "002222",
-						"Barcode" : "002222100620000123115",
-						"ExpirationDate" : "2015-12-31"
-					},
-					"Primary" : {
-						"AutomationName" : "SequelAlpha",
-						"ConfigFileName" : "SqlPoC_SubCrf_2C2A-t2.xml",
-						"OutputOptions" : {
-							"ResultsFolder" : "Analysis_Results",
-							"CollectionPathUri" : "rsync://oixfr@mp-rsync/pbi_collections/313/3130022/r54004_20151116_214425/1_A01/",
-							"CopyFiles" : {
-								"CollectionFileCopy" : ["Trace", "Fasta", "Bam", "Baz"]
-							},
-							"Readout" : "Bases",
-							"MetricsVerbosity" : "High"
-						}
-					},
-					"Secondary" : {
-						"CellCountInJob" : 0
-					},
-					"UserDefinedFields" : {
-						"DataEntities" : [{
-								"ValueDataType" : "String"
-							}, {
-								"ValueDataType" : "String"
-							}, {
-								"ValueDataType" : "String"
-							}, {
-								"ValueDataType" : "String"
-							}, {
-								"ValueDataType" : "String"
-							}
-						]
-					}
-				}
-			]
-		}
-	}
+  "Name": "SubreadSetFromMetadata",
+  "Tags": "subreadset",
+  "Version": "3.0.0",
+  "UniqueId": "c8d700d8-f159-408e-bfb9-31253bc58c22",
+  "MetaType": "PacBio.DataSet.SubreadSet",
+  "TimeStampedName": "SubreadSetCollection_151116_221101282",
+  "ExternalResources": {
+    "ExternalResource": [
+      {
+        "Name": "subreads bam",
+        "Description": "Points to the subreads bam file.",
+        "ResourceId": "m54004_151116_214433.subreads.bam",
+        "Version": "3.0.1",
+        "UniqueId": "4dc1f25a-63f4-453b-a43f-b98e3bda1ca3",
+        "MetaType": "PacBio.SubreadFile.SubreadBamFile",
+        "TimeStampedName": "pacbio_subreadfile_subreadbamfile-151116_221101342",
+        "FileIndices": {
+          "FileIndex": [
+            {
+              "ResourceId": "m54004_151116_214433.subreads.bam.pbi",
+              "Version": "3.0.1",
+              "UniqueId": "5ab7b3cf-3689-49f0-b984-924dd3c95d91",
+              "MetaType": "PacBio.Index.PacBioIndex",
+              "TimeStampedName": "pacbio_index_pacbioindex-151116_221101342"
+            }
+          ]
+        },
+        "ExternalResources": {
+          "ExternalResource": [
+            {
+              "Name": "scraps bam",
+              "Description": "Points to the scraps bam file.",
+              "ResourceId": "m54004_151116_214433.scraps.bam",
+              "Version": "3.0.1",
+              "UniqueId": "61963fe2-e408-4fba-aa5d-a4169d306520",
+              "MetaType": "PacBio.SubreadFile.ScrapsBamFile",
+              "TimeStampedName": "pacbio_subreadfile_scrapsbamfile-151116_221101344",
+              "FileIndices": {
+                "FileIndex": [
+                  {
+                    "ResourceId": "m54004_151116_214433.scraps.bam.pbi",
+                    "Version": "3.0.1",
+                    "UniqueId": "a229e5d7-9587-42a7-819a-9b232c2bf3ee",
+                    "MetaType": "PacBio.Index.PacBioIndex",
+                    "TimeStampedName": "pacbio_index_pacbioindex-151116_221101344"
+                  }
+                ]
+              }
+            },
+            {
+              "Name": "subreads bam",
+              "Description": "Points to the control subreads bam file.",
+              "ResourceId": "m54004_151116_214433.control.subreads.bam",
+              "Version": "3.0.1",
+              "UniqueId": "7437fca6-9481-4002-9a59-eb91459a3941",
+              "MetaType": "PacBio.SubreadFile.Control.SubreadBamFile",
+              "TimeStampedName": "pacbio_subreadfile_control_subreadbamfile-151116_221101346",
+              "FileIndices": {
+                "FileIndex": [
+                  {
+                    "ResourceId": "m54004_151116_214433.control.subreads.bam.pbi",
+                    "Version": "3.0.1",
+                    "UniqueId": "434911ae-1dad-4224-bd3a-258fe4469d97",
+                    "MetaType": "PacBio.Index.PacBioIndex",
+                    "TimeStampedName": "pacbio_index_pacbioindex-151116_221101346"
+                  }
+                ]
+              },
+              "ExternalResources": {
+                "ExternalResource": [
+                  {
+                    "Name": "scraps bam",
+                    "Description": "Points to the control scraps bam file.",
+                    "ResourceId": "m54004_151116_214433.control.scraps.bam",
+                    "Version": "3.0.1",
+                    "UniqueId": "b3e7fe7f-1a64-4a24-94c6-29d9531914c0",
+                    "MetaType": "PacBio.SubreadFile.Control.ScrapsBamFile",
+                    "TimeStampedName": "pacbio_subreadfile_control_scrapsbamfile-151116_221101348",
+                    "FileIndices": {
+                      "FileIndex": [
+                        {
+                          "ResourceId": "m54004_151116_214433.control.scraps.bam.pbi",
+                          "Version": "3.0.1",
+                          "UniqueId": "8e81bf02-93f2-4858-be2b-4c2a533bd41e",
+                          "MetaType": "PacBio.Index.PacBioIndex",
+                          "TimeStampedName": "pacbio_index_pacbioindex-151116_221101348"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "DataSetMetadata": {
+    "TotalLength": 840213826,
+    "NumRecords": 1036808,
+    "Collections": {
+      "CollectionMetadata": [
+        {
+          "CreatedAt": "0001-01-01T00:00:00",
+          "ModifiedAt": "0001-01-01T00:00:00",
+          "UniqueId": "edafcb47-8bd8-427f-be3f-49aee347791e",
+          "MetaType": "CollectionMetadata",
+          "Context": "m54004_151116_214433",
+          "InstrumentId": "54004",
+          "InstrumentName": "Inst54004",
+          "WellSample": {
+            "Name": "\"TestSample\"",
+            "CreatedAt": "0001-01-01T00:00:00",
+            "ModifiedAt": "0001-01-01T00:00:00",
+            "WellName": "SamplePlate-1-A-1",
+            "Concentration": 0.0,
+            "InsertSize": 0,
+            "SampleReuseEnabled": false,
+            "StageHotstartEnabled": true,
+            "SizeSelectionEnabled": false,
+            "UseCount": 0
+          },
+          "Automation": {
+            "Name": "manualcellprep.py",
+            "AutomationParameters": {
+              "AutomationParameter": [
+                {
+                  "Name": "Exposure",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "Double",
+                  "SimpleValue": "0.0125"
+                },
+                {
+                  "Name": "CouplerLaserPower",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "Double",
+                  "SimpleValue": "15.0"
+                },
+                {
+                  "Name": "ActiveLaserPower",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "String",
+                  "SimpleValue": "False"
+                },
+                {
+                  "Name": "MovieLength",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "Double",
+                  "SimpleValue": "20.0"
+                },
+                {
+                  "Name": "CellAtStage",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "String",
+                  "SimpleValue": "True"
+                },
+                {
+                  "Name": "sequencingPixelROI",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "JSON",
+                  "SimpleValue": "[[0,0,1080,1920]]"
+                },
+                {
+                  "Name": "traceFilePixelROI",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "JSON",
+                  "SimpleValue": "[[103,192,64,128],[103,672,64,128],[103,1152,64,128],[103,1632,64,128],[373,192,64,128],[373,672,64,128],[373,1152,64,128],[373,1632,64,128],[643,192,64,128],[643,672,64,128],[643,1152,64,128],[643,1632,64,128],[913,192,64,128],[913,672,64,128],[913,1152,64,128],[913,1632,64,128]]"
+                },
+                {
+                  "Name": "UseStageHotStart",
+                  "CreatedAt": "0001-01-01T00:00:00",
+                  "ModifiedAt": "0001-01-01T00:00:00",
+                  "ValueDataType": "String",
+                  "SimpleValue": "False"
+                },
+                {
+                  "Name": "CollectionNumber",
+                  "ValueDataType": "Int32",
+                  "SimpleValue": "0"
+                },
+                {
+                  "Name": "CellReuseIndex",
+                  "ValueDataType": "Int32",
+                  "SimpleValue": "0"
+                },
+                {
+                  "Name": "CollectionNumber",
+                  "ValueDataType": "Int32",
+                  "SimpleValue": "0"
+                },
+                {
+                  "Name": "CellReuseIndex",
+                  "ValueDataType": "Int32",
+                  "SimpleValue": "0"
+                }
+              ]
+            }
+          },
+          "CollectionNumber": 0,
+          "CellIndex": 0,
+          "CellPac": {
+            "PartNumber": "100-513-100",
+            "LotNumber": "007777",
+            "Barcode": "00000133635833070737064980",
+            "ExpirationDate": "2015-02-14"
+          },
+          "TemplatePrepKit": {
+            "Name": "SMRTbell™ Template Prep Kit",
+            "PartNumber": "100259100",
+            "LotNumber": "333333",
+            "Barcode": "333333100259100092215",
+            "ExpirationDate": "2020-09-22",
+            "MinInsertSize": 500,
+            "MaxInsertSize": 20000,
+            "LeftAdaptorSequence": "ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT",
+            "RightAdaptorSequence": "ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT"
+          },
+          "BindingKit": {
+            "Name": "Sequel Binding Kit v1",
+            "PartNumber": "100-619-300",
+            "LotNumber": "444444",
+            "Barcode": "444444100619300092215",
+            "ExpirationDate": "2020-09-22"
+          },
+          "SequencingKitPlate": {
+            "PartNumber": "100-620-000",
+            "LotNumber": "002222",
+            "Barcode": "002222100620000123115",
+            "ExpirationDate": "2015-12-31"
+          },
+          "Primary": {
+            "AutomationName": "SequelAlpha",
+            "ConfigFileName": "SqlPoC_SubCrf_2C2A-t2.xml",
+            "OutputOptions": {
+              "ResultsFolder": "Analysis_Results",
+              "CollectionPathUri": "rsync://oixfr@mp-rsync/pbi_collections/313/3130022/r54004_20151116_214425/1_A01/",
+              "CopyFiles": {
+                "CollectionFileCopy": [
+                  "Trace",
+                  "Fasta",
+                  "Bam",
+                  "Baz"
+                ]
+              },
+              "Readout": "Bases",
+              "MetricsVerbosity": "High"
+            }
+          },
+          "Secondary": {
+            "CellCountInJob": 0
+          },
+          "UserDefinedFields": {
+            "DataEntities": [
+              {
+                "ValueDataType": "String"
+              },
+              {
+                "ValueDataType": "String"
+              },
+              {
+                "ValueDataType": "String"
+              },
+              {
+                "ValueDataType": "String"
+              },
+              {
+                "ValueDataType": "String"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
 }

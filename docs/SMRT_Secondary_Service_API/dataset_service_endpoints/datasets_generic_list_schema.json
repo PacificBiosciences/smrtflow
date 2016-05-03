@@ -1,14 +1,14 @@
 {
-	"$schema": "http://json-schema.org/draft-04/schema#",
-	"id": "pacbio.secondary.schemas.datasets.<shortName>.list",
-	"version": "0.1.0",
-	"title": "Datasets List",
-	"description": "Array of Dataset objects of specific type",
-	"type": "array",
-	"minItems": 1,
-	"items": {
-		"type" : "pacbio.secondary.schemas.datasets.<shortName>"
-	},
-	"additionalItems" : false
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.secondary.schemas.datasets.<shortName>.list",
+  "version": "0.1.0",
+  "title": "Datasets List",
+  "description": "Array of Dataset objects of specific type",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "pacbio.secondary.schemas.datasets.<shortName>"
+  },
+  "additionalItems": false
 }
 

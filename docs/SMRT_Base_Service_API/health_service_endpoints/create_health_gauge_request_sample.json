@@ -1,4 +1,4 @@
 {
-	"id" : "pacbio.health.gauges.disk_space_full",
-	"name" : "Disk Space Full"
+  "id": "pacbio.health.gauges.disk_space_full",
+  "name": "Disk Space Full"
 }

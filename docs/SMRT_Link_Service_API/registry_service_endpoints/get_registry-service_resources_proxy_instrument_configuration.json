@@ -1,12 +1,12 @@
 {
-	"automations" : [],
-	"icsVersion" : "3.0.3.170900",
-	"name" : "Sequel",
-	"paVersion" : "3.0.16",
-	"serialNumber" : "54002i",
-	"smrtLinkHostAddress" : {
-		"domain" : "http:\/\/smrtlink-beta",
-		"port" : 8081
-	},
-	"smrtLinkVersion" : "0.50.6-SNAPSHOT"
+  "automations": [],
+  "icsVersion": "3.0.3.170900",
+  "name": "Sequel",
+  "paVersion": "3.0.16",
+  "serialNumber": "54002i",
+  "smrtLinkHostAddress": {
+    "domain": "http:\/\/smrtlink-beta",
+    "port": 8081
+  },
+  "smrtLinkVersion": "0.50.6-SNAPSHOT"
 }

@@ -1,8 +1,8 @@
 {
-	"resourceId" : "54031",
-	"updatedAt" : "2016-02-26T10:21:36.550",
-	"uuid" : "d0321f1f-b2e5-4bab-81cb-bf932774362d",
-	"host" : "icc-54031.nanofluidics.com",
-	"port" : 8888,
-	"createdAt" : "2016-02-26T10:21:36.550"
+  "resourceId": "54031",
+  "updatedAt": "2016-02-26T10:21:36.550",
+  "uuid": "d0321f1f-b2e5-4bab-81cb-bf932774362d",
+  "host": "icc-54031.nanofluidics.com",
+  "port": 8888,
+  "createdAt": "2016-02-26T10:21:36.550"
 }

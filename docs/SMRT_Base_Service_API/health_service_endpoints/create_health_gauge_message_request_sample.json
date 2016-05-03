@@ -1,5 +1,5 @@
 {
-	"message" : "Found 95% disk full",
-	"severity" : "ALERT",
-	"sourceId" : "scan-util"
+  "message": "Found 95% disk full",
+  "severity": "ALERT",
+  "sourceId": "scan-util"
 }

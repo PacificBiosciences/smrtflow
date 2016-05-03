@@ -1,12 +1,12 @@
 {
-	"name" : "Job merge-datasets",
-	"updatedAt" : "2015-11-30T15:06:10.415-08:00",
-	"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000252",
-	"state" : "SUCCESSFUL",
-	"uuid" : "1576c753-478c-46c6-ad44-9936665df1b7",
-	"jobTypeId" : "merge-datasets",
-	"id" : 252,
-	"comment" : "Merging Datasets MergeDataSetOptions(PacBio.DataSet.SubreadSet,List(/pbi/collections/315/3150014/r54007_20151127_210248/1_A01/m54007_151127_210535.subreadset.xml, /pbi/collections/315/3150014/r54007_20151127_210248/2_B01/m54007_151128_021155.subreadset.xml, /pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000251/merged.dataset.xml),Auto-merged subreads @ 1448924770520)",
-	"createdAt" : "2015-11-30T15:06:10.415-08:00",
-	"jsonSettings" : "{\"datasetType\":\"PacBio.DataSet.SubreadSet\",\"paths\":[\"/pbi/collections/315/3150014/r54007_20151127_210248/1_A01/m54007_151127_210535.subreadset.xml\",\"/pbi/collections/315/3150014/r54007_20151127_210248/2_B01/m54007_151128_021155.subreadset.xml\",\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000251/merged.dataset.xml\"],\"name\":\"Auto-merged subreads @ 1448924770520\"}"
+  "name": "Job merge-datasets",
+  "updatedAt": "2015-11-30T15:06:10.415-08:00",
+  "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000252",
+  "state": "SUCCESSFUL",
+  "uuid": "1576c753-478c-46c6-ad44-9936665df1b7",
+  "jobTypeId": "merge-datasets",
+  "id": 252,
+  "comment": "Merging Datasets MergeDataSetOptions(PacBio.DataSet.SubreadSet,List(/pbi/collections/315/3150014/r54007_20151127_210248/1_A01/m54007_151127_210535.subreadset.xml, /pbi/collections/315/3150014/r54007_20151127_210248/2_B01/m54007_151128_021155.subreadset.xml, /pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000251/merged.dataset.xml),Auto-merged subreads @ 1448924770520)",
+  "createdAt": "2015-11-30T15:06:10.415-08:00",
+  "jsonSettings": "{\"datasetType\":\"PacBio.DataSet.SubreadSet\",\"paths\":[\"/pbi/collections/315/3150014/r54007_20151127_210248/1_A01/m54007_151127_210535.subreadset.xml\",\"/pbi/collections/315/3150014/r54007_20151127_210248/2_B01/m54007_151128_021155.subreadset.xml\",\"/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000251/merged.dataset.xml\"],\"name\":\"Auto-merged subreads @ 1448924770520\"}"
 }

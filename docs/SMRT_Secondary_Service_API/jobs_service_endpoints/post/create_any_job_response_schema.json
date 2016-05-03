@@ -1,79 +1,79 @@
 {
-	"$schema": "http://json-schema.org/draft-04/schema#",
-	"id": "pacbio.secondary.schemas.job.object",
-	"version": "0.1.0",
-	"title": "Job Object",
-	"description": "Job object schema",
-	"type" : "object",
-	"properties": {
-		"name": {
-			"title": "Job Name",
-			"description": "Name of this job",
-			"type": "string"
-		},
-		"jobTypeId": {
-			"title": "Job Type Id",
-			"description": "Type identifier of this job",
-			"type": "string"
-		},
-		"id": {
-			"title": "Job Id",
-			"description": "Identifier of this job",
-			"type": "integer"
-		},
-		"uuid": {
-			"title": "UUID",
-			"description": "UUID of this job",
-			"type": "string",
-			"format": "uuid",
-			"pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
-		},
-		"createdAt": {
-			"title": "Created at",
-			"description": "Time when this job was created",
-			"type": "string",
-			"format" : "date-time"
-		},
-		"updatedAt": {
-			"title": "Updated at",
-			"description": "Time when this job was updated",
-			"type": "string",
-			"format" : "date-time"
-		},
-		"path": {
-			"title": "Job path",
-			"description": "Path to the job folder",
-			"type": "string",
-			"format": "uri"
-		},
-		"state": {
-			"title": "Job State",
-			"description": "Current job state, one of CREATED, SUBMITTED, RUNNING, SUCCESSFUL, FAILED, KILLED, STOPPED states",
-			"type": "string"
-		},
-		"comment": {
-			"title": "Comment",
-			"description": "Comment describing this job",
-			"type": "string"
-		},
-		"jsonSettings": {
-			"title": "JSON Settings",
-			"description": "Serialized JSON file that contains settings for this job",
-			"type": "string"
-		}
-	},
-	"required" : [
-		"name",
-		"jobTypeId",
-		"id",
-		"uuid",
-		"createdAt",
-		"updatedAt",
-		"path",
-		"state",
-		"comment",
-		"jsonSettings"
-	],
-	"additionalProperties" : false
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.secondary.schemas.job.object",
+  "version": "0.1.0",
+  "title": "Job Object",
+  "description": "Job object schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "title": "Job Name",
+      "description": "Name of this job",
+      "type": "string"
+    },
+    "jobTypeId": {
+      "title": "Job Type Id",
+      "description": "Type identifier of this job",
+      "type": "string"
+    },
+    "id": {
+      "title": "Job Id",
+      "description": "Identifier of this job",
+      "type": "integer"
+    },
+    "uuid": {
+      "title": "UUID",
+      "description": "UUID of this job",
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+    },
+    "createdAt": {
+      "title": "Created at",
+      "description": "Time when this job was created",
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "title": "Updated at",
+      "description": "Time when this job was updated",
+      "type": "string",
+      "format": "date-time"
+    },
+    "path": {
+      "title": "Job path",
+      "description": "Path to the job folder",
+      "type": "string",
+      "format": "uri"
+    },
+    "state": {
+      "title": "Job State",
+      "description": "Current job state, one of CREATED, SUBMITTED, RUNNING, SUCCESSFUL, FAILED, KILLED, STOPPED states",
+      "type": "string"
+    },
+    "comment": {
+      "title": "Comment",
+      "description": "Comment describing this job",
+      "type": "string"
+    },
+    "jsonSettings": {
+      "title": "JSON Settings",
+      "description": "Serialized JSON file that contains settings for this job",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "jobTypeId",
+    "id",
+    "uuid",
+    "createdAt",
+    "updatedAt",
+    "path",
+    "state",
+    "comment",
+    "jsonSettings"
+  ],
+  "additionalProperties": false
 }
 

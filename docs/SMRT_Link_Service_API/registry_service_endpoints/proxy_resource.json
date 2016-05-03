@@ -1,8 +1,8 @@
 {
-	"resourceId" : "54002i",
-	"updatedAt" : "2016-02-29T10:06:55.165",
-	"uuid" : "f9772193-21b9-4250-bbc8-9630086a2ba8",
-	"host" : "alpha2i.nanofluidics.com",
-	"port" : 8888,
-	"createdAt" : "2016-02-29T10:06:55.165"
+  "resourceId": "54002i",
+  "updatedAt": "2016-02-29T10:06:55.165",
+  "uuid": "f9772193-21b9-4250-bbc8-9630086a2ba8",
+  "host": "alpha2i.nanofluidics.com",
+  "port": 8888,
+  "createdAt": "2016-02-29T10:06:55.165"
 }

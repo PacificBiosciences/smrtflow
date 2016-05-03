@@ -1,7 +1,7 @@
 {
-	"name" : "Disk Space Full",
-	"description" : "This gauge has not yet been updated",
-	"id" : "pacbio.health.gauges.disk_space_full",
-	"createdAt" : "2016-04-01T12:37:15.252",
-	"severity" : "OK"
+  "name": "Disk Space Full",
+  "description": "This gauge has not yet been updated",
+  "id": "pacbio.health.gauges.disk_space_full",
+  "createdAt": "2016-04-01T12:37:15.252",
+  "severity": "OK"
 }

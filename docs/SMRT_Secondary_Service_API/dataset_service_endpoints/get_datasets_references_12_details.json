@@ -1,58 +1,63 @@
 {
-	"Name" : "All4mer_V2_44_circular_72x_l50256",
-	"Version" : "3.0.1",
-	"CreatedAt" : "2015-11-16T11:16:54.366-08:00",
-	"UniqueId" : "83495502-6233-4379-9e06-fd43fb0738c4",
-	"MetaType" : "PacBio.DataSet.ReferenceSet",
-	"TimeStampedName" : "referenceset_150304_231155",
-	"ExternalResources" : {
-		"ExternalResource" : [{
-				"Name" : "First References FASTA",
-				"Description" : "Points to an example references FASTA file.",
-				"Tags" : "converted",
-				"ResourceId" : "./sequence/All4mer_V2_44_circular_72x_l50256.fasta",
-				"UniqueId" : "bbbbdc0b-136b-460d-93ec-0353bf74e875",
-				"MetaType" : "PacBio.ReferenceFile.ReferenceFastaFile",
-				"TimeStampedName" : "pacbio_dataset_index-bbbbdc0b-136b-460d-93ec-0353bf74e875",
-				"FileIndices" : {
-					"FileIndex" : [{
-							"ResourceId" : "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.contig.index",
-							"UniqueId" : "bd2c4b9e-b319-4c43-b3fe-5a18f017c94e",
-							"MetaType" : "PacBio.Index.FastaContigIndex",
-							"TimeStampedName" : "pacbio_dataset_index-bd2c4b9e-b319-4c43-b3fe-5a18f017c94e"
-						}, {
-							"ResourceId" : "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.fai",
-							"UniqueId" : "5794ef86-f247-425b-9ff2-cabb84d87397",
-							"MetaType" : "PacBio.Index.SamIndex",
-							"TimeStampedName" : "pacbio_dataset_index-5794ef86-f247-425b-9ff2-cabb84d87397"
-						}, {
-							"ResourceId" : "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.index",
-							"UniqueId" : "a428c173-9ee9-47bd-b272-98da4445518a",
-							"MetaType" : "PacBio.Index.Indexer",
-							"TimeStampedName" : "pacbio_dataset_index-a428c173-9ee9-47bd-b272-98da4445518a"
-						}, {
-							"ResourceId" : "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.sa",
-							"UniqueId" : "cc374eff-c34e-4a47-9f2c-bcf001901b63",
-							"MetaType" : "PacBio.Index.SaWriterIndex",
-							"TimeStampedName" : "pacbio_dataset_index-cc374eff-c34e-4a47-9f2c-bcf001901b63"
-						}
-					]
-				}
-			}
-		]
-	},
-	"DataSetMetadata" : {
-		"TotalLength" : 50256,
-		"NumRecords" : 1,
-		"Organism" : "All4mer_V2_44_circular_72x_l50256",
-		"Ploidy" : "haploid",
-		"Contigs" : {
-			"Contig" : {
-				"Name" : "ref000001",
-				"Description" : "All4mer.V2.44_circular_72x_l50256",
-				"Length" : "50256",
-				"Digest" : "efbac09bb1f5e5449f51d3c741687612"
-			}
-		}
-	}
+  "Name": "All4mer_V2_44_circular_72x_l50256",
+  "Version": "3.0.1",
+  "CreatedAt": "2015-11-16T11:16:54.366-08:00",
+  "UniqueId": "83495502-6233-4379-9e06-fd43fb0738c4",
+  "MetaType": "PacBio.DataSet.ReferenceSet",
+  "TimeStampedName": "referenceset_150304_231155",
+  "ExternalResources": {
+    "ExternalResource": [
+      {
+        "Name": "First References FASTA",
+        "Description": "Points to an example references FASTA file.",
+        "Tags": "converted",
+        "ResourceId": "./sequence/All4mer_V2_44_circular_72x_l50256.fasta",
+        "UniqueId": "bbbbdc0b-136b-460d-93ec-0353bf74e875",
+        "MetaType": "PacBio.ReferenceFile.ReferenceFastaFile",
+        "TimeStampedName": "pacbio_dataset_index-bbbbdc0b-136b-460d-93ec-0353bf74e875",
+        "FileIndices": {
+          "FileIndex": [
+            {
+              "ResourceId": "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.contig.index",
+              "UniqueId": "bd2c4b9e-b319-4c43-b3fe-5a18f017c94e",
+              "MetaType": "PacBio.Index.FastaContigIndex",
+              "TimeStampedName": "pacbio_dataset_index-bd2c4b9e-b319-4c43-b3fe-5a18f017c94e"
+            },
+            {
+              "ResourceId": "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.fai",
+              "UniqueId": "5794ef86-f247-425b-9ff2-cabb84d87397",
+              "MetaType": "PacBio.Index.SamIndex",
+              "TimeStampedName": "pacbio_dataset_index-5794ef86-f247-425b-9ff2-cabb84d87397"
+            },
+            {
+              "ResourceId": "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.index",
+              "UniqueId": "a428c173-9ee9-47bd-b272-98da4445518a",
+              "MetaType": "PacBio.Index.Indexer",
+              "TimeStampedName": "pacbio_dataset_index-a428c173-9ee9-47bd-b272-98da4445518a"
+            },
+            {
+              "ResourceId": "./sequence/All4mer_V2_44_circular_72x_l50256.fasta.sa",
+              "UniqueId": "cc374eff-c34e-4a47-9f2c-bcf001901b63",
+              "MetaType": "PacBio.Index.SaWriterIndex",
+              "TimeStampedName": "pacbio_dataset_index-cc374eff-c34e-4a47-9f2c-bcf001901b63"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "DataSetMetadata": {
+    "TotalLength": 50256,
+    "NumRecords": 1,
+    "Organism": "All4mer_V2_44_circular_72x_l50256",
+    "Ploidy": "haploid",
+    "Contigs": {
+      "Contig": {
+        "Name": "ref000001",
+        "Description": "All4mer.V2.44_circular_72x_l50256",
+        "Length": "50256",
+        "Digest": "efbac09bb1f5e5449f51d3c741687612"
+      }
+    }
+  }
 }

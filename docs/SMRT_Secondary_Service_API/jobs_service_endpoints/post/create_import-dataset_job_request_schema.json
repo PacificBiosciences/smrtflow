@@ -1,26 +1,26 @@
 {
-	"$schema": "http://json-schema.org/draft-04/schema#",
-	"id": "pacbio.secondary.schemas.job.import-dataset.create",
-	"version": "0.1.0",
-	"title": "Create Import-dataset Job",
-	"description": "Schema of request body for creating import-dataset job",
-	"type" : "object",
-	"properties": {
-		"path": {
-			"title": "Dataset File Path",
-			"description": "Path to the dataset file",
-			"type": "string",
-			"format": "uri"
-		},
-		"datasetType": {
-			"title": "Dataset Type",
-			"description": "Type of this dataset, e.g. PacBio.DataSet.SubreadSet",
-			"type": "string"
-		}
-	},
-	"required" : [
-		"path",
-		"datasetType"
-	],
-	"additionalProperties" : false
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.secondary.schemas.job.import-dataset.create",
+  "version": "0.1.0",
+  "title": "Create Import-dataset Job",
+  "description": "Schema of request body for creating import-dataset job",
+  "type": "object",
+  "properties": {
+    "path": {
+      "title": "Dataset File Path",
+      "description": "Path to the dataset file",
+      "type": "string",
+      "format": "uri"
+    },
+    "datasetType": {
+      "title": "Dataset Type",
+      "description": "Type of this dataset, e.g. PacBio.DataSet.SubreadSet",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path",
+    "datasetType"
+  ],
+  "additionalProperties": false
 }

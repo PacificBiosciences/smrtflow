@@ -1,13 +1,14 @@
-[{
-		"modifiedAt" : "2015-11-30T15:06:12.287",
-		"fileTypeId" : "PacBio.DataSet.SubreadSet",
-		"path" : "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000252/merged.dataset.xml",
-		"uuid" : "7aaf577a-9416-413f-9948-7c8d3dfa2a8d",
-		"fileSize" : 13240,
-		"importedAt" : "2015-11-30T15:06:12.287",
-		"jobId" : 252,
-		"createdAt" : "2015-11-30T15:06:12.287",
-		"jobUUID" : "1576c753-478c-46c6-ad44-9936665df1b7",
-		"sourceId" : "pbscala::merge_dataset"
-	}
+[
+  {
+    "modifiedAt": "2015-11-30T15:06:12.287",
+    "fileTypeId": "PacBio.DataSet.SubreadSet",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000252/merged.dataset.xml",
+    "uuid": "7aaf577a-9416-413f-9948-7c8d3dfa2a8d",
+    "fileSize": 13240,
+    "importedAt": "2015-11-30T15:06:12.287",
+    "jobId": 252,
+    "createdAt": "2015-11-30T15:06:12.287",
+    "jobUUID": "1576c753-478c-46c6-ad44-9936665df1b7",
+    "sourceId": "pbscala::merge_dataset"
+  }
 ]

@@ -1,20 +1,20 @@
 {
-	"$schema": "http://json-schema.org/draft-04/schema#",
-	"id": "pacbio.secondary.schemas.job.import-datastore.create",
-	"version": "0.1.0",
-	"title": "Create Import-datastore Job",
-	"description": "Schema of request body for creating import-datastore job",
-	"type" : "object",
-	"properties": {
-		"path": {
-			"title": "Datastore File Path",
-			"description": "Path to the datastore file",
-			"type": "string",
-			"format": "uri"
-		}
-	},
-	"required" : [
-		"path"
-	],
-	"additionalProperties" : false
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "pacbio.secondary.schemas.job.import-datastore.create",
+  "version": "0.1.0",
+  "title": "Create Import-datastore Job",
+  "description": "Schema of request body for creating import-datastore job",
+  "type": "object",
+  "properties": {
+    "path": {
+      "title": "Datastore File Path",
+      "description": "Path to the datastore file",
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "additionalProperties": false
 }
