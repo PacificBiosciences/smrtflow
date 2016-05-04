@@ -1,7 +1,9 @@
 // derived from PrimaryClient.scala in PAWS
 package com.pacbio.secondary.smrttools.client
 
-import java.net.URL
+import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.common.models._
 
 import akka.actor.ActorSystem
 import spray.client.pipelining._
@@ -11,19 +13,11 @@ import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.Future
 
-object ClientModels {
-  // the xfer service isn't upto date with all the fields
-  case class ServiceStatus(id: String, message: String)
-}
+import java.net.URL
+import java.util.UUID
 
-// XXX should this use PacBioJsonProtocol instead?
-trait ServicesClientJsonProtocol extends DefaultJsonProtocol {
-  import ClientModels._
- 
-  implicit val serviceStatusFormat = jsonFormat2(ServiceStatus)
-}
 
-object ServicesClientJsonProtocol extends ServicesClientJsonProtocol
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
 
 /**
  * Client to Primary Services
@@ -32,7 +26,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
-  import ClientModels._
+
+  object ServiceEndpoints {
+    val ROOT_JM = "/secondary-analysis/job-manager"
+    val ROOT_JOBs = ROOT_JM + "/jobs"
+    val ROOT_DS = "/secondary-analysis/datasets"
+    val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
+  }
 
   // Context to run futures in
   implicit val executionContext = actorSystem.dispatcher
@@ -43,10 +43,17 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   // Pipelines and serialization
   def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
   def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
+  def getDataSetByUuidPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
 
   val statusUrl = toUrl("/status")
 
   def getStatus: Future[ServiceStatus] = serviceStatusPipeline {
     Get(statusUrl)
   }
+
+  // FIXME this should take either an Int or a UUID, but how?
+  def getDataSetById(dataset_id: Int): Future[DataSetMetaDataSet] = getDataSetByUuidPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + dataset_id))
+  }
+
 }
