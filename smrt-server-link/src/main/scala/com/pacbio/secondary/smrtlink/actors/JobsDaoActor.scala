@@ -59,7 +59,7 @@ object JobsDaoActor {
 
   case class CreateJobType(uuid: UUID, name: String, comment: String, jobTypeId: String,
                            coreJob: CoreJob, engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                           jsonSettings: String) extends JobMessage
+                           jsonSettings: String, createdBy: Option[String]) extends JobMessage
 
 
   // Get all DataSet Entry Points
@@ -401,8 +401,8 @@ class JobsDaoActor(dao: JobsDao) extends PacBioActor with ActorLogging {
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => respondWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings) =>
-      respondWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings))
+    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy) =>
+      respondWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy))
 
     case UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) =>
       respondWith(dao.updateJobState(jobId, state, message))

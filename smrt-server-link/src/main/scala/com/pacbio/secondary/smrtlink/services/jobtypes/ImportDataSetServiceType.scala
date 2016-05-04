@@ -17,6 +17,8 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -28,7 +30,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
-class ImportDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef) extends JobTypeService {
+class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
 
   import SmrtLinkJsonProtocols._
 
@@ -43,7 +45,7 @@ class ImportDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef) 
     }
   }
 
-  def createJob(sopts:ImportDataSetOptions): Future[EngineJob] = {
+  def createJob(sopts:ImportDataSetOptions, createdBy: Option[String]): Future[EngineJobResponse] = {
     logger.info(s"Attempting to create import-dataset Job with options $sopts")
 
     val uuid = UUID.randomUUID()
@@ -52,8 +54,9 @@ class ImportDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef) 
 
     val fx = for {
       vopts <- validate(sopts)
-      engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint,  CoreJob(uuid, sopts), None, sopts.toJson.toString())).mapTo[EngineJob]
-    } yield engineJob
+      engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint,  CoreJob(uuid, sopts), None, sopts.toJson.toString(), createdBy)).mapTo[EngineJob]
+      jobResponse <- addUser(userActor, engineJob)
+    } yield jobResponse
 
     fx
   }
@@ -64,28 +67,32 @@ class ImportDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef) 
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[ImportDataSetOptions]) { sopts =>
-                complete {
-                  created {
-                    createJob(sopts)
-                  }
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[ImportDataSetOptions]) { sopts =>
+              complete {
+                created {
+                  createJob(sopts, authInfo.map(_.login))
                 }
+              }
             }
           }
+        }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     }
 }
 
 trait ImportDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with JobManagerServiceProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
-    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), engineManagerActor())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

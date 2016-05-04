@@ -4,8 +4,9 @@ import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, ActorRef}
 import akka.pattern.ask
+import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider, UserServiceActorRefProvider, UserServiceActor}
+import UserServiceActor._
 import com.pacbio.common.actors.StatusServiceActor._
-import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider}
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
@@ -27,6 +28,7 @@ import SprayJsonSupport._
 
 class JobManagerService(dbActor: ActorRef,
                         statusActor: ActorRef,
+                        userActor: ActorRef,
                         engineConfig: EngineConfig,
                         jobTypes: Set[JobTypeService],
                         pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -75,7 +77,7 @@ class JobManagerService(dbActor: ActorRef,
         }
       } ~
       pathPrefix(JOB_ROOT_PREFIX) {
-        sharedJobRoutes(dbActor)
+        sharedJobRoutes(dbActor, userActor)
       }
     }
 
@@ -139,6 +141,7 @@ trait JobManagerServiceProvider {
       with SmrtLinkConfigProvider
       with JobsDaoActorProvider
       with StatusServiceActorRefProvider
+      with UserServiceActorRefProvider
       with ActorSystemProvider
       with ServiceComposer =>
 
@@ -148,6 +151,7 @@ trait JobManagerServiceProvider {
       new JobManagerService(
         jobsDaoActor(),
         statusServiceActorRef(),
+        userServiceActorRef(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),

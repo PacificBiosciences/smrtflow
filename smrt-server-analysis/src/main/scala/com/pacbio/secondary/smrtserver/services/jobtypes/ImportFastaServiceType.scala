@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -28,7 +30,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class ImportFastaServiceType(dbActor: ActorRef, engineManagerActor: ActorRef)
+class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -41,44 +43,49 @@ class ImportFastaServiceType(dbActor: ActorRef, engineManagerActor: ActorRef)
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[ConvertImportFastaOptions]) { sopts =>
-            val uuid = UUID.randomUUID()
-            val coreJob = CoreJob(uuid, sopts)
-            val comment = s"Import/Convert Fasta File to DataSet"
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[ConvertImportFastaOptions]) { sopts =>
+              val uuid = UUID.randomUUID()
+              val coreJob = CoreJob(uuid, sopts)
+              val comment = s"Import/Convert Fasta File to DataSet"
 
-            val fx = Future {sopts.validate}.flatMap {
-              case Some(e) => Future { throw new UnprocessableEntityError(s"Failed to validate: $e") }
-              case _ => (dbActor ? CreateJobType(
-                uuid,
-                s"Job $endpoint",
-                comment,
-                endpoint,
-                coreJob,
-                None,
-                sopts.toJson.toString())).mapTo[EngineJob]
-            }
+              val fx = Future {sopts.validate}.flatMap {
+                case Some(e) => Future { throw new UnprocessableEntityError(s"Failed to validate: $e") }
+                case _ => (dbActor ? CreateJobType(
+                  uuid,
+                  s"Job $endpoint",
+                  comment,
+                  endpoint,
+                  coreJob,
+                  None,
+                  sopts.toJson.toString(),
+                  authInfo.map(_.login))).mapTo[EngineJob]
+              }
 
-            complete {
-              created {
-                fx
+              complete {
+                created {
+                  fx.map(job => addUser(userActor, job))
+                }
               }
             }
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     }
 }
 
 trait ImportFastaServiceTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
-    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), engineManagerActor())).bindToSet(JobTypes)
+    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

@@ -97,7 +97,9 @@ trait MockUtils extends LazyLogging{
       AnalysisJobStates.CREATED,
       "mock-pbsmrtpipe-job-type",
       "path",
-      "{}")
+      "{}",
+      Some("root")
+    )
 
     engineJobs ++= (1 until _MOCK_NJOBS).map(x => _toJob(x))
 

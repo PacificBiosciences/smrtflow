@@ -22,6 +22,8 @@ import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
+import com.pacbio.common.actors.UserServiceActor._
+import com.pacbio.common.auth.ApiUser
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
@@ -91,12 +93,33 @@ trait JobService
     }
   }
 
-  def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route = {
+  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJobResponse]] = {
+    for {
+      jobs <- (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+      jobResponses <- Future.sequence(jobs.map(j => addUser(userActor, j)))
+    } yield jobResponses
+  }
+
+  def addUser(userActor: ActorRef, job: EngineJob)(implicit ec: ExecutionContext): Future[EngineJobResponse] = {
+    job.createdBy match {
+      case None =>
+        Future.successful(EngineJobResponse.fromEngineJob(job, None))
+      case Some(login) => {
+        val user = (userActor ? GetUser(login)).mapTo[ApiUser]
+        user.map(u => EngineJobResponse.fromEngineJob(job, Some(u)))
+      }
+    }
+  }
+
+  def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route = {
     path(JavaUUID) { id =>
       get {
         complete {
           ok {
-            (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
+            for {
+              job <- (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
+              jobResponse <- addUser(userActor, job)
+            } yield jobResponse
           }
         }
       }
@@ -105,7 +128,10 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetJobById(id)).mapTo[EngineJob]
+            for {
+              job <- (dbActor ? GetJobById(id)).mapTo[EngineJob]
+              jobResponse <- addUser(userActor, job)
+            } yield jobResponse
           }
         }
       }

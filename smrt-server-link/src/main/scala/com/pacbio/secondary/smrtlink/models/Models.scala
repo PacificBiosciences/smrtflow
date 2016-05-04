@@ -5,8 +5,10 @@ import java.util.UUID
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
+import com.pacbio.common.auth.ApiUser
 import com.pacbio.common.models.UserResponse
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 
 object Models
 
@@ -117,6 +119,25 @@ case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
 
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
+
+case class EngineJobResponse(id: Int,
+                             uuid: UUID,
+                             name: String,
+                             comment: String,
+                             createdAt: JodaDateTime,
+                             updatedAt: JodaDateTime,
+                             state: AnalysisJobStates.JobStates,
+                             jobTypeId: String,
+                             path: String,
+                             jsonSettings: String,
+                             createdBy: Option[UserResponse])
+
+object EngineJobResponse {
+  def fromEngineJob(job: JobModels.EngineJob, user: Option[ApiUser]) =
+    EngineJobResponse(job.id, job.uuid, job.name, job.comment, job.createdAt,
+                      job.updatedAt, job.state, job.jobTypeId, job.path,
+                      job.jsonSettings, user.map(_.toResponse))
+}
 
 
 // Need to find a better way to do this

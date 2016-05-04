@@ -1,5 +1,6 @@
 import akka.actor.{ActorSystem, ActorRefFactory}
 import com.pacbio.common.actors._
+import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
@@ -31,6 +32,8 @@ with JobServiceConstants {
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
+  val INVALID_JWT = "invalid.jwt"
+
   object TestProviders extends
   ServiceComposer with
   JobManagerServiceProvider with
@@ -45,12 +48,22 @@ with JobServiceConstants {
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
+  InMemoryUserDaoProvider with
+  UserServiceActorRefProvider with
+  AuthenticatorImplProvider with
+  JwtUtilsProvider with
   LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
   SetBindings {
+
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
+      override def getJwt(user: ApiUser): String = user.login
+      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+    })
+
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem

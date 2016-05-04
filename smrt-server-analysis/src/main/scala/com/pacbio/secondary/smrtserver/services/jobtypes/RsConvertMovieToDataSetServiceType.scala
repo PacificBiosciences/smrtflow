@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.util.Timeout
 import akka.pattern.ask
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -27,7 +29,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef) extends JobTypeService with LazyLogging {
+class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
 
@@ -39,39 +41,44 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: 
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[MovieMetadataToHdfSubreadOptions]) { sopts =>
-            val uuid = UUID.randomUUID()
-            val coreJob = CoreJob(uuid, sopts)
-            val jsonSettings = sopts.toJson.toString()
-            val fx = (dbActor ? CreateJobType(
-              uuid,
-              s"Job $endpoint", s"RS movie convert to HdfSubread XML ",
-              endpoint,
-              coreJob,
-              None,
-              jsonSettings)).mapTo[EngineJob]
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[MovieMetadataToHdfSubreadOptions]) { sopts =>
+              val uuid = UUID.randomUUID()
+              val coreJob = CoreJob(uuid, sopts)
+              val jsonSettings = sopts.toJson.toString()
+              val fx = (dbActor ? CreateJobType(
+                uuid,
+                s"Job $endpoint", s"RS movie convert to HdfSubread XML ",
+                endpoint,
+                coreJob,
+                None,
+                jsonSettings,
+                authInfo.map(_.login))).mapTo[EngineJob]
 
-            complete {
-              created {
-                fx
+              complete {
+                created {
+                  fx.map(job => addUser(userActor, job))
+                }
               }
             }
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     }
 }
 
 trait RsConvertMovieToDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with JobManagerServiceProvider =>
 
   val rsConvertMovieToDataSetServiceType: Singleton[RsConvertMovieToDataSetServiceType] =
-    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), engineManagerActor())).bindToSet(JobTypes)
+    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

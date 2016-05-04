@@ -51,9 +51,6 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
     "0.1.0",
     "Project create/read/update", None)
 
-  def toUserResponse(au: ApiUser) =
-    UserResponse(au.login, au.id, au.email, au.firstName, au.lastName, au.roles)
-
   val routes =
     pathPrefix("projects") {
       authenticate(authenticator.jwtAuth) { authInfo =>
@@ -120,7 +117,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
 
                   fullUsers <- Future {
                     (users, apiUsers).zipped.map((u, au) =>
-                      ProjectUserResponse(toUserResponse(au), u.role))
+                      ProjectUserResponse(au.toResponse, u.role))
                   }
                 } yield fullUsers
 
