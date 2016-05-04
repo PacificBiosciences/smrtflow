@@ -21,7 +21,9 @@ scalaVersion in ThisBuild := "2.11.7"
 
 scalacOptions in ThisBuild := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 
-//parallelExecution in Test := false
+parallelExecution in ThisBuild := false
+
+fork in ThisBuild := true
 
 // Custom keys for this build.
 
