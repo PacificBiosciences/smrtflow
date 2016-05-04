@@ -106,7 +106,7 @@ object EngineDao {
       val updatedAt = createdAt
       val path = jobResolver.resolve(runnableJob)
       val jsonSettings = "{}"
-      EngineJob(runnableJob.id, runnableJob.job.uuid, name, description, createdAt, updatedAt, state, runnableJob.job.jobOptions.toJob.jobTypeId.id, path.toAbsolutePath.toString, jsonSettings)
+      EngineJob(runnableJob.id, runnableJob.job.uuid, name, description, createdAt, updatedAt, state, runnableJob.job.jobOptions.toJob.jobTypeId.id, path.toAbsolutePath.toString, jsonSettings, None)
     }
 
     def addRunnableJob(runnableJob: RunnableJob): EngineJob = {
@@ -147,7 +147,7 @@ object EngineDao {
       _engineJobs.get(uuid) match {
         case Some(x) =>
           val updatedAt = JodaDateTime.now()
-          val engineJob = EngineJob(x.id, x.uuid, x.name, x.comment, x.createdAt, updatedAt, state, x.jobTypeId, x.path, x.jsonSettings)
+          val engineJob = EngineJob(x.id, x.uuid, x.name, x.comment, x.createdAt, updatedAt, state, x.jobTypeId, x.path, x.jsonSettings, x.createdBy)
           logger.info(s"Updating job ${uuid.toString} from ${x.state} to $state")
 
           _engineJobs.update(engineJob.uuid, engineJob)

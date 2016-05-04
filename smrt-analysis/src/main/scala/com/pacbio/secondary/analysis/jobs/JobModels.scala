@@ -120,7 +120,9 @@ object JobModels {
                        updatedAt: JodaDateTime,
                        state: AnalysisJobStates.JobStates,
                        jobTypeId: String,
-                       path: String, jsonSettings: String) {
+                       path: String,
+                       jsonSettings: String,
+                       createdBy: Option[String]) {
 
       def apply(id: Int,
                 uuid: UUID,
@@ -130,12 +132,14 @@ object JobModels {
                 updatedAt: JodaDateTime,
                 stateId: Int,
                 jobTypeId: String,
-                path: String, jsonSettings: String) = {
+                path: String,
+                jsonSettings: String,
+                createdBy: Option[String]) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy)
       }
   }
 

@@ -2,6 +2,8 @@ package com.pacbio.common.auth
 
 import com.github.t3hnar.bcrypt._
 
+import com.pacbio.common.models.UserResponse
+
 /**
  * Represents a user, including a login, a cryptographically hashed password, and a set of roles this user can act as.
  *
@@ -34,4 +36,7 @@ case class ApiUser(login: String,
   def withRoles(newRoles: Set[Role]): ApiUser = copy(roles = roles ++ newRoles)
 
   def withoutRole(oldRole: Role): ApiUser = copy(roles = roles - oldRole)
+
+  def toResponse(): UserResponse =
+    UserResponse(login, id, email, firstName, lastName, roles)
 }

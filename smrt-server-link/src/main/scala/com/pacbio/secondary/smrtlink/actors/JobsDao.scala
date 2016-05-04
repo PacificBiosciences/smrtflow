@@ -227,7 +227,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val jsonSettings = "{}"
 
     val jobId = dal.db.withSession { implicit session =>
-      val x = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings)
+      val x = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
       engineJobs returning engineJobs.map(_.id) += x
     }
     // Now that the job id is known, we can resolve the directory that the job will be run in
@@ -246,7 +246,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     }
 
     _runnableJobs.update(runnableJob.job.uuid, rj)
-    EngineJob(jobId, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings)
+    EngineJob(jobId, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
   }
 
   override def getJobByUUID(jobId: UUID): Option[EngineJob] = {
@@ -377,7 +377,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
                 jobTypeId: String,
                 coreJob: CoreJob,
                 entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                jsonSetting: String): EngineJob = {
+                jsonSetting: String,
+                createdBy: Option[String]): EngineJob = {
 
     // This should really be Option[String]
     val path = ""
@@ -386,7 +387,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
     val engineJob = dal.db.withSession { implicit session =>
       engineJobs returning engineJobs.map(_.id) into ((engineJob, id) => engineJob.copy(id = id)) +=
-        EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting)
+        EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
     }
 
     val jobId = engineJob.id
@@ -410,7 +411,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     }
 
     _runnableJobs.update(uuid, rJob)
-    EngineJob(jobId, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting)
+    EngineJob(jobId, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
   }
 
   override def getJobs(limit: Int = 100): Seq[EngineJob] = {

@@ -266,7 +266,7 @@ with PipelineTemplatePresetJsonProtocol {
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)
-  implicit val engineJobFormat = jsonFormat10(EngineJob)
+  implicit val engineJobFormat = jsonFormat11(EngineJob)
 
 }
 

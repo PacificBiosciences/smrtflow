@@ -8,6 +8,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
 import com.pacbio.common.models.LogMessageRecord
@@ -43,7 +45,9 @@ import spray.json._
 
 
 class PbsmrtpipeServiceJobType(dbActor: ActorRef,
+                               userActor: ActorRef,
                                engineManagerActor: ActorRef,
+                               authenticator: Authenticator,
                                loggerFactory: LoggerFactory,
                                engineConfig: EngineConfig,
                                pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -72,76 +76,80 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[PbSmrtPipeServiceOptions]) { ropts =>
-            // 0. Validate Pipeline template and entry points are consistent.
-            // 1. Resolve Service Entry Points
-            //   {
-            //     "entryId" : "e_01",
-            //     "entryType" : "Pacbio.DataSets.Subreads",
-            //     "id" : 1234
-            //   } -> {"entryId" : "e_01", "path" : "/path/to/file"}
-            // 2. Create a new job in db
-            // 3. Create a new CoreJob instance
-            // 4. Submit CoreJob to manager
-            // FIXME. This should be POST/PUT/GET-able via /jobs/{JOB_TYPE_ID}/settings
-            // val envPath = "/Users/mkocher/.virtualenvs/dev_pbsmrtpipe_test/bin/activate"
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[PbSmrtPipeServiceOptions]) { ropts =>
+              // 0. Validate Pipeline template and entry points are consistent.
+              // 1. Resolve Service Entry Points
+              //   {
+              //     "entryId" : "e_01",
+              //     "entryType" : "Pacbio.DataSets.Subreads",
+              //     "id" : 1234
+              //   } -> {"entryId" : "e_01", "path" : "/path/to/file"}
+              // 2. Create a new job in db
+              // 3. Create a new CoreJob instance
+              // 4. Submit CoreJob to manager
+              // FIXME. This should be POST/PUT/GET-able via /jobs/{JOB_TYPE_ID}/settings
+              // val envPath = "/Users/mkocher/.virtualenvs/dev_pbsmrtpipe_test/bin/activate"
 
-            val uuid = UUID.randomUUID()
-	          logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
+              val uuid = UUID.randomUUID()
+              logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
-            val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSet(x.fileTypeId, x.datasetId, dbActor))
+              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSet(x.fileTypeId, x.datasetId, dbActor))
 
-            val pathsFs = Future sequence fsx
-            val rs = Await.result(pathsFs, 4.seconds)
+              val pathsFs = Future sequence fsx
+              val rs = Await.result(pathsFs, 4.seconds)
 
-            val boundEntryPoints = ropts.entryPoints.zip(rs).map(x => BoundEntryPoint(x._1.entryId, x._2.path))
-            val engineEntryPts = ropts.entryPoints.zip(rs).map(x => EngineJobEntryPointRecord(x._2.uuid, x._1.fileTypeId))
+              val boundEntryPoints = ropts.entryPoints.zip(rs).map(x => BoundEntryPoint(x._1.entryId, x._2.path))
+              val engineEntryPts = ropts.entryPoints.zip(rs).map(x => EngineJobEntryPointRecord(x._2.uuid, x._1.fileTypeId))
 
-            logger.info(s"Task options ${ropts.taskOptions}")
-            // FIXME This casting issues. Currently it's pushed down to pbsmrtpipe level
-            val taskOptions = ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}"))
-            val workflowOptions = pbsmrtpipeEngineOptions.toPipelineOptions
+              logger.info(s"Task options ${ropts.taskOptions}")
+              // FIXME This casting issues. Currently it's pushed down to pbsmrtpipe level
+              val taskOptions = ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}"))
+              val workflowOptions = pbsmrtpipeEngineOptions.toPipelineOptions
 
-            val serviceUri = toURL(rootUpdateURL, uuid)
-            val opts = PbSmrtPipeJobOptions(
-              ropts.pipelineId,
-              boundEntryPoints,
-              taskOptions,
-              workflowOptions,
-              engineConfig.pbToolsEnv,
-              Some(serviceUri),
-              commandTemplate)
-            val coreJob = CoreJob(uuid, opts)
-            val jopts = ropts.toJson
+              val serviceUri = toURL(rootUpdateURL, uuid)
+              val opts = PbSmrtPipeJobOptions(
+                ropts.pipelineId,
+                boundEntryPoints,
+                taskOptions,
+                workflowOptions,
+                engineConfig.pbToolsEnv,
+                Some(serviceUri),
+                commandTemplate)
+              val coreJob = CoreJob(uuid, opts)
+              val jopts = ropts.toJson
 
-	          logger.info("Pbsmrtpipe Service Opts:")
-            logger.info(jopts.prettyPrint)
-            logger.info(s"Resolved options to $opts")
+	      logger.info("Pbsmrtpipe Service Opts:")
+              logger.info(jopts.prettyPrint)
+              logger.info(s"Resolved options to $opts")
 
-            val fx = (dbActor ? CreateJobType(
-              uuid,
-              ropts.name,
-              s"pbsmrtpipe ${opts.pipelineId}",
-              endpoint,
-              coreJob,
-              Some(engineEntryPts),
-              jopts.toString())).mapTo[EngineJob]
+              val fx = (dbActor ? CreateJobType(
+                uuid,
+                ropts.name,
+                s"pbsmrtpipe ${opts.pipelineId}",
+                endpoint,
+                coreJob,
+                Some(engineEntryPts),
+                jopts.toString(),
+                authInfo.map(_.login)
+              )).mapTo[EngineJob]
 
-            fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
+              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
 
-            complete {
-              created {
-                fx
+              complete {
+                created {
+                  fx.map(job => addUser(userActor, job))
+                }
               }
             }
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     } ~
     path(endpoint / IntNumber / LOG_PREFIX) { id =>
       post {
@@ -180,6 +188,8 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
 
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with LoggerFactoryProvider
       with SmrtLinkConfigProvider
@@ -187,7 +197,9 @@ trait PbsmrtpipeServiceJobTypeProvider {
   val pbsmrtpipeServiceJobType: Singleton[PbsmrtpipeServiceJobType] =
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
+      userServiceActorRef(),
       engineManagerActor(),
+      authenticator(),
       loggerFactory(),
       jobEngineConfig(),
       pbsmrtpipeEngineOptions(),

@@ -118,24 +118,26 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def jsonSettings: Column[String] = column[String]("json_settings")
 
+    def createdBy: Column[Option[String]] = column[Option[String]]("created_by")
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId, path, jsonSettings) <> (intoEngineJob, fromEngineJob)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId, path, jsonSettings, createdBy) <> (intoEngineJob, fromEngineJob)
 
     //def indexUUID = index("index_uuid", uuid, unique = true)
 
-    private def intoEngineJob(t: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String)):EngineJob = {
+    private def intoEngineJob(t: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String, Option[String])):EngineJob = {
       val state = AnalysisJobStates.intToState(t._7).getOrElse(AnalysisJobStates.UNKNOWN)
-      EngineJob(t._1, t._2, t._3, t._4, t._5, t._6, state, t._8, t._9, t._10)
+      EngineJob(t._1, t._2, t._3, t._4, t._5, t._6, state, t._8, t._9, t._10, t._11)
     }
 
     private def fromEngineJob(engineJob: EngineJob)  = {
       Some((engineJob.id,
         engineJob.uuid, engineJob.name, engineJob.comment,
         engineJob.createdAt, engineJob.updatedAt, engineJob.state.stateId,
-        engineJob.jobTypeId, engineJob.path, engineJob.jsonSettings))
+        engineJob.jobTypeId, engineJob.path, engineJob.jsonSettings, engineJob.createdBy))
     }
 
   }

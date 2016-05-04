@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
@@ -64,7 +66,7 @@ object ValidatorDataSetMergeServiceOptions {
 }
 
 
-class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef)
+class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
@@ -77,45 +79,49 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[DataSetMergeServiceOptions]) { sopts =>
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[DataSetMergeServiceOptions]) { sopts =>
 
-            val uuid = UUID.randomUUID()
-            logger.info(s"attempting to create a merge-dataset job ${uuid.toString} with options $sopts")
+              val uuid = UUID.randomUUID()
+              logger.info(s"attempting to create a merge-dataset job ${uuid.toString} with options $sopts")
 
-            val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))
+              val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))
 
-            val fx = for {
-              uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
-              resolvedPaths <- Future { uuidPaths.map(x => x._2) }
-              engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
-              mergeDataSetOptions <- Future { MergeDataSetOptions(sopts.datasetType, resolvedPaths, sopts.name) }
-              coreJob <- Future { CoreJob(uuid, mergeDataSetOptions) }
-              engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString)).mapTo[EngineJob]
-            } yield engineJob
+              val fx = for {
+                uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
+                resolvedPaths <- Future { uuidPaths.map(x => x._2) }
+                engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
+                mergeDataSetOptions <- Future { MergeDataSetOptions(sopts.datasetType, resolvedPaths, sopts.name) }
+                coreJob <- Future { CoreJob(uuid, mergeDataSetOptions) }
+                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString, authInfo.map(_.login))).mapTo[EngineJob]
+              } yield engineJob
 
-            fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
+              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
 
-            complete {
-              created {
-                fx
+              complete {
+                created {
+                  fx.map(job => addUser(userActor, job))
+                }
               }
             }
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     }
 }
 
 trait MergeDataSetServiceJobTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with JobManagerServiceProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
-    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), engineManagerActor())).bindToSet(JobTypes)
+    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

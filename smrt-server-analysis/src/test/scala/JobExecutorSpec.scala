@@ -1,5 +1,6 @@
 import akka.actor.{ActorSystem, ActorRefFactory}
 import com.pacbio.common.actors._
+import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
@@ -9,7 +10,7 @@ import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobResponse, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -35,6 +36,8 @@ with JobServiceConstants {
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
+  val INVALID_JWT = "invalid.jwt"
+
   object TestProviders extends
   ServiceComposer with
   JobManagerServiceProvider with
@@ -50,12 +53,22 @@ with JobServiceConstants {
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
+  InMemoryUserDaoProvider with
+  UserServiceActorRefProvider with
+  AuthenticatorImplProvider with
+  JwtUtilsProvider with
   LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
   SetBindings {
+
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
+      override def getJwt(user: ApiUser): String = user.login
+      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+    })
+
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
@@ -102,7 +115,8 @@ with JobServiceConstants {
     "Sanity 'Example' Job Execution test" in {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
-        val msg = responseAs[EngineJob]
+        //val msg = responseAs[EngineJobResponse]
+        val msg = responseAs[String]
         logger.info(s"Response to $url -> $msg")
         status.isSuccess must beTrue
       }
@@ -114,7 +128,8 @@ with JobServiceConstants {
       val r = SimpleDevJobOptions(5, 6)
       val url = toJobType("simple")
       Post(url, r) ~> totalRoutes ~> check {
-        val msg = responseAs[EngineJob]
+        //val msg = responseAs[EngineJobResponse]
+        val msg = responseAs[String]
         logger.info(s"Response to $url -> $msg")
         status.isSuccess must beTrue
       }

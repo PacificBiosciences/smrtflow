@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.models
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols
+import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import spray.json._
@@ -73,6 +73,7 @@ trait SupportedAcquisitionStatesProtocols extends DefaultJsonProtocol {
 
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
+  with JobStatesJsonProtocol
   with ServiceTaskOptionProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
@@ -108,6 +109,7 @@ trait SmrtLinkJsonProtocols
 
 
   implicit val jobTypeFormat = jsonFormat2(JobTypeEndPoint)
+  implicit val engineJobResponseFormat = jsonFormat11(EngineJobResponse.apply)
 
   // Jobs
   implicit val pbSimpleStatusFormat = jsonFormat3(SimpleStatus)

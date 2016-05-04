@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -24,7 +26,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -36,52 +38,58 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef) ext
       pathEndOrSingleSlash {
         get {
           complete {
-            (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+            jobList(dbActor, userActor, endpoint)
           }
         } ~
         post {
-          entity(as[PbSmrtPipeServiceOptions]) { ropts =>
-            // 0. Mock Validation of inputs (skip this for now)
-            // 1.  Create a new job in db
-            // 2. Create a new CoreJob instance
-            // 3. Submit CoreJob to manager
-            val uuid = UUID.randomUUID()
-            val entryPoints = ropts.entryPoints.map(x => BoundEntryPoint(x.entryId, "/tmp/file.fasta"))
-            val taskOptions = Seq[PipelineBaseOption]()
-            val workflowOptions = Seq[PipelineBaseOption]()
-            val envPath = ""
-            val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
-            val coreJob = CoreJob(uuid, opts)
-            logger.info(s"Got options $opts")
-            val jsonSettings = ropts.toJson.toString()
-            val fx = (dbActor ? CreateJobType(
-              uuid,
-              ropts.name,
-              s"Mock pbsmrtpipe Pipeline ${opts.toString}",
-              endpoint,
-              coreJob,
-              None,
-              jsonSettings)).mapTo[EngineJob]
+          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            entity(as[PbSmrtPipeServiceOptions]) { ropts =>
+              // 0. Mock Validation of inputs (skip this for now)
+              // 1.  Create a new job in db
+              // 2. Create a new CoreJob instance
+              // 3. Submit CoreJob to manager
+              val uuid = UUID.randomUUID()
+              val entryPoints = ropts.entryPoints.map(x => BoundEntryPoint(x.entryId, "/tmp/file.fasta"))
+              val taskOptions = Seq[PipelineBaseOption]()
+              val workflowOptions = Seq[PipelineBaseOption]()
+              val envPath = ""
+              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
+              val coreJob = CoreJob(uuid, opts)
+              logger.info(s"Got options $opts")
+              val jsonSettings = ropts.toJson.toString()
+              val fx = (dbActor ? CreateJobType(
+                uuid,
+                ropts.name,
+                s"Mock pbsmrtpipe Pipeline ${opts.toString}",
+                endpoint,
+                coreJob,
+                None,
+                jsonSettings,
+                authInfo.map(_.login)
+              )).mapTo[EngineJob]
 
-            fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
+              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
 
-            complete {
-              created {
-                fx
+              complete {
+                created {
+                  fx.map(job => addUser(userActor, job))
+                }
               }
             }
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, userActor)
     }
 }
 
 trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
+      with AuthenticatorProvider
+      with UserServiceActorRefProvider
       with EngineManagerActorProvider
       with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), engineManagerActor())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

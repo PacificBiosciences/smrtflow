@@ -1,6 +1,8 @@
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
+import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.models.{UserRecord, UserResponse}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -14,6 +16,7 @@ import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServ
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
+import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
@@ -31,6 +34,15 @@ with JobServiceConstants {
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
+  val READ_USER_LOGIN = "reader"
+  val WRITE_USER_1_LOGIN = "root"
+  val WRITE_USER_2_LOGIN = "writer2"
+  val INVALID_JWT = "invalid.jwt"
+  val READ_CREDENTIALS = OAuth2BearerToken(READ_USER_LOGIN)
+  val WRITE_CREDENTIALS_1 = OAuth2BearerToken(WRITE_USER_1_LOGIN)
+  val WRITE_CREDENTIALS_2 = OAuth2BearerToken(WRITE_USER_2_LOGIN)
+  val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
+
   object TestProviders extends
   ServiceComposer with
   JobManagerServiceProvider with
@@ -45,18 +57,32 @@ with JobServiceConstants {
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
+  InMemoryUserDaoProvider with
+  UserServiceActorRefProvider with
+  AuthenticatorImplProvider with
+  JwtUtilsProvider with
   LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
   SetBindings {
+
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
+      override def getJwt(user: ApiUser): String = user.login
+      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+    })
+
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
     override val baseServiceId: Singleton[String] = Singleton("test-service")
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
   }
+
+  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
+  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
+  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val dal: Dal = dao.dal
