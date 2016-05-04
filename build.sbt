@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.0-SNAPSHOT"
+version in ThisBuild := "0.1.1-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -137,7 +137,7 @@ lazy val smrtServerLink = (
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
     dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    settings()
+    settings(mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
   )
 
 lazy val smrtServerTools = (
