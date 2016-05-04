@@ -39,7 +39,7 @@ object PbService {
                           port: Int,
                           debug: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
-                          dataset_id: Int = 0)
+                          datasetId: Int = 0)
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
@@ -66,7 +66,7 @@ object PbService {
       c.copy(command = (c) => println(c), mode = Modes.DATASET)
     } children(
       arg[Int]("dataset-id") required() action { (i, c) =>
-        c.copy(dataset_id = i)
+        c.copy(datasetId = i)
       } text "Dataset ID"
     ) text "Show dataset details"
   }
@@ -85,14 +85,14 @@ object PbServiceApp extends App {
     println(status)
   }
 
-  def runGetDataSetInfo(sal: ServiceAccessLayer, dataset_id: Int) {
+  def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Int) {
     val fx = for {
-      ds_info <- sal.getDataSetById(dataset_id)
-    } yield (ds_info)
+      dsInfo <- sal.getDataSetById(datasetId)
+    } yield (dsInfo)
 
     val results = Await.result(fx, 5 seconds)
-    val (ds_info) = results
-    println(ds_info)
+    val (dsInfo) = results
+    println(dsInfo)
   }
 
   override def main(args: Array[String]): Unit = {
@@ -102,7 +102,7 @@ object PbServiceApp extends App {
         val sal = new ServiceAccessLayer(url)(actorSystem)
         c.mode match {
           case Modes.STATUS => runStatus(sal)
-          case Modes.DATASET => runGetDataSetInfo(sal, c.dataset_id)
+          case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
         }
     }
     actorSystem.shutdown()

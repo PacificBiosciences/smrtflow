@@ -52,8 +52,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   }
 
   // FIXME this should take either an Int or a UUID, but how?
-  def getDataSetById(dataset_id: Int): Future[DataSetMetaDataSet] = getDataSetByUuidPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + dataset_id))
+  def getDataSetById(datasetId: Int): Future[DataSetMetaDataSet] = getDataSetByUuidPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId))
   }
 
 }
