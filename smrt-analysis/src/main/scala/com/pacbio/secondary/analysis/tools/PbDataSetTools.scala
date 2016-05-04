@@ -7,8 +7,6 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import scopt.OptionParser
 
-import scala.io.Source
-import scala.util.Try
 
 object Modes {
   sealed trait Mode {
@@ -26,22 +24,19 @@ object Modes {
   case object UNKNOWN extends Mode { val name = "unknown"}
 }
 
-trait Runners {
-  def runValidate(): Try [String] = {
-    ???
-  }
-
-
-}
-
 
 /**
   * Created by mkocher on 12/21/15.
   */
 trait PbDataSetTools {
 
-  val VERSION = "0.1.1"
-  val toolId = "pbscala.tools.dataset_merger"
+  val VERSION = "0.2.0"
+  val toolId = "pbscala.tools.pbdataset"
+  val DESCRIPTION =
+    """
+      |PacBio DataSet Tools
+      |
+    """.stripMargin
 
   def showDefaults(c: CustomConfig): Unit = {
     println(s"Defaults $c")
@@ -49,23 +44,24 @@ trait PbDataSetTools {
 
   // Fix the logLevel to be an enum. This should aim to mirror pbcommand
   case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
-                          path: String,
-                          x: Int,
-                          y: Int,
-                          z: String,
+                          path: File,
                           debug: Boolean = false,
                           logLevel: Boolean = false,
                           logFile: Option[File],
                           mergeDataSetOutput: File = null,
-                          command: CustomConfig => Unit = showDefaults)
+                          command: CustomConfig => Unit = showDefaults,
+                          host: String = "localhost",
+                          port: Int = 8070)
 
-  lazy val defaults = CustomConfig(null, "", -1, -1, "", debug = false, logLevel = false, logFile = None)
+  // There must be a better way to do this
+  lazy val defaults = CustomConfig(Modes.UNKNOWN, new File("dataset.xml"), debug = false, logLevel = false, logFile = None)
 
-  lazy val parser = new OptionParser[CustomConfig]("validate-datasets") {
-    head("PacBio XML DataSet Utils.", VERSION)
+  lazy val parser = new OptionParser[CustomConfig]("pb-datasets") {
+    head(DESCRIPTION, VERSION)
 
-    // Common options that mirror pbcommand's interface
+    // Common options that mirror pbcommand's setup_log interface
 
+    //FIXME(mpkocher)(2016-5-3) This doesn't do anything. Need to have a programmatic model to configure the logger
     opt[Boolean]("log-level") action { (logLevel, c) =>
       c.copy(logLevel = logLevel)
     } text "Log level (Default INFO)"
@@ -75,55 +71,91 @@ trait PbDataSetTools {
     opt[Boolean]("debug") action { (v, c) =>
       c.copy(logLevel = true)
     } text "Alias for setting --log-level:DEBUG"
-    opt[Boolean]("quick") action { (v, c) =>
+    opt[Boolean]("quiet") action { (v, c) =>
       c.copy(logLevel = false)
     } text "Alias for setting --log-level:CRITICAL to suppress output"
 
-    // Info Subparser
+    /**
+      * INFO Print a summary of the dataset
+      */
     cmd(Modes.INFO.name) action { (_, c) =>
       c.copy(command = (c) => println("without " + c.path), mode = Modes.INFO)
     } children(
-      arg[String]("path") action { (s, c) =>
+      arg[File]("path") action { (s, c) =>
         c.copy(path = s)
-      } text "path (string) to DataSet files",
-      arg[Int]("y") required() action { (s, c) =>
-        c.copy(y = s)
-      } text "Y (Int) is a value that does this and that"
-      ) text "Info description for "
+      } text "path (string) to DataSet file",
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
+      ) text "PacBio DataSet summary"
 
-    // Validate Subparser
+    /**
+      * VALIDATE
+      * Validate a PacBio XML dataset
+      *
+      * TODO(mpkocher)(2016-5-3) This should validate against the XSD, not use the java classes
+      */
     cmd(Modes.VALIDATE.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.VALIDATE)
     } children(
-      opt[Int]("vx") action { (id, c) =>
-        c.copy(x = id)
-      } text "X (Int) is a value with stuff doc.",
-
-      arg[String]("string") required() action { (s, c) =>
-        c.copy(z = s)
-      } text "Z (string) is a string doc."
+      opt[File]("path") required() action { (i, c) =>
+        c.copy(path = i)
+      } text "Fofn (file of fofn name) DataSet file names (dataSet metatype must be the same)",
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
       ) text "Validate Description for validating a PacBio XML DataSet"
 
-    // Merge DataSet Subparser
+    /**
+      * MERGE
+      *
+      * Merge a FOFN (file of file names) of datasets and write an output DataSet
+      *
+      */
     cmd(Modes.MERGE.name) action { (_, c) =>
       c.copy(command = (c) => println(s"Running merge with $c"), mode = Modes.MERGE)
     } children (
+      opt[File]("fofn") required() action { (i, c) =>
+        c.copy(mergeDataSetOutput = i)
+      } text "Fofn (file of fofn name) DataSet file names (dataSet metatype must be the same)",
       opt[File]("output-dataset") required() action { (i, c) =>
         c.copy(mergeDataSetOutput = i)
-      } text "Output dataset Path"
-      ) text "Merge Detailed Description. Merge two or more XML Datasets "
+      } text "Output PacBio DataSet Path",
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
+      ) text "Merge Detailed Description. Merge XML Datasets from a FOFN (file of file names)"
 
-    // Import DataSet
-    cmd("import") action { (_, c) =>
+    /**
+      * IMPORT
+      *
+      * Import a Dataset that is local to the exe. Must be run from a
+      * server where the system is running
+      *
+      * I think this is useful to duplicate with pbservice.
+      * Why would host ever not be localhost?
+      *
+      */
+    cmd(Modes.IMPORT.name) action { (_, c) =>
       c.copy(command = (c) => println(s"Running import with $c"), mode = Modes.IMPORT)
     } children(
+      arg[File]("path") action { (s, c) =>
+        c.copy(path = s)
+      } text "path to DataSet file",
       opt[Int]("port") required() action { (i, c) =>
-        c.copy(x = i)
-      } text "Port to connect to",
+        c.copy(port = i)
+      } text s"Port to connect to (Default ${defaults.port})",
       opt[String]("host") required() action { (i, c) =>
-        c.copy(z = i)
-      } text "Host to connect to"
-      )
+        c.copy(host = i)
+      } text s"Host to connect to (Default ${defaults.host}",
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
+      ) text "Import DataSet into SMRT Link server"
   }
 }
 
@@ -143,44 +175,58 @@ object PbDataSetToolsApp extends App {
   def loadMetaTypeFrom(path: Path): Option[DataSetMetaType] =
     DataSetMetaTypes.toDataSetType((scala.xml.XML.loadFile(path.toFile) \ "@MetaType").text)
 
-  def runValidator(opts: ValidOpts): Unit = {
-
+  def runValidator(opts: ValidOpts): Int = {
+    println("Running validator")
     loadMetaTypeFrom(opts.path) match {
       case Some(metaType) =>
         println(s"Metatype $metaType path:${opts.path}")
+        0
       case _ => println("")
+        0
     }
-
-    println(s"Running validator with opts $opts")
   }
 
-  def runInfo(opts: InfoOpts): Unit = {
+  def runInfo(opts: InfoOpts): Int = {
     println(s"Running info with opts: $opts")
+    0
   }
 
+  def runMergeDataSet(fofn: Path, outputDataSet: Path, debug: Boolean = false): Int = {
+    println("Running merge dataset")
+    0
+  }
 
-  override def main(args: Array[String]): Unit = {
-    // add to build.sbt
-    //  "ds-tools" -> "com.pacbio.secondary.analysis.tools.PbDataSetToolsApp"
+  def runImportDataSet(path: Path, host: String, port: Int, debug: Boolean = false): Int = {
+    println("Running dataset importing")
+    0
+  }
+
+  def runner(args: Array[String]): Unit = {
+
     val xs = PbDataSetTools.parser.parse(args.toSeq, PbDataSetTools.defaults) map { config =>
-      val cx = config.command(config)
+
+      //val cx = config.command(config)
       println(s"command ${config.command}")
       println(s"Processed Config $config")
-      config.mode match {
-        case Modes.VALIDATE => runValidator(ValidOpts(Paths.get(config.path), strict = false))
-        case Modes.INFO => runInfo(InfoOpts(Paths.get(config.path), debug = false))
-        case x => throw new Exception(s"Unsupported command type '$x'")
+
+      val exitCode: Int = config.mode match {
+        case Modes.VALIDATE => runValidator(ValidOpts(config.path.toPath, strict = false))
+        case Modes.INFO => runInfo(InfoOpts(config.path.toPath, debug = false))
+        case Modes.MERGE => runMergeDataSet(config.path.toPath, config.mergeDataSetOutput.toPath, debug = false)
+        case Modes.IMPORT => runImportDataSet(config.path.toPath, config.host, config.port, debug = false)
+        case unknown => throw new Exception(s"Unsupported command type '$unknown'")
       }
-      cx
+      exitCode
     }
 
-    //    xs match {
-    //      case Some(opt) =>
-    //        println(s"running with opts $opt")
-    //      case _ =>
-    //        println("Unable to parse args")
-    //    }
+    val x: Int = xs match {
+      case Some(exitCode) => exitCode
+      case _ => println("Unable to parse args") ; 1
+    }
 
-    println("Exiting ds-tools")
+    System.exit(x)
   }
+
+  // This is avoid the compile warning
+  runner(args)
 }
