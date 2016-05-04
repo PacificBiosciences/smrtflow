@@ -8,7 +8,7 @@ import java.net.URL
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
-//import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -52,30 +52,26 @@ trait GetStatusParser {
   }
 }
 
-object GetStatusRunner {
+object GetStatusRunner extends LazyLogging {
 
   def apply (c: GetStatusConfig): Int = {
     val startedAt = DateTime.now()
 
     implicit val actorSystem = ActorSystem("get-status")
     val url = new URL(s"http://${c.host}:${c.port}")
-    //logger.debug(s"url: ${url}")
-    val exitCode =
-      Try {
-        val sal = new ServiceAccessLayer(url)(actorSystem)
-        val fx = for {
-          status <- sal.getStatus
-        } yield (status)
+    logger.debug(s"url: ${url}")
+    val sal = new ServiceAccessLayer(url)(actorSystem)
+    val fx = for {
+      status <- sal.getStatus
+    } yield (status)
 
-        val results = Await.result(fx, 5 seconds)
-        val (status) = results
-        println(status)
-        0
-      } getOrElse 1
+    val results = Await.result(fx, 5 seconds)
+    val (status) = results
+    println(status)
 
-    //logger.debug("shutting down actor system")
+    logger.debug("shutting down actor system")
     actorSystem.shutdown()
-    exitCode
+    0 //exitCode
   }
 
 }
