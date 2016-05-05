@@ -121,6 +121,16 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
+  def runGetJobInfo(sal: ServiceAccessLayer, jobId: UUID): Int = {
+    val fx = for {
+      jobInfo <- sal.getJobByUuid(jobId)
+    } yield (jobInfo)
+    val results = Await.result(fx, 5 seconds)
+    val (jobInfo) = results
+    println(jobInfo)
+    0
+  }
+
   // TODO refactor the dataset check so we can run it endlessly
   // (and move it to ServiceAccessLayer)
   def runImportDataSetSafe(sal: ServiceAccessLayer, path: String): Int = {
@@ -139,7 +149,7 @@ object PbServiceRunner extends LazyLogging {
     } catch {
       case ex => {
         println("Could not retrieve existing dataset record.")
-        println(ex.getMessage)
+        //println(ex.getMessage)
         xc = runImportDataSet(sal, path)
       }
     }
@@ -153,10 +163,12 @@ object PbServiceRunner extends LazyLogging {
       jobInfo <- sal.importDataSet(path, dsType)
     } yield (jobInfo)
 
-    val results2 = Await.result(fx2, 5 seconds)
-    val (jobInfo) = results2
-    println(jobInfo)
-    0
+    val results = Await.result(fx2, 5 seconds)
+    val (jobInfo) = results
+    //println(jobInfo)
+    println("waiting for import job to complete...")
+    sal.pollForJob(jobInfo.uuid)
+    runGetJobInfo(sal, jobInfo.uuid)
   }
 
   def apply (c: PbService.CustomConfig): Int = {
