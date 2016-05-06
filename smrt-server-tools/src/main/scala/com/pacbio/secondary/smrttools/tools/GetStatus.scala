@@ -15,13 +15,17 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
+
  
 import scala.util.Try
 
 
 case class GetStatusConfig(host: String = "http://localhost",
                            port: Int = 8070,
-                           debug: Boolean = false)
+                           debug: Boolean = false,
+                           sleepTime: Int = 5,
+                           maxRetries: Int = 3)
 
 /*
  * Get the status of SMRTLink services
@@ -45,6 +49,14 @@ trait GetStatusParser {
       c.copy(port = x)
     } text "Services port on smrtlink server"
 
+    opt[Int]("max-retries") action { (x, c) =>
+      c.copy(maxRetries = x)
+    } text "Number of retries"
+
+    opt[Int]("sleep-time") action { (x, c) =>
+      c.copy(sleepTime = x)
+    } text "Sleep time between retries (in seconds)"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -59,19 +71,32 @@ object GetStatusRunner extends LazyLogging {
 
     implicit val actorSystem = ActorSystem("get-status")
     val url = new URL(s"http://${c.host}:${c.port}")
-    logger.debug(s"url: ${url}")
+    println(s"URL: ${url}")
     val sal = new ServiceAccessLayer(url)(actorSystem)
-    val fx = for {
-      status <- sal.getStatus
-    } yield (status)
-
-    val results = Await.result(fx, 5 seconds)
-    val (status) = results
-    println(status)
+    var xc = 1
+    var ntries = 0
+    while (ntries < c.maxRetries) {
+      ntries += 1
+      val result = Try { Await.result(sal.getStatus, 5 seconds) }
+      result match {
+        case Success(x) => {
+          println(s"GET ${url}: SUCCESS")
+          println(x)
+          ntries = c.maxRetries
+          xc = 0
+        }
+        case Failure(err) => {
+          println(s"failed: ${err}")
+          if (ntries < c.maxRetries) {
+            Thread.sleep(c.sleepTime * 1000)
+          }
+        }
+      }
+    }
 
     logger.debug("shutting down actor system")
     actorSystem.shutdown()
-    0 //exitCode
+    xc
   }
 
 }
