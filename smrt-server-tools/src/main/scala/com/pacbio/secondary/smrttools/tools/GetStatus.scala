@@ -77,7 +77,6 @@ object GetStatusRunner extends LazyLogging {
     var ntries = 0
     while (ntries < c.maxRetries) {
       ntries += 1
-      Thread.sleep(c.sleepTime)
       val result = Try { Await.result(sal.getStatus, 5 seconds) }
       result match {
         case Success(x) => {
@@ -88,6 +87,9 @@ object GetStatusRunner extends LazyLogging {
         }
         case Failure(err) => {
           println(s"failed: ${err}")
+          if (ntries < c.maxRetries) {
+            Thread.sleep(c.sleepTime * 1000)
+          }
         }
       }
     }
