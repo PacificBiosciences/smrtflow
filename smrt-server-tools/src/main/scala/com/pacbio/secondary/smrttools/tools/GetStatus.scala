@@ -83,7 +83,7 @@ object GetStatusRunner extends LazyLogging {
         case Success(x) => {
           println(s"GET ${url}: SUCCESS")
           println(x)
-          n = c.maxRetries
+          ntries = c.maxRetries
           xc = 0
         }
         case Failure(err) => {
