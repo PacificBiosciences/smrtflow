@@ -93,6 +93,20 @@ object GetStatusRunner extends LazyLogging {
         }
       }
     }
+    if (xc == 0) {
+      // FIXME this crashes with servers that have many jobs
+      val result = Try { Await.result(sal.getAnalysisJobs, 20 seconds) }
+      result match {
+        case Success(x) => {
+          println(s"${x.size} analysis jobs found")
+        }
+        case Failure(err) => {
+          println(s"failed to retrieve analysis jobs")
+          println(s"${err}")
+          xc = 1
+        }
+      }
+    }
 
     logger.debug("shutting down actor system")
     actorSystem.shutdown()
