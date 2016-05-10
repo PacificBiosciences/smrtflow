@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrttools.tools
 
 import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
+import com.pacbio.secondary.smrttools.client._
 
 import java.net.URL
 
@@ -94,17 +94,19 @@ object GetStatusRunner extends LazyLogging {
       }
     }
     if (xc == 0) {
-      // FIXME this crashes with servers that have many jobs
-      val result = Try { Await.result(sal.getAnalysisJobs, 20 seconds) }
-      result match {
-        case Success(x) => {
-          println(s"${x.size} analysis jobs found")
-        }
-        case Failure(err) => {
-          println(s"failed to retrieve analysis jobs")
-          println(s"${err}")
-          xc = 1
-        }
+      val serviceStatusEndpoints = Vector(
+        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
+        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
+        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
+        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
+        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
+        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
+        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES
+      )
+
+      for (endpointPath <- serviceStatusEndpoints) {
+        val epStatus = sal.checkServiceEndpoint(endpointPath)
+        if (epStatus > 0) xc = epStatus
       }
     }
 
