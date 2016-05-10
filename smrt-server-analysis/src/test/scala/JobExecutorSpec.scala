@@ -10,7 +10,7 @@ import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobResponse, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -115,8 +115,7 @@ with JobServiceConstants {
     "Sanity 'Example' Job Execution test" in {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
-        //val msg = responseAs[EngineJobResponse]
-        val msg = responseAs[String]
+        val msg = responseAs[EngineJob]
         logger.info(s"Response to $url -> $msg")
         status.isSuccess must beTrue
       }
@@ -128,8 +127,7 @@ with JobServiceConstants {
       val r = SimpleDevJobOptions(5, 6)
       val url = toJobType("simple")
       Post(url, r) ~> totalRoutes ~> check {
-        //val msg = responseAs[EngineJobResponse]
-        val msg = responseAs[String]
+        val msg = responseAs[EngineJob]
         logger.info(s"Response to $url -> $msg")
         status.isSuccess must beTrue
       }

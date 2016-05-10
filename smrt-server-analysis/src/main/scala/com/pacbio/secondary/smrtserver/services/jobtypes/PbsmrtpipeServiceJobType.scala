@@ -142,7 +142,7 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

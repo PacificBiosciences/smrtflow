@@ -64,7 +64,7 @@ class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManager
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

@@ -45,7 +45,7 @@ class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineMan
     }
   }
 
-  def createJob(sopts:ImportDataSetOptions, createdBy: Option[String]): Future[EngineJobResponse] = {
+  def createJob(sopts:ImportDataSetOptions, createdBy: Option[String]): Future[EngineJob] = {
     logger.info(s"Attempting to create import-dataset Job with options $sopts")
 
     val uuid = UUID.randomUUID()
@@ -55,8 +55,7 @@ class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineMan
     val fx = for {
       vopts <- validate(sopts)
       engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint,  CoreJob(uuid, sopts), None, sopts.toJson.toString(), createdBy)).mapTo[EngineJob]
-      jobResponse <- addUser(userActor, engineJob)
-    } yield jobResponse
+    } yield engineJob
 
     fx
   }

@@ -72,7 +72,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

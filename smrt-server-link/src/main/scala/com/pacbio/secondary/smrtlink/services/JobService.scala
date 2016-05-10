@@ -93,22 +93,10 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJobResponse]] = {
+  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] = {
     for {
       jobs <- (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
-      jobResponses <- Future.sequence(jobs.map(j => addUser(userActor, j)))
-    } yield jobResponses
-  }
-
-  def addUser(userActor: ActorRef, job: EngineJob)(implicit ec: ExecutionContext): Future[EngineJobResponse] = {
-    job.createdBy match {
-      case None =>
-        Future.successful(EngineJobResponse.fromEngineJob(job, None))
-      case Some(login) => {
-        val user = (userActor ? GetUser(login)).mapTo[ApiUser]
-        user.map(u => EngineJobResponse.fromEngineJob(job, Some(u)))
-      }
-    }
+    } yield jobs
   }
 
   def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route = {
@@ -116,10 +104,7 @@ trait JobService
       get {
         complete {
           ok {
-            for {
-              job <- (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
-              jobResponse <- addUser(userActor, job)
-            } yield jobResponse
+            (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
           }
         }
       }
@@ -128,10 +113,7 @@ trait JobService
       get {
         complete {
           ok {
-            for {
-              job <- (dbActor ? GetJobById(id)).mapTo[EngineJob]
-              jobResponse <- addUser(userActor, job)
-            } yield jobResponse
+            (dbActor ? GetJobById(id)).mapTo[EngineJob]
           }
         }
       }

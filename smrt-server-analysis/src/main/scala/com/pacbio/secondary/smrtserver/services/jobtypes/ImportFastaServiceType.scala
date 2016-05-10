@@ -68,7 +68,7 @@ class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManag
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

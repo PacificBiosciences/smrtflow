@@ -120,25 +120,6 @@ case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: Strin
 
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
-case class EngineJobResponse(id: Int,
-                             uuid: UUID,
-                             name: String,
-                             comment: String,
-                             createdAt: JodaDateTime,
-                             updatedAt: JodaDateTime,
-                             state: AnalysisJobStates.JobStates,
-                             jobTypeId: String,
-                             path: String,
-                             jsonSettings: String,
-                             createdBy: Option[UserResponse])
-
-object EngineJobResponse {
-  def fromEngineJob(job: JobModels.EngineJob, user: Option[ApiUser]) =
-    EngineJobResponse(job.id, job.uuid, job.name, job.comment, job.createdAt,
-                      job.updatedAt, job.state, job.jobTypeId, job.path,
-                      job.jsonSettings, user.map(_.toResponse))
-}
-
 
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
