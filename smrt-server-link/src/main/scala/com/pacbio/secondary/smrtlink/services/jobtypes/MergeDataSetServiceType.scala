@@ -104,7 +104,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineM
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

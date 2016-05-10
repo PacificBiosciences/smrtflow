@@ -61,7 +61,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef,
 
               complete {
                 created {
-                  fx.map(job => addUser(userActor, job))
+                  fx
                 }
               }
             }

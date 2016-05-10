@@ -109,7 +109,6 @@ trait SmrtLinkJsonProtocols
 
 
   implicit val jobTypeFormat = jsonFormat2(JobTypeEndPoint)
-  implicit val engineJobResponseFormat = jsonFormat11(EngineJobResponse.apply)
 
   // Jobs
   implicit val pbSimpleStatusFormat = jsonFormat3(SimpleStatus)
