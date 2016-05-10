@@ -131,6 +131,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     val result = Try {
       Await.result(getServiceEndpoint(endpointPath), 20 seconds)
     }
+    // FIXME need to make this more generic
     result match {
       case Success(x) => {
         x.status match {

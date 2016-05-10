@@ -7,6 +7,7 @@ import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
+import spray.httpx
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -111,24 +112,34 @@ object PbServiceRunner extends LazyLogging {
   }
 
   def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Int): Int = {
-    val fx = for {
-      dsInfo <- sal.getDataSetById(datasetId)
-    } yield (dsInfo)
-
-    val results = Await.result(fx, 5 seconds)
-    val (dsInfo) = results
-    println(dsInfo)
-    0
+    var xc = 0
+    var result = Try { Await.result(sal.getDataSetById(datasetId), 5 seconds) }
+    result match {
+      case Success(dsInfo) => {
+        println(dsInfo)
+      }
+      case Failure(err) => {
+        println(s"Could not retrieve existing dataset record: ${err}")
+        xc = 1
+      }
+    }
+    xc
   }
 
   def runGetJobInfo(sal: ServiceAccessLayer, jobId: UUID): Int = {
-    val fx = for {
-      jobInfo <- sal.getJobByUuid(jobId)
-    } yield (jobInfo)
-    val results = Await.result(fx, 5 seconds)
-    val (jobInfo) = results
-    println(jobInfo)
-    0
+    var xc = 0
+    var result = Try { Await.result(sal.getJobByUuid(jobId), 5 seconds) }
+    result match {
+      case Success(jobInfo) => {
+        println(jobInfo)
+      }
+      case Failure(err) => {
+        println(s"Could not retrieve job record: ${err}")
+        xc = 1
+      }
+    }
+    xc
+
   }
 
   // TODO refactor the dataset check so we can run it endlessly
@@ -138,17 +149,14 @@ object PbServiceRunner extends LazyLogging {
     println(s"UUID: ${dsUuid.toString}")
 
     var xc = 0
-    try {
-      val haveDataSet = for {
-        dsInfo <- sal.getDataSetByUuid(dsUuid)
-      } yield (dsInfo)
-      val results = Await.result(haveDataSet, 5 seconds)
-      val (dsInfo) = results
-      println(s"Dataset ${dsUuid.toString} already imported.")
-      println(dsInfo)
-    } catch {
-      case ex => {
-        println("Could not retrieve existing dataset record.")
+    var dsInfo = Try { Await.result(sal.getDataSetByUuid(dsUuid), 5 seconds) }
+    dsInfo match {
+      case Success(x) => {
+        println(s"Dataset ${dsUuid.toString} already imported.")
+        println(dsInfo)
+      }
+      case Failure(err) => {
+        println(s"Could not retrieve existing dataset record: ${err}")
         //println(ex.getMessage)
         xc = runImportDataSet(sal, path)
       }
@@ -179,6 +187,10 @@ object PbServiceRunner extends LazyLogging {
       case Modes.STATUS => runStatus(sal)
       case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
+      case _ => {
+        println("Unsupported action")
+        1
+      }
     }
     actorSystem.shutdown()
     xc
