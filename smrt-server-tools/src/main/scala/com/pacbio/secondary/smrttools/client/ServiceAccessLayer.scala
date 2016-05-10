@@ -11,6 +11,7 @@ import com.pacbio.common.models._
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import scala.concurrent.duration._
+//import spray.http.StatusCode._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
@@ -35,45 +36,46 @@ object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
 /**
  * Client to Primary Services
  */
+
+object ServiceEndpoints {
+  val ROOT_JM = "/secondary-analysis/job-manager"
+  val ROOT_JOBS = ROOT_JM + "/jobs"
+  val ROOT_DS = "/secondary-analysis/datasets"
+  val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
+}
+
+object ServiceResourceTypes {
+  val REPORTS = "reports"
+  val DATASTORE = "datastore"
+  val ENTRY_POINTS = "entry-points"
+}
+
+// FIXME this should probably use com.pacbio.secondary.analysis.jobtypes
+object JobTypes {
+  val IMPORT_DS = "import-dataset"
+  val IMPORT_DSTORE = "import-datastore"
+  val MERGE_DS = "merge-datasets"
+  val PB_PIPE = "pbsmrtpipe"
+  val MOCK_PB_PIPE = "mock-pbsmrtpipe"
+  val CONVERT_FASTA = "convert-fasta-reference"
+}
+
+// FIXME this for sure needs to be somewhere else
+object DataSetTypes {
+  val SUBREADS = "subreads"
+  val HDFSUBREADS = "hdfsubreads"
+  val REFERENCES = "references"
+  val BARCODES = "barcodes"
+  val CCSREADS = "ccsreads"
+  val ALIGNMENTS = "alignments"
+}
+
 class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   import ServicesClientJsonProtocol._
   import SmrtLinkServicesModels._
   import SprayJsonSupport._
   import ReportModels._
-
-  object ServiceEndpoints {
-    val ROOT_JM = "/secondary-analysis/job-manager"
-    val ROOT_JOBS = ROOT_JM + "/jobs"
-    val ROOT_DS = "/secondary-analysis/datasets"
-    val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
-  }
-
-  object ServiceResourceTypes {
-    val REPORTS = "reports"
-    val DATASTORE = "datastore"
-    val ENTRY_POINTS = "entry-points"
-  }
-
-  // FIXME this should probably use com.pacbio.secondary.analysis.jobtypes
-  object JobTypes {
-    val IMPORT_DS = "import-dataset"
-    val IMPORT_DSTORE = "import-datastore"
-    val MERGE_DS = "merge-datasets"
-    val PB_PIPE = "pbsmrtpipe"
-    val MOCK_PB_PIPE = "mock-pbsmrtpipe"
-    val CONVERT_FASTA = "convert-fasta-reference"
-  }
-
-  // FIXME this for sure needs to be somewhere else
-  object DataSetTypes {
-    val SUBREADS = "subreads"
-    val HDFSUBREADS = "hdfsubreads"
-    val REFERENCES = "references"
-    val BARCODES = "barcodes"
-    val CCSREADS = "ccsreads"
-    val ALIGNMENTS = "alignments"
-  }
 
   // Context to run futures in
   implicit val executionContext = actorSystem.dispatcher
@@ -106,6 +108,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def getSubreadSetPipeline: HttpRequest => Future[SubreadServiceDataSet] = sendReceive ~> unmarshal[SubreadServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def getDataStorePipeline: HttpRequest => Future[PacBioDataStore] = sendReceive ~> unmarshal[PacBioDataStore]
   def importDataSetPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
@@ -117,6 +120,35 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   def getStatus: Future[ServiceStatus] = serviceStatusPipeline {
     Get(statusUrl)
+  }
+
+  def getServiceEndpoint(endpointPath: String): Future[HttpResponse] = respPipeline {
+    Get(toUrl(endpointPath))
+  }
+
+  def checkServiceEndpoint(endpointPath: String): Int = {
+    var xc = 0
+    val result = Try {
+      Await.result(getServiceEndpoint(endpointPath), 20 seconds)
+    }
+    // FIXME need to make this more generic
+    result match {
+      case Success(x) => {
+        x.status match {
+          case StatusCodes.Success(_) =>
+            println(s"found endpoint ${endpointPath}")
+          case _ =>
+            println(s"error retrieving ${endpointPath}: ${x.status}")
+            xc = 1
+        }
+      }
+      case Failure(err) => {
+        println(s"failed to retrieve endpoint ${endpointPath}")
+        println(s"${err}")
+        xc = 1
+      }
+    }
+    xc
   }
 
   // FIXME this should take either an Int or a UUID, but how?
@@ -251,4 +283,5 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
       case _ => Future.failed(new Exception(s"Unable to Successfully run job $jobId"))
     }
   }
+
 }
