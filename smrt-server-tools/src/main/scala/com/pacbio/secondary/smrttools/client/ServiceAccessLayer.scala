@@ -28,7 +28,8 @@ import java.util.UUID
 object SmrtLinkServicesModels {
 
   case class CreateDataSet(path: String, datasetType: String)
-
+  case class CreateReferenceSet(path: String, name: String, organism: String,
+                                ploidy: String)
 }
 
 object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
@@ -111,7 +112,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def getDataStorePipeline: HttpRequest => Future[PacBioDataStore] = sendReceive ~> unmarshal[PacBioDataStore]
-  def importDataSetPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  def importPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
@@ -236,9 +237,14 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     getJobReportDetails(JobTypes.PB_PIPE, jobId, reportId)
   }
 */
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = importDataSetPipeline {
+  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = importPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
          CreateDataSet(path, dsMetaType))
+  }
+
+  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = importPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
+         CreateReferenceSet(path, name, organism, ploidy))
   }
 
   def pollForJob(jobId: UUID): Future[String] = {
