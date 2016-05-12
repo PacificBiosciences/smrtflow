@@ -28,9 +28,14 @@ object Modes {
     val name: String
   }
   case object STATUS extends Mode {val name = "status"}
-  case object DATASET extends Mode {val name = "get-dataset"}
   case object IMPORT_DS extends Mode {val name = "import-dataset"}
   case object IMPORT_FASTA extends Mode {val name = "import-fasta"}
+  case object ANALYSIS extends Mode {val name = "run-analysis"}
+  case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
+  case object JOB extends Mode {val name = "get-job"}
+  case object JOBS extends Mode {val name = "get-jobs"}
+  case object DATASET extends Mode {val name = "get-dataset"}
+  case object DATASETS extends Mode {val name = "get-datasets"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -47,12 +52,26 @@ object PbService {
     println(s"Defaults $c")
   }
 
+  private def datasetIdOrUuid(dsId: String): Either[Int, UUID] = {
+    try {
+      Left(dsId.toInt)
+    } catch {
+      case e: Exception => {
+        try {
+          Right(UUID.fromString(dsId))
+        } catch {
+          case e: Exception => Left(0)
+        }
+      }
+    }
+  }
+
   case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
                           host: String,
                           port: Int,
                           debug: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
-                          datasetId: Int = 0,
+                          datasetId: Either[Int, UUID] = Left(0),
                           path: File = null,
                           name: String = "",
                           organism: String = "",
@@ -82,8 +101,15 @@ object PbService {
     cmd(Modes.DATASET.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASET)
     } children(
-      arg[Int]("dataset-id") required() action { (i, c) =>
-        c.copy(datasetId = i)
+      arg[String]("dataset-id") required() action { (i, c) =>
+        val datasetId = datasetIdOrUuid(i)
+        c.copy(datasetId = datasetId)
+      } validate { i => {
+          datasetIdOrUuid(i) match {
+            case Left(x) => if (x > 0) success else failure(s"Dataset ID must be a positive integer or a UUID string")
+            case Right(x) => success
+          }
+        }
       } text "Dataset ID"
     ) text "Show dataset details"
 
@@ -144,9 +170,9 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Int): Int = {
+  def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
     var xc = 0
-    var result = Try { Await.result(sal.getDataSetById(datasetId), 5 seconds) }
+    var result = Try { Await.result(sal.getDataSetByAny(datasetId), 5 seconds) }
     result match {
       case Success(dsInfo) => {
         println(dsInfo)
