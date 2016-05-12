@@ -77,7 +77,9 @@ object PbService {
                           path: File = null,
                           name: String = "",
                           organism: String = "",
-                          ploidy: String = "")
+                          ploidy: String = "",
+                          maxItems: Int = 25,
+                          datasetType: String = "subreads")
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
@@ -107,22 +109,6 @@ object PbService {
     cmd(Modes.STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)
     }
-
-    cmd(Modes.DATASET.name) action { (_, c) =>
-      c.copy(command = (c) => println(c), mode = Modes.DATASET)
-    } children(
-      arg[String]("dataset-id") required() action { (i, c) =>
-        c.copy(datasetId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Dataset") } text "Dataset ID" 
-    ) text "Show dataset details"
-
-    cmd(Modes.JOB.name) action { (_, c) =>
-      c.copy(command = (c) => println(c), mode = Modes.JOB)
-    } children(
-      arg[String]("job-id") required() action { (i, c) =>
-        c.copy(jobId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Job") } text "Job ID"
-    ) text "Show job details"
 
     cmd(Modes.IMPORT_DS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_DS)
@@ -154,6 +140,41 @@ object PbService {
         c.copy(ploidy = ploidy)
       } text "Ploidy"
     ) text "Import Reference FASTA"
+
+    cmd(Modes.JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Job") } text "Job ID"
+    ) text "Show job details"
+
+    cmd(Modes.JOBS.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.JOBS)
+    } children(
+      opt[Int]('m', "max-items") action { (m, c) =>
+        c.copy(maxItems = m)
+      } text "Max number of jobs to show"
+    )
+
+    cmd(Modes.DATASET.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.DATASET)
+    } children(
+      arg[String]("dataset-id") required() action { (i, c) =>
+        c.copy(datasetId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Dataset") } text "Dataset ID"
+    ) text "Show dataset details"
+
+    cmd(Modes.DATASETS.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.DATASETS)
+    } children(
+      opt[String]('t', "dataset-type") action { (t, c) =>
+        c.copy(datasetType = t)
+      } text "Dataset Meta type", // TODO validate
+      opt[Int]('m', "max-items") action { (m, c) =>
+        c.copy(maxItems = m)
+      } text "Max number of Datasets to show"
+    )
   }
 }
 
@@ -190,6 +211,29 @@ object PbServiceRunner extends LazyLogging {
       }
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
+        xc = 1
+      }
+    }
+    xc
+  }
+
+  def runGetDataSets(sal: ServiceAccessLayer, dsType: String, maxItems: Int): Int = {
+    var xc = 0
+    var result =  Try {
+      dsType match {
+        case "subreads" => Await.result(sal.getSubreadSets(), 5 seconds)
+        case "hdfsubreads" => Await.result(sal.getHdfSubreadSets(), 5 seconds)
+        case "barcodes" => Await.result(sal.getBarcodeSets(), 5 seconds)
+        case "references" => Await.result(sal.getReferenceSets(), 5 seconds)
+        //case _ => throw Exception("Not a valid dataset type")
+      }
+    }
+    result match {
+      case Success(records) => {
+        println(s"${records.size} records")
+      }
+      case Failure(err) => {
+        println(s"Error: ${err.getMessage}")
         xc = 1
       }
     }
@@ -280,11 +324,12 @@ object PbServiceRunner extends LazyLogging {
     val sal = new ServiceAccessLayer(url)(actorSystem)
     val xc = c.mode match {
       case Modes.STATUS => runStatus(sal)
-      case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
-      case Modes.JOB => runGetJobInfo(sal, c.jobId)
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
       case Modes.IMPORT_FASTA => runImportFasta(sal, c.path.getAbsolutePath,
                                                 c.name, c.organism, c.ploidy)
+      case Modes.JOB => runGetJobInfo(sal, c.jobId)
+      case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
+      case Modes.DATASETS => runGetDataSets(sal, c.datasetType, c.maxItems)
       case _ => {
         println("Unsupported action")
         1

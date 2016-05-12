@@ -107,6 +107,12 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   // TODO add type-parameterized getDataSetsPipeline
   def getSubreadSetsPipeline: HttpRequest => Future[Seq[SubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[SubreadServiceDataSet]]
   def getSubreadSetPipeline: HttpRequest => Future[SubreadServiceDataSet] = sendReceive ~> unmarshal[SubreadServiceDataSet]
+  def getHdfSubreadSetsPipeline: HttpRequest => Future[Seq[HdfSubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[HdfSubreadServiceDataSet]]
+  def getHdfSubreadSetPipeline: HttpRequest => Future[HdfSubreadServiceDataSet] = sendReceive ~> unmarshal[HdfSubreadServiceDataSet]
+  def getReferenceSetsPipeline: HttpRequest => Future[Seq[ReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[ReferenceServiceDataSet]]
+  def getReferenceSetPipeline: HttpRequest => Future[ReferenceServiceDataSet] = sendReceive ~> unmarshal[ReferenceServiceDataSet]
+  def getBarcodeSetsPipeline: HttpRequest => Future[Seq[BarcodeServiceDataSet]] = sendReceive ~> unmarshal[Seq[BarcodeServiceDataSet]]
+  def getBarcodeSetPipeline: HttpRequest => Future[BarcodeServiceDataSet] = sendReceive ~> unmarshal[BarcodeServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
@@ -173,6 +179,30 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   def getSubreadSetById(dsId: Int): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
+  }
+
+  def getHdfSubreadSets(): Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
+  }
+
+  def getHdfSubreadSetById(dsId: Int): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
+  }
+
+  def getBarcodeSets(): Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.BARCODES))
+  }
+
+  def getBarcodeSetById(dsId: Int): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
+  }
+
+  def getReferenceSets(): Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.REFERENCES))
+  }
+
+  def getReferenceSetById(dsId: Int): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
   }
 
   private def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
