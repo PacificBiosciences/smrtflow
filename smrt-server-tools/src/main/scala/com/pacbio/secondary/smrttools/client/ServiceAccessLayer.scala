@@ -152,7 +152,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     xc
   }
 
-  // FIXME this should take either an Int or a UUID, but how?
+  def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
+    datasetId match {
+      case Left(x) => getDataSetById(x)
+      case Right(x) => getDataSetByUuid(x)
+    }
+  }
+
   def getDataSetById(datasetId: Int): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId))
   }
@@ -187,6 +193,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   def getFastaConvertJobs(): Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.CONVERT_FASTA)
+  }
+
+  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
+    jobId match {
+      case Left(x) => getJobById(x)
+      case Right(x) => getJobByUuid(x)
+    }
   }
 
   def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
