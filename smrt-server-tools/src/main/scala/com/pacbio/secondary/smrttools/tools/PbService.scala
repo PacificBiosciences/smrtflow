@@ -52,13 +52,14 @@ object PbService {
     println(s"Defaults $c")
   }
 
-  private def datasetIdOrUuid(dsId: String): Either[Int, UUID] = {
+  // is there a cleaner way to do this?
+  private def entityIdOrUuid(entityId: String): Either[Int, UUID] = {
     try {
-      Left(dsId.toInt)
+      Left(entityId.toInt)
     } catch {
       case e: Exception => {
         try {
-          Right(UUID.fromString(dsId))
+          Right(UUID.fromString(entityId))
         } catch {
           case e: Exception => Left(0)
         }
@@ -72,6 +73,7 @@ object PbService {
                           debug: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
                           datasetId: Either[Int, UUID] = Left(0),
+                          jobId: Either[Int, UUID] = Left(0),
                           path: File = null,
                           name: String = "",
                           organism: String = "",
@@ -81,6 +83,14 @@ object PbService {
   lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
+
+    private def validateId(entityId: String, entityType: String): Either[String, Unit] = {
+      entityIdOrUuid(entityId) match {
+        case Left(x) => if (x > 0) success else failure(s"${entityType} ID must be a positive integer or a UUID string")
+        case Right(x) => success
+      }
+    }
+
     head("PacBio SMRTLink Services Client", VERSION)
 
     opt[Boolean]("debug") action { (v,c) =>
@@ -102,16 +112,17 @@ object PbService {
       c.copy(command = (c) => println(c), mode = Modes.DATASET)
     } children(
       arg[String]("dataset-id") required() action { (i, c) =>
-        val datasetId = datasetIdOrUuid(i)
-        c.copy(datasetId = datasetId)
-      } validate { i => {
-          datasetIdOrUuid(i) match {
-            case Left(x) => if (x > 0) success else failure(s"Dataset ID must be a positive integer or a UUID string")
-            case Right(x) => success
-          }
-        }
-      } text "Dataset ID"
+        c.copy(datasetId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Dataset") } text "Dataset ID" 
     ) text "Show dataset details"
+
+    cmd(Modes.JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Job") } text "Job ID"
+    ) text "Show job details"
 
     cmd(Modes.IMPORT_DS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_DS)
@@ -185,9 +196,9 @@ object PbServiceRunner extends LazyLogging {
     xc
   }
 
-  def runGetJobInfo(sal: ServiceAccessLayer, jobId: UUID): Int = {
+  def runGetJobInfo(sal: ServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
     var xc = 0
-    var result = Try { Await.result(sal.getJobByUuid(jobId), 5 seconds) }
+    var result = Try { Await.result(sal.getJobByAny(jobId), 5 seconds) }
     result match {
       case Success(jobInfo) => {
         println(jobInfo)
@@ -198,7 +209,6 @@ object PbServiceRunner extends LazyLogging {
       }
     }
     xc
-
   }
 
   def runImportFasta(sal: ServiceAccessLayer, path: String, name: String,
@@ -213,7 +223,7 @@ object PbServiceRunner extends LazyLogging {
         println("waiting for import job to complete...")
         val f = sal.pollForJob(jobInfo.uuid)
         // FIXME what happens if the job fails?
-        xc = runGetJobInfo(sal, jobInfo.uuid)
+        xc = runGetJobInfo(sal, Right(jobInfo.uuid))
       }
       case Failure(err) => {
         println(s"FASTA import failed: ${err.getMessage}")
@@ -254,7 +264,7 @@ object PbServiceRunner extends LazyLogging {
         println("waiting for import job to complete...")
         val f = sal.pollForJob(jobInfo.uuid)
         // FIXME what happens if the job fails?
-        xc = runGetJobInfo(sal, jobInfo.uuid)
+        xc = runGetJobInfo(sal, Right(jobInfo.uuid))
       }
       case Failure(err) => {
         println(s"Dataset import failed: ${err}")
@@ -271,6 +281,7 @@ object PbServiceRunner extends LazyLogging {
     val xc = c.mode match {
       case Modes.STATUS => runStatus(sal)
       case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
+      case Modes.JOB => runGetJobInfo(sal, c.jobId)
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
       case Modes.IMPORT_FASTA => runImportFasta(sal, c.path.getAbsolutePath,
                                                 c.name, c.organism, c.ploidy)

@@ -195,6 +195,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     getJobsByType(JobTypes.CONVERT_FASTA)
   }
 
+  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
+    jobId match {
+      case Left(x) => getJobById(x)
+      case Right(x) => getJobByUuid(x)
+    }
+  }
+
   def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
   }
