@@ -2,13 +2,13 @@ package com.pacbio.secondary.smrttools.tools
 
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrttools.client._
-
 import java.net.URL
 
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
-import com.typesafe.scalalogging.LazyLogging
+import com.pacbio.logging.LazyLogging
+import com.pacbio.logging.LogConfig
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -119,7 +119,7 @@ object GetStatusRunner extends LazyLogging {
 
 object GetStatusApp extends App with GetStatusParser {
   def run(args: Seq[String]) = {
-    val exitCode = parser.parse(args, DEFAULT) match {
+    val exitCode = parser.parse(LogConfig.trim(args), DEFAULT) match {
       case Some(opts) => GetStatusRunner(opts)
       case _ => 1
     }

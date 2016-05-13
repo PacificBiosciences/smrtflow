@@ -84,7 +84,7 @@ def PacBioProject(name: String): Project = (
       "com.novocode" % "junit-interface" % "0.10" % "test",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-      "ch.qos.logback" % "logback-classic" % "1.1.2",
+      "ch.qos.logback" % "logback-classic" % "1.1.7",
       "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
       "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
       "com.unboundid" % "unboundid-ldapsdk" % "2.3.3",
@@ -103,6 +103,10 @@ gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
 
 // Projects in this build
+
+lazy val logging = (
+  PacBioProject("smrt-server-logging")
+  )
 
 lazy val common = (
   PacBioProject("smrt-common-models")
@@ -144,6 +148,6 @@ lazy val smrtServerAnalysis = (
 
 lazy val smrtServerTools = (
   PacBioProject("smrt-server-tools")
-    dependsOn(common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
+    dependsOn(common, smrtAnalysis, smrtServerLink, smrtServerAnalysis, logging)
     settings()
   )
