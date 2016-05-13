@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
@@ -13,7 +12,6 @@ import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.duration._
 
 // TODO(smcclellan): Add documentation
 
@@ -24,8 +22,6 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
   import RunServiceActor._
   import SmrtLinkRoles._
 
-  implicit val timeout = Timeout(10.seconds)
-  
   val manifest = PacBioComponentManifest(
     toServiceId("runs"),
     "Run Service",

@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtserver.services
 
-import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
@@ -11,8 +10,6 @@ import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.models.SecondaryModels.ReportViewRule
 import spray.httpx.SprayJsonSupport._
 
-import scala.concurrent.duration._
-
 
 /**
  *
@@ -22,7 +19,6 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends JobsBaseMicroSe
 
   import SecondaryAnalysisJsonProtocols._
 
-  implicit val timeout = Timeout(4.seconds)
   val PTVR_PREFIX = "report-view-rules"
 
   val manifest = PacBioComponentManifest(toServiceId("secondary.report_view_rules"),

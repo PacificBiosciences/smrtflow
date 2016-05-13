@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
@@ -19,7 +18,6 @@ import spray.httpx.marshalling.{Marshaller, ToResponseMarshallable}
 import spray.routing.{PathMatcher1, Route}
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
@@ -45,8 +43,6 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
   // For all the serialzation protocols
 
   import SmrtLinkJsonProtocols._
-
-  implicit val timeout = Timeout(5.seconds)
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.dataset"),

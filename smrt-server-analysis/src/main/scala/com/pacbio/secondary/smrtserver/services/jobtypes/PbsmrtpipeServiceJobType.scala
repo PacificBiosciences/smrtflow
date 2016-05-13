@@ -33,8 +33,8 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 // For serialization magic. This is required for any serialization in spray to work.

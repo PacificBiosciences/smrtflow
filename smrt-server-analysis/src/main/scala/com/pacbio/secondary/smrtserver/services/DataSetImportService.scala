@@ -38,7 +38,7 @@ class DataSetImportService(dbActor: ActorRef) extends JobsBaseMicroService {
   import DataSetImporterJsonProtocol._
   import SecondaryAnalysisJsonProtocols._
 
-  implicit val timeout = Timeout(120.seconds)
+  override implicit val timeout = Timeout(120.seconds)
   val basePrefix = "importer"
   val convertBasePrefix = "converter"
   val scanPrefix = "scan"

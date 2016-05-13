@@ -2,8 +2,13 @@ package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.Paths
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import akka.actor.{ActorSystem, ActorRef}
 import akka.pattern.ask
+import akka.util.Timeout
+
 import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider, UserServiceActorRefProvider, UserServiceActor}
 import UserServiceActor._
 import com.pacbio.common.actors.StatusServiceActor._
@@ -16,8 +21,6 @@ import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes._
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import spray.json._
 import spray.routing._
@@ -39,6 +42,8 @@ class JobManagerService(dbActor: ActorRef,
 
   import JobsDaoActor._
   import SmrtLinkJsonProtocols._
+
+  override implicit val timeout = Timeout(10.seconds)
 
   implicit val routing = RoutingSettings.default
 
