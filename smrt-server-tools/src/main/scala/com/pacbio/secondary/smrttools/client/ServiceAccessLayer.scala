@@ -102,6 +102,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   // Pipelines and serialization
   def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
+  def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
   def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
   def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
   // TODO add type-parameterized getDataSetsPipeline
@@ -288,6 +289,10 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = importPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
          CreateReferenceSet(path, name, organism, ploidy))
+  }
+
+  def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
   }
 
   def pollForJob(jobId: UUID): Future[String] = {

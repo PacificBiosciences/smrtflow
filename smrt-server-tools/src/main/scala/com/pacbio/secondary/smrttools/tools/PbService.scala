@@ -1,14 +1,19 @@
 package com.pacbio.secondary.smrttools.tools
 
 import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
+import com.pacbio.secondary.smrttools.client.{ServiceAccessLayer,ServicesClientJsonProtocol}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx
+import spray.json._
+import spray.httpx.SprayJsonSupport
+
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -141,6 +146,11 @@ object PbService {
       } text "Ploidy"
     ) text "Import Reference FASTA"
 
+    cmd(Modes.TEMPLATE.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
+    } children(
+    ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
+
     cmd(Modes.JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOB)
     } children(
@@ -180,6 +190,8 @@ object PbService {
 
 
 object PbServiceRunner extends LazyLogging {
+  import ServicesClientJsonProtocol._
+
   private def dsMetaTypeFromPath(path: String): String = {
     val ds = scala.xml.XML.loadFile(path)
     ds.attributes("MetaType").toString
@@ -301,7 +313,7 @@ object PbServiceRunner extends LazyLogging {
     val dsType = dsMetaTypeFromPath(path)
     logger.info(dsType)
     var xc = 0
-    var result = Try { Await.result(sal.importDataSet(path, dsType), 5 seconds) }
+    val result = Try { Await.result(sal.importDataSet(path, dsType), 5 seconds) }
     result match {
       case Success(jobInfo: EngineJob) => {
         println(jobInfo)
@@ -318,6 +330,23 @@ object PbServiceRunner extends LazyLogging {
     xc
   }
 
+  def runEmitAnalysisTemplate: Int = {
+    val analysisOpts = {
+      val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", 1)
+      val eps = Seq(ep)
+      val taskOptions = Seq[ServiceTaskOptionBase]()
+      val workflowOptions = Seq[ServiceTaskOptionBase]()
+      PbSmrtPipeServiceOptions(
+        "My-job-name",
+        "pbsmrtpipe.pipelines.mock_dev01",
+        eps,
+        taskOptions,
+        workflowOptions)
+    }
+    println(analysisOpts.toJson.prettyPrint)
+    0
+  }
+
   def apply (c: PbService.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
     val url = new URL(s"http://${c.host}:${c.port}")
@@ -330,6 +359,7 @@ object PbServiceRunner extends LazyLogging {
       case Modes.JOB => runGetJobInfo(sal, c.jobId)
       case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
       case Modes.DATASETS => runGetDataSets(sal, c.datasetType, c.maxItems)
+      case Modes.TEMPLATE => runEmitAnalysisTemplate
       case _ => {
         println("Unsupported action")
         1
