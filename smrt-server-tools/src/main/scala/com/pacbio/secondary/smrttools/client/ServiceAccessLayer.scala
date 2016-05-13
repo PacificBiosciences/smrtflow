@@ -3,7 +3,9 @@ package com.pacbio.secondary.smrttools.client
 
 import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtserver.models._
 import com.pacbio.secondary.smrtlink.models._
+
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.common.models._
@@ -32,7 +34,7 @@ object SmrtLinkServicesModels {
                                 ploidy: String)
 }
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
 
 /**
  * Client to Primary Services
@@ -119,10 +121,11 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def getDataStorePipeline: HttpRequest => Future[PacBioDataStore] = sendReceive ~> unmarshal[PacBioDataStore]
-  def importPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
 
   val statusUrl = toUrl("/status")
 
@@ -281,18 +284,28 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     getJobReportDetails(JobTypes.PB_PIPE, jobId, reportId)
   }
 */
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = importPipeline {
+  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
          CreateDataSet(path, dsMetaType))
   }
 
-  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = importPipeline {
+  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
          CreateReferenceSet(path, name, organism, ploidy))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
+  }
+
+  // FIXME this doesn't quite work...
+  def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
+  }
+
+  def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
+         pipelineOptions)
   }
 
   def pollForJob(jobId: UUID): Future[String] = {
