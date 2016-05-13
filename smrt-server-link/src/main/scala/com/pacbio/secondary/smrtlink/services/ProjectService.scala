@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, ApiUser, Authenticator}
 import com.pacbio.common.dependency.Singleton
@@ -14,7 +13,6 @@ import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
 import com.pacbio.secondary.smrtlink.models._
 import spray.routing.Route
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -40,10 +38,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
   import JobsDaoActor._
 
   // import serialzation protocols
-  //import PacBioJsonProtocol._
   import SmrtLinkJsonProtocols._
-
-  implicit val timeout = Timeout(5.seconds)
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.project"),
