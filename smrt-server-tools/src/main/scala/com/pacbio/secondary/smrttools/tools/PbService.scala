@@ -147,11 +147,6 @@ object PbService {
       } text "Ploidy"
     ) text "Import Reference FASTA"
 
-    cmd(Modes.TEMPLATE.name) action { (_, c) =>
-      c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
-    } children(
-    ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
-
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.ANALYSIS)
     } children(
@@ -159,6 +154,11 @@ object PbService {
         c.copy(path = p)
       } text "JSON config file" // TODO validate json format
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
+
+    cmd(Modes.TEMPLATE.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
+    } children(
+    ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
 
     cmd(Modes.JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOB)
@@ -198,6 +198,7 @@ object PbService {
 }
 
 
+// TODO consolidate Try behavior
 object PbServiceRunner extends LazyLogging {
   import ServicesClientJsonProtocol._
 
@@ -215,130 +216,131 @@ object PbServiceRunner extends LazyLogging {
   }
 
   def runStatus(sal: ServiceAccessLayer): Int = {
-    val fx = for {
-      status <- sal.getStatus
-    } yield (status)
-
-    val results = Await.result(fx, TIMEOUT)
-    val (status) = results
-    println(status)
-    0
+    Try { Await.result(sal.getStatus, TIMEOUT) } match {
+      case Success(status) => {
+        println(status)
+        0
+      }
+      case Failure(err) => {
+        println(err.getMessage)
+        1
+      }
+    }
   }
 
   def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
-    var xc = 0
-    var result = Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) }
-    result match {
+    Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
       case Success(dsInfo) => {
         println(dsInfo)
+        0
       }
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
   def runGetDataSets(sal: ServiceAccessLayer, dsType: String, maxItems: Int): Int = {
-    var xc = 0
-    var result =  Try {
+    Try {
       dsType match {
-        case "subreads" => Await.result(sal.getSubreadSets(), TIMEOUT)
-        case "hdfsubreads" => Await.result(sal.getHdfSubreadSets(), TIMEOUT)
-        case "barcodes" => Await.result(sal.getBarcodeSets(), TIMEOUT)
-        case "references" => Await.result(sal.getReferenceSets(), TIMEOUT)
+        case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
+        case "hdfsubreads" => Await.result(sal.getHdfSubreadSets, TIMEOUT)
+        case "barcodes" => Await.result(sal.getBarcodeSets, TIMEOUT)
+        case "references" => Await.result(sal.getReferenceSets, TIMEOUT)
         //case _ => throw Exception("Not a valid dataset type")
       }
-    }
-    result match {
+    } match {
       case Success(records) => {
-        println(s"${records.size} records")
+        println(s"${records.size} records") // TODO print table
+        0
       }
       case Failure(err) => {
         println(s"Error: ${err.getMessage}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
   def runGetJobInfo(sal: ServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
-    var xc = 0
-    var result = Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) }
-    result match {
+    Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
       case Success(jobInfo) => {
         println(jobInfo)
+        0
       }
       case Failure(err) => {
         println(s"Could not retrieve job record: ${err}")
-        xc = 1
+        1
       }
     }
-    xc
+  }
+
+  def runGetJobs(sal: ServiceAccessLayer, maxItems: Int): Int = {
+    Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
+      case Success(jobs) => {
+        println(s"${jobs.size} analysis jobs") // TODO print table
+        0
+      }
+      case Failure(err) => {
+        println(s"Could not retrieve jobs: ${err.getMessage}")
+        1
+      }
+    }
   }
 
   def runImportFasta(sal: ServiceAccessLayer, path: String, name: String,
                      organism: String, ploidy: String): Int = {
-    var xc = 0
-    var result = Try {
+    Try {
       Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
-    }
-    result match {
+    } match {
       case Success(jobInfo: EngineJob) => {
         println(jobInfo)
         println("waiting for import job to complete...")
         val f = sal.pollForJob(jobInfo.uuid)
         // FIXME what happens if the job fails?
-        xc = runGetJobInfo(sal, Right(jobInfo.uuid))
+        runGetJobInfo(sal, Right(jobInfo.uuid))
       }
       case Failure(err) => {
         println(s"FASTA import failed: ${err.getMessage}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
   def runImportDataSetSafe(sal: ServiceAccessLayer, path: String): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
 
-    var xc = 0
-    var dsInfo = Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) }
-    dsInfo match {
-      case Success(x) => {
+    Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
+      case Success(dsInfo) => {
         println(s"Dataset ${dsUuid.toString} already imported.")
         println(dsInfo)
+        0
       }
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
         //println(ex.getMessage)
-        xc = runImportDataSet(sal, path)
+        runImportDataSet(sal, path)
       }
     }
-    xc
   }
 
   def runImportDataSet(sal: ServiceAccessLayer, path: String): Int = {
     val dsType = dsMetaTypeFromPath(path)
     logger.info(dsType)
-    var xc = 0
-    val result = Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) }
-    result match {
+    Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
         println(jobInfo)
         println("waiting for import job to complete...")
         val f = sal.pollForJob(jobInfo.uuid)
         // FIXME what happens if the job fails?
-        xc = runGetJobInfo(sal, Right(jobInfo.uuid))
+        runGetJobInfo(sal, Right(jobInfo.uuid))
       }
       case Failure(err) => {
         println(s"Dataset import failed: ${err}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
   def runEmitAnalysisTemplate: Int = {
@@ -415,11 +417,12 @@ object PbServiceRunner extends LazyLogging {
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
       case Modes.IMPORT_FASTA => runImportFasta(sal, c.path.getAbsolutePath,
                                                 c.name, c.organism, c.ploidy)
+      case Modes.ANALYSIS => runAnalysisPipeline(sal, c.path.getAbsolutePath)
+      case Modes.TEMPLATE => runEmitAnalysisTemplate
       case Modes.JOB => runGetJobInfo(sal, c.jobId)
+      case Modes.JOBS => runGetJobs(sal, c.maxItems)
       case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
       case Modes.DATASETS => runGetDataSets(sal, c.datasetType, c.maxItems)
-      case Modes.TEMPLATE => runEmitAnalysisTemplate
-      case Modes.ANALYSIS => runAnalysisPipeline(sal, c.path.getAbsolutePath)
       case _ => {
         println("Unsupported action")
         1

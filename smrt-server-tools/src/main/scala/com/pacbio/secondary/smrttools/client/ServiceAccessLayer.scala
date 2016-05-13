@@ -138,28 +138,26 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   }
 
   def checkServiceEndpoint(endpointPath: String): Int = {
-    var xc = 0
-    val result = Try {
+    Try {
       Await.result(getServiceEndpoint(endpointPath), 20 seconds)
-    }
-    // FIXME need to make this more generic
-    result match {
+    } match {
+      // FIXME need to make this more generic
       case Success(x) => {
         x.status match {
           case StatusCodes.Success(_) =>
             println(s"found endpoint ${endpointPath}")
+            0
           case _ =>
             println(s"error retrieving ${endpointPath}: ${x.status}")
-            xc = 1
+            1
         }
       }
       case Failure(err) => {
         println(s"failed to retrieve endpoint ${endpointPath}")
         println(s"${err}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
@@ -177,7 +175,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId))
   }
 
-  def getSubreadSets(): Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
+  def getSubreadSets: Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.SUBREADS))
   }
 
@@ -185,7 +183,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
   }
 
-  def getHdfSubreadSets(): Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
+  def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
   }
 
@@ -193,7 +191,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
   }
 
-  def getBarcodeSets(): Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
+  def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.BARCODES))
   }
 
@@ -201,7 +199,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
   }
 
-  def getReferenceSets(): Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
+  def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.REFERENCES))
   }
 
@@ -213,19 +211,19 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
 
-  def getAnalysisJobs(): Future[Seq[EngineJob]] = {
+  def getAnalysisJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.PB_PIPE)
   }
 
-  def getImportJobs(): Future[Seq[EngineJob]] = {
+  def getImportJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.IMPORT_DS)
   }
 
-  def getMergeJobs(): Future[Seq[EngineJob]] = {
+  def getMergeJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.MERGE_DS)
   }
 
-  def getFastaConvertJobs(): Future[Seq[EngineJob]] = {
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.CONVERT_FASTA)
   }
 
@@ -318,8 +316,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
-      val result = Try { Await.result(getJobByUuid(jobId), requestTimeOut) }
-      result match {
+      Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
         case Success(x) =>
           x.state match {
             case AnalysisJobStates.SUCCESSFUL =>
