@@ -238,16 +238,17 @@ object PbServiceRunner extends LazyLogging {
   }
 
   private def printDataSetInfo(ds: DataSetMetaDataSet): Int = {
-    println(s"id: ${ds.id}")
-    println(s"uuid: ${ds.uuid}")
-    println(s"name: ${ds.name}")
-    println(s"path: ${ds.path}")
-    println(s"numRecords: ${ds.numRecords}")
-    println(s"totalLength: ${ds.totalLength}")
-    println(s"jobId: ${ds.jobId}")
-    println(s"md5: ${ds.md5}")
-    println(s"createdAt: ${ds.createdAt}")
-    println(s"updatedAt: ${ds.updatedAt}")
+    println("DATASET SUMMARY:")
+    println(s"  id: ${ds.id}")
+    println(s"  uuid: ${ds.uuid}")
+    println(s"  name: ${ds.name}")
+    println(s"  path: ${ds.path}")
+    println(s"  numRecords: ${ds.numRecords}")
+    println(s"  totalLength: ${ds.totalLength}")
+    println(s"  jobId: ${ds.jobId}")
+    println(s"  md5: ${ds.md5}")
+    println(s"  createdAt: ${ds.createdAt}")
+    println(s"  updatedAt: ${ds.updatedAt}")
     0
   }
 
@@ -279,19 +280,20 @@ object PbServiceRunner extends LazyLogging {
   }
 
   private def printJobInfo(job: EngineJob): Int = {
-    println(s"id: ${job.id}")
-    println(s"uuid: ${job.uuid}")
-    println(s"name: ${job.name}")
-    println(s"state: ${job.state}")
-    println(s"path: ${job.path}")
-    println(s"jobTypeId: ${job.jobTypeId}")
-    println(s"createdAt: ${job.createdAt}")
-    println(s"updatedAt: ${job.updatedAt}")
+    println("JOB SUMMARY:")
+    println(s"  id: ${job.id}")
+    println(s"  uuid: ${job.uuid}")
+    println(s"  name: ${job.name}")
+    println(s"  state: ${job.state}")
+    println(s"  path: ${job.path}")
+    println(s"  jobTypeId: ${job.jobTypeId}")
+    println(s"  createdAt: ${job.createdAt}")
+    println(s"  updatedAt: ${job.updatedAt}")
     job.createdBy match {
-      case Some(createdBy) => println(s"createdBy: ${createdBy}")
-      case _ => println("createdBy: none")
+      case Some(createdBy) => println(s"  createdBy: ${createdBy}")
+      case _ => println("  createdBy: none")
     }
-    println(s"comment: ${job.comment}")
+    println(s"  comment: ${job.comment}")
     0
   }
 
@@ -343,7 +345,7 @@ object PbServiceRunner extends LazyLogging {
               case Success(dataStoreFiles) => {
                 for (dsFile <- dataStoreFiles) {
                   if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                    return runGetDataSetInfo(sal, Right(dsFile.uniqueId))
+                    return runGetDataSetInfo(sal, Right(dsFile.uuid))
                   }
                 }
                 errorExit("Couldn't find ReferenceSet")
