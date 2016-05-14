@@ -254,7 +254,6 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
   }
 
-  // FIXME I think this is unmarshalling incorrectly
   private def getJobDataStore(jobType: String, jobId: Int) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }

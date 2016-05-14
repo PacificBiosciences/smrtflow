@@ -350,7 +350,6 @@ object PbServiceRunner extends LazyLogging {
                 }
                 errorExit("Couldn't find ReferenceSet")
               }
-              // FIXME we may not be unmarshalling the datastore JSON correctly
               case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
             }
           }
