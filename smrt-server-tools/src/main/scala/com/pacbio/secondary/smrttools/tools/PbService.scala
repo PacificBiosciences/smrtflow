@@ -77,6 +77,7 @@ object PbService {
                           host: String,
                           port: Int,
                           debug: Boolean = false,
+                          block: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
                           datasetId: Either[Int, UUID] = Left(0),
                           jobId: Either[Int, UUID] = Left(0),
@@ -152,7 +153,10 @@ object PbService {
     } children(
       arg[File]("json-file") required() action { (p, c) =>
         c.copy(path = p)
-      } text "JSON config file" // TODO validate json format
+      } text "JSON config file", // TODO validate json format
+      opt[Boolean]("block") action { (_, c) =>
+        c.copy(block = true)
+      } text "Block until job completes"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -204,6 +208,12 @@ object PbServiceRunner extends LazyLogging {
 
   private val TIMEOUT = 10 seconds
 
+  // FIXME this is crude
+  private def errorExit(msg: String): Int = {
+    println(msg)
+    1
+  }
+
   private def dsMetaTypeFromPath(path: String): String = {
     val ds = scala.xml.XML.loadFile(path)
     ds.attributes("MetaType").toString
@@ -222,22 +232,29 @@ object PbServiceRunner extends LazyLogging {
         0
       }
       case Failure(err) => {
-        println(err.getMessage)
-        1
+        errorExit(err.getMessage)
       }
     }
   }
 
+  private def printDataSetInfo(ds: DataSetMetaDataSet): Int = {
+    println(s"id: ${ds.id}")
+    println(s"uuid: ${ds.uuid}")
+    println(s"name: ${ds.name}")
+    println(s"path: ${ds.path}")
+    println(s"numRecords: ${ds.numRecords}")
+    println(s"totalLength: ${ds.totalLength}")
+    println(s"jobId: ${ds.jobId}")
+    println(s"md5: ${ds.md5}")
+    println(s"createdAt: ${ds.createdAt}")
+    println(s"updatedAt: ${ds.updatedAt}")
+    0
+  }
+
   def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
-      case Success(dsInfo) => {
-        println(dsInfo)
-        0
-      }
-      case Failure(err) => {
-        println(s"Could not retrieve existing dataset record: ${err}")
-        1
-      }
+      case Success(ds) => printDataSetInfo(ds)
+      case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
   }
 
@@ -256,35 +273,58 @@ object PbServiceRunner extends LazyLogging {
         0
       }
       case Failure(err) => {
-        println(s"Error: ${err.getMessage}")
-        1
+        errorExit(s"Error: ${err.getMessage}")
       }
     }
   }
 
+  private def printJobInfo(job: EngineJob): Int = {
+    println(s"id: ${job.id}")
+    println(s"uuid: ${job.uuid}")
+    println(s"name: ${job.name}")
+    println(s"state: ${job.state}")
+    println(s"path: ${job.path}")
+    println(s"jobTypeId: ${job.jobTypeId}")
+    println(s"createdAt: ${job.createdAt}")
+    println(s"updatedAt: ${job.updatedAt}")
+    job.createdBy match {
+      case Some(createdBy) => println(s"createdBy: ${createdBy}")
+      case _ => println("createdBy: none")
+    }
+    println(s"comment: ${job.comment}")
+    0
+  }
+
   def runGetJobInfo(sal: ServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
-      case Success(jobInfo) => {
-        println(jobInfo)
-        0
-      }
-      case Failure(err) => {
-        println(s"Could not retrieve job record: ${err}")
-        1
-      }
+      case Success(job) => printJobInfo(job)
+      case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
 
   def runGetJobs(sal: ServiceAccessLayer, maxItems: Int): Int = {
     Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
-      case Success(jobs) => {
-        println(s"${jobs.size} analysis jobs") // TODO print table
+      case Success(engineJobs) => {
+        var i = 0
+        // FIXME this is a poor approximation of the python program's output;
+        // we need proper generic table formatting
+        for (job <- engineJobs if i < maxItems) {
+          println(f"${job.id}%8d ${job.state}%10s ${job.uuid} ${job.name}")
+          i += 1
+        }
         0
       }
       case Failure(err) => {
-        println(s"Could not retrieve jobs: ${err.getMessage}")
-        1
+        errorExit(s"Could not retrieve jobs: ${err.getMessage}")
       }
+    }
+  }
+
+  private def waitForJob(sal: ServiceAccessLayer, jobId: UUID): Int = {
+    println("waiting for import job to complete...")
+    Try { sal.pollForJob(jobId) } match {
+      case Success(x) => runGetJobInfo(sal, Right(jobId))
+      case Failure(err) => errorExit(err.getMessage)
     }
   }
 
@@ -293,17 +333,29 @@ object PbServiceRunner extends LazyLogging {
     Try {
       Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
     } match {
-      case Success(jobInfo: EngineJob) => {
-        println(jobInfo)
-        println("waiting for import job to complete...")
-        val f = sal.pollForJob(jobInfo.uuid)
-        // FIXME what happens if the job fails?
-        runGetJobInfo(sal, Right(jobInfo.uuid))
+      case Success(job: EngineJob) => {
+        println(job)
+        waitForJob(sal, job.uuid) match {
+          case 0 => {
+            Try {
+              Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+            } match {
+              case Success(dataStoreFiles) => {
+                for (dsFile <- dataStoreFiles) {
+                  if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
+                    return runGetDataSetInfo(sal, Right(dsFile.uniqueId))
+                  }
+                }
+                errorExit("Couldn't find ReferenceSet")
+              }
+              // FIXME we may not be unmarshalling the datastore JSON correctly
+              case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
+            }
+          }
+          case x => x
+        }
       }
-      case Failure(err) => {
-        println(s"FASTA import failed: ${err.getMessage}")
-        1
-      }
+      case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
     }
   }
 
@@ -314,8 +366,7 @@ object PbServiceRunner extends LazyLogging {
     Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) => {
         println(s"Dataset ${dsUuid.toString} already imported.")
-        println(dsInfo)
-        0
+        printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
@@ -337,8 +388,7 @@ object PbServiceRunner extends LazyLogging {
         runGetJobInfo(sal, Right(jobInfo.uuid))
       }
       case Failure(err) => {
-        println(s"Dataset import failed: ${err}")
-        1
+        errorExit(s"Dataset import failed: ${err}")
       }
     }
   }
@@ -358,11 +408,11 @@ object PbServiceRunner extends LazyLogging {
     }
     println(analysisOpts.toJson.prettyPrint)
     // FIXME can we embed this in the Json somehow?
-    println("datasetId can be provided as the DataSet UUID or Int. The entryId(s) can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'")
+    println("datasetId should be an integer; to obtain the datasetId from a UUID, run 'pbservice get-dataset {UUID}'. The entryId(s) can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'")
     0
   }
 
-  def runAnalysisPipeline(sal: ServiceAccessLayer, jsonPath: String): Int = {
+  def runAnalysisPipeline(sal: ServiceAccessLayer, jsonPath: String, block: Boolean): Int = {
     val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
     val jsonAst = jsonSrc.parseJson
     val analysisOptions = jsonAst.convertTo[PbSmrtPipeServiceOptions]
@@ -372,9 +422,7 @@ object PbServiceRunner extends LazyLogging {
     } match {
       case Success(x) => println(s"Found pipeline template ${analysisOptions.pipelineId}")
       case Failure(err) => {
-        println(s"Can't find pipeline template ${analysisOptions.pipelineId}")
-        //println(err.getMessage)
-        return 1
+        return errorExit(s"Can't find pipeline template ${analysisOptions.pipelineId}: ${err.getMessage}")
       }
     }
     for (entryPoint: BoundServiceEntryPoint <- analysisOptions.entryPoints) {
@@ -384,11 +432,10 @@ object PbServiceRunner extends LazyLogging {
         case Success(dsInfo) => {
           // TODO check metatype against input
           println(s"Found entry point ${entryPoint.entryId} (datasetId = ${entryPoint.datasetId})")
-          println(dsInfo)
+          printDataSetInfo(dsInfo)
         }
         case Failure(err) => {
-          println(s"can't retrieve datasetId ${entryPoint.datasetId}")
-          return 1
+          return errorExit(s"can't retrieve datasetId ${entryPoint.datasetId}")
         }
       }
     }
@@ -397,14 +444,10 @@ object PbServiceRunner extends LazyLogging {
     } match {
       case Success(jobInfo) => {
         println(s"Job ${jobInfo.uuid} started")
-        println(jobInfo)
-        // TODO block until job finishes
-        0
+        printJobInfo(jobInfo)
+        if (block) waitForJob(sal, jobInfo.uuid) else 0
       }
-      case Failure(err) => {
-        println(err.getMessage)
-        1
-      }
+      case Failure(err) => errorExit(err.getMessage)
     }
   }
 
@@ -417,16 +460,14 @@ object PbServiceRunner extends LazyLogging {
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
       case Modes.IMPORT_FASTA => runImportFasta(sal, c.path.getAbsolutePath,
                                                 c.name, c.organism, c.ploidy)
-      case Modes.ANALYSIS => runAnalysisPipeline(sal, c.path.getAbsolutePath)
+      case Modes.ANALYSIS => runAnalysisPipeline(sal, c.path.getAbsolutePath,
+                                                 c.block)
       case Modes.TEMPLATE => runEmitAnalysisTemplate
       case Modes.JOB => runGetJobInfo(sal, c.jobId)
       case Modes.JOBS => runGetJobs(sal, c.maxItems)
       case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
       case Modes.DATASETS => runGetDataSets(sal, c.datasetType, c.maxItems)
-      case _ => {
-        println("Unsupported action")
-        1
-      }
+      case _ => errorExit("Unsupported action")
     }
     actorSystem.shutdown()
     xc
