@@ -120,7 +120,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
-  def getDataStorePipeline: HttpRequest => Future[PacBioDataStore] = sendReceive ~> unmarshal[PacBioDataStore]
+  def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
@@ -254,19 +254,23 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
   }
 
-  private def getJobDataStore(jobType: String, jobId: Int) : Future[PacBioDataStore] = getDataStorePipeline {
+  private def getJobDataStore(jobType: String, jobId: Int) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
-  def getAnalysisJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getAnalysisJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.PB_PIPE, jobId)
   }
 
-  def getImportDatasetJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getImportDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.IMPORT_DS, jobId)
   }
 
-  def getMergeDatasetJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getImportFastaJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
+    getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
+  }
+
+  def getMergeDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.MERGE_DS, jobId)
   }
 
