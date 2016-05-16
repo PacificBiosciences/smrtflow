@@ -50,13 +50,12 @@ object PbService {
   case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
                           host: String,
                           port: Int,
-                          debug: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
                           datasetId: Int = 0,
                           path: File = null,
                           name: String = "",
                           organism: String = "",
-                          ploidy: String = "")
+                          ploidy: String = "") extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
