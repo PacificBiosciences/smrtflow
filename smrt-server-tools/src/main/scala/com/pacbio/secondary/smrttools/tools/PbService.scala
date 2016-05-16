@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrttools.tools
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
-
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
@@ -17,10 +16,11 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.xml.XML
-
 import java.net.URL
 import java.util.UUID
 import java.io.File
+
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 
 object Modes {
@@ -64,9 +64,6 @@ object PbService {
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
     head("PacBio SMRTLink Services Client", VERSION)
 
-    opt[Boolean]("debug") action { (v,c) =>
-      c.copy(debug=true)
-    } text "Debug mode"
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
     } text "Hostname of smrtlink server"
@@ -74,6 +71,9 @@ object PbService {
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
     } text "Services port on smrtlink server"
+
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(Modes.STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)
