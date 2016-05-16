@@ -48,8 +48,7 @@ case class GetStatusConfig(host: String = "http://localhost",
 
 ## Command-Line Example
 
-There are a few practical use cases that are supported. Not that you can ignore all of these option. A default, sane
-config will be used. By default errors will be logged to stderr and everything else is discarded.
+There are a few practical use cases that are supported. By default, logging information is not displayed.
 
 ### Running a Production Server
 
