@@ -12,6 +12,8 @@ import scopt.OptionParser
   */
 object LoggerOptions {
 
+  var configured = false
+
   /**
     * Common logger config options for SMRT server Apps.
     *

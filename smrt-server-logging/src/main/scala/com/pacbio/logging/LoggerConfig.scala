@@ -19,7 +19,7 @@ trait LoggerConfig {
 
   // params for logger configuration
   var logLevel = "ERROR"
-  var logFile = "."
+  var logFile = "default_smrt.log"
   var logbackFile: String = null
   var debug = false
 
@@ -44,12 +44,14 @@ trait LoggerConfig {
                 logFile: String,
                 debug: Boolean,
                 logLevel: String): LoggerConfig = {
+    // ignore the default config
+    LoggerOptions.configured = true
     // logback.xml trumps all other config
     if (logbackFile != this.logbackFile)
       setLogback(logbackFile)
     else {
       // order matters here so that debug can trump file and level is correctly set
-      if (logFile != this.logLevel) setFile(logFile)
+      if (logFile != this.logFile) setFile(logFile)
       if (debug != this.debug) setDebug(debug)
       if (logLevel != this.logLevel) setLevel(logLevel)
     }
