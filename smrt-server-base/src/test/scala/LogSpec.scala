@@ -6,17 +6,20 @@ import com.pacbio.common.auth._
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, LogService}
+import com.pacbio.common.services.LogService
 import com.pacbio.common.time._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives, HttpService}
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.duration._
+
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
-class LogSpec extends Specification with Directives with Specs2RouteTest with HttpService with BaseRolesInit {
+class LogSpec extends Specification with NoTimeConversions with Directives with Specs2RouteTest with HttpService with BaseRolesInit {
   // Tests must be run in sequence because of shared state in InMemoryLogDao
   sequential
 
@@ -24,6 +27,8 @@ class LogSpec extends Specification with Directives with Specs2RouteTest with Ht
   import BaseRoles._
 
   def actorRefFactory = system
+
+  implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
   val typeId = "pacbio.my_component"
   val componentId1 = "pacbio.my_component.one"
