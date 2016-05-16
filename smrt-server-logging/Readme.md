@@ -1,25 +1,50 @@
 # Logging
 
-Simple logging for two common use cases in the PacBio tools.
+Simple logging for two common use cases in the PacBio tools. See [smrtflow#42](https://github.com/PacificBiosciences/smrtflow/pull/42) for history.
 
-1. LazyLogger-like mixin so that a `logger` val exists along with methods such as `info`, `debug`, `warn`, `error`, etc.
-2. Conventional default config that can be altered per service via command-line flags.
-  * Saves all logs (including Akka, Spray and smrtflow to disk)
-  * `--debug` flag will dump logs to command-line, no files saved.
-  * `--level` sets log level. Defaults to `WARN`.
-  * `--file`  path to log file. Defaults to `./`
+```bash
+$ ./smrt-server-tools/target/pack/bin/get-smrt-server-status -h
+...
+  --debug
+        If true, log output will be displayed to the console. Default is false.
+  --loglevel <value>
+        Level for logging: "ERROR", "WARN", "DEBUG", or "INFO". Default is "ERROR"
+  --logfile <value>
+        File for log output. Default is "."
+  --logback <value>
+        Override all logger config with the given logback.xml file.
+```
 
-## Code Example
+## Usage
 
-class MyServer extends LazyLogging {
-  def apply (c: GetStatusConfig): Int = {
-    // optional: update to logging config via command-line params
-    updateLogging(c)
-    // `logger` val is auto-created and config'd by the mixin
-    logger.info("Starting Service...")
+All of the above flags are intended for reuse in all of the SMRT services but may also be helpful for any code that
+wants to use our Scala logging conventions.
+
+Extend the `LoggerConfig` trait and have the `OptionsParser` instance invoke the `LoggerOption.add` method.
+
+```scala
+// 1 of 2: extend `LoggerConfig` in the Config-style class
+case class GetStatusConfig(host: String = "http://localhost",
+                           port: Int = 8070) extends LoggerConfig
+
+
+// 2 of 2: make an `OptionParser` that invokes `LoggerOptions.add`
+  lazy val parser = new OptionParser[GetStatusConfig]("get-status") {
+    head("Get SMRTLink status ", VERSION)
+    note("Tool to check the status of a currently running smrtlink server")
+
+    opt[String]("host") action { (x, c) =>
+      c.copy(host = x)
+    } text "Hostname of smrtlink server"
+
+    opt[Int]("port") action { (x, c) =>
+      c.copy(port = x)
+    } text "Services port on smrtlink server"
     ...
+    // reuse the common `--debug` param and logging params
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
-}
+```
 
 ## Command-Line Example
 
@@ -31,25 +56,31 @@ config will be used. By default errors will be logged to stderr and everything e
 You'll likely want to capture everything above warnings in a production environment. Use the `--loglevel` and `--logfile` flags.
 
 ```bash
-./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --loglevel WARN --logfile /var/log/my_log.log
+./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --logfile /var/log/my_log.log --loglevel WARN
 ```
 
 In this case, the normal params exist and only these two alter the logging.
 
-- `--loglevel` = Sets the logger handler to display all WARN level messages and worse.
 - `--logfile` =  Where the logger will save data.
+- `--loglevel` = Sets the logger handler to display all WARN level messages and worse.
 
 Users will almost always have a custom log location. Allowing this to be specified via command-line is a simple way to
 support this versus requiring a custom log config file or property file.
 
 ### Dev Logging
 
-When working on the code you probably always want to see errors on stderr. If that is true, you don't need to alter
-anything. Just run the code.
+When working on the code you probably always want to see errors. If that is true, run with `--debug` and
+`--loglevel ERROR`
 
-If you are debugging a service and need verbose logging info, use the `--loglevel` param to set the level. `INFO` will
-display the most information possible with all non-ERROR logs in stdout and ERROR in stderr. If you aren't piping the
-output or you otherwise want to shunt it to a file then specify the `--logfile` param.
+```bash
+./smrt-server-tools/target/pack/bin/some_service --debug --loglevel ERROR
+```
+
+Here is the more verbose, show me all log messages example.
+
+```bash
+./smrt-server-tools/target/pack/bin/some_service --debug --loglevel DEBUG
+```
 
 ### Using a logback.xml config
 
@@ -58,5 +89,5 @@ via the `--logback`. This provides the most flexibility possible and relies on a
 library.
 
 ```bash
-./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --logback logback.xml
+./smrt-server-tools/target/pack/bin/some_service --logback logback.xml
 ```
