@@ -2,12 +2,12 @@ package com.pacbio.secondary.smrttools.tools
 
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrttools.client._
-
 import java.net.URL
 
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -16,16 +16,13 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
-
- 
 import scala.util.Try
 
 
 case class GetStatusConfig(host: String = "http://localhost",
                            port: Int = 8070,
-                           debug: Boolean = false,
                            sleepTime: Int = 5,
-                           maxRetries: Int = 3)
+                           maxRetries: Int = 3) extends LoggerConfig
 
 /*
  * Get the status of SMRTLink services
@@ -35,7 +32,7 @@ case class GetStatusConfig(host: String = "http://localhost",
 trait GetStatusParser {
   final val TOOL_ID = "pbscala.tools.get_status"
   final val VERSION = "0.1.0"
-  final val DEFAULT = GetStatusConfig("http://localhost", 8070, debug = false)
+  final val DEFAULT = GetStatusConfig("http://localhost", 8070)
 
   lazy val parser = new OptionParser[GetStatusConfig]("get-status") {
     head("Get SMRTLink status ", VERSION)
@@ -61,6 +58,8 @@ trait GetStatusParser {
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
+
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
