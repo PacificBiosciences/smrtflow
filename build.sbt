@@ -124,7 +124,7 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
   PacBioProject("smrt-analysis")
-    dependsOn (common)
+    dependsOn (common, logging)
     settings()
   )
 
