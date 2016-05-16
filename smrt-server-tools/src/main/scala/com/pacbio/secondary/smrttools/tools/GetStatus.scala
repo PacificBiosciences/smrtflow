@@ -7,7 +7,8 @@ import java.net.URL
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
-import com.pacbio.logging.{LazyLogging, LogConfig, LoggerConfig, LoggerOptions}
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import scala.language.postfixOps
