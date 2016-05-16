@@ -7,8 +7,7 @@ import java.net.URL
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
-import com.pacbio.logging.LazyLogging
-import com.pacbio.logging.LogConfig
+import com.pacbio.logging.{LazyLogging, LogConfig, LoggerConfig, LoggerOptions}
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -16,16 +15,13 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
-
- 
 import scala.util.Try
 
 
 case class GetStatusConfig(host: String = "http://localhost",
                            port: Int = 8070,
-                           debug: Boolean = false,
                            sleepTime: Int = 5,
-                           maxRetries: Int = 3)
+                           maxRetries: Int = 3) extends LoggerConfig
 
 /*
  * Get the status of SMRTLink services
@@ -35,7 +31,7 @@ case class GetStatusConfig(host: String = "http://localhost",
 trait GetStatusParser {
   final val TOOL_ID = "pbscala.tools.get_status"
   final val VERSION = "0.1.0"
-  final val DEFAULT = GetStatusConfig("http://localhost", 8070, debug = false)
+  final val DEFAULT = GetStatusConfig("http://localhost", 8070)
 
   lazy val parser = new OptionParser[GetStatusConfig]("get-status") {
     head("Get SMRTLink status ", VERSION)
@@ -61,6 +57,8 @@ trait GetStatusParser {
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
+
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
@@ -119,7 +117,7 @@ object GetStatusRunner extends LazyLogging {
 
 object GetStatusApp extends App with GetStatusParser {
   def run(args: Seq[String]) = {
-    val exitCode = parser.parse(LogConfig.trim(args), DEFAULT) match {
+    val exitCode = parser.parse(args, DEFAULT) match {
       case Some(opts) => GetStatusRunner(opts)
       case _ => 1
     }
