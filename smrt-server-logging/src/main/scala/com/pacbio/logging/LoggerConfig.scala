@@ -29,7 +29,7 @@ trait LoggerConfig {
   val fileRollingPosfix = ".%i.gz"
 
   // all the expected loggers
-  val loggerNames = "akka" :: "Slf4jLogger" :: "scala.slick" :: "spray" :: "log1-Slf4jLogger" :: Nil
+  val loggerNames = Set("akka", "Slf4jLogger", "scala.slick", "spray", "log1-Slf4jLogger")
 
   /**
     * Lazy updates the logger config
