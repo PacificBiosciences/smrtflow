@@ -65,8 +65,8 @@ class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManag
 
     val tOpts = Seq((OPT_NAME, opts.name), (OPT_ORGANISM, opts.organism), (OPT_PLOIDY, opts.ploidy))
 
-    val entryPoints: Seq[BoundEntryPoint] = Seq(BoundEntryPoint(PIPELINE_ENTRY_POINT_ID, opts.path))
-    val taskOptions: Seq[PipelineStrOption] = tOpts.map(x => toPipelineOption(x._1, x._2))
+    val entryPoints = Seq(BoundEntryPoint(PIPELINE_ENTRY_POINT_ID, opts.path))
+    val taskOptions = tOpts.map(x => toPipelineOption(x._1, x._2))
 
     // FIXME. this should be Option[Path] or Option[Map[String, String]]
     val envPath = ""
