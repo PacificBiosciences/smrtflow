@@ -124,31 +124,31 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
   PacBioProject("smrt-analysis")
-    dependsOn (common)
+    dependsOn (logging, common)
     settings()
   )
 
 lazy val smrtServerBase = (
   PacBioProject("smrt-server-base")
-    dependsOn(common, smrtAnalysis)
+    dependsOn(logging, common, smrtAnalysis)
     settings()
   )
 
 lazy val smrtServerLink = (
   PacBioProject("smrt-server-link")
-    dependsOn(common, smrtAnalysis, smrtServerBase)
+    dependsOn(logging, common, smrtAnalysis, smrtServerBase)
     settings()
   )
 
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
-    dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink)
+    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
     settings(mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
   )
 
 lazy val smrtServerTools = (
   PacBioProject("smrt-server-tools")
-    dependsOn(common, smrtAnalysis, smrtServerLink, smrtServerAnalysis, logging)
+    dependsOn(logging, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
     settings()
   )
 
