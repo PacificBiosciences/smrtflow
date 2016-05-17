@@ -1,6 +1,8 @@
 package com.pacbio.secondary.analysis.jobs
 
+import java.net.URI
 import java.util.UUID
+
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -220,8 +222,22 @@ trait PipelineTemplatePresetJsonProtocol extends DefaultJsonProtocol with Pipeli
       }
     }
   }
+}
+
+trait URIJsonProtocol extends DefaultJsonProtocol {
+
+  implicit object URIJsonProtocolFormat extends RootJsonFormat[URI] {
+    def write(x: URI) = JsString(x.toString)
+    def read(value: JsValue) = {
+      value match {
+        case JsString(x) => new URI(x)
+        case _ => deserializationError("Expected URI")
+      }
+    }
+  }
 
 }
+
 
 
 trait JobTypeSettingProtocol extends DefaultJsonProtocol
@@ -230,7 +246,7 @@ with UUIDJsonProtocol
 with JobStatesJsonProtocol
 with DataSetMetaTypesProtocol
 with PipelineTemplateJsonProtocol
-with PipelineTemplatePresetJsonProtocol {
+with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
 
 
   import JobModels._
@@ -255,7 +271,7 @@ with PipelineTemplatePresetJsonProtocol {
   implicit val pipelineTemplateViewRule = jsonFormat4(PipelineTemplateViewRule)
 
   // Job Options
-  //implicit val pbsmrtpipeJobOptionsFormat = jsonFormat5(PbSmrtPipeJobOptions)
+  implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat4(PbsmrtpipeDirectJobOptions)
   implicit val simpleDevJobOptionsFormat = jsonFormat2(SimpleDevJobOptions)
   implicit val simpleDataTransferOptionsFormat = jsonFormat2(SimpleDataTransferOptions)
   implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat2(MovieMetadataToHdfSubreadOptions)
