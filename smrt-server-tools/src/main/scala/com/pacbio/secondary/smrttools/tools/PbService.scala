@@ -58,7 +58,7 @@ object PbService {
                           ploidy: String = "") extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
+  lazy val defaults = CustomConfig(null, "localhost", 8070)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
     head("PacBio SMRTLink Services Client", VERSION)
