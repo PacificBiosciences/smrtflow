@@ -11,6 +11,7 @@ import com.pacbio.secondary.smrtlink.database.DatabaseRunDaoProvider
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider, MergeDataSetServiceJobTypeProvider, ImportDataSetServiceTypeProvider}
 import com.pacbio.secondary.smrtlink.services._
+import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
 import spray.servlet.WebBoot
 
@@ -79,6 +80,8 @@ trait SmrtLinkApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
 object SmrtLinkSmrtServer extends App with BaseServer with SmrtLinkApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
+
+  LoggerOptions.parseRequireFile(args)
 
   start
 }
