@@ -35,11 +35,13 @@ import org.flywaydb.core.Flyway
 class Dal(val dbURI: String) {
   val flyway = new Flyway() {
     override def migrate(): Int = {
-      // lazy make file database dir as needed
-      val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
-      if (file.getParent != null) {
-        val dir = file.getParent.toFile
-        if (!dir.exists()) dir.mkdirs()
+      // lazy make dev `db` database dir as needed. intended only for dev work
+      if (dbURI == "jdbc:sqlite:db/analysis_services.db") {
+        val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
+        if (file.getParent != null) {
+          val dir = file.getParent.toFile
+          if (!dir.exists()) dir.mkdirs()
+        }
       }
 
       return super.migrate()
@@ -374,7 +376,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   /**
    * This is the new interface will replace the original createJob
-   * @param uuid UUID
+    *
+    * @param uuid UUID
    * @param name Name of job
    * @param description This is really a comment. FIXME
    * @param jobTypeId String of the job type identifier. This should be consistent with the
@@ -478,7 +481,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Importing of DataStore File by Job Int Id
-   * @param ds
+    *
+    * @param ds
    * @param jobId
    * @return
    */
@@ -503,7 +507,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Generic Importing of DataSet by type and Path to dataset file
-   * @param dataSetMetaType
+    *
+    * @param dataSetMetaType
    * @param spath
    * @param jobId
    * @param userId
