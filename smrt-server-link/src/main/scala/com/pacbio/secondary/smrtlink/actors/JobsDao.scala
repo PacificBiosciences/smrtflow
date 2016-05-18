@@ -35,8 +35,8 @@ import org.flywaydb.core.Flyway
 class Dal(val dbURI: String) {
   val flyway = new Flyway() {
     override def migrate(): Int = {
-      // lazy make dev `db` database dir as needed. intended only for dev work
-      if (dbURI == "jdbc:sqlite:db/analysis_services.db") {
+      // lazy make directories as needed for sqlite
+      if (dbURI.startsWith("jdbc:sqlite:")) {
         val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
         if (file.getParent != null) {
           val dir = file.getParent.toFile
