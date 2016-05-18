@@ -85,6 +85,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   private def toUrl(segment: String): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment).toString
+  private def toUiRootUrl(port: Int): String =
+    new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
   private def toJobUrl(jobType: String, jobId: Int): String = {
     toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}")
   }
@@ -116,6 +118,10 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def getReferenceSetPipeline: HttpRequest => Future[ReferenceServiceDataSet] = sendReceive ~> unmarshal[ReferenceServiceDataSet]
   def getBarcodeSetsPipeline: HttpRequest => Future[Seq[BarcodeServiceDataSet]] = sendReceive ~> unmarshal[Seq[BarcodeServiceDataSet]]
   def getBarcodeSetPipeline: HttpRequest => Future[BarcodeServiceDataSet] = sendReceive ~> unmarshal[BarcodeServiceDataSet]
+  def getAlignmentSetsPipeline: HttpRequest => Future[Seq[AlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[AlignmentServiceDataSet]]
+  def getAlignmentSetPipeline: HttpRequest => Future[AlignmentServiceDataSet] = sendReceive ~> unmarshal[AlignmentServiceDataSet]
+  def getConsensusReadSetsPipeline: HttpRequest => Future[Seq[CCSreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[CCSreadServiceDataSet]]
+  def getConsensusReadSetPipeline: HttpRequest => Future[CCSreadServiceDataSet] = sendReceive ~> unmarshal[CCSreadServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
@@ -133,32 +139,40 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(statusUrl)
   }
 
+  def getEndpoint(endpointUrl: String): Future[HttpResponse] = respPipeline {
+    Get(endpointUrl)
+  }
+
   def getServiceEndpoint(endpointPath: String): Future[HttpResponse] = respPipeline {
     Get(toUrl(endpointPath))
   }
 
-  def checkServiceEndpoint(endpointPath: String): Int = {
+  def checkEndpoint(endpointUrl: String): Int = {
     Try {
-      Await.result(getServiceEndpoint(endpointPath), 20 seconds)
+      Await.result(getEndpoint(endpointUrl), 20 seconds)
     } match {
       // FIXME need to make this more generic
       case Success(x) => {
         x.status match {
           case StatusCodes.Success(_) =>
-            println(s"found endpoint ${endpointPath}")
+            println(s"found endpoint ${endpointUrl}")
             0
           case _ =>
-            println(s"error retrieving ${endpointPath}: ${x.status}")
+            println(s"error retrieving ${endpointUrl}: ${x.status}")
             1
         }
       }
       case Failure(err) => {
-        println(s"failed to retrieve endpoint ${endpointPath}")
+        println(s"failed to retrieve endpoint ${endpointUrl}")
         println(s"${err}")
         1
       }
     }
   }
+
+  def checkServiceEndpoint(endpointPath: String): Int = checkEndpoint(toUrl(endpointPath))
+
+  def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
 
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
     datasetId match {
@@ -205,6 +219,22 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   def getReferenceSetById(dsId: Int): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
+  }
+
+  def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
+  }
+
+  def getAlignmentSetById(dsId: Int): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
+  }
+
+  def getConsensusReadSets: Future[Seq[CCSreadServiceDataSet]] = getConsensusReadSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.CCSREADS))
+  }
+
+  def getConsensusReadSetById(dsId: Int): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
   }
 
   private def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
