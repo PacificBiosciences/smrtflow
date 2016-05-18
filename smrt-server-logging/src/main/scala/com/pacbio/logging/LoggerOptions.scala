@@ -45,6 +45,9 @@ object LoggerOptions {
     */
   def parse(args: Seq[String]): Unit = {
     val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
+      // Don't complain about args such as -jar used via command-line server execution
+      override def errorOnUnknownArgument = false
+      override def showUsageOnError = false
       note("This is an app that supports PacBio logging flags. ")
 
       opt[Unit]('h', "help") action { (x, c) =>
