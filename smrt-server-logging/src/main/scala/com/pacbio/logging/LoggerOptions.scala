@@ -37,4 +37,16 @@ object LoggerOptions {
       c.configure(x, c.logFile, c.debug, c.logLevel)
     } text "Override all logger config with the given logback.xml file."
   }
+
+  /**
+    * Helper method for cases where an App doesn't otherwise use scopt parsing
+    *
+    * @param args Command line arguments
+    */
+  def parse(args: Seq[String]): Unit = {
+    val parser = new OptionParser[LoggerConfig]("Logger Default") {
+      LoggerOptions.add(this)
+    }
+    parser.parse(args, new LoggerConfig(){})
+  }
 }
