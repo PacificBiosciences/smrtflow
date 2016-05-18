@@ -6,6 +6,7 @@ import com.pacbio.common.app.{BaseServer, BaseApi}
 import com.pacbio.common.dependency.{TypesafeSingletonReader, Singleton}
 import com.pacbio.common.logging.{LoggerFactoryProvider, LogResources}
 import com.pacbio.common.models.LogResourceRecord
+import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.app.SmrtLinkProviders
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
 import com.pacbio.secondary.smrtserver.services._
@@ -67,6 +68,8 @@ trait SecondaryApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
 object SecondaryAnalysisServer extends App with BaseServer with SecondaryApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
+
+  LoggerOptions.parseRequireFile(args)
 
   start
 }
