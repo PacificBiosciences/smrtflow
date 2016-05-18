@@ -193,7 +193,7 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
 
   override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
 
-  LoggerOptions.parse(args)
+  LoggerOptions.parseRequireFile(args)
 
   start
 }

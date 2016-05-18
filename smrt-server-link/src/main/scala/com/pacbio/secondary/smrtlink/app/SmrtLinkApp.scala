@@ -81,7 +81,7 @@ object SmrtLinkSmrtServer extends App with BaseServer with SmrtLinkApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
 
-  LoggerOptions.parse(args)
+  LoggerOptions.parseRequireFile(args)
 
   start
 }

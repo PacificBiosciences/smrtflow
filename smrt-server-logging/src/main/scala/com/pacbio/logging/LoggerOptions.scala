@@ -44,9 +44,26 @@ object LoggerOptions {
     * @param args Command line arguments
     */
   def parse(args: Seq[String]): Unit = {
-    val parser = new OptionParser[LoggerConfig]("Logger Default") {
+    val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
+      note("This is an app that supports PacBio logging flags. ")
+
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
+
       LoggerOptions.add(this)
     }
     parser.parse(args, new LoggerConfig(){})
+  }
+
+  def parseRequireFile(args: Seq[String]): Unit = {
+    if (!args.contains("--logfile") && !args.contains("-h")) {
+      println("You must set the logger output with a --logfile parameter")
+      println("  e.g.")
+      println("      java -jar my_code.jar --logfile example_file.log")
+      System.exit(1)
+    }
+    parse(args)
   }
 }
