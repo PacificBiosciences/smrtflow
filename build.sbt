@@ -97,6 +97,9 @@ def PacBioProject(name: String): Project = (
     )
     )
   )
+    .disablePlugins (plugins.JUnitXmlReportPlugin)
+    .settings(
+      testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
 
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
