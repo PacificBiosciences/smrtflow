@@ -30,12 +30,18 @@ import scala.slick.jdbc.meta.MTable
 import scala.util.{Failure, Success, Try}
 import org.flywaydb.core.Flyway
 
-import scala.reflect.io.Directory
-
 
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
 class Dal(val dbURI: String) {
-  val flyway = new Flyway()
+  val flyway = new Flyway() {
+    override def migrate(): Int = {
+      // lazy make file database dir as needed
+      val file = scala.reflect.io.File(dbURI.stripPrefix("jdbc:sqlite:"))
+      if (file.parent != null && !file.parent.exists) file.parent.createDirectory()
+
+      return super.migrate()
+    }
+  }
   flyway.setDataSource(dbURI, "", "")
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
@@ -933,10 +939,6 @@ with DataSetStore {
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
 
   def initializeDb(): Unit = {
-    // lazy make ./db as needed
-    val dir = Directory("db")
-    if (!dir.exists) dir.createDirectory()
-
     dal.flyway.migrate()
   }
 }
