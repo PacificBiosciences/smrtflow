@@ -28,8 +28,9 @@ import scala.language.postfixOps
 import scala.slick.driver.SQLiteDriver.simple._
 import scala.slick.jdbc.meta.MTable
 import scala.util.{Failure, Success, Try}
-
 import org.flywaydb.core.Flyway
+
+import scala.reflect.io.Directory
 
 
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
@@ -932,6 +933,10 @@ with DataSetStore {
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
 
   def initializeDb(): Unit = {
+    // lazy make ./db as needed
+    val dir = Directory("db")
+    if (!dir.exists) dir.createDirectory()
+
     dal.flyway.migrate()
   }
 }
