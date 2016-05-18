@@ -225,15 +225,29 @@ object PbServiceRunner extends LazyLogging {
     java.util.UUID.fromString(uniqueId)
   }
 
+  private def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
+    Try { Await.result(fn(), TIMEOUT) } match {
+      case Success(records) => println(s"${label} ${records.size}")
+      case Failure(err) => println("ERROR: couldn't retrieve ${label}")
+    }
+  }
+
   def runStatus(sal: ServiceAccessLayer): Int = {
     Try { Await.result(sal.getStatus, TIMEOUT) } match {
       case Success(status) => {
-        println(status)
+        println(s"Status ${status.message}")
+        showNumRecords("SubreadSets", () => sal.getSubreadSets)
+        showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
+        showNumRecords("ReferenceSets", () => sal.getReferenceSets)
+        showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
+        showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
+        showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
+        showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
+        showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
+        showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
         0
       }
-      case Failure(err) => {
-        errorExit(err.getMessage)
-      }
+      case Failure(err) => errorExit(err.getMessage)
     }
   }
 
