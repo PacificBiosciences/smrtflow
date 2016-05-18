@@ -1,6 +1,9 @@
 package com.pacbio.secondaryinternal.models
 
 import java.util.UUID
+import java.nio.file.Path
+
+import com.pacbio.secondary.analysis.constants.FileTypes
 
 object Models {}
 
@@ -35,3 +38,13 @@ case class InternalSubreadSet(runcode: String, expId: Int, path: String, dataset
 
 // Thin container for resolving References by 'id', (e.g., 'lambdaNeb')
 case class ReferenceSetResource(id: String, path: String)
+
+// Analysis Conditions
+// TODO. Add file-type-id correctly
+case class AnalysisCondition(id: String, path: Seq[Path]) {
+  def fileType = FileTypes.DS_ALIGNMENTS
+}
+
+// CSV -> ServiceCondition
+case class ServiceCondition(condId: String, host: String, port: Int, jobId: Int)
+

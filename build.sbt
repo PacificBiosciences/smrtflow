@@ -93,6 +93,7 @@ def PacBioProject(name: String): Project = (
       "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
       "org.scalaj" %% "scalaj-http" % "1.1.5",
       "org.flywaydb" % "flyway-core" % "4.0",
+      "com.github.tototoshi" %% "scala-csv" % "1.3.1",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full
     )
     )
@@ -124,7 +125,7 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
   PacBioProject("smrt-analysis")
-    dependsOn (logging, common)
+    dependsOn(logging, common)
     settings()
   )
 
@@ -143,7 +144,7 @@ lazy val smrtServerLink = (
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
     dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    settings(mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
+    settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
   )
 
 lazy val smrtServerTools = (
@@ -155,5 +156,5 @@ lazy val smrtServerTools = (
 lazy val smrtServerAnalysisInternal = (
   PacBioProject("smrt-server-analysis-internal")
     dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
-    settings(mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
+    settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
   )
