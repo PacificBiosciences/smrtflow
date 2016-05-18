@@ -23,7 +23,6 @@ import spray.routing.AuthenticationFailedRejection
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
 class ProjectSpec extends Specification
 with NoTimeConversions
@@ -36,7 +35,7 @@ with SmrtLinkConstants {
 
   import SmrtLinkJsonProtocols._
 
-  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
   val READ_USER_LOGIN = "reader"
   val WRITE_USER_1_LOGIN = "root"
