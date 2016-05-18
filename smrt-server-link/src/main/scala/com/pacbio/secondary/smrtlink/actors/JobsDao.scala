@@ -36,8 +36,11 @@ class Dal(val dbURI: String) {
   val flyway = new Flyway() {
     override def migrate(): Int = {
       // lazy make file database dir as needed
-      val file = scala.reflect.io.File(dbURI.stripPrefix("jdbc:sqlite:"))
-      if (file.parent != null && !file.parent.exists) file.parent.createDirectory()
+      val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
+      if (file.getParent != null) {
+        val dir = file.getParent.toFile
+        if (!dir.exists()) dir.mkdirs()
+      }
 
       return super.migrate()
     }
