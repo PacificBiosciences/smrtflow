@@ -58,7 +58,8 @@ object LoggerOptions {
   }
 
   def parseRequireFile(args: Seq[String]): Unit = {
-    if (!args.contains("--logfile") && !args.contains("-h")) {
+    val requireOne = Set("--logfile", "--debug", "-h")
+    if (args.filter(requireOne).isEmpty) {
       println("You must set the logger output with a --logfile parameter")
       println("  e.g.")
       println("      java -jar my_code.jar --logfile example_file.log")
