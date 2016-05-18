@@ -1,7 +1,6 @@
 package com.pacbio.common.app
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
+import java.lang.management.ManagementFactory
 import java.net.BindException
 
 import akka.actor.{ActorRefFactory, Props}
@@ -17,6 +16,7 @@ import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
 import com.pacbio.common.time.SystemClockProvider
+import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing.Route
@@ -192,6 +192,8 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val port = providers.serverPort()
 
   override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
+
+  LoggerOptions.parse(args)
 
   start
 }
