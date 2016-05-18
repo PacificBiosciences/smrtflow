@@ -4,7 +4,7 @@ import akka.actor.ActorRefFactory
 import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvider, UserServiceActorRefProvider}
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
-import com.pacbio.common.models.{UserRecord, UserResponse}
+import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -15,17 +15,18 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.ProjectServiceProvider
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import org.specs2.specification.BeforeExample
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection}
+import spray.routing.AuthenticationFailedRejection
 import spray.testkit.Specs2RouteTest
 
-import scala.concurrent.duration.FiniteDuration
-
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class ProjectSpec extends Specification
+with NoTimeConversions
 with Specs2RouteTest
 with SetupMockData
 with JobServiceConstants
@@ -34,6 +35,8 @@ with SmrtLinkConstants {
   sequential
 
   import SmrtLinkJsonProtocols._
+
+  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
 
   val READ_USER_LOGIN = "reader"
   val WRITE_USER_1_LOGIN = "root"
