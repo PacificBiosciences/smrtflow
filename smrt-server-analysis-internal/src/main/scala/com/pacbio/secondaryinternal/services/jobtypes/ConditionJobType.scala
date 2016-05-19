@@ -44,7 +44,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
   extends JobTypeService with LazyLogging{
 
   // import SecondaryAnalysisJsonProtocols._
-  import SmrtLinkJsonProtocols._
+  import SmrtLinkJsonProtocols.engineJobFormat
   import InternalAnalysisJsonProcotols._
 
   val description = "Create a multi-analysis job pipeline by running a pbsmrtipe Condition JSON driven Pipeline"
@@ -143,25 +143,27 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
       }
     }
 
-  // Problems with serializing EngineJob
-//  val getJobsRoute =
-//    pathPrefix(endpoint) {
-//      pathEndOrSingleSlash {
-//        get {
-//          complete {
-//            jobList(dbActor, userActor, endpoint)
-//          }
-//        }
-//      }
-//    }
+  val getJobsRoute =
+    pathPrefix(endpoint) {
+      pathEndOrSingleSlash {
+        get {
+          complete {
+            jobList(dbActor, userActor, endpoint)
+          }
+        }
+      }
+    }
 
   def resolvedJobConditionsTo(p: ResolvedConditionPipeline): ResolvedConditions = {
     ResolvedConditions(p.pipelineId, p.conditions.map(x => ResolvedCondition(x.id, FileTypes.DS_ALIGNMENTS.fileTypeId, Seq(x.path))))
   }
 
   // Note, all conditions jobs will be marked as standard pbsmrtpipe analysis jobs
+  // This creates fundamental problems. If the UI was re-useable, we should
+  // make this a specific page view
   val jobType = "pbsmrtpipe"
 
+  //FIXME(mpkocher)(2016-4-19) make the path to the condition JSON files be configurable
   val createJobRoute =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
@@ -182,7 +184,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
       }
     }
 
-  val routes = helpRoute ~ sharedJobRoutes(dbActor, userActor) ~ validateConditionRunRoute ~ createJobRoute
+  val routes = helpRoute ~ sharedJobRoutes(dbActor, userActor) ~ validateConditionRunRoute ~ createJobRoute ~ getJobsRoute
 
 
 }
