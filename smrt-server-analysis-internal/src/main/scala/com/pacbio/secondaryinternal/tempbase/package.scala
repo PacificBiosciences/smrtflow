@@ -45,11 +45,11 @@ trait CoreProviders extends
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
   val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
 
-  override val actorSystemName = Some("base-smrt-server")
+  override val actorSystemName = Some("smrt-server-analysis-internal")
 
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
-  override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
+  override val baseServiceId: Singleton[String] = Singleton("smrt_server_analysis_internal")
 
   //override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
   //  override val databaseConfigPath = Singleton("log")

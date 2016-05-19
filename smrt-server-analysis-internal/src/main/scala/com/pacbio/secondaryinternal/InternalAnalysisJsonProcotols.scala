@@ -66,8 +66,16 @@ trait InternalAnalysisJsonProcotols extends BaseJsonProtocol
   // ReferenceSet resolver
   implicit val internalReferenceSetResourceFormat = jsonFormat2(ReferenceSetResource)
 
-  // Analysis Conditions
+  // Condition Related
   implicit val analysisConditionFormat = jsonFormat2(AnalysisCondition)
+  implicit val serviceConditionFormat = jsonFormat4(ServiceCondition)
+  implicit val resolvedJobConditionFormat = jsonFormat5(ResolvedJobCondition)
+  implicit val serviceConditionCsvPipelineFormat = jsonFormat2(ServiceConditionCsvPipeline)
+  implicit val resolvedConditionPipelineFormat = jsonFormat2(ResolvedConditionPipeline)
+
+  // Conditions that are passed to pipelines
+  implicit val resolvedConditionFormat = jsonFormat3(ResolvedCondition)
+  implicit val resolvedConditionsFormat = jsonFormat2(ResolvedConditions)
 
 }
 

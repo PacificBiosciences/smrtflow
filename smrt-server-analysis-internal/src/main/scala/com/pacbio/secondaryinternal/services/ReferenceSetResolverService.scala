@@ -10,7 +10,7 @@ import com.pacbio.secondaryinternal.InternalAnalysisJsonProcotols
 import com.pacbio.secondaryinternal.JobResolvers
 import com.pacbio.secondaryinternal.daos.{ReferenceResourceDao, ReferenceResourceDaoProvider}
 import com.pacbio.secondaryinternal.models.ReferenceSetResource
-import com.pacbio.secondaryinternal.tempbase.ServiceComposer
+import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondaryinternal.{Constants, BaseInternalMicroService, JobResolvers, InternalAnalysisJsonProcotols}
 
 import spray.routing.PathMatchers.Segment

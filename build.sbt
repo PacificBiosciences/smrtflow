@@ -17,7 +17,8 @@ version in ThisBuild := "0.1.1-SNAPSHOT"
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
 
-scalaVersion in ThisBuild := "2.11.7"
+// Seeing a lot of evicted calls
+scalaVersion in ThisBuild := "2.11.8"
 
 scalacOptions in ThisBuild := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 
