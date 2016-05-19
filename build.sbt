@@ -156,6 +156,6 @@ lazy val smrtServerTools = (
 
 lazy val smrtServerAnalysisInternal = (
   PacBioProject("smrt-server-analysis-internal")
-    dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
+    dependsOn(common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging, smrtServerTools)
     settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
   )
