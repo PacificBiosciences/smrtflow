@@ -70,7 +70,7 @@ trait InternalAnalysisJsonProcotols extends BaseJsonProtocol
   implicit val analysisConditionFormat = jsonFormat2(AnalysisCondition)
   implicit val serviceConditionFormat = jsonFormat4(ServiceCondition)
   implicit val resolvedJobConditionFormat = jsonFormat5(ResolvedJobCondition)
-  implicit val serviceConditionCsvPipelineFormat = jsonFormat2(ServiceConditionCsvPipeline)
+  implicit val serviceConditionCsvPipelineFormat = jsonFormat4(ServiceConditionCsvPipeline)
   implicit val resolvedConditionPipelineFormat = jsonFormat2(ResolvedConditionPipeline)
 
   // Conditions that are passed to pipelines

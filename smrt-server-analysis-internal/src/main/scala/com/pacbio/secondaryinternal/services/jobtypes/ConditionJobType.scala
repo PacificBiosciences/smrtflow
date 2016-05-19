@@ -159,6 +159,9 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
     ResolvedConditions(p.pipelineId, p.conditions.map(x => ResolvedCondition(x.id, FileTypes.DS_ALIGNMENTS.fileTypeId, Seq(x.path))))
   }
 
+  // Note, all conditions jobs will be marked as standard pbsmrtpipe analysis jobs
+  val jobType = "pbsmrtpipe"
+
   val createJobRoute =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
@@ -171,7 +174,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
                 resolvedJobConditions <- resolveConditionRecord(record)
                 _ <- Future { writeResolvedConditions(resolvedJobConditionsTo(resolvedJobConditions), conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
-                engineJob <- (dbActor ?  CreateJobType(uuid, s"Job $endpoint", "Condition Multi-Job", endpoint, coreJob, None, "{}", None)).mapTo[EngineJob]
+                engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, "{}", None)).mapTo[EngineJob]
               } yield engineJob
             }
           }

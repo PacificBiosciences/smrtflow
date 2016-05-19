@@ -56,6 +56,6 @@ case class ResolvedCondition(id: String, file_type_id: String, files: Seq[Path])
 case class ResolvedConditions(pipelineId: String, conditions: Seq[ResolvedCondition])
 
 // Pipeline + Raw CSV contents
-case class ServiceConditionCsvPipeline(pipelineId: String, csvContents: String)
+case class ServiceConditionCsvPipeline(pipelineId: String, csvContents: String, name: String, description: String)
 
 case class ResolvedConditionPipeline(pipelineId: String, conditions: Seq[ResolvedJobCondition])
