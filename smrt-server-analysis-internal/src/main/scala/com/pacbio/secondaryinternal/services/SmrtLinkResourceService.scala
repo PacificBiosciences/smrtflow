@@ -5,7 +5,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.secondaryinternal.daos.{SmrtLinkResourceDao, SmrtLinkResourceDaoProvider}
 import com.pacbio.secondaryinternal.models.SmrtLinkServerResource
-import com.pacbio.secondaryinternal.tempbase.ServiceComposer
+import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondaryinternal.{Constants, BaseInternalMicroService, JobResolvers, InternalAnalysisJsonProcotols}
 
 import scala.concurrent.ExecutionContext.Implicits.global

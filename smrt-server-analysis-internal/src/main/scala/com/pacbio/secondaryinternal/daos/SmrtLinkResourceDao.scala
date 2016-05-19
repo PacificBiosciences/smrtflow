@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.mutable
 
-
+//FIXME(mpkocher)(2016-4-18) This should be rethought
 trait SmrtLinkResourceDao {
 
   def getServerById(id: String): Future[SmrtLinkServerResource]
@@ -44,7 +44,7 @@ class InMemorySmrtLinkResourceDao(resources: Set[SmrtLinkServerResource]) extend
 
   override def getJobById(serverId: String, jobId: Int) = Future {
     smrtLinkServerResources.get(serverId) match {
-      case Some(r) => SmrtLinkJob(jobId, JobResolvers.toJobPath(r.jobRoot, jobId))
+      case Some(r) => SmrtLinkJob(jobId, "FIXME")
       case _ => throw new Exception(s"Failed to find SMRT Link Server $serverId")
     }
   }

@@ -1,15 +1,52 @@
 package com.pacbio.secondaryinternal
 
 import java.util.UUID
+import java.nio.file.{Path, Paths}
 
-import com.pacbio.common.models.BaseJsonProtocol
 import spray.json._
+
+import com.pacbio.secondary.analysis.constants.FileTypes
+import FileTypes._
+import com.pacbio.common.models.BaseJsonProtocol
 import com.pacbio.secondaryinternal.models._
+
+
+// This Should be pushed back to a common layer
+trait PathJsonProtocol extends DefaultJsonProtocol {
+
+  implicit object PathJsonFormat extends JsonFormat[Path] {
+    def write(obj: Path): JsValue = JsString(obj.toString)
+
+    def read(value: JsValue): Path = {
+      value match {
+        case JsString(x) => Paths.get(x)
+        case _ => deserializationError("Expected File Path")
+      }
+    }
+  }
+}
+
+// Type issues with subclasses
+//trait FileTypesProcotol extends BaseJsonProtocol {
+//
+//  implicit object FileTypeJsonFormat extends JsonFormat[FileBaseType] {
+//    def write(obj: FileBaseType): JsValue = JsString(obj.fileTypeId)
+//
+//    def read(value: JsValue): FileBaseType = {
+//      value match {
+//        case JsString(FileTypes.DS_ALIGNMENTS.fileTypeId) => FileTypes.DS_ALIGNMENTS
+//        case _ => deserializationError("Only AlignmentSet FileType is Supported")
+//      }
+//    }
+//  }
+//}
+
 
 /**
   * Created by mkocher on 12/19/15.
   */
-trait InternalAnalysisJsonProcotols extends BaseJsonProtocol{
+trait InternalAnalysisJsonProcotols extends BaseJsonProtocol
+  with PathJsonProtocol{
 
   implicit val jobResourceErrorFormat = jsonFormat1(JobResourceError)
   implicit val jobResourceFormat = jsonFormat3(JobResource)
@@ -28,6 +65,18 @@ trait InternalAnalysisJsonProcotols extends BaseJsonProtocol{
 
   // ReferenceSet resolver
   implicit val internalReferenceSetResourceFormat = jsonFormat2(ReferenceSetResource)
+
+  // Condition Related
+  implicit val analysisConditionFormat = jsonFormat2(AnalysisCondition)
+  implicit val serviceConditionFormat = jsonFormat4(ServiceCondition)
+  implicit val resolvedJobConditionFormat = jsonFormat5(ResolvedJobCondition)
+  implicit val serviceConditionCsvPipelineFormat = jsonFormat2(ServiceConditionCsvPipeline)
+  implicit val resolvedConditionPipelineFormat = jsonFormat2(ResolvedConditionPipeline)
+
+  // Conditions that are passed to pipelines
+  implicit val resolvedConditionFormat = jsonFormat3(ResolvedCondition)
+  implicit val resolvedConditionsFormat = jsonFormat2(ResolvedConditions)
+
 }
 
 object InternalAnalysisJsonProcotols extends InternalAnalysisJsonProcotols

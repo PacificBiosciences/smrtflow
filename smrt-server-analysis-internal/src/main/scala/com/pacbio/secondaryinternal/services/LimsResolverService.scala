@@ -1,25 +1,23 @@
 package com.pacbio.secondaryinternal.services
 
 import com.pacbio.common.dependency.Singleton
-
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.secondaryinternal.tempbase.ServiceComposer
 import com.pacbio.secondaryinternal.BaseInternalMicroService
 import com.pacbio.secondaryinternal.Constants
 import com.pacbio.secondaryinternal.InternalAnalysisJsonProcotols
 import com.pacbio.secondaryinternal.JobResolvers
 import com.pacbio.secondaryinternal.daos.{LimsDao, LimsDaoProvider, SmrtLinkResourceDao}
 import com.pacbio.secondaryinternal.models.{InternalSubreadSet, SmrtLinkServerResource}
-import com.pacbio.secondaryinternal.{Constants, BaseInternalMicroService, JobResolvers, InternalAnalysisJsonProcotols}
+import com.pacbio.secondaryinternal.{BaseInternalMicroService, Constants, InternalAnalysisJsonProcotols, JobResolvers}
 import spray.routing.PathMatchers.Segment
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import spray._
 import spray.routing._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
+import com.pacbio.common.services.ServiceComposer
 
 
 /**

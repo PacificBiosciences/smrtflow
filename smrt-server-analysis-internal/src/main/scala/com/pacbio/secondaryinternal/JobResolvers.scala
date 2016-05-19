@@ -1,62 +1,48 @@
 package com.pacbio.secondaryinternal
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Paths, Path, Files}
+
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
 import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobResourceError}
 
-object JobResolvers {
+trait JobResolvers {
 
-  val idPrefix = "pacbio.secondary_systems."
+  /**
+    * FIXME. This is basically terrible. The lack of exit points from the pipeline template
+    * Maybe this should just get the datastore files. That would be slightly less hacky
+    *
+    * @param path Root Dir of the Job
+    * @return
+    */
+  private def toAlignmentSetPath(path: Path) =
+    path.resolve(Paths.get("tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"))
 
-  def toJobPathString(n: Int) = {
-
-    val ns = n.toString
-
-    // do a zfill-esque operation
-    val p = 6 - ns.length match {
-      case 0 => ns
-      case _ => (0 to 5 - ns.length).foldLeft("")((a, b) => a + "0") + ns
-    }
-
-    val prefix = p slice (0, 3)
-    s"$prefix/$p"
+  /**
+    * This needs to be fixed. Get the AlignmentSet by JobId. Look for task output of the form
+    *
+    * job-dir/tasks/pbalign.tasks.consolidate_bam-0/final.alignmentset.alignmentset.xml
+    *
+    * @param path Job path
+    * @return
+    */
+  def findAlignmentSetInJob(path: Path): Future[Path] = {
+    val alignmentSetPath = toAlignmentSetPath(path)
+    //if (Files.exists(alignmentSetPath)) Future { alignmentSetPath }
+    // else Future.failed(new Exception(s"Failed to find AlignmentSet at '$alignmentSetPath'"))
+    // For local testing the paths won't be accessible and this will always fail. Need a better testing setup
+    Future { alignmentSetPath }
   }
 
-  def toJobPath(basePath: String, n: Int): String = {
-    basePath + toJobPathString(n)
+  def resolveAlignmentSet(sal: ServiceAccessLayer, jobId: Int): Future[Path] = {
+    for {
+      job <- sal.getJobById(jobId)
+      path <- findAlignmentSetInJob(Paths.get(job.path))
+    } yield path
   }
-
-  def isValidPath(path: String): Boolean = Files.exists(Paths.get(path))
-
-  val pathMartin = "/mnt/secondary/Smrtpipe/martin/prod/static/analysisJob/"
-  val pathPortalInternal = "/mnt/secondary/iSmrtanalysis/current/common/jobs/"
-  val pathPortalBeta = "/mnt/secondary/Smrtanalysis/current/common/jobs/"
-  val pathSiv3Portal = "/mnt/secondary-siv/nightlytest/siv3/smrtanalysis/current/common/jobs/"
-  val pathSiv4Portal = "/mnt/secondary-siv/nightlytest/siv4/smrtanalysis/current/common/jobs/"
-
-  def toId(s: String) = idPrefix + s.toLowerCase
-
-  def getResolversList = Seq(PortalResolver(toId("martin"), pathMartin),
-    PortalResolver(toId("internal"), pathPortalInternal),
-    PortalResolver(toId("beta"), pathPortalBeta),
-    PortalResolver(toId("siv3"), pathSiv3Portal),
-    PortalResolver(toId("siv4"), pathSiv4Portal))
-
-  val resolvers = getResolversList.map(x=> x.systemId -> x).toMap
-
-  def resolver(systemId: String, jobId: Int): Either[JobResourceError, JobResource] = {
-    // this is a bit clumsy. Not really sure how proper exception handling model
-    if(resolvers.contains(systemId)) {
-      val r = resolvers(systemId)
-      val p = toJobPath(r.path, jobId)
-      if(isValidPath(p)) {
-        Right(JobResource(jobId, systemId, p))
-      } else {
-        Left(JobResourceError(s"Unable to resolve job id $jobId from $systemId"))
-      }
-
-    } else {
-      Left(JobResourceError(s"Failed to get find job resource $jobId from system '$systemId'"))
-    }
-  }
-
 }
+
+object JobResolvers extends JobResolvers
