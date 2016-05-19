@@ -59,7 +59,7 @@ trait JobService
     with Directives
     with JobServiceConstants {
 
-  implicit val timeout = Timeout(6.seconds)
+  implicit val timeout = Timeout(10.seconds)
 
   import SmrtLinkJsonProtocols._
 

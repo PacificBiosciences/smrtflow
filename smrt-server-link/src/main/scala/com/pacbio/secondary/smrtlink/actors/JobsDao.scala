@@ -28,13 +28,25 @@ import scala.language.postfixOps
 import scala.slick.driver.SQLiteDriver.simple._
 import scala.slick.jdbc.meta.MTable
 import scala.util.{Failure, Success, Try}
-
 import org.flywaydb.core.Flyway
 
 
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
 class Dal(val dbURI: String) {
-  val flyway = new Flyway()
+  val flyway = new Flyway() {
+    override def migrate(): Int = {
+      // lazy make directories as needed for sqlite
+      if (dbURI.startsWith("jdbc:sqlite:")) {
+        val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
+        if (file.getParent != null) {
+          val dir = file.getParent.toFile
+          if (!dir.exists()) dir.mkdirs()
+        }
+      }
+
+      return super.migrate()
+    }
+  }
   flyway.setDataSource(dbURI, "", "")
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
@@ -364,7 +376,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   /**
    * This is the new interface will replace the original createJob
-   * @param uuid UUID
+    *
+    * @param uuid UUID
    * @param name Name of job
    * @param description This is really a comment. FIXME
    * @param jobTypeId String of the job type identifier. This should be consistent with the
@@ -468,7 +481,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Importing of DataStore File by Job Int Id
-   * @param ds
+    *
+    * @param ds
    * @param jobId
    * @return
    */
@@ -493,7 +507,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Generic Importing of DataSet by type and Path to dataset file
-   * @param dataSetMetaType
+    *
+    * @param dataSetMetaType
    * @param spath
    * @param jobId
    * @param userId

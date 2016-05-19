@@ -2,6 +2,7 @@ package com.pacbio.secondary.analysis.tools
 
 import java.nio.file.Paths
 
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.{FastaToReferenceConverter, ReferenceInfoConverter}
 import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter._
 import org.joda.time.{DateTime => JodaDateTime}
@@ -14,8 +15,7 @@ case class FastaToReferenceConfig(fastaFile: String,
                                   outputDir: String,
                                   name: String,
                                   organism: String,
-                                  ploidy: String,
-                                  debug: Boolean = false) extends ToolConfig
+                                  ploidy: String) extends LoggerConfig
 
 
 object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
@@ -24,7 +24,7 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
   // Reuse this version for the commandline tool. This verison will be written to the description
   // in the dataset XML
   val VERSION = ReferenceInfoConverter.REF_INFO_TO_DS_VERSION
-  val defaults = FastaToReferenceConfig("", "", "", "", "", debug = false)
+  val defaults = FastaToReferenceConfig("", "", "", "", "")
   val DESCRIPTION =
     """
       |Tool to convert a fasta file to a SA3 ReferenceSet DataSet XML
@@ -62,15 +62,13 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
       c.copy(ploidy = x)
     } text "ploidy "
 
-    opt[Unit]('d', "debug") action { (x, c) =>
-      c.copy(debug = true)
-    } text "Emit logging to stdout."
-
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   def run(c: FastaToReferenceConfig): Either[ToolFailure, ToolSuccess] = {

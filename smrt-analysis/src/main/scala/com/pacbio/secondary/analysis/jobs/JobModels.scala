@@ -242,6 +242,12 @@ object JobModels {
     def pbOptionId = toI("boolean")
   }
 
+  // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
+  case class PbsmrtpipeDirectJobOptions(pipelineId: String,
+                                        entryPoints: Seq[BoundEntryPoint],
+                                        taskOptions: Seq[PipelineBaseOption],
+                                        workflowOptions: Seq[PipelineBaseOption])
+
   // pbsmrtpipe/smrtflow Pipelines
   case class PipelineTemplate(id: String,
                               name: String,

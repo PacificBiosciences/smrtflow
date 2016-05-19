@@ -19,8 +19,10 @@ import scala.util.{Failure, Success, Try}
 import scala.util.Try
 
 
+// TODO get defaults from prod.conf
 case class GetStatusConfig(host: String = "http://localhost",
                            port: Int = 8070,
+                           uiPort: Int = -1, // optional
                            sleepTime: Int = 5,
                            maxRetries: Int = 3) extends LoggerConfig
 
@@ -45,6 +47,10 @@ trait GetStatusParser {
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
     } text "Services port on smrtlink server"
+
+    opt[Int]("ui-port") action { (x, c) =>
+      c.copy(uiPort = x)
+    } text "UI port on smrtlink server"
 
     opt[Int]("max-retries") action { (x, c) =>
       c.copy(maxRetries = x)
@@ -93,6 +99,7 @@ object GetStatusRunner extends LazyLogging {
       }
     }
     if (xc == 0) {
+      if (c.uiPort > 0) xc = sal.checkUiEndpoint(c.uiPort) else println("No UI port specified, skipping")
       val serviceStatusEndpoints = Vector(
         ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
         ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,

@@ -1,6 +1,8 @@
 package com.pacbio.secondary.analysis.tools
 
 import java.nio.file.Paths
+
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.FastaConverter._
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 import com.pacbio.secondary.analysis.legacy.ReferenceEntry
@@ -16,8 +18,7 @@ case class FastaToReferenceDataSetConfig(fastaFile: String,
                                          name: String,
                                          organism: String,
                                          ploidy: String,
-                                         debug: Boolean = false,
-                                         onlyValidate: Boolean = false) extends ToolConfig
+                                         onlyValidate: Boolean = false) extends LoggerConfig
 
 /**
   * Convert a Fasta file to a ReferenceDataSet
@@ -37,7 +38,7 @@ object FastaToReferenceDataSet extends CommandLineToolRunner[FastaToReferenceDat
   import ExternalToolsUtils._
   val toolId = "pbscala.tools.fasta_to_dataset"
   val VERSION = "0.1.1"
-  val defaults = FastaToReferenceDataSetConfig("", "", "", "", "", debug = false)
+  val defaults = FastaToReferenceDataSetConfig("", "", "", "", "")
 
   val parser = new OptionParser[FastaToReferenceDataSetConfig]("fasta-to-dataset") {
     head("Fasta file to Reference Dataset XML ", VERSION)
@@ -63,14 +64,12 @@ object FastaToReferenceDataSet extends CommandLineToolRunner[FastaToReferenceDat
       c.copy(ploidy = x)
     } text "ploidy "
 
-    opt[Unit]('d', "debug") action { (x, c) =>
-      c.copy(debug = true)
-    } text "Emit logging to stdout."
-
     opt[Unit]("only-validate") action {(x, c) =>
       c.copy(onlyValidate = true)
     }  text "Only validate the fasta with PacBio spec. Don't write ReferenceSet"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   def run(c: FastaToReferenceDataSetConfig): Either[ToolFailure, ToolSuccess] = {

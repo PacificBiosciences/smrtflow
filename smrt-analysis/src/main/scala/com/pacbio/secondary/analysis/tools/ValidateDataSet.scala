@@ -4,20 +4,19 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.validators.ValidateReferenceSet
 
 import collection.JavaConversions._
-
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.HdfSubread
-import com.pacbio.secondary.analysis.datasets.io.{DataSetValidator, DataSetLoader}
+import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetValidator}
 import com.pacificbiosciences.pacbiodatasets._
 import org.joda.time.{DateTime => JodaDateTime}
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import scopt.OptionParser
 
 import scala.util.Try
 
 
-case class ValidatorConfig(dsPath: String,
-                           debug: Boolean = false) extends ToolConfig
+case class ValidatorConfig(dsPath: String) extends LoggerConfig
 
 object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
 
@@ -37,6 +36,8 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
       sys.exit(0)
     } text "Show Options and exit"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   /**

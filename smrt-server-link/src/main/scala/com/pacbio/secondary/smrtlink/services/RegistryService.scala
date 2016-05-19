@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 import com.pacbio.common.auth.Authenticator
 import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
@@ -18,7 +17,6 @@ import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalaj.http.HttpResponse
 
@@ -27,8 +25,6 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
 
   import RegistryServiceActor._
   import SmrtLinkRoles._
-
-  implicit val timeout = Timeout(10 seconds)
 
   val COMPONENT_ID = toServiceId("registry")
   val COMPONENT_VERSION = "0.1.1"

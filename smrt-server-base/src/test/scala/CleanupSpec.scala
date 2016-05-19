@@ -11,7 +11,7 @@ class CleanupSpec extends Specification with Mockito {
 
   val TEST_NAME = "TestCleanup"
   val TEST_PATH = "/test/path/*"
-  val TEST_SCHEDULE = "0/5 * * * * ?"
+  val TEST_SCHEDULE = "0/5 * * * * ?" // run every 5 seconds
 
   // TODO(smcclellan): Use mock FileSystem instead of mock CleanupDao
   val mockCleanupDao = mock[CleanupDao]
@@ -54,14 +54,13 @@ class CleanupSpec extends Specification with Mockito {
     // TODO(smcclellan): Test DAO
 
     "execute a configured job" in {
-      val expectedCreate = ConfigCleanupJobCreate(TEST_NAME, TEST_PATH, TEST_SCHEDULE, None, None, Some(false))
+      there was no(mockCleanupDao).runConfigJob(TEST_NAME)
 
       TestProviders.cleanupScheduler().scheduleAll()
 
+      val expectedCreate = ConfigCleanupJobCreate(TEST_NAME, TEST_PATH, TEST_SCHEDULE, None, None, Some(false))
       there was one(mockCleanupDao).createConfigJob(expectedCreate)
-      there was no(mockCleanupDao).runConfigJob(TEST_NAME)
 
-      // TODO(smcclellan): This could be unreliable. We need a way to mock quartz's clock?
       Thread.sleep(10 * 1000)
 
       there was atLeastOne(mockCleanupDao).runConfigJob(TEST_NAME)

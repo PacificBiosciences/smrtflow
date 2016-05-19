@@ -1,0 +1,4 @@
+condId,host,jobId
+cond_a,smrtlink-a:8081,1
+cond_a,smrtlink-b,2
+cond_b,smrtlink-c,3

@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
@@ -13,7 +12,6 @@ import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.duration._
 
 /**
   * Created by devans on 4/12/16 cribbing primarily from RunDesignService and related
@@ -30,8 +28,6 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
   with SmrtLinkJsonProtocols {
 
   import SampleServiceActor._
-
-  implicit val timeout = Timeout(10.seconds)
 
   val manifest = PacBioComponentManifest(
     toServiceId("samples"),

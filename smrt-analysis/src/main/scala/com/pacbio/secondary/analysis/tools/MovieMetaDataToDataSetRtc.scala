@@ -2,24 +2,24 @@ package com.pacbio.secondary.analysis.tools
 
 import java.nio.file.Paths
 
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.contracts.ContractLoaders
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
 import collection.JavaConversions._
 import collection.JavaConverters._
-
 import com.pacbio.secondary.analysis.converters.MovieMetadataConverter._
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
-case class MovieMetaDataToDataSetRtcConfig(rtcAvroPath: String,
-                                           debug: Boolean = false) extends ToolConfig
+case class MovieMetaDataToDataSetRtcConfig(rtcAvroPath: String) extends LoggerConfig
 
 object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaDataToDataSetRtcConfig] {
 
   val toolId = "pbscala.tasks.rs_movie_to_ds_rtc"
   val VERSION = "0.2.0"
-  val defaults = MovieMetaDataToDataSetRtcConfig("", debug = true)
+  val defaults = MovieMetaDataToDataSetRtcConfig("")
+  defaults.debug = true  // keeping old debug default. most others are false
 
   val parser = new OptionParser[MovieMetaDataToDataSetRtcConfig]("movie-metadata-to-dataset-rtc") {
     head("Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract", VERSION)
@@ -29,15 +29,13 @@ object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaData
       c.copy(rtcAvroPath = x)
     } text "Path to Resolved Tool Contract"
 
-    opt[Unit]('d', "debug") action { (x, c) =>
-      c.copy(debug = true)
-    } text "Emit logging to stdout."
-
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   def run(c: MovieMetaDataToDataSetRtcConfig): Either[ToolFailure, ToolSuccess] = {
