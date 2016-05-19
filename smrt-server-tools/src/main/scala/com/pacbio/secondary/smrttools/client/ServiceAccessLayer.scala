@@ -3,7 +3,9 @@ package com.pacbio.secondary.smrttools.client
 
 import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtserver.models._
 import com.pacbio.secondary.smrtlink.models._
+
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.common.models._
@@ -32,7 +34,7 @@ object SmrtLinkServicesModels {
                                 ploidy: String)
 }
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
 
 /**
  * Client to Primary Services
@@ -83,6 +85,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   private def toUrl(segment: String): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment).toString
+  private def toUiRootUrl(port: Int): String =
+    new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
   private def toJobUrl(jobType: String, jobId: Int): String = {
     toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}")
   }
@@ -102,20 +106,32 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   // Pipelines and serialization
   def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
+  def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
   def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
   def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
   // TODO add type-parameterized getDataSetsPipeline
   def getSubreadSetsPipeline: HttpRequest => Future[Seq[SubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[SubreadServiceDataSet]]
   def getSubreadSetPipeline: HttpRequest => Future[SubreadServiceDataSet] = sendReceive ~> unmarshal[SubreadServiceDataSet]
+  def getHdfSubreadSetsPipeline: HttpRequest => Future[Seq[HdfSubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[HdfSubreadServiceDataSet]]
+  def getHdfSubreadSetPipeline: HttpRequest => Future[HdfSubreadServiceDataSet] = sendReceive ~> unmarshal[HdfSubreadServiceDataSet]
+  def getReferenceSetsPipeline: HttpRequest => Future[Seq[ReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[ReferenceServiceDataSet]]
+  def getReferenceSetPipeline: HttpRequest => Future[ReferenceServiceDataSet] = sendReceive ~> unmarshal[ReferenceServiceDataSet]
+  def getBarcodeSetsPipeline: HttpRequest => Future[Seq[BarcodeServiceDataSet]] = sendReceive ~> unmarshal[Seq[BarcodeServiceDataSet]]
+  def getBarcodeSetPipeline: HttpRequest => Future[BarcodeServiceDataSet] = sendReceive ~> unmarshal[BarcodeServiceDataSet]
+  def getAlignmentSetsPipeline: HttpRequest => Future[Seq[AlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[AlignmentServiceDataSet]]
+  def getAlignmentSetPipeline: HttpRequest => Future[AlignmentServiceDataSet] = sendReceive ~> unmarshal[AlignmentServiceDataSet]
+  def getConsensusReadSetsPipeline: HttpRequest => Future[Seq[CCSreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[CCSreadServiceDataSet]]
+  def getConsensusReadSetPipeline: HttpRequest => Future[CCSreadServiceDataSet] = sendReceive ~> unmarshal[CCSreadServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
-  def getDataStorePipeline: HttpRequest => Future[PacBioDataStore] = sendReceive ~> unmarshal[PacBioDataStore]
-  def importPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
+  def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
 
   val statusUrl = toUrl("/status")
 
@@ -123,36 +139,48 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(statusUrl)
   }
 
+  def getEndpoint(endpointUrl: String): Future[HttpResponse] = respPipeline {
+    Get(endpointUrl)
+  }
+
   def getServiceEndpoint(endpointPath: String): Future[HttpResponse] = respPipeline {
     Get(toUrl(endpointPath))
   }
 
-  def checkServiceEndpoint(endpointPath: String): Int = {
-    var xc = 0
-    val result = Try {
-      Await.result(getServiceEndpoint(endpointPath), 20 seconds)
-    }
-    // FIXME need to make this more generic
-    result match {
+  def checkEndpoint(endpointUrl: String): Int = {
+    Try {
+      Await.result(getEndpoint(endpointUrl), 20 seconds)
+    } match {
+      // FIXME need to make this more generic
       case Success(x) => {
         x.status match {
           case StatusCodes.Success(_) =>
-            println(s"found endpoint ${endpointPath}")
+            println(s"found endpoint ${endpointUrl}")
+            0
           case _ =>
-            println(s"error retrieving ${endpointPath}: ${x.status}")
-            xc = 1
+            println(s"error retrieving ${endpointUrl}: ${x.status}")
+            1
         }
       }
       case Failure(err) => {
-        println(s"failed to retrieve endpoint ${endpointPath}")
+        println(s"failed to retrieve endpoint ${endpointUrl}")
         println(s"${err}")
-        xc = 1
+        1
       }
     }
-    xc
   }
 
-  // FIXME this should take either an Int or a UUID, but how?
+  def checkServiceEndpoint(endpointPath: String): Int = checkEndpoint(toUrl(endpointPath))
+
+  def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
+
+  def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
+    datasetId match {
+      case Left(x) => getDataSetById(x)
+      case Right(x) => getDataSetByUuid(x)
+    }
+  }
+
   def getDataSetById(datasetId: Int): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId))
   }
@@ -161,7 +189,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId))
   }
 
-  def getSubreadSets(): Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
+  def getSubreadSets: Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.SUBREADS))
   }
 
@@ -169,24 +197,71 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
   }
 
+  def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
+  }
+
+  def getHdfSubreadSetById(dsId: Int): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
+  }
+
+  def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.BARCODES))
+  }
+
+  def getBarcodeSetById(dsId: Int): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
+  }
+
+  def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.REFERENCES))
+  }
+
+  def getReferenceSetById(dsId: Int): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
+  }
+
+  def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
+  }
+
+  def getAlignmentSetById(dsId: Int): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
+  }
+
+  def getConsensusReadSets: Future[Seq[CCSreadServiceDataSet]] = getConsensusReadSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.CCSREADS))
+  }
+
+  def getConsensusReadSetById(dsId: Int): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
+  }
+
   private def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
 
-  def getAnalysisJobs(): Future[Seq[EngineJob]] = {
+  def getAnalysisJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.PB_PIPE)
   }
 
-  def getImportJobs(): Future[Seq[EngineJob]] = {
+  def getImportJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.IMPORT_DS)
   }
 
-  def getMergeJobs(): Future[Seq[EngineJob]] = {
+  def getMergeJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.MERGE_DS)
   }
 
-  def getFastaConvertJobs(): Future[Seq[EngineJob]] = {
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
     getJobsByType(JobTypes.CONVERT_FASTA)
+  }
+
+  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
+    jobId match {
+      case Left(x) => getJobById(x)
+      case Right(x) => getJobByUuid(x)
+    }
   }
 
   def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
@@ -209,19 +284,23 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
   }
 
-  private def getJobDataStore(jobType: String, jobId: Int) : Future[PacBioDataStore] = getDataStorePipeline {
+  private def getJobDataStore(jobType: String, jobId: Int) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
-  def getAnalysisJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getAnalysisJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.PB_PIPE, jobId)
   }
 
-  def getImportDatasetJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getImportDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.IMPORT_DS, jobId)
   }
 
-  def getMergeDatasetJobDataStore(jobId: Int): Future[PacBioDataStore] = {
+  def getImportFastaJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
+    getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
+  }
+
+  def getMergeDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
     getJobDataStore(JobTypes.MERGE_DS, jobId)
   }
 
@@ -237,14 +316,28 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     getJobReportDetails(JobTypes.PB_PIPE, jobId, reportId)
   }
 */
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = importPipeline {
+  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
          CreateDataSet(path, dsMetaType))
   }
 
-  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = importPipeline {
+  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
          CreateReferenceSet(path, name, organism, ploidy))
+  }
+
+  def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
+  }
+
+  // FIXME this doesn't quite work...
+  def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
+  }
+
+  def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
+         pipelineOptions)
   }
 
   def pollForJob(jobId: UUID): Future[String] = {
@@ -257,8 +350,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
-      val result = Try { Await.result(getJobByUuid(jobId), requestTimeOut) }
-      result match {
+      Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
         case Success(x) =>
           x.state match {
             case AnalysisJobStates.SUCCESSFUL =>

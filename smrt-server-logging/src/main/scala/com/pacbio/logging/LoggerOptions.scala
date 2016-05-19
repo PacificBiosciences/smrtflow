@@ -37,4 +37,37 @@ object LoggerOptions {
       c.configure(x, c.logFile, c.debug, c.logLevel)
     } text "Override all logger config with the given logback.xml file."
   }
+
+  /**
+    * Helper method for cases where an App doesn't otherwise use scopt parsing
+    *
+    * @param args Command line arguments
+    */
+  def parse(args: Seq[String]): Unit = {
+    val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
+      // Don't complain about args such as -jar used via command-line server execution
+      override def errorOnUnknownArgument = false
+      override def showUsageOnError = false
+      note("This is an app that supports PacBio logging flags. ")
+
+      opt[Unit]('h', "help") action { (x, c) =>
+        showUsage
+        sys.exit(0)
+      } text "Show Options and exit"
+
+      LoggerOptions.add(this)
+    }
+    parser.parse(args, new LoggerConfig(){})
+  }
+
+  def parseRequireFile(args: Seq[String]): Unit = {
+    val requireOne = Set("--logfile", "--debug", "-h")
+    if (args.filter(requireOne).isEmpty) {
+      println("You must set the logger output with a --logfile parameter")
+      println("  e.g.")
+      println("      java -jar my_code.jar --logfile example_file.log")
+      System.exit(1)
+    }
+    parse(args)
+  }
 }

@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtserver.services.jobtypes
 import java.util.UUID
 
 import akka.actor.ActorRef
-import akka.util.Timeout
 import akka.pattern.ask
 import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
@@ -21,7 +20,6 @@ import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 import spray.http._
 import spray.json._
