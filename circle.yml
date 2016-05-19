@@ -5,3 +5,9 @@ dependencies:
   cache_directories:
     - "~/.ivy2"
     - "~/.sbt"
+
+test:
+  # Copy test reports to Circle test reports dir
+  post:
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - find . -type f -regex ".*/target/test-reports/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
