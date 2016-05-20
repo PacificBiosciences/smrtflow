@@ -1,11 +1,7 @@
+package com.pacbio.common.tools
 
-// TODO make this a thin wrapper around the version in smrt-server-base (with
-// additional endpoints)
+import com.pacbio.common.client._
 
-package com.pacbio.secondary.smrttools.tools
-
-import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrttools.client._
 import java.net.URL
 
 import akka.actor.ActorSystem
@@ -31,7 +27,7 @@ case class GetStatusConfig(host: String = "http://localhost",
                            maxRetries: Int = 3) extends LoggerConfig
 
 /*
- * Get the status of SMRTLink services
+ * Get the status of SMRT services
  *
  */
 
@@ -41,20 +37,20 @@ trait GetStatusParser {
   final val DEFAULT = GetStatusConfig("http://localhost", 8070)
 
   lazy val parser = new OptionParser[GetStatusConfig]("get-status") {
-    head("Get SMRTLink status ", VERSION)
-    note("Tool to check the status of a currently running smrtlink server")
+    head("Get SMRT server status ", VERSION)
+    note("Tool to check the status of a currently running server")
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
-    } text "Hostname of smrtlink server"
+    } text "Hostname of smrt server"
 
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
-    } text "Services port on smrtlink server"
+    } text "Services port on smrt server"
 
     opt[Int]("ui-port") action { (x, c) =>
       c.copy(uiPort = x)
-    } text "UI port on smrtlink server"
+    } text "UI port on smrt server"
 
     opt[Int]("max-retries") action { (x, c) =>
       c.copy(maxRetries = x)
@@ -74,6 +70,16 @@ trait GetStatusParser {
 }
 
 object GetStatusRunner extends LazyLogging {
+  final val SERVICE_ENDPOINTS = Vector()
+
+  private def checkEndpoints(sal: ServiceAccessLayer): Int = {
+    var xc = 0
+    for (endpointPath <- SERVICE_ENDPOINTS) {
+        val epStatus = sal.checkServiceEndpoint(endpointPath)
+        if (epStatus > 0) xc = epStatus
+    }
+    xc
+  }
 
   def apply (c: GetStatusConfig): Int = {
     val startedAt = DateTime.now()
@@ -104,27 +110,13 @@ object GetStatusRunner extends LazyLogging {
     }
     if (xc == 0) {
       if (c.uiPort > 0) xc = sal.checkUiEndpoint(c.uiPort) else println("No UI port specified, skipping")
-      val serviceStatusEndpoints = Vector(
-        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
-        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
-        ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
-        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
-        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
-        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
-        ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES
-      )
-
-      for (endpointPath <- serviceStatusEndpoints) {
-        val epStatus = sal.checkServiceEndpoint(endpointPath)
-        if (epStatus > 0) xc = epStatus
-      }
+      xc = checkEndpoints(sal)
     }
 
     logger.debug("shutting down actor system")
     actorSystem.shutdown()
     xc
   }
-
 }
 
 object GetStatusApp extends App with GetStatusParser {
@@ -136,6 +128,6 @@ object GetStatusApp extends App with GetStatusParser {
     println(s"Exiting $TOOL_ID v$VERSION with exit code $exitCode")
     sys.exit(exitCode)
   }
- 
+
   run(args)
 }
