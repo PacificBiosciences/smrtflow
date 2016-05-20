@@ -2,20 +2,21 @@ package com.pacbio.secondary.analysis.tools
 
 import java.nio.file.Paths
 
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.MovieMetadataConverter._
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
 case class MovieMetaDataToDataSetConfig(movieMetadataXMLPath: String,
-                                        datasetXMLPath: String,
-                                        debug: Boolean = false) extends ToolConfig
+                                        datasetXMLPath: String) extends LoggerConfig
 
 object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToDataSetConfig] {
 
   val toolId = "pbscala.tools.rs_movie_to_ds"
   val VERSION = "0.3.0"
-  val defaults = MovieMetaDataToDataSetConfig("", "", debug = true)
+  val defaults = MovieMetaDataToDataSetConfig("", "")
+  defaults.debug = true // keeping old debug default. most others are false
 
   val parser = new OptionParser[MovieMetaDataToDataSetConfig]("movie-metadata-to-dataset") {
     head("MovieMetadata To Hdf5 Subread Dataset XML ", VERSION)
@@ -29,15 +30,13 @@ object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToD
       c.copy(datasetXMLPath = x)
     } text "Path to output Subread Dataset XML"
 
-    opt[Unit]('d', "debug") action { (x, c) =>
-      c.copy(debug = true)
-    } text "Emit logging to stdout."
-
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   def run(c: MovieMetaDataToDataSetConfig): Either[ToolFailure, ToolSuccess] = {

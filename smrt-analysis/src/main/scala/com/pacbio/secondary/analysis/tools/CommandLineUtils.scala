@@ -1,12 +1,14 @@
 package com.pacbio.secondary.analysis.tools
 
 import java.io.{PrintWriter, StringWriter}
-import java.nio.file.{Path, Paths, Files}
+import java.nio.file.{Files, Path, Paths}
+
+import com.pacbio.logging.LoggerConfig
 import com.pacbio.secondary.analysis.constants.GlobalConstants
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 /**
   * General Utils for commandline
@@ -57,10 +59,6 @@ trait timeUtils {
 
 }
 
-trait ToolConfig {
-  val debug: Boolean
-}
-
 trait ToolResult {
   val toolId: String
   val runTimeSec: Int
@@ -70,7 +68,7 @@ case class ToolSuccess(toolId: String, runTimeSec: Int) extends ToolResult
 
 case class ToolFailure(toolId: String, runTimeSec: Int, message: String) extends ToolResult
 
-trait CommandLineToolRunner[T <: ToolConfig] extends LazyLogging with timeUtils {
+trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtils {
 
   val toolId: String
   val VERSION: String

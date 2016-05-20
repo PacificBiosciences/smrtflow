@@ -1,9 +1,11 @@
 package com.pacbio.secondary.analysis.tools
 
 import java.io.File
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
+
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.datasets.io.{DataSetMerger, DataSetWriter, DataSetLoader}
+import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetMerger, DataSetWriter}
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
@@ -11,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 
 case class DataSetMergerOptions(datasetType: String,
                                 paths: Seq[File],
-                                outputPath: String, debug: Boolean) extends ToolConfig
+                                outputPath: String) extends LoggerConfig
 
 case class UnSupportDataSetTypeException(message: String) extends Exception
 /**
@@ -23,7 +25,7 @@ object DataSetMergerTool extends CommandLineToolRunner[DataSetMergerOptions]{
   val VERSION = "0.2.0"
   val toolId = "pbscala.tools.dataset_merger"
 
-  val defaults = DataSetMergerOptions("", Seq[File](), "", debug = false)
+  val defaults = DataSetMergerOptions("", Seq[File](), "")
 
   val parser = new OptionParser[DataSetMergerOptions]("validate-datasets") {
     head("Merge DataSet XMLs By type", VERSION)
@@ -44,6 +46,8 @@ object DataSetMergerTool extends CommandLineToolRunner[DataSetMergerOptions]{
       sys.exit(0)
     } text "Show Options and exit"
 
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   def run(config: DataSetMergerOptions): Either[ToolFailure, ToolSuccess] = {

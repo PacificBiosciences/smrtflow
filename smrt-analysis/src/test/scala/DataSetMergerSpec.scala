@@ -48,7 +48,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
     "Simple HdfSubread merge" in {
       val paths = examplePaths.map(_.toFile)
       val outputPath = Files.createTempFile("hdfsubread", "dataset.xml")
-      val opts = DataSetMergerOptions("PacBio.DataSet.HdfSubreadSet", paths, outputPath.toAbsolutePath.toString, debug=true)
+      val opts = DataSetMergerOptions("PacBio.DataSet.HdfSubreadSet", paths, outputPath.toAbsolutePath.toString)
       val result = DataSetMergerTool.run(opts)
       logger.info(s"Merge tool Results $result")
       result.isRight must beTrue
