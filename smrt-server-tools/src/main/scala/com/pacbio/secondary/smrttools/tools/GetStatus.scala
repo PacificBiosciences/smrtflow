@@ -81,7 +81,7 @@ object GetStatusRunner extends LazyLogging {
     implicit val actorSystem = ActorSystem("get-status")
     val url = new URL(s"http://${c.host}:${c.port}")
     println(s"URL: ${url}")
-    val sal = new ServiceAccessLayer(url)(actorSystem)
+    val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     var xc = 1
     var ntries = 0
     while (ntries < c.maxRetries) {

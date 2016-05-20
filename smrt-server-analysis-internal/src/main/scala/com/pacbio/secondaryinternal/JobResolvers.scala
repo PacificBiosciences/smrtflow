@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
+import com.pacbio.secondary.smrttools.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobResourceError}
 
 trait JobResolvers {
@@ -37,7 +37,7 @@ trait JobResolvers {
     Future { alignmentSetPath }
   }
 
-  def resolveAlignmentSet(sal: ServiceAccessLayer, jobId: Int): Future[Path] = {
+  def resolveAlignmentSet(sal: AnalysisServiceAccessLayer, jobId: Int): Future[Path] = {
     for {
       job <- sal.getJobById(jobId)
       path <- findAlignmentSetInJob(Paths.get(job.path))
