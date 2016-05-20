@@ -26,9 +26,9 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
   implicit val executionContext = actorSystem.dispatcher
 
-  private def toUrl(segment: String): String =
+  protected def toUrl(segment: String): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment).toString
-  private def toUiRootUrl(port: Int): String =
+  protected def toUiRootUrl(port: Int): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
 
   // Pipelines and serialization

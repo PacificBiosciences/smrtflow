@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrttools.tools
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrttools.client.{ServiceAccessLayer,ServicesClientJsonProtocol}
+import com.pacbio.secondary.smrttools.client.{AnalysisServiceAccessLayer,ServicesClientJsonProtocol}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 
 import akka.actor.ActorSystem
@@ -233,7 +233,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runStatus(sal: ServiceAccessLayer): Int = {
+  def runStatus(sal: AnalysisServiceAccessLayer): Int = {
     Try { Await.result(sal.getStatus, TIMEOUT) } match {
       case Success(status) => {
         println(s"Status ${status.message}")
@@ -267,14 +267,14 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runGetDataSetInfo(sal: ServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
+  def runGetDataSetInfo(sal: AnalysisServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
       case Success(ds) => printDataSetInfo(ds)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
   }
 
-  def runGetDataSets(sal: ServiceAccessLayer, dsType: String, maxItems: Int): Int = {
+  def runGetDataSets(sal: AnalysisServiceAccessLayer, dsType: String, maxItems: Int): Int = {
     Try {
       dsType match {
         case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
@@ -312,14 +312,14 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runGetJobInfo(sal: ServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
+  def runGetJobInfo(sal: AnalysisServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
       case Success(job) => printJobInfo(job)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
 
-  def runGetJobs(sal: ServiceAccessLayer, maxItems: Int): Int = {
+  def runGetJobs(sal: AnalysisServiceAccessLayer, maxItems: Int): Int = {
     Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
       case Success(engineJobs) => {
         var i = 0
@@ -337,7 +337,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  private def waitForJob(sal: ServiceAccessLayer, jobId: UUID): Int = {
+  private def waitForJob(sal: AnalysisServiceAccessLayer, jobId: UUID): Int = {
     println("waiting for import job to complete...")
     Try { sal.pollForJob(jobId) } match {
       case Success(x) => runGetJobInfo(sal, Right(jobId))
@@ -345,7 +345,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runImportFasta(sal: ServiceAccessLayer, path: String, name: String,
+  def runImportFasta(sal: AnalysisServiceAccessLayer, path: String, name: String,
                      organism: String, ploidy: String): Int = {
     Try {
       Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
@@ -375,7 +375,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runImportDataSetSafe(sal: ServiceAccessLayer, path: String): Int = {
+  def runImportDataSetSafe(sal: AnalysisServiceAccessLayer, path: String): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
 
@@ -392,7 +392,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runImportDataSet(sal: ServiceAccessLayer, path: String): Int = {
+  def runImportDataSet(sal: AnalysisServiceAccessLayer, path: String): Int = {
     val dsType = dsMetaTypeFromPath(path)
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
@@ -428,7 +428,7 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runAnalysisPipeline(sal: ServiceAccessLayer, jsonPath: String, block: Boolean): Int = {
+  def runAnalysisPipeline(sal: AnalysisServiceAccessLayer, jsonPath: String, block: Boolean): Int = {
     val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
     val jsonAst = jsonSrc.parseJson
     val analysisOptions = jsonAst.convertTo[PbSmrtPipeServiceOptions]
@@ -470,7 +470,7 @@ object PbServiceRunner extends LazyLogging {
   def apply (c: PbService.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
     val url = new URL(s"http://${c.host}:${c.port}")
-    val sal = new ServiceAccessLayer(url)(actorSystem)
+    val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     val xc = c.mode match {
       case Modes.STATUS => runStatus(sal)
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
