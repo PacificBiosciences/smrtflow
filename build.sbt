@@ -26,8 +26,8 @@ parallelExecution in ThisBuild := false
 
 fork in ThisBuild := true
 
-javaOption in ThisBuild += "-Xms256m"
-javaOption in ThisBuild += "-Xmx2g"
+javaOptions in ThisBuild += "-Xms256m"
+javaOptions in ThisBuild += "-Xmx2g"
 
 // Custom keys for this build.
 
