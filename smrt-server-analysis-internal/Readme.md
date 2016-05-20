@@ -117,12 +117,14 @@ The job name, description, pipeline id and csv contents are posted to the "condi
     "pipelineId": "pbsmrtpipe.pipelines.internal_cond_dev",
     "name": "Dev Job #1",
     "description": "Dev job for testing"
-}```
+}
+```
 
 
 Example:
 
 ```bash
+
 (core)smrtflow $> http post http://smrtlink-internal:8090/secondary-analysis/job-manager/jobs/conditions < example-condition-pipeline.json
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
@@ -153,6 +155,7 @@ You can poll the job status using the standard model.
 
 
 ```bash
+
 (core)smrtflow $> http get http://smrtlink-internal:8090/secondary-analysis/job-manager/jobs/a1584178-30f7-4064-ac15-514089f9ba2d
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
