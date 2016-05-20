@@ -97,10 +97,13 @@ CSV file format is can be used to as an intermediate format to specify condition
 The v1 hyper minimalist form is condition id, SMRT Link host and job id. The job **must** produce an alignmentset.
 
 ```csv
-cond_id,host,job_id
+condId,host,jobId
+condition_a,smrtlink-alpha,1234
+condition_a,smrtlink-beta,456
+condition_b,smrtlink-beta,789
 ```
 
-The condition id and sub condtion id must be match [A-z0-9_], job_id must be an Int, and alignment filters can a filter (Aaron to define) or an empty string.
+The condition id and sub condtion id must be match [A-z0-9_], job_id must be an Int.
 
 ### Creating Condition Job from commandline
 
