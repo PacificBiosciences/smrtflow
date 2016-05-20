@@ -1,45 +1,43 @@
-SMRT Server Analysis Internal
-=============================
+# SMRT Server Analysis Internal
 
 
 Adds support for running "Condition" driven pipelines via the "condition" job type and Condition JSON data model.
 
-Condition DataModel (WIP)
-=========================
+## Condition DataModel (WIP)
+
 
 
 The model is defined in 'pysiv2.internal.models.py' and in the scala code. It's not updated in pbcommandR.
 
 
 ```javascript
-
-{
-    "conditions": [
-        {
-            "file_type_id": "PacBio.FileTypes.AlignmentSet",
-            "files": [
-                "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/008/008554/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-            ],
-            "id": "cond_a"
-        },
-        {
-            "file_type_id": "PacBio.FileTypes.AlignmentSet",
-            "files": [
-                "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/010/010159/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-            ],
-            "id": "cond_a"
-        },
-        {
-            "file_type_id": "PacBio.FileTypes.AlignmentSet",
-            "files": [
-                "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000151/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-            ],
-            "id": "cond_b"
-        }
-    ],
-    "pipelineId": "pbinternal2.pipelines.dev_example"
-}
-
+    {
+        "conditions": [
+            {
+                "file_type_id": "PacBio.FileTypes.AlignmentSet",
+                "files": [
+                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/008/008554/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
+                ],
+                "id": "cond_a"
+            },
+            {
+                "file_type_id": "PacBio.FileTypes.AlignmentSet",
+                "files": [
+                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/010/010159/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
+                ],
+                "id": "cond_a"
+            },
+            {
+                "file_type_id": "PacBio.FileTypes.AlignmentSet",
+                "files": [
+                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000151/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
+                ],
+                "id": "cond_b"
+            }
+        ],
+        "pipelineId": "pbinternal2.pipelines.dev_example"
+    }
+```
 
 Initially only AlignmentSet file types are supported
 
@@ -47,10 +45,11 @@ Considering an alternative model that has the job id, host, port as well as the 
 
 However, this would be increasing the surface area of the API and would be leaking unnecessary information. Tools should only operate on paths of files.
 
-Tasks
------
+### Condition Based Tasks
+
 
 An analysis will operate on a ConditionsList FileType and emit one or more reports. A condition list must contain the same file type.
+
 
 ```python
 def analysis_example_main(analysis_conditions, output_json_report):
@@ -61,16 +60,19 @@ def analysis_example_main(analysis_conditions, output_json_report):
     return 0
 ```
 
-Where the conditions are loaded from the Condition JSON file.
+The IO layer supports converting the JSON file.
+
+Example:
 
 ```python
-c = AnalysisConditions.load_conditions_from(condition_json)
+from pysiv2.internal.models import AnalysisConditions
+c = AnalysisConditions.load_conditions_from("path-to-conditions.json")
 exit_code = analysis_example_main(c, "output-report.json")
 ```
 
 
-Pipelines
----------
+### Pipelines
+
 
 Initial version will support a small number of pipelines that will approximate the functionality of the 'analysis groups' in legacy Milhouse stack. Each pipeline template will have a single input of a ConditionList FileType (e.g., FileTypes.COND). Each task in the pipeline will emit one or more FileTypes.REPORT(s). Tasks should be defined using the pbcommand TC API.
 
@@ -87,8 +89,8 @@ def bindings():
 Note pbinternal2 is currently not in the build. The dev/poc tools are currently in 'pysiv2.internal' to get around the lack of an internal build. 
 
 
-CSV and Services
-----------------
+### CSV and Services
+
 
 CSV file format is can be used to as an intermediate format to specify conditions from existing jobs that have been run.
 
@@ -100,8 +102,8 @@ cond_id,host,job_id
 
 The condition id and sub condtion id must be match [A-z0-9_], job_id must be an Int, and alignment filters can a filter (Aaron to define) or an empty string.
 
-Creating Condition Job from commandline
----------------------------------------
+### Creating Condition Job from commandline
+
 
 The job name, description, pipeline id and csv contents are posted to the "conditions" job endpoint.
 
@@ -117,7 +119,7 @@ The job name, description, pipeline id and csv contents are posted to the "condi
 
 Example:
 
-```
+```bash
 (core)smrtflow $> http post http://smrtlink-internal:8090/secondary-analysis/job-manager/jobs/conditions < example-condition-pipeline.json
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
@@ -137,6 +139,35 @@ Server: spray-can/1.3.3
     "path": "",
     "state": "CREATED",
     "updatedAt": "2016-05-19T13:45:57.666-07:00",
+    "uuid": "a1584178-30f7-4064-ac15-514089f9ba2d"
+}
+```
+
+Note, the job type will be "pbsmrtpipe", not "conditions"
+
+You can poll the job status using the standard model.
+
+
+```bash
+(core)smrtflow $> http get http://smrtlink-internal:8090/secondary-analysis/job-manager/jobs/a1584178-30f7-4064-ac15-514089f9ba2d
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Content-Encoding: gzip
+Content-Length: 281
+Content-Type: application/json; charset=UTF-8
+Date: Fri, 20 May 2016 00:03:21 GMT
+Server: spray-can/1.3.3
+
+{
+    "comment": "Condition Multi-Job", 
+    "createdAt": "2016-05-19T13:45:57.666-07:00", 
+    "id": 2, 
+    "jobTypeId": "conditions", 
+    "jsonSettings": "{}", 
+    "name": "Job conditions", 
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-internal/services_ui/smrtlink_services_ui-internal-0.7.2-180513/jobs-root/000/000002", 
+    "state": "SUCCESSFUL", 
+    "updatedAt": "2016-05-19T13:45:57.666-07:00", 
     "uuid": "a1584178-30f7-4064-ac15-514089f9ba2d"
 }
 ```
