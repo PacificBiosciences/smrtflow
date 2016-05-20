@@ -9,6 +9,7 @@ import spray.httpx.SprayJsonSupport
 import com.pacbio.common.app.{BaseApi, BaseServer}
 import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
 import com.pacbio.common.services.PacBioService
+import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondaryinternal.daos._
 import com.pacbio.secondaryinternal.models.ReferenceSetResource
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
@@ -58,8 +59,8 @@ trait SecondaryInternalAnalysisProviders extends
   override val actorSystemName = Some("smrtlink-analysis-internal-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
-  override val serverPort: Singleton[Int] =
-    TypesafeSingletonReader.fromConfig().getInt("port").orElse(8090)
+  override val serverPort: Singleton[Int] = pbServices.getInt("port").orElse(8081)
+
 }
 
 trait SecondaryInternalAnalysisApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
@@ -97,6 +98,8 @@ object SecondaryAnalysisInternalServer extends App
   override val host = providers.serverHost()
   override val port = providers.serverPort()
   println(s"serverPort: ${providers.serverPort()}")
+
+  LoggerOptions.parseRequireFile(args)
 
   start
 }
