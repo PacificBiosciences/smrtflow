@@ -28,6 +28,8 @@ import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
 
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+
 
 object Modes {
   sealed trait Mode {
@@ -76,7 +78,6 @@ object PbService {
   case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
                           host: String,
                           port: Int,
-                          debug: Boolean = false,
                           block: Boolean = false,
                           command: CustomConfig => Unit = showDefaults,
                           datasetId: Either[Int, UUID] = Left(0),
@@ -86,10 +87,10 @@ object PbService {
                           organism: String = "",
                           ploidy: String = "",
                           maxItems: Int = 25,
-                          datasetType: String = "subreads")
+                          datasetType: String = "subreads") extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070, debug=false)
+  lazy val defaults = CustomConfig(null, "localhost", 8070)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
@@ -102,9 +103,6 @@ object PbService {
 
     head("PacBio SMRTLink Services Client", VERSION)
 
-    opt[Boolean]("debug") action { (v,c) =>
-      c.copy(debug=true)
-    } text "Debug mode"
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
     } text "Hostname of smrtlink server"
@@ -112,6 +110,9 @@ object PbService {
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
     } text "Services port on smrtlink server"
+
+    // add the shared `--debug` and logging options
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(Modes.STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)
