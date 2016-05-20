@@ -34,7 +34,7 @@ import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
-import com.pacbio.secondary.smrttools.client.ServiceAccessLayer
+import com.pacbio.secondary.smrttools.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models._
 import com.pacbio.secondaryinternal.{BaseInternalMicroService, IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
 import com.typesafe.scalalogging.LazyLogging
@@ -96,7 +96,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
     val baseUrl = new URL(s"http://${c.host}:${c.port}")
     logger.debug(s"Base url $baseUrl")
 
-    val sal = new ServiceAccessLayer(baseUrl)(actorSystem)
+    val sal = new AnalysisServiceAccessLayer(baseUrl)(actorSystem)
 
     def resolve(sc: ServiceCondition): Future[ResolvedJobCondition] = {
       for {
