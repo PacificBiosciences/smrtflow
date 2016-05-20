@@ -26,6 +26,9 @@ parallelExecution in ThisBuild := false
 
 fork in ThisBuild := true
 
+javaOptions in ThisBuild += "-Xms256m"
+javaOptions in ThisBuild += "-Xmx2g"
+
 // Custom keys for this build.
 
 val gitHeadCommitSha = taskKey[String]("Determines the current git commit SHA")
