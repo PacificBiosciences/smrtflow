@@ -1,4 +1,6 @@
-// derived from PrimaryClient.scala in PAWS
+
+// TODO make this inherit from com.pacbio.common.client.ServiceAccessLayer
+
 package com.pacbio.secondary.smrttools.client
 
 import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}

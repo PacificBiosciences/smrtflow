@@ -1,3 +1,7 @@
+
+// TODO make this a thin wrapper around the version in smrt-server-base (with
+// additional endpoints)
+
 package com.pacbio.secondary.smrttools.tools
 
 import com.pacbio.secondary.analysis.tools._
