@@ -141,6 +141,7 @@ Server: spray-can/1.3.3
     "updatedAt": "2016-05-19T13:45:57.666-07:00",
     "uuid": "a1584178-30f7-4064-ac15-514089f9ba2d"
 }
+
 ```
 
 Note, the job type will be "pbsmrtpipe", not "conditions"
@@ -170,5 +171,6 @@ Server: spray-can/1.3.3
     "updatedAt": "2016-05-19T13:45:57.666-07:00", 
     "uuid": "a1584178-30f7-4064-ac15-514089f9ba2d"
 }
+
 ```
 
