@@ -164,6 +164,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
   val jobType = "pbsmrtpipe"
 
   //FIXME(mpkocher)(2016-4-19) make the path to the condition JSON files be configurable
+  //FIXME(mpkocher)(2016-4-21) Need to address the EntryPoint, so the UI can display something meaningful
   val createJobRoute =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
@@ -176,7 +177,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
                 resolvedJobConditions <- resolveConditionRecord(record)
                 _ <- Future { writeResolvedConditions(resolvedJobConditionsTo(resolvedJobConditions), conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
-                engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, "{}", None)).mapTo[EngineJob]
+                engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None)).mapTo[EngineJob]
               } yield engineJob
             }
           }
