@@ -29,7 +29,7 @@ trait LoggerConfig {
   val fileRollingPosfix = ".%i.gz"
 
   /**
-    * Lazy updates the logger config
+    * Lazy updates the logger config.
     *
     * @param logbackFile
     * @param logFile
