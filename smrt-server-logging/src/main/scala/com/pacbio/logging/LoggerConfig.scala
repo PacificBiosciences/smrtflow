@@ -6,7 +6,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.core.rolling.{FixedWindowRollingPolicy, RollingFileAppender, SizeBasedTriggeringPolicy}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConversions._
 
@@ -27,9 +27,6 @@ trait LoggerConfig {
   val consolePattern = "%X{akkaTimestamp} %-5level[%thread] %logger{0} - %msg%n"
   val filePattern = "%date{yyyy-MM-dd} %X{akkaTimestamp} %-5level[%thread] %logger{1} - %msg%n"
   val fileRollingPosfix = ".%i.gz"
-
-  // all the expected loggers
-  val loggerNames = Set("akka", "Slf4jLogger", "scala.slick", "spray", "log1-Slf4jLogger")
 
   /**
     * Lazy updates the logger config
@@ -125,8 +122,8 @@ trait LoggerConfig {
     for (logger <- lc.getLoggerList) {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
-      logger.addAppender(appender)
     }
+    lc.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender)
   }
 
   /**
@@ -156,8 +153,7 @@ trait LoggerConfig {
     for (logger <- lc.getLoggerList) {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
-      // dump to console
-      logger.addAppender(appender)
     }
+    lc.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender)
   }
 }
