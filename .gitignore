@@ -2,6 +2,11 @@
 *.log
 *.swp
 
+smrt-server-link/db/*
+smrt-server-link/jobs-root
+smrt-server-analysis/db/*
+smrt-server-analysis/jobs-root
+
 # sbt specific
 .cache
 .history
@@ -18,3 +23,7 @@ project/plugins/project/
 .worksheet
 docs/_build/*
 db/*
+
+# ensime-specific
+.ensime
+.ensime_cache

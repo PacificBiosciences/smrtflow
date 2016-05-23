@@ -1,6 +1,8 @@
 // Don't run the test before building the jar
 test in assembly := {}
 
+mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer")
+
 //parallelExecution in Test := false
 
 // Necessary for sqlite to not have class loading JNI problem

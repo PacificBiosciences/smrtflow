@@ -57,7 +57,7 @@ class JwtUtilsImpl(clock: Clock) extends JwtUtils {
 
   // TODO(smcclellan): Make these values configurable?
   val ISSUER = "pacificbiosciences.com"
-  val TTL = new JodaDuration(1.hour.toMillis)
+  val TTL = new JodaDuration(12.hour.toMillis)
 
 
   private object DateTimeSerializer extends CustomSerializer[JodaDateTime](format => (
