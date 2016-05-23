@@ -38,7 +38,7 @@ class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManag
 
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
-  final val LOCAL_MAX_SIZE_MB = 250
+  final val LOCAL_MAX_SIZE_MB = 50 // this takes about 2.5 minutes
 
   final val PIPELINE_ID = "pbsmrtpipe.pipelines.sa3_ds_fasta_to_reference"
   final val PIPELINE_ENTRY_POINT_ID = "eid_ref_fasta"
