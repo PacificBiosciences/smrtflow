@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import scala.io.Source
 
-import com.pacbio.secondaryinternal.models._
+import com.pacbio.secondaryinternal.models.ServiceCondition
 
 
 object IOUtils {

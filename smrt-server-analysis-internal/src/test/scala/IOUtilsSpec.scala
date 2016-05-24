@@ -2,7 +2,6 @@ import org.specs2.mutable.Specification
 
 import java.nio.file.Paths
 
-import com.pacbio.secondaryinternal.models._
 import com.pacbio.secondaryinternal.IOUtils
 
 class IOUtilsSpec extends Specification {
