@@ -4,7 +4,7 @@ See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and
 
 These are all the shared Java object models that are generated via [xjc](https://jaxb.java.net) from [XSD definitions in `src/main/resources/com/pacificbiosciences/pb-common-xsds`](src/main/resources/com/pacificbiosciences/pb-common-xsds).
 
-# Rebuild java classes from XSDs
+## Rebuild java classes from XSDs
 
 These only need to be remade when the definitions change. Currently this is done manually and not part of the build process.
 
