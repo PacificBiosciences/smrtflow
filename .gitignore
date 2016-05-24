@@ -27,3 +27,6 @@ db/*
 # ensime-specific
 .ensime
 .ensime_cache
+
+# IntelliJ
+.idea/*
