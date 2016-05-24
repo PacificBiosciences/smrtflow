@@ -4,8 +4,7 @@ import java.nio.file.Path
 
 import scala.io.Source
 
-import com.pacbio.secondaryinternal.models._
-import com.github.tototoshi.csv._
+import com.pacbio.secondaryinternal.models.ServiceCondition
 
 
 object IOUtils {
@@ -15,9 +14,15 @@ object IOUtils {
 
 
   def parseConditionCsv(sx: Source): Seq[ServiceCondition] = {
-    val reader = CSVReader.open(sx)
-    val datum = reader.allWithHeaders()
-    // FIXME(mpkocher)(2016-4-17) Add format for the host of "smrtlink-beta:9999"
-    datum.map(x => ServiceCondition(x("condId"), x("host"), 8081, x("jobId").toInt))
+    sx.getLines.drop(1).toSeq.map(x => parseLine(x.split(",").map(_.trim):_*))
+  }
+
+  def parseLine(args: String*): ServiceCondition = {
+    parseLine(args(0), args(1), args(2).toInt)
+  }
+
+  def parseLine(condId : String, host : String, jobId : Int): ServiceCondition = {
+    ServiceCondition(condId, host.split(":")(0), if (!host.contains(":")) 8081 else host.split(":")(1).toInt, jobId)
+
   }
 }
