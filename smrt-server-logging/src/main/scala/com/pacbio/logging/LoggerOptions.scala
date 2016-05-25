@@ -60,14 +60,9 @@ object LoggerOptions {
     parser.parse(args, new LoggerConfig(){})
   }
 
-  def parseRequireFile(args: Seq[String]): Unit = {
+  def parseAddDebug(args: Seq[String]): Unit = {
     val requireOne = Set("--logfile", "--debug", "-h")
-    if (args.filter(requireOne).isEmpty) {
-      println("You must set the logger output with a --logfile parameter")
-      println("  e.g.")
-      println("      java -jar my_code.jar --logfile example_file.log")
-      System.exit(1)
-    }
-    parse(args)
+    val v = if (args.filter(requireOne).isEmpty) args :+ "--debug" else args
+    parse(v)
   }
 }
