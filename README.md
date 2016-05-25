@@ -2,24 +2,22 @@
 
 [![Circle CI](https://circleci.com/gh/PacificBiosciences/smrtflow.svg?style=svg)](https://circleci.com/gh/PacificBiosciences/smrtflow)
 
+See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs. This README.md is intended to be terse notes for developers.
 
-## Quick Start
-
-- requires java >= 1.8.0_71
-- requires sbt == 0.13.11
-
-Build Commandline Tools
+"SMRT" refers to PacBio's [sequencing technology](http://www.pacb.com/smrt-science/smrt-sequencing/) and "smrtflow" is the name of the respective open-source workflow engine.
+ 
+This code is written in Scala and this is an [SBT multi-project](http://www.scala-sbt.org/0.13/docs/Multi-Project.html). 
 
 ```bash
-$> sbt smrt-analysis/pack 
-$> export PATH=$(pwd)/smrt-analysis/target/pack/bin:$PATH
-$> fasta-to-reference --help
+# clone the repo
+git clone https://github.com/PacificBiosciences/smrtflow.git
+
+# use SBT to build and run tests
+sbt clean pack test
+
+# see also `sbt` + interactive `help`, `project`, `test`, `coverage`, `run`, ...
+# sbt
+# > help
 ```
 
-Build SMRT Link Analysis Services
-
-```bash
-$>sbt smrt-server-analysis/assembly
-$>x=$(ls ./smrt-server-analysis/target/scala-2.11/*.jar)
-$>java -jar $x # to startup the services
-```
+The code requires `java >= 1.8.0_71` and `sbt == 0.13.11`.

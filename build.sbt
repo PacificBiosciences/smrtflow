@@ -97,7 +97,6 @@ def PacBioProject(name: String): Project = (
       "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
       "org.scalaj" %% "scalaj-http" % "1.1.5",
       "org.flywaydb" % "flyway-core" % "4.0",
-      "com.github.tototoshi" %% "scala-csv" % "1.3.1",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full
     )
     )

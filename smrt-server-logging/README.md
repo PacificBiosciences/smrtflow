@@ -1,5 +1,7 @@
 # Logging
 
+See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and [smrtflow](../README.md) for the base multi-project's README. 
+
 Simple logging for two common use cases in the PacBio tools. See [smrtflow#42](https://github.com/PacificBiosciences/smrtflow/pull/42) for history.
 
 ```bash
