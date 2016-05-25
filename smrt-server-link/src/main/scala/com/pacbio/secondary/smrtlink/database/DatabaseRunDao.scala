@@ -7,8 +7,8 @@ import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError,
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.util.control.NonFatal
+import slick.driver.SQLiteDriver.api._
+import scala.concurrent.Future
 
 /**
  * RunDao that stores run designs in a Slick database.
@@ -16,120 +16,105 @@ import scala.util.control.NonFatal
 class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
   import TableModels._
 
-  private def putResults(results: ParseResults, update: Boolean = false)(implicit session: Session): Unit = {
-    try {
-      var reserved = Seq.empty[Boolean]
-      if (update) {
-        if (runSummaries.filter(_.uniqueId === results.run.uniqueId).size.run != 1)
-          throw new ResourceNotFoundError(s"Unable to find resource ${results.run.uniqueId}")
-        collectionMetadata.filter(_.runId === results.run.uniqueId).delete
-        dataModels.filter(_.uniqueId === results.run.uniqueId).delete
-        reserved = runSummaries.filter(_.uniqueId === results.run.uniqueId).map(_.reserved).run
-        runSummaries.filter(_.uniqueId === results.run.uniqueId).delete
-      } else if (runSummaries.filter(_.uniqueId === results.run.uniqueId).size.run != 0)
-          throw new UnprocessableEntityError(s"Resource ${results.run.uniqueId} already exists")
+  private def updateOrCreate(uniqueId: UUID,
+                             update: Boolean,
+                             parseResults: Option[ParseResults] = None,
+                             setReserved: Option[Boolean] = None): Future[RunSummary] = {
 
-      runSummaries += results.run.summarize.copy(reserved = reserved.headOption.getOrElse(false))
-      dataModels += DataModelAndUniqueId(results.run.dataModel, results.run.uniqueId)
-      results.collections.foreach { c => collectionMetadata += c }
-    } catch {
-      case NonFatal(e) =>
-        session.rollback()
-        throw e
+    require(update || parseResults.isDefined, "Cannot create a run without ParseResults")
+
+    var action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
+      if (prev.isEmpty && update)
+        throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
+      if (prev.isDefined && !update)
+        throw new UnprocessableEntityError(s"Resource $uniqueId already exists")
+
+      val wasReserved = prev.map(_.reserved)
+      val reserved = setReserved.orElse(wasReserved).getOrElse(false)
+      val summary = parseResults.map(_.run.summarize).orElse(prev).get.copy(reserved = reserved)
+      runSummaries.filter(_.uniqueId === uniqueId).insertOrUpdate(summary).map(_ => summary)
     }
+
+    parseResults.foreach { res =>
+      if (res.run.uniqueId != uniqueId)
+        throw new UnprocessableEntityError(s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
+
+      action = action.flatMap { summary =>
+        DBIO.seq(
+          dataModels.filter(_.uniqueId === uniqueId).insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId)),
+          DBIO.sequence(res.collections.map { c => collectionMetadata += c })
+        ).map(_ => summary)
+      }
+    }
+
+    dal.db.run(action.transactionally)
   }
 
-  override def getRuns(criteria: SearchCriteria): Set[RunSummary] = {
-    dal.db withSession { implicit session =>
-      var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] = runSummaries
+  override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
+    var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] = runSummaries
 
-      if (criteria.name.isDefined)
-        query = query.filter(_.name === criteria.name.get)
+    if (criteria.name.isDefined)
+      query = query.filter(_.name === criteria.name.get)
 
-      if (criteria.substring.isDefined)
-        query = query.filter { r =>
-          (r.name.indexOf(criteria.substring.get) >= 0).||(r.summary.getOrElse("").indexOf(criteria.substring.get) >= 0)
-        }
-
-      if (criteria.createdBy.isDefined)
-        query = query.filter(_.createdBy.isDefined).filter(_.createdBy === criteria.createdBy)
-
-      if (criteria.reserved.isDefined)
-        query = query.filter(_.reserved === criteria.reserved.get)
-
-      query.run.toSet
-    }
-  }
-
-  override def getRun(id: UUID): Run = {
-    try {
-      val result = dal.db withSession { implicit session =>
-        val summary = runSummaries.filter(_.uniqueId === id)
-        val model = dataModels.filter(_.uniqueId === id)
-        summary.join(model).first
+    if (criteria.substring.isDefined)
+      query = query.filter { r =>
+        (r.name.indexOf(criteria.substring.get) >= 0).||(r.summary.getOrElse("").indexOf(criteria.substring.get) >= 0)
       }
 
-      result._1.withDataModel(result._2.dataModel)
-    } catch {
-      case e: NoSuchElementException => throw new ResourceNotFoundError(s"Unable to find resource $id")
-    }
+    if (criteria.createdBy.isDefined)
+      query = query.filter(_.createdBy.isDefined).filter(_.createdBy === criteria.createdBy)
+
+    if (criteria.reserved.isDefined)
+      query = query.filter(_.reserved === criteria.reserved.get)
+
+    dal.db.run(query.result).map(_.toSet)
   }
 
-  override def createRun(create: RunCreate): RunSummary = {
-    val results = parser(create.dataModel)
-
-    dal.db.withTransaction { implicit session =>
-      putResults(results, update = false)
-    }
-
-    results.run.summarize
-  }
-
-  override def updateRun(id: UUID, update: RunUpdate): RunSummary = {
-    dal.db.withTransaction { implicit session =>
-      update.dataModel.foreach { d =>
-        val results = parser(d)
-        if (results.run.uniqueId != id)
-          throw new UnprocessableEntityError(s"Cannot update run $id with data model for run ${results.run.uniqueId}")
-        putResults(results, update = true)
+  override def getRun(id: UUID): Future[Run] = {
+    val summary = runSummaries.filter(_.uniqueId === id)
+    val model = dataModels.filter(_.uniqueId === id)
+    val run = summary.join(model).result.headOption.map { opt =>
+      opt.map { res =>
+        res._1.withDataModel(res._2.dataModel)
+      }.getOrElse {
+        throw new ResourceNotFoundError(s"Unable to find resource $id")
       }
-
-      update.reserved.foreach { r =>
-        val query = for { s <- runSummaries if s.uniqueId === id } yield s
-        val run = query.first.copy(reserved = r)
-        query.update(run)
-      }
-
-      runSummaries.filter(_.uniqueId === id).first
     }
+    
+    dal.db.run(run)
   }
 
-  override def deleteRun(id: UUID): String = {
-    dal.db.withTransaction { implicit session =>
-      collectionMetadata.filter(_.runId === id).delete
-      dataModels.filter(_.uniqueId === id).delete
+  override def createRun(create: RunCreate): Future[RunSummary] = {
+    val parseResults = parser(create.dataModel)
+    updateOrCreate(parseResults.run.uniqueId, update = false, Some(parseResults))
+  }
+
+  override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] = {
+    val parseResults = update.dataModel.map(parser.apply)
+    updateOrCreate(id, update = true, parseResults, update.reserved)
+  }
+
+  override def deleteRun(id: UUID): Future[String] = {
+    val action = DBIO.seq(
+      collectionMetadata.filter(_.runId === id).delete,
+      dataModels.filter(_.uniqueId === id).delete,
       runSummaries.filter(_.uniqueId === id).delete
-
-      s"Successfully deleted run design $id"
-    }
+    ).map(_ => s"Successfully deleted run design $id")
+    dal.db.run(action.transactionally)
   }
 
-  override def getCollectionMetadatas(runId: UUID): Seq[CollectionMetadata] = {
-    dal.db withSession { implicit session =>
-      collectionMetadata
-          .filter(_.runId === runId)
-          .run
-    }
-  }
+  override def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
+    dal.db.run(collectionMetadata.filter(_.runId === runId).result)
 
-  override def getCollectionMetadata(runId: UUID, uniqueId: UUID): CollectionMetadata = {
-    dal.db withSession { implicit session =>
+  override def getCollectionMetadata(runId: UUID, uniqueId: UUID): Future[CollectionMetadata] = {
+    dal.db.run {
       collectionMetadata
-          .filter(_.runId === runId)
-          .filter(_.uniqueId === uniqueId)
-          .run
-          .head
-    }
+        .filter(_.runId === runId)
+        .filter(_.uniqueId === uniqueId)
+        .result
+        .headOption
+    }.map(_.getOrElse(throw new ResourceNotFoundError(s"No collection with id $uniqueId found in run $runId")))
+
   }
 }
 

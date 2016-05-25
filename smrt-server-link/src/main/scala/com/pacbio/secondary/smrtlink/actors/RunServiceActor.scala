@@ -40,13 +40,13 @@ class RunServiceActor(runDao: RunDao) extends PacBioActor {
   import RunServiceActor._
 
   def receive: Receive = {
-    case GetRuns(criteria)        => respondWith(runDao.getRuns(criteria))
-    case GetRun(id)               => respondWith(runDao.getRun(id))
-    case CreateRun(create)        => respondWith(runDao.createRun(create))
-    case UpdateRun(id, update)    => respondWith(runDao.updateRun(id, update))
-    case DeleteRun(id)            => respondWith(runDao.deleteRun(id))
-    case GetCollections(runId)    => respondWith(runDao.getCollectionMetadatas(runId))
-    case GetCollection(runId, id) => respondWith(runDao.getCollectionMetadata(runId, id))
+    case GetRuns(criteria)        => pipeWith(runDao.getRuns(criteria))
+    case GetRun(id)               => pipeWith(runDao.getRun(id))
+    case CreateRun(create)        => pipeWith(runDao.createRun(create))
+    case UpdateRun(id, update)    => pipeWith(runDao.updateRun(id, update))
+    case DeleteRun(id)            => pipeWith(runDao.deleteRun(id))
+    case GetCollections(runId)    => pipeWith(runDao.getCollectionMetadatas(runId))
+    case GetCollection(runId, id) => pipeWith(runDao.getCollectionMetadata(runId, id))
   }
 }
 

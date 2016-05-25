@@ -9,23 +9,23 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.slick.lifted.ProvenShape
+import slick.driver.SQLiteDriver.api._
+import slick.lifted.ProvenShape
 
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class JobStatesT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "job_states") {
 
-    def id: Column[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def description: Column[String] = column[String]("description")
+    def description: Rep[String] = column[String]("description")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
     def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, createdAt, updatedAt)
 
@@ -33,15 +33,15 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 
-    def id: Column[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
+    def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
-    def stateId: Column[Int] = column[Int]("state_id")
+    def stateId: Rep[Int] = column[Int]("state_id")
 
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def message: Column[String] = column[String]("message")
+    def message: Rep[String] = column[String]("message")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
     def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
 
@@ -63,9 +63,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
-    def id: Column[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
     def * : ProvenShape[(Int, String)] = (id, name)
   }
@@ -75,9 +75,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
    * @param tag General Tags for Jobs
    */
   class JobsTags(tag: Tag) extends Table[(Int, Int)](tag, "jobs_tags") {
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def tagId: Column[Int] = column[Int]("job_tag_id")
+    def tagId: Rep[Int] = column[Int]("job_tag_id")
 
     def * : ProvenShape[(Int, Int)] = (jobId, tagId)
 
@@ -91,34 +91,34 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
 
-    def id: Column[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
 
     // FIXME. The process engine only uses UUID
-    def uuid: Column[UUID] = column[UUID]("uuid")
+    def uuid: Rep[UUID] = column[UUID]("uuid")
 
     // this is really comment
-    def pipelineId: Column[String] = column[String]("pipeline_id")
+    def pipelineId: Rep[String] = column[String]("pipeline_id")
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def stateId: Column[Int] = column[Int]("state_id")
+    def stateId: Rep[Int] = column[Int]("state_id")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
     def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
 
     def stateJoin = jobStates.filter(_.id === stateId)
 
     // This should be a foreign key into a new table
-    def jobTypeId: Column[String] = column[String]("job_type_id")
+    def jobTypeId: Rep[String] = column[String]("job_type_id")
 
-    def path: Column[String] = column[String]("path", O.Length(500, varying=true))
+    def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
-    def jsonSettings: Column[String] = column[String]("json_settings")
+    def jsonSettings: Rep[String] = column[String]("json_settings")
 
-    def createdBy: Column[Option[String]] = column[Option[String]]("created_by")
+    def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
@@ -144,11 +144,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
 
-    def id: Column[Int] = column[Int]("job_result_id")
+    def id: Rep[Int] = column[Int]("job_result_id")
 
-    def host: Column[String] = column[String]("host_name")
+    def host: Rep[String] = column[String]("host_name")
 
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
@@ -158,43 +158,43 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
 
-    def id: Column[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def token: Column[String] = column[String]("token")
+    def token: Rep[String] = column[String]("token")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
     def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
   }
 
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
 
-    def id: Column[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def description: Column[String] = column[String]("description")
+    def description: Rep[String] = column[String]("description")
 
-    def state: Column[String] = column[String]("state")
+    def state: Rep[String] = column[String]("state")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
     def * = (id, name, description, state, createdAt, updatedAt) <> (Project.tupled, Project.unapply)
   }
 
   class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
 
-    def projectId: Column[Int] = column[Int]("project_id")
+    def projectId: Rep[Int] = column[Int]("project_id")
 
-    def login: Column[String] = column[String]("login")
+    def login: Rep[String] = column[String]("login")
 
-    def role: Column[String] = column[String]("role")
+    def role: Rep[String] = column[String]("role")
 
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
 
@@ -202,26 +202,26 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
-    def id: Column[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
 
-    def uuid: Column[UUID] = column[UUID]("uuid")
+    def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
   class DataSetTypesT(tag: Tag) extends Table[ServiceDataSetMetaType](tag, "dataset_types") {
 
-    def id: Column[String] = column[String]("dataset_type_id", O.PrimaryKey)
+    def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
 
     def idx = index("index_id", id, unique = true)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def description: Column[String] = column[String]("description")
+    def description: Rep[String] = column[String]("description")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
-    def shortName: Column[String] = column[String]("short_name")
+    def shortName: Rep[String] = column[String]("short_name")
 
     def * = (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
 
@@ -236,9 +236,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
    */
   class EngineJobDataSetT(tag: Tag) extends Table[EngineJobEntryPoint](tag, "engine_jobs_datasets") {
 
-    def jobId: Column[Int] = column[Int]("job_id")
-    def datasetUUID: Column[UUID] = column[UUID]("dataset_uuid")
-    def datasetType: Column[String] = column[String]("dataset_type")
+    def jobId: Rep[Int] = column[Int]("job_id")
+    def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
+    def datasetType: Rep[String] = column[String]("dataset_type")
     def * = (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
   }
 
@@ -246,33 +246,33 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     //def indexUUID = index("index_uuid", uuid, unique = true)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def path: Column[String] = column[String]("path", O.Length(500, varying=true))
+    def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
-    def numRecords: Column[Long] = column[Long]("num_records")
+    def numRecords: Rep[Long] = column[Long]("num_records")
 
-    def totalLength: Column[Long] = column[Long]("total_length")
+    def totalLength: Rep[Long] = column[Long]("total_length")
 
-    def tags: Column[String] = column[String]("tags")
+    def tags: Rep[String] = column[String]("tags")
 
-    def version: Column[String] = column[String]("version")
+    def version: Rep[String] = column[String]("version")
 
-    def comments: Column[String] = column[String]("comments")
+    def comments: Rep[String] = column[String]("comments")
 
-    def md5: Column[String] = column[String]("md5")
+    def md5: Rep[String] = column[String]("md5")
 
-    def userId: Column[Int] = column[Int]("user_id")
+    def userId: Rep[Int] = column[Int]("user_id")
 
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def projectId: Column[Int] = column[Int]("project_id")
+    def projectId: Rep[Int] = column[Int]("project_id")
 
-    def isActive: Column[Boolean] = column[Boolean]("is_active")
+    def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
@@ -280,25 +280,25 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
 
-    def cellId: Column[String] = column[String]("cell_id")
+    def cellId: Rep[String] = column[String]("cell_id")
 
-    def metadataContextId: Column[String] = column[String]("metadata_context_id")
+    def metadataContextId: Rep[String] = column[String]("metadata_context_id")
 
-    def wellSampleName: Column[String] = column[String]("well_sample_name")
+    def wellSampleName: Rep[String] = column[String]("well_sample_name")
 
-    def wellName: Column[String] = column[String]("well_name")
+    def wellName: Rep[String] = column[String]("well_name")
 
-    def bioSampleName: Column[String] = column[String]("bio_sample_name")
+    def bioSampleName: Rep[String] = column[String]("bio_sample_name")
 
-    def cellIndex: Column[Int] = column[Int]("cell_index")
+    def cellIndex: Rep[Int] = column[Int]("cell_index")
 
-    def instrumentId: Column[String] = column[String]("instrument_id")
+    def instrumentId: Rep[String] = column[String]("instrument_id")
 
-    def instrumentName: Column[String] = column[String]("instrument_name")
+    def instrumentName: Rep[String] = column[String]("instrument_name")
 
-    def runName: Column[String] = column[String]("run_name")
+    def runName: Rep[String] = column[String]("run_name")
 
-    def instrumentControlVersion: Column[String] = column[String]("instrument_control_version")
+    def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(SubreadServiceSet.tupled, SubreadServiceSet.unapply)
 
@@ -306,25 +306,25 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
 
-    def cellId: Column[String] = column[String]("cell_id")
+    def cellId: Rep[String] = column[String]("cell_id")
 
-    def metadataContextId: Column[String] = column[String]("metadata_context_id")
+    def metadataContextId: Rep[String] = column[String]("metadata_context_id")
 
-    def wellSampleName: Column[String] = column[String]("well_sample_name")
+    def wellSampleName: Rep[String] = column[String]("well_sample_name")
 
-    def wellName: Column[String] = column[String]("well_name")
+    def wellName: Rep[String] = column[String]("well_name")
 
-    def bioSampleName: Column[String] = column[String]("bio_sample_name")
+    def bioSampleName: Rep[String] = column[String]("bio_sample_name")
 
-    def cellIndex: Column[Int] = column[Int]("cell_index")
+    def cellIndex: Rep[Int] = column[Int]("cell_index")
 
-    def instrumentId: Column[String] = column[String]("instrument_id")
+    def instrumentId: Rep[String] = column[String]("instrument_id")
 
-    def instrumentName: Column[String] = column[String]("instrument_name")
+    def instrumentName: Rep[String] = column[String]("instrument_name")
 
-    def runName: Column[String] = column[String]("run_name")
+    def runName: Rep[String] = column[String]("run_name")
 
-    def instrumentControlVersion: Column[String] = column[String]("instrument_control_version")
+    def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
 
@@ -332,9 +332,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class ReferenceDataSetT(tag: Tag) extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
 
-    def ploidy: Column[String] = column[String]("ploidy")
+    def ploidy: Rep[String] = column[String]("ploidy")
 
-    def organism: Column[String] = column[String]("organism")
+    def organism: Rep[String] = column[String]("organism")
 
     def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
 
@@ -359,31 +359,31 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
-    def uuid: Column[UUID] = column[UUID]("uuid", O.PrimaryKey)
+    def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
-    def fileTypeId: Column[String] = column[String]("file_type_id")
+    def fileTypeId: Rep[String] = column[String]("file_type_id")
 
-    def sourceId: Column[String] = column[String]("source_id")
+    def sourceId: Rep[String] = column[String]("source_id")
 
-    def fileSize: Column[Long] = column[Long]("file_size")
+    def fileSize: Rep[Long] = column[Long]("file_size")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def modifiedAt: Column[JodaDateTime] = column[JodaDateTime]("modified_at")
+    def modifiedAt: Rep[JodaDateTime] = column[JodaDateTime]("modified_at")
 
-    def importedAt: Column[JodaDateTime] = column[JodaDateTime]("imported_at")
+    def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
 
-    def path: Column[String] = column[String]("path", O.Length(500, varying=true))
+    def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
     // job id output datastore. Perhaps need to define input for jobs that have datastore's as input
     // This needs to be rethought.
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def jobUUID: Column[UUID] = column[UUID]("job_uuid")
+    def jobUUID: Rep[UUID] = column[UUID]("job_uuid")
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def description: Column[String] = column[String]("description")
+    def description: Rep[String] = column[String]("description")
 
     def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
   }
@@ -394,41 +394,41 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
   class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
 
-    def uniqueId: Column[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
-    def name: Column[String] = column[String]("NAME")
+    def name: Rep[String] = column[String]("NAME")
 
-    def summary: Column[Option[String]] = column[Option[String]]("SUMMARY")
+    def summary: Rep[Option[String]] = column[Option[String]]("SUMMARY")
 
-    def createdBy: Column[Option[String]] = column[Option[String]]("CREATED_BY")
+    def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
 
-    def createdAt: Column[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
+    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
 
-    def startedAt: Column[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
 
-    def completedAt: Column[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
 
-    def status: Column[SupportedRunStates] = column[SupportedRunStates]("STATUS")
+    def status: Rep[SupportedRunStates] = column[SupportedRunStates]("STATUS")
 
-    def totalCells: Column[Int] = column[Int]("TOTAL_CELLS")
+    def totalCells: Rep[Int] = column[Int]("TOTAL_CELLS")
 
-    def numCellsCompleted: Column[Int] = column[Int]("NUM_CELLS_COMPLETED")
+    def numCellsCompleted: Rep[Int] = column[Int]("NUM_CELLS_COMPLETED")
 
-    def numCellsFailed: Column[Int] = column[Int]("NUM_CELLS_FAILED")
+    def numCellsFailed: Rep[Int] = column[Int]("NUM_CELLS_FAILED")
 
-    def instrumentName: Column[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
+    def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
 
-    def instrumentSerialNumber: Column[Option[String]] = column[Option[String]]("INSTRUMENT_SERIAL_NUMBER")
+    def instrumentSerialNumber: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SERIAL_NUMBER")
 
-    def instrumentSwVersion: Column[Option[String]] = column[Option[String]]("INSTRUMENT_SW_VERSION")
+    def instrumentSwVersion: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SW_VERSION")
 
-    def primaryAnalysisSwVersion: Column[Option[String]] = column[Option[String]]("PRIMARY_ANALYSIS_SW_VERSION")
+    def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("PRIMARY_ANALYSIS_SW_VERSION")
 
-    def context: Column[Option[String]] = column[Option[String]]("CONTEXT")
+    def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
 
-    def terminationInfo: Column[Option[String]] = column[Option[String]]("TERMINATION_INFO")
+    def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
 
-    def reserved: Column[Boolean] = column[Boolean]("RESERVED")
+    def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
 
     def * = (
       uniqueId,
@@ -453,13 +453,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
   class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
-    def uniqueId: Column[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
     // SQLite treats all String columns as TEXT. The size limit on such columns is given by
     // SQLITE_MAX_LENGTH, which defaults to one billion bytes. This should be enough to store
     // a run design model, but if necessary, this value can be raised or lowered at runtime with
     // -DSQLITE_MAX_LENGTH=123456789
-    def dataModel: Column[String] = column[String]("DATA_MODEL")
+    def dataModel: Rep[String] = column[String]("DATA_MODEL")
 
     def * = (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
 
@@ -471,32 +471,32 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => SupportedAcquisitionStates.fromValue(s)}
   )
   class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
-    def runId: Column[UUID] = column[UUID]("RUN_ID")
+    def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
 
-    def uniqueId: Column[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
-    def well: Column[String] = column[String]("WELL")
+    def well: Rep[String] = column[String]("WELL")
 
-    def name: Column[String] = column[String]("NAME")
+    def name: Rep[String] = column[String]("NAME")
 
-    def summary: Column[Option[String]] = column[Option[String]]("COLUMN")
+    def summary: Rep[Option[String]] = column[Option[String]]("COLUMN")
 
-    def context: Column[Option[String]] = column[Option[String]]("CONTEXT")
+    def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
 
-    def status: Column[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
+    def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
 
-    def instrumentId: Column[Option[String]] = column[Option[String]]("INSTRUMENT_ID")
+    def instrumentId: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_ID")
 
-    def instrumentName: Column[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
+    def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
 
-    def movieMinutes: Column[Double] = column[Double]("MOVIE_MINUTES")
+    def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
 
-    def startedAt: Column[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
 
-    def completedAt: Column[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
 
-    def terminationInfo: Column[Option[String]] = column[Option[String]]("TERMINATION_INFO")
+    def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
 
     def * = (
       runId,
@@ -516,15 +516,15 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
 
-    def details: Column[String] = column[String]("DETAILS")
+    def details: Rep[String] = column[String]("DETAILS")
 
-    def uniqueId: Column[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
-    def name: Column[String] = column[String]("NAME")
+    def name: Rep[String] = column[String]("NAME")
 
-    def createdBy: Column[String] = column[String]("CREATED_BY")
+    def createdBy: Rep[String] = column[String]("CREATED_BY")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
 
     def * = (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
   }

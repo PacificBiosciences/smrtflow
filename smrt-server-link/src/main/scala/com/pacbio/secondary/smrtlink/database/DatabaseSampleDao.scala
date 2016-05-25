@@ -8,56 +8,38 @@ import com.pacbio.secondary.smrtlink.actors.{Dal, SampleDao}
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 
-import scala.slick.driver.SQLiteDriver.simple._
+import slick.driver.SQLiteDriver.api._
+
+import scala.concurrent.Future
 
 class DatabaseSampleDao(dal: Dal, clock: Clock) extends SampleDao {
 
   /*
    * Returns a Set() of all samples in the database
    */
-  def getSamples(): Set[Sample] = {
-    dal.db withSession { implicit session =>
-      samples.run.toSet
-    }
-  }
+  def getSamples(): Future[Set[Sample]] = dal.db.run(samples.result).map(_.toSet)
 
   /*
    * Returns a single sample matching the passed uniqueId
    * Throws if the uniqueId was not found (or was more than once)
    */
-  def getSample(uniqueId: UUID): Sample = {
-    dal.db withSession { implicit session =>
-      val sample = samples.filter(_.uniqueId === uniqueId)
-      if (1 != sample.size) {
-        throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
-      }
-      sample.first
-    }
-  }
+  def getSample(uniqueId: UUID): Future[Sample] =
+    dal.db.run(samples.filter(_.uniqueId === uniqueId).result.headOption)
+      .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")))
 
   /*
    * Checks if a UUID is already a known sample in the DB, and if so returns true
    */
-  def exists(uniqueId: UUID): Boolean = {
-    try {
-      dal.db withSession { implicit session =>
-        val sample = samples.filter(_.uniqueId === uniqueId)
-        true
-      }
-    } catch {
-      case e: ResourceNotFoundError =>
-        false
-    }
-  }
+  def exists(uniqueId: UUID): Future[Boolean] =
+    dal.db.run(samples.filter(_.uniqueId === uniqueId).exists.result)
 
   /*
    * Creates a new sample in the database
    */
-  def createSample(login: String, create: SampleCreate): Sample = {
-    dal.db.withTransaction { implicit session =>
-      if (exists(create.uniqueId))
-        throw new UnprocessableEntityError(s"Unable to create sample with uuid ${create.uniqueId}, already in use.")
-
+  def createSample(login: String, create: SampleCreate): Future[Sample] = {
+    val insert = samples.filter(_.uniqueId === create.uniqueId).exists.result.map { ex =>
+      if (ex) throw new UnprocessableEntityError(s"Sample with uuid ${create.uniqueId} already exists.")
+    }.flatMap { _ =>
       val sample = Sample(
         create.details,
         create.uniqueId,
@@ -65,56 +47,46 @@ class DatabaseSampleDao(dal: Dal, clock: Clock) extends SampleDao {
         login,
         clock.dateNow()
       )
-
-      samples += sample
-      sample
+      (samples += sample).map(_ => sample)
     }
+    dal.db.run(insert.transactionally)
   }
 
   /*
    * Updates an existing sample in the database
    * Throws if the uniqueId was not found
    */
-  def updateSample(uniqueId: UUID, update: SampleUpdate): Sample = {
-    dal.db.withTransaction { implicit session =>
-      var detailsCount: Option[Int] = None
-      var nameCount: Option[Int] = None
+  def updateSample(uniqueId: UUID, update: SampleUpdate): Future[Sample] = {
+    val actions: Seq[DBIOAction[Int, NoStream, Effect.Write]] = Seq(
+      update.details.map(d => samples.filter(_.uniqueId === uniqueId).map(_.details).update(d)),
+      update.name.map(n => samples.filter(_.uniqueId === uniqueId).map(_.name).update(n))
+    ).filter(_.isDefined).map(_.get)
 
-      if (update.details.isDefined) {
-        val query = for { m <- samples if m.uniqueId === uniqueId } yield m.details
-        detailsCount = Some(query.update(update.details.get))
+    val totalAction = DBIO.sequence(actions).flatMap { counts =>
+      if (counts.contains(0)) {
+        throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
       }
-
-      if (update.name.isDefined) {
-        val query = for { m <- samples if m.uniqueId === uniqueId } yield m.name
-        nameCount = Some(query.update(update.name.get))
-      }
-
-      if (detailsCount.contains(0) || nameCount.contains(0)) {
-          session.rollback()
-          throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
-        }
-
-      samples.filter(_.uniqueId === uniqueId).first
+      samples.filter(_.uniqueId === uniqueId).result.head
     }
+
+    dal.db.run(totalAction)
   }
 
   /*
    * Deletes an existing sample in the database
    * Throws if the resource was not found or if more than one was found
    */
-  def deleteSample(uniqueId: UUID): String = {
-    dal.db.withTransaction { implicit session =>
-      val query = for { m <- samples if m.uniqueId === uniqueId } yield m
-      val sampleCount = query.delete
-
-      if (sampleCount == 1) {
+  def deleteSample(uniqueId: UUID): Future[String] = {
+    val action = samples.filter(_.uniqueId === uniqueId).delete.map { count =>
+      if (count == 1) {
         s"Successfully deleted sample $uniqueId"
-      } else if (sampleCount == 0) {
+      } else if (count == 0) {
         throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
       } else {
         throw new IllegalStateException(s"More than one sample found with id $uniqueId")
       }
-    }
+    }.transactionally
+
+    dal.db.run(action)
   }
 }

@@ -24,9 +24,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
+import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.slick.jdbc.meta.MTable
+import slick.driver.SQLiteDriver.api._
+import slick.jdbc.meta.MTable
 import scala.util.{Failure, Success, Try}
 import org.flywaydb.core.Flyway
 
@@ -86,125 +87,116 @@ trait DalComponent {
 trait ProjectDataStore extends LazyLogging {
   this: DalComponent with SmrtLinkConstants =>
 
-  def getProjects(limit: Int = 100): Seq[Project] = {
-    dal.db.withSession { implicit session =>
-      projects.take(limit).list
-    }
+  def getProjects(limit: Int = 100): Future[Seq[Project]] = dal.db.run(projects.take(limit).result)
+
+  def getProjectById(projId: Int): Future[Option[Project]] =
+    dal.db.run(projects.filter(_.id === projId).result.headOption)
+
+  def createProject(opts: ProjectRequest): Future[Project] = {
+    val now = JodaDateTime.now()
+    val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
+    val insertAction = (projects returning projects.map(_.id)) += proj
+    val action = insertAction.map(id => proj.copy(id = id))
+    dal.db.run(action)
   }
 
-  def getProjectById(projId: Int): Option[Project] = {
-    dal.db.withSession { implicit session =>
-      projects.filter(_.id === projId).firstOption
-    }
+  def updateProject(projId: Int, opts: ProjectRequest): Future[Option[Project]] = {
+    val now = JodaDateTime.now()
+    val proj = projects.filter(_.id === projId)
+    val action = proj
+      .map(p => (p.name, p.state, p.description, p.updatedAt))
+      .update(opts.name, opts.state, opts.description, now)
+      .flatMap(_ => proj.result.headOption)
+
+    dal.db.run(action)
   }
 
-  def createProject(opts: ProjectRequest): Project = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
-      val projId = (projects returning projects.map(_.id)) += proj
-      proj.copy(id = projId)
-    }
-  }
+  def getProjectUsers(projId: Int): Future[Seq[ProjectUser]] =
+    dal.db.run(projectsUsers.filter(_.projectId === projId).result)
 
-  def updateProject(projId: Int, opts: ProjectRequest): Option[Project] = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      val proj = projects.filter(_.id === projId)
-      proj.map(p => (p.name, p.state, p.description, p.updatedAt))
-          .update(opts.name, opts.state, opts.description, now)
-      proj.firstOption
-    }
-  }
-
-  def getProjectUsers(projId: Int): Seq[ProjectUser] = {
-    dal.db.withSession { implicit session =>
-      projectsUsers.filter(_.projectId === projId).run
-    }
-  }
-
-  def addProjectUser(projId: Int, user: ProjectUserRequest): MessageResponse = {
-    dal.db.withTransaction { implicit session =>
-      projectsUsers.filter(x => x.projectId === projId && x.login === user.login).delete
+  def addProjectUser(projId: Int, user: ProjectUserRequest): Future[MessageResponse] = {
+    val action = DBIO.seq(
+      projectsUsers.filter(x => x.projectId === projId && x.login === user.login).delete,
       projectsUsers += ProjectUser(projId, user.login, user.role)
-      MessageResponse(s"added user ${user.login} with role ${user.role} to project $projId")
-    }
+    ).map(_ => MessageResponse(s"added user ${user.login} with role ${user.role} to project $projId")).transactionally
+
+    dal.db.run(action)
   }
 
-  def deleteProjectUser(projId: Int, user: String): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      projectsUsers.filter(x => x.projectId === projId && x.login === user).delete
-      MessageResponse(s"removed user $user from project $projId")
-    }
+  def deleteProjectUser(projId: Int, user: String): Future[MessageResponse] = {
+    val action = projectsUsers
+      .filter(x => x.projectId === projId && x.login === user)
+      .delete
+      .map(_ => MessageResponse(s"removed user $user from project $projId"))
+
+    dal.db.run(action)
   }
 
-  def getDatasetsByProject(projId: Int): Seq[DataSetMetaDataSet] = {
-    dal.db.withSession { implicit session =>
-      dsMetaData2.filter(_.projectId === projId).run
-    }
+  def getDatasetsByProject(projId: Int): Future[Seq[DataSetMetaDataSet]] =
+    dal.db.run(dsMetaData2.filter(_.projectId === projId).result)
+
+  def getUserProjects(login: String): Future[Seq[UserProjectResponse]] = {
+    val join = for {
+      (pu, p) <- projectsUsers join projects on (_.projectId === _.id)
+      if pu.login === login
+    } yield (pu.role, p)
+
+    val userProjects = join
+      .result
+      .map(_.map(j => UserProjectResponse(Some(j._1), j._2)))
+
+    val generalProject = projects
+      .filter(_.id === GENERAL_PROJECT_ID)
+      .result
+      .headOption
+      .map(_.map(UserProjectResponse(None, _)).toSeq)
+
+    dal.db.run(userProjects.zip(generalProject).map(p => p._1 ++ p._2))
   }
 
-  def getUserProjects(login: String): Seq[UserProjectResponse] = {
-    dal.db.withSession { implicit session =>
-      val userProjectQ = for {
-        pu <- projectsUsers if pu.login === login
-        proj <- projects if pu.projectId === proj.id
-      } yield (proj, pu.role)
+  def getUserProjectsDatasets(login: String): Future[Seq[ProjectDatasetResponse]] = {
+    val userJoin = for {
+      pu <- projectsUsers if pu.login === login
+      p <- projects if pu.projectId === p.id
+      d <- dsMetaData2 if pu.projectId === d.projectId
+    } yield (p, d, pu.role)
 
-      val userProjects = userProjectQ.list.map({
-        case (proj, role) => UserProjectResponse(Some(role), proj)
-      })
+    val userProjects = userJoin
+      .result
+      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, Some(j._3))))
 
-      val generalProject = projects.filter(_.id === GENERAL_PROJECT_ID)
-                                   .list.map(UserProjectResponse(None, _))
+    val genJoin = for {
+      p <- projects if p.id === GENERAL_PROJECT_ID
+      d <- dsMetaData2 if p.id === d.projectId
+    } yield (p, d)
 
-      (userProjects ++ generalProject)
-    }
+    val genProjects = genJoin
+      .result
+      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, None)))
+
+    dal.db.run(userProjects.zip(genProjects).map(p => p._1 ++ p._2))
   }
 
-  def getUserProjectsDatasets(login: String): Seq[ProjectDatasetResponse] = {
-    dal.db.withSession { implicit session =>
-      val userProjectQ = for {
-        pu <- projectsUsers if pu.login === login
-        proj <- projects if pu.projectId === proj.id
-        dsMeta <- dsMetaData2 if pu.projectId === dsMeta.projectId
-      } yield (proj, dsMeta, pu.role)
+  def setProjectForDatasetId(dsId: Int, projId: Int): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    val action = dsMetaData2
+      .filter(_.id === dsId)
+      .map(ds => (ds.projectId, ds.updatedAt))
+      .update(projId, now)
+      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
 
-      val userProjects = userProjectQ.list.map({
-        case (proj, dsMeta, role) => ProjectDatasetResponse(proj, dsMeta, Some(role))
-      })
-
-      val genProjectQ = for {
-        proj <- projects if proj.id === GENERAL_PROJECT_ID
-        dsMeta <- dsMetaData2 if proj.id === dsMeta.projectId
-      } yield (proj, dsMeta)
-
-      val genProjects = genProjectQ.list.map({
-        case (proj, dsMeta) => ProjectDatasetResponse(proj, dsMeta, None)
-      })
-
-      userProjects ++ genProjects
-    }
+    dal.db.run(action)
   }
 
-  def setProjectForDatasetId(dsId: Int, projId: Int): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      dsMetaData2.filter(_.id === dsId)
-                 .map(ds => (ds.projectId, ds.updatedAt))
-                 .update(projId, now)
-      MessageResponse(s"moved dataset with ID $dsId to project $projId")
-    }
-  }
+  def setProjectForDatasetUuid(dsId: UUID, projId: Int): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    val action = dsMetaData2
+      .filter(_.uuid === dsId)
+      .map(ds => (ds.projectId, ds.updatedAt))
+      .update(projId, now)
+      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
 
-  def setProjectForDatasetUuid(dsId: UUID, projId: Int): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      dsMetaData2.filter(_.uuid === dsId)
-                 .map(ds => (ds.projectId, ds.updatedAt))
-                 .update(projId, now)
-      MessageResponse(s"moved dataset with ID $dsId to project $projId")
-    }
+    dal.db.run(action)
   }
 }
 
@@ -238,27 +230,37 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
     val jsonSettings = "{}"
 
-    val jobId = dal.db.withSession { implicit session =>
-      val x = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
-      engineJobs returning engineJobs.map(_.id) += x
-    }
-    // Now that the job id is known, we can resolve the directory that the job will be run in
-    // and update the engine job in the db
-    val rj = RunnableJobWithId(jobId, runnableJob.job, runnableJob.state)
-    val resolvedPath = resolver.resolve(rj)
+    val job = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
+    val jobQ = engineJobs returning engineJobs += job
 
-    dal.db.withSession { implicit session =>
-      val qx = for {e <- engineJobs if e.id === jobId} yield e.path
-      qx.update(resolvedPath.toAbsolutePath.toString)
-    }
+    val runnableJobQ = jobQ.map(j => RunnableJobWithId(j.id, runnableJob.job, runnableJob.state))
+    val resolvedPathQ = runnableJobQ.map(resolver.resolve)
 
-    // Add creation event
-    dal.db.withSession { implicit session =>
-      jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.CREATED, s"Created job $jobId type $jobTypeId with ${runnableJob.job.uuid.toString}", JodaDateTime.now())
-    }
+    jobQ.map(_.path).update()
 
-    _runnableJobs.update(runnableJob.job.uuid, rj)
-    EngineJob(jobId, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
+
+
+//    val jobId = dal.db.withSession { implicit session =>
+//      val x = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
+//      engineJobs returning engineJobs.map(_.id) += x
+//    }
+//    // Now that the job id is known, we can resolve the directory that the job will be run in
+//    // and update the engine job in the db
+//    val rj = RunnableJobWithId(jobId, runnableJob.job, runnableJob.state)
+//    val resolvedPath = resolver.resolve(rj)
+//
+//    dal.db.withSession { implicit session =>
+//      val qx = for {e <- engineJobs if e.id === jobId} yield e.path
+//      qx.update(resolvedPath.toAbsolutePath.toString)
+//    }
+//
+//    // Add creation event
+//    dal.db.withSession { implicit session =>
+//      jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.CREATED, s"Created job $jobId type $jobTypeId with ${runnableJob.job.uuid.toString}", JodaDateTime.now())
+//    }
+//
+//    _runnableJobs.update(runnableJob.job.uuid, rj)
+//    EngineJob(jobId, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
   }
 
   override def getJobByUUID(jobId: UUID): Option[EngineJob] = {

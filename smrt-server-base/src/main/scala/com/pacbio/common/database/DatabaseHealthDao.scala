@@ -6,8 +6,12 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, Logger, LogResources}
 import com.pacbio.common.models._
 import com.pacbio.common.time.{ClockProvider, Clock}
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.slick.jdbc.meta._
+import slick.driver.SQLiteDriver.api._
+import slick.jdbc.meta._
+
+import scala.concurrent.Future
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 object DatabaseHealthDao {
   val LOG_RESOURCE_ID: String = "health-db"
@@ -23,34 +27,40 @@ class DatabaseHealthDao(databaseConfig: DatabaseConfig.Configured,
 
   private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
 
-  db withSession { implicit session =>
-    if(MTable.getTables(healthGaugeMessageTable.baseTableRow.tableName).list.isEmpty) {
-      healthGaugeMessageTable.ddl.create
-
-      logger.info(s"Created new Health Database with config $databaseConfig")
+  db.run(MTable.getTables(healthGaugeMessageTable.baseTableRow.tableName).headOption).foreach[Any] { opt =>
+    if (opt.isEmpty) {
+      db.run(healthGaugeMessageTable.schema.create).onComplete {
+        case Success(_) => logger.info(s"Created new Health Database with config $databaseConfig")
+        case Failure(e) =>
+          logger.error(s"Failed to create new Health Database with config $databaseConfig: $e")
+          throw e
+      }
     }
   }
 
   override def newHandler(id: String) = new HealthMessageHandler with BaseJsonProtocol {
     override def +=(message: HealthGaugeMessage): Unit = {
       try {
-        db withSession { implicit session =>
+        db.run {
           healthGaugeMessageTable += HealthGaugeMessageRow(id, message)
         }
       } catch {
-        case e: Exception =>
+        case NonFatal(e) =>
           logger.error(s"Failed to write new health message to database: $e")
           throw e
       }
     }
 
-    override def getAll: Seq[HealthGaugeMessage] = {
+    override def getAll: Future[Seq[HealthGaugeMessage]] = {
       try {
-        db withSession { implicit session =>
-          healthGaugeMessageTable.filter(_.id === id).sortBy(_.createdAt.asc).run.map { row => row.message }
-        }
+        db.run {
+          healthGaugeMessageTable
+            .filter(_.id === id)
+            .sortBy(_.createdAt.asc)
+            .result
+        }.map(_.map(_.message))
       } catch {
-        case e: Exception =>
+        case NonFatal(e) =>
           logger.error(s"Failed to read health messages from database: $e")
           throw e
       }

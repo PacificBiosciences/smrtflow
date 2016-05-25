@@ -173,30 +173,30 @@ class JobsDaoActor(dao: JobsDao) extends PacBioActor with ActorLogging {
 
   def receive: Receive = {
 
-    case GetProjects => respondWith(dao.getProjects(1000))
-    case GetProjectById(projId: Int) => respondWith {
-      dao.getProjectById(projId).getOrElse(toE(s"Unable to find project $projId"))
+    case GetProjects => pipeWith(dao.getProjects(1000))
+    case GetProjectById(projId: Int) => pipeWith {
+      dao.getProjectById(projId).map(_.getOrElse(toE(s"Unable to find project $projId")))
     }
-    case CreateProject(opts: ProjectRequest) => respondWith(dao.createProject(opts))
-    case UpdateProject(projId: Int, opts: ProjectRequest) => respondWith {
-      dao.updateProject(projId, opts).getOrElse(toE(s"Unable to find project $projId"))
+    case CreateProject(opts: ProjectRequest) => pipeWith(dao.createProject(opts))
+    case UpdateProject(projId: Int, opts: ProjectRequest) => pipeWith {
+      dao.updateProject(projId, opts).map(_.getOrElse(toE(s"Unable to find project $projId")))
     }
     case GetProjectUsers(projId: Int) =>
-      respondWith(dao.getProjectUsers(projId))
+      pipeWith(dao.getProjectUsers(projId))
     case AddProjectUser(projId: Int, user: ProjectUserRequest) =>
-      respondWith(dao.addProjectUser(projId, user))
+      pipeWith(dao.addProjectUser(projId, user))
     case DeleteProjectUser(projId: Int, user: String) =>
-      respondWith(dao.deleteProjectUser(projId, user))
+      pipeWith(dao.deleteProjectUser(projId, user))
     case GetDatasetsByProject(projId: Int) =>
-      respondWith(dao.getDatasetsByProject(projId))
+      pipeWith(dao.getDatasetsByProject(projId))
     case GetUserProjects(login: String) =>
-      respondWith(dao.getUserProjects(login))
+      pipeWith(dao.getUserProjects(login))
     case GetUserProjectsDatasets(user: String) =>
-      respondWith(dao.getUserProjectsDatasets(user))
+      pipeWith(dao.getUserProjectsDatasets(user))
     case SetProjectForDatasetId(dsId: Int, projId: Int) =>
-      respondWith(dao.setProjectForDatasetId(dsId, projId))
+      pipeWith(dao.setProjectForDatasetId(dsId, projId))
     case SetProjectForDatasetUuid(dsId: UUID, projId: Int) =>
-      respondWith(dao.setProjectForDatasetUuid(dsId, projId))
+      pipeWith(dao.setProjectForDatasetUuid(dsId, projId))
 
 
     case GetAllJobs => respondWith(dao.getJobs(1000))

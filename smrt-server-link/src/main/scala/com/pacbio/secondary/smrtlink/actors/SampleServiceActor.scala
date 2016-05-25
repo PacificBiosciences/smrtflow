@@ -20,11 +20,11 @@ class SampleServiceActor(sampleDao: SampleDao) extends PacBioActor {
   import SampleServiceActor._
 
   def receive: Receive = {
-    case GetSamples()                   => respondWith(sampleDao.getSamples())
-    case GetSample(uniqueId)            => respondWith(sampleDao.getSample(uniqueId))
-    case CreateSample(login, create)    => respondWith(sampleDao.createSample(login, create))
-    case UpdateSample(uniqueId, update) => respondWith(sampleDao.updateSample(uniqueId, update))
-    case DeleteSample(uniqueId)         => respondWith(sampleDao.deleteSample(uniqueId))
+    case GetSamples()                   => pipeWith(sampleDao.getSamples())
+    case GetSample(uniqueId)            => pipeWith(sampleDao.getSample(uniqueId))
+    case CreateSample(login, create)    => pipeWith(sampleDao.createSample(login, create))
+    case UpdateSample(uniqueId, update) => pipeWith(sampleDao.updateSample(uniqueId, update))
+    case DeleteSample(uniqueId)         => pipeWith(sampleDao.deleteSample(uniqueId))
   }
 }
 

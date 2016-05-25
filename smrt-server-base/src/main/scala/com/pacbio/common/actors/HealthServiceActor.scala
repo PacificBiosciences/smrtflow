@@ -27,7 +27,7 @@ class HealthServiceActor(healthDao: HealthDao) extends PacBioActor {
     case GetAllGauges                                           => respondWith(healthDao.getAllHealthGauges)
     case GetGauge(id: String)                                   => respondWith(healthDao.getHealthGauge(id))
     case CreateGauge(m: HealthGaugeRecord)                      => respondWith(healthDao.createHealthGauge(m))
-    case GetAllMessages(id: String)                             => respondWith(healthDao.getAllHealthMessages(id))
+    case GetAllMessages(id: String)                             => pipeWith(healthDao.getAllHealthMessages(id))
     case CreateMessage(id: String, m: HealthGaugeMessageRecord) => respondWith(healthDao.createHealthMessage(id, m))
     case GetSevereGauges                                        => respondWith(healthDao.getSevereHealthGauges)
   }
