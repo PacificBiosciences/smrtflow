@@ -153,14 +153,8 @@ lazy val smrtServerAnalysis = (
     settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
   )
 
-lazy val smrtServerTools = (
-  PacBioProject("smrt-server-tools")
-    dependsOn(logging, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
-    settings()
-  )
-
 lazy val smrtServerAnalysisInternal = (
   PacBioProject("smrt-server-analysis-internal")
-    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging, smrtServerTools)
+    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
     settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
   )
