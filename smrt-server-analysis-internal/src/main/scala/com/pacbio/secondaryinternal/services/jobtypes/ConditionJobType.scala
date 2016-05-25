@@ -90,16 +90,11 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
     val cs = IOUtils.parseConditionCsv(sx)
     logger.debug(s"Parsed conditions $cs")
 
-    // This assumes the list isn't empty
-    val c = cs(0)
-
-    val baseUrl = new URL(s"http://${c.host}:${c.port}")
-    logger.debug(s"Base url $baseUrl")
-
-    val sal = new AnalysisServiceAccessLayer(baseUrl)(actorSystem)
+    def toUrl(host: String, port: Int) = new URL(s"http://$host:$port")
 
     def resolve(sc: ServiceCondition): Future[ResolvedJobCondition] = {
       for {
+        sal <- Future { new AnalysisServiceAccessLayer(toUrl(sc.host, sc.port))(actorSystem)}
         path <- JobResolvers.resolveAlignmentSet(sal, sc.jobId)
       } yield ResolvedJobCondition(sc.id, sc.host, sc.port, sc.jobId, path)
     }
