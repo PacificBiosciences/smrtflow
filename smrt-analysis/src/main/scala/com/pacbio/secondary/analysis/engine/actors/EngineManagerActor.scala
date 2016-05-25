@@ -1,19 +1,19 @@
 package com.pacbio.secondary.analysis.engine.actors
 
 import java.nio.file.Files
-import com.pacbio.secondary.analysis.engine.{EngineConfig, CommonMessages}
+
+import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
 import CommonMessages._
 import com.pacbio.secondary.analysis.jobs
-import com.pacbio.secondary.analysis.jobs.JobModels.{RunnableJobWithId, RunnableJob, NoAvailableWorkError}
+import com.pacbio.secondary.analysis.jobs.JobModels.{JobTypeId, NoAvailableWorkError, RunnableJob, RunnableJobWithId}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs._
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 
@@ -29,16 +29,19 @@ object EngineManagerActor {
 
 
 /**
- * This Engine Manager is the hub of adding tasks and running tasks via workers
- *
- * The manager will persist data to DataAccessLayer via DAO Actor.
- *
- * The Manager and the Dao are split to divide responsibility. The DAO can be replaced
- * with a InMemory or db driven implementation.
- *
- * @param daoActor Access point for persisting state
- */
-class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolver: JobResourceResolver, jobRunner: JobRunner) extends Actor with ActorLogging {
+  * This Engine Manager is the hub of adding tasks and running tasks via workers
+  *
+  * The manager will persist data to DataAccessLayer via DAO Actor.
+  *
+  * The Manager and the Dao are split to divide responsibility. The DAO can be replaced
+  * with a InMemory or db driven implementation.
+  *
+  * @param daoActor Access point for persisting state
+  */
+class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolver: JobResourceResolver, jobRunner: JobRunner)
+  extends Actor with ActorLogging {
+
+  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
 
   implicit val timeout = Timeout(5.second)
 
@@ -56,12 +59,16 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
 
+  // For jobs that are small and can completed in a relatively short amount of time (~seconds)
+  val quickWorkers = mutable.Queue[ActorRef]()
+
   override def preStart(): Unit = {
     log.info(s"Starting manager actor $self with $engineConfig")
 
     (0 until engineConfig.maxWorkers).foreach { x =>
       val worker = context.actorOf(EngineWorkerActor.props(daoActor, jobRunner), s"engine-worker-$x")
       workers.enqueue(worker)
+      log.debug(s"Creating worker $worker")
     }
     log.info(s"Created ${workers.size} engine workers")
 
@@ -82,7 +89,7 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
         case Right(runnableJob) =>
           if (workers.nonEmpty) {
             log.debug(s"Checking for work. Number of available Workers ${workers.size}")
-            log.debug(s"Found jobOptions work $runnableJob. Updating state and starting task.")
+            log.debug(s"Found jobOptions work ${runnableJob.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
             val fx = for {
               f1 <- daoActor ? UpdateJobStatus(runnableJob.job.uuid, AnalysisJobStates.SUBMITTED)
@@ -106,7 +113,7 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
       }
 
       f onFailure {
-        case _ => log.error("Failure checking for new work")
+        case e => log.error(s"Failure checking for new work ${e.getMessage}")
       }
     } else {
       log.debug("No available workers.")
@@ -121,17 +128,25 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
       f.onSuccess {
         case Right(x) =>
           sender ! x
+          self ! CheckForRunnableJob
         case Left(e) =>
           sender ! FailedMessage(s"Failed to add jobOptions $job. Error ${e.toString}")
+          self ! CheckForRunnableJob
       }
 
       f.onFailure {
-        case e => sender ! FailedMessage(s"Failed to add jobOptions $job. Error ${e.toString}")
+        case e =>
+          sender ! FailedMessage(s"Failed to add jobOptions $job. Error ${e.toString}")
+          self ! CheckForRunnableJob
       }
 
 
     case CheckForRunnableJob =>
-      checkForWork()
+      //FIXME. This is probably not necessary
+      Try { checkForWork() } match {
+        case Success(_) =>
+        case Failure(ex) => log.error(s"Failed check for runnable jobs ${ex.getMessage}")
+      }
 
     case UpdateJobCompletedResult(result) =>
       // This should have a success/failure
@@ -139,14 +154,17 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
         case x: Completed =>
           daoActor ! UpdateJobStatus(result.uuid, result.state)
           workers.enqueue(sender)
+          self ! CheckForRunnableJob
         case x => log.error(s"state must be a completed state. Got $result")
           workers.enqueue(sender)
+          self ! CheckForRunnableJob
       }
 
     case UpdateJobStatus(uuid, state) =>
       // FIXME. handle completed states differently
       daoActor ! UpdateJobStatus(uuid, state)
+      self ! CheckForRunnableJob
 
-    case x => log.info(s"Unhandled Message to Engine Message $x")
+    case x => log.debug(s"Unhandled Message to Engine Message $x")
   }
 }
