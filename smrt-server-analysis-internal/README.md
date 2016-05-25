@@ -1,5 +1,6 @@
 # SMRT Server Analysis Internal
 
+See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and [smrtflow](../README.md) for the base multi-project's README. 
 
 Adds support for running "Condition" driven pipelines via the "condition" job type and Condition JSON data model.
 
