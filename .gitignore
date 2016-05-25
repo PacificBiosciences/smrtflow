@@ -23,6 +23,7 @@ project/plugins/project/
 .worksheet
 docs/_build/*
 db/*
+.idea
 
 # ensime-specific
 .ensime
