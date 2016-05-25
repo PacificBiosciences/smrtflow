@@ -99,7 +99,7 @@ object SecondaryAnalysisInternalServer extends App
   override val port = providers.serverPort()
   println(s"serverPort: ${providers.serverPort()}")
 
-  LoggerOptions.parseRequireFile(args)
+  LoggerOptions.parseAddDebug(args)
 
   start
 }
