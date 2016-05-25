@@ -28,7 +28,7 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(30.seconds)
 
   val typeId = "pacbio.my_component"
   val componentId1 = "pacbio.my_component.one"
