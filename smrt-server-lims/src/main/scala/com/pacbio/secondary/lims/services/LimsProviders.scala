@@ -4,7 +4,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.smrtlink.app.SmrtLinkProviders
 
 // Setup all of the URL handling providers as one succinct trait to use later
-trait LimsProviders extends SmrtLinkProviders {
+trait LimsProviders extends SmrtLinkProviders with HelloWorldProvider {
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_lims")
   override val actorSystemName = Some("smrtlink-lims")
