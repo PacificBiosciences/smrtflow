@@ -29,7 +29,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     toServiceId("cleanup"),
     "Subsystem Cleanup Service",
-    "0.2.0", "Subsystem Cleanup Service", None)
+    "0.2.0", "Subsystem Cleanup Service")
 
   val routes =
     pathPrefix("cleanup" / "jobs") {

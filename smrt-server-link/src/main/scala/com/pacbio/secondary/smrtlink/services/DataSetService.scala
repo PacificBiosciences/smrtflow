@@ -48,8 +48,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     toServiceId("smrtlink.dataset"),
     "SMRT Link DataSetService Service",
     "0.1.0",
-    "SMRT Link Analysis DataSet Service",
-    None)
+    "SMRT Link Analysis DataSet Service")
 
   val DATASET_TYPES_PREFIX = "dataset-types"
   val DATASET_PREFIX = "datasets"

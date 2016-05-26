@@ -11,5 +11,6 @@ assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
 packSettings
 
 packMain := Map(
-  "get-smrt-server-status" -> "com.pacbio.common.tools.GetStatusApp"
+  "get-smrt-server-status" -> "com.pacbio.common.tools.GetStatusApp",
+  "pbservice" -> "com.pacbio.common.tools.PbServiceApp"
 )

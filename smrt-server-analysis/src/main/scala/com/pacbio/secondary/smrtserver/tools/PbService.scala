@@ -1,9 +1,9 @@
-package com.pacbio.secondary.smrttools.tools
+package com.pacbio.secondary.smrtserver.tools
 
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrttools.client.{AnalysisServiceAccessLayer,ServicesClientJsonProtocol}
+import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,ServicesClientJsonProtocol}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 
 import akka.actor.ActorSystem

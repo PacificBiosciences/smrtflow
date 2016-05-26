@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.converters
 
-import java.nio.file.Path
+import java.nio.file.{Path, Files}
 
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter._
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
@@ -67,12 +67,14 @@ object FastaToReferenceConverter extends LazyLogging with ExternalToolsUtils {
       case _ =>
         logger.info(s"passed PacBio Fasta pre-Validation ${opts.fastaPath.toAbsolutePath}")
 
+        // The legacy code converts the name to 'id' ?
+        val sanitizedName = ReposUtils.nameToFileName(opts.name)
+        var referenceDir = opts.outputDir.resolve(sanitizedName)
+        if (Files.exists(referenceDir)) return Left(DatasetConvertError(s"The directory ${referenceDir} already exists - please remove it or specify an alternate output directory or reference name."))
+
         val rc = toCmd(opts)
         println(s"Running Conversion '$rc'")
         rc.run()
-
-        // The legacy code converts the name to 'id' ?
-        val sanitizedName = ReposUtils.nameToFileName(opts.name)
 
         // The relative path to the reference.info.xml file (./my-ref/reference.info.xml)
         val xs = ReposUtils.getReferenceInfoXmlPath(sanitizedName)

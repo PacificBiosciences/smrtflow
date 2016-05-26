@@ -53,8 +53,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(implicit val actorSyst
     toServiceId(serviceBaseId),
     serviceName,
     serviceVersion,
-    serviceDescription,
-    dependencies = None)
+    serviceDescription)
 
   // TODO(smcclellan): Add auth
   override lazy val routes =

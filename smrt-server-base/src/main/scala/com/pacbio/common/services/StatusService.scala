@@ -27,7 +27,7 @@ class StatusService(statusActor: ActorRef) extends PacBioService {
   val manifest = PacBioComponentManifest(
     toServiceId("status"),
     "Status Service",
-    "0.2.0", "Subsystem Status Service", None)
+    "0.2.0", "Subsystem Status Service")
 
   val statusServiceName = "status"
 

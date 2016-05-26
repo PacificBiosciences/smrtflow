@@ -2,10 +2,10 @@
 // TODO make this a thin wrapper around the version in smrt-server-base (with
 // additional endpoints)
 
-package com.pacbio.secondary.smrttools.tools
+package com.pacbio.secondary.smrtserver.tools
 
 import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrttools.client._
+import com.pacbio.secondary.smrtserver.client._
 import java.net.URL
 
 import akka.actor.ActorSystem

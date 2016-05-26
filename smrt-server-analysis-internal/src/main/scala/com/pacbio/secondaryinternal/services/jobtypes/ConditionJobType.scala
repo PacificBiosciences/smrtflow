@@ -22,7 +22,6 @@ import com.pacbio.common.actors.{ActorSystemProvider, UserServiceActorRefProvide
 import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.LoggerFactoryProvider
-import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}
@@ -34,7 +33,7 @@ import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
-import com.pacbio.secondary.smrttools.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models._
 import com.pacbio.secondaryinternal.{BaseInternalMicroService, IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
 import com.typesafe.scalalogging.LazyLogging

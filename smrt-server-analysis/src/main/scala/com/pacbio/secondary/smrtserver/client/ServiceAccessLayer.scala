@@ -1,5 +1,4 @@
-
-package com.pacbio.secondary.smrttools.client
+package com.pacbio.secondary.smrtserver.client
 
 import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
