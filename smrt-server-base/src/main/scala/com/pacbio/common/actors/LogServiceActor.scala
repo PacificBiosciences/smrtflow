@@ -5,6 +5,8 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{LogMessageRecord, LogResourceRecord}
 import org.joda.time.{DateTime => JodaDateTime}
 
+import scala.concurrent.ExecutionContext.Implicits._
+
 /**
  * Represents a set of search criteria for searching log messages.
  * @param substring if present, only log messages containing this substring will be returned

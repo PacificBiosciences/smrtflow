@@ -3,11 +3,12 @@ package com.pacbio.secondary.analysis.engine
 
 import java.util.UUID
 
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import org.joda.time.{DateTime => JodaDateTime}
-import scala.slick.driver.SQLiteDriver.simple._
+import slick.driver.SQLiteDriver.api._
 import com.github.tototoshi.slick.SQLiteJodaSupport._
-import scala.slick.jdbc.JdbcBackend
-import scala.slick.lifted.{ProvenShape, ForeignKeyQuery}
+import slick.jdbc.JdbcBackend
+import slick.lifted.{ProvenShape, ForeignKeyQuery}
 import slick.jdbc.meta.MTable
 import scala.util.Random
 
@@ -18,49 +19,33 @@ import scala.util.Random
  */
 object EngineTableModels {
 
-  class JobStatesT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "job_states") {
+  implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, Int](
+    {s => s.stateId},
+    {s => AnalysisJobStates.intToState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
+  )
 
-    def id: Column[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
+  class JobEventsT(tag: Tag) extends Table[(Int, AnalysisJobStates.JobStates, Int, String, JodaDateTime)](tag, "job_events") {
+    def id: Rep[Int] = column[Int]("job_event_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def stateId: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
 
-    def description: Column[String] = column[String]("description")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def message: Rep[String] = column[String]("message")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, createdAt, updatedAt)
-
-  }
-
-  class JobEventsT(tag: Tag) extends Table[(Int, Int, Int, String, JodaDateTime)](tag, "job_events") {
-
-    def id: Column[Int] = column[Int]("job_event_id", O.PrimaryKey, O.AutoInc)
-
-    def stateId: Column[Int] = column[Int]("state_id")
-
-    def jobId: Column[Int] = column[Int]("job_id")
-
-    def message: Column[String] = column[String]("message")
-
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
-
-    def stateJoin = jobStates.filter(_.id === stateId)
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
     def jobJoin = engineJobs.filter(_.id === jobId)
 
-    def * : ProvenShape[(Int, Int, Int, String, JodaDateTime)] = (id, stateId, jobId, message, createdAt)
+    def * : ProvenShape[(Int, AnalysisJobStates.JobStates, Int, String, JodaDateTime)] = (id, stateId, jobId, message, createdAt)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
-    def id: Column[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
+    def id: Rep[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
     def * : ProvenShape[(Int, String)] = (id, name)
   }
@@ -70,9 +55,9 @@ object EngineTableModels {
    * @param tag General Tags for Jobs
    */
   class JobsTags(tag: Tag) extends Table[(Int, Int)](tag, "jobs_tags") {
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
-    def tagId: Column[Int] = column[Int]("job_tag_id")
+    def tagId: Rep[Int] = column[Int]("job_tag_id")
 
     def * : ProvenShape[(Int, Int)] = (jobId, tagId)
 
@@ -84,52 +69,41 @@ object EngineTableModels {
   }
 
 
-  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String)](tag, "engine_jobs") {
-
-    def id: Column[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
+  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, AnalysisJobStates.JobStates, String)](tag, "engine_jobs") {
+    def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
 
     // FIXME. The process engine only uses UUID
-    def uuid: Column[UUID] = column[UUID]("uuid")
+    def uuid: Rep[UUID] = column[UUID]("uuid")
 
-    def pipelineId: Column[String] = column[String]("pipeline_id")
+    def pipelineId: Rep[String] = column[String]("pipeline_id")
 
-    def name: Column[String] = column[String]("name")
+    def name: Rep[String] = column[String]("name")
 
-    def stateId: Column[Int] = column[Int]("state_id")
+    def stateId: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
 
-    def createdAt: Column[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def updatedAt: Column[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
-    def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
+    def jobTypeId: Rep[String] = column[String]("job_type_id")
 
-    def stateJoin = jobStates.filter(_.id === stateId)
-
-    def jobTypeId: Column[String] = column[String]("job_type_id")
-
-    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String)] = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId)
+    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, AnalysisJobStates.JobStates, String)] = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
+    def id: Rep[Int] = column[Int]("job_result_id")
 
-    def id: Column[Int] = column[Int]("job_result_id")
+    def host: Rep[String] = column[String]("host_name")
 
-    def host: Column[String] = column[String]("host_name")
-
-    def jobId: Column[Int] = column[Int]("job_id")
+    def jobId: Rep[Int] = column[Int]("job_id")
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
     def * : ProvenShape[(Int, String)] = (id, host)
-
   }
 
   lazy val engineJobs = TableQuery[EngineJobsT]
   lazy val jobEvents = TableQuery[JobEventsT]
-  lazy val jobStates = TableQuery[JobStatesT]
   lazy val jobTags = TableQuery[JobTags]
   lazy val jobsTags = TableQuery[JobsTags]
-
-
-  lazy val ddls = engineJobs.ddl ++ jobEvents.ddl ++ jobStates.ddl ++ jobTags.ddl ++ jobsTags.ddl
 }

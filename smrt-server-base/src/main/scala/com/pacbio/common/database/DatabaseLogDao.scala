@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.meta.MTable
 
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**

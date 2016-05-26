@@ -15,27 +15,16 @@ import slick.lifted.ProvenShape
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
 
-  class JobStatesT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "job_states") {
-
-    def id: Rep[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
-
-    def name: Rep[String] = column[String]("name")
-
-    def description: Rep[String] = column[String]("description")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, createdAt, updatedAt)
-
-  }
+  implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, Int](
+    {s => s.stateId},
+    {s => AnalysisJobStates.intToState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
+  )
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
-    def stateId: Rep[Int] = column[Int]("state_id")
+    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
@@ -43,23 +32,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
-
-    def stateJoin = jobStates.filter(_.id === stateId)
-
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
     def jobJoin = engineJobs.filter(_.id === jobId)
 
-    def fromJobEvent(jobEvent: JobEvent): Option[(UUID, Int, Int, String, JodaDateTime)] =
-      Some((jobEvent.eventId, jobEvent.jobId, jobEvent.state.stateId, jobEvent.message, jobEvent.createdAt))
-
-    def intoJobEvent(tuple: (UUID, Int, Int, String, JodaDateTime)): JobEvent = {
-      val state = AnalysisJobStates.intToState(tuple._3) getOrElse AnalysisJobStates.UNKNOWN
-      JobEvent(tuple._1, tuple._2, state, tuple._4, tuple._5)
-    }
-
-    def * = (id, jobId, stateId, message, createdAt) <> (intoJobEvent, fromJobEvent)
+    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -101,15 +78,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    def stateId: Rep[Int] = column[Int]("state_id")
+    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
-
-    def stateJoin = jobStates.filter(_.id === stateId)
 
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
@@ -124,22 +97,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId, path, jsonSettings, createdBy) <> (intoEngineJob, fromEngineJob)
-
-    //def indexUUID = index("index_uuid", uuid, unique = true)
-
-    private def intoEngineJob(t: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String, Option[String])):EngineJob = {
-      val state = AnalysisJobStates.intToState(t._7).getOrElse(AnalysisJobStates.UNKNOWN)
-      EngineJob(t._1, t._2, t._3, t._4, t._5, t._6, state, t._8, t._9, t._10, t._11)
-    }
-
-    private def fromEngineJob(engineJob: EngineJob)  = {
-      Some((engineJob.id,
-        engineJob.uuid, engineJob.name, engineJob.comment,
-        engineJob.createdAt, engineJob.updatedAt, engineJob.state.stateId,
-        engineJob.jobTypeId, engineJob.path, engineJob.jsonSettings, engineJob.createdBy))
-    }
-
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy) <> (EngineJob.tupled, EngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -153,7 +111,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
     def * : ProvenShape[(Int, String)] = (id, host)
-
   }
 
   class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
@@ -224,9 +181,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def shortName: Rep[String] = column[String]("short_name")
 
     def * = (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
-
   }
-
 
   /*
   Table to capture the DataSet Entry points of a EngineJob
@@ -275,7 +230,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
-
   }
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
@@ -301,7 +255,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(SubreadServiceSet.tupled, SubreadServiceSet.unapply)
-
   }
 
   class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
@@ -327,7 +280,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
-
   }
 
   class ReferenceDataSetT(tag: Tag) extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
@@ -337,25 +289,18 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def organism: Rep[String] = column[String]("organism")
 
     def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
-
   }
 
   class AlignmentDataSetT(tag: Tag) extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
-
     def * = (id, uuid) <>(AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
-
   }
 
   class BarcodeDataSetT(tag: Tag) extends IdAbleTable[BarcodeServiceSet](tag, "datasets_barcodes") {
-
     def * = (id, uuid) <>(BarcodeServiceSet.tupled, BarcodeServiceSet.unapply)
-
   }
 
   class CCSreadDataSetT(tag: Tag) extends IdAbleTable[CCSreadServiceSet](tag, "datasets_ccsreads") {
-
     def * = (id, uuid) <>(CCSreadServiceSet.tupled, CCSreadServiceSet.unapply)
-
   }
 
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
@@ -548,7 +493,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val engineJobs = TableQuery[EngineJobsT]
   lazy val engineJobsDataSets = TableQuery[EngineJobDataSetT]
   lazy val jobEvents = TableQuery[JobEventsT]
-  lazy val jobStates = TableQuery[JobStatesT]
   lazy val jobTags = TableQuery[JobTags]
   lazy val jobsTags = TableQuery[JobsTags]
 
@@ -570,7 +514,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     datasetTypes,
     engineJobsDataSets,
     jobEvents,
-    jobStates,
     jobTags,
     jobsTags,
     users,

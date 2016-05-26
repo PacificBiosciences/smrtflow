@@ -1,8 +1,10 @@
 package com.pacbio.common.actors
 
-import akka.actor.{Props, ActorRef, Actor}
+import akka.actor.{Props, ActorRef}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{HealthGaugeMessageRecord, HealthGaugeRecord}
+
+import scala.concurrent.ExecutionContext.Implicits._
 
 /**
  * Companion object for the HealthServiceActor class, defining the set of messages it can handle.

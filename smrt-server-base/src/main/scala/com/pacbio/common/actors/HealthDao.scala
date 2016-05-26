@@ -9,6 +9,7 @@ import com.pacbio.common.services.PacBioServiceErrors
 import com.pacbio.common.time.{ClockProvider, Clock}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**

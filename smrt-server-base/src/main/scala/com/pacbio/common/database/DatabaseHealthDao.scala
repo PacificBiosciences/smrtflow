@@ -9,6 +9,7 @@ import com.pacbio.common.time.{ClockProvider, Clock}
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.meta._
 
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}

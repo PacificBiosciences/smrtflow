@@ -14,6 +14,7 @@ import scala.collection.mutable
 
 import spray.json._
 
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**

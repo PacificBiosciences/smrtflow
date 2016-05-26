@@ -3,7 +3,7 @@ package com.pacbio.common
 import akka.actor.{Status, Actor}
 import akka.pattern.pipe
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -13,7 +13,7 @@ package object actors {
       sender ! Try(x).recover{ case NonFatal(e) => Status.Failure(e) }.get
     }
 
-    def pipeWith(x: => Future[Any]): Unit = {
+    def pipeWith(x: => Future[Any])(implicit ec: ExecutionContext): Unit = {
       pipe(x.recover{ case NonFatal(e) => Status.Failure(e) }) to sender
     }
   }
