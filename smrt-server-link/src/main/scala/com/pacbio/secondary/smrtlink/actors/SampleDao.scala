@@ -9,6 +9,7 @@ import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 trait SampleDao {

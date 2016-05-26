@@ -7,6 +7,8 @@ import com.pacbio.common.actors.{PacBioActor, ActorRefFactoryProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
 
+import scala.concurrent.ExecutionContext.Implicits._
+
 /**
  * Represents a set of search criteria for searching run designs.
  * @param name if present, only run designs whose name matches the given name will be returned

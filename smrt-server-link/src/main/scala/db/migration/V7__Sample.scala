@@ -6,13 +6,15 @@ import org.joda.time.{DateTime => JodaDateTime}
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 
 import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 
+import scala.concurrent.Future
+
 class V7__Sample extends JdbcMigration with SlickMigration {
-  override def slickMigrate: DBIOAction[Any, NoStream, Nothing] =
-    V7Schema.samples.schema.create
+  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V7Schema.samples.schema.create)
 }
 
 object V7Schema extends PacBioDateTimeDatabaseFormat {

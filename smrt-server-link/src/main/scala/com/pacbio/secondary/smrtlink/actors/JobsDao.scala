@@ -95,20 +95,20 @@ trait ProjectDataStore extends LazyLogging {
   def createProject(opts: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
     val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
-    val insertAction = (projects returning projects.map(_.id)) += proj
-    val action = insertAction.map(id => proj.copy(id = id))
+    val action = projects returning projects += proj
     dal.db.run(action)
   }
 
   def updateProject(projId: Int, opts: ProjectRequest): Future[Option[Project]] = {
     val now = JodaDateTime.now()
-    val proj = projects.filter(_.id === projId)
-    val action = proj
+    val update = projects
+      .filter(_.id === projId)
       .map(p => (p.name, p.state, p.description, p.updatedAt))
       .update(opts.name, opts.state, opts.description, now)
-      .flatMap(_ => proj.result.headOption)
 
-    dal.db.run(action)
+    val updateAndGet = update >> projects.filter(_.id === projId).result.headOption
+
+    dal.db.run(updateAndGet)
   }
 
   def getProjectUsers(projId: Int): Future[Seq[ProjectUser]] =
@@ -228,11 +228,12 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val jsonSettings = "{}"
 
     val job = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
-    val query = engineJobs returning engineJobs += job
 
-    val update = query.flatMap { j =>
+    val update = (engineJobs returning engineJobs += job).flatMap { j =>
       val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
-      val resolvedPath = resolver.resolve(runnableJobWithId)
+      _runnableJobs.update(runnableJob.job.uuid, runnableJobWithId)
+
+      val resolvedPath = resolver.resolve(runnableJobWithId).toAbsolutePath.toString
       val jobEvent = JobEvent(
         UUID.randomUUID(),
         j.id,
@@ -241,12 +242,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
         JodaDateTime.now())
 
       DBIO.seq(
-        engineJobs.filter(_.id === j.id).map(_.path).update(resolvedPath.toAbsolutePath.toString),
-        jobEvents += jobEvent
-      ).map(_ => runnableJobWithId)
-    }.map { rj =>
-      _runnableJobs.update(runnableJob.job.uuid, rj)
-      job.copy(id = rj.id)
+        jobEvents += jobEvent,
+        engineJobs.filter(_.id === j.id).map(_.path).update(resolvedPath)
+      ).map { _ =>
+        job.copy(id = j.id, path = resolvedPath)
+      }
     }
 
     dal.db.run(update.transactionally)
@@ -349,22 +349,24 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
     val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
 
-    val insert = engineJobs returning engineJobs.map(_.id) into ((engineJob, id) => engineJob.copy(id = id)) += engineJob
-    val updates = insert.flatMap { job =>
+    val updates = (engineJobs returning engineJobs += engineJob) flatMap { job =>
       val jobId = job.id
       val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
-      val resolvedPath = resolver.resolve(rJob)
-      var action: DBIOAction[_, _, _] = DBIO.seq(
-        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath.toAbsolutePath.toString),
-        jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.CREATED, s"Created job $jobId type $jobTypeId with ${uuid.toString}", JodaDateTime.now())
-      )
-      entryPoints.foreach { eps =>
-        val inserts = eps.map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
-        action = action >> (engineJobsDataSets ++= inserts)
-      }
-      action
-        .map(_ => _runnableJobs.update(uuid, rJob))
-        .map(_ => engineJob.copy(id = jobId, path = resolvedPath.toAbsolutePath.toString))
+      _runnableJobs.update(uuid, rJob)
+
+      val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
+      val jobEvent = JobEvent(
+        UUID.randomUUID(),
+        jobId,
+        AnalysisJobStates.CREATED,
+        s"Created job $jobId type $jobTypeId with ${uuid.toString}",
+        JodaDateTime.now())
+
+      DBIO.seq(
+        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath),
+        jobEvents += jobEvent,
+        engineJobsDataSets ++= entryPoints.getOrElse(Nil).map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
+      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath))
     }
 
     dal.db.run(updates.transactionally)
@@ -543,7 +545,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
     dal.db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
 
-  private def insertMetaData(ds: ServiceDataSetMetadata)(implicit session: Session): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
+  private def insertMetaData(ds: ServiceDataSetMetadata): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
     dsMetaData2 returning dsMetaData2.map(_.id) += DataSetMetaDataSet(

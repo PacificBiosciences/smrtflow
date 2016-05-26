@@ -8,9 +8,10 @@ import com.pacbio.secondary.smrtlink.actors.{Dal, SampleDao}
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 
-import slick.driver.SQLiteDriver.api._
-
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
+
+import slick.driver.SQLiteDriver.api._
 
 class DatabaseSampleDao(dal: Dal, clock: Clock) extends SampleDao {
 

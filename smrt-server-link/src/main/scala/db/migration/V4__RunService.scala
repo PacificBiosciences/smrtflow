@@ -8,15 +8,18 @@ import com.typesafe.scalalogging.LazyLogging
 
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 
+import scala.concurrent.Future
+
 
 class V4__RunService extends JdbcMigration with SlickMigration with LazyLogging {
-  override def slickMigrate: DBIOAction[Any, NoStream, Nothing] =
-    V3Schema.collectionMetadata.schema.drop >>
-    V4Schema.runTables.map(_.schema).reduce(_ ++ _).create
+  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
+    V3Schema.collectionMetadata.schema.drop >> V4Schema.runTables.map(_.schema).reduce(_ ++ _).create
+  }
 }
 
 object V4Schema extends PacBioDateTimeDatabaseFormat {

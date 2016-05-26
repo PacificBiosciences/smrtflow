@@ -8,6 +8,7 @@ import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError,
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 

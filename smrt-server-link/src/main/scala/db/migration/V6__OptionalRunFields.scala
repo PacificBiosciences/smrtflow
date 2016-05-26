@@ -2,17 +2,18 @@ package db.migration
 
 import java.util.UUID
 
-import org.joda.time.{DateTime => JodaDateTime}
-
+import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
+import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
-
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 class V6__OptionalRunFields extends JdbcMigration with SlickMigration {
-  override def slickMigrate: DBIOAction[Any, NoStream, Nothing] = {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val oldRuns = V4Schema.runSummaries.result
     val newRuns = oldRuns.map(_.map( o => (o._1, o._2, Some(o._3), o._4, o._5, o._6, o._7, o._8, o._9, o._10, o._11, Some(o._12), Some(o._13), Some(o._14), Some(o._15), Some(o._16), o._17, o._18)))
 
@@ -24,11 +25,11 @@ class V6__OptionalRunFields extends JdbcMigration with SlickMigration {
     V4Schema.runTables.map(_.schema).reduce(_ ++ _).drop
     V6Schema.runTables.map(_.schema).reduce(_ ++ _).create
 
-    DBIO.seq(
+    db.run(DBIO.seq(
       newRuns.flatMap(V6Schema.runSummaries ++= _),
       data.flatMap(V6Schema.dataModels ++= _),
       newCols.flatMap(V6Schema.collectionMetadata ++= _)
-    )
+    ))
   }
 }
 

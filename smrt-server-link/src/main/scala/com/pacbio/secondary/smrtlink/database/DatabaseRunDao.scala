@@ -7,8 +7,11 @@ import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError,
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 
-import slick.driver.SQLiteDriver.api._
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
+
+import slick.driver.SQLiteDriver.api._
+
 
 /**
  * RunDao that stores run designs in a Slick database.
@@ -42,7 +45,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
       action = action.flatMap { summary =>
         DBIO.seq(
           dataModels.filter(_.uniqueId === uniqueId).insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId)),
-          DBIO.sequence(res.collections.map { c => collectionMetadata += c })
+          collectionMetadata ++= res.collections
         ).map(_ => summary)
       }
     }

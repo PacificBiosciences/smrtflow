@@ -5,20 +5,23 @@ import java.util.UUID
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-
 import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
+
 class V9__DropJobStatesTable extends JdbcMigration with SlickMigration {
-  override def slickMigrate: DBIOAction[Any, NoStream, Nothing] = {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val engineJobs = InitialSchema.engineJobs.result
     val jobEvents = InitialSchema.jobEvents.result
 
-    engineJobs.zip(jobEvents).flatMap { data =>
+    db.run(engineJobs.zip(jobEvents).flatMap { data =>
       (InitialSchema.engineJobs.schema ++ InitialSchema.jobEvents.schema ++ InitialSchema.jobStates.schema).drop >>
         (V9Schema.engineJobs.schema ++ V9Schema.jobEvents.schema).create >>
         DBIO.seq(V9Schema.engineJobs ++= data._1, V9Schema.jobEvents ++= data._2)
-    }
+    })
   }
 }
 

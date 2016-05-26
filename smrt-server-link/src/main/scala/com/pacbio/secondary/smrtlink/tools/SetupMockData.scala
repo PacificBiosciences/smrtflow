@@ -16,11 +16,12 @@ import org.apache.commons.io.FileUtils
 
 import org.joda.time.{DateTime => JodaDateTime}
 
-import slick.driver.SQLiteDriver.api._
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
 
+import slick.driver.SQLiteDriver.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Future[Seq[Any]] = {

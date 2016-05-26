@@ -2,31 +2,32 @@ package db.migration
 
 import java.util.UUID
 
-import org.joda.time.{DateTime => JodaDateTime}
-
+import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
-
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-
+import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import scala.concurrent.Future
 
 
 class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
 
-  override def slickMigrate: DBIOAction[Any, NoStream, Nothing] = {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val rdDdl = InitialSchema.runDesignTables.map(_.schema).reduce(_ ++ _)
     val serviceDdl = InitialSchema.serviceTables.map(_.schema).reduce(_ ++ _)
 
-    (rdDdl ++ serviceDdl).create >> _populateDataSetTypes >> _populateJobStates >> _createSuperUserProject
+    db.run {
+      (rdDdl ++ serviceDdl).create >> _populateDataSetTypes >> _populateJobStates >> _createSuperUserProject
+    }
   }
 
   /**
    * Create DataSet types, JobTypes and Admin User, a single Project
    */
-  def _populateDataSetTypes: DBIOAction[Any, NoStream, Nothing] = {
+  def _populateDataSetTypes: DBIOAction[Any, NoStream, _ <: Effect] = {
     val initRows = List(
       ("PacBio.DataSet.ReferenceSet", "Display name for PacBio.DataSet.ReferenceSet", "Description for PacBio.DataSet.ReferenceSet", JodaDateTime.now(), JodaDateTime.now(), "references"),
       ("PacBio.DataSet.ConsensusReadSet", "Display name for PacBio.DataSet.ConsensusReadSet", "Description for PacBio.DataSet.ConsensusReadSet", JodaDateTime.now(), JodaDateTime.now(), "ccsreads"),
@@ -43,7 +44,7 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
   /**
    * Create the Default Job Types
    */
-  def _populateJobStates: DBIOAction[Any, NoStream, Nothing] = {
+  def _populateJobStates: DBIOAction[Any, NoStream, _ <: Effect] = {
     val initRows = List(
       (1, "CREATED", "State CREATED description", JodaDateTime.now(), JodaDateTime.now()),
       (2, "SUBMITTED", "State SUBMITTED description", JodaDateTime.now(), JodaDateTime.now()),
@@ -59,7 +60,7 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
   /**
    * Create a single user and a project
    */
-  def _createSuperUserProject: DBIOAction[Any, NoStream, Nothing] = {
+  def _createSuperUserProject: DBIOAction[Any, NoStream, _ <: Effect] = {
     // projects += Project(1, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now())
     // users += (1, "admin", "usertoken", JodaDateTime.now(), JodaDateTime.now())
     // projectsUsers += ProjectUser(1, "admin", "OWNER")

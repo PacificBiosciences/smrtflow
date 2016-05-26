@@ -7,6 +7,8 @@ import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.{SampleCreate, SampleUpdate}
 
+import scala.concurrent.ExecutionContext.Implicits._
+
 case object SampleServiceActor {
   case class GetSamples()
   case class GetSample(uniqueId: UUID)

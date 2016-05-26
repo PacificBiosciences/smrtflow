@@ -4,12 +4,11 @@ import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.flywaydb.core.api.callback.BaseFlywayCallback
 import java.sql.Connection
 
-import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.{BaseSession, DatabaseDef}
 import slick.jdbc.JdbcDataSource
 import slick.util.AsyncExecutor
 
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
 
 // UnmanagedSession was deprecated in Slick 3.0 and removed in 3.1. This is my attempt to re-create its functionality
@@ -42,12 +41,12 @@ class UnmanagedDatabase(conn: Connection)
 trait SlickMigration { self: JdbcMigration =>
 
   // Implement this in your subclass
-  def slickMigrate: DBIOAction[Any, NoStream, Nothing]
+  def slickMigrate(db: DatabaseDef): Future[Any]
 
   override final def migrate(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      Await.ready(db.run(slickMigrate.transactionally), Duration.Inf)
+      Await.ready(slickMigrate(db), Duration.Inf)
     } finally {
       db.close()
     }
@@ -56,12 +55,12 @@ trait SlickMigration { self: JdbcMigration =>
 
 trait SlickCallback extends BaseFlywayCallback {
 
-  def slickAfterBaseline: DBIOAction[Any, NoStream, Nothing]
+  def slickAfterBaseline(db: DatabaseDef): Future[Any]
 
   override final def afterBaseline(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      db.run(slickAfterBaseline.transactionally)
+      Await.ready(slickAfterBaseline(db), Duration.Inf)
     } finally {
       db.close()
     }
