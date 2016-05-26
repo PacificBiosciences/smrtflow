@@ -26,8 +26,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
     toServiceId("runs"),
     "Run Service",
     "0.1.0",
-    "Database-backed CRUD operations for Runs",
-    dependencies = None)
+    "Database-backed CRUD operations for Runs")
 
   val routes =
     //authenticate(authenticator.jwtAuth) { authInfo =>

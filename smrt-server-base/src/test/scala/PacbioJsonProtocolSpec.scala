@@ -20,7 +20,7 @@ class PacbioJsonProtocolSpec extends Specification {
       m.severity must beEqualTo(HealthSeverity.ALERT)
     }
     "Manifest serialization" in {
-      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description", None)
+      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
       m.id must beEqualTo("myid")
       val x = m.toJson
       println(x)

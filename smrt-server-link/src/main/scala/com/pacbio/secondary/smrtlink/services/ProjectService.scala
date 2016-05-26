@@ -44,7 +44,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
     toServiceId("smrtlink.project"),
     "SMRT Link Project Service",
     "0.1.0",
-    "Project create/read/update", None)
+    "Project create/read/update")
 
   val routes =
     pathPrefix("projects") {

@@ -25,7 +25,7 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBase
   val manifest = PacBioComponentManifest(toServiceId("resolved_pipeline_templates"),
     "New Pipeline Template Service",
     "0.1.0",
-    "Resolved Pipeline Templates Service", None)
+    "Resolved Pipeline Templates Service")
 
   val PIPELINE_TEMPLATE_PREFIX = "resolved-pipeline-templates"
 

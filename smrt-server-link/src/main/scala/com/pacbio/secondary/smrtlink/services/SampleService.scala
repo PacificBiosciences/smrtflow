@@ -32,7 +32,7 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     toServiceId("samples"),
     "Subsystem Sample Service",
-    "0.1.0", "Subsystem Sample Service", None)
+    "0.1.0", "Subsystem Sample Service")
 
   val routes =
   //authenticate(authenticator.jwtAuth) { authInfo =>

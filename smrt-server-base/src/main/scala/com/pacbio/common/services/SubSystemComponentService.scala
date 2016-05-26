@@ -14,7 +14,7 @@ class SubSystemComponentService extends PacBioService with AppConfig {
   val manifest = PacBioComponentManifest(
     toServiceId("components"),
     "Subsystem Component Service",
-    "0.2.0", "Subsystem Component Service", None)
+    "0.2.0", "Subsystem Component Service")
 
   val componentServiceName = "components"
 

@@ -2,7 +2,6 @@ package com.pacbio.secondaryinternal.services
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.secondaryinternal.BaseInternalMicroService
 import com.pacbio.secondaryinternal.Constants
 import com.pacbio.secondaryinternal.InternalAnalysisJsonProcotols
@@ -31,7 +30,7 @@ class LimsResolverService(dao: LimsDao) extends BaseInternalMicroService {
 
   val manifest = PacBioComponentManifest(toServiceId("smrtlink_resource_resolver"),
     "SMRT Link Resource Resolver", "0.1.0",
-    "Service to resolve job paths from job ids using SMRT Link Resources id.", None)
+    "Service to resolve job paths from job ids using SMRT Link Resources id.")
 
   val DEFAULT_MAX_RESULTS = 5000
   val PREFIX = "resolvers"
