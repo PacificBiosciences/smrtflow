@@ -147,6 +147,14 @@ lazy val smrtServerLink = (
     settings()
   )
 
+lazy val smrtServerLims = (
+  PacBioProject("smrt-server-lims")
+    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+    settings (
+      mainClass in assembly := Some("com.pacbio.secondary.lims.Main")
+    )
+  )
+
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
     dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
