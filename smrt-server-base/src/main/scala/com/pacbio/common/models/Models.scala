@@ -58,7 +58,7 @@ case class SubsystemConfig(id: String, name: String, startedAt: JodaDateTime)
 // The Name of components/dependencies
 case class PacBioComponent(id: String, version: String)
 
-case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Option[Seq[PacBioComponent]] = None)
+case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Option[Seq[PacBioComponent]] = Nil)
 
 case class ServiceComponent(id: String, typeId: String, version: String)
 
