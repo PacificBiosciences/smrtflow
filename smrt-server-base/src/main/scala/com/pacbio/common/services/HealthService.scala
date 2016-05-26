@@ -30,7 +30,7 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     toServiceId("health"),
     "Subsystem Health Service",
-    "0.2.0", "Subsystem Health Service", Some(components))
+    "0.2.0", "Subsystem Health Service", components)
 
   val healthServiceName = "health"
 

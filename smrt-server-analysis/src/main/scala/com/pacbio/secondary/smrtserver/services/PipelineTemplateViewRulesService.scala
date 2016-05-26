@@ -24,7 +24,7 @@ class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) exte
   val manifest = PacBioComponentManifest(toServiceId("secondary.pipeline_template_view_rules"),
     "Pipeline Template View Rules Service Service",
     "0.1.0",
-    "Analysis PiplineTemplate View RulesService", None)
+    "Analysis PiplineTemplate View RulesService")
 
   val ptvrs = PipelineTemplateViewRulesResourceLoader.loadResources
 

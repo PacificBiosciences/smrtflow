@@ -32,7 +32,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     COMPONENT_ID,
     "Subsystem Resource Registry Service",
-    COMPONENT_VERSION, "Subsystem Resource Registry Service", None)
+    COMPONENT_VERSION, "Subsystem Resource Registry Service")
 
   val routes =
     //authenticate(authenticator.jwtAuth) { authInfo =>

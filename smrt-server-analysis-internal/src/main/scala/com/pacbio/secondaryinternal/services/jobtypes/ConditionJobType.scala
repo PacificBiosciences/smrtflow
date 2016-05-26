@@ -22,7 +22,6 @@ import com.pacbio.common.actors.{ActorSystemProvider, UserServiceActorRefProvide
 import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.LoggerFactoryProvider
-import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}

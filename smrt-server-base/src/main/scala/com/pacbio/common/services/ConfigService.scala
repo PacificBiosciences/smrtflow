@@ -25,7 +25,7 @@ class ConfigService extends PacBioService {
   val manifest = PacBioComponentManifest(
     toServiceId("config"),
     "Config Service",
-    "0.1.0", "Subsystem Config Service", Some(components))
+    "0.1.0", "Subsystem Config Service", components)
 
   val routes = pathPrefix("config") {
     pathEnd {

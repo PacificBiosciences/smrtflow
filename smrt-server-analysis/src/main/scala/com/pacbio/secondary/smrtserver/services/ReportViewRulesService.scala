@@ -24,7 +24,7 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends JobsBaseMicroSe
   val manifest = PacBioComponentManifest(toServiceId("secondary.report_view_rules"),
     "Report View Rules Service Service",
     "0.1.0",
-    "Analysis Report View Rules Service", None)
+    "Analysis Report View Rules Service")
 
   val routes =
     pathPrefix(PTVR_PREFIX) {
