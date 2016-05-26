@@ -143,7 +143,7 @@ trait PacBioComponentManifestProtocol extends DefaultJsonProtocol with NullOptio
     def read(value: JsValue) = {
       value.asJsObject.getFields("id", "name", "version", "description", "dependencies") match {
         case Seq(JsString(id), JsString(name), JsString(version), JsString(description), JsString(dependencies)) =>
-          PacBioComponentManifest(id, name, version, description, None)
+          PacBioComponentManifest(id, name, version, description)
         case _ => throw new DeserializationException("PacbioManifest expected.")
       }
     }

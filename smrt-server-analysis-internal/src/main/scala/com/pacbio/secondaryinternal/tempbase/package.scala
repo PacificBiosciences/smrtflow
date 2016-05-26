@@ -81,7 +81,7 @@ class ManifestService(services: ServiceComposer) extends PacBioService with Defa
   val manifest = PacBioComponentManifest(
     toServiceId("service_manifests"),
     "Status Service",
-    "0.2.0", "Subsystem Manifest Service", None)
+    "0.2.0", "Subsystem Manifest Service")
 
   val routes =
     path("services" / "manifests") {

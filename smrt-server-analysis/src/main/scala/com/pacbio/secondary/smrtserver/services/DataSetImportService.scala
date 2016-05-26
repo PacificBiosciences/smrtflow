@@ -46,8 +46,7 @@ class DataSetImportService(dbActor: ActorRef) extends JobsBaseMicroService {
   val manifest = PacBioComponentManifest(
     toServiceId("secondary.scan_importer.dataset"),
     "Secondary DataSet Importing Service", "0.2.0",
-    "Secondary DataSet Import/Scan Service",
-    None)
+    "Secondary DataSet Import/Scan Service")
 
   val routes =
     pathPrefix(basePrefix) {

@@ -26,7 +26,7 @@ class SmrtLinkResourceService(dao: SmrtLinkResourceDao) extends BaseInternalMicr
 
   val manifest = PacBioComponentManifest(toServiceId("smrtlink_resource_resolver"),
     "SMRT Link Resource Resolver", "0.1.0",
-    "Service to resolve job paths from job ids using SMRT Link Resources id.", None)
+    "Service to resolve job paths from job ids using SMRT Link Resources id.")
 
   val PREFIX = "smrtlink-systems"
 
