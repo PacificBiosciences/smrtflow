@@ -5,9 +5,9 @@
 
 sbt smrt-analysis/clean smrt-analysis/compile smrt-analysis/pack
 # TODO maybe later
-#sbt smrt-server-tools/clean smrt-server-tools/compile smrt-server-tools/pack
+sbt smrt-server-analysis/clean smrt-server-analysis/compile smrt-server-analysis/pack
 
-#cp -r smrt-server-tools/target/pack/* smrt-analysis/target/pack/
+cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
 
 cd smrt-analysis
 # Remove Windows .bat files

@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import com.pacbio.secondary.smrttools.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobResourceError}
 
 trait JobResolvers {
