@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtserver.tools
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,ServicesClientJsonProtocol}
+import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 
 import akka.actor.ActorSystem
@@ -205,7 +205,7 @@ object PbService {
 
 // TODO consolidate Try behavior
 object PbServiceRunner extends LazyLogging {
-  import ServicesClientJsonProtocol._
+  import AnalysisClientJsonProtocol._
 
   private val TIMEOUT = 10 seconds
 
