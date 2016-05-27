@@ -15,16 +15,16 @@ import slick.lifted.ProvenShape
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
 
-  implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, Int](
-    {s => s.stateId},
-    {s => AnalysisJobStates.intToState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
+  implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
+    {s => s.toString},
+    {s => AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
   )
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
-    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
+    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
@@ -78,7 +78,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state_id")
+    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 

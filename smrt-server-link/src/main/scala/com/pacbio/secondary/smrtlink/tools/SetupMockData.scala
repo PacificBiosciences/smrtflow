@@ -24,14 +24,14 @@ import scala.util.Random
 import slick.driver.SQLiteDriver.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
-  def runSetup(dao: JobsDao): Future[Seq[Any]] = {
-    println(s"Created database connection from URI ${dao.dal.dbURI}")
+  def runSetup(dao: JobsDao): Unit = {
 
     createTables
-    loadBaseMock
+    println(s"Created database connection from URI ${dao.dal.dbURI}")
 
-    Future(println("Inserting mock data")).flatMap { _ =>
+    val f = Future(println("Inserting mock data")).flatMap { _ =>
       Future.sequence(Seq(
+        insertMockProject(),
         insertMockSubreadDataSetsFromDir(),
         insertMockHdfSubreadDataSetsFromDir(),
         insertMockReferenceDataSetsFromDir(),
@@ -46,6 +46,8 @@ trait SetupMockData extends MockUtils with InitializeTables {
         insertMockDataStoreFiles()
       ))
     }.andThen { case _ => println("Completed inserting mock data.") }
+
+    Await.ready(f, 1.minute)
   }
 }
 
@@ -80,6 +82,7 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockJobs(): Future[Option[Int]] = {
+    import scala.util.{Success, Failure}
     def _toJob(n: Int) = EngineJob(n,
       UUID.randomUUID(),
       s"Job name $n",
@@ -87,7 +90,7 @@ trait MockUtils extends LazyLogging{
       JodaDateTime.now(),
       JodaDateTime.now(),
       AnalysisJobStates.CREATED,
-      "mock-pbsmrtpipe-job-type",
+      "mock-pbsmrtpipe",
       "path",
       "{}",
       Some("root")
@@ -229,7 +232,7 @@ trait InitializeTables extends MockUtils {
    * Required data in db
    */
   def loadBaseMock = {
-    Await.ready(insertMockProject(), 1.minute)
+    Await.ready(insertMockProject(), 10.seconds)
     logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
   }
 }

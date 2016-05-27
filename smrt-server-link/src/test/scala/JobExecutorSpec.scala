@@ -16,6 +16,7 @@ import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServ
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
+import org.specs2.specification.Scope
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
@@ -102,24 +103,21 @@ with JobServiceConstants {
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  def dbSetup() = {
+  trait daoSetup extends Scope {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
     println(s"completed setting up database ${dal.dbURI}.")
   }
 
-  textFragment("creating database tables")
-  step(dbSetup())
-
   "Job Execution Service list" should {
 
-    "return status" in {
+    "return status" in new daoSetup {
       Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "execute job" in {
+    "execute job" in new daoSetup {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
         val msg = responseAs[EngineJob]
@@ -128,28 +126,28 @@ with JobServiceConstants {
       }
     }
 
-    "access job by id" in {
+    "access job by id" in new daoSetup {
       Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job datastore" in {
+    "access job datastore" in new daoSetup {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job reports" in {
+    "access job reports" in new daoSetup {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job events by job id" in {
+    "access job events by job id" in new daoSetup {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
 
-    //    "Create a Job Event" in {
+    //    "Create a Job Event" in new daoSetup {
     //      val r = JobEventRecord("RUNNING", "Task x is running")
     //      Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 2, "events"), r) ~> totalRoutes ~> check {
     //        status.isSuccess must beTrue

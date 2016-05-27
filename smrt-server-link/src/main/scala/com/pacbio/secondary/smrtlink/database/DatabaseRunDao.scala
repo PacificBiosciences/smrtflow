@@ -35,19 +35,20 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
       val wasReserved = prev.map(_.reserved)
       val reserved = setReserved.orElse(wasReserved).getOrElse(false)
       val summary = parseResults.map(_.run.summarize).orElse(prev).get.copy(reserved = reserved)
-      runSummaries.filter(_.uniqueId === uniqueId).insertOrUpdate(summary).map(_ => summary)
-    }
 
-    parseResults.foreach { res =>
-      if (res.run.uniqueId != uniqueId)
-        throw new UnprocessableEntityError(s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
+      val summaryUpdate = Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
-      action = action.flatMap { summary =>
-        DBIO.seq(
-          dataModels.filter(_.uniqueId === uniqueId).insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId)),
+      val dataModelAndCollectionsUpdate = parseResults.map { res =>
+        if (res.run.uniqueId != uniqueId)
+          throw new UnprocessableEntityError(s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
+
+        Seq(
+          dataModels.insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId)),
           collectionMetadata ++= res.collections
-        ).map(_ => summary)
-      }
+        )
+      }.getOrElse(Nil)
+
+      DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
     }
 
     dal.db.run(action.transactionally)

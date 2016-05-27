@@ -16,12 +16,23 @@ import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives}
 import spray.testkit.Specs2RouteTest
 
-class RunSpec extends Specification with Directives with Specs2RouteTest with BaseRolesInit with PacBioServiceErrors {
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+class RunSpec
+  extends Specification
+  with Directives
+  with Specs2RouteTest
+  with NoTimeConversions
+  with BaseRolesInit
+  with PacBioServiceErrors {
+
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
@@ -126,7 +137,7 @@ class RunSpec extends Specification with Directives with Specs2RouteTest with Ba
 
   trait daoSetup extends Scope {
     TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()
-    TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL))
+    Await.ready(TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)), 10.seconds)
   }
 
   "Run Service" should {

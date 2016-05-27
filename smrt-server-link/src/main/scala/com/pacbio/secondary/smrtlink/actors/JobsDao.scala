@@ -95,7 +95,7 @@ trait ProjectDataStore extends LazyLogging {
   def createProject(opts: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
     val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
-    val action = projects returning projects += proj
+    val action = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     dal.db.run(action)
   }
 
@@ -229,7 +229,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
     val job = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
 
-    val update = (engineJobs returning engineJobs += job).flatMap { j =>
+    val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
       val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
       _runnableJobs.update(runnableJob.job.uuid, runnableJobWithId)
 
@@ -349,7 +349,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
     val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
 
-    val updates = (engineJobs returning engineJobs += engineJob) flatMap { job =>
+    val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
       val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
       _runnableJobs.update(uuid, rJob)
