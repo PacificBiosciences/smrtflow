@@ -145,7 +145,12 @@ package object services {
     implicit val pacbioExceptionHandler: ExceptionHandler = ExceptionHandler {
       case NonFatal(e) => ctx =>
         val resp = response(e)
-        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${resp.message}")
+        val message = if (resp.message == null) {
+          e.getStackTrace.mkString("\n  ")
+        } else {
+          resp.message
+        }
+        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${message}")
         ctx
           // Exception handling bypasses CORSSupport, so we add the header here
           .withHttpResponseHeadersMapped(addAccessControlHeader)
@@ -183,7 +188,11 @@ package object services {
 
     implicit def actorRefFactory = context
 
-    def receive: Receive = runRoute(compressResponseIfRequested()(route))(
+    def receive: Receive = runRoute(compressResponseIfRequested() {
+      logRequest("request", akka.event.Logging.InfoLevel) {
+        route
+      }
+    })(
       pacbioExceptionHandler,
       pacbioRejectionHandler,
       context,
