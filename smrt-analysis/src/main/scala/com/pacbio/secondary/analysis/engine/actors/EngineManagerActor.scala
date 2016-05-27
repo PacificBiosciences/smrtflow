@@ -55,11 +55,10 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
   // Log the job summary. This should probably be in a health agent
   val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
 
-  //val resolver = new SimpleUUIDJobResolver(Files.createTempDirectory("engine-manager-"))
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
 
-  // For jobs that are small and can completed in a relatively short amount of time (~seconds)
+  // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
   override def preStart(): Unit = {
@@ -105,7 +104,6 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
                 worker ! RunJob(runnableJob.job, outputDir)
               case Failure(ex) =>
                 log.error(s"Failed to update job state of ${runnableJob.job} with ${runnableJob.job.uuid.toString}")
-                val worker = workers.dequeue()
                 daoActor ! UpdateJobStatus(runnableJob.job.uuid, AnalysisJobStates.FAILED)
             }
           }
