@@ -317,9 +317,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
                      state: AnalysisJobStates.JobStates,
                      message: String): String = {
     logger.info(s"Updating job state of job-id $jobId to $state")
+    val updatedAt = JodaDateTime.now()
     dal.db.withSession { implicit session =>
       session.withTransaction {
-        engineJobs.filter(_.id === jobId).map(_.stateId).update(state.stateId)
+        engineJobs.filter(_.id === jobId).map(x => (x.stateId, x.updatedAt)).update(state.stateId, updatedAt)
         jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, JodaDateTime.now())
       }
     }
@@ -332,12 +333,12 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
       val q = for {
         j <- engineJobs if j.uuid === uuid
-      } yield j.stateId
+      } yield (j.stateId, j.updatedAt)
 
       jobState match {
         case Some(s) =>
           logger.info(s"Updating job state to $jobState")
-          q.update(s._1).run
+          q.update(s._1, JodaDateTime.now()).run
           // FIXME.
           // (pid, stateId, jobId, message, JodaDateTime)
           //jobEvents += (-9999, s._1, jobId, message, JodaDateTime.now())
@@ -359,11 +360,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       val job = engineJobs.filter(_.uuid === jobId).firstOption
       val q = for {
         j <- engineJobs if j.uuid === jobId
-      } yield j.stateId
+      } yield (j.stateId, j.updatedAt)
 
       job match {
         case Some(engineJob) =>
-          q.update(state.stateId).run
+          q.update(state.stateId, JodaDateTime.now()).run
           val jobEvent = JobEvent(UUID.randomUUID(), engineJob.id, state, message, JodaDateTime.now())
           jobEvents += jobEvent
           logger.info(s"Updated job ${jobId.toString} state to $state Event $jobEvent")
