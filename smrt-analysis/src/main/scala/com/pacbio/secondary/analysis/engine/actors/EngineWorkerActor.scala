@@ -26,7 +26,7 @@ class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner) extends Actor
 with ActorLogging
 with timeUtils {
 
-  val WORK_TYPE = StandardWorkType
+  val WORK_TYPE:WorkerType = StandardWorkType
 
   override def preStart(): Unit = {
     log.debug(s"Starting engine-worker $self")
