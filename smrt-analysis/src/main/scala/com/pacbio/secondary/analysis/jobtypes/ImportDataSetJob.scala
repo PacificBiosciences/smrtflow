@@ -72,7 +72,18 @@ with MockJobUtils with timeUtils {
 
       val logPath = job.path.resolve("pbscala-job.stdout")
 
-      val reportFiles = DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter)
+      // This should never stop a dataset from being imported
+      val reports = Try { DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter) }
+
+      val reportFiles = reports match {
+        case Success(rpts) => rpts
+        case Failure(ex) =>
+          val errorMsg = s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
+          logger.error(errorMsg)
+          resultsWriter.writeLineStderr(errorMsg)
+          // Might want to consider adding a report attribute that has this warning message
+          Nil
+      }
 
       val logFile = DataStoreFile(
         UUID.randomUUID(),
@@ -103,8 +114,10 @@ with MockJobUtils with timeUtils {
     tx match{
       case Success(datastore) => Right(datastore)
       case Failure(ex) =>
-        logger.error(s"Failed to import dataset ${opts.path} ${ex.getMessage}")
-        Left(ResultFailed(job.jobId, jobTypeId.id, s"Failed to import $opts ${ex.getMessage}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
+        val runTime = computeTimeDeltaFromNow(startedAt)
+        val msg = s"Failed to import dataset ${opts.path} in $runTime sec. Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
+        logger.error(msg)
+        Left(ResultFailed(job.jobId, jobTypeId.id, msg, computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
     }
   }
 }
