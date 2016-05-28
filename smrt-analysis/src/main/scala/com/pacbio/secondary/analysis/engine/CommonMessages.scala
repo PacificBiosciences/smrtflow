@@ -14,7 +14,12 @@ object CommonMessages {
   // Add a new Job
   case class AddNewJob(job: CoreJob)
 
-  case class UpdateJobCompletedResult(result: JobResult)
+  // Not sure if this is the best model for doing this
+  sealed trait WorkerType
+  case object QuickWorkType extends WorkerType
+  case object StandardWorkType extends WorkerType
+
+  case class UpdateJobCompletedResult(result: JobResult, workerType: WorkerType)
 
   // General Successful message. Intended to be used in DAO layer
   case class SuccessMessage(message: String)
