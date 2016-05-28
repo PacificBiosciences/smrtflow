@@ -59,3 +59,7 @@ case class ResolvedConditions(pipelineId: String, conditions: Seq[ResolvedCondit
 case class ServiceConditionCsvPipeline(pipelineId: String, csvContents: String, name: String, description: String)
 
 case class ResolvedConditionPipeline(pipelineId: String, conditions: Seq[ResolvedJobCondition])
+
+// New model. This should be moved to smrt-common-models
+case class ReseqCondition(condId: String, subreadset: Path, alignmentset: Path, referenceset: Path)
+case class ReseqConditions(pipelineId: String, conditions: Seq[ReseqCondition])

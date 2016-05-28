@@ -108,15 +108,6 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
     fx
   }
 
-  def writeResolvedConditions(resolvedConditions: ResolvedConditions, path: Path): ResolvedConditions = {
-    logger.info(s"Writing resolved conditions to $path")
-    val bw = new BufferedWriter(new FileWriter(path.toFile))
-    val jx = resolvedConditions.toJson
-    bw.write(jx.prettyPrint.toString)
-    bw.close()
-    resolvedConditions
-  }
-
   val validateConditionRunRoute =
     path(PREFIX / "validate") {
       post {
@@ -169,7 +160,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
                 uuid <- Future { UUID.randomUUID() }
                 conditionPath <- Future { Paths.get(s"conditions-${uuid.toString}.json") }
                 resolvedJobConditions <- resolveConditionRecord(record)
-                _ <- Future { writeResolvedConditions(resolvedJobConditionsTo(resolvedJobConditions), conditionPath) }
+                _ <- Future { IOUtils.writeResolvedConditions(resolvedJobConditionsTo(resolvedJobConditions), conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
                 engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None)).mapTo[EngineJob]
               } yield engineJob
