@@ -80,16 +80,17 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     idOrUUID.map(MixedIdType).map(HNil.::)
   }
 
-  def datasetRoutes[R <: ServiceDataSetMetadata](shortName: String,
-                                                 GetDataSets: Int => Any,
-                                                 schema: String,
-                                                 GetDataSetById: Int => Any,
-                                                 GetDataSetByUUID: UUID => Any,
-                                                 GetDetailsById: Int => Any,
-                                                 GetDetailsByUUID: UUID => Any)
-                                                (implicit ct: ClassTag[R],
-                                                 ma: Marshaller[R],
-                                                 sm: Marshaller[Seq[R]]): Route =
+  def datasetRoutes[R <: ServiceDataSetMetadata](
+      shortName: String,
+      GetDataSets: Int => Any,
+      schema: String,
+      GetDataSetById: Int => Any,
+      GetDataSetByUUID: UUID => Any,
+      GetDetailsById: Int => Any,
+      GetDetailsByUUID: UUID => Any)(
+      implicit ct: ClassTag[R],
+      ma: Marshaller[R],
+      sm: Marshaller[Seq[R]]): Route =
     pathPrefix(shortName) {
       pathEnd {
         get {

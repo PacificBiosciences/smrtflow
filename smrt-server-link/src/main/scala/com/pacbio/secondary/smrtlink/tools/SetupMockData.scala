@@ -88,17 +88,18 @@ trait MockUtils extends LazyLogging{
 
     def randomState(sIds: List[Int]) = Random.shuffle(sIds).head
 
-    def _toJob(n: Int) = EngineJob(n,
-      UUID.randomUUID(),
-      s"Job name $n",
-      s"Comment for job $n",
-      JodaDateTime.now(),
-      JodaDateTime.now(),
-      AnalysisJobStates.CREATED,
-      "mock-pbsmrtpipe-job-type",
-      "path",
-      "{}",
-      Some("root")
+    def _toJob(n: Int) = EngineJob(
+        n,
+        UUID.randomUUID(),
+        s"Job name $n",
+        s"Comment for job $n",
+        JodaDateTime.now(),
+        JodaDateTime.now(),
+        AnalysisJobStates.CREATED,
+        "mock-pbsmrtpipe-job-type",
+        "path",
+        "{}",
+        Some("root")
     )
 
     engineJobs ++= (1 until _MOCK_NJOBS).map(x => _toJob(x))

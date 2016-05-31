@@ -1,9 +1,8 @@
 package com.pacbio.common.models
 
 /**
-  *
-  * Created by mkocher on 10/13/15.
-  */
+ * Created by mkocher on 10/13/15.
+ */
 trait Constants {
 
   // This needs to go away in the GH model

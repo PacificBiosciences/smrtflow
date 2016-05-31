@@ -14,10 +14,11 @@ import com.pacbio.secondary.smrtlink.models._
  * @param createdBy if present, only run designs created by the given user will be returned
  * @param reserved if present, only run designs that are in the given reserve state will be returned
  */
-case class SearchCriteria(name: Option[String],
-                          substring: Option[String],
-                          createdBy: Option[String],
-                          reserved: Option[Boolean])
+case class SearchCriteria(
+    name: Option[String],
+    substring: Option[String],
+    createdBy: Option[String],
+    reserved: Option[Boolean])
 
 /**
  * Companion object for the RunServiceActor class, defining the set of messages it can handle.

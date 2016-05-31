@@ -431,24 +431,24 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def reserved: Column[Boolean] = column[Boolean]("RESERVED")
 
     def * = (
-      uniqueId,
-      name,
-      summary,
-      createdBy,
-      createdAt,
-      startedAt,
-      completedAt,
-      status,
-      totalCells,
-      numCellsCompleted,
-      numCellsFailed,
-      instrumentName,
-      instrumentSerialNumber,
-      instrumentSwVersion,
-      primaryAnalysisSwVersion,
-      context,
-      terminationInfo,
-      reserved) <> (RunSummary.tupled, RunSummary.unapply)
+        uniqueId,
+        name,
+        summary,
+        createdBy,
+        createdAt,
+        startedAt,
+        completedAt,
+        status,
+        totalCells,
+        numCellsCompleted,
+        numCellsFailed,
+        instrumentName,
+        instrumentSerialNumber,
+        instrumentSwVersion,
+        primaryAnalysisSwVersion,
+        context,
+        terminationInfo,
+        reserved) <>(RunSummary.tupled, RunSummary.unapply)
   }
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
@@ -499,19 +499,19 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def terminationInfo: Column[Option[String]] = column[Option[String]]("TERMINATION_INFO")
 
     def * = (
-      runId,
-      uniqueId,
-      name,
-      well,
-      summary,
-      context,
-      status,
-      instrumentId,
-      instrumentName,
-      movieMinutes,
-      startedAt,
-      completedAt,
-      terminationInfo) <> (CollectionMetadata.tupled, CollectionMetadata.unapply)
+        runId,
+        uniqueId,
+        name,
+        well,
+        summary,
+        context,
+        status,
+        instrumentId,
+        instrumentName,
+        movieMinutes,
+        startedAt,
+        completedAt,
+        terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
   }
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {

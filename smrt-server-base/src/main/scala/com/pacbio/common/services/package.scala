@@ -173,11 +173,11 @@ package object services {
     implicit def actorRefFactory = context
 
     def receive: Receive = runRoute(compressResponseIfRequested()(route))(
-      pacbioExceptionHandler,
-      pacbioRejectionHandler,
-      context,
-      RoutingSettings.default,
-      LoggingContext.fromActorRefFactory)
+        pacbioExceptionHandler,
+        pacbioRejectionHandler,
+        context,
+        RoutingSettings.default,
+        LoggingContext.fromActorRefFactory)
 
     override def timeoutRoute = complete {
       val tResp = ThrowableResponse(InternalServerError.intValue,"The server was not able to produce a timely response to your request.", InternalServerError.reason)

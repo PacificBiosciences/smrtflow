@@ -36,11 +36,12 @@ object FastaConverter extends LazyLogging{
    * @param outputDir Output of the directory of Reference Repo
    * @return
    */
-  def createReferenceFromFasta(fastaPath: Path,
-                               outputDir: Path,
-                               name: Option[String],
-                               organism: Option[String],
-                               ploidy: Option[String]): Either[FastaConversionError, ReferenceDatasetIO] = {
+  def createReferenceFromFasta(
+      fastaPath: Path,
+      outputDir: Path,
+      name: Option[String],
+      organism: Option[String],
+      ploidy: Option[String]): Either[FastaConversionError, ReferenceDatasetIO] = {
 
     val seqOutputDir = outputDir.resolve("sequence")
 

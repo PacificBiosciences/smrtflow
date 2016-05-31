@@ -27,7 +27,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
         reserved = runSummaries.filter(_.uniqueId === results.run.uniqueId).map(_.reserved).run
         runSummaries.filter(_.uniqueId === results.run.uniqueId).delete
       } else if (runSummaries.filter(_.uniqueId === results.run.uniqueId).size.run != 0)
-          throw new UnprocessableEntityError(s"Resource ${results.run.uniqueId} already exists")
+        throw new UnprocessableEntityError(s"Resource ${results.run.uniqueId} already exists")
 
       runSummaries += results.run.summarize.copy(reserved = reserved.headOption.getOrElse(false))
       dataModels += DataModelAndUniqueId(results.run.dataModel, results.run.uniqueId)
@@ -117,18 +117,18 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
   override def getCollectionMetadatas(runId: UUID): Seq[CollectionMetadata] = {
     dal.db withSession { implicit session =>
       collectionMetadata
-          .filter(_.runId === runId)
-          .run
+        .filter(_.runId === runId)
+        .run
     }
   }
 
   override def getCollectionMetadata(runId: UUID, uniqueId: UUID): CollectionMetadata = {
     dal.db withSession { implicit session =>
       collectionMetadata
-          .filter(_.runId === runId)
-          .filter(_.uniqueId === uniqueId)
-          .run
-          .head
+        .filter(_.runId === runId)
+        .filter(_.uniqueId === uniqueId)
+        .run
+        .head
     }
   }
 }

@@ -27,7 +27,7 @@ trait RunDao {
   /**
    * Creates a new run design.
    */
-   def createRun(create: RunCreate): RunSummary
+  def createRun(create: RunCreate): RunSummary
 
   /**
    * Updates a run design.

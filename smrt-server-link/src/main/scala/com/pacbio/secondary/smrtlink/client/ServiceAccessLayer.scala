@@ -87,13 +87,13 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
-    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
-    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
-    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
-    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
-    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
-    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
-    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
+      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
+      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
+      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
 
 
   // Pipelines and serialization
@@ -254,13 +254,4 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAnalysisJobReports(jobId: Int): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.REPORTS))
   }
-/*
-  protected def getJobReportDetails(jobType: String, jobId: Int, reportId: UUID): Future[Report] = getReportPipeline {
-    Get(toJobResourceIdUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.REPORTS, reportId)) 
-  }
-
-  def getAnalysisJobReportDetails(jobId: Int, reportId: UUID): Future[Report] = {
-    getJobReportDetails(JobTypes.PB_PIPE, jobId, reportId)
-  }
-*/
 }

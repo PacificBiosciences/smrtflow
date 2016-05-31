@@ -14,9 +14,9 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.collection.JavaConversions._
 
 /**
-  * Utils to Shell out to external Process
-  * Created by mkocher on 9/26/15.
-  */
+ * Utils to Shell out to external Process
+ * Created by mkocher on 9/26/15.
+ */
 package object externaltools {
 
   sealed trait ExternalCmdResult {
@@ -46,13 +46,13 @@ package object externaltools {
     }
 
     /**
-      * Core util to run external command
-      *
-      * @param cmd
-      * @param stdout
-      * @param stderr
-      * @return
-      */
+     * Core util to run external command
+     *
+     * @param cmd
+     * @param stdout
+     * @param stderr
+     * @return
+     */
     def runCmd(cmd: Seq[String], stdout: Path, stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
 
       val startedAt = JodaDateTime.now()
@@ -97,13 +97,13 @@ package object externaltools {
     }
 
     /**
-      * Resolve commandline exe path to absolute path.
-      *
-      * Filters out "." from path.
-      *
-      * @param cmd base name of exe (Example "samtools")
-      * @return
-      */
+     * Resolve commandline exe path to absolute path.
+     *
+     * Filters out "." from path.
+     *
+     * @param cmd base name of exe (Example "samtools")
+     * @return
+     */
     def which(cmd: String): Option[Path] = {
       // The runCmd needs to resolve the Exe to provide a good error
       // If the external tool is not found in the path

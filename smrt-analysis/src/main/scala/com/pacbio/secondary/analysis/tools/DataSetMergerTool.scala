@@ -11,11 +11,13 @@ import scopt.OptionParser
 
 import scala.util.{Failure, Success, Try}
 
-case class DataSetMergerOptions(datasetType: String,
-                                paths: Seq[File],
-                                outputPath: String) extends LoggerConfig
+case class DataSetMergerOptions(
+    datasetType: String,
+    paths: Seq[File],
+    outputPath: String) extends LoggerConfig
 
 case class UnSupportDataSetTypeException(message: String) extends Exception
+
 /**
  *
  * Created by mkocher on 5/15/15.

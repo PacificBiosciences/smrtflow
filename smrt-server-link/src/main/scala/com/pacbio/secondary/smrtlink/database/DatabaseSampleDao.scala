@@ -91,9 +91,9 @@ class DatabaseSampleDao(dal: Dal, clock: Clock) extends SampleDao {
       }
 
       if (detailsCount.contains(0) || nameCount.contains(0)) {
-          session.rollback()
-          throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
-        }
+        session.rollback()
+        throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
+      }
 
       samples.filter(_.uniqueId === uniqueId).first
     }

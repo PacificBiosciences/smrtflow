@@ -11,10 +11,10 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConversions._
 
 /**
-  * Mixin for adding shared logger params to SMRT App classes
-  *
-  * See Readme.md for details about the shared parameters and examples of use.
-  */
+ * Mixin for adding shared logger params to SMRT App classes
+ *
+ * See Readme.md for details about the shared parameters and examples of use.
+ */
 trait LoggerConfig {
 
   // params for logger configuration
@@ -29,18 +29,20 @@ trait LoggerConfig {
   val fileRollingPosfix = ".%i.gz"
 
   /**
-    * Lazy updates the logger config.
-    *
-    * @param logbackFile
-    * @param logFile
-    * @param debug
-    * @param logLevel
-    * @return
-    */
-  def configure(logbackFile: String,
-                logFile: String,
-                debug: Boolean,
-                logLevel: String): LoggerConfig = {
+   * Lazy updates the logger config.
+   *
+   * @param logbackFile
+   * @param logFile
+   * @param debug
+   * @param logLevel
+   * @return
+   */
+  def configure(
+      logbackFile: String,
+      logFile: String,
+      debug: Boolean,
+      logLevel: String): LoggerConfig = {
+
     // ignore the default config
     LoggerOptions.configured = true
     // logback.xml trumps all other config
@@ -56,13 +58,13 @@ trait LoggerConfig {
   }
 
   /**
-    * Parses a logback.xml file and uses that as the SLFJ4 config.
-    *
-    * See http://logback.qos.ch/manual/configuration.html
-    *
-    * @param path File path of the logback.xml file
-    * @return How many params were consumed
-    */
+   * Parses a logback.xml file and uses that as the SLFJ4 config.
+   *
+   * See http://logback.qos.ch/manual/configuration.html
+   *
+   * @param path File path of the logback.xml file
+   * @return How many params were consumed
+   */
   def setLogback(path: String) {
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     val configurator = new JoranConfigurator()
@@ -74,11 +76,11 @@ trait LoggerConfig {
   }
 
   /**
-    * Sets the logging level for *all* registered loggers.
-    *
-    * @param level @see ch.qos.logback.classic.Level
-    * @return How many params were consumed
-    */
+   * Sets the logging level for *all* registered loggers.
+   *
+   * @param level @see ch.qos.logback.classic.Level
+   * @return How many params were consumed
+   */
   def setLevel(level: String) {
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     val l = Level.toLevel(level)
@@ -86,11 +88,11 @@ trait LoggerConfig {
   }
 
   /**
-    * Removes all handlers and directs logs to a file.
-    *
-    * @param file File path to save logging output
-    * @return How many params were consumed
-    */
+   * Removes all handlers and directs logs to a file.
+   *
+   * @param file File path to save logging output
+   * @return How many params were consumed
+   */
   def setFile(file: String) {
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
 
@@ -127,12 +129,12 @@ trait LoggerConfig {
   }
 
   /**
-    * Sets all loggers to display information on System.out.
-    *
-    * Useful for debugging the code or piping output.
-    *
-    * @return How many params were consumed
-    */
+   * Sets all loggers to display information on System.out.
+   *
+   * Useful for debugging the code or piping output.
+   *
+   * @return How many params were consumed
+   */
   def setDebug(debug: Boolean) {
     if (!debug) return
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]

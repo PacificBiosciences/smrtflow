@@ -11,11 +11,12 @@ import scopt.OptionParser
 import scala.util.{Failure, Success, Try}
 
 
-case class FastaToReferenceConfig(fastaFile: String,
-                                  outputDir: String,
-                                  name: String,
-                                  organism: String,
-                                  ploidy: String) extends LoggerConfig
+case class FastaToReferenceConfig(
+    fastaFile: String,
+    outputDir: String,
+    name: String,
+    organism: String,
+    ploidy: String) extends LoggerConfig
 
 
 object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {

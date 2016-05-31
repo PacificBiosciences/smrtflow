@@ -57,9 +57,15 @@ object JobsDaoActor {
 
   case class UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) extends JobMessage
 
-  case class CreateJobType(uuid: UUID, name: String, comment: String, jobTypeId: String,
-                           coreJob: CoreJob, engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                           jsonSettings: String, createdBy: Option[String]) extends JobMessage
+  case class CreateJobType(
+      uuid: UUID,
+      name: String,
+      comment: String,
+      jobTypeId: String,
+      coreJob: CoreJob,
+      engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
+      jsonSettings: String,
+      createdBy: Option[String]) extends JobMessage
 
 
   // Get all DataSet Entry Points

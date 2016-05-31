@@ -15,17 +15,20 @@ class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with L
 
   override def slickMigrate(implicit session: Session) {
     session.withTransaction {
-      Q.updateNA("""
-alter table datastore_files add column "name" varchar(254) not null default ""
-""").execute
+      Q.updateNA(
+        """
+        |alter table datastore_files add column "name" varchar(254) not null default ""
+        |""".stripMargin).execute
 
-      Q.updateNA("""
-alter table datastore_files add column "description" varchar(254) not null default ""
-""").execute
+      Q.updateNA(
+        """
+        |alter table datastore_files add column "description" varchar(254) not null default ""
+        |""".stripMargin).execute
 
-      Q.updateNA("""
-drop table users
-""").execute
+      Q.updateNA(
+        """
+        |drop table users
+        |""".stripMargin).execute
     }
   }
 }

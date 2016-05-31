@@ -60,8 +60,8 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
       sender ! SuccessMessage(s"Successfully updated state of job ${uuid.toString} to ${state.toString}")
 
     case ImportDataStoreFile(dataStoreFile, jobUUID) =>
-        log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
-        sender ! dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile))
+      log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
+      sender ! dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile))
 
     case PacBioImportDataSet(x, jobUUID) =>
       x match {

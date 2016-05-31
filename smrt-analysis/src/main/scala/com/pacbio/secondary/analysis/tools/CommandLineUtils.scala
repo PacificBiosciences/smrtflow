@@ -11,19 +11,20 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 /**
-  * General Utils for commandline
-  *
-  * 1. ReferenceInfo -> ReferenceDataSet
-  * 2. RS MovieMetaData -> BamSubreadDataSet
-  * 3. Fasta -> ReferenceDataSet
-  */
+ * General Utils for commandline
+ *
+ * 1. ReferenceInfo -> ReferenceDataSet
+ * 2. RS MovieMetaData -> BamSubreadDataSet
+ * 3. Fasta -> ReferenceDataSet
+ */
 object CommandLineUtils extends LazyLogging {
 
   /**
-    * Find the exe in the current path
-    * @param exe A Commandline executable
-    * @return
-    */
+   * Find the exe in the current path
+   *
+   * @param exe A Commandline executable
+   * @return
+   */
   def which(exe: String): Option[Path] = {
     System.getenv("PATH").
       split(":").
@@ -40,11 +41,12 @@ trait timeUtils {
 
 
   /**
-    * Compute the time difference in seconds
-    * @param tf Final time
-    * @param ti Initial time
-    * @return
-    */
+   * Compute the time difference in seconds
+   *
+   * @param tf Final time
+   * @param ti Initial time
+   * @return
+   */
   def computeTimeDelta(tf: JodaDateTime, ti: JodaDateTime): Int = {
     // return delta time in seconds
     // Do this to scope the imports

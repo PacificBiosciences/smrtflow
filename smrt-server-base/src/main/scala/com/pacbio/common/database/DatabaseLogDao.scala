@@ -14,14 +14,15 @@ import scala.slick.jdbc.meta.MTable
 /**
  * Concrete implementation of LogDao that stores stale messages in a database.
  */
-class DatabaseLogDao(databaseConfig: DatabaseConfig.Configured,
-                     clock: Clock,
-                     bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
+class DatabaseLogDao(
+    databaseConfig: DatabaseConfig.Configured,
+    clock: Clock,
+    bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
 
   private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
 
   db withSession { implicit session =>
-    if(MTable.getTables(logMessageTable.baseTableRow.tableName).list.isEmpty) {
+    if (MTable.getTables(logMessageTable.baseTableRow.tableName).list.isEmpty) {
       logMessageTable.ddl.create
 
       logger.info(s"Created new Log Database with config $databaseConfig")
@@ -61,7 +62,7 @@ class DatabaseLogDao(databaseConfig: DatabaseConfig.Configured,
           // .drop(0)
           // .take(limit)
           .run
-          .map{row => row.message}
+          .map { row => row.message }
           .take(limit)
           .reverse
       }
@@ -85,7 +86,7 @@ trait DatabaseLogDaoProvider extends LogDaoProvider {
 
   override val logDao: Singleton[LogDao] = Singleton(() =>
     new DatabaseLogDao(
-        logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
-        clock(),
-        logDaoBufferSize))
+      logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
+      clock(),
+      logDaoBufferSize))
 }

@@ -15,9 +15,10 @@ class V8__JobUser extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(implicit session: Session) {
     session.withTransaction {
-      Q.updateNA("""
-alter table engine_jobs add column "created_by" varchar(254)
-""").execute
+      Q.updateNA(
+        """
+        |alter table engine_jobs add column "created_by" varchar(254)
+        |""".stripMargin).execute
     }
   }
 }

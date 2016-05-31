@@ -111,8 +111,8 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
  */
 trait RunServiceProvider {
   this: RunServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val runService: Singleton[RunService] =
     Singleton(() => new RunService(runServiceActorRef(), authenticator()))

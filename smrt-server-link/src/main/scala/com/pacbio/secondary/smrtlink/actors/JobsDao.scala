@@ -112,7 +112,7 @@ trait ProjectDataStore extends LazyLogging {
       val now = JodaDateTime.now()
       val proj = projects.filter(_.id === projId)
       proj.map(p => (p.name, p.state, p.description, p.updatedAt))
-          .update(opts.name, opts.state, opts.description, now)
+        .update(opts.name, opts.state, opts.description, now)
       proj.firstOption
     }
   }
@@ -155,8 +155,9 @@ trait ProjectDataStore extends LazyLogging {
         case (proj, role) => UserProjectResponse(Some(role), proj)
       })
 
-      val generalProject = projects.filter(_.id === GENERAL_PROJECT_ID)
-                                   .list.map(UserProjectResponse(None, _))
+      val generalProject = projects
+        .filter(_.id === GENERAL_PROJECT_ID)
+        .list.map(UserProjectResponse(None, _))
 
       (userProjects ++ generalProject)
     }
@@ -191,8 +192,8 @@ trait ProjectDataStore extends LazyLogging {
     dal.db.withSession { implicit session =>
       val now = JodaDateTime.now()
       dsMetaData2.filter(_.id === dsId)
-                 .map(ds => (ds.projectId, ds.updatedAt))
-                 .update(projId, now)
+        .map(ds => (ds.projectId, ds.updatedAt))
+        .update(projId, now)
       MessageResponse(s"moved dataset with ID $dsId to project $projId")
     }
   }
@@ -201,8 +202,8 @@ trait ProjectDataStore extends LazyLogging {
     dal.db.withSession { implicit session =>
       val now = JodaDateTime.now()
       dsMetaData2.filter(_.uuid === dsId)
-                 .map(ds => (ds.projectId, ds.updatedAt))
-                 .update(projId, now)
+        .map(ds => (ds.projectId, ds.updatedAt))
+        .update(projId, now)
       MessageResponse(s"moved dataset with ID $dsId to project $projId")
     }
   }
@@ -313,9 +314,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     }
   }
 
-  def updateJobState(jobId: Int,
-                     state: AnalysisJobStates.JobStates,
-                     message: String): String = {
+  def updateJobState(
+      jobId: Int,
+      state: AnalysisJobStates.JobStates,
+      message: String): String = {
     logger.info(s"Updating job state of job-id $jobId to $state")
     val updatedAt = JodaDateTime.now()
     dal.db.withSession { implicit session =>
@@ -351,9 +353,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   }
 
-  def updateJobStateByUUID(jobId: UUID,
-                           state: AnalysisJobStates.JobStates,
-                           message: String): String = {
+  def updateJobStateByUUID(
+      jobId: UUID,
+      state: AnalysisJobStates.JobStates,
+      message: String): String = {
 
     dal.db.withSession { implicit session =>
 
@@ -377,22 +380,23 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   /**
    * This is the new interface will replace the original createJob
-    *
-    * @param uuid UUID
-   * @param name Name of job
+   *
+   * @param uuid        UUID
+   * @param name        Name of job
    * @param description This is really a comment. FIXME
-   * @param jobTypeId String of the job type identifier. This should be consistent with the
-   *                  jobTypeId defined in CoreJob
+   * @param jobTypeId   String of the job type identifier. This should be consistent with the
+   *                    jobTypeId defined in CoreJob
    * @return
    */
-  def createJob(uuid: UUID,
-                name: String,
-                description: String,
-                jobTypeId: String,
-                coreJob: CoreJob,
-                entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                jsonSetting: String,
-                createdBy: Option[String]): EngineJob = {
+  def createJob(
+      uuid: UUID,
+      name: String,
+      description: String,
+      jobTypeId: String,
+      coreJob: CoreJob,
+      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
+      jsonSetting: String,
+      createdBy: Option[String]): EngineJob = {
 
     // This should really be Option[String]
     val path = ""
@@ -457,8 +461,22 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     CCSreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[BarcodeServiceDataSet] = {
     dal.db.withSession { implicit session =>
@@ -482,8 +500,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Importing of DataStore File by Job Int Id
-    *
-    * @param ds
+   *
+   * @param ds
    * @param jobId
    * @return
    */
@@ -508,8 +526,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Generic Importing of DataSet by type and Path to dataset file
-    *
-    * @param dataSetMetaType
+   *
+   * @param dataSetMetaType
    * @param spath
    * @param jobId
    * @param userId
@@ -842,8 +860,22 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
   }
 
-  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[AlignmentServiceDataSet] = {
     dal.db.withSession { implicit session =>

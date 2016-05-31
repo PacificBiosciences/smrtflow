@@ -70,7 +70,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
           path("search") {
             get {
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
-                  .as(SearchCriteria) { criteria =>
+                .as(SearchCriteria) { criteria =>
                 complete {
                   (logActor ? SearchSystemMessages(criteria)).mapTo[Seq[LogMessage]]
                 }
@@ -109,7 +109,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
           path("search") {
             get {
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
-                  .as(SearchCriteria) { criteria =>
+                .as(SearchCriteria) { criteria =>
                 complete {
                   (logActor ? SearchMessages(id, criteria)).mapTo[Seq[LogMessage]]
                 }
@@ -134,8 +134,8 @@ trait LogServiceProvider {
 
 trait LogServiceProviderx {
   this: LogServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val logService: Singleton[LogService] =
     Singleton(() => new LogService(logServiceActorRef(), authenticator()))

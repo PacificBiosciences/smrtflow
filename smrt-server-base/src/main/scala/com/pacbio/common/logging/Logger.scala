@@ -55,10 +55,11 @@ trait Logger extends ContextualLogging {
  * @param logDao The DAO for the logs
  * @param logback If true, messages will also be logged via Typesafe Logback
  */
-class LoggerImpl(override val logId: String,
-                 override val sourceId: String,
-                 logDao: LogDao,
-                 logback: Boolean) extends Logger {
+class LoggerImpl(
+    override val logId: String,
+    override val sourceId: String,
+    logDao: LogDao,
+    logback: Boolean) extends Logger {
 
   import LogLevel._
 
@@ -109,9 +110,10 @@ trait LoggerFactoryProvider {
  * @param logback If true, messages will also be logged via Typesafe Logback
  * @param logResources Set of records for initializing log resources
  */
-class LoggerFactoryImpl(logDao: LogDao,
-                        logback: Boolean,
-                        logResources: Set[LogResourceRecord]) extends LoggerFactory {
+class LoggerFactoryImpl(
+    logDao: LogDao,
+    logback: Boolean,
+    logResources: Set[LogResourceRecord]) extends LoggerFactory {
 
   logResources.foreach(r => Try(logDao.createLogResource(r)))
 

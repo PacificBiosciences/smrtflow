@@ -76,7 +76,7 @@ trait StatusServiceProvider {
 
 trait StatusServiceProviderx {
   this: StatusServiceActorRefProvider
-      with ServiceComposer =>
+    with ServiceComposer =>
 
   final val statusService: Singleton[StatusService] =
     Singleton(() => new StatusService(statusServiceActorRef()))

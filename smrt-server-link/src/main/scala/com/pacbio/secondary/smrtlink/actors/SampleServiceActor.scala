@@ -29,9 +29,9 @@ class SampleServiceActor(sampleDao: SampleDao) extends PacBioActor {
 }
 
 /**
-  * Provides a singleton ActorRef for a SampleServiceActor. Concrete providers must mixin a SampleDaoProvider and
-  * an ActorRefFactoryProvider.
-  */
+ * Provides a singleton ActorRef for a SampleServiceActor. Concrete providers must mixin a SampleDaoProvider and
+ * an ActorRefFactoryProvider.
+ */
 trait SampleServiceActorRefProvider {
   this: SampleDaoProvider with ActorRefFactoryProvider =>
 
@@ -40,10 +40,10 @@ trait SampleServiceActorRefProvider {
 }
 
 /**
-  * Provides a singleton SampleServiceActor. Concrete providers must mixin a SampleDaoProvider. Note that this
-  * provider is designed for tests, and should generally not be used in production. To create a production app, use the
-  * {{{SampleServiceActorRefProvider}}}.
-  */
+ * Provides a singleton SampleServiceActor. Concrete providers must mixin a SampleDaoProvider. Note that this
+ * provider is designed for tests, and should generally not be used in production. To create a production app, use the
+ * {{{SampleServiceActorRefProvider}}}.
+ */
 trait SampleServiceActorProvider {
   this: SampleDaoProvider =>
 

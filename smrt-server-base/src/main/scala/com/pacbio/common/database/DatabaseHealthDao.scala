@@ -17,9 +17,10 @@ object DatabaseHealthDao {
 /**
  * Concrete implementation of HealthDao that stores all messages in a database.
  */
-class DatabaseHealthDao(databaseConfig: DatabaseConfig.Configured,
-                        clock: Clock,
-                        logger: Logger) extends AbstractHealthDao(clock) {
+class DatabaseHealthDao(
+    databaseConfig: DatabaseConfig.Configured,
+    clock: Clock,
+    logger: Logger) extends AbstractHealthDao(clock) {
 
   private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
 
@@ -69,9 +70,9 @@ trait DatabaseHealthDaoProvider extends HealthDaoProvider {
 
   override val healthDao: Singleton[HealthDao] = Singleton(() =>
     new DatabaseHealthDao(
-        healthDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
-        clock(),
-        loggerFactory().getLogger(LOG_RESOURCE_ID, LOG_SOURCE_ID)))
+      healthDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
+      clock(),
+      loggerFactory().getLogger(LOG_RESOURCE_ID, LOG_SOURCE_ID)))
 
   val healthDatabaseLogResource: Singleton[LogResourceRecord] =
     Singleton(LogResourceRecord("Health Database Loggger", LOG_RESOURCE_ID, "Health Database"))

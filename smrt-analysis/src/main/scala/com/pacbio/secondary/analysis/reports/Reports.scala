@@ -25,16 +25,18 @@ object ReportModels {
 
   case class ReportTable(id: String, title: String, columns: JsArray)
 
-  case class ReportPlotGroup(id: String,
-                             title: String,
-                             legend: String,
-                             plots: List[ReportPlot])
+  case class ReportPlotGroup(
+      id: String,
+      title: String,
+      legend: String,
+      plots: List[ReportPlot])
 
-  case class Report(id: String,
-                    version: String,
-                    attributes: List[ReportAttribute],
-                    plotGroups: List[ReportPlotGroup],
-                    tables: List[ReportTable])
+  case class Report(
+      id: String,
+      version: String,
+      attributes: List[ReportAttribute],
+      plotGroups: List[ReportPlotGroup],
+      tables: List[ReportTable])
 
 }
 
@@ -54,9 +56,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
     def read(jsonAttr: JsValue): ReportAttribute = {
       jsonAttr.asJsObject.getFields("id", "name", "value") match {
         case Seq(JsString(id), JsString(name), JsNumber(value)) =>
-            ReportLongAttribute(id, name, value.toLong)
+          ReportLongAttribute(id, name, value.toLong)
         case Seq(JsString(id), JsString(name), JsString(value)) =>
-            ReportStrAttribute(id, name, value.toString)
+          ReportStrAttribute(id, name, value.toString)
       }
     }
   }
@@ -75,9 +77,9 @@ object MockReportUtils extends ReportJsonProtocol {
   def toReportTable: ReportTable = {
 
     def toC(id: String, nvalues: Int) = JsObject(Map(
-      "id" -> JsString(id),
-      "header" -> JsString(s"header $id"),
-      "values" -> JsArray((0 until nvalues).map(x => JsNumber(x * 2)).toVector)
+        "id" -> JsString(id),
+        "header" -> JsString(s"header $id"),
+        "values" -> JsArray((0 until nvalues).map(x => JsNumber(x * 2)).toVector)
     ))
 
     val nvalues = 10

@@ -29,15 +29,16 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class JobManagerService(dbActor: ActorRef,
-                        statusActor: ActorRef,
-                        userActor: ActorRef,
-                        engineConfig: EngineConfig,
-                        jobTypes: Set[JobTypeService],
-                        pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
-                        pbsmrtpipeCmdTemplate: Option[CommandTemplate],
-                        port: Int,
-                        analysisHost: String)(implicit val actorSystem: ActorSystem)
+class JobManagerService(
+    dbActor: ActorRef,
+    statusActor: ActorRef,
+    userActor: ActorRef,
+    engineConfig: EngineConfig,
+    jobTypes: Set[JobTypeService],
+    pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
+    pbsmrtpipeCmdTemplate: Option[CommandTemplate],
+    port: Int,
+    analysisHost: String)(implicit val actorSystem: ActorSystem)
   extends JobService with JobsBaseMicroService with FileAndResourceDirectives {
 
   import JobsDaoActor._
@@ -143,12 +144,12 @@ class JobManagerService(dbActor: ActorRef,
 
 trait JobManagerServiceProvider {
   this: SetBindings
-      with SmrtLinkConfigProvider
-      with JobsDaoActorProvider
-      with StatusServiceActorRefProvider
-      with UserServiceActorRefProvider
-      with ActorSystemProvider
-      with ServiceComposer =>
+    with SmrtLinkConfigProvider
+    with JobsDaoActorProvider
+    with StatusServiceActorRefProvider
+    with UserServiceActorRefProvider
+    with ActorSystemProvider
+    with ServiceComposer =>
 
   val jobManagerService: Singleton[JobManagerService] =
     Singleton{ () =>

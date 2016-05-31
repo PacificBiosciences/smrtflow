@@ -8,8 +8,8 @@ import com.pacbio.secondary.analysis.constants.FileTypes.FileType
 import com.pacificbiosciences.pacbiodatasets.HdfSubreadSet
 
 /**
-  * Created by mkocher on 11/30/15.
-  */
+ * Created by mkocher on 11/30/15.
+ */
 object ValidateHdfSubreadSet extends ValidateDataSet{
 
   type DsType = HdfSubreadSet
@@ -17,11 +17,11 @@ object ValidateHdfSubreadSet extends ValidateDataSet{
   val supportedFileTypes:Set[FileType] = Set(FileTypes.BAX)
 
   /**
-    * Custom SubreadSet Validation
-    *
-    * @param ds
-    * @return
-    */
+   * Custom SubreadSet Validation
+   *
+   * @param ds
+   * @return
+   */
   override def validateCustom(ds: HdfSubreadSet): ValidateDataSetE = {
     ds.successNel
   }

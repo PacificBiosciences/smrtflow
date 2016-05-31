@@ -83,8 +83,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def checkServiceEndpoints: Int = {
     var xc = 0
     for (endpointPath <- serviceStatusEndpoints) {
-        val epStatus = checkServiceEndpoint(endpointPath)
-        if (epStatus > 0) xc = epStatus
+      val epStatus = checkServiceEndpoint(endpointPath)
+      if (epStatus > 0) xc = epStatus
     }
     xc
   }

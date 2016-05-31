@@ -11,8 +11,8 @@ import scala.slick.driver.SQLiteDriver.simple._
 object HealthDatabaseSchema extends PacBioDateTimeDatabaseFormat {
   // Define serialization/deserialization of HealthSeverity for database storage
   implicit def healthSeverityToString = MappedColumnType.base[HealthSeverity.HealthSeverity, String](
-    healthSeverity => healthSeverity.toString,
-    severityString => HealthSeverity.healthSeverityByName(severityString)
+      healthSeverity => healthSeverity.toString,
+      severityString => HealthSeverity.healthSeverityByName(severityString)
   )
 
   // HealthGaugeMessageTable schema

@@ -63,14 +63,15 @@ object IdType {
 /**
  * Configuration information for the user records stored in LDAP.
  */
-case class LdapUsersConfig(usersDN: String,
-                           cacheSize: Int,
-                           usernameAttr: String,
-                           idAttr: String,
-                           idType: IdType.IdType,
-                           emailAttr: Option[String],
-                           firstNameAttr: Option[String],
-                           lastNameAttr: Option[String]) {
+case class LdapUsersConfig(
+    usersDN: String,
+    cacheSize: Int,
+    usernameAttr: String,
+    idAttr: String,
+    idType: IdType.IdType,
+    emailAttr: Option[String],
+    firstNameAttr: Option[String],
+    lastNameAttr: Option[String]) {
   val CN_ATTR = "cn"
 
   /**
