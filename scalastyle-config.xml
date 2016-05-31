@@ -1,7 +1,7 @@
 <scalastyle>
  <!-- See https://github.com/PacificBiosciences/smrtflow/pull/95 -->
  <name>PacBio Scala style checker</name>
- <!-- "2-space convention" -- see http://docs.scala-lang.org/style/indentation -->
+ <!-- "2-space convention" - see http://docs.scala-lang.org/style/indentation -->
  <check level="warning" class="org.scalastyle.file.FileTabChecker" enabled="true"></check>
  <!--
  <check level="warning" class="org.scalastyle.file.FileLengthChecker" enabled="true">
