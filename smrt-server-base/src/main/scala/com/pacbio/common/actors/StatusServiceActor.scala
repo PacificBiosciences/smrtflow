@@ -67,7 +67,7 @@ sealed trait BaseStatusServiceActorProvider {
         try {
           val prop = new Properties
           prop.load(in)
-          prop.getProperty("version")
+          prop.getProperty("version").replace("SNAPSHOT", "") + prop.getProperty("sha1").substring(0, 7)
         }
         finally {
           in.close()
