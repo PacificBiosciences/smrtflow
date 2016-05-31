@@ -123,7 +123,7 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
               val coreJob = CoreJob(uuid, opts)
               val jopts = ropts.toJson
 
-	      logger.info("Pbsmrtpipe Service Opts:")
+              logger.info("Pbsmrtpipe Service Opts:")
               logger.info(jopts.prettyPrint)
               logger.info(s"Resolved options to $opts")
 
@@ -155,13 +155,13 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
       post {
         entity(as[LogMessageRecord]) { m =>
           respondWithMediaType(MediaTypes.`application/json`) {
-		          complete {
-			          created {
-			          val sourceId = s"job::$id::${m.sourceId}"
-			          loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-			          Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
-		          }
-	          }
+            complete {
+              created {
+                val sourceId = s"job::$id::${m.sourceId}"
+                loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
+                Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+              }
+            }
           }
         }
       }
@@ -170,16 +170,16 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
       post {
         entity(as[LogMessageRecord]) { m =>
           respondWithMediaType(MediaTypes.`application/json`) {
-	          complete {
-		          created {
-			          (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
-				          val sourceId = s"job::${engineJob.id}::${m.sourceId}"
-				          loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-				          // an "ok" message should
-				          Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
-			          }
-		          }
-	          }
+            complete {
+              created {
+                (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                  val sourceId = s"job::${engineJob.id}::${m.sourceId}"
+                  loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
+                  // an "ok" message should
+                  Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+                }
+              }
+            }
           }
         }
       }
