@@ -1,5 +1,7 @@
 package com.pacbio.common
 
+import java.io.{PrintWriter, StringWriter}
+
 import com.pacbio.common.models._
 import com.pacbio.common.services.utils.CORSSupport
 import com.typesafe.config.ConfigFactory
@@ -98,7 +100,14 @@ package object services {
       extends Exception(message, cause) {
 
       val code: StatusCode
-      def response = ThrowableResponse(code.intValue, message, code.reason)
+      def response: ThrowableResponse = {
+        val stackTrace = Option(cause).map { t: Throwable =>
+          val sw = new StringWriter
+          t.printStackTrace(new PrintWriter(sw))
+          s"\n$sw"
+        }.getOrElse("")
+        ThrowableResponse(code.intValue, message + stackTrace, code.reason)
+      }
     }
 
     class ResourceNotFoundError(message: String, cause: Throwable = null)
@@ -107,6 +116,8 @@ package object services {
       extends PacBioServiceError(message, cause) { override val code = NotImplemented }
     class UnprocessableEntityError(message: String, cause: Throwable = null)
       extends PacBioServiceError(message, cause) { override val code = UnprocessableEntity }
+    class UnknownServerError(message: String, cause: Throwable = null)
+      extends PacBioServiceError(message, cause) { override val code = InternalServerError }
   }
 
   trait PacBioServiceErrors extends BasicToResponseMarshallers with LazyLogging {
@@ -117,7 +128,7 @@ package object services {
 
     def response(e: Throwable): ThrowableResponse = e match {
       case t: PacBioServiceError => t.response
-      case NonFatal(t) => ThrowableResponse(InternalServerError.intValue, t.getMessage, InternalServerError.reason)
+      case NonFatal(t) => new UnknownServerError(t.getMessage, t).response
     }
 
     val responseMarshaller: ToResponseMarshaller[(Int, ThrowableResponse)] =

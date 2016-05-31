@@ -27,6 +27,7 @@ parallelExecution in ThisBuild := false
 fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
+
 javaOptions in ThisBuild += "-Xmx2g"
 
 // Custom keys for this build.
@@ -65,9 +66,9 @@ def PacBioProject(name: String): Project = (
       "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
       "org.apache.avro" % "avro" % "1.7.7",
       "com.github.broadinstitute" % "picard" % "1.131",
-      "com.typesafe.slick" %% "slick" % "2.1.0",
+      "com.typesafe.slick" %% "slick" % "3.1.0",
       "org.xerial" % "sqlite-jdbc" % "3.8.6",
-      "com.github.tototoshi" %% "slick-joda-mapper" % "1.2.0",
+      "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
       // added from bss
       "io.spray" % "spray-io_2.11" % sprayV,
       "io.spray" %% "spray-json" % "1.3.2",
@@ -83,7 +84,6 @@ def PacBioProject(name: String): Project = (
       "com.typesafe.akka" %% "akka-slf4j" % akkaV,
       "com.github.nscala-time" %% "nscala-time" % "1.4.0",
       "com.github.fge" % "json-schema-validator" % "2.2.5",
-      "com.typesafe.slick" %% "slick" % "2.1.0",
       "org.xerial" % "sqlite-jdbc" % "3.8.6",
       "com.novocode" % "junit-interface" % "0.10" % "test",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
