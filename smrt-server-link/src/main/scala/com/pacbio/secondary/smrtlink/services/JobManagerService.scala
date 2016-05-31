@@ -48,7 +48,7 @@ class JobManagerService(dbActor: ActorRef,
   implicit val routing = RoutingSettings.default
 
   val serviceId = toServiceId("job_manager")
-  val deps = Some(Seq(PacBioComponent(toServiceId("status"), "0.1.0")))
+  val deps = Seq(PacBioComponent(toServiceId("status"), "0.1.0"))
   override val manifest = PacBioComponentManifest(
     serviceId,
     "Service Job Manager",

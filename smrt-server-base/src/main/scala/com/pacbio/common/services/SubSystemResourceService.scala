@@ -18,7 +18,7 @@ class SubSystemResourceService extends PacBioService {
   val manifest = PacBioComponentManifest(
     toServiceId("subsystem_resources"),
     "Subsystem Resources Service",
-    "0.2.0", "Subsystem Resources Service", None)
+    "0.2.0", "Subsystem Resources Service")
 
   val exampleResource = SubsystemResource(UUID.randomUUID, "MyDisplayName", "0.1.2",
     "/subsystem_resources", "/docs/user/subsystem", "/docs/api/subsystem", JodaDateTime.now, JodaDateTime.now)

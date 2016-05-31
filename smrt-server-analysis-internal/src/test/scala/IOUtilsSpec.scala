@@ -1,8 +1,9 @@
 import org.specs2.mutable.Specification
-
 import java.nio.file.Paths
+import java.nio.file.Files
 
 import com.pacbio.secondaryinternal.IOUtils
+import com.pacbio.secondaryinternal.models.{ReseqCondition, ReseqConditions, ResolvedCondition}
 
 class IOUtilsSpec extends Specification {
 
@@ -10,6 +11,12 @@ class IOUtilsSpec extends Specification {
     val x = getClass.getResource(name)
     Paths.get(x.toURI)
   }
+
+  val exampleName = "conditions-01.csv"
+
+  def loadExample = loadResource(exampleName)
+
+
   val xs =
     """condId,host,jobId
       |a,smrtlink-a:9999,1
@@ -40,6 +47,21 @@ class IOUtilsSpec extends Specification {
       records(2).host must beEqualTo("smrtlink-c")
       records(2).port must beEqualTo(8081)
       records(2).jobId must beEqualTo(3)
+    }
+    "Write Reseq Conditions" in {
+      val c1 = ReseqCondition("c1", Paths.get("/path/to/subreadset.xml"), Paths.get("/paths/to/alignmentset"), Paths.get("/paths/to/referenceset.xml"))
+      val tmpFile = Files.createTempFile("reseq-conditions", "json")
+
+      val conditions = ReseqConditions("pbmsmrtpipe.pipelines.dev_diagnostic", Seq(c1))
+
+      val _ = IOUtils.writeReseqConditions(conditions, tmpFile)
+
+      val cs = IOUtils.loadReseqConditions(tmpFile)
+
+      Files.deleteIfExists(tmpFile)
+
+      cs.conditions.length must beEqualTo(1)
+      cs.conditions.head.condId must beEqualTo("c1")
     }
   }
 

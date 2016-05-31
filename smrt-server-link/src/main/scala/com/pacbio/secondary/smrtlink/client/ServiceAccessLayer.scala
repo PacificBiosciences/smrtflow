@@ -1,14 +1,11 @@
-
-package com.pacbio.secondary.smrttools.client
+package com.pacbio.secondary.smrtlink.client
 
 import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.common.client._
-import com.pacbio.secondary.smrtserver.models._
-import com.pacbio.secondary.smrtlink.models._
-
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.common.client._
 import com.pacbio.common.models._
 
 import akka.actor.ActorSystem
@@ -27,35 +24,22 @@ import scala.xml.XML
 import java.net.URL
 import java.util.UUID
 
-//FIXME(mkocher)(2016-2-2): This needs to be centralized.
-object SmrtLinkServicesModels {
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
 
-  case class CreateDataSet(path: String, datasetType: String)
-  case class CreateReferenceSet(path: String, name: String, organism: String,
-                                ploidy: String)
-}
-
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
-
-/**
- * Client to Primary Services
- */
-
-object ServiceEndpoints {
+trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
   val ROOT_JOBS = ROOT_JM + "/jobs"
   val ROOT_DS = "/secondary-analysis/datasets"
-  val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
 }
 
-object ServiceResourceTypes {
+trait ServiceResourceTypesTrait {
   val REPORTS = "reports"
   val DATASTORE = "datastore"
   val ENTRY_POINTS = "entry-points"
 }
 
 // FIXME this should probably use com.pacbio.secondary.analysis.jobtypes
-object JobTypes {
+trait JobTypesTrait {
   val IMPORT_DS = "import-dataset"
   val IMPORT_DSTORE = "import-datastore"
   val MERGE_DS = "merge-datasets"
@@ -65,7 +49,7 @@ object JobTypes {
 }
 
 // FIXME this for sure needs to be somewhere else
-object DataSetTypes {
+trait DataSetTypesTrait {
   val SUBREADS = "subreads"
   val HDFSUBREADS = "hdfsubreads"
   val REFERENCES = "references"
@@ -74,12 +58,16 @@ object DataSetTypes {
   val ALIGNMENTS = "alignments"
 }
 
-class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
+class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
 
   import ServicesClientJsonProtocol._
-  import SmrtLinkServicesModels._
   import SprayJsonSupport._
   import ReportModels._
+
+  object ServiceEndpoints extends ServiceEndpointsTrait
+  object ServiceResourceTypes extends ServiceResourceTypesTrait
+  object JobTypes extends JobTypesTrait
+  object DataSetTypes extends DataSetTypesTrait
 
   protected def toJobUrl(jobType: String, jobId: Int): String = {
     toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}")
@@ -97,6 +85,16 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def toDataSetUrl(dsType: String, dsId: Int): String = {
     toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${dsId}")
   }
+
+  override def serviceStatusEndpoints: Vector[String] = Vector(
+    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
+    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
+    ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
+    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
+    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
+    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
+    ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
+
 
   // Pipelines and serialization
   def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
@@ -118,11 +116,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
-  def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
-  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
 
 
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
@@ -267,70 +263,4 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     getJobReportDetails(JobTypes.PB_PIPE, jobId, reportId)
   }
 */
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-         CreateDataSet(path, dsMetaType))
-  }
-
-  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-         CreateReferenceSet(path, name, organism, ploidy))
-  }
-
-  def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
-  }
-
-  // FIXME this doesn't quite work...
-  def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_PT + "/" + pipelineId))
-  }
-
-  def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
-         pipelineOptions)
-  }
-
-  def pollForJob(jobId: UUID): Future[String] = {
-    var exitFlag = true
-    var nIterations = 0
-    val sleepTime = 5000
-    val requestTimeOut = 10.seconds
-    var jobState: Option[String] = None
-
-    while(exitFlag) {
-      nIterations += 1
-      Thread.sleep(sleepTime)
-      Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
-        case Success(x) =>
-          x.state match {
-            case AnalysisJobStates.SUCCESSFUL =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("SUCCESSFUL")
-            case AnalysisJobStates.FAILED =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("FAILED")
-            case sx =>
-              //logger.info(s"Iteration $nIterations. Got job state $sx Sleeping for $sleepTime ms")
-              jobState = Some(s"${x.state.stateId}")
-          }
-
-        case Failure(err) =>
-          val emsg = s"Failed getting job $jobId state ${err.getMessage}"
-          //logger.error(emsg)
-          exitFlag = false
-          // this needs to return a JobResult
-          jobState = Some("FAILED")
-      }
-    }
-
-    jobState match {
-      case sx @ Some("SUCCESSFUL") => Future { "SUCCESSFUL" }
-      case Some(sx) =>  Future.failed(new Exception(s"Unable to Successfully run job $jobId $sx"))
-      case _ => Future.failed(new Exception(s"Unable to Successfully run job $jobId"))
-    }
-  }
-
 }

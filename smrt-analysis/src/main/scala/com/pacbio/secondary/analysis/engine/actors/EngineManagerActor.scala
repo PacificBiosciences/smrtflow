@@ -55,11 +55,11 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
   // Log the job summary. This should probably be in a health agent
   val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
 
-  //val resolver = new SimpleUUIDJobResolver(Files.createTempDirectory("engine-manager-"))
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
 
-  // For jobs that are small and can completed in a relatively short amount of time (~seconds)
+  val maxNumQuickWorkers = 10
+  // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
   override def preStart(): Unit = {
@@ -70,8 +70,12 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
       workers.enqueue(worker)
       log.debug(s"Creating worker $worker")
     }
-    log.info(s"Created ${workers.size} engine workers")
 
+    (0 until maxNumQuickWorkers).foreach { x =>
+      val worker = context.actorOf(QuickEngineWorkerActor.props(daoActor, jobRunner), s"engine-quick-worker-$x")
+      quickWorkers.enqueue(worker)
+      log.debug(s"Creating Quick worker $worker")
+    }
   }
 
   override def postStop(): Unit = {
@@ -79,36 +83,44 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
     checkForWorkTick.cancel()
   }
 
+  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
+
+    if (workerQueue.nonEmpty) {
+      log.debug(s"Checking for work. Number of available Workers ${workerQueue.size}")
+      log.debug(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
+
+      // This should be extended to support a list of Status Updates, to avoid another ask call
+      // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
+      val fx = for {
+        f1 <- daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
+        f2 <- daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING)
+      } yield f2
+
+      fx onComplete {
+        case Success(_) =>
+          val worker = workerQueue.dequeue()
+          val outputDir = resolver.resolve(runnableJobWithId)
+          // Update jobOptions output dir
+          daoActor ! UpdateJobOutputDir(runnableJobWithId.job.uuid, outputDir)
+          worker ! RunJob(runnableJobWithId.job, outputDir)
+        case Failure(ex) =>
+          log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
+          daoActor ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+      }
+    }
+  }
+
   def checkForWork(): Unit = {
     log.debug(s"Checking for work. Number of available Workers ${workers.size}")
 
-    if (workers.nonEmpty) {
+    if (workers.nonEmpty || quickWorkers.nonEmpty) {
       val f = (daoActor ? HasNextRunnableJobWithId).mapTo[Either[NoAvailableWorkError, RunnableJobWithId]]
 
       f onSuccess {
         case Right(runnableJob) =>
-          if (workers.nonEmpty) {
-            log.debug(s"Checking for work. Number of available Workers ${workers.size}")
-            log.debug(s"Found jobOptions work ${runnableJob.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
-
-            val fx = for {
-              f1 <- daoActor ? UpdateJobStatus(runnableJob.job.uuid, AnalysisJobStates.SUBMITTED)
-              f2 <- daoActor ? UpdateJobStatus(runnableJob.job.uuid, AnalysisJobStates.RUNNING)
-            } yield f2
-
-            fx onComplete {
-              case Success(_) =>
-                val worker = workers.dequeue()
-                val outputDir = resolver.resolve(runnableJob)
-                // Update jobOptions output dir
-                daoActor ! UpdateJobOutputDir(runnableJob.job.uuid, outputDir)
-                worker ! RunJob(runnableJob.job, outputDir)
-              case Failure(ex) =>
-                log.error(s"Failed to update job state of ${runnableJob.job} with ${runnableJob.job.uuid.toString}")
-                val worker = workers.dequeue()
-                daoActor ! UpdateJobStatus(runnableJob.job.uuid, AnalysisJobStates.FAILED)
-            }
-          }
+          val jobType = runnableJob.job.jobOptions.toJob.jobTypeId
+          if ((QUICK_TASK_IDS contains jobType) && quickWorkers.nonEmpty) addJobToWorker(runnableJob, quickWorkers)
+          else addJobToWorker(runnableJob, workers)
         case Left(e) => log.debug(s"No work found. ${e.message}")
       }
 
@@ -148,15 +160,21 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
         case Failure(ex) => log.error(s"Failed check for runnable jobs ${ex.getMessage}")
       }
 
-    case UpdateJobCompletedResult(result) =>
+    case UpdateJobCompletedResult(result, workerType) =>
       // This should have a success/failure
       result.state match {
         case x: Completed =>
           daoActor ! UpdateJobStatus(result.uuid, result.state)
-          workers.enqueue(sender)
+          workerType match {
+            case QuickWorkType => quickWorkers.enqueue(sender)
+            case StandardWorkType => workers.enqueue(sender)
+          }
           self ! CheckForRunnableJob
         case x => log.error(s"state must be a completed state. Got $result")
-          workers.enqueue(sender)
+          workerType match {
+            case QuickWorkType => quickWorkers.enqueue(sender)
+            case StandardWorkType => workers.enqueue(sender)
+          }
           self ! CheckForRunnableJob
       }
 

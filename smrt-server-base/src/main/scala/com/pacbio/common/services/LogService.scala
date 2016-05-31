@@ -32,7 +32,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     toServiceId("log"),
     "Subsystem Logging Service",
-    "0.3.0", "Subsystem Logging Service", None)
+    "0.3.0", "Subsystem Logging Service")
 
   val logServiceName = "loggers"
 

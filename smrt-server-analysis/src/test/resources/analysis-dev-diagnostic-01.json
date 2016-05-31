@@ -1,0 +1,14 @@
+{
+  "entryPoints": [
+    {
+      "_comment": "datasetId can be provided as the DataSet UUID or Int. The entryId can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'",
+      "datasetId": "7b4a00fb-ff06-4da2-b3e3-97f3910c06ce",
+      "entryId": "eid_ref_dataset",
+      "fileTypeId": "PacBio.DataSet.ReferenceSet"
+    }
+  ],
+  "name": "Job name",
+  "pipelineId": "pbsmrtpipe.pipelines.dev_diagnostic",
+  "taskOptions": [],
+  "workflowOptions": []
+}

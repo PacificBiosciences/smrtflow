@@ -33,7 +33,7 @@ class ReferenceSetResolverService(dao: ReferenceResourceDao) extends BaseInterna
 
   val manifest = PacBioComponentManifest(toServiceId("reference_resolver"),
     "SMRT Link Reference Resolver", "0.1.0",
-    "Service to Globally resolve ReferenceSets by 'id', such as 'lambdaNEB'", None)
+    "Service to Globally resolve ReferenceSets by 'id', such as 'lambdaNEB'")
 
   val DEFAULT_MAX_RESULTS = 5000
   val PREFIX = "resolvers"

@@ -19,3 +19,9 @@ assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case x => old(x)
 }
 }
+
+packSettings
+
+packMain := Map(
+  "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp"
+)

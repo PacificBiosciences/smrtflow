@@ -1,11 +1,13 @@
 package com.pacbio.common.actors
 
-import java.util.UUID
+import java.util.{Properties, UUID}
 
-import akka.actor.{Props, ActorRef}
+import akka.actor.{ActorRef, Props}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.time.{Clock, ClockProvider}
 import org.joda.time.{Duration => JodaDuration, Instant => JodaInstant}
+import scala.collection.JavaConverters._
+
 
 /**
  * Companion object for the StatusServiceActor class, defining the set of messages it can handle.
@@ -58,8 +60,23 @@ sealed trait BaseStatusServiceActorProvider {
 
   val uuid: Singleton[UUID] = Singleton(UUID.randomUUID())
 
-  val buildVersion: Singleton[String] = Singleton(() =>
-    Option(buildPackage()).flatMap { p => Option(p.getImplementationVersion) }.getOrElse("unknown version")
+  val buildVersion: Singleton[String] = Singleton(() => {
+      val files = getClass().getClassLoader().getResources("version.properties")
+      if (files.hasMoreElements) {
+        val in = files.nextElement().openStream()
+        try {
+          val prop = new Properties
+          prop.load(in)
+          prop.getProperty("version").replace("SNAPSHOT", "") + prop.getProperty("sha1").substring(0, 7)
+        }
+        finally {
+          in.close()
+        }
+      }
+      else {
+        "unknown version"
+      }
+    }
   )
 }
 
