@@ -120,7 +120,7 @@ lazy val common = (
     settings(
     makeVersionProperties := {
       val propFile = (resourceManaged in Compile).value / "version.properties"
-      val content = "version=%s" format (gitHeadCommitSha.value)
+      val content = "version=%s\nsha1=%s" format (version.value, gitHeadCommitSha.value)
       IO.write(propFile, content)
       Seq(propFile)
     },
