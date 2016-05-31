@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.1-SNAPSHOT"
+version in ThisBuild := "0.1.2-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -120,7 +120,7 @@ lazy val common = (
     settings(
     makeVersionProperties := {
       val propFile = (resourceManaged in Compile).value / "version.properties"
-      val content = "version=%s" format (gitHeadCommitSha.value)
+      val content = "version=%s\nsha1=%s" format (version.value, gitHeadCommitSha.value)
       IO.write(propFile, content)
       Seq(propFile)
     },

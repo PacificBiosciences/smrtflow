@@ -31,3 +31,4 @@ db/*
 
 # IntelliJ
 .idea/*
+test-data-smrt-server

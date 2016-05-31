@@ -26,6 +26,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import org.flywaydb.core.Flyway
 
@@ -296,32 +297,46 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
                      state: AnalysisJobStates.JobStates,
                      message: String): Future[String] = {
     logger.info(s"Updating job state of job-id $jobId to $state")
+    val now = JodaDateTime.now()
     dal.db.run {
       DBIO.seq(
-        engineJobs.filter(_.id === jobId).map(_.state).update(state),
-        jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, JodaDateTime.now())
+        engineJobs.filter(_.id === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
+        jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, now)
       ).transactionally
     }.map(_ => s"Successfully updated job $jobId to $state")
   }
 
-  override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] =
-    dal.db.run(engineJobs.filter(_.uuid === uuid).map(_.state).update(state))
+  override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
+    val f = dal.db.run(engineJobs
+      .filter(_.uuid === uuid)
+      .map(j => (j.state, j.updatedAt))
+      .update(state, JodaDateTime.now()))
       .map(_ => s"Successfully updated job $uuid to $state")
+    f.onComplete {
+      case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
+      case Failure(_) => logger.error(s"Unable to update state of job id ${uuid.toString}")
+    }
+    f
+  }
 
   def updateJobStateByUUID(jobId: UUID,
                            state: AnalysisJobStates.JobStates,
                            message: String): Future[String] =
     dal.db.run {
+      val now = JodaDateTime.now()
       engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
         case Some(job) =>
           DBIO.seq(
-            engineJobs.filter(_.uuid === jobId).map(_.state).update(state),
-            jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, JodaDateTime.now())
+            engineJobs.filter(_.uuid === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
+            jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
           )
         case None =>
           throw new ResourceNotFoundError(s"Unable to find job $jobId. Failed to update job state to $state")
       }.transactionally
-    }.map(_ => s"Successfully updated job $jobId to $state")
+    }.map { _ =>
+      logger.info(s"Updated job ${jobId.toString} state to $state")
+      s"Successfully updated job $jobId to $state"
+    }
 
   /**
    * This is the new interface will replace the original createJob
