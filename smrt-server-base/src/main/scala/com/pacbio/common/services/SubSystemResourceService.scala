@@ -27,14 +27,14 @@ class SubSystemResourceService extends PacBioService {
     mutable.Map(exampleResource.uuid -> exampleResource)
   }
 
-  def _findResourceOrError(uuid: java.util.UUID): Try[SubsystemResource] = Try {
+  private def findResourceOrError(uuid: java.util.UUID): Try[SubsystemResource] = Try {
     if (_subsystemResources.contains(uuid))
       _subsystemResources(uuid)
     else
       throw new NoSuchElementException(s"Unable to find resource $uuid")
   }
 
-  def _deleteResourceOrError(uuid: java.util.UUID): Try[String] = Try {
+  private def deleteResourceOrError(uuid: java.util.UUID): Try[String] = Try {
     if (_subsystemResources.contains(uuid)) {
       _subsystemResources -= uuid
       s"Successfully deleted resource $uuid"
@@ -66,14 +66,14 @@ class SubSystemResourceService extends PacBioService {
         get {
           complete {
             ok {
-              _findResourceOrError(_uuid)
+              findResourceOrError(_uuid)
             }
           }
         } ~
         delete {
           complete {
             ok {
-              _deleteResourceOrError(_uuid)
+              deleteResourceOrError(_uuid)
             }
           }
         }
