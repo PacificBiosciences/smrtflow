@@ -2,9 +2,32 @@ package db.migration
 
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.flywaydb.core.api.callback.BaseFlywayCallback
-import scala.slick.jdbc.UnmanagedSession
-import scala.slick.driver.JdbcDriver.simple._
 import java.sql.Connection
+
+import slick.jdbc.JdbcBackend.{BaseSession, DatabaseDef}
+import slick.jdbc.JdbcDataSource
+import slick.util.AsyncExecutor
+
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration.Duration
+
+// UnmanagedSession was deprecated in Slick 3.0 and removed in 3.1. This is my attempt to re-create its functionality
+// for 3.1.
+
+class UnmanagedJdbcDataSource(conn: Connection) extends JdbcDataSource {
+  override def createConnection() = conn
+  override def close() = ()
+}
+
+class UnmanagedSession(database: DatabaseDef) extends BaseSession(database) {
+  override def close() = ()
+}
+
+class UnmanagedDatabase(conn: Connection)
+  extends DatabaseDef(new UnmanagedJdbcDataSource(conn), AsyncExecutor("UmanagedDatabase-AsyncExecutor", 1, -1)) {
+
+  override def createSession() = new UnmanagedSession(this)
+}
 
 /**
  * By including this trait in your Flyway JdbcMigration, you only
@@ -18,33 +41,28 @@ import java.sql.Connection
 trait SlickMigration { self: JdbcMigration =>
 
   // Implement this in your subclass
-  def slickMigrate(implicit session: Session): Unit
+  def slickMigrate(db: DatabaseDef): Future[Any]
 
   override final def migrate(conn: Connection): Unit = {
-    val session = new UnmanagedSession(conn)
+    val db = new UnmanagedDatabase(conn)
     try {
-      session.withTransaction {
-        slickMigrate(session)
-      }
+      Await.ready(slickMigrate(db), Duration.Inf)
     } finally {
-      session.close()
+      db.close()
     }
   }
-
 }
 
 trait SlickCallback extends BaseFlywayCallback {
 
-  def slickAfterBaseline(implicit session: Session): Unit
+  def slickAfterBaseline(db: DatabaseDef): Future[Any]
 
   override final def afterBaseline(conn: Connection): Unit = {
-    val session = new UnmanagedSession(conn)
+    val db = new UnmanagedDatabase(conn)
     try {
-      session.withTransaction {
-        slickAfterBaseline(session)
-      }
+      Await.ready(slickAfterBaseline(db), Duration.Inf)
     } finally {
-      session.close()
+      db.close()
     }
   }
 

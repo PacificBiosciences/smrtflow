@@ -9,17 +9,19 @@ import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 trait SampleDao {
-  def getSamples(): Set[Sample]
+  def getSamples(): Future[Set[Sample]]
 
-  def getSample(uniqueId: UUID): Sample
+  def getSample(uniqueId: UUID): Future[Sample]
 
-  def createSample(login: String, create: SampleCreate): Sample
+  def createSample(login: String, create: SampleCreate): Future[Sample]
 
-  def updateSample(uniqueId: UUID, update: SampleUpdate): Sample
+  def updateSample(uniqueId: UUID, update: SampleUpdate): Future[Sample]
 
-  def deleteSample(uniqueId: UUID): String
+  def deleteSample(uniqueId: UUID): Future[String]
 }
 
 trait SampleDaoProvider {
@@ -29,18 +31,16 @@ trait SampleDaoProvider {
 class InMemorySampleDao(clock: Clock) extends SampleDao {
   val samples: mutable.HashMap[UUID, Sample] = new mutable.HashMap
 
-  override final def getSamples(): Set[Sample] = {
-    samples.values.toSet
-  }
+  override final def getSamples(): Future[Set[Sample]] = Future {samples.values.toSet }
 
-  override final def getSample(uniqueId: UUID): Sample = {
+  override final def getSample(uniqueId: UUID): Future[Sample] = Future {
     if (samples contains uniqueId)
       samples(uniqueId)
     else
       throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
   }
 
-  override final def createSample(login: String, create: SampleCreate): Sample = {
+  override final def createSample(login: String, create: SampleCreate): Future[Sample] = Future {
     if (samples contains create.uniqueId) {
       throw new UnprocessableEntityError(s"Unable to create sample with uuid ${create.uniqueId}, already in use.")
     }
@@ -56,7 +56,7 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
     sample
   }
 
-  override final def updateSample(uniqueId: UUID, update: SampleUpdate): Sample = {
+  override final def updateSample(uniqueId: UUID, update: SampleUpdate): Future[Sample] = Future {
     if (!samples.contains(uniqueId)) {
       throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
     }
@@ -69,7 +69,7 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
     sample
   }
 
-  override final def deleteSample(uniqueId: UUID):String = {
+  override final def deleteSample(uniqueId: UUID): Future[String] = Future {
     if (samples contains uniqueId) {
       samples -= uniqueId
       s"Successfully deleted sample $uniqueId"

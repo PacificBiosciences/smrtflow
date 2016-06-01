@@ -8,6 +8,8 @@ import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError,
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 /**
@@ -17,37 +19,37 @@ trait RunDao {
   /**
    * Provides a list of all available run designs.
    */
-  def getRuns(criteria: SearchCriteria): Set[RunSummary]
+  def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]]
 
   /**
    * Gets a run design by id.
    */
-  def getRun(id: UUID): Run
+  def getRun(id: UUID): Future[Run]
 
   /**
    * Creates a new run design.
    */
-  def createRun(create: RunCreate): RunSummary
+   def createRun(create: RunCreate): Future[RunSummary]
 
   /**
    * Updates a run design.
    */
-  def updateRun(id: UUID, update: RunUpdate): RunSummary
+  def updateRun(id: UUID, update: RunUpdate): Future[RunSummary]
 
   /**
    * Deletes a run design.
    */
-  def deleteRun(id: UUID): String
+  def deleteRun(id: UUID): Future[String]
 
   /**
    * Provides a list of all CollectionMetadata for a given run.
    */
-  def getCollectionMetadatas(runId: UUID): Seq[CollectionMetadata]
+  def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]]
 
   /**
    * Gets a CollectionMetadata by unique id.
    */
-  def getCollectionMetadata(runId: UUID, id: UUID): CollectionMetadata
+  def getCollectionMetadata(runId: UUID, id: UUID): Future[CollectionMetadata]
 }
 
 /**
@@ -78,7 +80,7 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
     collections(results.run.uniqueId) = collectMap
   }
 
-  override final def getRuns(criteria: SearchCriteria): Set[RunSummary] = {
+  override final def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = Future {
     var results: Iterable[Run] = runs.values
     if (criteria.name.isDefined)
       results = results.filter(_.name == criteria.name.get)
@@ -92,19 +94,20 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
     results.map(_.summarize).toSet
   }
 
-  override final def getRun(id: UUID): Run =
+  override final def getRun(id: UUID): Future[Run] = Future {
     if (runs contains id)
       runs(id)
     else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def createRun(create: RunCreate): RunSummary = {
+  override final def createRun(create: RunCreate): Future[RunSummary] = Future {
     val results = parser(create.dataModel)
     putResults(results)
     results.run.summarize
   }
 
-  override final def updateRun(id: UUID, update: RunUpdate): RunSummary =
+  override final def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] = Future {
     if (runs contains id) {
       update.dataModel.foreach { d =>
         val results = parser(d)
@@ -116,22 +119,25 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
       runs(id).summarize
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def deleteRun(id: UUID): String =
+  override final def deleteRun(id: UUID): Future[String] = Future {
     if (runs contains id) {
       runs -= id
       collections -= id
       s"Successfully deleted run design $id"
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def getCollectionMetadatas(runId: UUID): Seq[CollectionMetadata]  =
+  override final def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] = Future {
     if (collections contains runId)
       collections(runId).values.toSeq
     else
       throw new ResourceNotFoundError(s"Unable to find resource $runId")
+  }
 
-  override final def getCollectionMetadata(runId: UUID, id: UUID): CollectionMetadata =
+  override final def getCollectionMetadata(runId: UUID, id: UUID): Future[CollectionMetadata] = Future {
     if (collections contains runId)
       if (collections(runId) contains id)
         collections(runId)(id)
@@ -139,6 +145,7 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
         throw new ResourceNotFoundError(s"Unable to find resource $id")
     else
       throw new ResourceNotFoundError(s"Unable to find resource $runId")
+  }
 
   @VisibleForTesting
   def clear(): Unit = {

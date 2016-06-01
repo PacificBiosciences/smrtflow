@@ -5,7 +5,6 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
-import com.pacbio.common.actors.UserDao
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -24,11 +23,14 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.slick.jdbc.meta.MTable
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
 import org.flywaydb.core.Flyway
+
+import slick.driver.SQLiteDriver.api._
 
 
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
@@ -44,7 +46,7 @@ class Dal(val dbURI: String) {
         }
       }
 
-      return super.migrate()
+      super.migrate()
     }
   }
   flyway.setDataSource(dbURI, "", "")
@@ -86,126 +88,116 @@ trait DalComponent {
 trait ProjectDataStore extends LazyLogging {
   this: DalComponent with SmrtLinkConstants =>
 
-  def getProjects(limit: Int = 100): Seq[Project] = {
-    dal.db.withSession { implicit session =>
-      projects.take(limit).list
-    }
+  def getProjects(limit: Int = 100): Future[Seq[Project]] = dal.db.run(projects.take(limit).result)
+
+  def getProjectById(projId: Int): Future[Option[Project]] =
+    dal.db.run(projects.filter(_.id === projId).result.headOption)
+
+  def createProject(opts: ProjectRequest): Future[Project] = {
+    val now = JodaDateTime.now()
+    val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
+    val action = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
+    dal.db.run(action)
   }
 
-  def getProjectById(projId: Int): Option[Project] = {
-    dal.db.withSession { implicit session =>
-      projects.filter(_.id === projId).firstOption
-    }
+  def updateProject(projId: Int, opts: ProjectRequest): Future[Option[Project]] = {
+    val now = JodaDateTime.now()
+    val update = projects
+      .filter(_.id === projId)
+      .map(p => (p.name, p.state, p.description, p.updatedAt))
+      .update(opts.name, opts.state, opts.description, now)
+
+    val updateAndGet = update >> projects.filter(_.id === projId).result.headOption
+
+    dal.db.run(updateAndGet)
   }
 
-  def createProject(opts: ProjectRequest): Project = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
-      val projId = (projects returning projects.map(_.id)) += proj
-      proj.copy(id = projId)
-    }
-  }
+  def getProjectUsers(projId: Int): Future[Seq[ProjectUser]] =
+    dal.db.run(projectsUsers.filter(_.projectId === projId).result)
 
-  def updateProject(projId: Int, opts: ProjectRequest): Option[Project] = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      val proj = projects.filter(_.id === projId)
-      proj.map(p => (p.name, p.state, p.description, p.updatedAt))
-        .update(opts.name, opts.state, opts.description, now)
-      proj.firstOption
-    }
-  }
-
-  def getProjectUsers(projId: Int): Seq[ProjectUser] = {
-    dal.db.withSession { implicit session =>
-      projectsUsers.filter(_.projectId === projId).run
-    }
-  }
-
-  def addProjectUser(projId: Int, user: ProjectUserRequest): MessageResponse = {
-    dal.db.withTransaction { implicit session =>
-      projectsUsers.filter(x => x.projectId === projId && x.login === user.login).delete
+  def addProjectUser(projId: Int, user: ProjectUserRequest): Future[MessageResponse] = {
+    val action = DBIO.seq(
+      projectsUsers.filter(x => x.projectId === projId && x.login === user.login).delete,
       projectsUsers += ProjectUser(projId, user.login, user.role)
-      MessageResponse(s"added user ${user.login} with role ${user.role} to project $projId")
-    }
+    ).map(_ => MessageResponse(s"added user ${user.login} with role ${user.role} to project $projId")).transactionally
+
+    dal.db.run(action)
   }
 
-  def deleteProjectUser(projId: Int, user: String): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      projectsUsers.filter(x => x.projectId === projId && x.login === user).delete
-      MessageResponse(s"removed user $user from project $projId")
-    }
+  def deleteProjectUser(projId: Int, user: String): Future[MessageResponse] = {
+    val action = projectsUsers
+      .filter(x => x.projectId === projId && x.login === user)
+      .delete
+      .map(_ => MessageResponse(s"removed user $user from project $projId"))
+
+    dal.db.run(action)
   }
 
-  def getDatasetsByProject(projId: Int): Seq[DataSetMetaDataSet] = {
-    dal.db.withSession { implicit session =>
-      dsMetaData2.filter(_.projectId === projId).run
-    }
+  def getDatasetsByProject(projId: Int): Future[Seq[DataSetMetaDataSet]] =
+    dal.db.run(dsMetaData2.filter(_.projectId === projId).result)
+
+  def getUserProjects(login: String): Future[Seq[UserProjectResponse]] = {
+    val join = for {
+      (pu, p) <- projectsUsers join projects on (_.projectId === _.id)
+      if pu.login === login
+    } yield (pu.role, p)
+
+    val userProjects = join
+      .result
+      .map(_.map(j => UserProjectResponse(Some(j._1), j._2)))
+
+    val generalProject = projects
+      .filter(_.id === GENERAL_PROJECT_ID)
+      .result
+      .headOption
+      .map(_.map(UserProjectResponse(None, _)).toSeq)
+
+    dal.db.run(userProjects.zip(generalProject).map(p => p._1 ++ p._2))
   }
 
-  def getUserProjects(login: String): Seq[UserProjectResponse] = {
-    dal.db.withSession { implicit session =>
-      val userProjectQ = for {
-        pu <- projectsUsers if pu.login === login
-        proj <- projects if pu.projectId === proj.id
-      } yield (proj, pu.role)
+  def getUserProjectsDatasets(login: String): Future[Seq[ProjectDatasetResponse]] = {
+    val userJoin = for {
+      pu <- projectsUsers if pu.login === login
+      p <- projects if pu.projectId === p.id
+      d <- dsMetaData2 if pu.projectId === d.projectId
+    } yield (p, d, pu.role)
 
-      val userProjects = userProjectQ.list.map({
-        case (proj, role) => UserProjectResponse(Some(role), proj)
-      })
+    val userProjects = userJoin
+      .result
+      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, Some(j._3))))
 
-      val generalProject = projects
-        .filter(_.id === GENERAL_PROJECT_ID)
-        .list.map(UserProjectResponse(None, _))
+    val genJoin = for {
+      p <- projects if p.id === GENERAL_PROJECT_ID
+      d <- dsMetaData2 if p.id === d.projectId
+    } yield (p, d)
 
-      (userProjects ++ generalProject)
-    }
+    val genProjects = genJoin
+      .result
+      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, None)))
+
+    dal.db.run(userProjects.zip(genProjects).map(p => p._1 ++ p._2))
   }
 
-  def getUserProjectsDatasets(login: String): Seq[ProjectDatasetResponse] = {
-    dal.db.withSession { implicit session =>
-      val userProjectQ = for {
-        pu <- projectsUsers if pu.login === login
-        proj <- projects if pu.projectId === proj.id
-        dsMeta <- dsMetaData2 if pu.projectId === dsMeta.projectId
-      } yield (proj, dsMeta, pu.role)
+  def setProjectForDatasetId(dsId: Int, projId: Int): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    val action = dsMetaData2
+      .filter(_.id === dsId)
+      .map(ds => (ds.projectId, ds.updatedAt))
+      .update(projId, now)
+      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
 
-      val userProjects = userProjectQ.list.map({
-        case (proj, dsMeta, role) => ProjectDatasetResponse(proj, dsMeta, Some(role))
-      })
-
-      val genProjectQ = for {
-        proj <- projects if proj.id === GENERAL_PROJECT_ID
-        dsMeta <- dsMetaData2 if proj.id === dsMeta.projectId
-      } yield (proj, dsMeta)
-
-      val genProjects = genProjectQ.list.map({
-        case (proj, dsMeta) => ProjectDatasetResponse(proj, dsMeta, None)
-      })
-
-      userProjects ++ genProjects
-    }
+    dal.db.run(action)
   }
 
-  def setProjectForDatasetId(dsId: Int, projId: Int): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      dsMetaData2.filter(_.id === dsId)
-        .map(ds => (ds.projectId, ds.updatedAt))
-        .update(projId, now)
-      MessageResponse(s"moved dataset with ID $dsId to project $projId")
-    }
-  }
+  def setProjectForDatasetUuid(dsId: UUID, projId: Int): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    val action = dsMetaData2
+      .filter(_.uuid === dsId)
+      .map(ds => (ds.projectId, ds.updatedAt))
+      .update(projId, now)
+      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
 
-  def setProjectForDatasetUuid(dsId: UUID, projId: Int): MessageResponse = {
-    dal.db.withSession { implicit session =>
-      val now = JodaDateTime.now()
-      dsMetaData2.filter(_.uuid === dsId)
-        .map(ds => (ds.projectId, ds.updatedAt))
-        .update(projId, now)
-      MessageResponse(s"moved dataset with ID $dsId to project $projId")
-    }
+    dal.db.run(action)
   }
 }
 
@@ -225,11 +217,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   /**
    * This is the pbscala engine required interface. The `createJob` method is the prefered method to add new jobs
    * to the job manager queue.
-   *
-   * @param runnableJob
-   * @return
    */
-  override def addRunnableJob(runnableJob: RunnableJob): EngineJob = {
+  override def addRunnableJob(runnableJob: RunnableJob): Future[EngineJob] = {
     // this should probably default to the system temp dir
     val path = ""
 
@@ -239,250 +228,191 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
     val jsonSettings = "{}"
 
-    val jobId = dal.db.withSession { implicit session =>
-      val x = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
-      engineJobs returning engineJobs.map(_.id) += x
-    }
-    // Now that the job id is known, we can resolve the directory that the job will be run in
-    // and update the engine job in the db
-    val rj = RunnableJobWithId(jobId, runnableJob.job, runnableJob.state)
-    val resolvedPath = resolver.resolve(rj)
+    val job = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
 
-    dal.db.withSession { implicit session =>
-      val qx = for {e <- engineJobs if e.id === jobId} yield e.path
-      qx.update(resolvedPath.toAbsolutePath.toString)
+    val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
+      val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
+      _runnableJobs.update(runnableJob.job.uuid, runnableJobWithId)
+
+      val resolvedPath = resolver.resolve(runnableJobWithId).toAbsolutePath.toString
+      val jobEvent = JobEvent(
+        UUID.randomUUID(),
+        j.id,
+        AnalysisJobStates.CREATED,
+        s"Created job ${j.id} type $jobTypeId with ${runnableJob.job.uuid.toString}",
+        JodaDateTime.now())
+
+      DBIO.seq(
+        jobEvents += jobEvent,
+        engineJobs.filter(_.id === j.id).map(_.path).update(resolvedPath)
+      ).map { _ =>
+        job.copy(id = j.id, path = resolvedPath)
+      }
     }
 
-    // Add creation event
-    dal.db.withSession { implicit session =>
-      jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.CREATED, s"Created job $jobId type $jobTypeId with ${runnableJob.job.uuid.toString}", JodaDateTime.now())
-    }
-
-    _runnableJobs.update(runnableJob.job.uuid, rj)
-    EngineJob(jobId, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
+    dal.db.run(update.transactionally)
   }
 
-  override def getJobByUUID(jobId: UUID): Option[EngineJob] = {
-    dal.db.withSession { implicit session =>
-      engineJobs.filter(_.uuid === jobId).firstOption
-    }
-  }
+  override def getJobByUUID(jobId: UUID): Future[Option[EngineJob]] =
+    dal.db.run(engineJobs.filter(_.uuid === jobId).result.headOption)
 
-  override def getJobById(jobId: Int): Option[EngineJob] = {
-    dal.db.withSession { implicit session =>
-      engineJobs.filter(_.id === jobId).firstOption
-    }
-  }
+  override def getJobById(jobId: Int): Future[Option[EngineJob]] =
+    dal.db.run(engineJobs.filter(_.id === jobId).result.headOption)
 
-  def getNextRunnableJob: Either[NoAvailableWorkError, RunnableJob] = {
-
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED)
-      .flatMap { ejx => getJobById(ejx.id)
-      .map(x => RunnableJob(ejx.job, x.state))
-    } match {
-      case Some(rj) =>
-        _runnableJobs.remove(rj.job.uuid)
-        Right(rj)
-      case _ => Left(NoAvailableWorkError("No Available work to run."))
+  def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
+    val noWork = NoAvailableWorkError("No Available work to run.")
+    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
+      case Some(job) =>
+        getJobById(job.id).map {
+          case Some(j) =>
+            _runnableJobs.remove(j.uuid)
+            Right(RunnableJob(job.job, j.state))
+          case None => Left(noWork)
+        }
+      case None => Future(Left(noWork))
     }
   }
 
-  override def getNextRunnableJobWithId: Either[NoAvailableWorkError, RunnableJobWithId] = {
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED)
-      .flatMap { ejx => getJobById(ejx.id)
-      .map(x => RunnableJobWithId(ejx.id, ejx.job, x.state))
-    } match {
-      case Some(rj) =>
-        _runnableJobs.remove(rj.job.uuid)
-        Right(rj)
-      case _ => Left(NoAvailableWorkError("No Available work to run."))
+  override def getNextRunnableJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
+    val noWork = NoAvailableWorkError("No Available work to run.")
+    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
+      case Some(job) =>
+        getJobById(job.id).map {
+          case Some(j) =>
+            _runnableJobs.remove(j.uuid)
+            Right(RunnableJobWithId(job.id, job.job, j.state))
+          case None => Left(noWork)
+        }
+      case None => Future(Left(noWork))
     }
   }
 
   /**
    * Get all the Job Events accosciated with a specific job
-   *
-   * @param jobId
-   * @return
    */
-  override def getJobEventsByJobId(jobId: Int): Seq[JobEvent] = {
-    dal.db.withSession { implicit session =>
-      def toS(sid: Int) = AnalysisJobStates.intToState(sid).getOrElse(AnalysisJobStates.UNKNOWN)
-      val q = jobEvents.filter(_.jobId === jobId).map(x => (x.id, x.stateId, x.message, x.createdAt))
-      // Clients should create the JobEvent UUID.
-      q.run.map(x => JobEvent(UUID.randomUUID(), jobId, toS(x._2), x._3, x._4))
-    }
-  }
+  override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
+    dal.db.run(jobEvents.filter(_.jobId === jobId).result)
 
-  def updateJobState(
-      jobId: Int,
-      state: AnalysisJobStates.JobStates,
-      message: String): String = {
+  def updateJobState(jobId: Int,
+                     state: AnalysisJobStates.JobStates,
+                     message: String): Future[String] = {
     logger.info(s"Updating job state of job-id $jobId to $state")
-    val updatedAt = JodaDateTime.now()
-    dal.db.withSession { implicit session =>
-      session.withTransaction {
-        engineJobs.filter(_.id === jobId).map(x => (x.stateId, x.updatedAt)).update(state.stateId, updatedAt)
-        jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, JodaDateTime.now())
-      }
-    }
-    s"Successfully updated job $jobId to $state"
+    val now = JodaDateTime.now()
+    dal.db.run {
+      DBIO.seq(
+        engineJobs.filter(_.id === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
+        jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, now)
+      ).transactionally
+    }.map(_ => s"Successfully updated job $jobId to $state")
   }
 
-  override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Unit = {
-    dal.db.withSession { implicit session =>
-      val jobState = jobStates.filter(_.name === state.toString).firstOption
-
-      val q = for {
-        j <- engineJobs if j.uuid === uuid
-      } yield (j.stateId, j.updatedAt)
-
-      jobState match {
-        case Some(s) =>
-          logger.info(s"Updating job state to $jobState")
-          q.update(s._1, JodaDateTime.now()).run
-          // FIXME.
-          // (pid, stateId, jobId, message, JodaDateTime)
-          //jobEvents += (-9999, s._1, jobId, message, JodaDateTime.now())
-          //jobEvents += (-999, )
-          logger.debug(s"Successfully updated job ${uuid.toString} to $jobState")
-        case _ =>
-          logger.error(s"Unable to update state of job id ${uuid.toString}")
-      }
+  override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
+    val f = dal.db.run(engineJobs
+      .filter(_.uuid === uuid)
+      .map(j => (j.state, j.updatedAt))
+      .update(state, JodaDateTime.now()))
+      .map(_ => s"Successfully updated job $uuid to $state")
+    f.onComplete {
+      case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
+      case Failure(_) => logger.error(s"Unable to update state of job id ${uuid.toString}")
     }
-
+    f
   }
 
-  def updateJobStateByUUID(
-      jobId: UUID,
-      state: AnalysisJobStates.JobStates,
-      message: String): String = {
-
-    dal.db.withSession { implicit session =>
-
-      val job = engineJobs.filter(_.uuid === jobId).firstOption
-      val q = for {
-        j <- engineJobs if j.uuid === jobId
-      } yield (j.stateId, j.updatedAt)
-
-      job match {
-        case Some(engineJob) =>
-          q.update(state.stateId, JodaDateTime.now()).run
-          val jobEvent = JobEvent(UUID.randomUUID(), engineJob.id, state, message, JodaDateTime.now())
-          jobEvents += jobEvent
-          logger.info(s"Updated job ${jobId.toString} state to $state Event $jobEvent")
-          s"Successfully updated job $jobId to $state"
+  def updateJobStateByUUID(jobId: UUID,
+                           state: AnalysisJobStates.JobStates,
+                           message: String): Future[String] =
+    dal.db.run {
+      val now = JodaDateTime.now()
+      engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
+        case Some(job) =>
+          DBIO.seq(
+            engineJobs.filter(_.uuid === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
+            jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
+          )
         case None =>
           throw new ResourceNotFoundError(s"Unable to find job $jobId. Failed to update job state to $state")
-      }
+      }.transactionally
+    }.map { _ =>
+      logger.info(s"Updated job ${jobId.toString} state to $state")
+      s"Successfully updated job $jobId to $state"
     }
-  }
 
   /**
    * This is the new interface will replace the original createJob
-   *
-   * @param uuid        UUID
-   * @param name        Name of job
+    *
+    * @param uuid UUID
+   * @param name Name of job
    * @param description This is really a comment. FIXME
-   * @param jobTypeId   String of the job type identifier. This should be consistent with the
-   *                    jobTypeId defined in CoreJob
+   * @param jobTypeId String of the job type identifier. This should be consistent with the
+   *                  jobTypeId defined in CoreJob
    * @return
    */
-  def createJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: String,
-      coreJob: CoreJob,
-      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-      jsonSetting: String,
-      createdBy: Option[String]): EngineJob = {
+  def createJob(uuid: UUID,
+                name: String,
+                description: String,
+                jobTypeId: String,
+                coreJob: CoreJob,
+                entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
+                jsonSetting: String,
+                createdBy: Option[String]): Future[EngineJob] = {
 
     // This should really be Option[String]
     val path = ""
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()
 
-    val engineJob = dal.db.withSession { implicit session =>
-      engineJobs returning engineJobs.map(_.id) into ((engineJob, id) => engineJob.copy(id = id)) +=
-        EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+    val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+
+    val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
+      val jobId = job.id
+      val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
+      _runnableJobs.update(uuid, rJob)
+
+      val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
+      val jobEvent = JobEvent(
+        UUID.randomUUID(),
+        jobId,
+        AnalysisJobStates.CREATED,
+        s"Created job $jobId type $jobTypeId with ${uuid.toString}",
+        JodaDateTime.now())
+
+      DBIO.seq(
+        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath),
+        jobEvents += jobEvent,
+        engineJobsDataSets ++= entryPoints.getOrElse(Nil).map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
+      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath))
     }
 
-    val jobId = engineJob.id
-    val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
-    val resolvedPath = resolver.resolve(rJob)
-
-    dal.db.withSession { implicit session =>
-      val qx = for {e <- engineJobs if e.id === jobId} yield e.path
-      qx.update(resolvedPath.toAbsolutePath.toString)
-      // Add Job creation Event
-      jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.CREATED, s"Created job $jobId type $jobTypeId with ${uuid.toString}", JodaDateTime.now())
-    }
-
-    // Add DataSet Entry Points to a Job
-    entryPoints match {
-      case Some(eps) =>
-        dal.db.withSession { implicit session =>
-          engineJobsDataSets ++= eps.map(x => EngineJobEntryPoint(jobId, x.datasetUUID, x.datasetType))
-        }
-      case _ => None
-    }
-
-    _runnableJobs.update(uuid, rJob)
-    EngineJob(jobId, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+    dal.db.run(updates.transactionally)
   }
 
-  override def getJobs(limit: Int = 100): Seq[EngineJob] = {
-    dal.db.withSession { implicit session =>
-      engineJobs.list
-    }
-  }
+  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
+  override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = dal.db.run(engineJobs.result)
 
-  def getJobsByTypeId(jobTypeId: String): Seq[EngineJob] = {
-    dal.db.withSession { implicit session =>
-      engineJobs.filter(_.jobTypeId === jobTypeId).list
-    }
-  }
+  def getJobsByTypeId(jobTypeId: String): Future[Seq[EngineJob]] =
+    dal.db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
 
-  def getJobEntryPoints(jobId: Int): Seq[EngineJobEntryPoint] = {
-    dal.db.withSession { implicit session =>
-      engineJobsDataSets.filter(_.jobId === jobId).list
-    }
-  }
+  def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
+    dal.db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
 
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[CCSreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
-      val q = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-      q.run.map(x => toCCSread(x._1))
-    }
-  }
 
   def toCCSread(t1: DataSetMetaDataSet) =
     CCSreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
-      t1.id,
-      t1.uuid,
-      t1.name,
-      t1.path,
-      t1.createdAt,
-      t1.updatedAt,
-      t1.numRecords,
-      t1.totalLength,
-      t1.version,
-      t1.comments,
-      t1.tags,
-      t1.md5,
-      t1.userId,
-      t1.jobId,
-      t1.projectId)
+  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
+  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[CCSreadServiceDataSet]] = {
+    val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
+    dal.db.run(query.result.map(_.map(x => toCCSread(x._1))))
+  }
 
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[BarcodeServiceDataSet] = {
-    dal.db.withSession { implicit session =>
-      val q = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-      q.run.map(x => toB(x._1))
-    }
+  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+
+  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
+    val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
+    dal.db.run(query.result.map(_.map(x => toB(x._1))))
   }
 }
 
@@ -500,41 +430,33 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   /**
    * Importing of DataStore File by Job Int Id
-   *
-   * @param ds
-   * @param jobId
-   * @return
    */
-  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): String = getJobById(jobId)
-    .map(j => insertDataStoreByJob(j, ds))
-    .getOrElse(throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId"))
+  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[String] = getJobById(jobId).flatMap {
+    case Some(job) => insertDataStoreByJob(job, ds)
 
-  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): String = getJobByUUID(jobId)
-    .map(j => insertDataStoreByJob(j, ds))
-    .getOrElse(throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId"))
+    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
+  }
 
-  override def addDataStoreFile(ds: DataStoreJobFile): Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage] = {
-    getJobByUUID(ds.jobId) match {
-      case Some(engineJob) =>
-        Try(insertDataStoreByJob(engineJob, ds.dataStoreFile)) match {
-          case Success(x) => Right(CommonMessages.SuccessMessage(x))
-          case Failure(t) => Left(CommonMessages.FailedMessage(t.getMessage))
+  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[String] = getJobByUUID(jobId).flatMap {
+    case Some(job) => insertDataStoreByJob(job, ds)
+    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
+  }
+
+  override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
+    getJobByUUID(ds.jobId).flatMap {
+      case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
+        .map(m => Right(CommonMessages.SuccessMessage(m)))
+        .recover {
+          case NonFatal(e) => Left(CommonMessages.FailedMessage(e.getMessage))
         }
-      case _ => Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}"))
+      case None => Future(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
     }
   }
 
   /**
    * Generic Importing of DataSet by type and Path to dataset file
-   *
-   * @param dataSetMetaType
-   * @param spath
-   * @param jobId
-   * @param userId
-   * @param projectId
-   * @return
    */
-  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): String = {
+  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): Future[String] = {
     val path = Paths.get(spath)
     dataSetMetaType match {
       case DataSetMetaTypes.Subread =>
@@ -560,11 +482,11 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
         logger.warn(msg)
-        msg
+        Future(msg)
     }
   }
 
-  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): String = {
+  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): Future[String] = {
     logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
 
     // TODO(smcclellan): Use dependency-injected Clock instance
@@ -573,82 +495,72 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     val importedAt = createdAt
 
     if (ds.isChunked) {
-      s"Skipping inserting of Chunked DataStoreFile $ds"
+      Future(s"Skipping inserting of Chunked DataStoreFile $ds")
     } else {
       // Extended details import if file type is a DataSet
       DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-        case Some(x) =>
-          val result = insertDataSet(x, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID)
-          dal.db.withSession { implicit session =>
-            if (!datastoreServiceFiles.filter(_.uuid === ds.uniqueId).exists.run) {
-              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              datastoreServiceFiles += dss
-            } else {
+        case Some(typ) =>
+          val insert = DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
+          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
+            case Some(_) =>
               logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-            }
-          }
-          result
-        case _ =>
-          dal.db.withSession { implicit session =>
-            if (!datastoreServiceFiles.filter(_.uuid === ds.uniqueId).exists.run) {
+              insert
+            case None =>
               val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              datastoreServiceFiles += dss
-            } else {
-              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-            }
+              (datastoreServiceFiles += dss).flatMap(_ => insert)
           }
-          s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"
+          dal.db.run(action.transactionally)
+        case None =>
+          val unsupportedString =
+            s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"
+          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
+            case Some(_) =>
+              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
+              DBIO.from(Future(unsupportedString))
+            case None =>
+              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
+              (datastoreServiceFiles += dss).map(_ => unsupportedString)
+          }
+          dal.db.run(action.transactionally)
       }
     }
   }
 
-  def getDataStoreFiles2: Seq[DataStoreServiceFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.run.map(x => x)
-    }
-  }
+  def getDataStoreFiles2: Future[Seq[DataStoreServiceFile]] = dal.db.run(datastoreServiceFiles.result)
 
-  def getDataStoreFileByUUID2(uuid: UUID): Option[DataStoreServiceFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.uuid === uuid).firstOption
-    }
-  }
+  def getDataStoreFileByUUID2(uuid: UUID): Future[Option[DataStoreServiceFile]] =
+    dal.db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
 
-  def getDataStoreServiceFilesByJobId(i: Int): Seq[DataStoreServiceFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.jobId === i).run
-    }
-  }
+  def getDataStoreServiceFilesByJobId(i: Int): Future[Seq[DataStoreServiceFile]] =
+    dal.db.run(datastoreServiceFiles.filter(_.jobId === i).result)
 
-  def getDataStoreReportFilesByJobId(jobId: Int): Seq[DataStoreReportFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.jobId === jobId).filter(_.fileTypeId === FileTypes.REPORT.fileTypeId).run.map(x => DataStoreReportFile(x, "mock-report-type-id"))
-    }
-  }
+  def getDataStoreReportFilesByJobId(jobId: Int): Future[Seq[DataStoreReportFile]] =
+    dal.db.run {
+      datastoreServiceFiles
+        .filter(_.jobId === jobId)
+        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
+        .result
+    }.map(_.map(DataStoreReportFile(_, "mock-report-type-id")))
 
   // Return the contents of the Report
-  def getDataStoreReportByUUID(reportUUID: UUID): Option[String] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.uuid === reportUUID).firstOption match {
-        case Some(x) =>
-          if (Files.exists(Paths.get(x.path))) {
-            Option(scala.io.Source.fromFile(x.path).mkString)
-          } else {
-            logger.error(s"Unable to find report ${x.uuid} path ${x.path}")
-            None
-          }
-        case _ => None
-      }
+  def getDataStoreReportByUUID(reportUUID: UUID): Future[Option[String]] = {
+    val action = datastoreServiceFiles.filter(_.uuid === reportUUID).result.headOption.map {
+      case Some(x) =>
+        if (Files.exists(Paths.get(x.path))) {
+          Option(scala.io.Source.fromFile(x.path).mkString)
+        } else {
+          logger.error(s"Unable to find report ${x.uuid} path ${x.path}")
+          None
+        }
+      case None => None
     }
+    dal.db.run(action)
   }
 
-  private def getDataSetMetaDataSet(uuid: UUID): Option[DataSetMetaDataSet] = {
-    dal.db.withSession { implicit session =>
-      dsMetaData2.filter(_.uuid === uuid).firstOption
-    }
-  }
+  private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
+    dal.db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
 
-  private def insertMetaData(ds: ServiceDataSetMetadata)(implicit session: Session): Int = {
+  private def insertMetaData(ds: ServiceDataSetMetadata): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
     dsMetaData2 returning dsMetaData2.map(_.id) += DataSetMetaDataSet(
@@ -656,103 +568,96 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       ds.comments, ds.md5, ds.userId, ds.jobId, ds.projectId, isActive = true)
   }
 
-  def insertReferenceDataSet(ds: ReferenceServiceDataSet): String = {
-    dal.db.withSession { implicit session =>
-      getDataSetMetaDataSet(ds.uuid) match {
-        case Some(_) =>
-          val msg = s"ReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
-          logger.debug(msg)
-          msg
-        case None =>
-          val idx = insertMetaData(ds)
-          // TODO(smcclellan): Here and below, remove use of forceInsert and allow ids to make use of autoinc
-          // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
-          dsReference2 forceInsert ReferenceServiceSet(idx, ds.uuid, ds.ploidy, ds.organism)
-          s"imported ReferencecSet ${ds.uuid} from ${ds.path}"
-      }
+  // TODO(smcclellan): Can these insertXXXDataSet methods by combined into one method?
+  def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[String] =
+    getDataSetMetaDataSet(ds.uuid).flatMap {
+      case Some(_) =>
+        val msg = s"ReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
+        logger.debug(msg)
+        Future(msg)
+      case None =>
+        dal.db.run {
+          insertMetaData(ds).flatMap { id =>
+            // TODO(smcclellan): Here and below, remove use of forceInsert and allow ids to make use of autoinc
+            // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
+            dsReference2 forceInsert ReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
+          }.map { _ =>
+            val m = s"imported ReferencecSet ${ds.uuid} from ${ds.path}"
+            logger.info(m)
+            m
+          }
+        }
     }
-  }
 
-  def insertSubreadDataSet(ds: SubreadServiceDataSet): String = {
-    dal.db.withSession { implicit session =>
-      getDataSetMetaDataSet(ds.uuid) match {
-        case Some(_) =>
-          val msg = s"SubreadSet ${ds.uuid.toString} already imported. Skipping importing of $ds"
-          logger.debug(msg)
-          msg
-        case None =>
-          val idx = insertMetaData(ds)
-          dsSubread2 forceInsert SubreadServiceSet(idx, ds.uuid, "cell-id", ds.metadataContextId, ds.wellSampleName,
-            ds.wellName, ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName, ds.runName,
-            "instrument-ctr-version")
-          val msg = s"imported SubreadSet ${ds.uuid} from ${ds.path}"
-          logger.info(msg)
-          msg
-      }
+  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+    getDataSetMetaDataSet(ds.uuid).flatMap {
+      case Some(_) =>
+        val msg = s"SubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
+        logger.debug(msg)
+        Future(msg)
+      case None =>
+        dal.db.run {
+          insertMetaData(ds).flatMap { id =>
+            dsSubread2 forceInsert SubreadServiceSet(id, ds.uuid, "cell-id", ds.metadataContextId, ds.wellSampleName,
+              ds.wellName, ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName, ds.runName,
+              "instrument-ctr-version")
+          }.map { _ =>
+            val m = s"imported SubreadSet ${ds.uuid} from ${ds.path}"
+            logger.info(m)
+            m
+          }
+        }
     }
-  }
 
-  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): String = {
-    dal.db.withSession { implicit session =>
-      getDataSetMetaDataSet(ds.uuid) match {
-        case Some(_) =>
-          val msg = s"HdfSubreadSet ${ds.uuid.toString} already imported skipping $ds"
-          logger.debug(msg)
-          msg
-        case None =>
-          val idx = insertMetaData(ds)
-          dsHdfSubread2 forceInsert HdfSubreadServiceSet(idx, ds.uuid, "cell-id", ds.metadataContextId,
-            ds.wellSampleName, ds.wellName, ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
-            ds.runName, "instrument-ctr-version")
-          val msg = s"imported HdfSubreadSet ${ds.uuid} from ${ds.path}"
-          logger.info(msg)
-          msg
-      }
+  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
+    getDataSetMetaDataSet(ds.uuid).flatMap {
+      case Some(_) =>
+        val msg = s"HdfSubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
+        logger.debug(msg)
+        Future(msg)
+      case None =>
+        dal.db.run {
+          insertMetaData(ds).flatMap { id =>
+            dsHdfSubread2 forceInsert HdfSubreadServiceSet(id, ds.uuid, "cell-id", ds.metadataContextId,
+              ds.wellSampleName, ds.wellName, ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
+              ds.runName, "instrument-ctr-version")
+          }.map { _ =>
+            val m = s"imported HdfSubreadSet ${ds.uuid} from ${ds.path}"
+            logger.info(m)
+            m
+          }
+        }
     }
-  }
 
-  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): String = {
+  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[String] = {
     logger.debug(s"Inserting AlignmentSet $ds")
-    dal.db.withSession { implicit session =>
-      val idx = insertMetaData(ds)
-      dsAlignment2 forceInsert AlignmentServiceSet(idx, ds.uuid)
+    dal.db.run {
+      insertMetaData(ds).flatMap { id =>
+        dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
+      }.map(_ => s"Successfully entered Alignment dataset $ds")
     }
-    s"Successfully entered Alignment dataset $ds"
   }
 
-  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): String = {
+  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[String] = {
     logger.debug(s"Inserting BarcodeSet $ds")
-    dal.db.withSession { implicit session =>
-      val idx = insertMetaData(ds)
-      dsBarcode2 forceInsert BarcodeServiceSet(idx, ds.uuid)
-    }
-    s"Successfully entered Barcode dataset $ds"
-  }
-
-  def getDataSetTypeById(typeId: String): Option[ServiceDataSetMetaType] = {
-    dal.db.withSession { implicit session =>
-      datasetTypes.filter(_.id === typeId).firstOption
+    dal.db.run {
+      insertMetaData(ds).flatMap { id =>
+        dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
+      }.map(_ => s"Successfully entered Barcode dataset $ds")
     }
   }
 
-  def getDataSetTypes: Seq[ServiceDataSetMetaType] = {
-    dal.db.withSession { implicit session =>
-      datasetTypes.list
-    }
-  }
+  def getDataSetTypeById(typeId: String): Future[Option[ServiceDataSetMetaType]] =
+    dal.db.run(datasetTypes.filter(_.id === typeId).result.headOption)
+
+  def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] = dal.db.run(datasetTypes.result)
 
   // Get All DataSets mixed in type. Only metadata
-  def getDataSetByUUID(id: UUID): Option[DataSetMetaDataSet] = {
-    dal.db.withSession { implicit session =>
-      datasetMetaTypeByUUID(id).firstOption
-    }
-  }
+  def getDataSetByUUID(id: UUID): Future[Option[DataSetMetaDataSet]] =
+    dal.db.run(datasetMetaTypeByUUID(id).result.headOption)
 
-  def getDataSetById(id: Int): Option[DataSetMetaDataSet] = {
-    dal.db.withSession { implicit session =>
-      datasetMetaTypeById(id).firstOption
-    }
-  }
+  def getDataSetById(id: Int): Future[Option[DataSetMetaDataSet]] =
+    dal.db.run(datasetMetaTypeById(id).result.headOption)
 
   def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)
 
@@ -764,208 +669,167 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
 
   // FIXME. REALLY, REALLY need to generalize this.
-  def getSubreadDataSetById(id: Int): Option[SubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getSubreadDataSetById(id: Int): Future[Option[SubreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsSubread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toSds(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
-  }
 
-  def _subreadToDetails(ds: Option[SubreadServiceDataSet]): Option[String] = {
-    ds.flatMap(x => Option(DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(x.path)))))
-  }
+  def _subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
+    ds.map(_.map(x => DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(x.path)))))
 
-  def getSubreadDataSetDetailsById(id: Int): Option[String] = _subreadToDetails(getSubreadDataSetById(id))
 
-  def getSubreadDataSetDetailsByUUID(uuid: UUID): Option[String] = _subreadToDetails(getSubreadDataSetByUUID(uuid))
+  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = _subreadToDetails(getSubreadDataSetById(id))
 
-  def getSubreadDataSetByUUID(id: UUID): Option[SubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _subreadToDetails(getSubreadDataSetByUUID(uuid))
+
+  def getSubreadDataSetByUUID(id: UUID): Future[Option[SubreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsSubread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toSds(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
-  }
 
-  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[SubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[SubreadServiceDataSet]] =
+    dal.db.run {
       val q = dsMetaData2 join dsSubread2 on (_.id === _.id)
-      q.run.map(x => toSds(x._1, x._2))
+      q.result.map(_.map(x => toSds(x._1, x._2)))
     }
-  }
 
   // conversion util for keeping the old interface
   def toR(t1: DataSetMetaDataSet, t2: ReferenceServiceSet): ReferenceServiceDataSet =
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[ReferenceServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ReferenceServiceDataSet]] =
+    dal.db.run {
       val q = dsMetaData2 join dsReference2 on (_.id === _.id)
-      q.run.map(x => toR(x._1, x._2))
+      q.result.map(_.map(x => toR(x._1, x._2)))
     }
-  }
 
-  def getReferenceDataSetById(id: Int): Option[ReferenceServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getReferenceDataSetById(id: Int): Future[Option[ReferenceServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsReference2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toR(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toR(x._1, x._2)))
     }
-  }
 
-  def _referenceToDetails(ds: Option[ReferenceServiceDataSet]): Option[String] = {
-    ds.flatMap(x => Option(DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(x.path)))))
-  }
+  def _referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
+    ds.map(_.map(x => DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(x.path)))))
 
-  def getReferenceDataSetDetailsById(id: Int): Option[String] = _referenceToDetails(getReferenceDataSetById(id))
+  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = _referenceToDetails(getReferenceDataSetById(id))
 
-  def getReferenceDataSetDetailsByUUID(uuid: UUID): Option[String] = _referenceToDetails(getReferenceDataSetByUUID(uuid))
+  def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
+    _referenceToDetails(getReferenceDataSetByUUID(uuid))
 
-  def getReferenceDataSetByUUID(id: UUID): Option[ReferenceServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getReferenceDataSetByUUID(id: UUID): Future[Option[ReferenceServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsReference2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toR(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toR(x._1, x._2)))
     }
-  }
 
-  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[HdfSubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[HdfSubreadServiceDataSet]] =
+    dal.db.run {
       val q = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
-      q.run.map(x => toHds(x._1, x._2))
+      q.result.map(_.map(x => toHds(x._1, x._2)))
     }
-  }
 
   def toHds(t1: DataSetMetaDataSet, t2: HdfSubreadServiceSet): HdfSubreadServiceDataSet =
     HdfSubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
 
-  def getHdfDataSetById(id: Int): Option[HdfSubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getHdfDataSetById(id: Int): Future[Option[HdfSubreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsHdfSubread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toHds(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
-  }
 
-  def _hdfsubreadToDetails(ds: Option[HdfSubreadServiceDataSet]): Option[String] = {
-    ds.flatMap(x => Option(DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(x.path)))))
-  }
+  def _hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
+    ds.map(_.map(x => DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(x.path)))))
 
-  def getHdfDataSetDetailsById(id: Int): Option[String] = _hdfsubreadToDetails(getHdfDataSetById(id))
+  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetById(id))
 
-  def getHdfDataSetDetailsByUUID(uuid: UUID): Option[String] = _hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
+  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
 
-  def getHdfDataSetByUUID(id: UUID): Option[HdfSubreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getHdfDataSetByUUID(id: UUID): Future[Option[HdfSubreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsHdfSubread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toHds(x._1, x._2)))
+      q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
-  }
 
-  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
-      t1.id,
-      t1.uuid,
-      t1.name,
-      t1.path,
-      t1.createdAt,
-      t1.updatedAt,
-      t1.numRecords,
-      t1.totalLength,
-      t1.version,
-      t1.comments,
-      t1.tags,
-      t1.md5,
-      t1.userId,
-      t1.jobId,
-      t1.projectId)
+  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
-  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Seq[AlignmentServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[AlignmentServiceDataSet]] =
+    dal.db.run {
       val q = dsMetaData2 join dsAlignment2 on (_.id === _.id)
-      q.run.map(x => toA(x._1))
+      q.result.map(_.map(x => toA(x._1)))
     }
-  }
 
-  def getAlignmentDataSetById(id: Int): Option[AlignmentServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getAlignmentDataSetById(id: Int): Future[Option[AlignmentServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsAlignment2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toA(x._1)))
+      q.result.headOption.map(_.map(x => toA(x._1)))
     }
-  }
 
-  def getAlignmentDataSetByUUID(id: UUID): Option[AlignmentServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getAlignmentDataSetByUUID(id: UUID): Future[Option[AlignmentServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsAlignment2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toA(x._1)))
+      q.result.headOption.map(_.map(x => toA(x._1)))
     }
-  }
 
-  def getCCSDataSetById(id: Int): Option[CCSreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getCCSDataSetById(id: Int): Future[Option[CCSreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toCCSread(x._1)))
+      q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
-  }
 
-  def getCCSDataSetByUUID(id: UUID): Option[CCSreadServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getCCSDataSetByUUID(id: UUID): Future[Option[CCSreadServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toCCSread(x._1)))
+      q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
-  }
 
-  def getBarcodeDataSetById(id: Int): Option[BarcodeServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getBarcodeDataSetById(id: Int): Future[Option[BarcodeServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeById(id) join dsBarcode2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toB(x._1)))
+      q.result.headOption.map(_.map(x => toB(x._1)))
     }
-  }
 
-  def getBarcodeDataSetByUUID(id: UUID): Option[BarcodeServiceDataSet] = {
-    dal.db.withSession { implicit session =>
+  def getBarcodeDataSetByUUID(id: UUID): Future[Option[BarcodeServiceDataSet]] =
+    dal.db.run {
       val q = datasetMetaTypeByUUID(id) join dsBarcode2 on (_.id === _.id)
-      q.firstOption.flatMap(x => Option(toB(x._1)))
+      q.result.headOption.map(_.map(x => toB(x._1)))
     }
+
+  def _barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
+    ds.map(_.map(x => DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(x.path)))))
   }
 
-  def _barcodeSetToDetails(ds: Option[BarcodeServiceDataSet]): Option[String] = {
-    ds.flatMap(x => Option(DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(x.path)))))
-  }
+  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetById(id))
 
-  def getBarcodeDataSetDetailsById(id: Int): Option[String] = _barcodeSetToDetails(getBarcodeDataSetById(id))
-
-  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Option[String] = _barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
+  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
 
   def toDataStoreJobFile(x: DataStoreServiceFile) =
     // This is has the wrong job uuid
     DataStoreJobFile(x.uuid, DataStoreFile(x.uuid, x.sourceId, x.fileTypeId, x.fileSize, x.createdAt, x.modifiedAt, x.path, name=x.name, description=x.description))
 
-  def getDataStoreFilesByJobId(i: Int): Seq[DataStoreJobFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.jobId === i).run.map(toDataStoreJobFile)
-    }
-  }
+  def getDataStoreFilesByJobId(i: Int): Future[Seq[DataStoreJobFile]] =
+    dal.db.run(datastoreServiceFiles.filter(_.jobId === i).result.map(_.map(toDataStoreJobFile)))
 
   // Need to clean all this all up. There's inconsistencies all over the place.
-  override def getDataStoreFiles: Seq[DataStoreJobFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.run.map(x => toDataStoreJobFile(x))
-    }
-  }
+  override def getDataStoreFiles: Future[Seq[DataStoreJobFile]] =
+    dal.db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
 
-  override def getDataStoreFileByUUID(uuid: UUID): Option[DataStoreJobFile] = {
-    dal.db.withSession { implicit session =>
-      datastoreServiceFiles.filter(_.uuid === uuid).firstOption.flatMap(x => Option(toDataStoreJobFile(x)))
-    }
-  }
+  override def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] =
+    dal.db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption.map(_.map(toDataStoreJobFile)))
 
-  override def getDataStoreFilesByJobUUID(uuid: UUID): Seq[DataStoreJobFile] = {
-    dal.db.withSession { implicit session =>
+  override def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =
+    dal.db.run {
       val q = for {
         engineJob <- engineJobs.filter(_.uuid === uuid)
         dsFiles <- datastoreServiceFiles.filter(_.jobId === engineJob.id)
       } yield dsFiles
-      q.run.map(toDataStoreJobFile)
+      q.result.map(_.map(toDataStoreJobFile))
     }
-  }
 }
 
 class JobsDao(val dal: Dal, val resolver: JobResourceResolver) extends JobEngineDataStore

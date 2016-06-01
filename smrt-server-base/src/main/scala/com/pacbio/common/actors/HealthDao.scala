@@ -9,6 +9,8 @@ import com.pacbio.common.services.PacBioServiceErrors
 import com.pacbio.common.time.{ClockProvider, Clock}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 /**
  * Interface for the Health service DAO.
@@ -32,7 +34,7 @@ trait HealthDao {
   /**
    * Gets the current health state of every gauge.
    */
-  def getAllHealthMessages(id: String): Seq[HealthGaugeMessage]
+  def getAllHealthMessages(id: String): Future[Seq[HealthGaugeMessage]]
 
   /**
    * Updates a health gauge with a new message.
@@ -73,7 +75,7 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
     /**
      * Returns the messages received by this handler in order. By default, this returns Nil.
      */
-    def getAll: Seq[HealthGaugeMessage] = Nil
+    def getAll: Future[Seq[HealthGaugeMessage]] = Future(Nil)
 
     /**
      * Handles a new incoming message. By default, this does nothing, essentially meaning that the gauge will be
@@ -108,8 +110,8 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
     }
   }
 
-  override final def getAllHealthMessages(id: String): Seq[HealthGaugeMessage] =
-    if (handlers contains id) handlers.get(id).get.getAll else Nil
+  override final def getAllHealthMessages(id: String): Future[Seq[HealthGaugeMessage]] =
+    if (handlers contains id) handlers.get(id).get.getAll else Future(Nil)
 
   override final def createHealthMessage(id: String, m: HealthGaugeMessageRecord): HealthGaugeMessage =
     if (gauges contains id) {
@@ -142,7 +144,7 @@ class InMemoryHealthDao(clock: Clock) extends AbstractHealthDao(clock) {
 
     override def +=(message: HealthGaugeMessage): Unit = messages += message
 
-    override def getAll: Seq[HealthGaugeMessage] = messages.toSeq
+    override def getAll: Future[Seq[HealthGaugeMessage]] = Future(messages.toSeq)
   }
 
   @VisibleForTesting
