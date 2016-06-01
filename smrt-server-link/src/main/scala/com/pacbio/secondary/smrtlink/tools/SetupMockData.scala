@@ -83,7 +83,7 @@ trait MockUtils extends LazyLogging{
 
   def insertMockJobs(): Future[Option[Int]] = {
     import scala.util.{Success, Failure}
-    def _toJob(n: Int) = EngineJob(
+    def toJob(n: Int) = EngineJob(
         n,
         UUID.randomUUID(),
         s"Job name $n",
@@ -96,7 +96,7 @@ trait MockUtils extends LazyLogging{
         "{}",
         Some("root")
     )
-    dao.dal.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(_toJob))
+    dao.dal.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
   }
 
   def insertMockSubreadDataSetsFromDir(): Future[Seq[String]] = {
@@ -142,7 +142,7 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockAlignmentDataSets(): Future[Seq[String]] = {
-    def _toDS(n: Int) = {
+    def toDS(n: Int) = {
       val uuid = UUID.randomUUID()
       AlignmentServiceDataSet(n,
         UUID.randomUUID(),
@@ -156,7 +156,7 @@ trait MockUtils extends LazyLogging{
         "mock Alignment Dataset comments",
         "mock-alignment-dataset-tags", toMd5(uuid.toString), _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
     }
-    val dss = (1 until _MOCK_NDATASETS).map(_toDS)
+    val dss = (1 until _MOCK_NDATASETS).map(toDS)
     Future.sequence(dss.map(dao.insertAlignmentDataSet))
   }
 
