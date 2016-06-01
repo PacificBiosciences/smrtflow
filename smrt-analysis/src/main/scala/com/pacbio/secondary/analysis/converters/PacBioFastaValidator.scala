@@ -134,7 +134,7 @@ object PacBioFastaValidator extends LazyLogging{
           toBreak = true
       }
     }
-   error
+    error
   }
 
   /**

@@ -34,10 +34,10 @@ trait PbServiceBase {
   }
   
   case class PbServiceConfig(
-    var mode: Modes.Mode = Modes.UNKNOWN,
-    var host: String,
-    var port: Int,
-    var command: PbServiceConfig => Unit) extends LoggerConfig
+      var mode: Modes.Mode = Modes.UNKNOWN,
+      var host: String,
+      var port: Int,
+      var command: PbServiceConfig => Unit) extends LoggerConfig
   
   trait BaseArgsParser { self: OptionParser[PbServiceConfig] =>
     head("PacBio SMRTLink Services Client", "0.1")
@@ -86,7 +86,7 @@ object PbService extends PbServiceBase {
   val VERSION = "0.1"
   lazy val defaults = PbServiceConfig(null, "localhost", 8070, showDefaults)
   lazy val parser = new OptionParser[PbServiceConfig]("pbservice") with BaseArgsParser with StatusParser {
-      head("PacBio SMRTLink Services Client", VERSION)
+    head("PacBio SMRTLink Services Client", VERSION)
   }
 
   def apply (c: PbServiceConfig): Int = {

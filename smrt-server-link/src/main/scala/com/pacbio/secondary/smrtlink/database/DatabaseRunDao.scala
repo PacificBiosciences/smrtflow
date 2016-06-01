@@ -19,10 +19,11 @@ import slick.driver.SQLiteDriver.api._
 class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
   import TableModels._
 
-  private def updateOrCreate(uniqueId: UUID,
-                             update: Boolean,
-                             parseResults: Option[ParseResults] = None,
-                             setReserved: Option[Boolean] = None): Future[RunSummary] = {
+  private def updateOrCreate(
+      uniqueId: UUID,
+      update: Boolean,
+      parseResults: Option[ParseResults] = None,
+      setReserved: Option[Boolean] = None): Future[RunSummary] = {
 
     require(update || parseResults.isDefined, "Cannot create a run without ParseResults")
 

@@ -14,16 +14,17 @@ import scala.util.Try
  * These must be kept insync. Use `pbsmrtpipe show-workflow-options`
  * Created by mkocher on 9/26/15.
  */
-case class PbsmrtpipeEngineOptions(debugMode: Boolean = false,
-                                   maxNproc: Int = 16,
-                                   tmpDir: Path = Paths.get("/tmp"),
-                                   chunkedMode: Boolean = false,
-                                   maxTotalNproc: Int = 10000,
-                                   maxNChunks: Int = 128,
-                                   distributedMode: Boolean = true,
-                                   exitOnFailure: Boolean = false,
-                                   clusterManagerTemplateDir: Option[String] = Some("pbsmrtpipe.cluster_templates.sge"),
-                                   maxNWorkers: Int = 100) {
+case class PbsmrtpipeEngineOptions(
+    debugMode: Boolean = false,
+    maxNproc: Int = 16,
+    tmpDir: Path = Paths.get("/tmp"),
+    chunkedMode: Boolean = false,
+    maxTotalNproc: Int = 10000,
+    maxNChunks: Int = 128,
+    distributedMode: Boolean = true,
+    exitOnFailure: Boolean = false,
+    clusterManagerTemplateDir: Option[String] = Some("pbsmrtpipe.cluster_templates.sge"),
+    maxNWorkers: Int = 100) {
 
   //See comments below
   def toPipelineOptions: Seq[PipelineBaseOption] = {

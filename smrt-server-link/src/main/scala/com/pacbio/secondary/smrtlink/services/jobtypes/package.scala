@@ -13,8 +13,8 @@ package object jobtypes {
   }
 
   abstract class JobTypeService
-      extends JobTypeServiceBase
-      with JobService
-      with JobServiceConstants {
+    extends JobTypeServiceBase
+    with JobService
+    with JobServiceConstants {
   }
 }

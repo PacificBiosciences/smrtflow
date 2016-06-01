@@ -30,8 +30,12 @@ import java.util.UUID
 object AnalysisServicesModels {
 
   case class CreateDataSet(path: String, datasetType: String)
-  case class CreateReferenceSet(path: String, name: String, organism: String,
-                                ploidy: String)
+
+  case class CreateReferenceSet(
+      path: String,
+      name: String,
+      organism: String,
+      ploidy: String)
 }
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
@@ -51,13 +55,15 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
 
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-         CreateDataSet(path, dsMetaType))
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
+      CreateDataSet(path, dsMetaType))
   }
 
   def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-         CreateReferenceSet(path, name, organism, ploidy))
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
+      CreateReferenceSet(path, name, organism, ploidy))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
@@ -70,8 +76,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
-         pipelineOptions)
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
+      pipelineOptions)
   }
 
   def pollForJob(jobId: UUID): Future[String] = {

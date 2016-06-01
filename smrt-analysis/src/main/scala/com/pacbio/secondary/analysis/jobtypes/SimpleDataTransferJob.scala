@@ -10,7 +10,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 // DataTransfer
 case class SimpleDataTransferOptions(src: String, dest: String) extends BaseJobOptions {
-    def toJob = new SimpleDataTransferJob(this)
+  def toJob = new SimpleDataTransferJob(this)
 }
 
 
@@ -20,8 +20,8 @@ case class SimpleDataTransferOptions(src: String, dest: String) extends BaseJobO
  * Created by mkocher on 4/27/15.
  */
 class SimpleDataTransferJob(opts: SimpleDataTransferOptions)
-        extends BaseCoreJob(opts: SimpleDataTransferOptions)
-with timeUtils{
+  extends BaseCoreJob(opts: SimpleDataTransferOptions)
+  with timeUtils{
 
   type Out = ResultSuccess
   val jobTypeId = JobTypeId("simple_data_transfer")

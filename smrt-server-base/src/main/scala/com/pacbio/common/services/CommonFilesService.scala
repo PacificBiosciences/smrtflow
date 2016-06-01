@@ -10,8 +10,9 @@ import com.pacbio.common.models._
 import scala.concurrent.ExecutionContext
 
 // TODO(smcclellan): Add specs, docs
-class CommonFilesService(mimeTypes: MimeTypes)(override implicit val actorSystem: ActorSystem,
-                                               override implicit val ec: ExecutionContext)
+class CommonFilesService(mimeTypes: MimeTypes)(
+    override implicit val actorSystem: ActorSystem,
+    override implicit val ec: ExecutionContext)
   extends SimpleFilesService(mimeTypes) with BaseSmrtService {
 
   override val serviceBaseId = "files"

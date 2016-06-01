@@ -7,8 +7,8 @@ import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType, _}
 import scalaz._
 
 /**
-  * Created by mkocher on 4/11/16.
-  */
+ * Created by mkocher on 4/11/16.
+ */
 package object validators {
 
   object ImplicitDataSetValidators {

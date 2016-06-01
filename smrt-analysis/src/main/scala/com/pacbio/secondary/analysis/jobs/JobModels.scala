@@ -72,9 +72,10 @@ object JobModels {
   }
 
   // This is a terrible name
-  case class JobResource(jobId: UUID,
-                         path: Path,
-                         state: AnalysisJobStates.JobStates) extends JobResourceBase
+  case class JobResource(
+      jobId: UUID,
+      path: Path,
+      state: AnalysisJobStates.JobStates) extends JobResourceBase
 
   trait JobResult {
     val uuid: UUID
@@ -101,40 +102,43 @@ object JobModels {
   // This should only have the "completed" jobOptions states
   case class JobCompletedResult(uuid: UUID, state: AnalysisJobStates.JobStates)
 
-  case class JobEvent(eventId: UUID,
-                      jobId: Int,
-                      state: AnalysisJobStates.JobStates,
-                      message: String,
-                      createdAt: JodaDateTime)
+  case class JobEvent(
+      eventId: UUID,
+      jobId: Int,
+      state: AnalysisJobStates.JobStates,
+      message: String,
+      createdAt: JodaDateTime)
 
   // Generic Container for a "Job"
   // id is system locally unique human friendly id,
   // whereas UUID is the globally unique id
   // The jsonSettings are the Json serialized settings of the Job Options
   // This is used to persist to the db. Not completely thrilled with this.
-  case class EngineJob(id: Int,
-                       uuid: UUID,
-                       name: String,
-                       comment: String,
-                       createdAt: JodaDateTime,
-                       updatedAt: JodaDateTime,
-                       state: AnalysisJobStates.JobStates,
-                       jobTypeId: String,
-                       path: String,
-                       jsonSettings: String,
-                       createdBy: Option[String]) {
+  case class EngineJob(
+      id: Int,
+      uuid: UUID,
+      name: String,
+      comment: String,
+      createdAt: JodaDateTime,
+      updatedAt: JodaDateTime,
+      state: AnalysisJobStates.JobStates,
+      jobTypeId: String,
+      path: String,
+      jsonSettings: String,
+      createdBy: Option[String]) {
 
-      def apply(id: Int,
-                uuid: UUID,
-                name: String,
-                comment: String,
-                createdAt: JodaDateTime,
-                updatedAt: JodaDateTime,
-                stateId: Int,
-                jobTypeId: String,
-                path: String,
-                jsonSettings: String,
-                createdBy: Option[String]) = {
+      def apply(
+          id: Int,
+          uuid: UUID,
+          name: String,
+          comment: String,
+          createdAt: JodaDateTime,
+          updatedAt: JodaDateTime,
+          stateId: Int,
+          jobTypeId: String,
+          path: String,
+          jsonSettings: String,
+          createdBy: Option[String]) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
@@ -145,45 +149,48 @@ object JobModels {
 
 
   // This is too pbsmtpipe-centric. This should be generalized or defined a base trait
-  case class AnalysisJobResources(path: Path,
-                                  tasksDir: Path,
-                                  workflowDir: Path,
-                                  logDir: Path,
-                                  htmlDir: Path,
-                                  datastoreJson: Path,
-                                  entryPointsJson: Path,
-                                  jobReportJson: Path)
+  case class AnalysisJobResources(
+      path: Path,
+      tasksDir: Path,
+      workflowDir: Path,
+      logDir: Path,
+      htmlDir: Path,
+      datastoreJson: Path,
+      entryPointsJson: Path,
+      jobReportJson: Path)
 
   trait ImportAble
 
   /**
-    * Core DataStore File
-    *
-    * @param uniqueId    UUID of the DataStore file
-    * @param sourceId    General string to provide context of it's origin
-    * @param fileTypeId  FileType Id (FIXME, this should be a FileTypes.FileType)
-    * @param fileSize    Size of the file
-    * @param createdAt   created at time of the file
-    * @param modifiedAt  modified timestamp of the file
-    * @param path        Absolute path to the file
-    * @param isChunked   Was the file an intermediate "chunked" file that was generated.
-    * @param name        Display Name of the File
-    * @param description Description of the File
-    */
-  case class DataStoreFile(uniqueId: UUID,
-                           sourceId: String,
-                           fileTypeId: String,
-                           fileSize: Long,
-                           createdAt: JodaDateTime,
-                           modifiedAt: JodaDateTime,
-                           path: String,
-                           isChunked: Boolean = false,
-                           name: String,
-                           description: String) extends ImportAble
+   * Core DataStore File
+   *
+   * @param uniqueId    UUID of the DataStore file
+   * @param sourceId    General string to provide context of it's origin
+   * @param fileTypeId  FileType Id (FIXME, this should be a FileTypes.FileType)
+   * @param fileSize    Size of the file
+   * @param createdAt   created at time of the file
+   * @param modifiedAt  modified timestamp of the file
+   * @param path        Absolute path to the file
+   * @param isChunked   Was the file an intermediate "chunked" file that was generated.
+   * @param name        Display Name of the File
+   * @param description Description of the File
+   */
+  case class DataStoreFile(
+      uniqueId: UUID,
+      sourceId: String,
+      fileTypeId: String,
+      fileSize: Long,
+      createdAt: JodaDateTime,
+      modifiedAt: JodaDateTime,
+      path: String,
+      isChunked: Boolean = false,
+      name: String,
+      description: String) extends ImportAble
 
   // Container for file created from a Job
-  case class DataStoreJobFile(jobId: UUID,
-                              dataStoreFile: DataStoreFile)
+  case class DataStoreJobFile(
+      jobId: UUID,
+      dataStoreFile: DataStoreFile)
 
 
 
@@ -243,31 +250,38 @@ object JobModels {
   }
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
-  case class PbsmrtpipeDirectJobOptions(pipelineId: String,
-                                        entryPoints: Seq[BoundEntryPoint],
-                                        taskOptions: Seq[PipelineBaseOption],
-                                        workflowOptions: Seq[PipelineBaseOption])
+  case class PbsmrtpipeDirectJobOptions(
+      pipelineId: String,
+      entryPoints: Seq[BoundEntryPoint],
+      taskOptions: Seq[PipelineBaseOption],
+      workflowOptions: Seq[PipelineBaseOption])
 
   // pbsmrtpipe/smrtflow Pipelines
-  case class PipelineTemplate(id: String,
-                              name: String,
-                              description: String,
-                              version: String,
-                              options: Seq[PipelineBaseOption],
-                              taskOptions: Seq[PipelineBaseOption],
-                              entryPoints: Seq[EntryPoint],
-                              tags: Seq[String], presets: Seq[PipelineTemplatePreset])
+  case class PipelineTemplate(
+      id: String,
+      name: String,
+      description: String,
+      version: String,
+      options: Seq[PipelineBaseOption],
+      taskOptions: Seq[PipelineBaseOption],
+      entryPoints: Seq[EntryPoint],
+      tags: Seq[String], presets: Seq[PipelineTemplatePreset])
 
   // templateId refers to the PipelineTemplate Id
-  case class PipelineTemplatePreset(presetId: String,
-                                    templateId: String,
-                                    options: Seq[PipelineBaseOption],
-                                    taskOptions: Seq[PipelineBaseOption])
+  case class PipelineTemplatePreset(
+      presetId: String,
+      templateId: String,
+      options: Seq[PipelineBaseOption],
+      taskOptions: Seq[PipelineBaseOption])
 
 
   // View Rules Models
   case class PipelineOptionViewRule(id: String, hidden: Boolean)
 
-  case class PipelineTemplateViewRule(id: String, name: String, description: String, taskOptions: Seq[PipelineOptionViewRule])
+  case class PipelineTemplateViewRule(
+      id: String,
+      name: String,
+      description: String,
+      taskOptions: Seq[PipelineOptionViewRule])
 
 }

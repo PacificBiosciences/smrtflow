@@ -14,10 +14,11 @@ import scala.concurrent.ExecutionContext.Implicits._
  * @param startTime if present, only log messages from this time or after will be returned (as ms since epoch)
  * @param endTime if present, only log messages from before this time will be returned (as ms since epoch)
  */
-case class SearchCriteria(substring: Option[String],
-                          sourceId: Option[String],
-                          startTime: Option[JodaDateTime],
-                          endTime: Option[JodaDateTime])
+case class SearchCriteria(
+    substring: Option[String],
+    sourceId: Option[String],
+    startTime: Option[JodaDateTime],
+    endTime: Option[JodaDateTime])
 
 /**
  * Companion object for the LogServiceActor class, defining the set of messages it can handle.

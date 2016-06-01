@@ -75,19 +75,20 @@ object PbService {
     }
   }
 
-  case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
-                          host: String,
-                          port: Int,
-                          block: Boolean = false,
-                          command: CustomConfig => Unit = showDefaults,
-                          datasetId: Either[Int, UUID] = Left(0),
-                          jobId: Either[Int, UUID] = Left(0),
-                          path: File = null,
-                          name: String = "",
-                          organism: String = "",
-                          ploidy: String = "",
-                          maxItems: Int = 25,
-                          datasetType: String = "subreads") extends LoggerConfig
+  case class CustomConfig(
+      mode: Modes.Mode = Modes.UNKNOWN,
+      host: String,
+      port: Int,
+      block: Boolean = false,
+      command: CustomConfig => Unit = showDefaults,
+      datasetId: Either[Int, UUID] = Left(0),
+      jobId: Either[Int, UUID] = Left(0),
+      path: File = null,
+      name: String = "",
+      organism: String = "",
+      ploidy: String = "",
+      maxItems: Int = 25,
+      datasetType: String = "subreads") extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070)
@@ -132,10 +133,10 @@ object PbService {
       arg[File]("fasta-path") required() action { (p, c) =>
         c.copy(path = p)
       } validate { p => {
-          val size = getSizeMb(p)
-          // it's great that we can do this, but it would be more awesome if
-          // scopt didn't have to print the --help output after it
-          if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
+        val size = getSizeMb(p)
+        // it's great that we can do this, but it would be more awesome if
+        // scopt didn't have to print the --help output after it
+        if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
         }
       } text "FASTA path",
       arg[String]("reference-name") action { (name, c) =>
@@ -345,8 +346,11 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runImportFasta(sal: AnalysisServiceAccessLayer, path: String, name: String,
-                     organism: String, ploidy: String): Int = {
+  def runImportFasta(
+      sal: AnalysisServiceAccessLayer,
+      path: String, name: String,
+      organism: String,
+      ploidy: String): Int = {
     Try {
       Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
     } match {
@@ -474,10 +478,16 @@ object PbServiceRunner extends LazyLogging {
     val xc = c.mode match {
       case Modes.STATUS => runStatus(sal)
       case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
-      case Modes.IMPORT_FASTA => runImportFasta(sal, c.path.getAbsolutePath,
-                                                c.name, c.organism, c.ploidy)
-      case Modes.ANALYSIS => runAnalysisPipeline(sal, c.path.getAbsolutePath,
-                                                 c.block)
+      case Modes.IMPORT_FASTA => runImportFasta(
+        sal,
+        c.path.getAbsolutePath,
+        c.name,
+        c.organism,
+        c.ploidy)
+      case Modes.ANALYSIS => runAnalysisPipeline(
+        sal,
+        c.path.getAbsolutePath,
+        c.block)
       case Modes.TEMPLATE => runEmitAnalysisTemplate
       case Modes.JOB => runGetJobInfo(sal, c.jobId)
       case Modes.JOBS => runGetJobs(sal, c.maxItems)

@@ -4,21 +4,21 @@ import scopt.OptionParser
 
 
 /**
-  * Command Line Logging options
-  *
-  * This is intended for use with the CLI parsers so that debugging and logging related flags are shared across apps.
-  *
-  * See Readme.md for details about the shared parameters and examples of use.
-  */
+ * Command Line Logging options
+ *
+ * This is intended for use with the CLI parsers so that debugging and logging related flags are shared across apps.
+ *
+ * See Readme.md for details about the shared parameters and examples of use.
+ */
 object LoggerOptions {
 
   var configured = false
 
   /**
-    * Common logger config options for SMRT server Apps.
-    *
-    * See Readme.md for details about the shared parameters and examples of use.
-    */
+   * Common logger config options for SMRT server Apps.
+   *
+   * See Readme.md for details about the shared parameters and examples of use.
+   */
   def add(parser: OptionParser[LoggerConfig]): Unit = {
 
     parser.opt[Unit]("debug") action { (x, c) =>
@@ -39,10 +39,10 @@ object LoggerOptions {
   }
 
   /**
-    * Helper method for cases where an App doesn't otherwise use scopt parsing
-    *
-    * @param args Command line arguments
-    */
+   * Helper method for cases where an App doesn't otherwise use scopt parsing
+   *
+   * @param args Command line arguments
+   */
   def parse(args: Seq[String]): Unit = {
     val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
       // Don't complain about args such as -jar used via command-line server execution

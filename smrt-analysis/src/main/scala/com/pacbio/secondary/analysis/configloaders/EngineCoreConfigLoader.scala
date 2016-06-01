@@ -18,14 +18,13 @@ import scala.util.{Failure, Success, Try}
  *
  * Created by mkocher on 10/8/15.
  */
-
 trait EngineCoreConfigConstants {
   val MAX_WORKERS = "pb-engine.max-workers"
   val PB_TOOLS_ENV = "pb-engine.pb-tools-env"
   val PB_ROOT_JOB_DIR = "pb-engine.jobs-root"
   val DEBUG_MODE = "pb-engine.debug-mode"
-
 }
+
 object EngineCoreConfigConstants extends EngineCoreConfigConstants
 
 trait ConfigLoader {

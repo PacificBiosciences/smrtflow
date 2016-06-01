@@ -18,68 +18,104 @@ case class RunCreate(dataModel: String)
 
 case class RunUpdate(dataModel: Option[String] = None, reserved: Option[Boolean] = None)
 
-case class RunSummary(uniqueId: UUID,
-                      name: String,
-                      summary: Option[String],
-                      createdBy: Option[String],
-                      createdAt: Option[JodaDateTime],
-                      startedAt: Option[JodaDateTime],
-                      completedAt: Option[JodaDateTime],
-                      status: SupportedRunStates,
-                      totalCells: Int,
-                      numCellsCompleted: Int,
-                      numCellsFailed: Int,
-                      instrumentName: Option[String],
-                      instrumentSerialNumber: Option[String],
-                      instrumentSwVersion: Option[String],
-                      primaryAnalysisSwVersion: Option[String],
-                      context: Option[String],
-                      terminationInfo: Option[String],
-                      reserved: Boolean) {
-  def withDataModel(dataModel: String) = Run(dataModel, uniqueId, name, summary, createdBy, createdAt, startedAt,
-                                             completedAt, status, totalCells, numCellsCompleted, numCellsFailed,
-                                             instrumentName, instrumentSerialNumber, instrumentSwVersion,
-                                             primaryAnalysisSwVersion, context, terminationInfo, reserved)
+case class RunSummary(
+    uniqueId: UUID,
+    name: String,
+    summary: Option[String],
+    createdBy: Option[String],
+    createdAt: Option[JodaDateTime],
+    startedAt: Option[JodaDateTime],
+    completedAt: Option[JodaDateTime],
+    status: SupportedRunStates,
+    totalCells: Int,
+    numCellsCompleted: Int,
+    numCellsFailed: Int,
+    instrumentName: Option[String],
+    instrumentSerialNumber: Option[String],
+    instrumentSwVersion: Option[String],
+    primaryAnalysisSwVersion: Option[String],
+    context: Option[String],
+    terminationInfo: Option[String],
+    reserved: Boolean) {
+
+  def withDataModel(dataModel: String) = Run(
+      dataModel,
+      uniqueId,
+      name,
+      summary,
+      createdBy,
+      createdAt,
+      startedAt,
+      completedAt,
+      status,
+      totalCells,
+      numCellsCompleted,
+      numCellsFailed,
+      instrumentName,
+      instrumentSerialNumber,
+      instrumentSwVersion,
+      primaryAnalysisSwVersion,
+      context,
+      terminationInfo,
+      reserved)
 }
 
-case class Run(dataModel: String,
-               uniqueId: UUID,
-               name: String,
-               summary: Option[String],
-               createdBy: Option[String],
-               createdAt: Option[JodaDateTime],
-               startedAt: Option[JodaDateTime],
-               completedAt: Option[JodaDateTime],
-               status: SupportedRunStates,
-               totalCells: Int,
-               numCellsCompleted: Int,
-               numCellsFailed: Int,
-               instrumentName: Option[String],
-               instrumentSerialNumber: Option[String],
-               instrumentSwVersion: Option[String],
-               primaryAnalysisSwVersion: Option[String],
-               context: Option[String],
-               terminationInfo: Option[String],
-               reserved: Boolean) {
+case class Run(
+    dataModel: String,
+    uniqueId: UUID,
+    name: String,
+    summary: Option[String],
+    createdBy: Option[String],
+    createdAt: Option[JodaDateTime],
+    startedAt: Option[JodaDateTime],
+    completedAt: Option[JodaDateTime],
+    status: SupportedRunStates,
+    totalCells: Int,
+    numCellsCompleted: Int,
+    numCellsFailed: Int,
+    instrumentName: Option[String],
+    instrumentSerialNumber: Option[String],
+    instrumentSwVersion: Option[String],
+    primaryAnalysisSwVersion: Option[String],
+    context: Option[String],
+    terminationInfo: Option[String],
+    reserved: Boolean) {
 
-  def summarize = RunSummary(uniqueId, name, summary, createdBy, createdAt, startedAt, completedAt, status, totalCells,
-                             numCellsCompleted, numCellsFailed, instrumentName, instrumentSerialNumber,
-                             instrumentSwVersion, primaryAnalysisSwVersion, context, terminationInfo, reserved)
+  def summarize = RunSummary(
+      uniqueId,
+      name,
+      summary,
+      createdBy,
+      createdAt,
+      startedAt,
+      completedAt,
+      status,
+      totalCells,
+      numCellsCompleted,
+      numCellsFailed,
+      instrumentName,
+      instrumentSerialNumber,
+      instrumentSwVersion,
+      primaryAnalysisSwVersion,
+      context,
+      terminationInfo,
+      reserved)
 }
 
-case class CollectionMetadata(runId: UUID,
-                              uniqueId: UUID,
-                              well: String,
-                              name: String,
-                              summary: Option[String],
-                              context: Option[String],
-                              status: SupportedAcquisitionStates,
-                              instrumentId: Option[String],
-                              instrumentName: Option[String],
-                              movieMinutes: Double,
-                              startedAt: Option[JodaDateTime],
-                              completedAt: Option[JodaDateTime],
-                              terminationInfo: Option[String])
+case class CollectionMetadata(
+    runId: UUID,
+    uniqueId: UUID,
+    well: String,
+    name: String,
+    summary: Option[String],
+    context: Option[String],
+    status: SupportedAcquisitionStates,
+    instrumentId: Option[String],
+    instrumentName: Option[String],
+    movieMinutes: Double,
+    startedAt: Option[JodaDateTime],
+    completedAt: Option[JodaDateTime],
+    terminationInfo: Option[String])
 
 // Samples
 
@@ -147,11 +183,12 @@ case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String
 
 // "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
 // These are also used by the mock-pbsmrtpipe job options
-case class PbSmrtPipeServiceOptions(name: String,
-                                    pipelineId: String,
-                                    entryPoints: Seq[BoundServiceEntryPoint],
-                                    taskOptions: Seq[ServiceTaskOptionBase],
-                                    workflowOptions: Seq[ServiceTaskOptionBase])
+case class PbSmrtPipeServiceOptions(
+    name: String,
+    pipelineId: String,
+    entryPoints: Seq[BoundServiceEntryPoint],
+    taskOptions: Seq[ServiceTaskOptionBase],
+    workflowOptions: Seq[ServiceTaskOptionBase])
 
 
 // New DataSet Service Models
@@ -173,7 +210,19 @@ case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContex
 
 case class SubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: SubreadServiceSet)
 
-case class HdfSubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends IdAble
+case class HdfSubreadServiceSet(
+    id: Int,
+    uuid: UUID,
+    cellId: String,
+    metadataContextId: String,
+    wellSampleName: String,
+    wellName: String,
+    bioSampleName: String,
+    cellIndex: Int,
+    instrumentId: String,
+    instrumentName: String,
+    runName: String,
+    instrumentControlVersion: String) extends IdAble
 
 case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: HdfSubreadServiceSet)
 
@@ -196,109 +245,213 @@ case class CCSreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: CCSr
 
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
-case class DataStoreServiceFile(uuid: UUID,
-                                fileTypeId: String,
-                                sourceId: String,
-                                fileSize: Long,
-                                createdAt: JodaDateTime,
-                                modifiedAt: JodaDateTime,
-                                importedAt: JodaDateTime,
-                                path: String,
-                                jobId: Int,
-                                jobUUID: UUID,
-                                name: String,
-                                description: String)
+case class DataStoreServiceFile(
+    uuid: UUID,
+    fileTypeId: String,
+    sourceId: String,
+    fileSize: Long,
+    createdAt: JodaDateTime,
+    modifiedAt: JodaDateTime,
+    importedAt: JodaDateTime,
+    path: String,
+    jobId: Int,
+    jobUUID: UUID,
+    name: String,
+    description: String)
 
 // Files that have Reports
-case class DataStoreReportFile(dataStoreFile: DataStoreServiceFile,
-                               reportTypeId: String)
+case class DataStoreReportFile(
+    dataStoreFile: DataStoreServiceFile,
+    reportTypeId: String)
 
 //DataSet
-case class ServiceDataSetMetaType(id: String,
-                                  name: String,
-                                  description: String,
-                                  createdAt: JodaDateTime,
-                                  updatedAt: JodaDateTime,
-                                  shortName: String)
+case class ServiceDataSetMetaType(
+    id: String,
+    name: String,
+    description: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    shortName: String)
 
 trait ServiceDataSetMetadata {
-    val id: Int
-    val name: String
-    val uuid: UUID
-    val path: String
-    val createdAt: JodaDateTime
-    val updatedAt: JodaDateTime
-    val numRecords: Long
-    val totalLength: Long
-    val version: String
-    val comments: String
-    // Keeping this a string for now
-    val tags: String
-    val md5: String
-    val userId: Int
-    val jobId: Int
-    val projectId: Int
+  val id: Int
+  val name: String
+  val uuid: UUID
+  val path: String
+  val createdAt: JodaDateTime
+  val updatedAt: JodaDateTime
+  val numRecords: Long
+  val totalLength: Long
+  val version: String
+  val comments: String
+  // Keeping this a string for now
+  val tags: String
+  val md5: String
+  val userId: Int
+  val jobId: Int
+  val projectId: Int
 }
 
-case class SubreadServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                 updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                 comments: String, tags: String, md5: String, instrumentName: String,
-                                 metadataContextId: String, wellSampleName: String, wellName: String,
-                                 bioSampleName: String,
-                                 cellIndex: Int, runName: String, userId: Int, jobId: Int, projectId: Int,
-                                 datasetType: String = Subread.toString())
-  extends ServiceDataSetMetadata
+case class SubreadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    instrumentName: String,
+    metadataContextId: String,
+    wellSampleName: String,
+    wellName: String,
+    bioSampleName: String,
+    cellIndex: Int,
+    runName: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Subread.toString())
+    extends ServiceDataSetMetadata
 
-case class HdfSubreadServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                    updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                    comments: String, tags: String, md5: String, instrumentName: String,
-                                    metadataContextId: String, wellSampleName: String, wellName: String,
-                                    bioSampleName: String, cellIndex: Int, runName: String, userId: Int, jobId: Int,
-                                    projectId: Int,
-                                    datasetType: String = HdfSubread.toString())
-  extends ServiceDataSetMetadata
+case class HdfSubreadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    instrumentName: String,
+    metadataContextId: String,
+    wellSampleName: String,
+    wellName: String,
+    bioSampleName: String,
+    cellIndex: Int,
+    runName: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = HdfSubread.toString())
+    extends ServiceDataSetMetadata
 
-case class ReferenceServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                   updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                   comments: String, tags: String, md5: String, userId: Int, jobId: Int, projectId: Int,
-                                   ploidy: String, organism: String,
-                                   datasetType: String = Reference.toString())
-  extends ServiceDataSetMetadata
+case class ReferenceServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    ploidy: String,
+    organism: String,
+    datasetType: String = Reference.toString())
+    extends ServiceDataSetMetadata
 
-case class AlignmentServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                   updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                   comments: String, tags: String, md5: String, userId: Int, jobId: Int, projectId: Int,
-                                   datasetType: String = Alignment.toString())
-  extends ServiceDataSetMetadata
+case class AlignmentServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Alignment.toString())
+    extends ServiceDataSetMetadata
 
-case class CCSreadServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                 updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                 comments: String, tags: String, md5: String, userId: Int, jobId: Int, projectId: Int,
-                                 datasetType: String = CCS.toString())
-  extends ServiceDataSetMetadata
+case class CCSreadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = CCS.toString())
+    extends ServiceDataSetMetadata
 
-case class BarcodeServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                 updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                 comments: String, tags: String, md5: String, userId: Int, jobId: Int, projectId: Int,
-                                 datasetType: String = Barcode.toString())
-  extends ServiceDataSetMetadata
+case class BarcodeServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Barcode.toString())
+    extends ServiceDataSetMetadata
 
-case class ContigServiceDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime,
-                                updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, version: String,
-                                comments: String, tags: String, md5: String, userId: Int, jobId: Int, projectId: Int,
-                                datasetType: String = Contig.toString())
+case class ContigServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Contig.toString())
   extends ServiceDataSetMetadata
 
 
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
 
-case class Project(id: Int,
-                   name: String,
-                   description: String,
-                   state: String,
-                   createdAt: JodaDateTime,
-                   updatedAt: JodaDateTime)
+case class Project(
+    id: Int,
+    name: String,
+    description: String,
+    state: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime)
 
 case class ProjectUser(projectId: Int, login: String, role: String)
 

@@ -33,8 +33,8 @@ trait SecondaryAnalysisProviders
 
   val pbServices = TypesafeSingletonReader.fromConfig().in("pb-services")
 
-	// MK. Listen to all. See bug 29715. The 'host' and HOST in config.json is now confusingly named. The
-	// value of host is used to create the Service callback/update URI for pbsmrtpipe.
+  // MK. Listen to all. See bug 29715. The 'host' and HOST in config.json is now confusingly named. The
+  // value of host is used to create the Service callback/update URI for pbsmrtpipe.
   override val serverHost: Singleton[String] = Singleton("0.0.0.0")
   override val serverPort: Singleton[Int] = pbServices.getInt("port").orElse(8071)
 

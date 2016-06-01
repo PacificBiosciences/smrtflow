@@ -112,8 +112,8 @@ trait HealthServiceProvider {
 
 trait HealthServiceProviderx {
   this: HealthServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val healthService: Singleton[HealthService] =
     Singleton(() => new HealthService(healthServiceActorRef(), authenticator()))

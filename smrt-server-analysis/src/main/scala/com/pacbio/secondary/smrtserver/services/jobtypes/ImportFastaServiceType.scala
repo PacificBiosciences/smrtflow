@@ -30,8 +30,13 @@ import SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 
 
-class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef,
-                             authenticator: Authenticator, serviceStatusHost: String, port: Int)
+class ImportFastaServiceType(
+    dbActor: ActorRef,
+    userActor: ActorRef,
+    engineManagerActor: ActorRef,
+    authenticator: Authenticator,
+    serviceStatusHost: String,
+    port: Int)
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -124,11 +129,11 @@ class ImportFastaServiceType(dbActor: ActorRef, userActor: ActorRef, engineManag
 
 trait ImportFastaServiceTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with SmrtLinkConfigProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with SmrtLinkConfigProvider
+    with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
     Singleton(() => new ImportFastaServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,

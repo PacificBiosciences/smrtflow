@@ -133,11 +133,11 @@ trait PacBioComponentManifestProtocol extends DefaultJsonProtocol with NullOptio
 
   implicit object ManifestFormat extends JsonFormat[PacBioComponentManifest] {
     def write(obj: PacBioComponentManifest) = JsObject(
-      "id" -> JsString(obj.id),
-      "name" -> JsString(obj.name),
-      "version" -> JsString(obj.version),
-      "description" -> JsString(obj.description),
-      "dependencies" -> JsString("None")
+        "id" -> JsString(obj.id),
+        "name" -> JsString(obj.name),
+        "version" -> JsString(obj.version),
+        "description" -> JsString(obj.description),
+        "dependencies" -> JsString("None")
     )
 
     def read(value: JsValue) = {
@@ -156,9 +156,9 @@ trait DirectoryResourceProtocol extends DefaultJsonProtocol {
 
   implicit object DirectoryResourceFormat extends RootJsonFormat[DirectoryResource] {
     def write(obj: DirectoryResource) = JsObject(
-      "fullPath" -> JsString(obj.fullPath),
-      "subDirectories" -> JsArray(obj.subDirectories.map(this.write):_*),
-      "files" -> JsArray(obj.files.map(pbFileResourceFormat.write):_*)
+        "fullPath" -> JsString(obj.fullPath),
+        "subDirectories" -> JsArray(obj.subDirectories.map(this.write):_*),
+        "files" -> JsArray(obj.files.map(pbFileResourceFormat.write):_*)
     )
 
     def read(value: JsValue): DirectoryResource = {

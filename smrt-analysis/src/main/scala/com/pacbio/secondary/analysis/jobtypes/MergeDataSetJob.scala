@@ -14,14 +14,17 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacificbiosciences.pacbiodatasets._
 
 // Merge DataSets
-case class MergeDataSetOptions(datasetType: String, paths: Seq[String], name: String) extends BaseJobOptions {
+case class MergeDataSetOptions(
+    datasetType: String,
+    paths: Seq[String],
+    name: String) extends BaseJobOptions {
   def toJob = new MergeDataSetJob(this)
 
   override def validate = {
-      for {
-        v1 <-  Validators.filesExists(paths)
-        v2 <- Validators.validateDataSetType(datasetType)
-      } yield v2
+    for {
+      v1 <- Validators.filesExists(paths)
+      v2 <- Validators.validateDataSetType(datasetType)
+    } yield v2
   }
 }
 

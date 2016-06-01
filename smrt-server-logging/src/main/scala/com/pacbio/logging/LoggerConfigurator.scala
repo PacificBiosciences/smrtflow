@@ -9,9 +9,9 @@ class DefaultConfiguration extends LoggerConfig
 
 class LoggerConfigurator extends ContextAwareBase with Configurator {
   def configure(lc: LoggerContext): Unit = {
-     if (!LoggerOptions.configured) {
-       val dc = new DefaultConfiguration()
-       dc.configure(dc.logbackFile, dc.logFile, dc.debug, dc.logLevel)
-     }
+    if (!LoggerOptions.configured) {
+      val dc = new DefaultConfiguration()
+      dc.configure(dc.logbackFile, dc.logFile, dc.debug, dc.logLevel)
+    }
   }
 }

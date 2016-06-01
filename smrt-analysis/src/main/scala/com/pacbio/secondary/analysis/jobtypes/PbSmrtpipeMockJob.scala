@@ -23,18 +23,18 @@ import scala.util.Random
  *
  * The pipline id and entry points are not required to be strictly valid. The
  *
- *
  * @param pipelineId
  * @param entryPoints
  * @param taskOptions
  * @param workflowOptions
  * @param envPath
  */
-case class MockPbSmrtPipeJobOptions(pipelineId: String,
-                                    entryPoints: Seq[BoundEntryPoint],
-                                    taskOptions: Seq[PipelineBaseOption],
-                                    workflowOptions: Seq[PipelineBaseOption],
-                                    envPath: String) extends BaseJobOptions {
+case class MockPbSmrtPipeJobOptions(
+    pipelineId: String,
+    entryPoints: Seq[BoundEntryPoint],
+    taskOptions: Seq[PipelineBaseOption],
+    workflowOptions: Seq[PipelineBaseOption],
+    envPath: String) extends BaseJobOptions {
 
   def toJob = new PbSmrtpipeMockJob(this)
 }
@@ -89,8 +89,9 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       r
   }
 
-  def toDatastore(jobResources: AnalysisJobResources,
-                  files: Seq[DataStoreFile]): PacBioDataStore = {
+  def toDatastore(
+      jobResources: AnalysisJobResources,
+      files: Seq[DataStoreFile]): PacBioDataStore = {
 
     val version = "0.2.1"
     val createdAt = JodaDateTime.now()

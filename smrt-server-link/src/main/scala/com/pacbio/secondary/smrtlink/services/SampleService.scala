@@ -14,15 +14,15 @@ import spray.httpx.SprayJsonSupport._
 import scala.concurrent.ExecutionContext.Implicits._
 
 /**
-  * Created by devans on 4/12/16 cribbing primarily from RunDesignService and related
-  *
-  * The purpose of these end points is to provide a simple CRUD backing store for the
-  * SampleSetup module in SMRT Link. Each sample stored is a simple JSON blob of
-  * input values, about 10 of them. And samples are keyed by GUID and Name, the latter
-  * only for future filtering/searching if we need it. We'll also allow searching
-  * by date ultimately to help scale the number of saved samples and display the
-  * most recent by default.
-  */
+ * Created by devans on 4/12/16 cribbing primarily from RunDesignService and related
+ *
+ * The purpose of these end points is to provide a simple CRUD backing store for the
+ * SampleSetup module in SMRT Link. Each sample stored is a simple JSON blob of
+ * input values, about 10 of them. And samples are keyed by GUID and Name, the latter
+ * only for future filtering/searching if we need it. We'll also allow searching
+ * by date ultimately to help scale the number of saved samples and display the
+ * most recent by default.
+ */
 class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
   extends SmrtLinkBaseMicroService
   with SmrtLinkJsonProtocols {
@@ -113,17 +113,17 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
   //}
 }
 
-  /**
-    * Provides a singleton SampleService, and also binds it to the set of total services. Concrete providers must mixin
-    * a {{{SampleServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
-    */
-  trait SampleServiceProvider {
-    this: SampleServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+/**
+ * Provides a singleton SampleService, and also binds it to the set of total services. Concrete providers must mixin
+ * a {{{SampleServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
+ */
+trait SampleServiceProvider {
+  this: SampleServiceActorRefProvider
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
-    final val sampleService: Singleton[SampleService] =
-      Singleton(() => new SampleService(sampleServiceActorRef(), authenticator()))
+  final val sampleService: Singleton[SampleService] =
+    Singleton(() => new SampleService(sampleServiceActorRef(), authenticator()))
 
-    addService(sampleService)
-  }
+  addService(sampleService)
+}

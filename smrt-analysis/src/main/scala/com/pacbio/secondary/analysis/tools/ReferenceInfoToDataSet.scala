@@ -9,8 +9,9 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
 
-case class ReferenceConverterConfig(referenceInfoXMLPath: String,
-                                    datasetXMLPath: String) extends LoggerConfig
+case class ReferenceConverterConfig(
+    referenceInfoXMLPath: String,
+    datasetXMLPath: String) extends LoggerConfig
 
 object ReferenceInfoToDataSetTool extends CommandLineToolRunner[ReferenceConverterConfig] {
 

@@ -21,31 +21,31 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object SmrtLinkApp
 
 trait SmrtLinkProviders extends
-    AuthenticatedCoreProviders with
-    JobManagerServiceProvider with
-    SmrtLinkConfigProvider with
-    EngineManagerActorProvider with
-    EngineDaoActorProvider with
-    JobRunnerProvider with
-    PbsmrtpipeConfigLoader with
-    JobsDaoActorProvider with
-    JobsDaoProvider with
-    SmrtLinkDalProvider with
-    ProjectServiceProvider with
-    DataSetServiceProvider with
-    RunServiceProvider with
-    SampleServiceProvider with
-    RegistryServiceProvider with
-    RunServiceActorRefProvider with
-    SampleServiceActorRefProvider with
-    RegistryServiceActorRefProvider with
-    DatabaseRunDaoProvider with
-    InMemorySampleDaoProvider with
-    ImportDataSetServiceTypeProvider with
-    MergeDataSetServiceJobTypeProvider with
-    MockPbsmrtpipeJobTypeProvider with
-    InMemoryRegistryDaoProvider with
-    DataModelParserImplProvider {
+  AuthenticatedCoreProviders with
+  JobManagerServiceProvider with
+  SmrtLinkConfigProvider with
+  EngineManagerActorProvider with
+  EngineDaoActorProvider with
+  JobRunnerProvider with
+  PbsmrtpipeConfigLoader with
+  JobsDaoActorProvider with
+  JobsDaoProvider with
+  SmrtLinkDalProvider with
+  ProjectServiceProvider with
+  DataSetServiceProvider with
+  RunServiceProvider with
+  SampleServiceProvider with
+  RegistryServiceProvider with
+  RunServiceActorRefProvider with
+  SampleServiceActorRefProvider with
+  RegistryServiceActorRefProvider with
+  DatabaseRunDaoProvider with
+  InMemorySampleDaoProvider with
+  ImportDataSetServiceTypeProvider with
+  MergeDataSetServiceJobTypeProvider with
+  MockPbsmrtpipeJobTypeProvider with
+  InMemoryRegistryDaoProvider with
+  DataModelParserImplProvider {
   override val actorSystemName = Some("smrtlink-smrt-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }

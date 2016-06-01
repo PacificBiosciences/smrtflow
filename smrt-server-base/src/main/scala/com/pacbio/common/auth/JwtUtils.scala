@@ -38,16 +38,17 @@ trait JwtUtilsProvider {
   val jwtUtils: Singleton[JwtUtils]
 }
 
-case class ClaimsSet(id: String,
-  userName: String,
-  email: String,
-  firstName: String,
-  lastName: String,
-  iat: JodaDateTime,
-  exp: JodaDateTime,
-  roles: Set[String],
-  iss: String,
-  sub: String)
+case class ClaimsSet(
+    id: String,
+    userName: String,
+    email: String,
+    firstName: String,
+    lastName: String,
+    iat: JodaDateTime,
+    exp: JodaDateTime,
+    roles: Set[String],
+    iss: String,
+    sub: String)
 
 /**
  * Concrete implementation of JwtUtils.
@@ -61,26 +62,26 @@ class JwtUtilsImpl(clock: Clock) extends JwtUtils {
 
 
   private object DateTimeSerializer extends CustomSerializer[JodaDateTime](format => (
-  {
-    case JString(s) => JodaDateTime.parse(s, DATE_TIME_FORMAT)
-    case JNull => null
-  },
-  {
-    case d: JodaDateTime => JString(d.toString(DATE_TIME_FORMAT))
-  }
+      {
+        case JString(s) => JodaDateTime.parse(s, DATE_TIME_FORMAT)
+        case JNull => null
+      },
+      {
+        case d: JodaDateTime => JString(d.toString(DATE_TIME_FORMAT))
+      }
   ))
 
   private object RoleSerializer extends CustomSerializer[Role](format => (
-  {
-    case JString(s) => Role.fromString(s) match {
-      case Some(r) => r
-      case None => null
-    }
-    case JNull => null
-  },
-  {
-    case r: Role => JString(r.toString)
-  }
+      {
+        case JString(s) => Role.fromString(s) match {
+          case Some(r) => r
+          case None => null
+      }
+        case JNull => null
+      },
+      {
+        case r: Role => JString(r.toString)
+      }
   ))
 
   private implicit val claimFormats =

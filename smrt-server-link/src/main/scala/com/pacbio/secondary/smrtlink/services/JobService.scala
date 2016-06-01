@@ -54,10 +54,10 @@ object JobResourceUtils extends  LazyLogging{
 }
 
 trait JobService
-    extends LazyLogging
-    with StatusCodeJoiners
-    with Directives
-    with JobServiceConstants {
+  extends LazyLogging
+  with StatusCodeJoiners
+  with Directives
+  with JobServiceConstants {
 
   implicit val timeout = Timeout(10.seconds)
 

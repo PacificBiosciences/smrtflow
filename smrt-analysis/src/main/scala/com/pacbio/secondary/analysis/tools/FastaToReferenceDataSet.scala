@@ -13,26 +13,27 @@ import scopt.OptionParser
 import scala.util.{Failure, Success, Try}
 
 
-case class FastaToReferenceDataSetConfig(fastaFile: String,
-                                         outputDir: String,
-                                         name: String,
-                                         organism: String,
-                                         ploidy: String,
-                                         onlyValidate: Boolean = false) extends LoggerConfig
+case class FastaToReferenceDataSetConfig(
+    fastaFile: String,
+    outputDir: String,
+    name: String,
+    organism: String,
+    ploidy: String,
+    onlyValidate: Boolean = false) extends LoggerConfig
 
 /**
-  * Convert a Fasta file to a ReferenceDataSet
-  *
-  * Calls samtools to create the fai
-  * Calls sawriter to create suffix array
-  * Optionally calls gmap to the create the gmapdb
-  *
-  * This should be depreciated in favor of FastaToReference
-  * (which will generate the SMRT View index) files.
-  * The old RS-era code to generate teh SMRT view index files should be
-  * replaced with a pure scala implementation that is more efficient.
-  *
-  */
+ * Convert a Fasta file to a ReferenceDataSet
+ *
+ * Calls samtools to create the fai
+ * Calls sawriter to create suffix array
+ * Optionally calls gmap to the create the gmapdb
+ *
+ * This should be depreciated in favor of FastaToReference
+ * (which will generate the SMRT View index) files.
+ * The old RS-era code to generate teh SMRT view index files should be
+ * replaced with a pure scala implementation that is more efficient.
+ *
+ */
 object FastaToReferenceDataSet extends CommandLineToolRunner[FastaToReferenceDataSetConfig] {
 
   import ExternalToolsUtils._
@@ -81,11 +82,11 @@ object FastaToReferenceDataSet extends CommandLineToolRunner[FastaToReferenceDat
     val organism = Option(c.organism)
 
     val rio = Try {
-        if (c.onlyValidate) {
-            fastaToReferenceSet(fastaPath)
-        } else {
-            createReferenceFromFasta(fastaPath, outputDir, name, organism, ploidy)
-        }
+      if (c.onlyValidate) {
+        fastaToReferenceSet(fastaPath)
+      } else {
+        createReferenceFromFasta(fastaPath, outputDir, name, organism, ploidy)
+      }
     }
 
     rio match {

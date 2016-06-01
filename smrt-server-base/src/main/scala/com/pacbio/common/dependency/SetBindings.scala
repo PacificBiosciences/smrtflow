@@ -2,6 +2,7 @@ package com.pacbio.common.dependency
 
 import scala.collection.mutable
 
+// scalastyle:off
 /**
  * Allows providers to construct a set with elements from multiple providers. To provide a {{{Set[T]}}}, create an
  * object that extends {{{SetBinding[T]}}}, and require a self-type of {{{SetBindings}}} in any provider that needs
@@ -73,6 +74,7 @@ import scala.collection.mutable
  * application can declare itself a FooListener and be automatically registered by its provider.
  */
 trait SetBinding[T] {
+  // scalastyle: on
   final private[dependency] val bindings: mutable.HashSet[Singleton[_ <: T]] = new mutable.HashSet[Singleton[_ <: T]]()
 
   final private[dependency] def registerBinding(obj: Singleton[_ <: T]): Unit = bindings.add(obj)

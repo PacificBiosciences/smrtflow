@@ -84,10 +84,10 @@ class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineMan
 
 trait ImportDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with JobManagerServiceProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
     Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)

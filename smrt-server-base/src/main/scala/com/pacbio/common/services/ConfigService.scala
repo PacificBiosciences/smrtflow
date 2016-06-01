@@ -86,8 +86,8 @@ class ConfigService extends PacBioService {
         case OBJECT =>
           c.asInstanceOf[ConfigObject].toConfig.entrySet().map { e =>
             ConfigEntry(
-                traversed + "." + e.getKey,
-                stripQuotes(e.getValue.render()))
+              traversed + "." + e.getKey,
+              stripQuotes(e.getValue.render()))
           }.toSet
         case _ => Set(ConfigEntry(traversed, stripQuotes(c.render())))
       }

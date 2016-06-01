@@ -46,7 +46,8 @@ case class CoreJob(uuid: UUID, jobOptions: BaseJobOptions)
 
 
 trait BaseJobOptions {
-    def toJob: BaseCoreJob
-    // Validation of Job Options
-    def validate: Option[InvalidJobOptionError] = None
+  def toJob: BaseCoreJob
+
+  // Validation of Job Options
+  def validate: Option[InvalidJobOptionError] = None
 }

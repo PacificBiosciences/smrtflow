@@ -17,9 +17,10 @@ import scala.concurrent.Future
 /**
  * Concrete implementation of LogDao that stores stale messages in a database.
  */
-class DatabaseLogDao(databaseConfig: DatabaseConfig.Configured,
-                     clock: Clock,
-                     bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
+class DatabaseLogDao(
+    databaseConfig: DatabaseConfig.Configured,
+    clock: Clock,
+    bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
 
   private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
 
@@ -72,7 +73,7 @@ trait DatabaseLogDaoProvider extends LogDaoProvider {
 
   override val logDao: Singleton[LogDao] = Singleton(() =>
     new DatabaseLogDao(
-        logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
-        clock(),
-        logDaoBufferSize))
+      logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
+      clock(),
+      logDaoBufferSize))
 }

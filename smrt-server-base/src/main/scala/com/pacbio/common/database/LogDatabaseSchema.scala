@@ -11,8 +11,8 @@ import slick.driver.SQLiteDriver.api._
 object LogDatabaseSchema extends PacBioDateTimeDatabaseFormat {
   // Define serialization/deserialization of LogLevel for database storage
   implicit def logLevelToString = MappedColumnType.base[LogLevel.LogLevel, String](
-    logLevel => logLevel.toString,
-    logLevelString => LogLevel.logLevelByName(logLevelString)
+      logLevel => logLevel.toString,
+      logLevelString => LogLevel.logLevelByName(logLevelString)
   )
 
   // LogMessageTable schema

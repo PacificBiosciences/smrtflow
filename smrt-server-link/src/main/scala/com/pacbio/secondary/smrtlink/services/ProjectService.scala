@@ -200,9 +200,9 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
 
 trait ProjectServiceProvider {
   this: JobsDaoActorProvider
-      with UserServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with UserServiceActorRefProvider
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
     Singleton(() => new ProjectService(
