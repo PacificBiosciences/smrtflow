@@ -23,5 +23,6 @@ assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
 packSettings
 
 packMain := Map(
-  "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp"
+  "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp",
+  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.tools.TestkitRunnerApp"
 )

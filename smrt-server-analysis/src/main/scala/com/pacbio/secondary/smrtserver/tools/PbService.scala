@@ -47,7 +47,7 @@ object Modes {
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
-object PbService {
+object PbServiceParser {
   val VERSION = "0.1.0"
   var TOOL_ID = "pbscala.tools.pbservice"
   private val MAX_FASTA_SIZE = 100.0 // megabytes
@@ -205,36 +205,36 @@ object PbService {
 
 
 // TODO consolidate Try behavior
-object PbServiceRunner extends LazyLogging {
+class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   import AnalysisClientJsonProtocol._
 
-  private val TIMEOUT = 10 seconds
+  protected val TIMEOUT = 10 seconds
 
   // FIXME this is crude
-  private def errorExit(msg: String): Int = {
+  protected def errorExit(msg: String): Int = {
     println(msg)
     1
   }
 
-  private def dsMetaTypeFromPath(path: String): String = {
+  protected def dsMetaTypeFromPath(path: String): String = {
     val ds = scala.xml.XML.loadFile(path)
     ds.attributes("MetaType").toString
   }
 
-  private def dsUuidFromPath(path: String): UUID = {
+  protected def dsUuidFromPath(path: String): UUID = {
     val ds = scala.xml.XML.loadFile(path)
     val uniqueId = ds.attributes("UniqueId").toString
     java.util.UUID.fromString(uniqueId)
   }
 
-  private def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
+  protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
       case Success(records) => println(s"${label} ${records.size}")
       case Failure(err) => println("ERROR: couldn't retrieve ${label}")
     }
   }
 
-  def runStatus(sal: AnalysisServiceAccessLayer): Int = {
+  def runStatus: Int = {
     Try { Await.result(sal.getStatus, TIMEOUT) } match {
       case Success(status) => {
         println(s"Status ${status.message}")
@@ -253,7 +253,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  private def printDataSetInfo(ds: DataSetMetaDataSet): Int = {
+  protected def printDataSetInfo(ds: DataSetMetaDataSet): Int = {
     println("DATASET SUMMARY:")
     println(s"  id: ${ds.id}")
     println(s"  uuid: ${ds.uuid}")
@@ -268,14 +268,14 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runGetDataSetInfo(sal: AnalysisServiceAccessLayer, datasetId: Either[Int, UUID]): Int = {
+  def runGetDataSetInfo(datasetId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
       case Success(ds) => printDataSetInfo(ds)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
   }
 
-  def runGetDataSets(sal: AnalysisServiceAccessLayer, dsType: String, maxItems: Int): Int = {
+  def runGetDataSets(dsType: String, maxItems: Int): Int = {
     Try {
       dsType match {
         case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
@@ -295,7 +295,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  private def printJobInfo(job: EngineJob): Int = {
+  protected def printJobInfo(job: EngineJob): Int = {
     println("JOB SUMMARY:")
     println(s"  id: ${job.id}")
     println(s"  uuid: ${job.uuid}")
@@ -313,14 +313,14 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runGetJobInfo(sal: AnalysisServiceAccessLayer, jobId: Either[Int, UUID]): Int = {
+  def runGetJobInfo(jobId: Either[Int, UUID]): Int = {
     Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
       case Success(job) => printJobInfo(job)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
 
-  def runGetJobs(sal: AnalysisServiceAccessLayer, maxItems: Int): Int = {
+  def runGetJobs(maxItems: Int): Int = {
     Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
       case Success(engineJobs) => {
         var i = 0
@@ -338,16 +338,15 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  private def waitForJob(sal: AnalysisServiceAccessLayer, jobId: UUID): Int = {
-    println("waiting for import job to complete...")
+  protected def waitForJob(jobId: UUID): Int = {
+    println(s"waiting for job ${jobId} to complete...")
     Try { sal.pollForJob(jobId) } match {
-      case Success(x) => runGetJobInfo(sal, Right(jobId))
+      case Success(x) => runGetJobInfo(Right(jobId))
       case Failure(err) => errorExit(err.getMessage)
     }
   }
 
   def runImportFasta(
-      sal: AnalysisServiceAccessLayer,
       path: String, name: String,
       organism: String,
       ploidy: String): Int = {
@@ -356,7 +355,7 @@ object PbServiceRunner extends LazyLogging {
     } match {
       case Success(job: EngineJob) => {
         println(job)
-        waitForJob(sal, job.uuid) match {
+        waitForJob(job.uuid) match {
           case 0 => {
             Try {
               Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
@@ -364,7 +363,7 @@ object PbServiceRunner extends LazyLogging {
               case Success(dataStoreFiles) => {
                 for (dsFile <- dataStoreFiles) {
                   if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                    return runGetDataSetInfo(sal, Right(dsFile.uuid))
+                    return runGetDataSetInfo(Right(dsFile.uuid))
                   }
                 }
                 errorExit("Couldn't find ReferenceSet")
@@ -379,7 +378,7 @@ object PbServiceRunner extends LazyLogging {
     }
   }
 
-  def runImportDataSetSafe(sal: AnalysisServiceAccessLayer, path: String): Int = {
+  def runImportDataSetSafe(path: String): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
 
@@ -391,12 +390,12 @@ object PbServiceRunner extends LazyLogging {
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
         //println(ex.getMessage)
-        runImportDataSet(sal, path)
+        runImportDataSet(path)
       }
     }
   }
 
-  def runImportDataSet(sal: AnalysisServiceAccessLayer, path: String): Int = {
+  def runImportDataSet(path: String): Int = {
     val dsType = dsMetaTypeFromPath(path)
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
@@ -405,7 +404,7 @@ object PbServiceRunner extends LazyLogging {
         println("waiting for import job to complete...")
         val f = sal.pollForJob(jobInfo.uuid)
         // FIXME what happens if the job fails?
-        runGetJobInfo(sal, Right(jobInfo.uuid))
+        runGetJobInfo(Right(jobInfo.uuid))
       }
       case Failure(err) => {
         errorExit(s"Dataset import failed: ${err}")
@@ -432,11 +431,14 @@ object PbServiceRunner extends LazyLogging {
     0
   }
 
-  def runAnalysisPipeline(sal: AnalysisServiceAccessLayer, jsonPath: String, block: Boolean): Int = {
+  def runAnalysisPipeline(jsonPath: String, block: Boolean): Int = {
     val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
     val jsonAst = jsonSrc.parseJson
     val analysisOptions = jsonAst.convertTo[PbSmrtPipeServiceOptions]
-    println(analysisOptions)
+    runAnalysisPipelineImpl(analysisOptions, block)
+  }
+
+  protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
     Try {
       Await.result(sal.getPipelineTemplateJson(analysisOptions.pipelineId), TIMEOUT)
     } match {
@@ -459,52 +461,65 @@ object PbServiceRunner extends LazyLogging {
         }
       }
     }
+    0
+  }
+
+  protected def runAnalysisPipelineImpl(analysisOptions: PbSmrtPipeServiceOptions, block: Boolean = true, validate: Boolean = true): Int = {
+    println(analysisOptions)
+    var xc = 0
+    if (validate) {
+      xc = validatePipelineOptions(analysisOptions)
+      if (xc != 0) return errorExit("Analysis options failed validation")
+    }
     Try {
       Await.result(sal.runAnalysisPipeline(analysisOptions), TIMEOUT)
     } match {
       case Success(jobInfo) => {
         println(s"Job ${jobInfo.uuid} started")
         printJobInfo(jobInfo)
-        if (block) waitForJob(sal, jobInfo.uuid) else 0
+        if (block) waitForJob(jobInfo.uuid) else 0
       }
       case Failure(err) => errorExit(err.getMessage)
     }
   }
+}
 
-  def apply (c: PbService.CustomConfig): Int = {
+object PbService {
+  def apply (c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
     val url = new URL(s"http://${c.host}:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
+    val ps = new PbService(sal)
     val xc = c.mode match {
-      case Modes.STATUS => runStatus(sal)
-      case Modes.IMPORT_DS => runImportDataSetSafe(sal, c.path.getAbsolutePath)
-      case Modes.IMPORT_FASTA => runImportFasta(
-        sal,
+      case Modes.STATUS => ps.runStatus
+      case Modes.IMPORT_DS => ps.runImportDataSetSafe(c.path.getAbsolutePath)
+      case Modes.IMPORT_FASTA => ps.runImportFasta(
         c.path.getAbsolutePath,
         c.name,
         c.organism,
         c.ploidy)
-      case Modes.ANALYSIS => runAnalysisPipeline(
-        sal,
+      case Modes.ANALYSIS => ps.runAnalysisPipeline(
         c.path.getAbsolutePath,
         c.block)
-      case Modes.TEMPLATE => runEmitAnalysisTemplate
-      case Modes.JOB => runGetJobInfo(sal, c.jobId)
-      case Modes.JOBS => runGetJobs(sal, c.maxItems)
-      case Modes.DATASET => runGetDataSetInfo(sal, c.datasetId)
-      case Modes.DATASETS => runGetDataSets(sal, c.datasetType, c.maxItems)
-      case _ => errorExit("Unsupported action")
+      case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+      case Modes.JOB => ps.runGetJobInfo(c.jobId)
+      case Modes.JOBS => ps.runGetJobs(c.maxItems)
+      case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId)
+      case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems)
+      case _ => {
+        println("Unsupported action")
+        1
+      }
     }
     actorSystem.shutdown()
     xc
   }
-
 }
 
 object PbServiceApp extends App {
   def run(args: Seq[String]) = {
-    val xc = PbService.parser.parse(args.toSeq, PbService.defaults) match {
-      case Some(config) => PbServiceRunner(config)
+    val xc = PbServiceParser.parser.parse(args.toSeq, PbServiceParser.defaults) match {
+      case Some(config) => PbService(config)
       case _ => 1
     }
     sys.exit(xc)
