@@ -53,6 +53,7 @@
     <parameter name="illegalImports"><![CDATA[sun._,java.awt._]]></parameter>
    </parameters>
   </check>
+  -->
 <!-- Ignored - not limit to number of params in style specs, albeit less is normally preferred -->
 <!--
   <check level="warning" class="org.scalastyle.scalariform.ParameterNumberChecker" enabled="true">
@@ -69,11 +70,13 @@
    </parameters>
   </check>
 -->
-<!-- Ignored -- no strict rules regarding spacing and brackets -->
+<!-- Ignored - no strict rules regarding spacing and brackets -->
 <!--
   <check level="warning" class="org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker" enabled="true"></check>
   <check level="warning" class="org.scalastyle.scalariform.NoWhitespaceAfterLeftBracketChecker" enabled="true"></check>
 -->
+ <!-- see http://docs.scala-lang.org/style/declarations#methods "You should specify a return type for all public members" -->
+ <check level="warning" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true"></check>
 <!--
   <check level="warning" class="org.scalastyle.scalariform.ReturnChecker" enabled="true"></check>
   <check level="warning" class="org.scalastyle.scalariform.NullChecker" enabled="true"></check>
