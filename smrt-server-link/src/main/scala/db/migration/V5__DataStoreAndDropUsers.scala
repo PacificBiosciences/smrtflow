@@ -11,6 +11,7 @@ import scala.concurrent.Future
 class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
+    // scalastyle:off
     SimpleDBIO { b =>
       b.connection.prepareCall(
         """
