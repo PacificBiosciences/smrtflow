@@ -10,20 +10,30 @@
    <parameter name="methodParamIndentSize">4</parameter>
   </parameters>
  </check>
+ <!-- Ignore - no explicit rule in style guides; however, handy to avoid whitespace diffs -->
+ <!--
+ <check level="warning" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"></check>
+ -->
+ <!-- Ignored - there is line limit in files in the style guides -->
  <!--
  <check level="warning" class="org.scalastyle.file.FileLengthChecker" enabled="true">
   <parameters>
    <parameter name="maxFileLength"><![CDATA[800]]></parameter>
   </parameters>
  </check>
+ -->
+<!-- Ignored - Scala's style always shows spaces but doesn't required it -->
+ <!--
  <check level="warning" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"></check>
- <check level="warning" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"></check>
+-->
+<!--
  <check level="warning" class="org.scalastyle.scalariform.ClassNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter>
   </parameters>
  </check>
+ 
  <check level="warning" class="org.scalastyle.scalariform.ObjectNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter>
