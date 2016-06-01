@@ -18,7 +18,7 @@ import scala.collection.JavaConversions._
 trait LoggerConfig {
 
   // params for logger configuration
-  var logLevel = "ERROR"
+  var logLevel = "INFO"
   var logFile = "default_smrt.log"
   var logbackFile: String = null
   var debug = false
@@ -43,17 +43,23 @@ trait LoggerConfig {
       debug: Boolean,
       logLevel: String): LoggerConfig = {
 
-    // ignore the default config
-    LoggerOptions.configured = true
     // logback.xml trumps all other config
     if (logbackFile != this.logbackFile)
       setLogback(logbackFile)
     else {
       // order matters here so that debug can trump file and level is correctly set
-      if (logFile != this.logFile) setFile(logFile)
-      if (debug != this.debug) setDebug(debug)
+      if (logFile != this.logFile) {
+        setFile(logFile)
+        setLevel(this.logLevel)
+      }
+      if (debug != this.debug) {
+        setDebug(debug)
+        setLevel(this.logLevel)
+      }
       if (logLevel != this.logLevel) setLevel(logLevel)
     }
+    // ignore the default configurator
+    LoggerOptions.configured = true
     return this
   }
 
@@ -66,6 +72,7 @@ trait LoggerConfig {
    * @return How many params were consumed
    */
   def setLogback(path: String) {
+    this.logbackFile = path
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     val configurator = new JoranConfigurator()
     configurator.setContext(lc)
@@ -82,9 +89,10 @@ trait LoggerConfig {
    * @return How many params were consumed
    */
   def setLevel(level: String) {
+    this.logLevel = level
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     val l = Level.toLevel(level)
-    for (logger <- lc.getLoggerList) { logger.setLevel(l) }
+    for (logger <- lc.getLoggerList) logger.setLevel(l)
   }
 
   /**
@@ -94,6 +102,7 @@ trait LoggerConfig {
    * @return How many params were consumed
    */
   def setFile(file: String) {
+    this.logFile = file
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
 
     // configure the rolling file appender
@@ -136,10 +145,11 @@ trait LoggerConfig {
    * @return How many params were consumed
    */
   def setDebug(debug: Boolean) {
+    this.debug = debug
     if (!debug) return
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     // build up a SLFJ4 console logger
-    val appender = new ConsoleAppender[ILoggingEvent]();
+    val appender = new ConsoleAppender[ILoggingEvent]()
     appender.setContext(lc)
     appender.setName("STDOUT")
     val patternEncoder = new PatternLayoutEncoder()
