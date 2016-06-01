@@ -118,7 +118,7 @@ object FastaConverter extends LazyLogging{
   case class PacBioFastaRecord(header: String, metadata: Option[String], bases: Seq[Char], recordIndex: Int)
 
 
-  def _validateCharNotInHeader(char: Char): PacBioFastaRecord => Either[InValidFastaFileError, PacBioFastaRecord] = {
+  def validateCharNotInHeader(char: Char): PacBioFastaRecord => Either[InValidFastaFileError, PacBioFastaRecord] = {
 
     def validateC(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
       if (fastaRecord.header contains char) {
@@ -130,9 +130,9 @@ object FastaConverter extends LazyLogging{
     validateC
   }
 
-  val validateNoDoubleQuote = _validateCharNotInHeader('\"')
-  val validateNoColon = _validateCharNotInHeader(':')
-  val validateNoTab = _validateCharNotInHeader('\t')
+  val validateNoDoubleQuote = validateCharNotInHeader('\"')
+  val validateNoColon = validateCharNotInHeader(':')
+  val validateNoTab = validateCharNotInHeader('\t')
 
   /**
    * Validate a PacBio Fasta Record
@@ -146,6 +146,7 @@ object FastaConverter extends LazyLogging{
    * Using Either to propagate up Error messages
    *
    * Bases must only contain IUPAC (or lowercase versions)
+ *
    * @param fastaRecord
    * @return
    */
@@ -166,6 +167,7 @@ object FastaConverter extends LazyLogging{
 
   /**
    * Validate that Fasta file is compliant with PacBio Spec
+ *
    * @param path
    * @return
    */
@@ -219,6 +221,7 @@ object FastaConverter extends LazyLogging{
   /**
    * This is the new model for writing a ReferenceSet using jaxb
    * This should eventually replace the manual XML ReferenceSet creation
+ *
    * @param contigs
    * @return
    */
