@@ -692,13 +692,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
 
-  def _subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
+  private def subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(x.path)))))
 
 
-  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = _subreadToDetails(getSubreadDataSetById(id))
+  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = subreadToDetails(getSubreadDataSetById(id))
 
-  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _subreadToDetails(getSubreadDataSetByUUID(uuid))
+  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = subreadToDetails(getSubreadDataSetByUUID(uuid))
 
   def getSubreadDataSetByUUID(id: UUID): Future[Option[SubreadServiceDataSet]] =
     dal.db.run {
@@ -729,13 +729,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
     }
 
-  def _referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
+  private def referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(x.path)))))
 
-  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = _referenceToDetails(getReferenceDataSetById(id))
+  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = referenceToDetails(getReferenceDataSetById(id))
 
   def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
-    _referenceToDetails(getReferenceDataSetByUUID(uuid))
+    referenceToDetails(getReferenceDataSetByUUID(uuid))
 
   def getReferenceDataSetByUUID(id: UUID): Future[Option[ReferenceServiceDataSet]] =
     dal.db.run {
@@ -759,12 +759,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
 
-  def _hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
+  private def hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(x.path)))))
 
-  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetById(id))
+  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetById(id))
 
-  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
+  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
 
   def getHdfDataSetByUUID(id: UUID): Future[Option[HdfSubreadServiceDataSet]] =
     dal.db.run {
@@ -831,13 +831,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toB(x._1)))
     }
 
-  def _barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
+  private def barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
     ds.map(_.map(x => DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(x.path)))))
   }
 
-  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetById(id))
+  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetById(id))
 
-  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
+  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
 
   def toDataStoreJobFile(x: DataStoreServiceFile) =
     // This is has the wrong job uuid

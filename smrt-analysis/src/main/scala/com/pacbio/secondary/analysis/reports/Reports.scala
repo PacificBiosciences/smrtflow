@@ -88,10 +88,10 @@ object MockReportUtils extends ReportJsonProtocol {
     ReportTable("report_table", "report title", JsArray(cs.toVector))
   }
 
-  /*
-  Generate a pbreport-eseque task/jobOptions report of the execution
+  /**
+   * Generate a pbreport-eseque task/jobOptions report of the execution
    */
-  def toMockTaskReport(reportId: String) = {
+  def toMockTaskReport(reportId: String): Report = {
     def toI(x: String) = s"$reportId.$x"
     def toRa(i: String, n: String, v: Int) = ReportLongAttribute(i, n, v)
     val xs = Seq(("host", "Host ", 1234),

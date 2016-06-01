@@ -12,7 +12,7 @@ import slick.lifted.ProvenShape
 
 import scala.concurrent.Future
 
-
+// scalastyle:off
 class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
@@ -71,6 +71,7 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
     )
   }
 }
+// scalastyle:on
 
 object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
