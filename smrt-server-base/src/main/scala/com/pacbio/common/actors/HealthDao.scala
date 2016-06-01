@@ -19,17 +19,17 @@ trait HealthDao {
   /**
    * Provides a list of all health gauges.
    */
-  def getAllHealthGauges: Seq[HealthGauge]
+  def getAllHealthGauges: Future[Seq[HealthGauge]]
 
   /**
    * Gets a specific health gauge by id.
    */
-  def getHealthGauge(id: String): HealthGauge
+  def getHealthGauge(id: String): Future[HealthGauge]
 
   /**
    * Create a new health gauge.
    */
-  def createHealthGauge(m: HealthGaugeRecord): String
+  def createHealthGauge(m: HealthGaugeRecord): Future[String]
 
   /**
    * Gets the current health state of every gauge.
@@ -39,12 +39,12 @@ trait HealthDao {
   /**
    * Updates a health gauge with a new message.
    */
-  def createHealthMessage(id: String, m: HealthGaugeMessageRecord): HealthGaugeMessage
+  def createHealthMessage(id: String, m: HealthGaugeMessageRecord): Future[HealthGaugeMessage]
 
   /**
    * Gets a list of the gauges that have the highest severity.
    */
-  def getSevereHealthGauges: Seq[HealthGauge]
+  def getSevereHealthGauges: Future[Seq[HealthGauge]]
 }
 
 /**
@@ -75,13 +75,13 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
     /**
      * Returns the messages received by this handler in order. By default, this returns Nil.
      */
-    def getAll: Future[Seq[HealthGaugeMessage]] = Future(Nil)
+    def getAll: Future[Seq[HealthGaugeMessage]] = Future.successful(Nil)
 
     /**
      * Handles a new incoming message. By default, this does nothing, essentially meaning that the gauge will be
      * updated, but the message will not be persisted.
      */
-    def +=(message: HealthGaugeMessage): Unit = {}
+    def +=(message: HealthGaugeMessage): Future[Unit] = Future.successful(())
   }
 
   /**
@@ -89,15 +89,16 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
    */
   def newHandler(id: String): HealthMessageHandler
 
-  override final def getAllHealthGauges: Seq[HealthGauge] = gauges.values.toSeq
+  override final def getAllHealthGauges: Future[Seq[HealthGauge]] = Future(gauges.values.toSeq)
 
-  override final def getHealthGauge(id: String): HealthGauge =
+  override final def getHealthGauge(id: String): Future[HealthGauge] = Future {
     if (gauges contains id)
       gauges(id)
     else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def createHealthGauge(m: HealthGaugeRecord): String = {
+  override final def createHealthGauge(m: HealthGaugeRecord): Future[String] = Future {
     val id = m.id
     if (gauges contains id)
       throw new UnprocessableEntityError(s"Resource with id $id already exists")
@@ -111,9 +112,9 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
   }
 
   override final def getAllHealthMessages(id: String): Future[Seq[HealthGaugeMessage]] =
-    if (handlers contains id) handlers.get(id).get.getAll else Future(Nil)
+    if (handlers contains id) handlers.get(id).get.getAll else Future.successful(Nil)
 
-  override final def createHealthMessage(id: String, m: HealthGaugeMessageRecord): HealthGaugeMessage =
+  override final def createHealthMessage(id: String, m: HealthGaugeMessageRecord): Future[HealthGaugeMessage] = Future {
     if (gauges contains id) {
       val creationTime = clock.dateNow()
       val newGauge = HealthGauge(creationTime, m.message, id, gauges(id).name, m.severity)
@@ -123,8 +124,9 @@ abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
       newMessage
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def getSevereHealthGauges: Seq[HealthGauge] = {
+  override final def getSevereHealthGauges: Future[Seq[HealthGauge]] = Future {
     val sortedGauges = gauges.values.toSeq.filter(_.severity > HealthSeverity.OK).sortBy(_.severity)
     val highestGauge = sortedGauges.lastOption
     highestGauge match {
@@ -142,7 +144,7 @@ class InMemoryHealthDao(clock: Clock) extends AbstractHealthDao(clock) {
   override final def newHandler(id: String) = new HealthMessageHandler {
     private val messages = new mutable.MutableList[HealthGaugeMessage]
 
-    override def +=(message: HealthGaugeMessage): Unit = messages += message
+    override def +=(message: HealthGaugeMessage): Future[Unit] = Future(messages += message)
 
     override def getAll: Future[Seq[HealthGaugeMessage]] = Future(messages.toSeq)
   }

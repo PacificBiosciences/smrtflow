@@ -1,19 +1,15 @@
 package com.pacbio.common.actors
 
-import akka.actor.{Props, ActorRef}
+import akka.actor.{ActorRef, Props}
+import akka.pattern.pipe
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{ApiCleanupJobCreate, ConfigCleanupJobCreate}
+import com.pacbio.common.models.ConfigCleanupJobCreate
+
+import scala.concurrent.ExecutionContext.Implicits._
 
 // TODO(smcclellan): add scaladoc, unittests
 
 object CleanupServiceActor {
-  case object GetAllJobs
-  case class GetJob(id: String)
-  case class CreateJob(create: ApiCleanupJobCreate)
-  case class StartJob(id: String)
-  case class PauseJob(id: String)
-  case class DeleteJob(id: String)
-
   case class CreateConfigJob(create: ConfigCleanupJobCreate)
   case class RunConfigJob(name: String)
 }
@@ -22,15 +18,8 @@ class CleanupServiceActor(dao: CleanupDao) extends PacBioActor {
   import CleanupServiceActor._
 
   def receive: Receive = {
-    case GetAllJobs        => respondWith(dao.getAllJobs())
-    case GetJob(id)        => respondWith(dao.getJob(id))
-    case CreateJob(create) => respondWith(dao.createJob(create))
-    case StartJob(id)      => respondWith(dao.startJob(id))
-    case PauseJob(id)      => respondWith(dao.pauseJob(id))
-    case DeleteJob(id)     => respondWith(dao.deleteJob(id))
-
-    case CreateConfigJob(create) => respondWith(dao.createConfigJob(create))
-    case RunConfigJob(name)      => respondWith(dao.runConfigJob(name))
+    case CreateConfigJob(create) => dao.createConfigJob(create) pipeTo sender
+    case RunConfigJob(name)      => dao.runConfigJob(name)      pipeTo sender
   }
 }
 

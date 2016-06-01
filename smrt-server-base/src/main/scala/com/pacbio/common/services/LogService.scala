@@ -1,9 +1,7 @@
 package com.pacbio.common.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.actors.{LogServiceActorRefProvider, SearchCriteria, LogServiceActor}
+import com.pacbio.common.actors._
 import com.pacbio.common.auth.{AuthenticatorProvider, BaseRoles, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
@@ -16,12 +14,11 @@ import spray.routing._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class LogService(logActor: ActorRef, authenticator: Authenticator)
+class LogService(logDao: LogDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
   import BaseRoles._
-  import LogServiceActor._
   import PacBioJsonProtocol._
   import language.implicitConversions
 
@@ -42,7 +39,9 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
         pathEnd {
           get {
             complete {
-              (logActor ? GetAllResources).mapTo[Seq[LogResource]]
+              ok {
+                logDao.getAllLogResources
+              }
             }
           } ~
           post {
@@ -51,7 +50,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
                 respondWithMediaType(MediaTypes.`application/json`) {
                   complete {
                     created {
-                      (logActor ? CreateResource(m)).mapTo[String]
+                      logDao.createLogResource(m)
                     }
                   }
                 }
@@ -63,7 +62,9 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
           path("messages") {
             get {
               complete {
-                (logActor ? GetSystemMessages).mapTo[Seq[LogMessage]]
+                ok {
+                  logDao.getSystemLogMessages
+                }
               }
             }
           } ~
@@ -72,7 +73,9 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
                   .as(SearchCriteria) { criteria =>
                 complete {
-                  (logActor ? SearchSystemMessages(criteria)).mapTo[Seq[LogMessage]]
+                  ok {
+                    logDao.searchSystemLogMessages(criteria)
+                  }
                 }
               }
             }
@@ -83,7 +86,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
             get {
               complete {
                 ok {
-                  (logActor ? GetResource(id)).mapTo[LogResource]
+                  logDao.getLogResource(id)
                 }
               }
             }
@@ -91,7 +94,9 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
           path("messages") {
             get {
               complete {
-                (logActor ? GetMessages(id)).mapTo[Seq[LogMessage]]
+                ok {
+                  logDao.getLogMessages(id)
+                }
               }
             } ~
             post {
@@ -99,7 +104,7 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
                 entity(as[LogMessageRecord]) { m =>
                   complete {
                     created {
-                      (logActor ? CreateMessage(id, m)).mapTo[LogMessage]
+                      logDao.createLogMessage(id, m)
                     }
                   }
                 }
@@ -111,7 +116,9 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
                   .as(SearchCriteria) { criteria =>
                 complete {
-                  (logActor ? SearchMessages(id, criteria)).mapTo[Seq[LogMessage]]
+                  ok {
+                    logDao.searchLogMessages(id, criteria)
+                  }
                 }
               }
             }
@@ -123,22 +130,22 @@ class LogService(logActor: ActorRef, authenticator: Authenticator)
 
 /**
  * Provides a singleton LogService, and also binds it to the set of total services. Concrete providers must mixin a
- * {{{LogServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
+ * {{{LogDaoProvider}}} and an {{{AuthenticatorProvider}}}.
  */
 trait LogServiceProvider {
-  this: LogServiceActorRefProvider with AuthenticatorProvider =>
+  this: LogDaoProvider with AuthenticatorProvider =>
 
   final val logService: Singleton[LogService] =
-    Singleton(() => new LogService(logServiceActorRef(), authenticator())).bindToSet(AllServices)
+    Singleton(() => new LogService(logDao(), authenticator())).bindToSet(AllServices)
 }
 
 trait LogServiceProviderx {
-  this: LogServiceActorRefProvider
+  this: LogDaoProvider
       with AuthenticatorProvider
       with ServiceComposer =>
 
   final val logService: Singleton[LogService] =
-    Singleton(() => new LogService(logServiceActorRef(), authenticator()))
+    Singleton(() => new LogService(logDao(), authenticator()))
 
   addService(logService)
 }

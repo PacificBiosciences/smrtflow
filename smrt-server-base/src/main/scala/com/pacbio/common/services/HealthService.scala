@@ -1,26 +1,22 @@
 package com.pacbio.common.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.actors.{HealthServiceActorRefProvider, HealthServiceActor}
+import com.pacbio.common.actors.{HealthDao, HealthDaoProvider, HealthServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator, BaseRoles}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import spray.routing._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class HealthService(healthActor: ActorRef, authenticator: Authenticator)
+class HealthService(dao: HealthDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
   import BaseRoles._
-  import HealthServiceActor._
   import PacBioJsonProtocol._
 
   implicit val timeout = Timeout(10.seconds)
@@ -40,7 +36,9 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
         pathEnd {
           get {
             complete {
-              (healthActor ? GetSevereGauges).mapTo[Seq[HealthGauge]]
+              ok {
+                dao.getSevereHealthGauges
+              }
             }
           }
         } ~
@@ -48,7 +46,9 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
           pathEnd {
             get {
               complete {
-                (healthActor ? GetAllGauges).mapTo[Seq[HealthGauge]]
+                ok {
+                  dao.getAllHealthGauges
+                }
               }
             } ~
             post {
@@ -57,7 +57,7 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
                   respondWithMediaType(MediaTypes.`application/json`) {
                     complete {
                       created {
-                        (healthActor ? CreateGauge(m)).mapTo[String]
+                        dao.createHealthGauge(m)
                       }
                     }
                   }
@@ -70,7 +70,7 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
               get {
                 complete {
                   ok {
-                    (healthActor ? GetGauge(id)).mapTo[HealthGauge]
+                    dao.getHealthGauge(id)
                   }
                 }
               }
@@ -78,7 +78,9 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
             path("messages") {
               get {
                 complete {
-                  (healthActor ? GetAllMessages(id)).mapTo[Seq[HealthGaugeMessage]]
+                  ok {
+                    dao.getAllHealthMessages(id)
+                  }
                 }
               } ~
               post {
@@ -86,7 +88,7 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
                   entity(as[HealthGaugeMessageRecord]) { m =>
                     complete {
                       created {
-                        (healthActor ? CreateMessage(id, m)).mapTo[HealthGaugeMessage]
+                        dao.createHealthMessage(id, m)
                       }
                     }
                   }
@@ -101,22 +103,22 @@ class HealthService(healthActor: ActorRef, authenticator: Authenticator)
 
 /**
  * Provides a singleton HealthService, and also binds it to the set of total services. Concrete providers must mixin a
- * {{{HealthServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
+ * {{{HealthDaoProvider}}} and an {{{AuthenticatorProvider}}}.
  */
 trait HealthServiceProvider {
-  this: HealthServiceActorRefProvider with AuthenticatorProvider =>
+  this: HealthDaoProvider with AuthenticatorProvider =>
 
   final val healthService: Singleton[HealthService] =
-    Singleton(() => new HealthService(healthServiceActorRef(), authenticator())).bindToSet(AllServices)
+    Singleton(() => new HealthService(healthDao(), authenticator())).bindToSet(AllServices)
 }
 
 trait HealthServiceProviderx {
-  this: HealthServiceActorRefProvider
+  this: HealthDaoProvider
       with AuthenticatorProvider
       with ServiceComposer =>
 
   final val healthService: Singleton[HealthService] =
-    Singleton(() => new HealthService(healthServiceActorRef(), authenticator()))
+    Singleton(() => new HealthService(healthDao(), authenticator()))
 
   addService(healthService)
 }

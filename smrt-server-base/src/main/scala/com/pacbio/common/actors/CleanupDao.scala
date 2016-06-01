@@ -15,6 +15,7 @@ import org.joda.time.{DateTime => JodaDateTime, Duration => JodaDuration}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 // TODO(smcclellan): add scaladoc, unittests
 
@@ -26,17 +27,17 @@ object CleanupDao {
 }
 
 trait CleanupDao {
-  def getAllJobs(): Set[CleanupJobResponse]
-  def getJob(id: String): CleanupJobResponse
-  def createJob(create: ApiCleanupJobCreate): CleanupJobResponse
-  def startJob(id: String): CleanupJobResponse
-  def pauseJob(id: String): CleanupJobResponse
-  def deleteJob(id: String): String
+  def getAllJobs(): Future[Set[CleanupJobResponse]]
+  def getJob(id: String): Future[CleanupJobResponse]
+  def createJob(create: ApiCleanupJobCreate): Future[CleanupJobResponse]
+  def startJob(id: String): Future[CleanupJobResponse]
+  def pauseJob(id: String): Future[CleanupJobResponse]
+  def deleteJob(id: String): Future[String]
 
-  def runApiJob(uuid: UUID): Unit
+  def runApiJob(uuid: UUID): Future[Unit]
 
-  def createConfigJob(create: ConfigCleanupJobCreate): CleanupJobResponse
-  def runConfigJob(name: String): Unit
+  def createConfigJob(create: ConfigCleanupJobCreate): Future[CleanupJobResponse]
+  def runConfigJob(name: String): Future[Unit]
 }
 
 trait CleanupDaoProvider {
@@ -64,9 +65,9 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
   // TODO(smcclellan): Remove this?
   def loadJobs(): Unit // Abstract method to load jobs from storage into memory on initialization
 
-  override def getAllJobs(): Set[CleanupJobResponse] = allJobs.values.map(_.toResponse).toSet
+  override def getAllJobs(): Future[Set[CleanupJobResponse]] = Future(allJobs.values.map(_.toResponse).toSet)
 
-  override def getJob(id: String): CleanupJobResponse = {
+  override def getJob(id: String): Future[CleanupJobResponse] = Future {
     val jobs = allJobs
     if (jobs.contains(id))
       jobs(id).toResponse
@@ -74,7 +75,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
       throw new ResourceNotFoundError(s"Unable to find resource $id")
   }
 
-  override def createJob(create: ApiCleanupJobCreate): CleanupJobResponse =
+  override def createJob(create: ApiCleanupJobCreate): Future[CleanupJobResponse] = Future {
     if (create.at < 0 || create.at >= create.frequency.getTickRange)
       throw new UnprocessableEntityError(s"Value of at (${create.at}) not in allowable range" +
         s"(0-${create.frequency.getTickRange - 1}) for frequency ${create.frequency.toString}.")
@@ -102,8 +103,9 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
 
       job.toResponse
     }
+  }
 
-  override def startJob(id: String): CleanupJobResponse = {
+  override def startJob(id: String): Future[CleanupJobResponse] = Future {
     val jobs = allJobs
     if (!jobs.contains(id))
       throw new ResourceNotFoundError(s"Unable to find resource $id")
@@ -121,7 +123,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     }
   }
 
-  override def pauseJob(id: String): CleanupJobResponse = {
+  override def pauseJob(id: String): Future[CleanupJobResponse] = Future {
     val jobs = allJobs
     if (!jobs.contains(id))
       throw new ResourceNotFoundError(s"Unable to find resource $id")
@@ -141,7 +143,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     }
   }
 
-  override def deleteJob(id: String): String = {
+  override def deleteJob(id: String): Future[String] = Future {
     val jobs = allJobs
     if (!jobs.contains(id))
       throw new ResourceNotFoundError(s"Unable to find resource $id")
@@ -153,7 +155,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     s"Successfully deleted job $id."
   }
 
-  override def runApiJob(uuid: UUID): Unit = {
+  override def runApiJob(uuid: UUID): Future[Unit] = Future {
     if (apiJobs.contains(uuid)) {
       val logger = apiLoggers(uuid)
       logger.info(s"Running cleanup job $uuid")
@@ -162,7 +164,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     }
   }
 
-  override def createConfigJob(create: ConfigCleanupJobCreate): CleanupJobResponse = {
+  override def createConfigJob(create: ConfigCleanupJobCreate): Future[CleanupJobResponse] = Future {
     if (!new File(create.target).isAbsolute)
       throw new UnprocessableEntityError("Relative path names are not supported.")
     else {
@@ -183,7 +185,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     }
   }
 
-  override def runConfigJob(name: String): Unit = {
+  override def runConfigJob(name: String): Future[Unit] = Future {
     if (configJobs.contains(name)) {
       val logger = configLoggers(name)
       logger.info(s"Running configured cleanup job $name")
