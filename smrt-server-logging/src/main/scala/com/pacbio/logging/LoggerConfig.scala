@@ -162,7 +162,6 @@ trait LoggerConfig {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
     }
-    val logger = lc.getLogger(Logger.ROOT_LOGGER_NAME)
-    logger.addAppender(appender)
+    lc.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender)
   }
 }
