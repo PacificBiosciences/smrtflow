@@ -27,13 +27,13 @@
  <check level="warning" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"></check>
 -->
-<!--
+ <!-- see http://docs.scala-lang.org/style/naming-conventions -->
  <check level="warning" class="org.scalastyle.scalariform.ClassNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter>
   </parameters>
  </check>
- 
+<!--
  <check level="warning" class="org.scalastyle.scalariform.ObjectNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter>
