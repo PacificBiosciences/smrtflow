@@ -43,8 +43,8 @@ trait PathJsonProtocol extends DefaultJsonProtocol {
 
 
 /**
-  * Created by mkocher on 12/19/15.
-  */
+ * Created by mkocher on 12/19/15.
+ */
 trait InternalAnalysisJsonProcotols extends BaseJsonProtocol
   with PathJsonProtocol{
 

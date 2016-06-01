@@ -2,9 +2,7 @@ package com.pacbio.secondaryinternal
 
 import com.pacbio.secondaryinternal.models.SmrtLinkServerResource
 
-/**
-  * Created by mkocher on 12/19/15.
-  */
+
 object Constants {
 
   final val PBI_COLLECTIONS_ROOT = "/pbi/dept/secondary/siv/smrtlink"

@@ -83,17 +83,18 @@ trait MockUtils extends LazyLogging{
 
   def insertMockJobs(): Future[Option[Int]] = {
     import scala.util.{Success, Failure}
-    def _toJob(n: Int) = EngineJob(n,
-      UUID.randomUUID(),
-      s"Job name $n",
-      s"Comment for job $n",
-      JodaDateTime.now(),
-      JodaDateTime.now(),
-      AnalysisJobStates.CREATED,
-      "mock-pbsmrtpipe",
-      "path",
-      "{}",
-      Some("root")
+    def _toJob(n: Int) = EngineJob(
+        n,
+        UUID.randomUUID(),
+        s"Job name $n",
+        s"Comment for job $n",
+        JodaDateTime.now(),
+        JodaDateTime.now(),
+        AnalysisJobStates.CREATED,
+        "mock-pbsmrtpipe",
+        "path",
+        "{}",
+        Some("root")
     )
     dao.dal.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(_toJob))
   }

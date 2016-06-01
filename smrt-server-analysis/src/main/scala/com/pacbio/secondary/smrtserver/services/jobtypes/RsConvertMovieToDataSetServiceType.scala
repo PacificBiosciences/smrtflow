@@ -72,10 +72,10 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef,
 
 trait RsConvertMovieToDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with JobManagerServiceProvider =>
 
   val rsConvertMovieToDataSetServiceType: Singleton[RsConvertMovieToDataSetServiceType] =
     Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)

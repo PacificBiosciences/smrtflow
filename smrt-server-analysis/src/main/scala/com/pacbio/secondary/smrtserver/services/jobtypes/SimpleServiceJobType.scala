@@ -75,10 +75,10 @@ class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManager
 
 trait SimpleServiceJobTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with JobManagerServiceProvider =>
 
   val simpleServiceJobType: Singleton[SimpleServiceJobType] =
     Singleton(() => new SimpleServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)

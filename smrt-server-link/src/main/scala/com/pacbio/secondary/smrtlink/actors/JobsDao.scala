@@ -293,9 +293,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     dal.db.run(jobEvents.filter(_.jobId === jobId).result)
 
-  def updateJobState(jobId: Int,
-                     state: AnalysisJobStates.JobStates,
-                     message: String): Future[String] = {
+  def updateJobState(
+      jobId: Int,
+      state: AnalysisJobStates.JobStates,
+      message: String): Future[String] = {
     logger.info(s"Updating job state of job-id $jobId to $state")
     val now = JodaDateTime.now()
     dal.db.run {
@@ -319,9 +320,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     f
   }
 
-  def updateJobStateByUUID(jobId: UUID,
-                           state: AnalysisJobStates.JobStates,
-                           message: String): Future[String] =
+  def updateJobStateByUUID(
+      jobId: UUID,
+      state: AnalysisJobStates.JobStates,
+      message: String): Future[String] =
     dal.db.run {
       val now = JodaDateTime.now()
       engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
@@ -340,22 +342,23 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   /**
    * This is the new interface will replace the original createJob
-    *
-    * @param uuid UUID
-   * @param name Name of job
+   *
+   * @param uuid        UUID
+   * @param name        Name of job
    * @param description This is really a comment. FIXME
-   * @param jobTypeId String of the job type identifier. This should be consistent with the
-   *                  jobTypeId defined in CoreJob
+   * @param jobTypeId   String of the job type identifier. This should be consistent with the
+   *                    jobTypeId defined in CoreJob
    * @return
    */
-  def createJob(uuid: UUID,
-                name: String,
-                description: String,
-                jobTypeId: String,
-                coreJob: CoreJob,
-                entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                jsonSetting: String,
-                createdBy: Option[String]): Future[EngineJob] = {
+  def createJob(
+      uuid: UUID,
+      name: String,
+      description: String,
+      jobTypeId: String,
+      coreJob: CoreJob,
+      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
+      jsonSetting: String,
+      createdBy: Option[String]): Future[EngineJob] = {
 
     // This should really be Option[String]
     val path = ""
@@ -407,8 +410,22 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     dal.db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
     val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
@@ -755,8 +772,22 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
 
-  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[AlignmentServiceDataSet]] =
     dal.db.run {

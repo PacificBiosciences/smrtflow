@@ -57,8 +57,8 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
       } pipeTo sender
 
     case ImportDataStoreFile(dataStoreFile, jobUUID) =>
-        log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
-        dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)) pipeTo sender
+      log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
+      dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)) pipeTo sender
 
     case PacBioImportDataSet(x, jobUUID) =>
       x match {

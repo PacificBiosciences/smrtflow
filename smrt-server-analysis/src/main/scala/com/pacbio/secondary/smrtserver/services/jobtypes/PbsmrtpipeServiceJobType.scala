@@ -44,16 +44,17 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 
 
-class PbsmrtpipeServiceJobType(dbActor: ActorRef,
-                               userActor: ActorRef,
-                               engineManagerActor: ActorRef,
-                               authenticator: Authenticator,
-                               loggerFactory: LoggerFactory,
-                               engineConfig: EngineConfig,
-                               pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
-                               serviceStatusHost: String,
-                               port: Int,
-                               commandTemplate: Option[CommandTemplate] = None)
+class PbsmrtpipeServiceJobType(
+    dbActor: ActorRef,
+    userActor: ActorRef,
+    engineManagerActor: ActorRef,
+    authenticator: Authenticator,
+    loggerFactory: LoggerFactory,
+    engineConfig: EngineConfig,
+    pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
+    serviceStatusHost: String,
+    port: Int,
+    commandTemplate: Option[CommandTemplate] = None)
   extends JobTypeService with LazyLogging {
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
@@ -188,12 +189,12 @@ class PbsmrtpipeServiceJobType(dbActor: ActorRef,
 
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with LoggerFactoryProvider
-      with SmrtLinkConfigProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with LoggerFactoryProvider
+    with SmrtLinkConfigProvider
+    with JobManagerServiceProvider =>
   val pbsmrtpipeServiceJobType: Singleton[PbsmrtpipeServiceJobType] =
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
