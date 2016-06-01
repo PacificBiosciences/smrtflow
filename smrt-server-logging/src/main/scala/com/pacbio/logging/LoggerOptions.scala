@@ -21,7 +21,7 @@ object LoggerOptions {
    */
   def add(parser: OptionParser[LoggerConfig]): Unit = {
 
-    parser.opt[Unit]("debug") action { (x, c) =>
+    parser.opt[Unit]("log2stdout") action { (x, c) =>
       c.configure(c.logbackFile, c.logFile, true, c.logLevel)
     } text "If true, log output will be displayed to the console. Default is false."
 
@@ -61,8 +61,8 @@ object LoggerOptions {
   }
 
   def parseAddDebug(args: Seq[String]): Unit = {
-    val requireOne = Set("--logfile", "--debug", "-h")
-    val v = if (args.filter(requireOne).isEmpty) args :+ "--debug" else args
+    val requireOne = Set("--logfile", "--log2stdout", "-h")
+    val v = if (args.filter(requireOne).isEmpty) args :+ "--log2stdout" else args
     parse(v)
   }
 }

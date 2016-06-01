@@ -18,7 +18,7 @@ import scala.collection.JavaConversions._
 trait LoggerConfig {
 
   // params for logger configuration
-  var logLevel = "ERROR"
+  var logLevel = "INFO"
   var logFile = "default_smrt.log"
   var logbackFile: String = null
   var debug = false
@@ -43,17 +43,23 @@ trait LoggerConfig {
       debug: Boolean,
       logLevel: String): LoggerConfig = {
 
-    // ignore the default config
-    LoggerOptions.configured = true
     // logback.xml trumps all other config
     if (logbackFile != this.logbackFile)
       setLogback(logbackFile)
     else {
       // order matters here so that debug can trump file and level is correctly set
-      if (logFile != this.logFile) setFile(logFile)
-      if (debug != this.debug) setDebug(debug)
+      if (logFile != this.logFile) {
+        setFile(logFile)
+        setLevel(this.logLevel)
+      }
+      if (debug != this.debug) {
+        setDebug(debug)
+        setLevel(this.logLevel)
+      }
       if (logLevel != this.logLevel) setLevel(logLevel)
     }
+    // ignore the default configurator
+    LoggerOptions.configured = true
     return this
   }
 
@@ -156,6 +162,7 @@ trait LoggerConfig {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
     }
-    lc.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender)
+    val logger = lc.getLogger(Logger.ROOT_LOGGER_NAME)
+    logger.addAppender(appender)
   }
 }
