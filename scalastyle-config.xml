@@ -45,7 +45,11 @@
    <parameter name="regex"><![CDATA[^[a-z][A-Za-z]*$]]></parameter>
   </parameters>
  </check>
- <!-- see http://docs.scala-lang.org/style/naming-conventions -->
+ <!-- see http://docs.scala-lang.org/style/naming-conventions
+
+ Also "Underscores in names (_) are not actually forbidden by the compiler, but are strongly
+       discouraged as they have special meaning within the Scala syntax."
+ -->
  <check level="warning" class="org.scalastyle.scalariform.MethodNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[^[a-z\*][A-Za-z0-9]*$]]></parameter>
