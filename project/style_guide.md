@@ -2,15 +2,16 @@
 
 Minimal style guidelines with a subset enforced by Scalastyle.
 
-- Introduction
-- Enforcing with Scalastyle
-  - Run Scalastyle via SBT
-  - Run Scalastyle via IntelliJ
-  - Git hooks and GH enforcement
-- Disabling Style Checks
-- Formatting Examples
-
-- History
+- [Introduction](#introduction)
+- [Enforcing with Scalastyle](#enforcing-with-scalastyle)
+  - [Run Scalastyle via SBT](#run-scalastyle-via-sbt)
+  - [Run Scalastyle via IntelliJ](#run-scalastyle-via-intellij)
+  - [Git hooks and GH enforcement](#git-hooks-and-gh-enforcement)
+- [Disabling Style Checks](#disabling-style-checks)
+- [Formatting Examples](#formatting-examples)
+  - [Class `extends` and `with` formatting and self-types](#class-extends-and-with-formatting-and-self-types)
+  - [Comments](#comments)
+- [History](#history)
 
 ## Introduction
 
@@ -114,15 +115,15 @@ See [Effective Scala's comment section](http://twitter.github.io/effectivescala/
 
 >Use [ScalaDoc](https://wiki.scala-lang.org/display/SW/Scaladoc) to provide API documentation. Use the following style:
 > 
-> /**
+> <pre>/**
 >  * ServiceBuilder builds services 
 >  * ...
->  */
+>  */</pre>
 > but not the standard ScalaDoc style:
 > 
-> /** ServiceBuilder builds services
+> <pre>/** ServiceBuilder builds services
 >  * ...
->  */
+>  */</pre>
 
 ## History
 
