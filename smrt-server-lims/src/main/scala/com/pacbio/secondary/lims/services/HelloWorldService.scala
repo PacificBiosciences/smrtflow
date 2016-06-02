@@ -5,10 +5,10 @@ import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
 
 /**
-  * Example "Hello World" style service
-  *
-  * Delete this once the real services are up. This was mostly to test the RESTful endpoint.
-  */
+ * Example "Hello World" style service
+ *
+ * Delete this once the real services are up. This was mostly to test the RESTful endpoint.
+ */
 class HelloWorldService extends LimsService {
 
   val manifest = PacBioComponentManifest(
