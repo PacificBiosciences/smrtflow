@@ -53,7 +53,7 @@ Turn on the Scalastyle checker by selecting `Settings -> Editor -> Inspections` 
 
 ![Enable Scalastyle in IntelliJ](https://cloud.githubusercontent.com/assets/855834/15577203/79e3ef4c-2329-11e6-8a0e-93de4f097556.png)
 
-Afterwards, you should see code issues highlighted.
+Afterwards, you should see code issues highlighted. See [#95](https://github.com/PacificBiosciences/smrtflow/pull/95) for some notes on updating the IDE to correctly auto-format. Note that there may be a minor lag between when you type and when IntelliJ's highlighting reflects the updated scalastyle check. [Run via SBT](#run-scalastyle-via-sbt) for the latest.
 
 ### Git hooks and GH enforcement
 
