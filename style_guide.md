@@ -8,6 +8,7 @@ Minimal style guidelines with a subset enforced by Scalastyle.
   - [Run Scalastyle via IntelliJ](#run-scalastyle-via-intellij)
   - [Git hooks and GH enforcement](#git-hooks-and-gh-enforcement)
 - [Disabling Style Checks](#disabling-style-checks)
+  - [Ignoring SQL in Migrations](#ignoring-sql-in-migrations)
 - [Formatting Examples](#formatting-examples)
   - [Class `extends` and `with` formatting and self-types](#class-extends-and-with-formatting-and-self-types)
   - [Comments](#comments)
@@ -16,7 +17,7 @@ Minimal style guidelines with a subset enforced by Scalastyle.
 ## Introduction
 
 We're following the official [Scala Style Guide](http://docs.scala-lang.org/style/)
-along with Twitter's "Effective Scala" guide. The goal is to keep our
+along with Twitter's "[Effective Scala](http://twitter.github.io/effectivescala/)" guide. The goal is to keep our
 codebase readable and consistent.
 
 A quote from Effective Scala.
@@ -65,6 +66,21 @@ could add a custome git hook, but instructions are not yet present here.
 Scalastyle includes support for [disabling the checker via comments](http://www.scalastyle.org/configuration.html#comment_filters).
 Use as needed. If the algorithm needs improvement, please file a ticket
 and try to submit a patch.
+
+### Ignoring SQL in Migrations
+
+Slick migrations and database migrations in general can have blocks of SQL ignored with [this example strategy](https://github.com/PacificBiosciences/smrtflow/pull/113/files#diff-42501926c1633dd20ccec5a91718f3c2L15).
+
+```scala
+// scalastyle:off
+class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
+
+  override def slickMigrate(db: DatabaseDef): Future[Any] = {
+...
+  }
+}
+// scalastyle:on
+```
 
 ## Formatting Examples
 
