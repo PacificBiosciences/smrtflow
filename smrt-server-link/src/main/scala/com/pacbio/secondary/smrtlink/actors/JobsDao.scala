@@ -53,7 +53,8 @@ class Dal(val dbURI: String) {
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
 
-  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC")
+  // -1 queueSize means unlimited. This probably needs to be tuned
+  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC", executor = AsyncExecutor("db-executor", 1, -1))
 }
 
 trait DalProvider {
