@@ -16,7 +16,7 @@ Minimal style guidelines with a subset enforced by Scalastyle.
 ## Introduction
 
 We're following the official [Scala Style Guide](http://docs.scala-lang.org/style/)
-along with Twitter's "Effective Scala" guide. The goal is to keep our
+along with Twitter's "[Effective Scala](http://twitter.github.io/effectivescala/)" guide. The goal is to keep our
 codebase readable and consistent.
 
 A quote from Effective Scala.
