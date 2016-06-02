@@ -3,7 +3,7 @@ package com.pacbio.common.time
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTimeZone => JodaDateTimeZone, DateTime => JodaDateTime}
 import org.joda.time.format.{DateTimeFormatter => JodaDateTimeFormatter, ISODateTimeFormat}
-import scala.slick.driver.SQLiteDriver.simple._
+import slick.driver.SQLiteDriver.api._
 import scala.util.control.NonFatal
 
 /**

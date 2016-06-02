@@ -6,25 +6,25 @@ import com.pacbio.common.models.{HealthGaugeMessage, HealthSeverity}
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.slick.driver.SQLiteDriver.simple._
+import slick.driver.SQLiteDriver.api._
 
 object HealthDatabaseSchema extends PacBioDateTimeDatabaseFormat {
   // Define serialization/deserialization of HealthSeverity for database storage
   implicit def healthSeverityToString = MappedColumnType.base[HealthSeverity.HealthSeverity, String](
-    healthSeverity => healthSeverity.toString,
-    severityString => HealthSeverity.healthSeverityByName(severityString)
+      healthSeverity => healthSeverity.toString,
+      severityString => HealthSeverity.healthSeverityByName(severityString)
   )
 
   // HealthGaugeMessageTable schema
   case class HealthGaugeMessageRow(id: String, message: HealthGaugeMessage)
   class HealthGaugeMessageTable(tag: Tag)
     extends Table[HealthGaugeMessageRow](tag, "HEALTH_GAUGE_MESSAGE") {
-    def id = column[String]("ID")
-    def createdAt = column[JodaDateTime]("CREATED_AT")
-    def uuid = column[UUID]("UUID" /*, O.PrimaryKey */)
-    def message = column[String]("MESSAGE")
-    def severity = column[HealthSeverity.HealthSeverity]("SEVERITY")
-    def sourceId = column[String]("SOURCE_ID")
+    def id: Rep[String] = column[String]("ID")
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
+    def uuid: Rep[UUID] = column[UUID]("UUID" /*, O.PrimaryKey */)
+    def message: Rep[String] = column[String]("MESSAGE")
+    def severity: Rep[HealthSeverity.HealthSeverity] = column[HealthSeverity.HealthSeverity]("SEVERITY")
+    def sourceId: Rep[String] = column[String]("SOURCE_ID")
 
     def healthGaugeMessage =
       (createdAt, uuid, message, severity, sourceId) <> (HealthGaugeMessage.tupled, HealthGaugeMessage.unapply)

@@ -78,6 +78,7 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
 
   /**
    * Sets the value of the 'attributes' field.
+   *
    * @param value the value to set.
    */
   public void setAttributes(java.util.List<com.pacbio.common.models.reports.ReportAttribute> value) {

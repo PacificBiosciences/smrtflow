@@ -7,7 +7,7 @@ Simple logging for two common use cases in the PacBio tools. See [smrtflow#42](h
 ```bash
 $ ./smrt-server-tools/target/pack/bin/get-smrt-server-status -h
 ...
-  --debug
+  --log2stdout
         If true, log output will be displayed to the console. Default is false.
   --loglevel <value>
         Level for logging: "ERROR", "WARN", "DEBUG", or "INFO". Default is "ERROR"
@@ -48,6 +48,19 @@ case class GetStatusConfig(host: String = "http://localhost",
   }
 ```
 
+Alternatively, use the `LoggerOptions.parse` and related methods to directly parse an arg array.
+
+```scala
+object MyCode extends App {
+  // whatever pre-logging config logic ...
+  
+  // parse the args for logging related options
+  LoggerOptions.parseAddDebug(args)
+  
+  // whatever post-logging conig logic
+}
+```
+
 ## Command-Line Example
 
 There are a few practical use cases that are supported. By default, logging information is not displayed.
@@ -70,17 +83,17 @@ support this versus requiring a custom log config file or property file.
 
 ### Dev Logging
 
-When working on the code you probably always want to see errors. If that is true, run with `--debug` and
+When working on the code you probably always want to see errors. If that is true, run with `--log2stdout` and
 `--loglevel ERROR`
 
 ```bash
-./smrt-server-tools/target/pack/bin/some_service --debug --loglevel ERROR
+./smrt-server-tools/target/pack/bin/some_service --log2stdout --loglevel ERROR
 ```
 
 Here is the more verbose, show me all log messages example.
 
 ```bash
-./smrt-server-tools/target/pack/bin/some_service --debug --loglevel DEBUG
+./smrt-server-tools/target/pack/bin/some_service --log2stdout --loglevel DEBUG
 ```
 
 ### Using a logback.xml config

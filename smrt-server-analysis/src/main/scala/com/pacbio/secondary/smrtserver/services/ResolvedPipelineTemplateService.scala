@@ -75,7 +75,7 @@ trait PipelineTemplateProvider {
 
 trait ResolvedPipelineTemplateServiceProvider {
   this: PipelineTemplateProvider
-      with ServiceComposer =>
+    with ServiceComposer =>
 
   val resolvedPipelineTemplateService: Singleton[ResolvedPipelineTemplateService] =
     Singleton(() => new ResolvedPipelineTemplateService(new PipelineTemplateDao(pipelineTemplates())))

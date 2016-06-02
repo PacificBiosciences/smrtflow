@@ -7,10 +7,11 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import org.joda.time.DateTime
 import scopt.OptionParser
 
-case class ImportDataSetConfig(datasetMetaType: String,
-                               path: String,
-                               host: String = "http://localhost",
-                               port: Int = 8070) extends LoggerConfig
+case class ImportDataSetConfig(
+    datasetMetaType: String,
+    path: String,
+    host: String = "http://localhost",
+    port: Int = 8070) extends LoggerConfig
 /**
  * Import DataSet into the SMRTLink Common or SMRTLink Analysis Services
  *

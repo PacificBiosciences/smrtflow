@@ -105,8 +105,8 @@ trait CleanupServiceProvider {
 
 trait CleanupServiceProviderx {
   this: CleanupServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val cleanupService: Singleton[CleanupService] =
     Singleton(() => new CleanupService(cleanupServiceActorRef(), authenticator()))

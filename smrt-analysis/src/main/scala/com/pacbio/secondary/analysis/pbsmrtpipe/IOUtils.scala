@@ -16,13 +16,14 @@ import scala.xml.{Elem, Node}
  */
 object IOUtils extends LazyLogging{
 
-    val pbsmrtpipeExe = CommandLineUtils.which("pbsmrtpipe") getOrElse {
-        logger.warn(s"Unable to find pbsmrtpipe exe")
-        "pbsmrtpipe"
-    }
+  val pbsmrtpipeExe = CommandLineUtils.which("pbsmrtpipe") getOrElse {
+    logger.warn(s"Unable to find pbsmrtpipe exe")
+    "pbsmrtpipe"
+  }
 
   /**
    * Parses and converts the pipeline engine level "options"
+   *
    * @param rnode
    * @return
    */
@@ -61,6 +62,7 @@ object IOUtils extends LazyLogging{
 
   /**
    * Parse the pbsmrtpipe Preset XML
+   *
    * @param path
    * @return
    */
@@ -74,6 +76,7 @@ object IOUtils extends LazyLogging{
 
   /**
    * Convert a List of Pipeline Engine Options and Task Options to pbsmrtpipe XML node
+   *
    * @param options
    * @param taskOptions
    * @return
@@ -98,6 +101,7 @@ object IOUtils extends LazyLogging{
 
   /**
    * Write the
+   *
    * @param path
    * @param node
    * @return
@@ -122,12 +126,13 @@ object IOUtils extends LazyLogging{
    * and writes the preset.xml
    *
    */
-  def toCmd(entryPoints: Seq[BoundEntryPoint],
-            pipelineId: String,
-            outputDir: Path,
-            taskOptions: Seq[PipelineBaseOption],
-            workflowOptions: Seq[PipelineBaseOption],
-            serviceUri: Option[URI]) = {
+  def toCmd(
+      entryPoints: Seq[BoundEntryPoint],
+      pipelineId: String,
+      outputDir: Path,
+      taskOptions: Seq[PipelineBaseOption],
+      workflowOptions: Seq[PipelineBaseOption],
+      serviceUri: Option[URI]) = {
 
     val e = entryPoints.map(x => s"-e ${x.entryId}:${x.path.toString}").fold("")((a, b) => s"$a $b")
 
@@ -153,6 +158,7 @@ object IOUtils extends LazyLogging{
 
   /**
    * Write the jobOptions Wrapper shell script
+   *
    * @param path Path to write jobOptions.sh wrapper script to
    * @return
    */
@@ -172,6 +178,7 @@ object IOUtils extends LazyLogging{
 
   /**
    * Writes a mock bound entry point
+   *
    * @param path
    * @return
    */

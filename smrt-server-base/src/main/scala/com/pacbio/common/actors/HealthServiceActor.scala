@@ -1,8 +1,10 @@
 package com.pacbio.common.actors
 
-import akka.actor.{Props, ActorRef, Actor}
+import akka.actor.{Props, ActorRef}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{HealthGaugeMessageRecord, HealthGaugeRecord}
+
+import scala.concurrent.ExecutionContext.Implicits._
 
 /**
  * Companion object for the HealthServiceActor class, defining the set of messages it can handle.
@@ -27,7 +29,7 @@ class HealthServiceActor(healthDao: HealthDao) extends PacBioActor {
     case GetAllGauges                                           => respondWith(healthDao.getAllHealthGauges)
     case GetGauge(id: String)                                   => respondWith(healthDao.getHealthGauge(id))
     case CreateGauge(m: HealthGaugeRecord)                      => respondWith(healthDao.createHealthGauge(m))
-    case GetAllMessages(id: String)                             => respondWith(healthDao.getAllHealthMessages(id))
+    case GetAllMessages(id: String)                             => pipeWith(healthDao.getAllHealthMessages(id))
     case CreateMessage(id: String, m: HealthGaugeMessageRecord) => respondWith(healthDao.createHealthMessage(id, m))
     case GetSevereGauges                                        => respondWith(healthDao.getSevereHealthGauges)
   }

@@ -8,8 +8,9 @@ import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
-case class MovieMetaDataToDataSetConfig(movieMetadataXMLPath: String,
-                                        datasetXMLPath: String) extends LoggerConfig
+case class MovieMetaDataToDataSetConfig(
+    movieMetadataXMLPath: String,
+    datasetXMLPath: String) extends LoggerConfig
 
 object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToDataSetConfig] {
 

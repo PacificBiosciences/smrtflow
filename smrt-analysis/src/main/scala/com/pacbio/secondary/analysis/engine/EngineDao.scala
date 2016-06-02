@@ -10,6 +10,9 @@ import com.pacbio.secondary.analysis.engine.CommonMessages.{SuccessMessage, Fail
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, AnalysisJobStates}
 
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
+
 
 /**
  *
@@ -19,49 +22,40 @@ object EngineDao {
 
   trait JobEngineDaoComponent {
 
-    def addRunnableJob(job: RunnableJob): EngineJob
+    def addRunnableJob(job: RunnableJob): Future[EngineJob]
 
     /**
      * Gets the next Runnable Job (job that is not in a state of 'Created'
-     * @return
      */
-    def getNextRunnableJobWithId: Either[NoAvailableWorkError, RunnableJobWithId]
+    def getNextRunnableJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]]
 
     /**
      * Update the State of Job By Job UUID
-     * @param uuid
-     * @param state
      */
-    def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Unit
+    def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String]
 
     /**
      * Get the last N jobs
      * @param limit Max number of jobs to return
-     * @return
      */
-    def getJobs(limit: Int = 1000): Seq[EngineJob]
+    def getJobs(limit: Int = 1000): Future[Seq[EngineJob]]
 
     /**
      * Get Job by Int (primary key)
      * The support for both
-     * @param i
-     * @return
      */
-    def getJobById(i: Int): Option[EngineJob]
+    def getJobById(i: Int): Future[Option[EngineJob]]
 
     /**
      * Get Job by UUID
      * @param uuid Job UUID
-     * @return
      */
-    def getJobByUUID(uuid: UUID): Option[EngineJob]
+    def getJobByUUID(uuid: UUID): Future[Option[EngineJob]]
 
     /**
      * Get all the Job Events associated with a Job (by job id)
-     * @param i
-     * @return
      */
-    def getJobEventsByJobId(i: Int): Seq[JobEvent]
+    def getJobEventsByJobId(i: Int): Future[Seq[JobEvent]]
 
   }
 
@@ -80,21 +74,9 @@ object EngineDao {
      * There's a globally unique job id (UUID) and locally unique more human friendly Int primary key.
      *
      * Adding a job here will generate the local primary key and create an EngineJob
-     *
-     *
-     *
-     * @param runnableJob
-     * @param jobId
-     * @param state
-     * @return
      */
     private def runnableJobToEngineJob(runnableJob: RunnableJob, jobId: Int, state: AnalysisJobStates.JobStates): EngineJob = {
       val jobId = _engineJobs.size + 1
-      val name = s"Job $jobId"
-      // Ouch this is terrible.
-      val description = s"$name job type ${runnableJob.job.jobOptions.toJob.jobTypeId.id}"
-      val createdAt = JodaDateTime.now()
-      val updatedAt = createdAt
       val rjob = RunnableJobWithId(jobId, runnableJob.job, state)
       runnableJobWithIdToEngineJob(rjob, rjob.state)
     }
@@ -109,7 +91,7 @@ object EngineDao {
       EngineJob(runnableJob.id, runnableJob.job.uuid, name, description, createdAt, updatedAt, state, runnableJob.job.jobOptions.toJob.jobTypeId.id, path.toAbsolutePath.toString, jsonSettings, None)
     }
 
-    def addRunnableJob(runnableJob: RunnableJob): EngineJob = {
+    override def addRunnableJob(runnableJob: RunnableJob): Future[EngineJob] = Future {
       val jobId = _engineJobs.size + 1
       val state = AnalysisJobStates.CREATED
 
@@ -128,9 +110,8 @@ object EngineDao {
     /**
      * This 'checks' out the next runnable job and updates the state to "SUBMITTED" if there
      * is work available to run.
-     * @return
      */
-    def getNextRunnableJobWithId: Either[NoAvailableWorkError, RunnableJobWithId] = {
+    override def getNextRunnableJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]] = Future {
       _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
         case Some(runnableJobWithId) =>
           val engineJob = runnableJobWithIdToEngineJob(runnableJobWithId, AnalysisJobStates.SUBMITTED)
@@ -143,7 +124,7 @@ object EngineDao {
       }
     }
 
-    def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Unit = {
+    override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = Future {
       _engineJobs.get(uuid) match {
         case Some(x) =>
           val updatedAt = JodaDateTime.now()
@@ -152,23 +133,24 @@ object EngineDao {
 
           _engineJobs.update(engineJob.uuid, engineJob)
 
-        //_jobEvents(engineJob.uuid) += JobEvent(UUID.randomUUID(), engineJob.id, state, s"Updating state to $state", JodaDateTime.now())
-        case _ => logger.error(s"Unknown job id ${uuid.toString}. Failed to job state to $state")
+          s"Updated job ${uuid.toString} from ${x.state} to $state"
+        case _ =>
+          logger.error(s"Unknown job id ${uuid.toString}. Failed to job state to $state")
+          s"Unknown job id ${uuid.toString}. Failed to job state to $state"
       }
     }
 
-    def getJobs(limit: Int = 1000): Seq[EngineJob] = _engineJobs.values.toSeq
+    override def getJobs(limit: Int = 1000): Future[Seq[EngineJob]] = Future(_engineJobs.values.toSeq)
 
-    def getJobById(i: Int): Option[EngineJob] = _engineJobs.values.find(_.id == i)
+    override def getJobById(i: Int): Future[Option[EngineJob]] = Future(_engineJobs.values.find(_.id == i))
 
-    def getJobByUUID(uuid: UUID): Option[EngineJob] = _engineJobs.get(uuid)
+    override def getJobByUUID(uuid: UUID): Future[Option[EngineJob]] = Future(_engineJobs.get(uuid))
 
     def getJobEventsByJobUUID(uuid: UUID): Seq[JobEvent] = _jobEvents.getOrElse(uuid, Seq.empty[JobEvent])
 
-    def getJobEventsByJobId(i: Int): Seq[JobEvent] = {
+    override def getJobEventsByJobId(i: Int): Future[Seq[JobEvent]] =
       // this would compose easier if getJobEventsByJobUUID returned Option.
-      getJobById(i).map(job => getJobEventsByJobUUID(job.uuid)) getOrElse Seq.empty[JobEvent]
-    }
+      getJobById(i).map(_.map(job => getJobEventsByJobUUID(job.uuid)) getOrElse Seq.empty[JobEvent])
   }
 
 
@@ -183,27 +165,27 @@ object EngineDao {
      * @param dstoreJobFile DataStoreJobFile with UUID of job
      * @return
      */
-    def addDataStoreFile(dstoreJobFile: DataStoreJobFile): Either[FailedMessage, SuccessMessage]
+    def addDataStoreFile(dstoreJobFile: DataStoreJobFile): Future[Either[FailedMessage, SuccessMessage]]
 
     /**
      * Get All DataStore files
      * @return
      */
-    def getDataStoreFiles: Seq[DataStoreJobFile]
+    def getDataStoreFiles: Future[Seq[DataStoreJobFile]]
 
     /**
      * Get DataStore file by UUID
      * @param uuid UUID of datastore file
      * @return
      */
-    def getDataStoreFileByUUID(uuid: UUID): Option[DataStoreJobFile]
+    def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]]
 
     /**
      * Get All DataStore files assiociated with a Job (by job UUID)
      * @param uuid UUID of the job
      * @return
      */
-    def getDataStoreFilesByJobUUID(uuid: UUID): Seq[DataStoreJobFile]
+    def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]]
 
   }
 
@@ -214,17 +196,18 @@ object EngineDao {
      */
     var dataStoreJobFiles: mutable.Map[UUID, DataStoreJobFile]
 
-    def addDataStoreFile(dstoreJobFile: DataStoreJobFile) = {
+    def addDataStoreFile(dstoreJobFile: DataStoreJobFile) = Future {
       val uuid = dstoreJobFile.dataStoreFile.uniqueId
       dataStoreJobFiles.put(uuid, dstoreJobFile)
       Right(SuccessMessage(s"Successfully added $dstoreJobFile"))
     }
 
-    def getDataStoreFiles = dataStoreJobFiles.values.toSeq
+    def getDataStoreFiles = Future(dataStoreJobFiles.values.toSeq)
 
-    def getDataStoreFileByUUID(uuid: UUID): Option[DataStoreJobFile] = dataStoreJobFiles.get(uuid)
+    def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] = Future(dataStoreJobFiles.get(uuid))
 
-    def getDataStoreFilesByJobUUID(uuid: UUID): Seq[DataStoreJobFile] = dataStoreJobFiles.values.filter(_.jobId == uuid).toSeq
+    def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =
+      Future(dataStoreJobFiles.values.filter(_.jobId == uuid).toSeq)
 
   }
 

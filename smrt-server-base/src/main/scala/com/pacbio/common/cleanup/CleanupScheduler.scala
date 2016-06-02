@@ -35,9 +35,10 @@ import scala.concurrent.duration.Duration
  * }
  *
  */
-class CleanupScheduler(actorSystem: ActorSystem,
-                       cleanupActor: ActorRef,
-                       cleanupJobs: Set[ConfigCleanupJobCreate]) {
+class CleanupScheduler(
+    actorSystem: ActorSystem,
+    cleanupActor: ActorRef,
+    cleanupJobs: Set[ConfigCleanupJobCreate]) {
 
   import CleanupServiceActor._
 

@@ -8,51 +8,50 @@ import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineStrOption, Pipeline
  */
 object PbsmrtpipeConstants {
 
-    sealed trait PbsmrtpipeEngineOption {
-        def toI(n: String) = s"pbsmrtpipe.options.$n"
-        def id: String
-    }
+  sealed trait PbsmrtpipeEngineOption {
+    def toI(n: String) = s"pbsmrtpipe.options.$n"
 
-    case object DEBUG_MODE extends PbsmrtpipeEngineOption {
-        def id = toI("debug_mode")
-    }
+    def id: String
+  }
 
-    case object PB_TMP_DIR extends PbsmrtpipeEngineOption {
-        def id = toI("tmp_dir")
-    }
+  case object DEBUG_MODE extends PbsmrtpipeEngineOption {
+    def id = toI("debug_mode")
+  }
 
-    case object MAX_NPROC extends PbsmrtpipeEngineOption {
-        def id = toI("max_nproc")
-    }
+  case object PB_TMP_DIR extends PbsmrtpipeEngineOption {
+    def id = toI("tmp_dir")
+  }
 
-    case object CHUNKED_MODE extends PbsmrtpipeEngineOption {
-        def id = toI("chunk_mode")
-    }
+  case object MAX_NPROC extends PbsmrtpipeEngineOption {
+    def id = toI("max_nproc")
+  }
 
-    case object MAX_TOTAL_NPROC extends PbsmrtpipeEngineOption {
-        def id = toI("max_total_nproc")
-    }
+  case object CHUNKED_MODE extends PbsmrtpipeEngineOption {
+    def id = toI("chunk_mode")
+  }
 
-    case object MAX_NCHUNKS extends PbsmrtpipeEngineOption {
-        def id = toI("max_nchunks")
-    }
+  case object MAX_TOTAL_NPROC extends PbsmrtpipeEngineOption {
+    def id = toI("max_total_nproc")
+  }
 
+  case object MAX_NCHUNKS extends PbsmrtpipeEngineOption {
+    def id = toI("max_nchunks")
+  }
 
-    case object DISTRIBUTED_MODE extends PbsmrtpipeEngineOption {
-        def id = toI("distributed_mode")
-    }
+  case object DISTRIBUTED_MODE extends PbsmrtpipeEngineOption {
+    def id = toI("distributed_mode")
+  }
 
-    case object EXIT_ON_FAILURE extends PbsmrtpipeEngineOption {
-        def id = toI("exit_on_failure")
-    }
+  case object EXIT_ON_FAILURE extends PbsmrtpipeEngineOption {
+    def id = toI("exit_on_failure")
+  }
 
-    case object CLUSTER_MANAGER_TMPL_DIR extends PbsmrtpipeEngineOption {
-        def id = toI("cluster_manager")
-    }
+  case object CLUSTER_MANAGER_TMPL_DIR extends PbsmrtpipeEngineOption {
+    def id = toI("cluster_manager")
+  }
 
-    case object MAX_NWORKERS extends PbsmrtpipeEngineOption {
-        def id = toI("max_nworkers")
-    }
-
+  case object MAX_NWORKERS extends PbsmrtpipeEngineOption {
+    def id = toI("max_nworkers")
+  }
 }
 

@@ -26,6 +26,8 @@ class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner) extends Actor
 with ActorLogging
 with timeUtils {
 
+  val WORK_TYPE:WorkerType = StandardWorkType
+
   override def preStart(): Unit = {
     log.debug(s"Starting engine-worker $self")
   }
@@ -53,11 +55,11 @@ with timeUtils {
 
       val message = result match {
         case Right(x) =>
-          UpdateJobCompletedResult(x)
+          UpdateJobCompletedResult(x, WORK_TYPE)
         case Left(ex) =>
           val emsg = s"Failed job type ${jobTypeId.id} in ${outputDir.toAbsolutePath} Job: $job  ${ex.message}"
           log.error(emsg)
-          UpdateJobCompletedResult(ex)
+          UpdateJobCompletedResult(ex, WORK_TYPE)
       }
 
       stderrFw.close()
@@ -67,4 +69,12 @@ with timeUtils {
 
     case x => log.debug(s"Unhandled Message to Engine Worker $x")
   }
+}
+
+object QuickEngineWorkerActor {
+  def props(daoActor: ActorRef, jobRunner: JobRunner): Props = Props(new QuickEngineWorkerActor(daoActor, jobRunner))
+}
+
+class QuickEngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner) extends EngineWorkerActor(daoActor, jobRunner){
+  override val WORK_TYPE = QuickWorkType
 }

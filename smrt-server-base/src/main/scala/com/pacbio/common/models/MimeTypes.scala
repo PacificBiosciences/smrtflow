@@ -5,8 +5,9 @@ import java.nio.file.{Files, Path}
 
 import com.pacbio.common.dependency.Singleton
 
-class MimeTypes(highPriorityDetectors: Set[MimeTypeDetector],
-                lowPriorityDetectors: Set[MimeTypeDetector]) {
+class MimeTypes(
+    highPriorityDetectors: Set[MimeTypeDetector],
+    lowPriorityDetectors: Set[MimeTypeDetector]) {
 
   def apply(file: File): String = {
     var mime: Option[String] = None

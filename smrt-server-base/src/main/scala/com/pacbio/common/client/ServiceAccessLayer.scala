@@ -31,6 +31,9 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   protected def toUiRootUrl(port: Int): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
 
+  // Override this in subclasses
+  def serviceStatusEndpoints: Vector[String] = Vector()
+
   // Pipelines and serialization
   def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
   def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
@@ -76,4 +79,14 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def checkServiceEndpoint(endpointPath: String): Int = checkEndpoint(toUrl(endpointPath))
 
   def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
+
+  def checkServiceEndpoints: Int = {
+    var xc = 0
+    for (endpointPath <- serviceStatusEndpoints) {
+      val epStatus = checkServiceEndpoint(endpointPath)
+      if (epStatus > 0) xc = epStatus
+    }
+    xc
+  }
+
 }

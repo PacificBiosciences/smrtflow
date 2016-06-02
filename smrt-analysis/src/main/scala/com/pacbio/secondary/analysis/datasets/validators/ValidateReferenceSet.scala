@@ -17,10 +17,10 @@ import com.pacbio.secondary.analysis.datasets.InValidDataSetError
 import com.pacificbiosciences.pacbiodatasets.ReferenceSet
 
 /**
-  * Misc utils for validating that the ReferenceSet is valid
-  *
-  * Created by mkocher on 9/29/15.
-  */
+ * Misc utils for validating that the ReferenceSet is valid
+ *
+ * Created by mkocher on 9/29/15.
+ */
 object ValidateReferenceSet extends ValidateDataSet with LazyLogging {
 
   type DsType = ReferenceSet
@@ -30,10 +30,11 @@ object ValidateReferenceSet extends ValidateDataSet with LazyLogging {
   def apply(rs: ReferenceSet): Option[InValidDataSetError] = validate(rs)
 
   /**
-    * Core Validation func
-    * @param rs
-    * @return
-    */
+   * Core Validation func
+   *
+   * @param rs
+   * @return
+   */
   def validate(rs: ReferenceSet): Option[InValidDataSetError] = {
     // keep backward compatibility interface
     validator(rs) match {

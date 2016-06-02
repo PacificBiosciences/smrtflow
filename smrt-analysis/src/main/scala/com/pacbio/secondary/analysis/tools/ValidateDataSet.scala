@@ -41,10 +41,11 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
   }
 
   /**
-    * Peek into the XML file to extract the MetaType
-    * @param path
-    * @return
-    */
+   * Peek into the XML file to extract the MetaType
+   *
+   * @param path
+   * @return
+   */
   private def peekIntoXML(path: String): Option[DataSetMetaTypes.DataSetMetaType] = {
     Try {
       val root = scala.xml.XML.loadFile(path)

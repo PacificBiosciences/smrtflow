@@ -1,5 +1,7 @@
 package com.pacbio.common
 
+import java.io.{PrintWriter, StringWriter}
+
 import com.pacbio.common.models._
 import com.pacbio.common.services.utils.CORSSupport
 import com.typesafe.config.ConfigFactory
@@ -98,7 +100,14 @@ package object services {
       extends Exception(message, cause) {
 
       val code: StatusCode
-      def response = ThrowableResponse(code.intValue, message, code.reason)
+      def response: ThrowableResponse = {
+        val stackTrace = Option(cause).map { t: Throwable =>
+          val sw = new StringWriter
+          t.printStackTrace(new PrintWriter(sw))
+          s"\n$sw"
+        }.getOrElse("")
+        ThrowableResponse(code.intValue, message + stackTrace, code.reason)
+      }
     }
 
     class ResourceNotFoundError(message: String, cause: Throwable = null)
@@ -107,6 +116,8 @@ package object services {
       extends PacBioServiceError(message, cause) { override val code = NotImplemented }
     class UnprocessableEntityError(message: String, cause: Throwable = null)
       extends PacBioServiceError(message, cause) { override val code = UnprocessableEntity }
+    class UnknownServerError(message: String, cause: Throwable = null)
+      extends PacBioServiceError(message, cause) { override val code = InternalServerError }
   }
 
   trait PacBioServiceErrors extends BasicToResponseMarshallers with LazyLogging {
@@ -117,7 +128,7 @@ package object services {
 
     def response(e: Throwable): ThrowableResponse = e match {
       case t: PacBioServiceError => t.response
-      case NonFatal(t) => ThrowableResponse(InternalServerError.intValue, t.getMessage, InternalServerError.reason)
+      case NonFatal(t) => new UnknownServerError(t.getMessage, t).response
     }
 
     val responseMarshaller: ToResponseMarshaller[(Int, ThrowableResponse)] =
@@ -134,7 +145,12 @@ package object services {
     implicit val pacbioExceptionHandler: ExceptionHandler = ExceptionHandler {
       case NonFatal(e) => ctx =>
         val resp = response(e)
-        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${resp.message}")
+        val message = if (resp.message == null) {
+          e.getStackTrace.mkString("\n  ")
+        } else {
+          resp.message
+        }
+        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${message}")
         ctx
           // Exception handling bypasses CORSSupport, so we add the header here
           .withHttpResponseHeadersMapped(addAccessControlHeader)
@@ -172,7 +188,11 @@ package object services {
 
     implicit def actorRefFactory = context
 
-    def receive: Receive = runRoute(compressResponseIfRequested()(route))(
+    def receive: Receive = runRoute(compressResponseIfRequested() {
+      logRequest("request", akka.event.Logging.InfoLevel) {
+        route
+      }
+    })(
       pacbioExceptionHandler,
       pacbioRejectionHandler,
       context,
@@ -193,7 +213,7 @@ package object services {
 
   trait ServiceIdUtils {
 
-    def _toServiceId(n: PacBioNamespaces.PacBioNamespace, s: String) = "pacbio." + n.toString.toLowerCase + "." + s.toLowerCase
+    private def toServiceId(n: PacBioNamespaces.PacBioNamespace, s: String) = "pacbio." + n.toString.toLowerCase + "." + s.toLowerCase
 
     /**
      * Util for creating Pacbio Tool ID type (e.g., pacbio.services.my_id, pacbio.services.secondary.internal_dataset)
@@ -201,13 +221,14 @@ package object services {
      * Subsystems resources have 3 types of components, Tools (e.g., blasr),
      * Services, SMRTApps (angular). SMRT Apps can depend on Services and SMRT Apps, Services can depend on other
      * Services and Tools. Tools can only depend on other Tools.
+     *
      * @param s base Id name
      * @return
      */
-    def toToolId(s: String): String = _toServiceId(PacBioNamespaces.SMRTTools, s)
+    def toToolId(s: String): String = toServiceId(PacBioNamespaces.SMRTTools, s)
 
-    def toAppId(s: String): String = _toServiceId(PacBioNamespaces.SMRTApps, s)
+    def toAppId(s: String): String = toServiceId(PacBioNamespaces.SMRTApps, s)
 
-    def toServiceId(s: String): String = _toServiceId(PacBioNamespaces.SMRTServices, s)
+    def toServiceId(s: String): String = toServiceId(PacBioNamespaces.SMRTServices, s)
   }
 }

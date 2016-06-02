@@ -11,10 +11,11 @@ import resource._
 import scala.collection.mutable
 
 // TODO(smcclellan): Add unit tests
-class LdapUserDao(ldapConfig: LdapConfig,
-                  ldapUsersConfig: LdapUsersConfig,
-                  defaultRoles: Set[Role],
-                  jwtUtils: JwtUtils) extends UserDao {
+class LdapUserDao(
+    ldapConfig: LdapConfig,
+    ldapUsersConfig: LdapUsersConfig,
+    defaultRoles: Set[Role],
+    jwtUtils: JwtUtils) extends UserDao {
 
   import PacBioServiceErrors._
 
@@ -111,15 +112,15 @@ class LdapUserDao(ldapConfig: LdapConfig,
 
   // TODO(smcclellan): Implement deleteUser for LDAP?
   override def deleteUser(login: String): String =
-      throw new MethodNotImplementedError("DeleteUser method not implemented for LDAP User DAO.")
+    throw new MethodNotImplementedError("DeleteUser method not implemented for LDAP User DAO.")
 
   // TODO(smcclellan): Implement addRole for LDAP?
   override def addRole(login: String, role: Role): ApiUser =
-      throw new MethodNotImplementedError("AddRole method not implemented for LDAP User DAO.")
+    throw new MethodNotImplementedError("AddRole method not implemented for LDAP User DAO.")
 
   // TODO(smcclellan): Implement removeRole for LDAP?
   override def removeRole(login: String, role: Role): ApiUser =
-      throw new MethodNotImplementedError("RemoveRole method not implemented for LDAP User DAO.")
+    throw new MethodNotImplementedError("RemoveRole method not implemented for LDAP User DAO.")
 
   override def getToken(login: String): String = jwtUtils.getJwt(getUser(login))
 }

@@ -47,16 +47,17 @@ import spray.json._
 
 
 
-class DirectPbsmrtpipeJobType(dbActor: ActorRef,
-                               userActor: ActorRef,
-                               engineManagerActor: ActorRef,
-                               authenticator: Authenticator,
-                               loggerFactory: LoggerFactory,
-                               engineConfig: EngineConfig,
-                               pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
-                               serviceStatusHost: String,
-                               port: Int,
-                               commandTemplate: Option[CommandTemplate] = None)
+class DirectPbsmrtpipeJobType(
+    dbActor: ActorRef,
+    userActor: ActorRef,
+    engineManagerActor: ActorRef,
+    authenticator: Authenticator,
+    loggerFactory: LoggerFactory,
+    engineConfig: EngineConfig,
+    pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
+    serviceStatusHost: String,
+    port: Int,
+    commandTemplate: Option[CommandTemplate] = None)
   extends JobTypeService with LazyLogging {
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")

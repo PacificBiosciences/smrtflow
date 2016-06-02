@@ -5,8 +5,8 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import java.nio.file.Path
 
 /**
-  * External Call To pbreports
-  */
+ * External Call To pbreports
+ */
 trait CallPbReport extends Python {
   val reportModule: String
 

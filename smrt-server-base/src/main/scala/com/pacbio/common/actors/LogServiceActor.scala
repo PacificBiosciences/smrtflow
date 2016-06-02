@@ -1,9 +1,11 @@
 package com.pacbio.common.actors
 
-import akka.actor.{Props, ActorRef, Actor}
+import akka.actor.{Props, ActorRef}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{LogMessageRecord, LogResourceRecord}
 import org.joda.time.{DateTime => JodaDateTime}
+
+import scala.concurrent.ExecutionContext.Implicits._
 
 /**
  * Represents a set of search criteria for searching log messages.
@@ -12,10 +14,11 @@ import org.joda.time.{DateTime => JodaDateTime}
  * @param startTime if present, only log messages from this time or after will be returned (as ms since epoch)
  * @param endTime if present, only log messages from before this time will be returned (as ms since epoch)
  */
-case class SearchCriteria(substring: Option[String],
-                          sourceId: Option[String],
-                          startTime: Option[JodaDateTime],
-                          endTime: Option[JodaDateTime])
+case class SearchCriteria(
+    substring: Option[String],
+    sourceId: Option[String],
+    startTime: Option[JodaDateTime],
+    endTime: Option[JodaDateTime])
 
 /**
  * Companion object for the LogServiceActor class, defining the set of messages it can handle.
@@ -45,9 +48,9 @@ class LogServiceActor(logDao: LogDao) extends PacBioActor {
     case GetResource(id: String)                              => respondWith(logDao.getLogResource(id))
     case GetMessages(id: String)                              => respondWith(logDao.getLogMessages(id))
     case CreateMessage(id: String, m: LogMessageRecord)       => respondWith(logDao.createLogMessage(id, m))
-    case SearchMessages(id: String, criteria: SearchCriteria) => respondWith(logDao.searchLogMessages(id, criteria))
+    case SearchMessages(id: String, criteria: SearchCriteria) => pipeWith(logDao.searchLogMessages(id, criteria))
     case GetSystemMessages                                    => respondWith(logDao.getSystemLogMessages)
-    case SearchSystemMessages(criteria: SearchCriteria)       => respondWith(logDao.searchSystemLogMessages(criteria))
+    case SearchSystemMessages(criteria: SearchCriteria)       => pipeWith(logDao.searchSystemLogMessages(criteria))
   }
 
   override def postStop(): Unit = logDao.flushAll()

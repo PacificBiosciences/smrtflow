@@ -14,10 +14,10 @@ import Scalaz._
 
 
 /**
-  * General utils for validating PacBio DataSets
-  *
-  * Created by mkocher on 11/18/15.
-  */
+ * General utils for validating PacBio DataSets
+ *
+ * Created by mkocher on 11/18/15.
+ */
 trait ValidateDataSet {
 
   type DsType <: DataSetType
@@ -27,20 +27,22 @@ trait ValidateDataSet {
   val supportedFileTypes: Set[FileType]
 
   /**
-    * Every DataSet should have at least one External Resource
-    * @param ds
-    * @return
-    */
+   * Every DataSet should have at least one External Resource
+   *
+   * @param ds
+   * @return
+   */
   def hasAtLeastOneExternalResource(ds: DsType): ValidateDataSetE = {
     val msg = s"DataSet ${ds.getUniqueId} must have at least 1 external resource."
     if (ds.getExternalResources.getExternalResource.isEmpty) msg.failNel else ds.successNel
   }
 
   /**
-    * Each dataset has a specific set of allowed metatypes that are allowed
-    * @param ds
-    * @return
-    */
+   * Each dataset has a specific set of allowed metatypes that are allowed
+   *
+   * @param ds
+   * @return
+   */
   def hasExternalResourceMetaType(ds: DsType): ValidateDataSetE = {
     !ds.getExternalResources.getExternalResource.
       exists(er => supportedFileTypes contains er.getMetaType) match {
@@ -50,10 +52,11 @@ trait ValidateDataSet {
   }
 
   /**
-    *   Validate the Resource Path of the fasta file is found
-    * @param ds
-    * @return
-    */
+   * Validate the Resource Path of the fasta file is found
+   *
+   * @param ds
+   * @return
+   */
   def hasValidExternalResourcePaths(ds: DsType): ValidateDataSetE = {
     ds.getExternalResources.getExternalResource.map(r => r.getResourceId)
       .filter(x => !Files.exists(Paths.get(x)))
@@ -64,8 +67,9 @@ trait ValidateDataSet {
   }
 
   def hasValidId(ds: DsType): ValidateDataSetE = {
-    try {UUID.fromString(ds.getUniqueId)
-        ds.successNel
+    try {
+      UUID.fromString(ds.getUniqueId)
+      ds.successNel
     }  catch {
       case e: Exception => e.getMessage.failureNel
     }
@@ -76,10 +80,11 @@ trait ValidateDataSet {
     hasValidExternalResourcePaths(ds))((_, _, _) => ds)
 
   /**
-    * DataSet specific sets
-    * @param ds
-    * @return
-    */
+   * DataSet specific sets
+   *
+   * @param ds
+   * @return
+   */
   def validateCustom(ds: DsType): ValidateDataSetE = {
     ds.successNel
   }

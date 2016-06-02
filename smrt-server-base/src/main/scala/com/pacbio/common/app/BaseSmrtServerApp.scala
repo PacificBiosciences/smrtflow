@@ -32,39 +32,40 @@ object BaseSmrtServerApp
 
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
 trait CoreProviders extends
-    SetBindings with
-    DefaultConfigProvider with
-    ServiceRoutesProvider with
-    ServiceManifestsProvider with
-    ManifestServiceProvider with
-    HealthServiceProvider with
-    HealthServiceActorRefProvider with
-    InMemoryHealthDaoProvider with
-    LogServiceProvider with
-    LogServiceActorRefProvider with
-    DatabaseLogDaoProvider with
-    UserServiceProvider with
-    UserServiceActorRefProvider with
-    LdapUserDaoProvider with
-    CleanupServiceProvider with
-    CleanupServiceActorRefProvider with
-    InMemoryCleanupDaoProvider with
-    CleanupSchedulerProvider with
-    StatusServiceProvider with
-    StatusServiceActorRefProvider with
-    ConfigServiceProvider with
-    CommonFilesServiceProvider with
-    MimeTypeDetectors with
-    SubSystemComponentServiceProvider with
-    SubSystemResourceServiceProvider with
-    ActorSystemProvider with
-    BaseSmrtServerDatabaseConfigProviders with
-    TypesafeLdapUserDaoConfigProvider with
-    JwtUtilsImplProvider with
-    // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
-    FakeAuthenticatorProvider with
-    LoggerFactoryImplProvider with
-    SystemClockProvider {
+  SetBindings with
+  DefaultConfigProvider with
+  ServiceRoutesProvider with
+  ServiceManifestsProvider with
+  ManifestServiceProvider with
+  HealthServiceProvider with
+  HealthServiceActorRefProvider with
+  InMemoryHealthDaoProvider with
+  LogServiceProvider with
+  LogServiceActorRefProvider with
+  DatabaseLogDaoProvider with
+  UserServiceProvider with
+  UserServiceActorRefProvider with
+  LdapUserDaoProvider with
+  CleanupServiceProvider with
+  CleanupServiceActorRefProvider with
+  InMemoryCleanupDaoProvider with
+  CleanupSchedulerProvider with
+  StatusServiceProvider with
+  StatusServiceActorRefProvider with
+  ConfigServiceProvider with
+  CommonFilesServiceProvider with
+  MimeTypeDetectors with
+  SubSystemComponentServiceProvider with
+  SubSystemResourceServiceProvider with
+  ActorSystemProvider with
+  BaseSmrtServerDatabaseConfigProviders with
+  TypesafeLdapUserDaoConfigProvider with
+  JwtUtilsImplProvider with
+  // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
+  FakeAuthenticatorProvider with
+  LoggerFactoryImplProvider with
+  SystemClockProvider {
+
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
   val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
 
@@ -82,37 +83,38 @@ trait CoreProviders extends
 }
 
 trait AuthenticatedCoreProviders extends
-    SetBindings with
-    DefaultConfigProvider with
-    ServiceComposer with
-    ManifestServiceProviderx with
-    HealthServiceProviderx with
-    HealthServiceActorRefProvider with
-    InMemoryHealthDaoProvider with
-    LogServiceProviderx with
-    LogServiceActorRefProvider with
-    DatabaseLogDaoProvider with
-    UserServiceProviderx with
-    UserServiceActorRefProvider with
-    LdapUserDaoProvider with
-    CleanupServiceProviderx with
-    CleanupServiceActorRefProvider with
-    InMemoryCleanupDaoProvider with
-    CleanupSchedulerProvider with
-    StatusServiceProviderx with
-    StatusServiceActorRefProvider with
-    ConfigServiceProviderx with
-    CommonFilesServiceProviderx with
-    MimeTypeDetectors with
-    SubSystemComponentServiceProviderx with
-    SubSystemResourceServiceProviderx with
-    ActorSystemProvider with
-    BaseSmrtServerDatabaseConfigProviders with
-    TypesafeLdapUserDaoConfigProvider with
-    JwtUtilsImplProvider with
-    AuthenticatorImplProvider with
-    LoggerFactoryImplProvider with
-    SystemClockProvider {
+  SetBindings with
+  DefaultConfigProvider with
+  ServiceComposer with
+  ManifestServiceProviderx with
+  HealthServiceProviderx with
+  HealthServiceActorRefProvider with
+  InMemoryHealthDaoProvider with
+  LogServiceProviderx with
+  LogServiceActorRefProvider with
+  DatabaseLogDaoProvider with
+  UserServiceProviderx with
+  UserServiceActorRefProvider with
+  LdapUserDaoProvider with
+  CleanupServiceProviderx with
+  CleanupServiceActorRefProvider with
+  InMemoryCleanupDaoProvider with
+  CleanupSchedulerProvider with
+  StatusServiceProviderx with
+  StatusServiceActorRefProvider with
+  ConfigServiceProviderx with
+  CommonFilesServiceProviderx with
+  MimeTypeDetectors with
+  SubSystemComponentServiceProviderx with
+  SubSystemResourceServiceProviderx with
+  ActorSystemProvider with
+  BaseSmrtServerDatabaseConfigProviders with
+  TypesafeLdapUserDaoConfigProvider with
+  JwtUtilsImplProvider with
+  AuthenticatorImplProvider with
+  LoggerFactoryImplProvider with
+  SystemClockProvider {
+
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
   val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
 
@@ -173,7 +175,8 @@ trait BaseServer extends LazyLogging {
     }
 
     class StartupFailedException(cause: Throwable)
-        extends RuntimeException("Startup failed", cause) with ControlThrowable
+      extends RuntimeException("Startup failed", cause)
+      with ControlThrowable
 
     Await.result(f, 10.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll

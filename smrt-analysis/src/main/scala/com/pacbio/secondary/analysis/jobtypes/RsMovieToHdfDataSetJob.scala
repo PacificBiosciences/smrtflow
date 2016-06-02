@@ -37,7 +37,7 @@ with MockJobUtils with timeUtils {
 
     convertMovieMetaDataToSubread(Paths.get(opts.path)) match {
 
-        case Right(dataset) =>
+      case Right(dataset) =>
         dataset.setName(opts.name)
         // Update the name and rewrite the file
         DataSetWriter.writeHdfSubreadSet(dataset, dsPath)

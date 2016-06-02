@@ -7,6 +7,8 @@ smrt-server-link/jobs-root
 smrt-server-analysis/db/*
 smrt-server-analysis/jobs-root
 
+test-data/*
+
 # sbt specific
 .cache
 .history
@@ -23,6 +25,7 @@ project/plugins/project/
 .worksheet
 docs/_build/*
 db/*
+.idea
 
 # ensime-specific
 .ensime

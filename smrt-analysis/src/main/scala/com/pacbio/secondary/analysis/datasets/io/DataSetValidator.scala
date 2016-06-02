@@ -22,11 +22,12 @@ import scala.collection.mutable
 object DataSetValidator extends LazyLogging {
 
   /**
-    * Resolve the ResourceId path/uri to
-    * @param resource
-    * @param rootDir
-    * @return
-    */
+   * Resolve the ResourceId path/uri to
+   *
+   * @param resource
+   * @param rootDir
+   * @return
+   */
   private def resourceToAbsolutePath(resource: String, rootDir: Path): Path = {
     val uri = URI.create(resource)
     val path = if (uri.getScheme == null) Paths.get(resource) else Paths.get(uri)
@@ -95,12 +96,12 @@ object DataSetValidator extends LazyLogging {
   }
 
   /**
-    * General Summary info for the DataSet
-    *
-    * @param dataset DataSet instance
-    * @tparam T
-    * @return
-    */
+   * General Summary info for the DataSet
+   *
+   * @param dataset DataSet instance
+   * @tparam T
+   * @return
+   */
   def summarize[T <: DataSetType](dataset: T): String = {
 
     val outs =

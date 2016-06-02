@@ -18,13 +18,14 @@ import com.pacbio.common.models.UserResponse
  *   user.passwordMatches("foobar") // returns false
  * }}}
  */
-case class ApiUser(login: String,
-                   id: String,
-                   email: Option[String],
-                   firstName: Option[String],
-                   lastName: Option[String],
-                   hashedPassword: Option[String] = None,
-                   roles: Set[Role] = Set.empty) {
+case class ApiUser(
+    login: String,
+    id: String,
+    email: Option[String],
+    firstName: Option[String],
+    lastName: Option[String],
+    hashedPassword: Option[String] = None,
+    roles: Set[Role] = Set.empty) {
 
   def withPassword(password: String): ApiUser = copy(hashedPassword = Some(password.bcrypt(10)))
 

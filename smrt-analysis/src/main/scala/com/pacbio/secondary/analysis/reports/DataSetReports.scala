@@ -35,8 +35,13 @@ object DataSetReports {
       "PacBio DataSet Report")
   }
 
-  def run(srcPath: Path, rpt: CallPbReport, parentDir: Path,
-    jobTypeId: JobTypeId, log: JobResultWriter): Option[DataStoreFile] = {
+  def run(
+      srcPath: Path,
+      rpt: CallPbReport,
+      parentDir: Path,
+      jobTypeId: JobTypeId,
+      log: JobResultWriter): Option[DataStoreFile] = {
+
     val reportDir = parentDir.resolve(rpt.reportModule)
     reportDir.toFile().mkdir()
     val reportFile = reportDir.resolve(s"${rpt.reportModule}.json")
@@ -53,8 +58,13 @@ object DataSetReports {
     }
   }
 
-  def runAll(inPath: Path, dst: DataSetMetaTypes.DataSetMetaType,
-    jobPath: Path, jobTypeId: JobTypeId, log: JobResultWriter): Seq[DataStoreFile] = {
+  def runAll(
+      inPath: Path,
+      dst: DataSetMetaTypes.DataSetMetaType,
+      jobPath: Path,
+      jobTypeId: JobTypeId,
+      log: JobResultWriter): Seq[DataStoreFile] = {
+
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile().mkdir()
 
@@ -73,8 +83,12 @@ object DataSetReports {
     }
   }
 
-  def simpleReport(inPath: Path, dst: DataSetMetaTypes.DataSetMetaType,
-    jobPath: Path, jobTypeId: JobTypeId): DataStoreFile = {
+  def simpleReport(
+      inPath: Path,
+      dst: DataSetMetaTypes.DataSetMetaType,
+      jobPath: Path,
+      jobTypeId: JobTypeId): DataStoreFile = {
+
     def attribs(md: DataSetMetadataType) =
       List(
         ReportLongAttribute(

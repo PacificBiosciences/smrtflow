@@ -15,10 +15,11 @@ import collection.JavaConverters._
  */
 object Resolver {
 
-  def resolveToolContract(toolContract: ToolContract,
-                          inputFiles: Seq[String],
-                          maxProc: Int,
-                          outputDir: Path): ResolvedToolContract = {
+  def resolveToolContract(
+      toolContract: ToolContract,
+      inputFiles: Seq[String],
+      maxProc: Int,
+      outputDir: Path): ResolvedToolContract = {
 
     val tc = toolContract.getToolContract
     // Resolved Values

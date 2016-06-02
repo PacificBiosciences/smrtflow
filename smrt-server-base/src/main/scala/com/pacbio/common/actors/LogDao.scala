@@ -14,7 +14,8 @@ import scala.collection.mutable
 
 import spray.json._
 
-import scala.util.Try
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 /**
  * Interface for the Logging DAO
@@ -53,12 +54,12 @@ trait LogDao {
   /**
    * Searches for messages in a given log resource that contain the given substring.
    */
-  def searchLogMessages(id: String, criteria: SearchCriteria): Seq[LogMessage]
+  def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]]
 
   /**
    * Searches for messages from all log resources that contain the given substring.
    */
-  def searchSystemLogMessages(criteria: SearchCriteria): Seq[LogMessage]
+  def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]]
 
   /**
    * Flush all messages from buffers into long-term storage.
@@ -140,7 +141,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
     @VisibleForTesting
     final def clear(): Unit = buffer.clear()
 
-    final def searchMessages(criteria: SearchCriteria): Seq[LogMessage] = {
+    final def searchMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] = {
       var bufferedResults = buffer
       if (criteria.substring.isDefined)
         bufferedResults = bufferedResults.filter(_.message.contains(criteria.substring.get))
@@ -153,7 +154,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
         bufferedResults = bufferedResults.filter(_.createdAt.isBefore(criteria.endTime.get))
 
       val staleResults = searchStaleMessages(criteria, bufferSize - bufferedResults.size)
-      staleResults ++ bufferedResults
+      staleResults.map(_ ++ bufferedResults)
     }
 
     /**
@@ -173,7 +174,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
      * <p> By default, this returns Nil. Subclasses may override this method to search their custom storage solutions
      * for matching messages.
      */
-    protected def searchStaleMessages(criteria: SearchCriteria, limit: Int): Seq[LogMessage] = Nil
+    protected def searchStaleMessages(criteria: SearchCriteria, limit: Int): Future[Seq[LogMessage]] = Future(Nil)
   }
 
   /**
@@ -218,13 +219,13 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
 
   override final def getSystemLogMessages: Seq[LogMessage] = systemBuffer.getRecent
 
-  override final def searchLogMessages(id: String, criteria: SearchCriteria): Seq[LogMessage] = {
+  override final def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]] = {
     if (resources contains id) {
       buffers(id).searchMessages(criteria)
-    } else Nil
+    } else Future(Nil)
   }
 
-  override final def searchSystemLogMessages(criteria: SearchCriteria): Seq[LogMessage] = {
+  override final def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] = {
     systemBuffer.searchMessages(criteria)
   }
 

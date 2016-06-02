@@ -102,10 +102,11 @@ case class ConfigResponse(entries: Set[ConfigEntry], origin: String)
 
 // Cleanup Service
 object CleanupFrequency {
-  sealed abstract class CleanupFrequency(period: FiniteDuration,
-                                         tickRange: Int,
-                                         tickDuration: FiniteDuration,
-                                         getTick: JodaDateTime => Int) {
+  sealed abstract class CleanupFrequency(
+      period: FiniteDuration,
+      tickRange: Int,
+      tickDuration: FiniteDuration,
+      getTick: JodaDateTime => Int) {
     def waitTime(now: JodaDateTime, at: Int) = {
       val nowTick = getTick(now)
       val waitTicks = if (at > nowTick) at - nowTick else tickRange + (at - nowTick)
@@ -180,34 +181,37 @@ abstract class CleanupJobBase[T <: CleanupJobBase[T]] {
     CleanupJobResponse(id, target, scheduleString, olderThan, minSize, dryRun, lastCheck, lastDelete)
 }
 
-case class CleanupJobResponse(id: String,
-                              target: String,
-                              schedule: String,
-                              olderThan: Option[Duration],
-                              minSize: Option[CleanupSize],
-                              dryRun: Boolean,
-                              lastCheck: Option[JodaDateTime],
-                              lastDelete: Option[JodaDateTime])
+case class CleanupJobResponse(
+    id: String,
+    target: String,
+    schedule: String,
+    olderThan: Option[Duration],
+    minSize: Option[CleanupSize],
+    dryRun: Boolean,
+    lastCheck: Option[JodaDateTime],
+    lastDelete: Option[JodaDateTime])
 
-case class ApiCleanupJobCreate(target: String,
-                               frequency: CleanupFrequency.CleanupFrequency,
-                               at: Int,
-                               olderThan: Option[Duration],
-                               minSize: Option[CleanupSize],
-                               start: Option[Boolean],
-                               dryRun: Option[Boolean])
+case class ApiCleanupJobCreate(
+    target: String,
+    frequency: CleanupFrequency.CleanupFrequency,
+    at: Int,
+    olderThan: Option[Duration],
+    minSize: Option[CleanupSize],
+    start: Option[Boolean],
+    dryRun: Option[Boolean])
 
-case class ApiCleanupJob(uuid: UUID,
-                         target: String,
-                         frequency: CleanupFrequency.CleanupFrequency,
-                         at: Int,
-                         olderThan: Option[Duration],
-                         minSize: Option[CleanupSize],
-                         running: Boolean,
-                         dryRun: Boolean,
-                         lastCheck: Option[JodaDateTime],
-                         lastDelete: Option[JodaDateTime])
-    extends CleanupJobBase[ApiCleanupJob] {
+case class ApiCleanupJob(
+    uuid: UUID,
+    target: String,
+    frequency: CleanupFrequency.CleanupFrequency,
+    at: Int,
+    olderThan: Option[Duration],
+    minSize: Option[CleanupSize],
+    running: Boolean,
+    dryRun: Boolean,
+    lastCheck: Option[JodaDateTime],
+    lastDelete: Option[JodaDateTime])
+  extends CleanupJobBase[ApiCleanupJob] {
 
   override def id: String = uuid.toString
   override def checked(t: JodaDateTime): ApiCleanupJob = copy(lastCheck = Some(t))
@@ -215,22 +219,24 @@ case class ApiCleanupJob(uuid: UUID,
   override def scheduleString: String = s"$frequency at $at. ${if (running) "Running" else "Not running"}."
 }
 
-case class ConfigCleanupJobCreate(name: String,
-                                  target: String,
-                                  schedule: String,
-                                  olderThan: Option[Duration],
-                                  minSize: Option[CleanupSize],
-                                  dryRun: Option[Boolean])
+case class ConfigCleanupJobCreate(
+    name: String,
+    target: String,
+    schedule: String,
+    olderThan: Option[Duration],
+    minSize: Option[CleanupSize],
+    dryRun: Option[Boolean])
 
-case class ConfigCleanupJob(name: String,
-                            target: String,
-                            schedule: String,
-                            olderThan: Option[Duration],
-                            minSize: Option[CleanupSize],
-                            dryRun: Boolean,
-                            lastCheck: Option[JodaDateTime],
-                            lastDelete: Option[JodaDateTime])
-    extends CleanupJobBase[ConfigCleanupJob] {
+case class ConfigCleanupJob(
+    name: String,
+    target: String,
+    schedule: String,
+    olderThan: Option[Duration],
+    minSize: Option[CleanupSize],
+    dryRun: Boolean,
+    lastCheck: Option[JodaDateTime],
+    lastDelete: Option[JodaDateTime])
+  extends CleanupJobBase[ConfigCleanupJob] {
 
   override def id: String = name
   override def checked(t: JodaDateTime): ConfigCleanupJob = copy(lastCheck = Some(t))

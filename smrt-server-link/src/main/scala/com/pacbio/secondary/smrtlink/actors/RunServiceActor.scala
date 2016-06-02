@@ -7,6 +7,8 @@ import com.pacbio.common.actors.{PacBioActor, ActorRefFactoryProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
 
+import scala.concurrent.ExecutionContext.Implicits._
+
 /**
  * Represents a set of search criteria for searching run designs.
  * @param name if present, only run designs whose name matches the given name will be returned
@@ -14,10 +16,11 @@ import com.pacbio.secondary.smrtlink.models._
  * @param createdBy if present, only run designs created by the given user will be returned
  * @param reserved if present, only run designs that are in the given reserve state will be returned
  */
-case class SearchCriteria(name: Option[String],
-                          substring: Option[String],
-                          createdBy: Option[String],
-                          reserved: Option[Boolean])
+case class SearchCriteria(
+    name: Option[String],
+    substring: Option[String],
+    createdBy: Option[String],
+    reserved: Option[Boolean])
 
 /**
  * Companion object for the RunServiceActor class, defining the set of messages it can handle.
@@ -40,13 +43,13 @@ class RunServiceActor(runDao: RunDao) extends PacBioActor {
   import RunServiceActor._
 
   def receive: Receive = {
-    case GetRuns(criteria)        => respondWith(runDao.getRuns(criteria))
-    case GetRun(id)               => respondWith(runDao.getRun(id))
-    case CreateRun(create)        => respondWith(runDao.createRun(create))
-    case UpdateRun(id, update)    => respondWith(runDao.updateRun(id, update))
-    case DeleteRun(id)            => respondWith(runDao.deleteRun(id))
-    case GetCollections(runId)    => respondWith(runDao.getCollectionMetadatas(runId))
-    case GetCollection(runId, id) => respondWith(runDao.getCollectionMetadata(runId, id))
+    case GetRuns(criteria)        => pipeWith(runDao.getRuns(criteria))
+    case GetRun(id)               => pipeWith(runDao.getRun(id))
+    case CreateRun(create)        => pipeWith(runDao.createRun(create))
+    case UpdateRun(id, update)    => pipeWith(runDao.updateRun(id, update))
+    case DeleteRun(id)            => pipeWith(runDao.deleteRun(id))
+    case GetCollections(runId)    => pipeWith(runDao.getCollectionMetadatas(runId))
+    case GetCollection(runId, id) => pipeWith(runDao.getCollectionMetadata(runId, id))
   }
 }
 

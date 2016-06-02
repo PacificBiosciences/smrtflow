@@ -16,10 +16,10 @@ import SprayJsonSupport._
 
 
 /**
-  * Service for SMRT Link Systems and resolving of job id -> SmrtLinkJob
-  *
-  * @param dao
-  */
+ * Service for SMRT Link Systems and resolving of job id -> SmrtLinkJob
+ *
+ * @param dao
+ */
 class SmrtLinkResourceService(dao: SmrtLinkResourceDao) extends BaseInternalMicroService {
 
   import InternalAnalysisJsonProcotols._

@@ -20,17 +20,17 @@ import scala.util.Try
 
 
 // TODO get defaults from prod.conf
-case class GetStatusConfig(host: String = "http://localhost",
-                           port: Int = 8070,
-                           uiPort: Int = -1, // optional
-                           sleepTime: Int = 5,
-                           maxRetries: Int = 3) extends LoggerConfig
+case class GetStatusConfig(
+    host: String = "http://localhost",
+    port: Int = 8070,
+    uiPort: Int = -1, // optional
+    sleepTime: Int = 5,
+    maxRetries: Int = 3) extends LoggerConfig
 
-/*
+/**
  * Get the status of SMRT services
  *
  */
-
 trait GetStatusParser {
   final val TOOL_ID = "pbscala.tools.get_status"
   final val VERSION = "0.1.0"
@@ -72,15 +72,6 @@ trait GetStatusParser {
 object GetStatusRunner extends LazyLogging {
   final val SERVICE_ENDPOINTS = Vector()
 
-  private def checkEndpoints(sal: ServiceAccessLayer): Int = {
-    var xc = 0
-    for (endpointPath <- SERVICE_ENDPOINTS) {
-        val epStatus = sal.checkServiceEndpoint(endpointPath)
-        if (epStatus > 0) xc = epStatus
-    }
-    xc
-  }
-
   def apply (c: GetStatusConfig): Int = {
     val startedAt = DateTime.now()
 
@@ -110,7 +101,7 @@ object GetStatusRunner extends LazyLogging {
     }
     if (xc == 0) {
       if (c.uiPort > 0) xc = sal.checkUiEndpoint(c.uiPort) else println("No UI port specified, skipping")
-      xc = checkEndpoints(sal)
+      if (xc == 0) xc = sal.checkServiceEndpoints
     }
 
     logger.debug("shutting down actor system")

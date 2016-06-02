@@ -1,3 +1,4 @@
+
 package com.pacbio.secondaryinternal.services.jobtypes
 
 import java.util.UUID
@@ -23,13 +24,15 @@ import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.LoggerFactoryProvider
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.CoreJob
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPoint, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
@@ -73,12 +76,12 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
   }
 
   /**
-    * Converts the raw CSV and resolves AlignmentSets paths from job ids
-    *
-    * @param record
-    * @return
-    */
-  def resolveConditionRecord(record: ServiceConditionCsvPipeline): Future[ResolvedConditionPipeline] = {
+   * Converts the raw CSV and resolves AlignmentSets paths from job ids
+   *
+   * @param record
+   * @return
+   */
+  def resolveConditionRecord(record: ServiceConditionCsvPipeline): Future[ReseqConditions] = {
 
     logger.info(s"Converting $record")
 
@@ -91,11 +94,39 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
 
     def toUrl(host: String, port: Int) = new URL(s"http://$host:$port")
 
-    def resolve(sc: ServiceCondition): Future[ResolvedJobCondition] = {
+    def failJobIfNotSuccessful(job: EngineJob): Future[EngineJob] =
+      if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
+      else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
+
+    def getEntryPointBy(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
+      eps.find(_.datasetType == datasetMetaType.dsId) match {
+        case Some(x) => Future { x.datasetUUID }
+        case _ => Future.failed(throw new Exception(s"Failed resolve Entry Point type $datasetMetaType"))
+      }
+    }
+
+
+    /**
+     * This needs to have a more robust implementation
+     *
+     * - Resolve Entry points looks for a SubreadSet and ReferenceSet
+     * - Does not valid resolved paths
+     *
+     * @param sc Service Condition
+     * @return
+     */
+    def resolve(sc: ServiceCondition): Future[ReseqCondition] = {
       for {
         sal <- Future { new AnalysisServiceAccessLayer(toUrl(sc.host, sc.port))(actorSystem)}
-        path <- JobResolvers.resolveAlignmentSet(sal, sc.jobId)
-      } yield ResolvedJobCondition(sc.id, sc.host, sc.port, sc.jobId, path)
+        job <- sal.getJobById(sc.jobId)
+        sjob <- failJobIfNotSuccessful(job)
+        alignmentSetPath <- JobResolvers.resolveAlignmentSet(sal, sc.jobId)
+        entryPoints <- sal.getAnalysisJobEntryPoints(sc.jobId)
+        subreadSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Subread)
+        referenceSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Reference)
+        subreadSetMetadata <- sal.getDataSetByUuid(subreadSetUUID)
+        referenceSetMetadata <- sal.getDataSetByUuid(referenceSetUUID)
+      } yield ReseqCondition(sc.id, Paths.get(subreadSetMetadata.path), alignmentSetPath, Paths.get(referenceSetMetadata.path))
     }
 
     // Do them in parallel
@@ -103,18 +134,9 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
 
     val fx = for {
       resolvedConditions <- fxs
-    } yield ResolvedConditionPipeline(record.pipelineId, resolvedConditions)
+    } yield ReseqConditions(record.pipelineId, resolvedConditions)
 
     fx
-  }
-
-  def writeResolvedConditions(resolvedConditions: ResolvedConditions, path: Path): ResolvedConditions = {
-    logger.info(s"Writing resolved conditions to $path")
-    val bw = new BufferedWriter(new FileWriter(path.toFile))
-    val jx = resolvedConditions.toJson
-    bw.write(jx.prettyPrint.toString)
-    bw.close()
-    resolvedConditions
   }
 
   val validateConditionRunRoute =
@@ -167,9 +189,9 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
             complete {
               for {
                 uuid <- Future { UUID.randomUUID() }
-                conditionPath <- Future { Paths.get(s"conditions-${uuid.toString}.json") }
-                resolvedJobConditions <- resolveConditionRecord(record)
-                _ <- Future { writeResolvedConditions(resolvedJobConditionsTo(resolvedJobConditions), conditionPath) }
+                conditionPath <- Future { Paths.get(s"reseq-conditions-${uuid.toString}.json") }
+                reseqConditions <- resolveConditionRecord(record)
+                _ <- Future { IOUtils.writeReseqConditions(reseqConditions, conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
                 engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None)).mapTo[EngineJob]
               } yield engineJob

@@ -36,6 +36,7 @@ object DataSetValidators {
 
   /**
    * Validate that All root level External Resource ResourceId (URIs) are found
+   *
    * @param ds Subread DataSet
    * @return
    */
@@ -63,12 +64,13 @@ object DataSetValidators {
     }
   }
 
-    /**
-     * General Util for Validating a DataSet
-      * @param dst
-     * @param path
-     * @return
-     */
+  /**
+   * General Util for Validating a DataSet
+   *
+   * @param dst
+   * @param path
+   * @return
+   */
   def validateDataSet(dst: DataSetMetaType, path: Path): Either[InvalidDataSetError, Path] = {
 
     if (Files.exists(path)) {

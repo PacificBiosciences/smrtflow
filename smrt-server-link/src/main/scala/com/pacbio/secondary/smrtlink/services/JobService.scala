@@ -54,10 +54,10 @@ object JobResourceUtils extends  LazyLogging{
 }
 
 trait JobService
-    extends LazyLogging
-    with StatusCodeJoiners
-    with Directives
-    with JobServiceConstants {
+  extends LazyLogging
+  with StatusCodeJoiners
+  with Directives
+  with JobServiceConstants {
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -93,13 +93,10 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] = {
-    for {
-      jobs <- (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
-    } yield jobs
-  }
+  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+    (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
 
-  def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route = {
+  def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
       get {
         complete {
@@ -245,5 +242,4 @@ trait JobService
         }
       }
     }
-  }
 }

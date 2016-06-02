@@ -142,8 +142,8 @@ trait UserServiceProvider {
 
 trait UserServiceProviderx {
   this: UserServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val userService: Singleton[UserService] =
     Singleton(() => new UserService(userServiceActorRef(), authenticator()))

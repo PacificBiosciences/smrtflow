@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.1-SNAPSHOT"
+version in ThisBuild := "0.1.2-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -27,6 +27,7 @@ parallelExecution in ThisBuild := false
 fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
+
 javaOptions in ThisBuild += "-Xmx2g"
 
 // Custom keys for this build.
@@ -65,9 +66,9 @@ def PacBioProject(name: String): Project = (
       "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
       "org.apache.avro" % "avro" % "1.7.7",
       "com.github.broadinstitute" % "picard" % "1.131",
-      "com.typesafe.slick" %% "slick" % "2.1.0",
+      "com.typesafe.slick" %% "slick" % "3.1.0",
       "org.xerial" % "sqlite-jdbc" % "3.8.6",
-      "com.github.tototoshi" %% "slick-joda-mapper" % "1.2.0",
+      "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
       // added from bss
       "io.spray" % "spray-io_2.11" % sprayV,
       "io.spray" %% "spray-json" % "1.3.2",
@@ -83,7 +84,6 @@ def PacBioProject(name: String): Project = (
       "com.typesafe.akka" %% "akka-slf4j" % akkaV,
       "com.github.nscala-time" %% "nscala-time" % "1.4.0",
       "com.github.fge" % "json-schema-validator" % "2.2.5",
-      "com.typesafe.slick" %% "slick" % "2.1.0",
       "org.xerial" % "sqlite-jdbc" % "3.8.6",
       "com.novocode" % "junit-interface" % "0.10" % "test",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
@@ -97,7 +97,8 @@ def PacBioProject(name: String): Project = (
       "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
       "org.scalaj" %% "scalaj-http" % "1.1.5",
       "org.flywaydb" % "flyway-core" % "4.0",
-      "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full
+      "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full,
+      "org.ini4j" % "ini4j" % "0.5.4"
     )
     )
   )
@@ -120,7 +121,7 @@ lazy val common = (
     settings(
     makeVersionProperties := {
       val propFile = (resourceManaged in Compile).value / "version.properties"
-      val content = "version=%s" format (gitHeadCommitSha.value)
+      val content = "version=%s\nsha1=%s" format (version.value, gitHeadCommitSha.value)
       IO.write(propFile, content)
       Seq(propFile)
     },

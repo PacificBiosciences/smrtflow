@@ -123,12 +123,13 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
     //}
 
   // TODO(smcclellan): Do we need to handle cookies?
-  def handleProxy(uuid: UUID,
-                  pth: String,
-                  meth: HttpMethod,
-                  ent: HttpEntity,
-                  head: List[HttpHeader],
-                  par: Map[String, String]): Future[SprayHttpResponse] = {
+  def handleProxy(
+      uuid: UUID,
+      pth: String,
+      meth: HttpMethod,
+      ent: HttpEntity,
+      head: List[HttpHeader],
+      par: Map[String, String]): Future[SprayHttpResponse] = {
     import spray.http.{HttpEntity, StatusCodes}
     import spray.http.HttpHeaders.RawHeader
 
@@ -154,8 +155,8 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
 
 trait RegistryServiceProvider {
   this: RegistryServiceActorRefProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   val registryService: Singleton[RegistryService] =
     Singleton(() => new RegistryService(registryServiceActorRef(), authenticator()))

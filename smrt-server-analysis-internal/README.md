@@ -7,42 +7,46 @@ Adds support for running "Condition" driven pipelines via the "condition" job ty
 ## Condition DataModel (WIP)
 
 
+The model is both [pbcommand](https://github.com/PacificBiosciences/pbcommand/blob/master/pbcommand/models/conditions.py) and SLAI. It's not yet supported in pbcommandR.
 
-The model is defined in 'pysiv2.internal.models.py' and in the scala code. It's not updated in pbcommandR.
+
+### Resequencing Condition Type
+
+Has both the SubreadSet, ReferenceSet and final AlignmentSet output:
 
 
 ```javascript
+{
+  "_condition_doc": "Example of a 'Resequencing' Condition Type",
+  "conditions": [
     {
-        "conditions": [
-            {
-                "file_type_id": "PacBio.FileTypes.AlignmentSet",
-                "files": [
-                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/008/008554/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-                ],
-                "id": "cond_a"
-            },
-            {
-                "file_type_id": "PacBio.FileTypes.AlignmentSet",
-                "files": [
-                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/010/010159/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-                ],
-                "id": "cond_a"
-            },
-            {
-                "file_type_id": "PacBio.FileTypes.AlignmentSet",
-                "files": [
-                    "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/000/000151/tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"
-                ],
-                "id": "cond_b"
-            }
-        ],
-        "pipelineId": "pbinternal2.pipelines.dev_example"
-    }
+      "condId": "cond_alpha",
+      "subreadset": "/path/to/subreadset-01.xml",
+      "alignmentset": "/path/to/alignmentset-A.xml",
+      "referenceset": "/path/to/reference.xml"
+    },
+    {
+      "condId": "cond_alpha",
+      "subreadset": "/path/to/subreadset-02.xml",
+      "alignmentset": "/path/to/alignmentset-B.xml",
+      "referenceset": "/path/to/reference.xml"
+    },
+    {
+      "condId": "cond_beta",
+      "subreadset": "/path/to/subreadset-03.xml",
+      "alignmentset": "/path/to/alignmentset-C.xml",
+      "referenceset": "/path/to/reference.xml"
+    },
+  ],
+  "pipelineId": "pbsmrtpipe.pipelines.my_pipeline"
+}
+
 ```
 
-Initially only AlignmentSet file types are supported
 
-Considering an alternative model that has the job id, host, port as well as the resolved path to the alignmentset.
+Initially only Reseq Condition type is supported
+
+Considering an alternative model that has the job id, host, port as well as the resolved paths.
 
 However, this would be increasing the surface area of the API and would be leaking unnecessary information. Tools should only operate on paths of files.
 

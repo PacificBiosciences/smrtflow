@@ -8,71 +8,59 @@ import com.pacbio.common.models._
 import com.pacbio.common.time.{ClockProvider, Clock}
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.slick.driver.SQLiteDriver.simple._
-import scala.slick.jdbc.meta.MTable
+import slick.driver.SQLiteDriver.api._
+import slick.jdbc.meta.MTable
+
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 /**
  * Concrete implementation of LogDao that stores stale messages in a database.
  */
-class DatabaseLogDao(databaseConfig: DatabaseConfig.Configured,
-                     clock: Clock,
-                     bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
+class DatabaseLogDao(
+    databaseConfig: DatabaseConfig.Configured,
+    clock: Clock,
+    bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
 
   private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
 
-  db withSession { implicit session =>
-    if(MTable.getTables(logMessageTable.baseTableRow.tableName).list.isEmpty) {
-      logMessageTable.ddl.create
-
-      logger.info(s"Created new Log Database with config $databaseConfig")
-    }
+  db.run(MTable.getTables(logMessageTable.baseTableRow.tableName).headOption).foreach[Any] { opt =>
+    if (opt.isEmpty) db.run(logMessageTable.schema.create)
   }
 
   override def newBuffer(id: String) = new LogBuffer with BaseJsonProtocol {
 
     override def handleStaleMessage(message: LogMessage): Unit = {
-      db withSession { implicit session =>
+      db.run {
         logMessageTable += LogMessageRow(id, message)
       }
     }
 
-    override def searchStaleMessages(criteria: SearchCriteria, limit: Int): Seq[LogMessage] = {
-      if (limit <= 0) return Nil
+    override def searchStaleMessages(criteria: SearchCriteria, limit: Int): Future[Seq[LogMessage]] = {
+      if (limit <= 0) return Future(Nil)
 
-      db withSession { implicit session =>
-        var query = logMessageTable.filter(_.id === id)
+      var query = logMessageTable.filter(_.id === id)
 
-        if (criteria.substring.isDefined)
-          query = query.filter(_.message.indexOf(criteria.substring.get) >= 0)
-        if (criteria.sourceId.isDefined)
-          query = query.filter(_.sourceId === criteria.sourceId.get)
-        if (criteria.startTime.isDefined)
-          query = query.filter(_.createdAt >= criteria.startTime.get)
-        if (criteria.endTime.isDefined)
-          query = query.filter(_.createdAt < criteria.endTime.get)
+      if (criteria.substring.isDefined)
+        query = query.filter(_.message.indexOf(criteria.substring.get) >= 0)
+      if (criteria.sourceId.isDefined)
+        query = query.filter(_.sourceId === criteria.sourceId.get)
+      if (criteria.startTime.isDefined)
+        query = query.filter(_.createdAt >= criteria.startTime.get)
+      if (criteria.endTime.isDefined)
+        query = query.filter(_.createdAt < criteria.endTime.get)
 
-        // Note, we're querying the full list of matches and then reducing to the number of required results, rather
-        // than applying a limit in the query. This is because of a bug in either Slick or the Sqlite driver that
-        // creates unnecessary aliases, which are incompatible with the ORDER By ? OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        // syntax.
-        // TODO(smcclellan): Take limit natively in query when Slick/Sqlite bug is resolved
-        query
-          .sortBy(_.createdAt.desc)
-          // .drop(0)
-          // .take(limit)
-          .run
-          .map{row => row.message}
-          .take(limit)
-          .reverse
-      }
+      query = query.sortBy(_.createdAt.desc).take(limit)
+
+      db.run(query.result)
+        .map(_.reverse)
+        .map(_.map(_.message))
     }
   }
 
   @VisibleForTesting
   def deleteAll(): Unit = {
-    db withSession { implicit session =>
-      logMessageTable.delete.run
-    }
+    db.run(logMessageTable.delete)
   }
 }
 
@@ -85,7 +73,7 @@ trait DatabaseLogDaoProvider extends LogDaoProvider {
 
   override val logDao: Singleton[LogDao] = Singleton(() =>
     new DatabaseLogDao(
-        logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
-        clock(),
-        logDaoBufferSize))
+      logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
+      clock(),
+      logDaoBufferSize))
 }
