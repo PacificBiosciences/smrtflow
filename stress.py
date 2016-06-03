@@ -9,17 +9,20 @@ import sys
 import logging
 import multiprocessing
 import time
+
 import uuid as U
-from pbcommand.cli import get_default_argparser_with_base_opts, \
-    pacbio_args_runner
+
+from pbcommand.cli import (get_default_argparser_with_base_opts, pacbio_args_runner)
 
 from pbcommand.engine import run_cmd, ExtCmdResult
 from pbcommand.services import ServiceAccessLayer
 from pbcommand.utils import setup_log
 
+from pbcore.io.dataset import openDataSet
+
 log = logging.getLogger(__name__)
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 def _run_cmd(cmd):
@@ -63,18 +66,24 @@ def _process_original_dataset(path, output_dir_prefix):
     # copy to new output dir
     # change the UUID
     basename = os.path.basename(path)
-    x = U.uuid4()
 
-    output_dir = os.path.join(output_dir_prefix, "dataset-{x}".format(x=x))
+    # overwrite the UUID
+    ds_uuid = U.uuid4()
+
+    output_dir = os.path.join(output_dir_prefix, "dataset-{x}".format(x=ds_uuid))
     os.mkdir(output_dir)
 
-    cmd = "dataset copyto {i} {o}".format(i=path, o=output_dir)
-    x = _run_cmd(cmd)
-    log.info(x)
-
+    # expected output path
     dataset_xml = os.path.join(output_dir, basename)
-    x = _run_cmd("dataset newuuid {i}".format(i=dataset_xml))
-    log.info(x)
+
+    cmd = "dataset copyto {i} {o}".format(i=path, o=output_dir)
+    _ = _run_cmd(cmd)
+
+    ds = openDataSet(dataset_xml)
+    # This is bad form.
+    ds._uuid = ds_uuid
+
+    ds.write(dataset_xml)
 
     return dataset_xml
 
