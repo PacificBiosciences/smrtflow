@@ -41,12 +41,13 @@ class Dal(val dbURI: String) {
   connectionPool.setDriverClassName("org.sqlite.JDBC")
   connectionPool.setUrl(dbURI)
   connectionPool.setInitialSize(1)
+  connectionPool.setMaxTotal(1)
   // pool prepared statements
   connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
   // enforce no auto-commit
-  connectionPool.setDefaultAutoCommit(false)
-  connectionPool.setEnableAutoCommitOnReturn(false)
+  //connectionPool.setDefaultAutoCommit(true)
+  //connectionPool.setEnableAutoCommitOnReturn(true)
 
 
   val flyway = new Flyway() {
