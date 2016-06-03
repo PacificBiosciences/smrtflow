@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import java.io.File
+import java.net.URI
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
@@ -20,6 +21,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
@@ -29,12 +31,24 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import org.flywaydb.core.Flyway
-
 import slick.driver.SQLiteDriver.api._
-
 
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
 class Dal(val dbURI: String) {
+
+  // DBCP for connection pooling and caching prepared statements for use in sqlite
+  val connectionPool = new BasicDataSource()
+  connectionPool.setDriverClassName("org.sqlite.JDBC")
+  connectionPool.setUrl(dbURI)
+  connectionPool.setInitialSize(1)
+  // pool prepared statements
+  connectionPool.setPoolPreparedStatements(true)
+  // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
+  // enforce no auto-commit
+  connectionPool.setDefaultAutoCommit(false)
+  connectionPool.setEnableAutoCommitOnReturn(false)
+
+
   val flyway = new Flyway() {
     override def migrate(): Int = {
       // lazy make directories as needed for sqlite
@@ -49,12 +63,13 @@ class Dal(val dbURI: String) {
       super.migrate()
     }
   }
-  flyway.setDataSource(dbURI, "", "")
+  flyway.setDataSource(connectionPool)
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
 
   // -1 queueSize means unlimited. This probably needs to be tuned
-  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC", executor = AsyncExecutor("db-executor", 1, -1))
+  //lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC", executor = AsyncExecutor("db-executor", 1, -1))
+  lazy val db = Database.forDataSource(connectionPool, executor = AsyncExecutor("db-executor", 1, -1))
 }
 
 trait DalProvider {
