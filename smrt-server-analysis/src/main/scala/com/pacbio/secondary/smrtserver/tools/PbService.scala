@@ -25,6 +25,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.xml.XML
 import scala.io.Source
+import scala.math._
 
 import java.net.URL
 import java.util.UUID
@@ -296,6 +297,20 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     0
   }
 
+  // TODO this is extremely general, move it somewhere central
+  protected def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
+    val columns = table.transpose
+    val widths = for ((col, header) <- columns zip headers) yield {
+      max(header.length, (for (cell <- col) yield cell.length).reduceLeft(_ min _))
+    }
+    val mkline = (row: Seq[String]) => for ((c, w) <- row zip widths) yield c.padTo(w, ' ')
+    println(mkline(headers).mkString(" "))
+    for (row <- table) {
+      println(mkline(row).mkString(" "))
+    }
+    0
+  }
+
 
   def runStatus(asJson: Boolean = false): Int = {
     Try { Await.result(sal.getStatus, TIMEOUT) } match {
@@ -336,7 +351,14 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
             }
             k += 1
           }
-        } else println(s"${records.size} records") // TODO print table
+        } else {
+          var k = 0
+          val table = for (ds <- records.reverse if k < maxItems) yield {
+            k += 1
+            Seq(ds.id.toString, ds.uuid.toString)
+          }
+          printTable(table, Seq("ID", "UUID"))
+        }
         0
       }
       case Failure(err) => {
