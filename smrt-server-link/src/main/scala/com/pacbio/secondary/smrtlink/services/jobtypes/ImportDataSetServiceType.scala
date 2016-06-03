@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
-class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
+class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
 
   import SmrtLinkJsonProtocols._
 
@@ -86,9 +86,8 @@ trait ImportDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
-    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
 }

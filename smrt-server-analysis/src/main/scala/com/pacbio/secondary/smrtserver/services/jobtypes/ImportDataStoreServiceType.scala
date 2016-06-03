@@ -27,7 +27,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class ImportDataStoreServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator)
+class ImportDataStoreServiceType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -76,9 +76,8 @@ trait ImportDataStoreServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val importDataStoreServiceType: Singleton[ImportDataStoreServiceType] =
-    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
 }

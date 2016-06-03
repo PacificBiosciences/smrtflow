@@ -26,7 +26,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -68,8 +68,6 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
                 authInfo.map(_.login)
               )).mapTo[EngineJob]
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -87,9 +85,8 @@ trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
 }

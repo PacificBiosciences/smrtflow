@@ -64,7 +64,7 @@ object ValidatorDataSetMergeServiceOptions {
 }
 
 
-class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator)
+class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
@@ -98,8 +98,6 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineM
                 engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString, authInfo.map(_.login))).mapTo[EngineJob]
               } yield engineJob
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -117,9 +115,8 @@ trait MergeDataSetServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
-    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
 }

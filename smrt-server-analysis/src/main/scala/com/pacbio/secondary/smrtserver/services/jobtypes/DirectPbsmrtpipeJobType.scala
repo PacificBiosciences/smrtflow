@@ -50,7 +50,6 @@ import spray.json._
 class DirectPbsmrtpipeJobType(
     dbActor: ActorRef,
     userActor: ActorRef,
-    engineManagerActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -176,7 +175,6 @@ trait DirectPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
@@ -184,7 +182,6 @@ trait DirectPbsmrtpipeJobTypeProvider {
     Singleton(() => new DirectPbsmrtpipeJobType(
       jobsDaoActor(),
       userServiceActorRef(),
-      engineManagerActor(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),

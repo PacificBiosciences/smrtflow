@@ -47,7 +47,6 @@ import spray.json._
 class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
     userActor: ActorRef,
-    engineManagerActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -139,8 +138,6 @@ class PbsmrtpipeServiceJobType(
                 authInfo.map(_.login)
               )).mapTo[EngineJob]
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -191,7 +188,6 @@ trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
@@ -199,7 +195,6 @@ trait PbsmrtpipeServiceJobTypeProvider {
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
       userServiceActorRef(),
-      engineManagerActor(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),

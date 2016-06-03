@@ -26,7 +26,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.http._
 
 
-class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
   import SecondaryAnalysisJsonProtocols._
 
   override val endpoint = "simple"
@@ -77,9 +77,8 @@ trait SimpleServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val simpleServiceJobType: Singleton[SimpleServiceJobType] =
-    Singleton(() => new SimpleServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new SimpleServiceJobType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
 }
