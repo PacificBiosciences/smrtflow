@@ -67,7 +67,7 @@ def PacBioProject(name: String): Project = (
       "org.apache.avro" % "avro" % "1.7.7",
       "com.github.broadinstitute" % "picard" % "1.131",
       "com.typesafe.slick" %% "slick" % "3.1.0",
-      "org.xerial" % "sqlite-jdbc" % "3.8.6",
+      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
       "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
       // added from bss
       "io.spray" % "spray-io_2.11" % sprayV,
@@ -84,7 +84,6 @@ def PacBioProject(name: String): Project = (
       "com.typesafe.akka" %% "akka-slf4j" % akkaV,
       "com.github.nscala-time" %% "nscala-time" % "1.4.0",
       "com.github.fge" % "json-schema-validator" % "2.2.5",
-      "org.xerial" % "sqlite-jdbc" % "3.8.6",
       "com.novocode" % "junit-interface" % "0.10" % "test",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
@@ -98,7 +97,8 @@ def PacBioProject(name: String): Project = (
       "org.scalaj" %% "scalaj-http" % "1.1.5",
       "org.flywaydb" % "flyway-core" % "4.0",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full,
-      "org.ini4j" % "ini4j" % "0.5.4"
+      "org.ini4j" % "ini4j" % "0.5.4",
+      "org.apache.commons" % "commons-dbcp2" % "2.0.1"
     )
     )
   )
