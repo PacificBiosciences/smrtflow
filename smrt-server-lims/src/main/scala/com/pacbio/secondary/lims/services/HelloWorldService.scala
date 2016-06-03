@@ -33,7 +33,6 @@ class HelloWorldService extends LimsService {
 }
 
 trait HelloWorldProvider extends ServiceComposer {
-  //this: LimsDaoProvider with ServiceComposer =>
 
   final val helloWorldService: Singleton[HelloWorldService] =
     Singleton(() => new HelloWorldService())
