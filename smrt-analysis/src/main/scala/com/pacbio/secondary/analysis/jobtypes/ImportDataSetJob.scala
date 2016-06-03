@@ -99,7 +99,7 @@ with MockJobUtils with timeUtils {
         "Master Log",
         "Log file of the details of the import dataset job")
 
-      val datastore = toDatastore(resources, Seq(dsFile, logFile) ++ reportFiles)
+      val datastore = toDatastore(resources, Seq(dsFile, logFile))
       val datastorePath = job.path.resolve("datastore.json")
       writeDataStore(datastore, datastorePath)
       logger.info(s"Successfully wrote datastore to $datastorePath")

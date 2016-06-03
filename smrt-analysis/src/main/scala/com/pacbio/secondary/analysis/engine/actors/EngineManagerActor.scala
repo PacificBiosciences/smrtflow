@@ -27,6 +27,14 @@ object EngineManagerActor {
 
 }
 
+trait EngineActorCore {
+  val engineConfig: EngineConfig
+  val workers: mutable.Queue[ActorRef]
+  val quickWorkers: mutable.Queue[ActorRef]
+  val jobRunner: JobRunner
+  val resolver: JobResourceResolver
+}
+
 
 /**
  * This Engine Manager is the hub of adding tasks and running tasks via workers
@@ -38,8 +46,11 @@ object EngineManagerActor {
  *
  * @param daoActor Access point for persisting state
  */
-class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolver: JobResourceResolver, jobRunner: JobRunner)
-  extends Actor with ActorLogging {
+class EngineManagerActor(val daoActor: ActorRef,
+                         val engineConfig: EngineConfig,
+                         val resolver: JobResourceResolver,
+                         val jobRunner: JobRunner)
+    extends Actor with EngineActorCore with ActorLogging {
 
   final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
 

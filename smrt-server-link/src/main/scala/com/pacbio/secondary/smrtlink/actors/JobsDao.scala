@@ -11,7 +11,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.analysis.engine.CommonMessages
+import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
 import com.pacbio.secondary.analysis.engine.EngineDao.{DataStoreComponent, JobEngineDaoComponent, JobEngineDataStore}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs._
@@ -19,6 +19,7 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.services.JobRunnerProvider
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -29,7 +30,6 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import org.flywaydb.core.Flyway
-
 import slick.driver.SQLiteDriver.api._
 
 
@@ -864,7 +864,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 }
 
-class JobsDao(val dal: Dal, val resolver: JobResourceResolver) extends JobEngineDataStore
+class JobsDao(val dal: Dal, engineConfig: EngineConfig, val resolver: JobResourceResolver, jobRunner: JobRunner) extends JobEngineDataStore
 with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
@@ -881,7 +881,7 @@ with DataSetStore {
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider =>
+  this: DalProvider with SmrtLinkConfigProvider with JobRunnerProvider =>
 
-  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobResolver()))
+  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobEngineConfig(), jobResolver(), jobRunner()))
 }

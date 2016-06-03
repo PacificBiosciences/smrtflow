@@ -4,19 +4,28 @@ import java.nio.file.{Path, Paths}
 import java.security.MessageDigest
 import java.util.UUID
 
-import akka.actor.{Props, ActorRef, ActorLogging}
-import com.pacbio.common.actors.{PacBioActor, ActorRefFactoryProvider}
+import akka.actor.{ActorLogging, ActorRef, Props}
+import akka.pattern.pipe
+import akka.util.Timeout
+
+import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFileByJobId, ImportDataStoreFile, UpdateJobStatus}
-import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreFile
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
-import com.pacbio.secondary.smrtlink.models.{Converters, ReferenceServiceDataSet, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest}
+import com.pacbio.secondary.analysis.engine.CommonMessages._
+import com.pacbio.secondary.analysis.engine.EngineConfig
+import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
+import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob, JobResourceResolver, JobRunner}
+import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest, ReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
+import scala.collection.mutable
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 object MessageTypes {
   abstract class ProjectMessage
@@ -169,9 +178,96 @@ object JobsDaoActor {
   case class GetDataStoreFilesByJobUUID(i: UUID) extends DataStoreMessage
 }
 
-class JobsDaoActor(dao: JobsDao) extends PacBioActor with ActorLogging {
+class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: JobRunner, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
 
   import JobsDaoActor._
+
+  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+
+  implicit val timeout = Timeout(5.second)
+
+  val logStatusInterval = if (engineConfig.debugMode) 1.minute else 10.minutes
+
+  //MK Probably want to have better model for this
+  val checkForWorkInterval = 2.seconds
+
+  val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
+
+  // Log the job summary. This should probably be in a health agent
+  //val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
+
+  // Keep track of workers
+  val workers = mutable.Queue[ActorRef]()
+
+  val maxNumQuickWorkers = 10
+  // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
+  val quickWorkers = mutable.Queue[ActorRef]()
+
+
+  override def preStart(): Unit = {
+    log.info(s"Starting manager actor $self with $engineConfig")
+
+    (0 until engineConfig.maxWorkers).foreach { x =>
+      val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner), s"engine-worker-$x")
+      workers.enqueue(worker)
+      log.debug(s"Creating worker $worker")
+    }
+
+    (0 until maxNumQuickWorkers).foreach { x =>
+      val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner), s"engine-quick-worker-$x")
+      quickWorkers.enqueue(worker)
+      log.debug(s"Creating Quick worker $worker")
+    }
+  }
+
+  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
+
+    if (workerQueue.nonEmpty) {
+      log.debug(s"Checking for work. Number of available Workers ${workerQueue.size}")
+      log.debug(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
+
+      // This should be extended to support a list of Status Updates, to avoid another ask call
+      // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
+      dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "")
+      dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "")
+
+      val worker = workerQueue.dequeue()
+      val outputDir = resolver.resolve(runnableJobWithId)
+
+      //MK How does the output directory get updated?
+
+      // Update jobOptions output dir
+      //daoActor ! UpdateJobOutputDir(runnableJobWithId.job.uuid, outputDir)
+      worker ! RunJob(runnableJobWithId.job, outputDir)
+
+      // Error case
+      //log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
+      //daoActor ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+    }
+  }
+
+  def checkForWork(): Unit = {
+    log.debug(s"Checking for work. Number of available Workers ${workers.size}")
+
+    if (workers.nonEmpty || quickWorkers.nonEmpty) {
+      val f = dao.getNextRunnableJobWithId
+
+      f onSuccess {
+        case Right(runnableJob) =>
+          val jobType = runnableJob.job.jobOptions.toJob.jobTypeId
+          if ((QUICK_TASK_IDS contains jobType) && quickWorkers.nonEmpty) addJobToWorker(runnableJob, quickWorkers)
+          else addJobToWorker(runnableJob, workers)
+        case Left(e) => log.debug(s"No work found. ${e.message}")
+      }
+
+      f onFailure {
+        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+      }
+    } else {
+      log.debug("No available workers.")
+    }
+  }
+
 
   def toMd5(text: String): String =
     MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
@@ -179,6 +275,64 @@ class JobsDaoActor(dao: JobsDao) extends PacBioActor with ActorLogging {
   def toE(msg: String) = throw new ResourceNotFoundError(msg)
 
   def receive: Receive = {
+
+    // From EngineDaoActor
+    // FIXME Need to remove all this boiler plate
+    //case GetAllJobs(limit) =>
+    //  sender ! dao.getJobs(limit)
+
+    case GetSystemJobSummary =>
+      dao.getJobs(1000).map { rs =>
+        val states = rs.map(_.state).toSet
+        // Summary of job states by type
+        val results = states.toList.map(x => (x, rs.count(e => e.state == x)))
+        log.debug(s"Results $results")
+        dao.getDataStoreFiles.map { dsJobFiles =>
+          log.debug(s"Number of DataStore files ${dsJobFiles.size}")
+          dsJobFiles.foreach { x => log.debug(s"DS File $x") }
+          rs.foreach { x => log.debug(s"Job result id ${x.id} -> ${x.uuid} ${x.state} ${x.jobTypeId}") }
+        }
+      }
+
+    case GetJobStatusByUUID(uuid) => dao.getJobByUUID(uuid) pipeTo sender
+
+    case AddNewJob(job) => dao.addRunnableJob(RunnableJob(job, AnalysisJobStates.CREATED))
+        .map(_ => SuccessMessage(s"Successfully added Job ${job.uuid}")) pipeTo sender
+
+    case HasNextRunnableJobWithId => dao.getNextRunnableJobWithId pipeTo sender
+
+    case UpdateJobStatus(uuid, state) =>
+      dao.updateJobStateByUUID(uuid, state) pipeTo sender
+
+    case ImportDataStoreFile(dataStoreFile, jobUUID) =>
+      log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
+      dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)) pipeTo sender
+
+    case PacBioImportDataSet(x, jobUUID) =>
+      x match {
+        case ds: DataStoreFile =>
+          log.info(s"importing dataset from $ds")
+          dao.addDataStoreFile(DataStoreJobFile(jobUUID, ds)) pipeTo sender
+
+        case ds: PacBioDataStore =>
+          log.info(s"loading files from datastore $ds")
+          val results = Future.sequence(ds.files.map { f => dao.addDataStoreFile(DataStoreJobFile(jobUUID, f)) })
+          val failures = results.map(_.map(x => x.left.toOption).filter(_.isDefined))
+          failures.map { f =>
+            if (f.nonEmpty) {
+              Left(FailedMessage(s"Failed to import datastore $failures"))
+            } else {
+              Right(SuccessMessage(s"Successfully imported files from $x"))
+            }
+          } pipeTo sender
+      }
+
+    case UpdateJobOutputDir(uuid, path) =>
+      // TODO(smcclellan): Why is this commented out? Can this message be removed?
+      //dao.updateJobOutputDir(uuid, path)
+      sender ! Right(SuccessMessage(s"Successfully updated jobOptions directory ${uuid.toString} dir ${path.toAbsolutePath}"))
+
+    // End of EngineDaoActor
 
     case GetProjects => pipeWith(dao.getProjects(1000))
     case GetProjectById(projId: Int) => pipeWith {
