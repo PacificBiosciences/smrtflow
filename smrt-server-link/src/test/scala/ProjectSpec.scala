@@ -9,10 +9,10 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.ProjectServiceProvider
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
@@ -47,20 +47,22 @@ with SmrtLinkConstants {
   val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
 
   object TestProviders extends
-  ServiceComposer with
-  ProjectServiceProvider with
-  JobsDaoActorProvider with
-  JobsDaoProvider with
-  TestDalProvider with
-  SmrtLinkConfigProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
-  AuthenticatorImplProvider with
-  JwtUtilsProvider with
-  FakeClockProvider with
-  SetBindings with
+      ServiceComposer with
+    ProjectServiceProvider with
+      SmrtLinkConfigProvider with
+      PbsmrtpipeConfigLoader with
+      EngineCoreConfigLoader with
+      JobRunnerProvider with
+      DataSetServiceProvider with
+      JobsDaoActorProvider with
+      JobsDaoProvider with
+      TestDalProvider with
+      InMemoryUserDaoProvider with
+      UserServiceActorRefProvider with
+      AuthenticatorImplProvider with
+      JwtUtilsProvider with
+      FakeClockProvider with
+      SetBindings with
   ActorRefFactoryProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.

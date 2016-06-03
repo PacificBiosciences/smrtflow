@@ -38,11 +38,9 @@ with JobServiceConstants {
   ServiceComposer with
   JobManagerServiceProvider with
   SimpleServiceJobTypeProvider with
-  JobsDaoActorProvider with
   StatusServiceActorRefProvider with
-  EngineManagerActorProvider with
-  EngineDaoActorProvider with
   JobsDaoProvider with
+      JobsDaoActorProvider with
   TestDalProvider with
   SmrtLinkConfigProvider with
   JobRunnerProvider with
