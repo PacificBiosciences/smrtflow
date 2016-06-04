@@ -101,6 +101,12 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
   }
 
+  protected def getJobReport(jobType: String, jobId: Int, reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
+  }
+
+  def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
