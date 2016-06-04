@@ -1,9 +1,5 @@
 package com.pacbio.secondary.smrtlink.client
 
-import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
@@ -62,7 +58,6 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
-  import ReportModels._
 
   object ServiceEndpoints extends ServiceEndpointsTrait
   object ServiceResourceTypes extends ServiceResourceTypesTrait
@@ -112,12 +107,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getConsensusReadSetsPipeline: HttpRequest => Future[Seq[CCSreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[CCSreadServiceDataSet]]
   def getConsensusReadSetPipeline: HttpRequest => Future[CCSreadServiceDataSet] = sendReceive ~> unmarshal[CCSreadServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
-  def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
-  // XXX this fails when createdBy is an object instead of a string
-  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
-  //def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
 
 
@@ -182,49 +173,6 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   def getConsensusReadSetById(dsId: Int): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
-  }
-
-  protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
-  }
-
-  def getAnalysisJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.PB_PIPE)
-  }
-
-  def getImportJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.IMPORT_DS)
-  }
-
-  def getMergeJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.MERGE_DS)
-  }
-
-  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.CONVERT_FASTA)
-  }
-
-  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
-    jobId match {
-      case Left(x) => getJobById(x)
-      case Right(x) => getJobByUuid(x)
-    }
-  }
-
-  def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
-  }
-
-  def getJobByUuid(jobId: UUID): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
-  }
-
-  def getJobByTypeAndId(jobType: String, jobId: Int): Future[EngineJob] = getJobPipeline {
-    Get(toJobUrl(jobType, jobId))
-  }
-
-  def getAnalysisJobById(jobId: Int): Future[EngineJob] = {
-    getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
   }
 
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
