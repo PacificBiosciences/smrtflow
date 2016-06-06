@@ -61,16 +61,16 @@ trait DataSetMerger extends LazyLogging{
   }
 
   /**
-    * Merge the Collections and BioSamples (SummaryStats not implemented)
-    *
-    *
-    * Unique-ness of Objects:
-    * CollectionMetadata (Context)
-    * BioSamples (UniqueId)
-    *
-    * @param ms
-    * @return
-    */
+   * Merge the Collections and BioSamples (SummaryStats not implemented)
+   *
+   *
+   * Unique-ness of Objects:
+   * CollectionMetadata (Context)
+   * BioSamples (UniqueId)
+   *
+   * @param ms
+   * @return
+   */
   private def mergeReadSetMetadata(ms: Seq[ReadSetMetadataType]): ReadSetMetadataType = {
 
     // merge Collections by Context (i.e., movie id)
@@ -96,15 +96,15 @@ trait DataSetMerger extends LazyLogging{
   }
 
   /**
-    * Merge subclasses for ReadSet type.
-    *
-    * See comments above about the DataSet data model which creates headaches with num records and total length
-    *
-    * @param datasets
-    * @param name
-    * @tparam T
-    * @return
-    */
+   * Merge subclasses for ReadSet type.
+   *
+   * See comments above about the DataSet data model which creates headaches with num records and total length
+   *
+   * @param datasets
+   * @param name
+   * @tparam T
+   * @return
+   */
   private def mergeReadSets[T <: ReadSetType](datasets: Seq[T], name: String): T = {
     val uuid = UUID.randomUUID()
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
@@ -154,8 +154,9 @@ trait DataSetMerger extends LazyLogging{
   def mergeAlignmentSets(datasets: Seq[AlignmentSet], name: String): AlignmentSet = merge[AlignmentSet](datasets, name)
 
 
-  private def mergeDataSetPaths[T <: DataSetType](loader: Path => T,
-                                                  merger: (Seq[T], String) => T): (Seq[Path], String) => T = { (paths, name) =>
+  private def mergeDataSetPaths[T <: DataSetType](
+      loader: Path => T,
+      merger: (Seq[T], String) => T): (Seq[Path], String) => T = { (paths, name) =>
     merger(paths.map(px => loader(px)), name)
   }
 
@@ -169,16 +170,17 @@ trait DataSetMerger extends LazyLogging{
     mergeDataSetPaths[AlignmentSet](DataSetLoader.loadAlignmentSet, mergeAlignmentSets)(paths, name)
 
   /**
-    * Merge datasets and write to an output file
-    *
-    * @param merger Merging Func
-    * @param writer Writing Func
-    * @tparam T output DataSet
-    * @return
-    */
-  private def mergeDataSetTo[T <: DataSetType](merger: (Seq[Path], String) => T,
-                                               writer: (T, Path) => T): (Seq[Path], String, Path) => T = { (paths, name, outputPath) =>
-      writer(merger(paths, name), outputPath)
+   * Merge datasets and write to an output file
+   *
+   * @param merger Merging Func
+   * @param writer Writing Func
+   * @tparam T output DataSet
+   * @return
+   */
+  private def mergeDataSetTo[T <: DataSetType](
+      merger: (Seq[Path], String) => T,
+      writer: (T, Path) => T): (Seq[Path], String, Path) => T = { (paths, name, outputPath) =>
+    writer(merger(paths, name), outputPath)
   }
 
   def mergeSubreadSetPathsTo(paths: Seq[Path], name: String, outputPath: Path): SubreadSet =

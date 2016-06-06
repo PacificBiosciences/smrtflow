@@ -40,11 +40,12 @@ object DataSetLoader extends LazyLogging{
   }
 
   /**
-    * Resolve ResourceId, externalResources and file indices
-    * @param externalResource
-    * @param path
-    * @return
-    */
+   * Resolve ResourceId, externalResources and file indices
+   *
+   * @param externalResource
+   * @param path
+   * @return
+   */
   def resolveExternalResource(externalResource: ExternalResource, path: Path): ExternalResource = {
 
     if (externalResource.getFileIndices != null) {
@@ -104,13 +105,13 @@ object DataSetLoader extends LazyLogging{
   }
 
   /**
-    * Resolve relative Paths
-    *
-    * @param ds DataSet
-    * @param rootDir root Path of resources (relative to the original DataSet XML)
-    * @tparam T
-    * @return
-    */
+   * Resolve relative Paths
+   *
+   * @param ds      DataSet
+   * @param rootDir root Path of resources (relative to the original DataSet XML)
+   * @tparam T
+   * @return
+   */
   def resolveDataSet[T <: DataSetType](ds: T, rootDir: Path): T = {
 
     val resolvedExternalResources = resolveExternalResources(ds.getExternalResources, rootDir)

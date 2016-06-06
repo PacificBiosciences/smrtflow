@@ -2,7 +2,8 @@
   "entryPoints": [
     {
       "_comment": "datasetId can be provided as the DataSet UUID or Int. The entryId can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'",
-      "datasetId": "7b4a00fb-ff06-4da2-b3e3-97f3910c06ce",
+      "_details": "this dataset is from /mnt/secondary/Share/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml",
+      "datasetId": "8b4db227-5a21-4658-8c1a-cf0f190d38e9",
       "entryId": "eid_ref_dataset",
       "fileTypeId": "PacBio.DataSet.ReferenceSet"
     }

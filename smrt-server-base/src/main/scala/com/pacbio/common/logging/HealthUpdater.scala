@@ -34,11 +34,12 @@ trait HealthUpdater {
  * @param healthActor The ActorRef where the health service actor can be found
  * @param autoLoggingFactory If present, messages will also be sent to the Log Service
  */
-class HealthUpdaterImpl(override val healthId: String,
-                        override val sourceId: String,
-                        // TODO(smcclellan): Use DAO directly, bypass actor
-                        healthActor: ActorRef,
-                        autoLoggingFactory: Option[LoggerFactory]) extends HealthUpdater {
+class HealthUpdaterImpl(
+    override val healthId: String,
+    override val sourceId: String,
+    // TODO(smcclellan): Use DAO directly, bypass actor
+    healthActor: ActorRef,
+    autoLoggingFactory: Option[LoggerFactory]) extends HealthUpdater {
 
   import HealthSeverity._
 
@@ -92,9 +93,10 @@ trait HealthUpdaterFactoryProvider {
  * @param autoLoggingFactory If present, messages will also be sent to the Log Service
  * @param healthGauges Set of records for initializing health gauges
  */
-class HealthUpdaterFactoryImpl(healthActor: ActorRef,
-                               autoLoggingFactory: Option[LoggerFactory],
-                               healthGauges: Set[HealthGaugeRecord]) extends HealthUpdaterFactory {
+class HealthUpdaterFactoryImpl(
+    healthActor: ActorRef,
+    autoLoggingFactory: Option[LoggerFactory],
+    healthGauges: Set[HealthGaugeRecord]) extends HealthUpdaterFactory {
 
   val healthGaugesById: Map[String, HealthGaugeRecord] = healthGauges.map(g => g.id -> g).toMap
   val initializedIds: mutable.Set[String] = new mutable.HashSet

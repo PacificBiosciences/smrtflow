@@ -38,21 +38,21 @@ object ReferenceInfoConverter extends LazyLogging {
 
   /**
    * Convert an old-style ReferenceEntry to a ReferenceDataset
-    *
-    * @param r Reference Entry IO
+   *
+   * @param r Reference Entry IO
    * @return
    */
   def converter(r: ReferenceEntryIO): ReferenceDatasetIO = {
     val tags = List("converted", "reference")
     val name = s"${r.record.organism}"
-   converter(r, name, tags)
+    converter(r, name, tags)
   }
 
   /**
    *
    * Convert a Reference and Set required DataSet metadata
-    *
-    * @param r
+   *
+   * @param r
    * @param name
    * @param tags
    * @return
@@ -176,8 +176,8 @@ object ReferenceInfoConverter extends LazyLogging {
 
   /**
    * This needs to be rewritten to use the XSD generated classes to write the ReferenceSet
-    *
-    * @param datasetIO
+   *
+   * @param datasetIO
    * @param path
    * @return
    */

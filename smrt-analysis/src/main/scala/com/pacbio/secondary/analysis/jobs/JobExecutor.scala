@@ -43,9 +43,10 @@ class PrinterJobResultsWriter extends JobResultWriter {
 
 class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobResultWriter {
   def writeStdout(msg: String) = stdout.append(msg)
+
   def writeStderr(msg: String) = {
-      stderr.append(msg)
-      System.err.println(msg)
+    stderr.append(msg)
+    System.err.println(msg)
   }
 }
 
@@ -119,15 +120,17 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
   implicit val timeout = Timeout(5.seconds)
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[Either[FailedMessage, SuccessMessage]] = {
-      if (ds.isChunked) {
-          Future { Right(SuccessMessage(s"skipping import of intermediate chunked file $ds")) }
-      } else {
-          (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[Either[FailedMessage, SuccessMessage]]
+    if (ds.isChunked) {
+      Future {
+        Right(SuccessMessage(s"skipping import of intermediate chunked file $ds"))
       }
+    } else {
+      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[Either[FailedMessage, SuccessMessage]]
+    }
   }
 
   private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Either[FailedMessage, SuccessMessage]] = {
-      // Filter out non-chunked files. The are presumed to be intermediate files
+    // Filter out non-chunked files. The are presumed to be intermediate files
     val fxs = dataStore.files.filter(!_.isChunked).map(x => importDataStoreFile(x, jobUUID))
     val fx = Future.sequence(fxs)
     // FIXME. Need to propagate failures here

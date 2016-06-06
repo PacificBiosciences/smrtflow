@@ -62,7 +62,7 @@ trait ReportViewRulesResourceProvider {
 
 trait ReportViewRulesServiceProvider {
   this: ReportViewRulesResourceProvider
-      with ServiceComposer =>
+    with ServiceComposer =>
 
   val reportViewRulesService: Singleton[ReportViewRulesService] =
     Singleton(() => new ReportViewRulesService(reportViewRules))

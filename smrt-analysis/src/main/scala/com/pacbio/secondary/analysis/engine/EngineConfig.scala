@@ -19,8 +19,9 @@ import scala.util.Try
  * pbRootJobDir is the root path to write job output to. The subdirectory will be created for each job type
  *
  */
-case class EngineConfig(maxWorkers: Int,
-                        pbToolsEnv: String,
-                        pbRootJobDir: String,
-                        debugMode: Boolean)
+case class EngineConfig(
+    maxWorkers: Int,
+    pbToolsEnv: String,
+    pbRootJobDir: String,
+    debugMode: Boolean)
 

@@ -101,9 +101,15 @@ trait CleanupServiceProvider {
 }
 
 trait CleanupServiceProviderx {
+<<<<<<< HEAD
   this: CleanupDaoProvider
       with AuthenticatorProvider
       with ServiceComposer =>
+=======
+  this: CleanupServiceActorRefProvider
+    with AuthenticatorProvider
+    with ServiceComposer =>
+>>>>>>> migration
 
   final val cleanupService: Singleton[CleanupService] =
     Singleton(() => new CleanupService(cleanupDao(), authenticator()))

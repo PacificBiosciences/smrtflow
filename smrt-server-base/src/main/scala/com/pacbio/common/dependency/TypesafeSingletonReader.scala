@@ -139,9 +139,11 @@ class TypesafeSingletonReader(config: Config, root: String) {
 }
 
 private[dependency] object TypesafeValueType {
-  sealed class TypesafeValueType[J, T](getter: Config => String => J,
-                                       listGetter: Config => String => java.util.List[J],
-                                       converter: J => T) {
+  sealed class TypesafeValueType[J, T](
+      getter: Config => String => J,
+      listGetter: Config => String => java.util.List[J],
+      converter: J => T) {
+
     def get(config: Config, path: String): T = converter(getter(config)(path))
 
     def getOrElse(config: Config, path: String, default: T): T =
@@ -161,21 +163,22 @@ private[dependency] object TypesafeValueType {
   case object BYTES extends TypesafeValueType[java.lang.Long, Long](_.getBytes, _.getBytesList, x => x)
   case object DOUBLE extends TypesafeValueType[java.lang.Double, Double](_.getDouble, _.getDoubleList, x => x)
   case class DURATION(u: TimeUnit) extends TypesafeValueType[java.lang.Long, FiniteDuration](
-    (c: Config) => (p: String) => c.getDuration(p, u),
-    (c: Config) => (p: String) => c.getDurationList(p, u),
-    Duration(_, u)
+      (c: Config) => (p: String) => c.getDuration(p, u),
+      (c: Config) => (p: String) => c.getDurationList(p, u),
+      Duration(_, u)
   )
   case class OBJECT[T](get: TypesafeSingletonReader => Singleton[T]) extends TypesafeValueType[T, T](
-    (c: Config) => (p: String) => get(new TypesafeSingletonReader(c, "").in(p))(),
-    (c: Config) => (p: String) => throw new UnsupportedOperationException("List form not supported for type OBJECT"),
+      (c: Config) => (p: String) => get(new TypesafeSingletonReader(c, "").in(p))(),
+      (c: Config) => (p: String) => throw new UnsupportedOperationException("List form not supported for type OBJECT"),
     x => x
   )
 }
 
-private[dependency] class TypesafeSingletonValue[T](typ: TypesafeValueType.TypesafeValueType[_, T],
-                                                    config: Config,
-                                                    path: String,
-                                                    root: String) {
+private[dependency] class TypesafeSingletonValue[T](
+    typ: TypesafeValueType.TypesafeValueType[_, T],
+    config: Config,
+    path: String,
+    root: String) {
   /**
    * Reads the value, throwing an exception if the path is not found.
    */

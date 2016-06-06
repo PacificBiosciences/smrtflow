@@ -30,20 +30,21 @@ import scala.xml.Elem
  *
  */
 
-case class MovieMetaDataRecord(cellId: String,
-                               nCells: Int,
-                               pooledSampleName: String,
-                               sampleName: String,
-                               plateName: String,
-                               instrumentId: String,
-                               instrumentName: String,
-                               runId: String,
-                               runName: String,
-                               collectionProtocol: String,
-                               primaryVersion: String,
-                               primaryProtocol: String,
-                               collectionPath: String,
-                               primaryResultsFolder: String)
+case class MovieMetaDataRecord(
+    cellId: String,
+    nCells: Int,
+    pooledSampleName: String,
+    sampleName: String,
+    plateName: String,
+    instrumentId: String,
+    instrumentName: String,
+    runId: String,
+    runName: String,
+    collectionProtocol: String,
+    primaryVersion: String,
+    primaryProtocol: String,
+    collectionPath: String,
+    primaryResultsFolder: String)
 
 object MovieMetaDataXml {
 

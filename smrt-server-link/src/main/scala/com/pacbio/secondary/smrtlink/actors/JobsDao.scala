@@ -53,7 +53,8 @@ class Dal(val dbURI: String) {
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
 
-  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC")
+  // -1 queueSize means unlimited. This probably needs to be tuned
+  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC", executor = AsyncExecutor("db-executor", 1, -1))
 }
 
 trait DalProvider {
@@ -293,9 +294,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     dal.db.run(jobEvents.filter(_.jobId === jobId).result)
 
-  def updateJobState(jobId: Int,
-                     state: AnalysisJobStates.JobStates,
-                     message: String): Future[String] = {
+  def updateJobState(
+      jobId: Int,
+      state: AnalysisJobStates.JobStates,
+      message: String): Future[String] = {
     logger.info(s"Updating job state of job-id $jobId to $state")
     val now = JodaDateTime.now()
     dal.db.run {
@@ -319,9 +321,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     f
   }
 
-  def updateJobStateByUUID(jobId: UUID,
-                           state: AnalysisJobStates.JobStates,
-                           message: String): Future[String] =
+  def updateJobStateByUUID(
+      jobId: UUID,
+      state: AnalysisJobStates.JobStates,
+      message: String): Future[String] =
     dal.db.run {
       val now = JodaDateTime.now()
       engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
@@ -340,22 +343,23 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   /**
    * This is the new interface will replace the original createJob
-    *
-    * @param uuid UUID
-   * @param name Name of job
+   *
+   * @param uuid        UUID
+   * @param name        Name of job
    * @param description This is really a comment. FIXME
-   * @param jobTypeId String of the job type identifier. This should be consistent with the
-   *                  jobTypeId defined in CoreJob
+   * @param jobTypeId   String of the job type identifier. This should be consistent with the
+   *                    jobTypeId defined in CoreJob
    * @return
    */
-  def createJob(uuid: UUID,
-                name: String,
-                description: String,
-                jobTypeId: String,
-                coreJob: CoreJob,
-                entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-                jsonSetting: String,
-                createdBy: Option[String]): Future[EngineJob] = {
+  def createJob(
+      uuid: UUID,
+      name: String,
+      description: String,
+      jobTypeId: String,
+      coreJob: CoreJob,
+      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
+      jsonSetting: String,
+      createdBy: Option[String]): Future[EngineJob] = {
 
     // This should really be Option[String]
     val path = ""
@@ -407,8 +411,22 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     dal.db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
     val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
@@ -675,13 +693,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
 
-  def _subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
+  private def subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(x.path)))))
 
 
-  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = _subreadToDetails(getSubreadDataSetById(id))
+  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = subreadToDetails(getSubreadDataSetById(id))
 
-  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _subreadToDetails(getSubreadDataSetByUUID(uuid))
+  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = subreadToDetails(getSubreadDataSetByUUID(uuid))
 
   def getSubreadDataSetByUUID(id: UUID): Future[Option[SubreadServiceDataSet]] =
     dal.db.run {
@@ -712,13 +730,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
     }
 
-  def _referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
+  private def referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(x.path)))))
 
-  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = _referenceToDetails(getReferenceDataSetById(id))
+  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = referenceToDetails(getReferenceDataSetById(id))
 
   def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
-    _referenceToDetails(getReferenceDataSetByUUID(uuid))
+    referenceToDetails(getReferenceDataSetByUUID(uuid))
 
   def getReferenceDataSetByUUID(id: UUID): Future[Option[ReferenceServiceDataSet]] =
     dal.db.run {
@@ -742,12 +760,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
 
-  def _hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
+  private def hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
     ds.map(_.map(x => DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(x.path)))))
 
-  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetById(id))
+  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetById(id))
 
-  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
+  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
 
   def getHdfDataSetByUUID(id: UUID): Future[Option[HdfSubreadServiceDataSet]] =
     dal.db.run {
@@ -755,8 +773,22 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }
 
-  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-    t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
 
   def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[AlignmentServiceDataSet]] =
     dal.db.run {
@@ -800,13 +832,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toB(x._1)))
     }
 
-  def _barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
+  private def barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
     ds.map(_.map(x => DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(x.path)))))
   }
 
-  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetById(id))
+  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetById(id))
 
-  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = _barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
+  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
 
   def toDataStoreJobFile(x: DataStoreServiceFile) =
     // This is has the wrong job uuid

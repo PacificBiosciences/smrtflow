@@ -4,7 +4,7 @@ import com.pacbio.secondary.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 
 case class SimpleDevDataStoreJobOptions(maxMockFiles: Int) extends BaseJobOptions {
-    def toJob = new SimpleDevDataStoreJob(this)
+  def toJob = new SimpleDevDataStoreJob(this)
 }
 
 /**
@@ -12,11 +12,11 @@ case class SimpleDevDataStoreJobOptions(maxMockFiles: Int) extends BaseJobOption
  * Created by mkocher on 4/28/15.
  */
 class SimpleDevDataStoreJob(opts: SimpleDevDataStoreJobOptions)
-        extends BaseCoreJob(opts: SimpleDevDataStoreJobOptions)
-        with MockJobUtils {
+  extends BaseCoreJob(opts: SimpleDevDataStoreJobOptions) with MockJobUtils {
 
   type Out = PacBioDataStore
   val jobTypeId = JobTypeId("dev_simple_datastore")
+
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
     // Just to have Data to import back into the system
     val resources = setupJobResourcesAndCreateDirs(job.path)

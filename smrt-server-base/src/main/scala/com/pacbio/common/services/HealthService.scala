@@ -1,7 +1,7 @@
 package com.pacbio.common.services
 
 import akka.util.Timeout
-import com.pacbio.common.actors.{HealthDao, HealthDaoProvider, HealthServiceActor}
+import com.pacbio.common.actors.{HealthDaoProvider, HealthDao}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator, BaseRoles}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
@@ -25,8 +25,8 @@ class HealthService(dao: HealthDao, authenticator: Authenticator)
 
   val manifest = PacBioComponentManifest(
     toServiceId("health"),
-    "Subsystem Health Service",
-    "0.2.0", "Subsystem Health Service", components)
+    "Health Service",
+    "1.0.0", "Subsystem Health Service", components)
 
   val healthServiceName = "health"
 
@@ -37,27 +37,27 @@ class HealthService(dao: HealthDao, authenticator: Authenticator)
           get {
             complete {
               ok {
-                dao.getSevereHealthGauges
+                dao.getUnhealthyMetrics
               }
             }
           }
         } ~
-        pathPrefix("gauges") {
+        pathPrefix("metrics") {
           pathEnd {
             get {
               complete {
                 ok {
-                  dao.getAllHealthGauges
+                  dao.getAllHealthMetrics
                 }
               }
             } ~
             post {
-              entity(as[HealthGaugeRecord]) { m =>
+              entity(as[HealthMetricCreateMessage]) { m =>
                 authorize(authInfo.hasPermission(HEALTH_AND_LOGS_ADMIN)) {
                   respondWithMediaType(MediaTypes.`application/json`) {
                     complete {
                       created {
-                        dao.createHealthGauge(m)
+                        dao.createHealthMetric(m)
                       }
                     }
                   }
@@ -70,25 +70,25 @@ class HealthService(dao: HealthDao, authenticator: Authenticator)
               get {
                 complete {
                   ok {
-                    dao.getHealthGauge(id)
+                    dao.getHealthMetric(id)
                   }
                 }
               }
             } ~
-            path("messages") {
+            path("updates") {
               get {
                 complete {
                   ok {
-                    dao.getAllHealthMessages(id)
+                    dao.getAllMetricUpdates(id)
                   }
                 }
               } ~
               post {
                 authorize(authInfo.hasPermission(HEALTH_AND_LOGS_WRITE)) {
-                  entity(as[HealthGaugeMessageRecord]) { m =>
+                  entity(as[HealthMetricUpdateMessage]) { m =>
                     complete {
                       created {
-                        dao.createHealthMessage(id, m)
+                        dao.updateMetric(m)
                       }
                     }
                   }
@@ -114,8 +114,8 @@ trait HealthServiceProvider {
 
 trait HealthServiceProviderx {
   this: HealthDaoProvider
-      with AuthenticatorProvider
-      with ServiceComposer =>
+    with AuthenticatorProvider
+    with ServiceComposer =>
 
   final val healthService: Singleton[HealthService] =
     Singleton(() => new HealthService(healthDao(), authenticator()))

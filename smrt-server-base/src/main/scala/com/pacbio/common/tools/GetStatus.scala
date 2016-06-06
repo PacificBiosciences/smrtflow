@@ -20,17 +20,17 @@ import scala.util.Try
 
 
 // TODO get defaults from prod.conf
-case class GetStatusConfig(host: String = "http://localhost",
-                           port: Int = 8070,
-                           uiPort: Int = -1, // optional
-                           sleepTime: Int = 5,
-                           maxRetries: Int = 3) extends LoggerConfig
+case class GetStatusConfig(
+    host: String = "http://localhost",
+    port: Int = 8070,
+    uiPort: Int = -1, // optional
+    sleepTime: Int = 5,
+    maxRetries: Int = 3) extends LoggerConfig
 
-/*
+/**
  * Get the status of SMRT services
  *
  */
-
 trait GetStatusParser {
   final val TOOL_ID = "pbscala.tools.get_status"
   final val VERSION = "0.1.0"

@@ -29,15 +29,15 @@ object EngineManagerActor {
 
 
 /**
-  * This Engine Manager is the hub of adding tasks and running tasks via workers
-  *
-  * The manager will persist data to DataAccessLayer via DAO Actor.
-  *
-  * The Manager and the Dao are split to divide responsibility. The DAO can be replaced
-  * with a InMemory or db driven implementation.
-  *
-  * @param daoActor Access point for persisting state
-  */
+ * This Engine Manager is the hub of adding tasks and running tasks via workers
+ *
+ * The manager will persist data to DataAccessLayer via DAO Actor.
+ *
+ * The Manager and the Dao are split to divide responsibility. The DAO can be replaced
+ * with a InMemory or db driven implementation.
+ *
+ * @param daoActor Access point for persisting state
+ */
 class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolver: JobResourceResolver, jobRunner: JobRunner)
   extends Actor with ActorLogging {
 

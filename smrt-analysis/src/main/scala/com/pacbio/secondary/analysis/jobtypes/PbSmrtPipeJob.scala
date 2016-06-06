@@ -18,12 +18,13 @@ import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.pbsmrtpipe._
 
 // Contain for all SmrtpipeJob 'type' options
-case class PbSmrtPipeJobOptions(pipelineId: String,
-                                entryPoints: Seq[BoundEntryPoint],
-                                taskOptions: Seq[PipelineBaseOption],
-                                workflowOptions: Seq[PipelineBaseOption],
-                                envPath: String, serviceUri: Option[URI],
-                                commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
+case class PbSmrtPipeJobOptions(
+    pipelineId: String,
+    entryPoints: Seq[BoundEntryPoint],
+    taskOptions: Seq[PipelineBaseOption],
+    workflowOptions: Seq[PipelineBaseOption],
+    envPath: String, serviceUri: Option[URI],
+    commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
 
   def toJob = new PbSmrtPipeJob(this)
 
@@ -66,12 +67,12 @@ with ExternalToolsUtils {
     // 'Raw' pbsmrtpipe Command without stderr/stdout
     // And will write the preset.xml
     val cmd = IOUtils.toCmd(
-        opts.entryPoints,
-        opts.pipelineId,
-        job.path,
-        opts.taskOptions,
-        opts.workflowOptions,
-        opts.serviceUri)
+      opts.entryPoints,
+      opts.pipelineId,
+      job.path,
+      opts.taskOptions,
+      opts.workflowOptions,
+      opts.serviceUri)
 
     writer(s"pbsmrtpipe command '$cmd'")
 

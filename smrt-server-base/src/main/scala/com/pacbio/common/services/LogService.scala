@@ -71,7 +71,7 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           path("search") {
             get {
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
-                  .as(SearchCriteria) { criteria =>
+                .as(SearchCriteria) { criteria =>
                 complete {
                   ok {
                     logDao.searchSystemLogMessages(criteria)
@@ -114,7 +114,7 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           path("search") {
             get {
               parameters('substring.?, 'sourceId.?, 'startTime.?.as[Option[Long]], 'endTime.?.as[Option[Long]])
-                  .as(SearchCriteria) { criteria =>
+                .as(SearchCriteria) { criteria =>
                 complete {
                   ok {
                     logDao.searchLogMessages(id, criteria)
@@ -140,9 +140,15 @@ trait LogServiceProvider {
 }
 
 trait LogServiceProviderx {
+<<<<<<< HEAD
   this: LogDaoProvider
       with AuthenticatorProvider
       with ServiceComposer =>
+=======
+  this: LogServiceActorRefProvider
+    with AuthenticatorProvider
+    with ServiceComposer =>
+>>>>>>> migration
 
   final val logService: Singleton[LogService] =
     Singleton(() => new LogService(logDao(), authenticator()))

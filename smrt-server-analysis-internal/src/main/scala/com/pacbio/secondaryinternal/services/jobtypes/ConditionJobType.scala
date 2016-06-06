@@ -1,3 +1,4 @@
+
 package com.pacbio.secondaryinternal.services.jobtypes
 
 import java.util.UUID
@@ -75,11 +76,11 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
   }
 
   /**
-    * Converts the raw CSV and resolves AlignmentSets paths from job ids
-    *
-    * @param record
-    * @return
-    */
+   * Converts the raw CSV and resolves AlignmentSets paths from job ids
+   *
+   * @param record
+   * @return
+   */
   def resolveConditionRecord(record: ServiceConditionCsvPipeline): Future[ReseqConditions] = {
 
     logger.info(s"Converting $record")
@@ -106,14 +107,14 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
 
 
     /**
-      * This needs to have a more robust implementation
-      *
-      * - Resolve Entry points looks for a SubreadSet and ReferenceSet
-      * - Does not valid resolved paths
-      *
-      * @param sc Service Condition
-      * @return
-      */
+     * This needs to have a more robust implementation
+     *
+     * - Resolve Entry points looks for a SubreadSet and ReferenceSet
+     * - Does not valid resolved paths
+     *
+     * @param sc Service Condition
+     * @return
+     */
     def resolve(sc: ServiceCondition): Future[ReseqCondition] = {
       for {
         sal <- Future { new AnalysisServiceAccessLayer(toUrl(sc.host, sc.port))(actorSystem)}

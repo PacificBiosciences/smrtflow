@@ -15,9 +15,10 @@ import spray.routing.RoutingSettings
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-abstract class AbstractFilesService(mimeTypes: MimeTypes)(implicit val actorSystem: ActorSystem,
-                                                          implicit val ec: ExecutionContext)
-        extends PacBioService {
+abstract class AbstractFilesService(mimeTypes: MimeTypes)(
+    implicit val actorSystem: ActorSystem,
+    implicit val ec: ExecutionContext)
+  extends PacBioService {
 
   import PacBioJsonProtocol._
   import SprayJsonSupport._
@@ -92,11 +93,11 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(implicit val actorSyst
     }
 
     def toFileResource(f: File): FileResource = FileResource(
-      f.getAbsolutePath,
-      f.getName,
-      mimeTypes(f),
-      f.length(),
-      sizeReadable(f.length()))
+        f.getAbsolutePath,
+        f.getName,
+        mimeTypes(f),
+        f.length(),
+        sizeReadable(f.length()))
 
     def toDirectoryResource(f: File): DirectoryResource = {
       val subDirectories: Seq[DirectoryResource] = f
@@ -144,9 +145,10 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(implicit val actorSyst
  * call like {{{GET /foo-files-download/bar/file.txt}}} by serving the contents of the file
  * located at {{{/foo/bar/file.txt}}}.
  */
-abstract class SimpleFilesService(mimeTypes: MimeTypes)(override implicit val actorSystem: ActorSystem,
-                                                        override implicit val ec: ExecutionContext)
-        extends AbstractFilesService(mimeTypes) {
+abstract class SimpleFilesService(mimeTypes: MimeTypes)(
+    override implicit val actorSystem: ActorSystem,
+    override implicit val ec: ExecutionContext)
+  extends AbstractFilesService(mimeTypes) {
 
   /**
    * The root directory against which incoming requests will be resolved. (Should be absolute.)
@@ -180,9 +182,10 @@ abstract class SimpleFilesService(mimeTypes: MimeTypes)(override implicit val ac
  * would handle a call like {{{GET /foo-files-download/baz-resources/file.txt}}} by serving the
  * contents of the file located at {{{/foo/baz/path/to/resources/file.txt}}}.
  */
-abstract class ViewFilesService(mimeTypes: MimeTypes)(override implicit val actorSystem: ActorSystem,
-                                                      override implicit val ec: ExecutionContext)
-        extends AbstractFilesService(mimeTypes) {
+abstract class ViewFilesService(mimeTypes: MimeTypes)(
+    override implicit val actorSystem: ActorSystem,
+    override implicit val ec: ExecutionContext)
+  extends AbstractFilesService(mimeTypes) {
 
   /**
    * The view, mapping request URI path prefixes to filesystem prefixes. (Both the URI path

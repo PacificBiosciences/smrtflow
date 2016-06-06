@@ -115,10 +115,10 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineM
 
 trait MergeDataSetServiceJobTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with JobManagerServiceProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
     Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)

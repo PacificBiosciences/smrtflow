@@ -53,5 +53,5 @@ class InMemorySmrtLinkResourceDao(resources: Set[SmrtLinkServerResource]) extend
 }
 
 trait SmrtLinkResourceDaoProvider {
-   val smrtLinkResourceDao: Singleton[SmrtLinkResourceDao]
+  val smrtLinkResourceDao: Singleton[SmrtLinkResourceDao]
 }

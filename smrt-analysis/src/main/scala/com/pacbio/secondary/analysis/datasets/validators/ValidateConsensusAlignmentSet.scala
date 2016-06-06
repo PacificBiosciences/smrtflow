@@ -8,8 +8,8 @@ import scalaz._
 import Scalaz._
 
 /**
-  * Created by mkocher on 12/1/15.
-  */
+ * Created by mkocher on 12/1/15.
+ */
 object ValidateConsensusAlignmentSet extends ValidateDataSet{
 
   type DsType = ConsensusAlignmentSet
@@ -17,11 +17,11 @@ object ValidateConsensusAlignmentSet extends ValidateDataSet{
   val supportedFileTypes:Set[FileType] = Set(FileTypes.BAM_CCS_ALN)
 
   /**
-    * Custom SubreadSet Validation
-    *
-    * @param ds
-    * @return
-    */
+   * Custom SubreadSet Validation
+   *
+   * @param ds
+   * @return
+   */
   override def validateCustom(ds: ConsensusAlignmentSet): ValidateDataSetE = {
     ds.successNel
   }

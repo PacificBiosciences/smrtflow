@@ -4,24 +4,24 @@ import scopt.OptionParser
 
 
 /**
-  * Command Line Logging options
-  *
-  * This is intended for use with the CLI parsers so that debugging and logging related flags are shared across apps.
-  *
-  * See Readme.md for details about the shared parameters and examples of use.
-  */
+ * Command Line Logging options
+ *
+ * This is intended for use with the CLI parsers so that debugging and logging related flags are shared across apps.
+ *
+ * See Readme.md for details about the shared parameters and examples of use.
+ */
 object LoggerOptions {
 
   var configured = false
 
   /**
-    * Common logger config options for SMRT server Apps.
-    *
-    * See Readme.md for details about the shared parameters and examples of use.
-    */
+   * Common logger config options for SMRT server Apps.
+   *
+   * See Readme.md for details about the shared parameters and examples of use.
+   */
   def add(parser: OptionParser[LoggerConfig]): Unit = {
 
-    parser.opt[Unit]("debug") action { (x, c) =>
+    parser.opt[Unit]("log2stdout") action { (x, c) =>
       c.configure(c.logbackFile, c.logFile, true, c.logLevel)
     } text "If true, log output will be displayed to the console. Default is false."
 
@@ -39,10 +39,10 @@ object LoggerOptions {
   }
 
   /**
-    * Helper method for cases where an App doesn't otherwise use scopt parsing
-    *
-    * @param args Command line arguments
-    */
+   * Helper method for cases where an App doesn't otherwise use scopt parsing
+   *
+   * @param args Command line arguments
+   */
   def parse(args: Seq[String]): Unit = {
     val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
       // Don't complain about args such as -jar used via command-line server execution
@@ -61,8 +61,8 @@ object LoggerOptions {
   }
 
   def parseAddDebug(args: Seq[String]): Unit = {
-    val requireOne = Set("--logfile", "--debug", "-h")
-    val v = if (args.filter(requireOne).isEmpty) args :+ "--debug" else args
+    val requireOne = Set("--logfile", "--log2stdout", "-h")
+    val v = if (args.filter(requireOne).isEmpty) args :+ "--log2stdout" else args
     parse(v)
   }
 }

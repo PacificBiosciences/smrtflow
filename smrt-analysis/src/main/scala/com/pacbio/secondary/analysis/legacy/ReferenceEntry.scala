@@ -15,28 +15,33 @@ import scala.util.Try
 import scala.xml.Elem
 import scala.io.Source
 
-case class ReferenceMetaData(description: String,
-                             maxContigLength: Int,
-                             nContigs: Int,
-                             referenceType: String,
-                             totalLength: Int)
+case class ReferenceMetaData(
+    escription: String,
+    maxContigLength: Int,
+    nContigs: Int,
+    referenceType: String,
+    totalLength: Int)
 
-case class ReferenceContig(name: String,
-                           description: String,
-                           length: Int, md5: String)
+case class ReferenceContig(
+    name: String,
+    description: String,
+    length: Int, md5: String)
 
-case class ReferenceIndexFile(indexType: String,
-                              path: String)
+case class ReferenceIndexFile(
+    indexType: String,
+    path: String)
 
-case class ReferenceEntryRecord(id: String,
-                                metadata: ReferenceMetaData,
-                                organism: String,
-                                ploidy: String,
-                                contigs: Seq[ReferenceContig])
+case class ReferenceEntryRecord(
+    id: String,
+    metadata: ReferenceMetaData,
+    organism: String,
+    ploidy: String,
+    contigs: Seq[ReferenceContig])
 
-case class ReferenceEntryIO(record: ReferenceEntryRecord,
-                            fastaFile: String,
-                            indexFiles: Seq[ReferenceIndexFile])
+case class ReferenceEntryIO(
+    record: ReferenceEntryRecord,
+    fastaFile: String,
+    indexFiles: Seq[ReferenceIndexFile])
 
 object ReferenceEntry extends PacBioFileReader[ReferenceEntryIO] {
 

@@ -85,10 +85,10 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
 
 trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
-      with AuthenticatorProvider
-      with UserServiceActorRefProvider
-      with EngineManagerActorProvider
-      with JobManagerServiceProvider =>
+    with AuthenticatorProvider
+    with UserServiceActorRefProvider
+    with EngineManagerActorProvider
+    with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
     Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)

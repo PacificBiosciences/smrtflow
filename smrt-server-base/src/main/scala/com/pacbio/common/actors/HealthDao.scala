@@ -1,166 +1,203 @@
 package com.pacbio.common.actors
 
-import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors
 import com.pacbio.common.time.{ClockProvider, Clock}
+import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**
- * Interface for the Health service DAO.
+ * DAO interface for the health metric system.
  */
 trait HealthDao {
   /**
-   * Provides a list of all health gauges.
+   * Returns a seq of all current health metrics.
    */
-  def getAllHealthGauges: Future[Seq[HealthGauge]]
+  def getAllHealthMetrics: Future[Seq[HealthMetric]]
 
   /**
-   * Gets a specific health gauge by id.
+   * Returns a health metric by id.
    */
-  def getHealthGauge(id: String): Future[HealthGauge]
+  def getHealthMetric(id: String): Future[HealthMetric]
 
   /**
-   * Create a new health gauge.
+   * Creates a new health metric.
    */
-  def createHealthGauge(m: HealthGaugeRecord): Future[String]
+  def createHealthMetric(m: HealthMetricCreateMessage): Future[HealthMetric]
 
   /**
-   * Gets the current health state of every gauge.
+   * Returns a seq of all updates to the given metric.
    */
-  def getAllHealthMessages(id: String): Future[Seq[HealthGaugeMessage]]
+  def getAllMetricUpdates(id: String): Future[Seq[HealthMetricUpdate]]
 
   /**
-   * Updates a health gauge with a new message.
+   * Updates a metric.
    */
-  def createHealthMessage(id: String, m: HealthGaugeMessageRecord): Future[HealthGaugeMessage]
+  def updateMetric(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate]
 
   /**
-   * Gets a list of the gauges that have the highest severity.
+   * Returns a seq of all metrics that are not in the OK state.
    */
-  def getSevereHealthGauges: Future[Seq[HealthGauge]]
+  def getUnhealthyMetrics: Future[Seq[HealthMetric]]
+
+  /**
+   * Recalculates the values of all metrics. (This should be called regularly, as time windows shift, stale updates must
+   * be dropped.)
+   */
+  def recalculate: Future[Unit]
 }
 
 /**
- * Provider for injecting a singleton HealthDao. Concrete providers must override the healthDao val.
+ * Provider for injecting a singleton HealthMetricDao. Concrete providers must override the healthMetricDao val.
  */
 trait HealthDaoProvider {
   /**
-   * Singleton Logging DAO object.
+   * Singleton Health Metric DAO object.
    */
   val healthDao: Singleton[HealthDao]
 }
 
-/**
- * Abstract implementation of HealthDao that manages gauges. Subclasses only need to handle messages. This is
- * done by defining an implementation of the HealthMessageHandler trait and providing these handlers via the newHandler
- * method. (See InMemoryHealthDaoComponent below for an example of how to do this.)
- */
-abstract class AbstractHealthDao(clock: Clock) extends HealthDao {
+class InMemoryHealthDao(clock: Clock) extends HealthDao {
+
+  import HealthSeverity._
   import PacBioServiceErrors._
 
-  val gauges = new mutable.HashMap[String, HealthGauge]
-  val handlers = new mutable.HashMap[String, HealthMessageHandler]
+  val nextUpdateId: AtomicLong = new AtomicLong(0)
+  val metrics: mutable.Map[String, HealthMetric] = new mutable.HashMap
+  val updates: mutable.Map[String, mutable.Buffer[HealthMetricUpdate]] = new mutable.HashMap
+  val windows: mutable.Map[String, mutable.Buffer[HealthMetricUpdate]] = new mutable.HashMap
 
-  /**
-   * A handler for incoming health messages.
-   */
-  trait HealthMessageHandler {
-    /**
-     * Returns the messages received by this handler in order. By default, this returns Nil.
-     */
-    def getAll: Future[Seq[HealthGaugeMessage]] = Future.successful(Nil)
-
-    /**
-     * Handles a new incoming message. By default, this does nothing, essentially meaning that the gauge will be
-     * updated, but the message will not be persisted.
-     */
-    def +=(message: HealthGaugeMessage): Future[Unit] = Future.successful(())
+  private def getWindow(id: String, now: JodaDateTime): mutable.Buffer[HealthMetricUpdate] = {
+    if (windows contains id) {
+      val windowSeconds = metrics(id).windowSeconds.get
+      windows(id) = windows(id).filter(_.updatedAt.plusSeconds(windowSeconds).isAfter(now))
+      windows(id)
+    } else updates(id)
   }
 
-  /**
-   * Creates a new handler for messages with the given gauge id.
-   */
-  def newHandler(id: String): HealthMessageHandler
+  private def severityByValue(severityLevels: Map[Double, HealthSeverity], value: Double): HealthSeverity =
+    severityLevels.filter(_._1 > value).maxBy(_._1)._2
 
-  override final def getAllHealthGauges: Future[Seq[HealthGauge]] = Future(gauges.values.toSeq)
+  override def getAllHealthMetrics: Future[Seq[HealthMetric]] = Future(metrics.values.toSeq)
 
-  override final def getHealthGauge(id: String): Future[HealthGauge] = Future {
-    if (gauges contains id)
-      gauges(id)
-    else
-      throw new ResourceNotFoundError(s"Unable to find resource $id")
-  }
+  override def getHealthMetric(id: String): Future[HealthMetric] =
+    Future(metrics.getOrElse(id, throw new ResourceNotFoundError(s"Unable to find metric $id")))
 
-  override final def createHealthGauge(m: HealthGaugeRecord): Future[String] = Future {
-    val id = m.id
-    if (gauges contains id)
-      throw new UnprocessableEntityError(s"Resource with id $id already exists")
-    else {
-      val newGauge =
-        HealthGauge(clock.dateNow(), "This gauge has not yet been updated", m.id, m.name, HealthSeverity.OK)
-      gauges(id) = newGauge
-      handlers(id) = newHandler(id)
-      s"Successfully created resource $id"
+  override def createHealthMetric(m: HealthMetricCreateMessage): Future[HealthMetric] = Future {
+    metrics.synchronized {
+      if (metrics contains m.id)
+        throw new UnprocessableEntityError(s"Metric with id ${m.id} already exists")
+      else {
+        val metric = HealthMetric(
+          m.id,
+          m.name,
+          m.description,
+          m.metricType,
+          m.severityLevels,
+          if (m.metricType == MetricType.LATEST) Some(0) else m.windowSeconds,
+          HealthSeverity.OK,
+          0.0,
+          clock.dateNow(),
+          updatedAt = None)
+        metrics(m.id) = metric
+        updates(m.id) = new mutable.ListBuffer
+        if (m.windowSeconds.isDefined) windows(m.id) = new mutable.ListBuffer
+        metric
+      }
     }
   }
 
-  override final def getAllHealthMessages(id: String): Future[Seq[HealthGaugeMessage]] =
-    if (handlers contains id) handlers.get(id).get.getAll else Future.successful(Nil)
+  override def getAllMetricUpdates(id: String): Future[Seq[HealthMetricUpdate]] =
+    Future(updates.getOrElse(id, throw new ResourceNotFoundError(s"Unable to find metric $id")))
 
-  override final def createHealthMessage(id: String, m: HealthGaugeMessageRecord): Future[HealthGaugeMessage] = Future {
-    if (gauges contains id) {
-      val creationTime = clock.dateNow()
-      val newGauge = HealthGauge(creationTime, m.message, id, gauges(id).name, m.severity)
-      gauges(id) = newGauge
-      val newMessage = HealthGaugeMessage(creationTime, UUID.randomUUID(), m.message, m.severity, m.sourceId)
-      handlers(id) += newMessage
-      newMessage
-    } else
-      throw new ResourceNotFoundError(s"Unable to find resource $id")
+  override def updateMetric(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate] = Future {
+    import MetricType._
+
+    if (updates contains m.id) {
+      updates(m.id).synchronized {
+        val updatedAt = clock.dateNow()
+        val metric = metrics(m.id)
+
+        val newValue: Double = metric.metricType match {
+          case LATEST => m.updateValue
+          case SUM => getWindow(m.id, updatedAt).map(_.updateValue).sum + m.updateValue
+          case AVERAGE =>
+            val ups = getWindow(m.id, updatedAt).map(_.updateValue)
+            (ups.sum + m.updateValue) / (ups.size + 1)
+          case MAX =>
+            val ups = getWindow(m.id, updatedAt).map(_.updateValue)
+            if (ups.isEmpty) m.updateValue else ups.max.max(m.updateValue)
+        }
+
+        val newSeverity = severityByValue(metric.severityLevels, newValue)
+        val update = HealthMetricUpdate(
+          m.id,
+          m.updateValue,
+          nextUpdateId.getAndIncrement(),
+          newValue,
+          newSeverity,
+          updatedAt)
+
+        updates(m.id) += update
+        if (windows contains m.id) windows(m.id) += update
+        metrics(m.id) = metrics(m.id).copy(metricValue = newValue, severity = newSeverity, updatedAt = Some(updatedAt))
+        update
+      }
+    } else throw new ResourceNotFoundError(s"Unable to find metric ${m.id}")
   }
 
-  override final def getSevereHealthGauges: Future[Seq[HealthGauge]] = Future {
-    val sortedGauges = gauges.values.toSeq.filter(_.severity > HealthSeverity.OK).sortBy(_.severity)
-    val highestGauge = sortedGauges.lastOption
-    highestGauge match {
-      case Some(gauge) => sortedGauges.filter(_.severity == gauge.severity)
-      case None => Nil
+  override def getUnhealthyMetrics: Future[Seq[HealthMetric]] =
+    Future(metrics.values.filter(_.severity != HealthSeverity.OK).toSeq)
+
+  override def recalculate: Future[Unit] = Future {
+    import MetricType._
+
+    metrics.transform { (id, m) =>
+      updates(id).synchronized {
+        val now = clock.dateNow()
+        val newValue: Double = m.metricType match {
+          case LATEST => m.metricValue
+          case SUM => getWindow(id, now).map(_.updateValue).sum
+          case AVERAGE =>
+            val ups = getWindow(id, now).map(_.updateValue)
+            if(ups.isEmpty) 0.0 else ups.sum / ups.size
+          case MAX =>
+            val ups = getWindow(id, now).map(_.updateValue)
+            if (ups.isEmpty) 0.0 else ups.max
+        }
+        val updatedAt = if (m.metricValue == newValue) m.updatedAt else Some(now)
+        val newSeverity = severityByValue(m.severityLevels, newValue)
+        m.copy(metricValue = newValue, updatedAt = updatedAt, severity = newSeverity)
+      }
     }
-  }
-}
-
-/**
- * Concrete implementation of HealthDao that stores all messages in memory.
- */
-class InMemoryHealthDao(clock: Clock) extends AbstractHealthDao(clock) {
-
-  override final def newHandler(id: String) = new HealthMessageHandler {
-    private val messages = new mutable.MutableList[HealthGaugeMessage]
-
-    override def +=(message: HealthGaugeMessage): Future[Unit] = Future(messages += message)
-
-    override def getAll: Future[Seq[HealthGaugeMessage]] = Future(messages.toSeq)
   }
 
   @VisibleForTesting
   def clear(): Unit = {
-    gauges.clear()
-    handlers.clear()
+    metrics.synchronized {
+      for (id <- metrics.keys) {
+        updates(id).synchronized {
+          metrics -= id
+          updates -= id
+          windows -= id
+        }
+      }
+    }
   }
 }
 
 /**
- * Provides an InMemoryHealthDao.
+ * Provides an InMemoryHealthMetricDao.
  */
 trait InMemoryHealthDaoProvider extends HealthDaoProvider {
   this: ClockProvider =>
 
-  override final val healthDao: Singleton[HealthDao] = Singleton(() => new InMemoryHealthDao(clock()))
+  override val healthDao: Singleton[HealthDao] = Singleton(() => new InMemoryHealthDao(clock()))
 }

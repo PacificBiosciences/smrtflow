@@ -21,20 +21,24 @@ object ReportModels {
 
   case class ReportStrAttribute(id: String, name: String, value: String) extends ReportAttribute
 
+  case class ReportDoubleAttribute(id: String, name: String, value: Double) extends ReportAttribute
+
   case class ReportPlot(id: String, image: String, caption: String)
 
   case class ReportTable(id: String, title: String, columns: JsArray)
 
-  case class ReportPlotGroup(id: String,
-                             title: String,
-                             legend: String,
-                             plots: List[ReportPlot])
+  case class ReportPlotGroup(
+      id: String,
+      title: String,
+      legend: String,
+      plots: List[ReportPlot])
 
-  case class Report(id: String,
-                    version: String,
-                    attributes: List[ReportAttribute],
-                    plotGroups: List[ReportPlotGroup],
-                    tables: List[ReportTable])
+  case class Report(
+      id: String,
+      version: String,
+      attributes: List[ReportAttribute],
+      plotGroups: List[ReportPlotGroup],
+      tables: List[ReportTable])
 
 }
 
@@ -45,18 +49,22 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
 
   implicit val reportLongAttributeFormat = jsonFormat3(ReportLongAttribute)
   implicit val reportStrAttributeFormat = jsonFormat3(ReportStrAttribute)
+  implicit val reportDoubleAttributeFormat = jsonFormat3(ReportDoubleAttribute)
   implicit object reportAttributeFormat extends JsonFormat[ReportAttribute] {
     def write(ra: ReportAttribute) = ra match {
       case rla: ReportLongAttribute => rla.toJson
       case rsa: ReportStrAttribute => rsa.toJson
+      case rda: ReportDoubleAttribute => rda.toJson
     }
 
     def read(jsonAttr: JsValue): ReportAttribute = {
       jsonAttr.asJsObject.getFields("id", "name", "value") match {
-        case Seq(JsString(id), JsString(name), JsNumber(value)) =>
-            ReportLongAttribute(id, name, value.toLong)
+        case Seq(JsString(id), JsString(name), JsNumber(value)) => {
+          if (value.isValidInt) ReportLongAttribute(id, name, value.toLong)
+          else ReportDoubleAttribute(id, name, value.toDouble)
+        }
         case Seq(JsString(id), JsString(name), JsString(value)) =>
-            ReportStrAttribute(id, name, value.toString)
+          ReportStrAttribute(id, name, value.toString)
       }
     }
   }
@@ -75,9 +83,9 @@ object MockReportUtils extends ReportJsonProtocol {
   def toReportTable: ReportTable = {
 
     def toC(id: String, nvalues: Int) = JsObject(Map(
-      "id" -> JsString(id),
-      "header" -> JsString(s"header $id"),
-      "values" -> JsArray((0 until nvalues).map(x => JsNumber(x * 2)).toVector)
+        "id" -> JsString(id),
+        "header" -> JsString(s"header $id"),
+        "values" -> JsArray((0 until nvalues).map(x => JsNumber(x * 2)).toVector)
     ))
 
     val nvalues = 10
@@ -86,10 +94,10 @@ object MockReportUtils extends ReportJsonProtocol {
     ReportTable("report_table", "report title", JsArray(cs.toVector))
   }
 
-  /*
-  Generate a pbreport-eseque task/jobOptions report of the execution
+  /**
+   * Generate a pbreport-eseque task/jobOptions report of the execution
    */
-  def toMockTaskReport(reportId: String) = {
+  def toMockTaskReport(reportId: String): Report = {
     def toI(x: String) = s"$reportId.$x"
     def toRa(i: String, n: String, v: Int) = ReportLongAttribute(i, n, v)
     val xs = Seq(("host", "Host ", 1234),

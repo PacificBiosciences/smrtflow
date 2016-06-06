@@ -30,8 +30,12 @@ import java.util.UUID
 object AnalysisServicesModels {
 
   case class CreateDataSet(path: String, datasetType: String)
-  case class CreateReferenceSet(path: String, name: String, organism: String,
-                                ploidy: String)
+
+  case class CreateReferenceSet(
+      path: String,
+      name: String,
+      organism: String,
+      ploidy: String)
 }
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
@@ -47,17 +51,72 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
   }
 
+  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
+  def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  // XXX this fails when createdBy is an object instead of a string
+  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
 
+  protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
+  }
+
+  def getAnalysisJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.PB_PIPE)
+  }
+
+  def getImportJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.IMPORT_DS)
+  }
+
+  def getMergeJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.MERGE_DS)
+  }
+
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.CONVERT_FASTA)
+  }
+
+  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
+    jobId match {
+      case Left(x) => getJobById(x)
+      case Right(x) => getJobByUuid(x)
+    }
+  }
+
+  def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
+  }
+
+  def getJobByUuid(jobId: UUID): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
+  }
+
+  def getJobByTypeAndId(jobType: String, jobId: Int): Future[EngineJob] = getJobPipeline {
+    Get(toJobUrl(jobType, jobId))
+  }
+
+  def getAnalysisJobById(jobId: Int): Future[EngineJob] = {
+    getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
+  }
+
+  protected def getJobReport(jobType: String, jobId: Int, reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
+  }
+
+  def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-         CreateDataSet(path, dsMetaType))
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
+      CreateDataSet(path, dsMetaType))
   }
 
   def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-         CreateReferenceSet(path, name, organism, ploidy))
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
+      CreateReferenceSet(path, name, organism, ploidy))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
@@ -70,8 +129,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
-         pipelineOptions)
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
+      pipelineOptions)
   }
 
   def pollForJob(jobId: UUID): Future[String] = {

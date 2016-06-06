@@ -11,12 +11,12 @@ import scala.collection.mutable
 
 
 /** This uses the pbcore.io data Model
-  *
-  * @param id The id of the sequence in the FASTA file, equal to the FASTA header up to the first whitespace.
-  * @param header The comment associated with the sequence in the FASTA file, equal to the contents of the FASTA
-  *               header following the first whitespace
-  * @param sequence DNA Sequence
-  */
+ *
+ * @param id       The id of the sequence in the FASTA file, equal to the FASTA header up to the first whitespace.
+ * @param header   The comment associated with the sequence in the FASTA file, equal to the contents of the FASTA
+ *                 header following the first whitespace
+ * @param sequence DNA Sequence
+ */
 case class FastaRecord(id: String, header: String, sequence: Seq[Char])
 
 

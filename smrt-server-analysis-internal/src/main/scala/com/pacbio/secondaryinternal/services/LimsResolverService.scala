@@ -20,10 +20,10 @@ import com.pacbio.common.services.ServiceComposer
 
 
 /**
-  * Service for SMRT Link Systems and resolving of job id -> SmrtLinkJob
-  *
-  * @param dao
-  */
+ * Service for SMRT Link Systems and resolving of job id -> SmrtLinkJob
+ *
+ * @param dao
+ */
 class LimsResolverService(dao: LimsDao) extends BaseInternalMicroService {
 
   import InternalAnalysisJsonProcotols._

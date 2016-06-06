@@ -84,8 +84,8 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
 }
 
 /**
-  * Provides an InMemoryRunDesignDao. Concrete providers must mixin a ClockProvider.
-  */
+ * Provides an InMemoryRunDesignDao. Concrete providers must mixin a ClockProvider.
+ */
 trait InMemorySampleDaoProvider extends SampleDaoProvider {
   this: ClockProvider =>
 

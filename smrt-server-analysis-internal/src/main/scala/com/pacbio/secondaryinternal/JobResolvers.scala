@@ -12,23 +12,23 @@ import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobReso
 trait JobResolvers {
 
   /**
-    * FIXME. This is basically terrible. The lack of exit points from the pipeline template
-    * Maybe this should just get the datastore files. That would be slightly less hacky
-    *
-    * @param path Root Dir of the Job
-    * @return
-    */
+   * FIXME. This is basically terrible. The lack of exit points from the pipeline template
+   * Maybe this should just get the datastore files. That would be slightly less hacky
+   *
+   * @param path Root Dir of the Job
+   * @return
+   */
   private def toAlignmentSetPath(path: Path) =
     path.resolve(Paths.get("tasks/pbalign.tasks.consolidate_alignments-0/combined.alignmentset.xml"))
 
   /**
-    * This needs to be fixed. Get the AlignmentSet by JobId. Look for task output of the form
-    *
-    * job-dir/tasks/pbalign.tasks.consolidate_bam-0/final.alignmentset.alignmentset.xml
-    *
-    * @param path Job path
-    * @return
-    */
+   * This needs to be fixed. Get the AlignmentSet by JobId. Look for task output of the form
+   *
+   * job-dir/tasks/pbalign.tasks.consolidate_bam-0/final.alignmentset.alignmentset.xml
+   *
+   * @param path Job path
+   * @return
+   */
   def findAlignmentSetInJob(path: Path): Future[Path] = {
     val alignmentSetPath = toAlignmentSetPath(path)
     //if (Files.exists(alignmentSetPath)) Future { alignmentSetPath }

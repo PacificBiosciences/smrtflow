@@ -26,8 +26,8 @@ object Modes {
 
 
 /**
-  * Created by mkocher on 12/21/15.
-  */
+ * Created by mkocher on 12/21/15.
+ */
 trait PbDataSetTools {
 
   val VERSION = "0.2.0"
@@ -43,15 +43,16 @@ trait PbDataSetTools {
   }
 
   // Fix the logLevel to be an enum. This should aim to mirror pbcommand
-  case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
-                          path: File,
-                          debug: Boolean = false,
-                          logLevel: Boolean = false,
-                          logFile: Option[File],
-                          mergeDataSetOutput: File = null,
-                          command: CustomConfig => Unit = showDefaults,
-                          host: String = "localhost",
-                          port: Int = 8070)
+  case class CustomConfig(
+      mode: Modes.Mode = Modes.UNKNOWN,
+      path: File,
+      debug: Boolean = false,
+      logLevel: Boolean = false,
+      logFile: Option[File],
+      mergeDataSetOutput: File = null,
+      command: CustomConfig => Unit = showDefaults,
+      host: String = "localhost",
+      port: Int = 8070)
 
   // There must be a better way to do this
   lazy val defaults = CustomConfig(Modes.UNKNOWN, new File("dataset.xml"), debug = false, logLevel = false, logFile = None)
@@ -76,8 +77,8 @@ trait PbDataSetTools {
     } text "Alias for setting --log-level:CRITICAL to suppress output"
 
     /**
-      * INFO Print a summary of the dataset
-      */
+     * INFO Print a summary of the dataset
+     */
     cmd(Modes.INFO.name) action { (_, c) =>
       c.copy(command = (c) => println("without " + c.path), mode = Modes.INFO)
     } children(
@@ -91,11 +92,11 @@ trait PbDataSetTools {
       ) text "PacBio DataSet summary"
 
     /**
-      * VALIDATE
-      * Validate a PacBio XML dataset
-      *
-      * TODO(mpkocher)(2016-5-3) This should validate against the XSD, not use the java classes
-      */
+     * VALIDATE
+     * Validate a PacBio XML dataset
+     *
+     * TODO(mpkocher)(2016-5-3) This should validate against the XSD, not use the java classes
+     */
     cmd(Modes.VALIDATE.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.VALIDATE)
     } children(
@@ -109,11 +110,11 @@ trait PbDataSetTools {
       ) text "Validate Description for validating a PacBio XML DataSet"
 
     /**
-      * MERGE
-      *
-      * Merge a FOFN (file of file names) of datasets and write an output DataSet
-      *
-      */
+     * MERGE
+     *
+     * Merge a FOFN (file of file names) of datasets and write an output DataSet
+     *
+     */
     cmd(Modes.MERGE.name) action { (_, c) =>
       c.copy(command = (c) => println(s"Running merge with $c"), mode = Modes.MERGE)
     } children (
@@ -130,15 +131,15 @@ trait PbDataSetTools {
       ) text "Merge Detailed Description. Merge XML Datasets from a FOFN (file of file names)"
 
     /**
-      * IMPORT
-      *
-      * Import a Dataset that is local to the exe. Must be run from a
-      * server where the system is running
-      *
-      * I think this is useful to duplicate with pbservice.
-      * Why would host ever not be localhost?
-      *
-      */
+     * IMPORT
+     *
+     * Import a Dataset that is local to the exe. Must be run from a
+     * server where the system is running
+     *
+     * I think this is useful to duplicate with pbservice.
+     * Why would host ever not be localhost?
+     *
+     */
     cmd(Modes.IMPORT.name) action { (_, c) =>
       c.copy(command = (c) => println(s"Running import with $c"), mode = Modes.IMPORT)
     } children(
@@ -168,10 +169,11 @@ object PbDataSetToolsApp extends App {
   case class InfoOpts(path: Path, debug: Boolean = false)
 
   /**
-    * Load the dataset metatype from Path
-    * @param path
-    * @return
-    */
+   * Load the dataset metatype from Path
+   *
+   * @param path
+   * @return
+   */
   def loadMetaTypeFrom(path: Path): Option[DataSetMetaType] =
     DataSetMetaTypes.toDataSetType((scala.xml.XML.loadFile(path.toFile) \ "@MetaType").text)
 
