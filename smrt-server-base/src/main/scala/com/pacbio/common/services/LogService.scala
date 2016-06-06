@@ -140,15 +140,9 @@ trait LogServiceProvider {
 }
 
 trait LogServiceProviderx {
-<<<<<<< HEAD
   this: LogDaoProvider
       with AuthenticatorProvider
       with ServiceComposer =>
-=======
-  this: LogServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
->>>>>>> migration
 
   final val logService: Singleton[LogService] =
     Singleton(() => new LogService(logDao(), authenticator()))
