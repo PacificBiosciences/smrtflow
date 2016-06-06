@@ -40,7 +40,7 @@ class Dal(val dbURI: String) {
   // DBCP for connection pooling and caching prepared statements for use in sqlite
   val connectionPool = new BasicDataSource() {
 
-    // work-around for Slick DB migrations needing 2 connections and sqlite supporting 1
+    // work-around for Flyway DB migrations needing 2 connections and sqlite supporting 1
     var cachedConnection: Connection = null
 
     override def getConnection() : Connection = {
