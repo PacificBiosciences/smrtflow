@@ -1,11 +1,11 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.jobs.JobModels._
-//import com.pacbio.secondary.smrtlink.client.ServicesClientJsonProtocol
 import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
+import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.analysis.pipelines._
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models.{ServiceStatus}
 
 import akka.actor.ActorSystem
@@ -30,6 +30,7 @@ import scala.math._
 import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
+import java.nio.file.Paths
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
@@ -96,7 +97,8 @@ object PbServiceParser {
       asJson: Boolean = false,
       pipelineId: String = "",
       jobTitle: String = "",
-      entryPoints: Seq[String] = Seq()) extends LoggerConfig
+      entryPoints: Seq[String] = Seq(),
+      presetXml: File = null) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070)
@@ -187,6 +189,9 @@ object PbServiceParser {
       opt[String]('e', "entry-point") minOccurs(1) maxOccurs(1024) action { (e, c) =>
         c.copy(entryPoints = c.entryPoints :+ e)
       } text "Entry point (must be valid PacBio DataSet)",
+      opt[File]("preset-xml") action { (x, c) =>
+        c.copy(presetXml = x)
+      } text "XML file specifying pbsmrtpipe options",
       opt[String]("job-title") action { (t, c) =>
         c.copy(jobTitle = t)
       } text "Job title (will be displayed in UI)"
@@ -242,6 +247,9 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     "PacBio.DataSet.HdfSubreadSet" -> "eid_hdfsubread",
     "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
     "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
+  private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
+    Seq[PipelineBaseOption](),
+    Seq[PipelineBaseOption]())
 
 
   // FIXME this is crude
@@ -557,7 +565,7 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   }
 
   protected def runAnalysisPipelineImpl(analysisOptions: PbSmrtPipeServiceOptions, block: Boolean = true, validate: Boolean = true): Int = {
-    println(analysisOptions)
+    //println(analysisOptions)
     var xc = 0
     if (validate) {
       xc = validatePipelineOptions(analysisOptions)
@@ -601,25 +609,81 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }
 
+  protected def getPipelinePresets(presetXml: File): PipelineTemplatePreset = {
+    if (presetXml != null) {
+      val presetPath = Paths.get(presetXml.getAbsolutePath)
+      PipelineTemplatePresetLoader.loadFrom(presetPath)
+    } else defaultPresets
+  }
+
+  protected object OptionTypes {
+    val FLOAT = "pbsmrtpipe.option_types.float"
+    val INTEGER = "pbsmrtpipe.option_types.integer"
+    val STRING = "pbsmrtpipe.option_types.string"
+    val BOOLEAN = "pbsmrtpipe.option_types.boolean"
+  }
+
+  // XXX there is a bit of a disconnect between how preset.xml is handled and
+  // how options are actually passed to services, so we need to convert them
+  // here
+  protected def getPipelineServiceOptions(jobTitle: String, pipelineId: String,
+      entryPoints: Seq[BoundServiceEntryPoint],
+      presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
+    Try {
+      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+    } match {
+      case Success(pipelineJson) => {
+        val presetOptionsLookup = (for (presetOpt <- presets.taskOptions) yield {
+          (presetOpt.id, presetOpt.value.toString)
+        }).toMap
+        // FIXME unmarshalling is broken, so this is a little hacky
+        val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
+        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
+          val template = templateOpt.asJsObject.fields
+          val optionValue = presetOptionsLookup.getOrElse(id,
+            template("default") match {
+              case JsString(x) => x
+              case JsNumber(x) => x.toString
+              case JsBoolean(x) => x.toString
+            })
+          template("optionTypeId").asInstanceOf[JsString].value match {
+            case OptionTypes.STRING => ServiceTaskStrOption(id, optionValue,
+                                                            OptionTypes.STRING)
+            case OptionTypes.INTEGER => ServiceTaskIntOption(id, optionValue.toInt, OptionTypes.INTEGER)
+            case OptionTypes.FLOAT => ServiceTaskDoubleOption(id, optionValue.toDouble, OptionTypes.FLOAT)
+            case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
+          }
+        }).toList
+        val workflowOptions = Seq[ServiceTaskOptionBase]()
+        PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
+                                 workflowOptions)
+      }
+      case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
+    }
+  }
+
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
-                  block: Boolean = true, validate: Boolean = true): Int = {
+                  presetXml: File = null, block: Boolean = true, validate: Boolean = true): Int = {
     if (entryPoints.length == 0) return errorExit("At least one entry point is required")
     var pipelineIdFull: String = pipelineId
     val idFields = pipelineIdFull.split('.')
     if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
     println(s"pipeline ID: ${pipelineIdFull}")
     if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
+    var jobTitleTmp = jobTitle
+    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
     Try {
       for (ep <- entryPoints) yield importEntryPointAutomatic(ep)
     } match {
       case Success(eps) => {
-        val taskOptions = Seq[ServiceTaskOptionBase]() // TODO
-        val workflowOptions = Seq[ServiceTaskOptionBase]()
-        var jobTitleTmp = jobTitle
-        if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
-        val pipelineOptions = PbSmrtPipeServiceOptions(
-          jobTitleTmp, pipelineIdFull, eps, taskOptions, workflowOptions)
-        runAnalysisPipelineImpl(pipelineOptions, block=block, validate=false)
+        Try {
+          getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps,
+                                    getPipelinePresets(presetXml))
+        } match {
+          case Success(pipelineOptions) => runAnalysisPipelineImpl(
+            pipelineOptions, block=block, validate=false)
+          case Failure(err) => errorExit(err.getMessage)
+        }
       }
       case Failure(err) => errorExit(err.getMessage)
     }
@@ -641,7 +705,7 @@ object PbService {
                                                     c.block)
       case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
       case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
-                                            c.jobTitle, c.block)
+                                            c.jobTitle, c.presetXml, c.block)
       case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
       case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
       case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)

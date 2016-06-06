@@ -25,10 +25,10 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    * @param x XML node
    * @return
    */
-  private def parseTaskOptions(x: xml.Elem): Seq[PipelineBaseOption] = {
+  private def parseTaskOptions(x: xml.Elem, optionsTag: String = "options"): Seq[PipelineBaseOption] = {
     // pbsmrtpipe Task Options don't have the proper type, or other metadata
     // So all options are converted to String opts
-    val taskOptions: Seq[PipelineBaseOption] = (x \ "options" \ "option")
+    val taskOptions: Seq[PipelineBaseOption] = (x \ optionsTag \ "option")
       .map(i => ((i \ "@id").text, (i \ "value").text))
       .map(z => PipelineStrOption(z._1, s"Name ${z._1}", z._2, s"Description ${z._1}"))
     taskOptions
@@ -44,12 +44,12 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    */
   def loadFrom(path: Path): PipelineTemplatePreset = {
     val x = scala.xml.XML.loadFile(path.toFile)
-    val engineOptions = parseEngineOptions(x)
-    val taskOptions = parseTaskOptions(x)
+    val engineOptions = parseTaskOptions(x, "options")
+    val taskOptions = parseTaskOptions(x, "task-options")
     val presetId = (x \ "@id").text
     val pipelineId = (x \ "@pipeline-id").text
 
-    PipelineTemplatePreset(presetId, pipelineId, taskOptions, engineOptions)
+    PipelineTemplatePreset(presetId, pipelineId, engineOptions, taskOptions)
   }
 
   /**
