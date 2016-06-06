@@ -46,7 +46,6 @@ class Dal(val dbURI: String) {
     override def getConnection() : Connection = {
       // recycle the connection if possible
       if (cachedConnection != null && !cachedConnection.isClosed) {
-        println("  Cached Conn: "+ cachedConnection+", "+cachedConnection.isClosed)
         return cachedConnection
       }
       else {
