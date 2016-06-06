@@ -96,10 +96,11 @@ def run_analysis(host, port, path):
     return _run_cmd("pbservice run-analysis --host={h} --port={p} --block {x}".format(h=host, p=port, x=path))
 
 
-def _generate_data(host, port, dataset_path, analysis_json, output_dir_prefix, ntimes):
+def _generate_data(host, port, dataset_paths, analysis_json, output_dir_prefix, ntimes):
     for x in xrange(ntimes):
         yield "get_status", host, port
-        yield "import_dataset", host, port, dataset_path, output_dir_prefix
+        for dataset_path in dataset_paths:
+            yield "import_dataset", host, port, dataset_path, output_dir_prefix
         yield "get_status", host, port
         yield "run_analysis", host, port, analysis_json
 
@@ -130,7 +131,8 @@ def run_main(host, port, nprocesses, ntimes):
         return os.path.join(os.getcwd(), rpath)
 
     # DataSet
-    dataset_path = to_p("test-data/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml")
+    referenceset_path = to_p("test-data/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml")
+    subreadset_path = to_p("test-data/smrtserver-testdata/ds-subreads/lambda/2372215/0007_micro/0007_micro/Analysis_Results/subreads.xml")
 
     # Dev Diagnostic
     analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json")
@@ -139,7 +141,11 @@ def run_main(host, port, nprocesses, ntimes):
     if not os.path.exists(output_dir_prefix):
         os.mkdir(output_dir_prefix)
 
-    xs = _generate_data(host, port, dataset_path, analysis_json, output_dir_prefix, ntimes)
+    # import referenceset with original UUID for the dev_diagnostic run
+    _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=referenceset_path))
+
+    xs = _generate_data(host, port, [referenceset_path, subreadset_path],
+                        analysis_json, output_dir_prefix, ntimes)
 
     log.info("Starting {i}".format(i=info))
 
