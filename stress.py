@@ -9,17 +9,51 @@ import sys
 import logging
 import multiprocessing
 import time
+
 import uuid as U
-from pbcommand.cli import get_default_argparser_with_base_opts, \
-    pacbio_args_runner
+
+from pbcommand.cli import (get_default_argparser_with_base_opts, pacbio_args_runner)
 
 from pbcommand.engine import run_cmd, ExtCmdResult
 from pbcommand.services import ServiceAccessLayer
 from pbcommand.utils import setup_log
 
+from pbcore.io.dataset import openDataSet
+
 log = logging.getLogger(__name__)
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
+
+
+def _process_original_dataset(path, output_dir_prefix):
+    # copy to new output dir
+    # change the UUID
+    basename = os.path.basename(path)
+
+    # overwrite the UUID
+    ds_uuid = U.uuid4()
+
+    output_dir = os.path.join(output_dir_prefix, "dataset-{x}".format(x=ds_uuid))
+    os.mkdir(output_dir)
+
+    # expected output path
+    dataset_xml = os.path.join(output_dir, basename)
+
+    cmd = "dataset copyto {i} {o}".format(i=path, o=output_dir)
+    _ = _run_cmd(cmd)
+
+    ds = openDataSet(dataset_xml)
+
+    # this is confusing, but the dataset will need a random name
+    # to break the hashing which generate the same UUID
+    ds.name = "New-dataset-{u}".format(u=ds_uuid)
+
+    # this uses the "core" attributes which will generate the uuid
+    ds.newUuid()
+
+    ds.write(dataset_xml)
+    log.info("write dataset {u} to {p}".format(u=ds_uuid, p=dataset_xml))
+    return dataset_xml
 
 
 def _run_cmd(cmd):
@@ -50,8 +84,11 @@ def get_status(host, port):
 
 
 @register
-def import_dataset(host, port, path):
-    return _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=path))
+def import_dataset(host, port, original_dataset_path, output_dir_prefix):
+    new_dataset = _process_original_dataset(original_dataset_path, output_dir_prefix)
+    ds = openDataSet(new_dataset)
+    log.info("Importing dataset {u} -> {p}".format(u=ds.uuid, p=new_dataset))
+    return _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=new_dataset))
 
 
 @register
@@ -59,30 +96,10 @@ def run_analysis(host, port, path):
     return _run_cmd("pbservice run-analysis --host={h} --port={p} --block {x}".format(h=host, p=port, x=path))
 
 
-def _process_original_dataset(path, output_dir_prefix):
-    # copy to new output dir
-    # change the UUID
-    basename = os.path.basename(path)
-    x = U.uuid4()
-
-    output_dir = os.path.join(output_dir_prefix, "dataset-{x}".format(x=x))
-    os.mkdir(output_dir)
-
-    cmd = "dataset copyto {i} {o}".format(i=path, o=output_dir)
-    x = _run_cmd(cmd)
-    log.info(x)
-
-    dataset_xml = os.path.join(output_dir, basename)
-    x = _run_cmd("dataset newuuid {i}".format(i=dataset_xml))
-    log.info(x)
-
-    return dataset_xml
-
-
 def _generate_data(host, port, dataset_path, analysis_json, output_dir_prefix, ntimes):
     for x in xrange(ntimes):
         yield "get_status", host, port
-        yield "import_dataset", host, port, _process_original_dataset(dataset_path, output_dir_prefix)
+        yield "import_dataset", host, port, dataset_path, output_dir_prefix
         yield "get_status", host, port
         yield "run_analysis", host, port, analysis_json
 

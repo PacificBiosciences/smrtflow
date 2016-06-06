@@ -1,0 +1,10 @@
+# There's also a subprocess dep on graphviz/dot.
+# linux -> apt-get install graphviz
+# osx -> brew install graphviz
+# ### Python Deps (should be installed within a virtualenv)
+# Install from github
+-e git://github.com/PacificBiosciences/pbcore.git@master#egg=pbcore
+-e git://github.com/PacificBiosciences/pbcommand.git#egg=pbcommand
+-e git://github.com/PacificBiosciences/pbcoretools.git#egg=pbcoretools
+-e git://github.com/PacificBiosciences/pbreports.git#egg=pbreports
+-e git://github.com/PacificBiosciences/pbsmrtpipe.git#egg=pbsmrtpipe

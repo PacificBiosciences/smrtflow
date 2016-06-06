@@ -21,6 +21,8 @@ object ReportModels {
 
   case class ReportStrAttribute(id: String, name: String, value: String) extends ReportAttribute
 
+  case class ReportDoubleAttribute(id: String, name: String, value: Double) extends ReportAttribute
+
   case class ReportPlot(id: String, image: String, caption: String)
 
   case class ReportTable(id: String, title: String, columns: JsArray)
@@ -47,16 +49,20 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
 
   implicit val reportLongAttributeFormat = jsonFormat3(ReportLongAttribute)
   implicit val reportStrAttributeFormat = jsonFormat3(ReportStrAttribute)
+  implicit val reportDoubleAttributeFormat = jsonFormat3(ReportDoubleAttribute)
   implicit object reportAttributeFormat extends JsonFormat[ReportAttribute] {
     def write(ra: ReportAttribute) = ra match {
       case rla: ReportLongAttribute => rla.toJson
       case rsa: ReportStrAttribute => rsa.toJson
+      case rda: ReportDoubleAttribute => rda.toJson
     }
 
     def read(jsonAttr: JsValue): ReportAttribute = {
       jsonAttr.asJsObject.getFields("id", "name", "value") match {
-        case Seq(JsString(id), JsString(name), JsNumber(value)) =>
-          ReportLongAttribute(id, name, value.toLong)
+        case Seq(JsString(id), JsString(name), JsNumber(value)) => {
+          if (value.isValidInt) ReportLongAttribute(id, name, value.toLong)
+          else ReportDoubleAttribute(id, name, value.toDouble)
+        }
         case Seq(JsString(id), JsString(name), JsString(value)) =>
           ReportStrAttribute(id, name, value.toString)
       }

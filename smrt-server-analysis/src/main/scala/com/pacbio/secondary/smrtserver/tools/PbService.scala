@@ -3,8 +3,10 @@ package com.pacbio.secondary.smrtserver.tools
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+//import com.pacbio.secondary.smrtlink.client.ServicesClientJsonProtocol
 import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.common.models.{ServiceStatus}
 
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
@@ -23,6 +25,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.xml.XML
 import scala.io.Source
+import scala.math._
 
 import java.net.URL
 import java.util.UUID
@@ -88,7 +91,8 @@ object PbServiceParser {
       organism: String = "",
       ploidy: String = "",
       maxItems: Int = 25,
-      datasetType: String = "subreads") extends LoggerConfig
+      datasetType: String = "subreads",
+      asJson: Boolean = false) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070)
@@ -111,6 +115,10 @@ object PbServiceParser {
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
     } text "Services port on smrtlink server"
+
+    opt[Unit]("json") action { (_, c) =>
+      c.copy(asJson = true)
+    } text "Display output as raw JSON"
 
     // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
@@ -234,48 +242,91 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     }
   }
 
-  def runStatus: Int = {
-    Try { Await.result(sal.getStatus, TIMEOUT) } match {
-      case Success(status) => {
-        println(s"Status ${status.message}")
-        showNumRecords("SubreadSets", () => sal.getSubreadSets)
-        showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
-        showNumRecords("ReferenceSets", () => sal.getReferenceSets)
-        showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
-        showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
-        showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
-        showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
-        showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
-        showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
-        0
+  protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
+    if (asJson) {
+      println(status.toJson.prettyPrint)
+    } else{
+      println(s"Status ${status.message}")
+      showNumRecords("SubreadSets", () => sal.getSubreadSets)
+      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
+      showNumRecords("ReferenceSets", () => sal.getReferenceSets)
+      showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
+      showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
+      showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
+      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
+      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
+      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
+    }
+    0
+  }
+
+  protected def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
+    if (asJson) println(ds.toJson.prettyPrint) else {
+      println("DATASET SUMMARY:")
+      println(s"  id: ${ds.id}")
+      println(s"  uuid: ${ds.uuid}")
+      println(s"  name: ${ds.name}")
+      println(s"  path: ${ds.path}")
+      println(s"  numRecords: ${ds.numRecords}")
+      println(s"  totalLength: ${ds.totalLength}")
+      println(s"  jobId: ${ds.jobId}")
+      println(s"  md5: ${ds.md5}")
+      println(s"  createdAt: ${ds.createdAt}")
+      println(s"  updatedAt: ${ds.updatedAt}")
+    }
+    0
+  }
+
+  protected def printJobInfo(job: EngineJob, asJson: Boolean = false): Int = {
+    if (asJson) println(job.toJson.prettyPrint) else {
+      println("JOB SUMMARY:")
+      println(s"  id: ${job.id}")
+      println(s"  uuid: ${job.uuid}")
+      println(s"  name: ${job.name}")
+      println(s"  state: ${job.state}")
+      println(s"  path: ${job.path}")
+      println(s"  jobTypeId: ${job.jobTypeId}")
+      println(s"  createdAt: ${job.createdAt}")
+      println(s"  updatedAt: ${job.updatedAt}")
+      job.createdBy match {
+        case Some(createdBy) => println(s"  createdBy: ${createdBy}")
+        case _ => println("  createdBy: none")
       }
+      println(s"  comment: ${job.comment}")
+    }
+    0
+  }
+
+  // TODO this is extremely general, move it somewhere central
+  protected def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
+    val columns = table.transpose
+    val widths = for ((col, header) <- columns zip headers) yield {
+      max(header.length, (for (cell <- col) yield cell.length).reduceLeft(_ max _))
+    }
+    val mkline = (row: Seq[String]) => for ((c, w) <- row zip widths) yield c.padTo(w, ' ')
+    println(mkline(headers).mkString(" "))
+    for (row <- table) {
+      println(mkline(row).mkString(" "))
+    }
+    0
+  }
+
+
+  def runStatus(asJson: Boolean = false): Int = {
+    Try { Await.result(sal.getStatus, TIMEOUT) } match {
+      case Success(status) => printStatus(status, asJson)
       case Failure(err) => errorExit(err.getMessage)
     }
   }
 
-  protected def printDataSetInfo(ds: DataSetMetaDataSet): Int = {
-    println("DATASET SUMMARY:")
-    println(s"  id: ${ds.id}")
-    println(s"  uuid: ${ds.uuid}")
-    println(s"  name: ${ds.name}")
-    println(s"  path: ${ds.path}")
-    println(s"  numRecords: ${ds.numRecords}")
-    println(s"  totalLength: ${ds.totalLength}")
-    println(s"  jobId: ${ds.jobId}")
-    println(s"  md5: ${ds.md5}")
-    println(s"  createdAt: ${ds.createdAt}")
-    println(s"  updatedAt: ${ds.updatedAt}")
-    0
-  }
-
-  def runGetDataSetInfo(datasetId: Either[Int, UUID]): Int = {
+  def runGetDataSetInfo(datasetId: Either[Int, UUID], asJson: Boolean = false): Int = {
     Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
-      case Success(ds) => printDataSetInfo(ds)
+      case Success(ds) => printDataSetInfo(ds, asJson)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
   }
 
-  def runGetDataSets(dsType: String, maxItems: Int): Int = {
+  def runGetDataSets(dsType: String, maxItems: Int, asJson: Boolean = false): Int = {
     Try {
       dsType match {
         case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
@@ -286,7 +337,28 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       }
     } match {
       case Success(records) => {
-        println(s"${records.size} records") // TODO print table
+        if (asJson) {
+          var k = 1
+          for (ds <- records) {
+            // XXX this is annoying - the records get interpreted as
+            // Seq[ServiceDataSetMetaData], which can't be unmarshalled
+            var sep = if (k < records.size) "," else ""
+            dsType match {
+              case "subreads" => println(ds.asInstanceOf[SubreadServiceDataSet].toJson.prettyPrint + sep)
+              case "hdfsubreads" => println(ds.asInstanceOf[HdfSubreadServiceDataSet].toJson.prettyPrint + sep)
+              case "barcodes" => println(ds.asInstanceOf[BarcodeServiceDataSet].toJson.prettyPrint + sep)
+              case "references" => println(ds.asInstanceOf[ReferenceServiceDataSet].toJson.prettyPrint + sep)
+            }
+            k += 1
+          }
+        } else {
+          var k = 0
+          val table = for (ds <- records.reverse if k < maxItems) yield {
+            k += 1
+            Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
+          }
+          printTable(table, Seq("ID", "UUID", "Name", "Path"))
+        }
         0
       }
       case Failure(err) => {
@@ -295,40 +367,23 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     }
   }
 
-  protected def printJobInfo(job: EngineJob): Int = {
-    println("JOB SUMMARY:")
-    println(s"  id: ${job.id}")
-    println(s"  uuid: ${job.uuid}")
-    println(s"  name: ${job.name}")
-    println(s"  state: ${job.state}")
-    println(s"  path: ${job.path}")
-    println(s"  jobTypeId: ${job.jobTypeId}")
-    println(s"  createdAt: ${job.createdAt}")
-    println(s"  updatedAt: ${job.updatedAt}")
-    job.createdBy match {
-      case Some(createdBy) => println(s"  createdBy: ${createdBy}")
-      case _ => println("  createdBy: none")
-    }
-    println(s"  comment: ${job.comment}")
-    0
-  }
-
-  def runGetJobInfo(jobId: Either[Int, UUID]): Int = {
+  def runGetJobInfo(jobId: Either[Int, UUID], asJson: Boolean = false): Int = {
     Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
-      case Success(job) => printJobInfo(job)
+      case Success(job) => printJobInfo(job, asJson)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
 
-  def runGetJobs(maxItems: Int): Int = {
+  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
     Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
       case Success(engineJobs) => {
-        var i = 0
-        // FIXME this is a poor approximation of the python program's output;
-        // we need proper generic table formatting
-        for (job <- engineJobs if i < maxItems) {
-          println(f"${job.id}%8d ${job.state}%10s ${job.uuid} ${job.name}")
-          i += 1
+        if (asJson) println(engineJobs.toJson.prettyPrint) else {
+          var k = 0
+          val table = for (job <- engineJobs.reverse if k < maxItems) yield {
+            k += 1
+            Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString)
+          }
+          printTable(table, Seq("ID", "State", "Name", "UUID"))
         }
         0
       }
@@ -491,21 +546,17 @@ object PbService {
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     val ps = new PbService(sal)
     val xc = c.mode match {
-      case Modes.STATUS => ps.runStatus
+      case Modes.STATUS => ps.runStatus(c.asJson)
       case Modes.IMPORT_DS => ps.runImportDataSetSafe(c.path.getAbsolutePath)
-      case Modes.IMPORT_FASTA => ps.runImportFasta(
-        c.path.getAbsolutePath,
-        c.name,
-        c.organism,
-        c.ploidy)
-      case Modes.ANALYSIS => ps.runAnalysisPipeline(
-        c.path.getAbsolutePath,
-        c.block)
+      case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
+                                                   c.name, c.organism, c.ploidy)
+      case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
+                                                    c.block)
       case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
-      case Modes.JOB => ps.runGetJobInfo(c.jobId)
-      case Modes.JOBS => ps.runGetJobs(c.maxItems)
-      case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId)
-      case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems)
+      case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
+      case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+      case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+      case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
       case _ => {
         println("Unsupported action")
         1
