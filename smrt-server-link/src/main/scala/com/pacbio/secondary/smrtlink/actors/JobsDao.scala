@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.actors
 import java.io.File
 import java.net.URI
 import java.nio.file.{Files, Paths}
+import java.sql.Connection
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
@@ -37,7 +38,23 @@ import slick.driver.SQLiteDriver.api._
 class Dal(val dbURI: String) {
 
   // DBCP for connection pooling and caching prepared statements for use in sqlite
-  val connectionPool = new BasicDataSource()
+  val connectionPool = new BasicDataSource() {
+
+    // work-around for Slick DB migrations needing 2 connections and sqlite supporting 1
+    var cachedConnection: Connection = null
+
+    override def getConnection() : Connection = {
+      // recycle the connection if possible
+      if (cachedConnection != null && !cachedConnection.isClosed) {
+        println("  Cached Conn: "+ cachedConnection+", "+cachedConnection.isClosed)
+        return cachedConnection
+      }
+      else {
+        cachedConnection = super.getConnection()
+      }
+      return cachedConnection
+    }
+  }
   connectionPool.setDriverClassName("org.sqlite.JDBC")
   connectionPool.setUrl(dbURI)
   connectionPool.setInitialSize(1)
