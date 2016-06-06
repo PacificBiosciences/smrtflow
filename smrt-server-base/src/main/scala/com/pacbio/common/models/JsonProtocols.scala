@@ -1,7 +1,6 @@
 package com.pacbio.common.models
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 import com.pacbio.common.auth.Role
 import com.pacbio.common.time.PacBioDateTimeFormat
@@ -36,13 +35,25 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait HealthSeverityProtocol extends DefaultJsonProtocol with FamilyFormats {
+trait HealthProtocols extends DefaultJsonProtocol with FamilyFormats {
 
-  implicit object HealthStatusFormat extends JsonFormat[HealthSeverity.HealthSeverity] {
+  implicit object HealthSeverityFormat extends JsonFormat[HealthSeverity.HealthSeverity] {
     def write(obj: HealthSeverity.HealthSeverity): JsValue = JsString(obj.toString)
 
     def read(json: JsValue): HealthSeverity.HealthSeverity = json match {
       case JsString(x) => HealthSeverity.healthSeverityByName(x)
+      case _ => deserializationError("Expected HealthSeverity type as JsString")
+    }
+  }
+
+  implicit object MetricTypeFormat extends JsonFormat[MetricType.MetricType] {
+    def write(obj: MetricType.MetricType): JsValue = JsString(obj.toString)
+
+    def read(json: JsValue): MetricType.MetricType = json match {
+      case JsString(x) =>
+        MetricType.ALL
+          .find(_.toString == x.toUpperCase)
+          .getOrElse(deserializationError(s"Could not find MetricType named $x"))
       case _ => deserializationError("Expected HealthSeverity type as JsString")
     }
   }
@@ -175,7 +186,7 @@ trait BaseJsonProtocol extends DefaultJsonProtocol
 with FamilyFormats
 with UUIDJsonProtocol
 with JodaDateTimeProtocol
-with HealthSeverityProtocol
+with HealthProtocols
 with LogLevelProtocol
 with RoleProtocol
 with CleanupFrequencyProtocol
@@ -190,10 +201,10 @@ with DirectoryResourceProtocol
   implicit val pbServiceConfigFormat = jsonFormat2(ServerConfig)
   implicit val pbServiceComponentFormat = jsonFormat3(ServiceComponent)
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
-  implicit val pbHealthGaugeRecordFormat = jsonFormat2(HealthGaugeRecord)
-  implicit val pbHealthGaugeFormat = jsonFormat5(HealthGauge)
-  implicit val pbHealthGaugeMessageRecordFormat = jsonFormat3(HealthGaugeMessageRecord)
-  implicit val pbHealthGaugeMessageFormat = jsonFormat5(HealthGaugeMessage)
+  implicit val pbHealthGaugeRecordFormat = jsonFormat6(HealthMetricCreateMessage)
+  implicit val pbHealthGaugeFormat = jsonFormat10(HealthMetric)
+  implicit val pbHealthGaugeMessageRecordFormat = jsonFormat2(HealthMetricUpdateMessage)
+  implicit val pbHealthGaugeMessageFormat = jsonFormat6(HealthMetricUpdate)
   implicit val pbLogResourceRecordFormat = jsonFormat3(LogResourceRecord)
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)

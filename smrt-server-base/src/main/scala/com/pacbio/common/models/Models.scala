@@ -21,6 +21,36 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
+object MetricType {
+
+  /**
+   * Supertype for different types of health metrics
+   */
+  sealed trait MetricType
+
+  /**
+   * The value of the metric is the value of the latest update
+   */
+  case object LATEST extends MetricType
+
+  /**
+   * The value of the metric is the sum of the update values
+   */
+  case object SUM extends MetricType
+
+  /**
+   * The value of the metric is determined by a running average of the update values
+   */
+  case object AVERAGE extends MetricType
+
+  /**
+   * The value of the metric is the maximum update value seen
+   */
+  case object MAX extends MetricType
+
+  val ALL = Seq(LATEST, SUM, AVERAGE, MAX)
+}
+
 object HealthSeverity {
   sealed class HealthSeverity(val severity: Int) extends Ordered[HealthSeverity] {
     def compare(s2: HealthSeverity): Int = severity compareTo s2.severity
@@ -69,13 +99,13 @@ case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, 
 
 
 // Health System
-case class HealthGaugeRecord(id: String, name: String)
+case class HealthMetricCreateMessage(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[Double, HealthSeverity.HealthSeverity], windowSeconds: Option[Int])
 
-case class HealthGauge(createdAt: JodaDateTime, description: String, id: String, name: String, severity: HealthSeverity.HealthSeverity)
+case class HealthMetric(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[Double, HealthSeverity.HealthSeverity], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, updatedAt: Option[JodaDateTime])
 
-case class HealthGaugeMessageRecord(message: String, severity: HealthSeverity.HealthSeverity, sourceId: String)
+case class HealthMetricUpdateMessage(id: String, updateValue: Double)
 
-case class HealthGaugeMessage(createdAt: JodaDateTime, uuid: UUID, message: String, severity: HealthSeverity.HealthSeverity, sourceId: String)
+case class HealthMetricUpdate(id: String, updateValue: Double, updateId: Long, metricValue: Double, severity: HealthSeverity.HealthSeverity, updatedAt: JodaDateTime)
 
 
 // Logging System
