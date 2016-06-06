@@ -34,13 +34,13 @@ object BaseSmrtServerApp
 trait CoreProviders extends
   SetBindings with
   DefaultConfigProvider with
+  DatabaseProvider with
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
   UserServiceActorRefProvider with
@@ -57,7 +57,6 @@ trait CoreProviders extends
   SubSystemComponentServiceProvider with
   SubSystemResourceServiceProvider with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
@@ -74,9 +73,8 @@ trait CoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
+  // TODO(smcclellan): Move to configs
+  override val dbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
@@ -84,12 +82,12 @@ trait CoreProviders extends
 trait AuthenticatedCoreProviders extends
   SetBindings with
   DefaultConfigProvider with
+  DatabaseProvider with
   ServiceComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
   UserServiceActorRefProvider with
@@ -106,7 +104,6 @@ trait AuthenticatedCoreProviders extends
   SubSystemComponentServiceProviderx with
   SubSystemResourceServiceProviderx with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
@@ -122,9 +119,8 @@ trait AuthenticatedCoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
+  // TODO(smcclellan): Move to configs
+  override val dbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
