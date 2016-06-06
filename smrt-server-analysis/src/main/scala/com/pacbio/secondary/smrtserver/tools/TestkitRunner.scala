@@ -79,21 +79,6 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
   import AnalysisClientJsonProtocol._
   import ReportModels._
 
-  protected def importEntryPoint(eid: String, xmlPath: String): BoundServiceEntryPoint = {
-    var dsType = dsMetaTypeFromPath(xmlPath)
-    var dsUuid = dsUuidFromPath(xmlPath)
-    var xc = runImportDataSetSafe(xmlPath)
-    if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
-    // this is stupidly inefficient
-    val dsId = Try {
-      Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT)
-    } match {
-      case Success(ds) => ds.id
-      case Failure(err) => throw new Exception(err.getMessage)
-    }
-    BoundServiceEntryPoint(eid, dsType, dsId)
-  }
-
   protected def getPipelineId(pipelineXml: String): String = {
     val xmlData = scala.xml.XML.loadFile(pipelineXml)
     (xmlData \\ "pipeline-template-preset" \\ "import-template"  \ "@id").toString

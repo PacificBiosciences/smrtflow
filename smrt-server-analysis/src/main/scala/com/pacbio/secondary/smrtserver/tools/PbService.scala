@@ -43,6 +43,7 @@ object Modes {
   case object IMPORT_FASTA extends Mode {val name = "import-fasta"}
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
+  case object PIPELINE extends Mode {val name = "run-pipeline"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
   case object DATASET extends Mode {val name = "get-dataset"}
@@ -92,7 +93,10 @@ object PbServiceParser {
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
-      asJson: Boolean = false) extends LoggerConfig
+      asJson: Boolean = false,
+      pipelineId: String = "",
+      jobTitle: String = "",
+      entryPoints: Seq[String] = Seq()) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070)
@@ -174,6 +178,20 @@ object PbServiceParser {
     } children(
     ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
 
+    cmd(Modes.PIPELINE.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.PIPELINE)
+    } children(
+      arg[String]("pipeline-id") required() action { (p, c) =>
+        c.copy(pipelineId = p)
+      } text "Pipeline ID to run",
+      opt[String]('e', "entry-point") minOccurs(1) maxOccurs(1024) action { (e, c) =>
+        c.copy(entryPoints = c.entryPoints :+ e)
+      } text "Entry point (must be valid PacBio DataSet)",
+      opt[String]("job-title") action { (t, c) =>
+        c.copy(jobTitle = t)
+      } text "Job title (will be displayed in UI)"
+    ) text "Run a pbsmrtpipe pipeline by name on the server"
+
     cmd(Modes.JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOB)
     } children(
@@ -217,11 +235,24 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   import AnalysisClientJsonProtocol._
 
   protected val TIMEOUT = 10 seconds
+  private lazy val entryPointsLookup = Map(
+    "PacBio.DataSet.SubreadSet" -> "eid_subread",
+    "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
+    "PacBio.DataSet.BarcodeSet" -> "eid_barcode",
+    "PacBio.DataSet.HdfSubreadSet" -> "eid_hdfsubread",
+    "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
+    "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
+
 
   // FIXME this is crude
   protected def errorExit(msg: String): Int = {
     println(msg)
     1
+  }
+
+  protected def printMsg(msg: String): Int = {
+    println(msg)
+    0
   }
 
   protected def dsMetaTypeFromPath(path: String): String = {
@@ -493,16 +524,8 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     runAnalysisPipelineImpl(analysisOptions, block)
   }
 
-  protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
-    Try {
-      Await.result(sal.getPipelineTemplateJson(analysisOptions.pipelineId), TIMEOUT)
-    } match {
-      case Success(x) => println(s"Found pipeline template ${analysisOptions.pipelineId}")
-      case Failure(err) => {
-        return errorExit(s"Can't find pipeline template ${analysisOptions.pipelineId}: ${err.getMessage}")
-      }
-    }
-    for (entryPoint: BoundServiceEntryPoint <- analysisOptions.entryPoints) {
+  protected def validateEntryPoints(entryPoints: Seq[BoundServiceEntryPoint]): Int = {
+    for (entryPoint <- entryPoints) {
       Try {
         Await.result(sal.getDataSetById(entryPoint.datasetId), TIMEOUT)
       } match {
@@ -517,6 +540,20 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       }
     }
     0
+  }
+
+  protected def validatePipelineId(pipelineId: String): Int = {
+    Try {
+      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+    } match {
+      case Success(x) => printMsg(s"Found pipeline template ${pipelineId}")
+      case Failure(err) => errorExit(s"Can't find pipeline template ${pipelineId}: ${err.getMessage}\nUse 'pbsmrtpipe show-templates' to display a list of available pipelines")
+    }
+  }
+
+  protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
+    max(validatePipelineId(analysisOptions.pipelineId),
+        validateEntryPoints(analysisOptions.entryPoints))
   }
 
   protected def runAnalysisPipelineImpl(analysisOptions: PbSmrtPipeServiceOptions, block: Boolean = true, validate: Boolean = true): Int = {
@@ -537,6 +574,56 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       case Failure(err) => errorExit(err.getMessage)
     }
   }
+
+  protected def importEntryPoint(eid: String, xmlPath: String): BoundServiceEntryPoint = {
+    var dsType = dsMetaTypeFromPath(xmlPath)
+    var dsUuid = dsUuidFromPath(xmlPath)
+    var xc = runImportDataSetSafe(xmlPath)
+    if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
+    // this is stupidly inefficient
+    val dsId = Try {
+      Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT)
+    } match {
+      case Success(ds) => ds.id
+      case Failure(err) => throw new Exception(err.getMessage)
+    }
+    BoundServiceEntryPoint(eid, dsType, dsId)
+  }
+
+  protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
+    val epFields = entryPoint.split(':')
+    if (epFields.length == 2) importEntryPoint(epFields(0), epFields(1))
+    else if (epFields.length == 1) {
+      val xmlPath = epFields(0)
+      val dsType = dsMetaTypeFromPath(xmlPath)
+      val eid = entryPointsLookup(dsType)
+      importEntryPoint(eid, xmlPath)
+    } else throw new Exception(s"Can't interpret argument ${entryPoint}")
+  }
+
+  def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
+                  block: Boolean = true, validate: Boolean = true): Int = {
+    if (entryPoints.length == 0) return errorExit("At least one entry point is required")
+    var pipelineIdFull: String = pipelineId
+    val idFields = pipelineIdFull.split('.')
+    if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
+    println(s"pipeline ID: ${pipelineIdFull}")
+    if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
+    Try {
+      for (ep <- entryPoints) yield importEntryPointAutomatic(ep)
+    } match {
+      case Success(eps) => {
+        val taskOptions = Seq[ServiceTaskOptionBase]() // TODO
+        val workflowOptions = Seq[ServiceTaskOptionBase]()
+        var jobTitleTmp = jobTitle
+        if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
+        val pipelineOptions = PbSmrtPipeServiceOptions(
+          jobTitleTmp, pipelineIdFull, eps, taskOptions, workflowOptions)
+        runAnalysisPipelineImpl(pipelineOptions, block=block, validate=false)
+      }
+      case Failure(err) => errorExit(err.getMessage)
+    }
+  }
 }
 
 object PbService {
@@ -553,6 +640,8 @@ object PbService {
       case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
                                                     c.block)
       case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+      case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
+                                            c.jobTitle, c.block)
       case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
       case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
       case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
