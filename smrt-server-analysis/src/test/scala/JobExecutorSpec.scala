@@ -24,87 +24,9 @@ import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
 
-class JobExecutorSpec extends Specification
-with Specs2RouteTest
-with SetupMockData
-with JobServiceConstants {
-
-  // TODO(smcclellan): This test succeeds when run on its own, but fails when run with other tests, even though parallelExecution is disabled???
-  sequential
+class JobExecutorSpec extends JobExecutorSpecBase {
 
   import SecondaryAnalysisJsonProtocols._
-
-  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
-
-  val INVALID_JWT = "invalid.jwt"
-
-  object TestProviders extends
-  ServiceComposer with
-  JobManagerServiceProvider with
-  MockPbsmrtpipeJobTypeProvider with
-  SimpleServiceJobTypeProvider with
-  JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
-  EngineManagerActorProvider with
-  EngineDaoActorProvider with
-  JobsDaoProvider with
-  TestDalProvider with
-  SmrtLinkConfigProvider with
-  JobRunnerProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
-  AuthenticatorImplProvider with
-  JwtUtilsProvider with
-  LogServiceActorRefProvider with
-  InMemoryLogDaoProvider with
-  ActorSystemProvider with
-  ConfigProvider with
-  FakeClockProvider with
-  SetBindings {
-
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
-    })
-
-    override val config: Singleton[Config] = Singleton(testConfig)
-    override val actorSystem: Singleton[ActorSystem] = Singleton(system)
-    override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
-    override val baseServiceId: Singleton[String] = Singleton("test-service")
-    override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
-  }
-
-  override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
-  val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
-
-  def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
-
-  val mockOpts = {
-    val ep = BoundServiceEntryPoint("e_01", "DataSet.Subread.", 1)
-    val eps = Seq(ep)
-    val taskOptions = Seq[ServiceTaskOptionBase]()
-    val workflowOptions = Seq[ServiceTaskOptionBase]()
-    PbSmrtPipeServiceOptions(
-      "My-job-name",
-      "pbsmrtpipe.pipelines.mock_dev01",
-      eps,
-      taskOptions,
-      workflowOptions)
-  }
-
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
-    runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
-  }
-
-  textFragment("creating database tables")
-  step(dbSetup())
 
   "Job Execution Status" should {
     "job execution status" in {
