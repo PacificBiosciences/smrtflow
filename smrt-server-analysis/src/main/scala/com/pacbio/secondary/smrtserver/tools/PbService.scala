@@ -139,7 +139,7 @@ object PbServiceParser {
     } children(
       arg[File]("dataset-path") required() action { (p, c) =>
         c.copy(path = p)
-      } text "DataSet XML path"
+      } text "DataSet XML path (or directory containing datasets)"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -512,6 +512,30 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     }
   }
 
+  private def listDataSetFiles(f: File): Array[File] = {
+      (f.listFiles.filter((fn) =>
+        Try {
+          dsMetaTypeFromPath(fn.getAbsolutePath)
+        } match {
+          case Success(dsType) => true
+          case _ => false
+        })
+      ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
+  }
+
+  def runImportDataSets(f: File): Int = {
+    if (f.isDirectory) {
+      val xmlFiles = listDataSetFiles(f)
+      if (xmlFiles.size == 0) {
+        errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
+      } else {
+        println(s"Found ${xmlFiles.size} DataSet XML files")
+        (for (xml <- xmlFiles) yield runImportDataSet(xml.getAbsolutePath)).toList.max
+      }
+    } else if (f.isFile) runImportDataSet(f.getAbsolutePath)
+    else errorExit(s"${f.getAbsolutePath} is not readable")
+  }
+
   def runEmitAnalysisTemplate: Int = {
     val analysisOpts = {
       val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", 1)
@@ -704,7 +728,7 @@ object PbService {
     val ps = new PbService(sal)
     val xc = c.mode match {
       case Modes.STATUS => ps.runStatus(c.asJson)
-      case Modes.IMPORT_DS => ps.runImportDataSetSafe(c.path.getAbsolutePath)
+      case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
       case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
                                                    c.name, c.organism, c.ploidy)
       case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
