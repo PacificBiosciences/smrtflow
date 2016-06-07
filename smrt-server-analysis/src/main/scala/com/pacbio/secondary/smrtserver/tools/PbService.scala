@@ -4,6 +4,7 @@ import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,Analys
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models.{ServiceStatus}
@@ -138,7 +139,7 @@ object PbServiceParser {
     } children(
       arg[File]("dataset-path") required() action { (p, c) =>
         c.copy(path = p)
-      } text "DataSet XML path"
+      } text "DataSet XML path (or directory containing datasets)"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -153,7 +154,7 @@ object PbServiceParser {
         if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
         }
       } text "FASTA path",
-      arg[String]("reference-name") action { (name, c) =>
+      opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
       } text "Name of ReferenceSet",
       opt[String]("organism") action { (organism, c) =>
@@ -231,6 +232,11 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
   }
 }
 
@@ -444,31 +450,36 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       path: String, name: String,
       organism: String,
       ploidy: String): Int = {
-    Try {
-      Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
-    } match {
-      case Success(job: EngineJob) => {
-        println(job)
-        waitForJob(job.uuid) match {
-          case 0 => {
-            Try {
-              Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
-            } match {
-              case Success(dataStoreFiles) => {
-                for (dsFile <- dataStoreFiles) {
-                  if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                    return runGetDataSetInfo(Right(dsFile.uuid))
+    var nameFinal = name
+    if (name == "") nameFinal = "unknown" // this really shouldn't be optional
+    PacBioFastaValidator(Paths.get(path)) match {
+      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case _ => Try {
+        Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
+      } match {
+        case Success(job: EngineJob) => {
+          println(job)
+          waitForJob(job.uuid) match {
+            case 0 => {
+              Try {
+                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+              } match {
+                case Success(dataStoreFiles) => {
+                  for (dsFile <- dataStoreFiles) {
+                    if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
+                      return runGetDataSetInfo(Right(dsFile.uuid))
+                    }
                   }
+                  errorExit("Couldn't find ReferenceSet")
                 }
-                errorExit("Couldn't find ReferenceSet")
+                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
               }
-              case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
             }
+            case x => x
           }
-          case x => x
         }
+        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
       }
-      case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
     }
   }
 
@@ -504,6 +515,30 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
         errorExit(s"Dataset import failed: ${err}")
       }
     }
+  }
+
+  private def listDataSetFiles(f: File): Array[File] = {
+      (f.listFiles.filter((fn) =>
+        Try {
+          dsMetaTypeFromPath(fn.getAbsolutePath)
+        } match {
+          case Success(dsType) => true
+          case _ => false
+        })
+      ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
+  }
+
+  def runImportDataSets(f: File): Int = {
+    if (f.isDirectory) {
+      val xmlFiles = listDataSetFiles(f)
+      if (xmlFiles.size == 0) {
+        errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
+      } else {
+        println(s"Found ${xmlFiles.size} DataSet XML files")
+        (for (xml <- xmlFiles) yield runImportDataSet(xml.getAbsolutePath)).toList.max
+      }
+    } else if (f.isFile) runImportDataSet(f.getAbsolutePath)
+    else errorExit(s"${f.getAbsolutePath} is not readable")
   }
 
   def runEmitAnalysisTemplate: Int = {
@@ -698,7 +733,7 @@ object PbService {
     val ps = new PbService(sal)
     val xc = c.mode match {
       case Modes.STATUS => ps.runStatus(c.asJson)
-      case Modes.IMPORT_DS => ps.runImportDataSetSafe(c.path.getAbsolutePath)
+      case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
       case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
                                                    c.name, c.organism, c.ploidy)
       case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,

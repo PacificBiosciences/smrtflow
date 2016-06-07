@@ -73,6 +73,11 @@ object TestkitParser {
     opt[Int]("only-tests") action { (i, c) =>
       c.copy(testJobId = i)
     } text "Just run tests on the specified (completed) job ID"
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
   }
 }
 
