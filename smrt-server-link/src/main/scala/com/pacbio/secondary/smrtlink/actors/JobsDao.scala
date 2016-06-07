@@ -37,6 +37,8 @@ import slick.driver.SQLiteDriver.api._
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
 class Dal(val dbURI: String) {
 
+  // flag for use when Flyway migrations running on sqlite
+  var migrating: Boolean = false
   // DBCP for connection pooling and caching prepared statements for use in sqlite
   val connectionPool = new BasicDataSource() {
 
@@ -45,7 +47,7 @@ class Dal(val dbURI: String) {
 
     override def getConnection() : Connection = {
       // recycle the connection if possible
-      if (cachedConnection != null && !cachedConnection.isClosed) {
+      if (migrating && cachedConnection != null && !cachedConnection.isClosed) {
         return cachedConnection
       }
       else {
@@ -62,22 +64,28 @@ class Dal(val dbURI: String) {
   connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
   // enforce no auto-commit
-  //connectionPool.setDefaultAutoCommit(true)
+  //connectionPool.setDefaultAutoCommit(false)
   //connectionPool.setEnableAutoCommitOnReturn(true)
 
 
   val flyway = new Flyway() {
     override def migrate(): Int = {
-      // lazy make directories as needed for sqlite
-      if (dbURI.startsWith("jdbc:sqlite:")) {
-        val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
-        if (file.getParent != null) {
-          val dir = file.getParent.toFile
-          if (!dir.exists()) dir.mkdirs()
+      try {
+        migrating = true
+        // lazy make directories as needed for sqlite
+        if (dbURI.startsWith("jdbc:sqlite:")) {
+          val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
+          if (file.getParent != null) {
+            val dir = file.getParent.toFile
+            if (!dir.exists()) dir.mkdirs()
+          }
         }
-      }
 
-      super.migrate()
+        super.migrate()
+      }
+      finally {
+        migrating = false
+      }
     }
   }
   flyway.setDataSource(connectionPool)
@@ -101,12 +109,8 @@ trait SmrtLinkDalProvider extends DalProvider {
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val dal: Singleton[Dal] = Singleton(() => {
-    val dbFile = File.createTempFile("test_dal_", ".db")
-    dbFile.deleteOnExit()
-
-    val dbURI = s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared"
-
-    new Dal(dbURI)
+    // in-memory DB for tests
+    new Dal(dbURI = "jdbc:sqlite:")
   })
 }
 
