@@ -4,6 +4,7 @@ import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,Analys
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models.{ServiceStatus}
@@ -153,7 +154,7 @@ object PbServiceParser {
         if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
         }
       } text "FASTA path",
-      arg[String]("reference-name") action { (name, c) =>
+      opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
       } text "Name of ReferenceSet",
       opt[String]("organism") action { (organism, c) =>
@@ -444,31 +445,36 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       path: String, name: String,
       organism: String,
       ploidy: String): Int = {
-    Try {
-      Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
-    } match {
-      case Success(job: EngineJob) => {
-        println(job)
-        waitForJob(job.uuid) match {
-          case 0 => {
-            Try {
-              Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
-            } match {
-              case Success(dataStoreFiles) => {
-                for (dsFile <- dataStoreFiles) {
-                  if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                    return runGetDataSetInfo(Right(dsFile.uuid))
+    var nameFinal = name
+    if (name == "") nameFinal = "unknown" // this really shouldn't be optional
+    PacBioFastaValidator(Paths.get(path)) match {
+      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case _ => Try {
+        Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
+      } match {
+        case Success(job: EngineJob) => {
+          println(job)
+          waitForJob(job.uuid) match {
+            case 0 => {
+              Try {
+                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+              } match {
+                case Success(dataStoreFiles) => {
+                  for (dsFile <- dataStoreFiles) {
+                    if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
+                      return runGetDataSetInfo(Right(dsFile.uuid))
+                    }
                   }
+                  errorExit("Couldn't find ReferenceSet")
                 }
-                errorExit("Couldn't find ReferenceSet")
+                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
               }
-              case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
             }
+            case x => x
           }
-          case x => x
         }
+        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
       }
-      case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
     }
   }
 
