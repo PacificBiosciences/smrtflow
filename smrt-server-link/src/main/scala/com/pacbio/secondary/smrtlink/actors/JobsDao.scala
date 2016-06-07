@@ -37,20 +37,24 @@ import slick.driver.SQLiteDriver.api._
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
 class Dal(val dbURI: String) {
 
-  // flag for use when Flyway migrations running on sqlite
+  // flag for use when Flyway migrations running on SQLite
   var migrating: Boolean = false
-  // DBCP for connection pooling and caching prepared statements for use in sqlite
+  // DBCP for connection pooling and caching prepared statements for use in SQLite
   val connectionPool = new BasicDataSource() {
-
-    // work-around for Flyway DB migrations needing 2 connections and sqlite supporting 1
+    // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
     var cachedConnection: Connection = null
 
-    override def getConnection() : Connection = {
-      // recycle the connection if possible
+    override def getConnection(): Connection = {
+      // recycle the connection only for the special use case of Flyway database migrations
       if (migrating && cachedConnection != null && !cachedConnection.isClosed) {
+        println("Shared Connection")
         return cachedConnection
       }
       else {
+        // guard for SQLite use. also applicable in any case where only 1 connection is allowed
+        if (cachedConnection != null && !cachedConnection.isClosed) {
+          throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
+        }
         cachedConnection = super.getConnection()
       }
       return cachedConnection
