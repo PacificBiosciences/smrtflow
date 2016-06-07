@@ -14,6 +14,7 @@ import DefaultJsonProtocol._
 object ReportModels {
 
   val REPORT_MODEL_VERSION = "0.3.0"
+  val DEFAULT_VERSION = "UNKNOWN"
 
   abstract class ReportAttribute
 
@@ -23,9 +24,9 @@ object ReportModels {
 
   case class ReportDoubleAttribute(id: String, name: String, value: Double) extends ReportAttribute
 
-  case class ReportPlot(id: String, image: String, caption: String)
+  case class ReportPlot(id: String, image: String, caption: String = "")
 
-  case class ReportTable(id: String, title: String, columns: JsArray)
+  case class ReportTable(id: String, title: String = "", columns: JsArray)
 
   case class ReportPlotGroup(
       id: String,
@@ -35,7 +36,7 @@ object ReportModels {
 
   case class Report(
       id: String,
-      version: String,
+      version: String = DEFAULT_VERSION,
       attributes: List[ReportAttribute],
       plotGroups: List[ReportPlotGroup],
       tables: List[ReportTable])
@@ -72,7 +73,38 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
   implicit val reportPlotGroupFormat = jsonFormat3(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
   implicit val reportTableFormat = jsonFormat3(ReportTable)
-  implicit val reportFormat = jsonFormat5(Report)
+  //implicit val reportFormat = jsonFormat5(Report)
+  // FIXME(nechols)(2016-06-06) this is basically a giant hack to allow the
+  // 'version' field to be optional, but we should probably fix this on the
+  // pbcommand side as well
+  implicit object reportFormat extends RootJsonFormat[Report] {
+    def write(r: Report): JsObject = {
+      JsObject(
+        "id" -> JsString(r.id),
+        "version" -> JsString(r.version),
+        "attributes" -> r.attributes.toJson,
+        "plotGroups" -> r.plotGroups.toJson,
+        "tables" -> r.tables.toJson)
+    }
+    def read(value: JsValue) = {
+      value.asJsObject.getFields("id", "attributes", "plotGroups", "tables",
+                                 "version") match {
+        case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables), JsString(version)) => {
+          val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
+          val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
+          val tables = jsTables.map(_.convertTo[ReportTable]).toList
+          Report(id, version, attributes, plotGroups, tables)
+        }
+        case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables)) => {
+          val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
+          val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
+          val tables = jsTables.map(_.convertTo[ReportTable]).toList
+          Report(id, DEFAULT_VERSION, attributes, plotGroups, tables)
+        }
+        case x => deserializationError(s"Expected Report, got ${x}")
+      }
+    }
+  }
 
 }
 
