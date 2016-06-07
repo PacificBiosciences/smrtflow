@@ -8,5 +8,5 @@ import com.pacbio.common.models.Constants
  */
 object GlobalConstants {
   // Package Version
-  val PB_SCALA_VERSION = Option(getClass.getPackage).map(_.getImplementationVersion).getOrElse("0.0.0-UNKNOWN-DEV")
+  val PB_SCALA_VERSION = Option(getClass.getPackage).flatMap(x => Option(x.getImplementationVersion)).getOrElse("0.0.0-UNKNOWN-DEV")
 }

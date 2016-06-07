@@ -1,6 +1,7 @@
 
 package com.pacbio.secondary.smrtserver.tools
 
+//import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -78,21 +79,6 @@ object TestkitParser {
 class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
   import AnalysisClientJsonProtocol._
   import ReportModels._
-
-  protected def importEntryPoint(eid: String, xmlPath: String): BoundServiceEntryPoint = {
-    var dsType = dsMetaTypeFromPath(xmlPath)
-    var dsUuid = dsUuidFromPath(xmlPath)
-    var xc = runImportDataSetSafe(xmlPath)
-    if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
-    // this is stupidly inefficient
-    val dsId = Try {
-      Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT)
-    } match {
-      case Success(ds) => ds.id
-      case Failure(err) => throw new Exception(err.getMessage)
-    }
-    BoundServiceEntryPoint(eid, dsType, dsId)
-  }
 
   protected def getPipelineId(pipelineXml: String): String = {
     val xmlData = scala.xml.XML.loadFile(pipelineXml)
@@ -211,10 +197,9 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
     }
     if (xc != 0) return errorExit("fatal error, exiting")
     val pipelineId = getPipelineId(pipelineXml)
-    val taskOptions = Seq[ServiceTaskOptionBase]()
-    val workflowOptions = Seq[ServiceTaskOptionBase]()
-    val pipelineOptions = PbSmrtPipeServiceOptions(
-      title, pipelineId, entryPoints, taskOptions, workflowOptions)
+    val presets = getPipelinePresets(new File(presetXml))
+    val pipelineOptions = getPipelineServiceOptions(title, pipelineId,
+                                                    entryPoints, presets)
     var jobId = 0
     xc = Try {
       Await.result(sal.runAnalysisPipeline(pipelineOptions), TIMEOUT)
