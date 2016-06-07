@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtserver.client
 
 import com.pacbio.secondary.smrtserver.models._
-import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
