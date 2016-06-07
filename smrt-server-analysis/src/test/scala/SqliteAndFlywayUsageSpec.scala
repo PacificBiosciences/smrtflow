@@ -42,8 +42,8 @@ class SqliteAndFlywayUsageSpec
   // force these tests to run sequentially since they can lock up the database
   sequential
 
-  "Connection pooling for sqlite" should {
-    "must be in use" in {
+  "Connection pooling for SQLite" should {
+    "be in use" in {
       jobsDao().dal.dbURI startsWith "jdbc:sqlite:" must beTrue
     }
     "share Connection instances during Flyway migrations" in {
