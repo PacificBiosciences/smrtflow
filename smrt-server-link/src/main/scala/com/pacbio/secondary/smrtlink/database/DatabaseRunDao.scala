@@ -2,10 +2,10 @@ package com.pacbio.secondary.smrtlink.database
 
 import java.util.UUID
 
-import com.pacbio.common.database.DatabaseProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
 import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -128,7 +128,7 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
  * Provides a DatabaseRunDao.
  */
 trait DatabaseRunDaoProvider extends RunDaoProvider {
-  this: DatabaseProvider with DataModelParserProvider =>
+  this: SmrtLinkConfigProvider with DataModelParserProvider =>
 
   override val runDao: Singleton[RunDao] =
     Singleton(() => new DatabaseRunDao(db(), dataModelParser()))

@@ -2,12 +2,9 @@ package com.pacbio.secondary.smrtlink.database
 
 import java.nio.file.Paths
 
-import com.pacbio.common.database.DatabaseProvider
 import com.pacbio.common.dependency.{Singleton, InitializationComposer, RequiresInitialization}
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import org.flywaydb.core.Flyway
-
-import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
 
 class FlywayMigrator(dbURI: String) extends RequiresInitialization {
   val flyway = new Flyway() {
@@ -34,7 +31,7 @@ class FlywayMigrator(dbURI: String) extends RequiresInitialization {
 }
 
 trait FlywayMigratorProvider {
-  this: DatabaseProvider with InitializationComposer =>
+  this: SmrtLinkConfigProvider with InitializationComposer =>
 
   val flywayMigrator: Singleton[FlywayMigrator] =
     requireInitialization(Singleton(() => new FlywayMigrator(dbURI())))

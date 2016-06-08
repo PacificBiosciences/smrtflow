@@ -45,12 +45,12 @@ with JobServiceConstants {
 
   override val dao: JobsDao = TestProviders.jobsDao()
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
+  val dbURI = TestProviders.getFullURI(TestProviders.dbURI())
 
   def dbSetup() = {
     println("Running db setup")
     logger.info(s"Running tests from db-uri $dbURI")
-    runSetup(dao)
+    runSetup(dbURI)
     println(s"completed setting up database $dbURI")
   }
 

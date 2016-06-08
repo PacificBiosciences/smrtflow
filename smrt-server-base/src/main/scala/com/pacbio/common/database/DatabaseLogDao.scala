@@ -102,11 +102,13 @@ class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogD
 
 /**
  * Provides a singleton DatabaseLogDao. Concrete providers must mixin SetBindings and a ClockProvider and a
- * DatabaseProvider.
+ * DatabaseProvider, and provide a value for logDbUri.
  */
 trait DatabaseLogDaoProvider extends LogDaoProvider {
   this: DatabaseProvider with ClockProvider with InitializationComposer =>
 
+  val logDbURI: Singleton[String]
+
   override val logDao: Singleton[LogDao] =
-    requireInitialization(Singleton(() => new DatabaseLogDao(db(), clock(), logDaoResponseSize)))
+    requireInitialization(Singleton(() => new DatabaseLogDao(db(logDbURI()), clock(), logDaoResponseSize)))
 }

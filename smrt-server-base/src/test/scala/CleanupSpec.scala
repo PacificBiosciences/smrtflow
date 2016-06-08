@@ -1,3 +1,5 @@
+import java.util.Date
+
 import com.pacbio.common.actors._
 import com.pacbio.common.scheduling.CleanupSchedulerProvider
 import com.pacbio.common.dependency.{InitializationComposer, StringConfigProvider, Singleton, SetBindings}
@@ -8,8 +10,7 @@ import org.specs2.mock._
 import org.specs2.mutable.{BeforeAfter, Specification}
 import org.specs2.time.NoTimeConversions
 
-import scala.concurrent.duration._
-import scala.concurrent.{Future, Await}
+import scala.concurrent.Future
 
 class CleanupSpec extends Specification with Mockito with NoTimeConversions {
   sequential
@@ -76,10 +77,10 @@ class CleanupSpec extends Specification with Mockito with NoTimeConversions {
 
       val initResults = TestProviders.init()
       initResults.size === 1
-      val scheduleResults = initResults.head.asInstanceOf[Seq[CleanupJobResponse]]
+      val scheduleResults = initResults.head.asInstanceOf[Seq[(CleanupJobResponse, Date)]]
       scheduleResults.size === 1
       val resp = scheduleResults.head
-      resp === createResponse
+      resp._1 === createResponse
 
       there was one(mockCleanupDao).createConfigJob(expectedCreate)
 

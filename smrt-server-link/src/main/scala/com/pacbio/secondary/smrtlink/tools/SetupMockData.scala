@@ -23,9 +23,9 @@ import scala.concurrent.{Await, Future}
 import scala.util.Random
 
 trait SetupMockData extends MockUtils {
-  def runSetup(dao: JobsDao): Unit = {
-    new FlywayMigrator(dao.dbURI).init()
-    println(s"Created database connection from URI ${dao.dbURI}")
+  def runSetup(dbURI: String): Unit = {
+    new FlywayMigrator(dbURI).init()
+    println(s"Created database connection from URI $dbURI")
     Await.ready(
       insertMockProject() flatMap { _ =>
       insertMockSubreadDataSetsFromDir()} flatMap { _ =>

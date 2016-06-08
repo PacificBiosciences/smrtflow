@@ -74,7 +74,7 @@ trait CoreProviders extends
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
   // TODO(smcclellan): Move to configs
-  override val dbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
+  override val logDbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
@@ -120,7 +120,7 @@ trait AuthenticatedCoreProviders extends
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
   // TODO(smcclellan): Move to configs
-  override val dbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
+  override val logDbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }

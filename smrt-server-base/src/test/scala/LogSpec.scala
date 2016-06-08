@@ -61,7 +61,7 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
     // Database config that uses a temporary database file
     val dbFile = File.createTempFile("log_spec_", ".db")
     dbFile.deleteOnExit()
-    override val dbURI: Singleton[String] = Singleton(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared")
+    override val logDbURI: Singleton[String] = Singleton(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared")
   }
 
   val authenticator = TestProviders.authenticator()
