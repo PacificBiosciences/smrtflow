@@ -111,8 +111,6 @@ class EngineManagerActor(val daoActor: ActorRef,
         case Success(_) =>
           val worker = workerQueue.dequeue()
           val outputDir = resolver.resolve(runnableJobWithId)
-          // Update jobOptions output dir
-          daoActor ! UpdateJobOutputDir(runnableJobWithId.job.uuid, outputDir)
           worker ! RunJob(runnableJobWithId.job, outputDir)
         case Failure(ex) =>
           log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
@@ -188,11 +186,6 @@ class EngineManagerActor(val daoActor: ActorRef,
           }
           self ! CheckForRunnableJob
       }
-
-    case UpdateJobStatus(uuid, state) =>
-      // FIXME. handle completed states differently
-      daoActor ! UpdateJobStatus(uuid, state)
-      self ! CheckForRunnableJob
 
     case x => log.debug(s"Unhandled Message to Engine Message $x")
   }

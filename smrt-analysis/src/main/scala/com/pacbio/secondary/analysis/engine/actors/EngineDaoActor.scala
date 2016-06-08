@@ -79,11 +79,6 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
           } pipeTo sender
       }
 
-    case UpdateJobOutputDir(uuid, path) =>
-      // TODO(smcclellan): Why is this commented out? Can this message be removed?
-      //dao.updateJobOutputDir(uuid, path)
-      sender ! Right(SuccessMessage(s"Successfully updated jobOptions directory ${uuid.toString} dir ${path.toAbsolutePath}"))
-
     case x =>
       log.info(s"Unhandled engine DAO message. '$x'")
   }
