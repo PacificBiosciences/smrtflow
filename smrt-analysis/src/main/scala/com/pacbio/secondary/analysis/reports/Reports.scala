@@ -136,7 +136,11 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
         case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables)) => {
           val version = jsObj.getFields("version") match {
             case Seq(JsString(v)) => v
-            case _ => DEFAULT_VERSION
+            // fallback to support pbcommand model
+            case _ => jsObj.getFields("_version") match {
+              case Seq(JsString(v)) => v
+              case _ => DEFAULT_VERSION
+            }
           }
           val uuid = jsObj.getFields("uuid") match {
             case Seq(JsString(u)) => Some(UUID.fromString(u))
