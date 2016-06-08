@@ -153,18 +153,20 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
             }
           }
           val testStr = s"${attrId} .${op}. ${v}"
+          val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
+          val testName = s"test_${attrId}"
           var testCase = testStatus match {
             case TestPassed => {
               nPassed += 1
-              <testcase classname={report.id} name={attrId} time="0"/>
+              <testcase classname={testClass} name={testName} time="0"/>
             }
             case TestFailed => {
               nFailures += 1
-              <testcase classname={report.id} name={attrId} time="0"><failure message={s"FAILED: ${attrId}"}>{testStr}</failure></testcase>
+              <testcase classname={testClass} name={testName} time="0"><failure message={s"FAILED: ${attrId}"}>{testStr}</failure></testcase>
             }
             case TestSkipped => {
               nSkips += 1
-              <testcase classname={report.id} name={attrId} time="0"><skipped/></testcase>
+              <testcase classname={testClass} name={testName} time="0"><skipped/></testcase>
             }
           }
           testCases.append(testCase)
