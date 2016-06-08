@@ -309,6 +309,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   }
 
   override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
+    logger.info(s"attempting db update of job $uuid state to $state")
     val f = dal.db.run(engineJobs
       .filter(_.uuid === uuid)
       .map(j => (j.state, j.updatedAt))
@@ -316,7 +317,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       .map(_ => s"Successfully updated job $uuid to $state")
     f.onComplete {
       case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
-      case Failure(_) => logger.error(s"Unable to update state of job id ${uuid.toString}")
+      case Failure(ex) => logger.error(s"Unable to update state of job id ${uuid.toString} ${ex.getMessage}")
     }
     f
   }
@@ -367,6 +368,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val createdAt = JodaDateTime.now()
 
     val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+
+    logger.info(s"Creating Job $engineJob")
 
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
@@ -864,7 +867,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 }
 
-class JobsDao(val dal: Dal, engineConfig: EngineConfig, val resolver: JobResourceResolver, jobRunner: JobRunner) extends JobEngineDataStore
+class JobsDao(val dal: Dal, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore
 with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
@@ -881,7 +884,7 @@ with DataSetStore {
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider with JobRunnerProvider =>
+  this: DalProvider with SmrtLinkConfigProvider  =>
 
-  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobEngineConfig(), jobResolver(), jobRunner()))
+  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobEngineConfig(), jobResolver()))
 }

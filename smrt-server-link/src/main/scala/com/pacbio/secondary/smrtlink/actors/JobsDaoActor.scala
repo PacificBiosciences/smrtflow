@@ -7,7 +7,6 @@ import java.util.UUID
 import akka.actor.{ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import akka.util.Timeout
-
 import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
@@ -16,8 +15,10 @@ import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob, JobResourceResolver, JobRunner}
+import com.pacbio.secondary.analysis.jobs._
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest, ReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -25,7 +26,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object MessageTypes {
   abstract class ProjectMessage
@@ -178,7 +179,7 @@ object JobsDaoActor {
   case class GetDataStoreFilesByJobUUID(i: UUID) extends DataStoreMessage
 }
 
-class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: JobRunner, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
+class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
 
   import JobsDaoActor._
 
@@ -189,12 +190,12 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
   val logStatusInterval = if (engineConfig.debugMode) 1.minute else 10.minutes
 
   //MK Probably want to have better model for this
-  val checkForWorkInterval = 2.seconds
+  val checkForWorkInterval = 5.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
   // Log the job summary. This should probably be in a health agent
-  //val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
+  val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, self, GetSystemJobSummary)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -202,6 +203,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
   val maxNumQuickWorkers = 10
   // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
+
+  // This is not awesome
+  val jobRunner = new SimpleAndImportJobRunner(self)
 
 
   override def preStart(): Unit = {
@@ -220,34 +224,35 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
     }
   }
 
+  // This should return a Future
   def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
 
     if (workerQueue.nonEmpty) {
-      log.debug(s"Checking for work. Number of available Workers ${workerQueue.size}")
-      log.debug(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
+      log.info(s"Checking for work. Number of available Workers ${workerQueue.size}")
+      log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
-      // This should be extended to support a list of Status Updates, to avoid another ask call
+      // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
       // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-      dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "")
-      dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "")
+      val f = for {
+        m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
+        m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING)
+      } yield s"$m1,$m2"
 
-      val worker = workerQueue.dequeue()
-      val outputDir = resolver.resolve(runnableJobWithId)
-
-      //MK How does the output directory get updated?
-
-      // Update jobOptions output dir
-      //daoActor ! UpdateJobOutputDir(runnableJobWithId.job.uuid, outputDir)
-      worker ! RunJob(runnableJobWithId.job, outputDir)
-
-      // Error case
-      //log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
-      //daoActor ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+      f onComplete {
+        case Success(_) =>
+          val worker = workerQueue.dequeue()
+          val outputDir = resolver.resolve(runnableJobWithId)
+          worker ! RunJob(runnableJobWithId.job, outputDir)
+        case Failure(ex) =>
+          log.error(s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}")
+          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+      }
     }
   }
 
+  // This should return a future
   def checkForWork(): Unit = {
-    log.debug(s"Checking for work. Number of available Workers ${workers.size}")
+    log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
 
     if (workers.nonEmpty || quickWorkers.nonEmpty) {
       val f = dao.getNextRunnableJobWithId
@@ -276,10 +281,33 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
 
   def receive: Receive = {
 
-    // From EngineDaoActor
-    // FIXME Need to remove all this boiler plate
-    //case GetAllJobs(limit) =>
-    //  sender ! dao.getJobs(limit)
+
+    case CheckForRunnableJob =>
+      //FIXME. This Try is probably not necessary
+      Try {
+        checkForWork()
+      } match {
+        case Success(_) =>
+        case Failure(ex) => log.error(s"Failed check for runnable jobs ${ex.getMessage}")
+      }
+
+    case UpdateJobCompletedResult(result, workerType) =>
+      log.info(s"Worker $workerType completed $result")
+      workerType match {
+        case QuickWorkType => quickWorkers.enqueue(sender)
+        case StandardWorkType => workers.enqueue(sender)
+      }
+
+      val f = dao.updateJobStateByUUID(result.uuid, result.state)
+
+      f onComplete {
+        case Success(_) =>
+          log.info(s"Successfully updated job ${result.uuid} to ${result.state}")
+          self ! CheckForRunnableJob
+        case Failure(ex) =>
+          log.error(s"Failed to update job ${result.uuid} state to ${result.state} Error ${ex.getMessage}")
+          self ! CheckForRunnableJob
+      }
 
     case GetSystemJobSummary =>
       dao.getJobs(1000).map { rs =>
@@ -301,8 +329,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
 
     case HasNextRunnableJobWithId => dao.getNextRunnableJobWithId pipeTo sender
 
-    case UpdateJobStatus(uuid, state) =>
-      dao.updateJobStateByUUID(uuid, state) pipeTo sender
+    //case UpdateJobStatus(uuid, state) => dao.updateJobStateByUUID(uuid, state) pipeTo sender
 
     case ImportDataStoreFile(dataStoreFile, jobUUID) =>
       log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
@@ -326,11 +353,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
             }
           } pipeTo sender
       }
-
-    case UpdateJobOutputDir(uuid, path) =>
-      // TODO(smcclellan): Why is this commented out? Can this message be removed?
-      //dao.updateJobOutputDir(uuid, path)
-      sender ! Right(SuccessMessage(s"Successfully updated jobOptions directory ${uuid.toString} dir ${path.toAbsolutePath}"))
 
     // End of EngineDaoActor
 
@@ -558,8 +580,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
 
     case GetDataStoreFilesByJobUUID(id) => pipeWith(dao.getDataStoreFilesByJobUUID(id))
 
-    case ImportDataStoreFile(dsf: DataStoreFile, jobId: UUID) => pipeWith(dao.insertDataStoreFileByUUID(dsf, jobId))
-
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
     case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy) =>
@@ -572,7 +592,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
 
     // Need to consolidate this
     case UpdateJobStatus(uuid, state) =>
-      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating job id $uuid to $state"))
+      pipeWith(dao.updateJobStateByUUID(uuid, state))
 
     // Testing/Debugging messages
     case "example-test-message" => respondWith("Successfully got example-test-message")
@@ -582,9 +602,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val jobRunner: 
 }
 
 trait JobsDaoActorProvider {
-  this: ActorRefFactoryProvider with JobsDaoProvider =>
+  this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val jobsDaoActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao())))
-      .bindToSet(JobListeners)
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao(), jobEngineConfig(), jobResolver())))
 }
