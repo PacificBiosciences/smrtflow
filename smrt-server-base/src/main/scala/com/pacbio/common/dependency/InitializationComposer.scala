@@ -1,19 +1,26 @@
 package com.pacbio.common.dependency
 
+import com.typesafe.scalalogging.LazyLogging
+
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
 
 trait RequiresInitialization {
-  def init(): Future[Any]
+  def init(): Any
 }
-trait InitializationComposer {
-  val inits: mutable.Buffer[Singleton[RequiresInitialization]] = new mutable.ArrayBuffer
 
-  def requireInitialization[T <: RequiresInitialization](i: Singleton[T]): Singleton[T] = {
+trait InitializationComposer extends LazyLogging {
+  private val inits: mutable.Buffer[Singleton[RequiresInitialization]] = new mutable.ArrayBuffer
+
+  final def requireInitialization[T <: RequiresInitialization](i: Singleton[T]): Singleton[T] = {
     inits += i
     i
   }
 
-  def init(): Future[Seq[Any]] = Future.sequence(inits.toSeq.map(_().init()))
+  final def init(): Seq[Any] = inits.map{ i =>
+    val ri = i()
+    logger.info(s"---------- Initializing: ${ri.getClass.getSimpleName} ----------")
+    val res = i().init()
+    logger.info(s"---------- Result: ${res.toString} ----------")
+    res
+  }
 }

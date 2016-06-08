@@ -1,8 +1,9 @@
 package com.pacbio.common.scheduling
 
+import java.util.Date
+
 import akka.actor._
 import akka.pattern.pipe
-import akka.util.Timeout
 import com.pacbio.common.actors._
 import com.pacbio.common.dependency.{ConfigProvider, InitializationComposer, RequiresInitialization, Singleton}
 import com.pacbio.common.models.{CleanupJobResponse, CleanupSize, ConfigCleanupJobCreate}
@@ -10,7 +11,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import com.typesafe.config.ConfigObject
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 object CleanupServiceActor {
@@ -59,16 +60,12 @@ class CleanupScheduler(
 
   import CleanupServiceActor._
 
-  def init(): Future[Seq[CleanupJobResponse]] = {
-    implicit val timeout = new Timeout(10.second)
-
-    Future.sequence(cleanupJobs.toSeq.map { c =>
-      cleanupDao.createConfigJob(c).map { j =>
-        QuartzSchedulerExtension(actorSystem).schedule(c.name, cleanupActor, RunConfigJob(c.name))
-        j
-      }
-    })
-  }
+  def init(): Seq[(CleanupJobResponse, Date)] =
+    cleanupJobs.map { j =>
+      val r = Await.result(cleanupDao.createConfigJob(j), 1.second)
+      val d = QuartzSchedulerExtension(actorSystem).schedule(j.name, cleanupActor, RunConfigJob(j.name))
+      (r, d)
+    }.toSeq
 }
 
 trait CleanupSchedulerProvider {

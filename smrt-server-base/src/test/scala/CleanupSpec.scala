@@ -74,7 +74,7 @@ class CleanupSpec extends Specification with Mockito with NoTimeConversions {
       when(mockCleanupDao.createConfigJob(expectedCreate)).thenReturn(Future(createResponse))
       when(mockCleanupDao.runConfigJob(TEST_NAME)).thenReturn(Future.successful(()))
 
-      val initResults = Await.result(TestProviders.init(), 10.second)
+      val initResults = TestProviders.init()
       initResults.size === 1
       val scheduleResults = initResults.head.asInstanceOf[Seq[CleanupJobResponse]]
       scheduleResults.size === 1

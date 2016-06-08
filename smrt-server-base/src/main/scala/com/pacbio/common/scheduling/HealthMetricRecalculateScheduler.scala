@@ -25,9 +25,8 @@ class HealthActor(dao: HealthDao) extends PacBioActor {
 class HealthMetricRecalculateScheduler(actorSystem: ActorSystem, healthActor: ActorRef) extends RequiresInitialization {
   import HealthActor._
 
-  def init(): Future[Date] = Future {
+  def init(): Date =
     QuartzSchedulerExtension(actorSystem).schedule("HealthMetricRecalculate", healthActor, Recalculate)
-  }
 }
 
 trait HealthMetricRecalculateSchedulerProvider {

@@ -14,8 +14,9 @@ import slick.driver.SQLiteDriver.api._
 import slick.jdbc.meta.MTable
 
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 
 /**
  * Concrete implementation of LogDao that stores messages in a database.
@@ -27,7 +28,7 @@ class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogD
   val NO_CRITERIA = SearchCriteria(None, None, None, None)
   val SYSTEM = LogResource(clock.dateNow(), SYSTEM_RESOURCE.description, SYSTEM_ID, SYSTEM_RESOURCE.name)
 
-  override def init(): Future[Unit] = {
+  override def init(): String = {
     val resTable = MTable.getTables(logResources.baseTableRow.tableName).headOption
     val msgTable = MTable.getTables(logMessages.baseTableRow.tableName).headOption
 
@@ -42,7 +43,7 @@ class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogD
       if (schemas.isEmpty) DBIO.successful(()) else schemas.reduce(_ ++ _).create
     }
 
-    db.run(createMissingTables)
+    Await.result(db.run(createMissingTables).map(_ => "Log Tables Created"), 10.seconds)
   }
 
   override def getAllLogResources: Future[Seq[LogResource]] = db.run(logResources.result)

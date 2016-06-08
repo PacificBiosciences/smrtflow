@@ -25,7 +25,7 @@ class FlywayMigrator(dbURI: String) extends RequiresInitialization {
     }
   }
 
-  override def init(): Future[Int] = Future {
+  override def init(): Int = {
     flyway.setDataSource(dbURI, "", "")
     flyway.setBaselineOnMigrate(true)
     flyway.setBaselineVersionAsString("1")

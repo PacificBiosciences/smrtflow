@@ -163,18 +163,18 @@ trait BaseServer extends LazyLogging {
     val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.mkString(" "))
 
+    providers.init()
+
     val bind: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
       case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))
       case r => None
     }
 
-    val initAndBind = providers.init().flatMap(_ => bind)
-
     class StartupFailedException(cause: Throwable)
       extends RuntimeException("Startup failed", cause)
       with ControlThrowable
 
-    Await.result(initAndBind, 30.seconds) map { e =>
+    Await.result(bind, 30.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll
       system.shutdown()
       throw new StartupFailedException(e)

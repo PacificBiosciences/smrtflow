@@ -23,11 +23,11 @@ import scala.concurrent.{Await, Future}
 import scala.util.Random
 
 trait SetupMockData extends MockUtils {
-  def runSetup(dao: JobsDao): Unit =
+  def runSetup(dao: JobsDao): Unit = {
+    new FlywayMigrator(dao.dbURI).init()
+    println(s"Created database connection from URI ${dao.dbURI}")
     Await.ready(
-      new FlywayMigrator(dao.dbURI).init() map { _ =>
-      println(s"Created database connection from URI ${dao.dbURI}")} flatMap { _ =>
-      insertMockProject()} flatMap { _ =>
+      insertMockProject() flatMap { _ =>
       insertMockSubreadDataSetsFromDir()} flatMap { _ =>
       insertMockHdfSubreadDataSetsFromDir()} flatMap { _ =>
       insertMockReferenceDataSetsFromDir()} flatMap { _ =>
@@ -41,6 +41,7 @@ trait SetupMockData extends MockUtils {
       // datastore
       insertMockDataStoreFiles()} map { _ =>
       println("Completed inserting mock data.")}, 1.minute)
+  }
 }
 
 /**

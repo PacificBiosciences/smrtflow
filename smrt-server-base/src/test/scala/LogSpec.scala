@@ -78,8 +78,8 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
   val routes = TestProviders.logService().prefixedRoutes
 
   trait daoSetup extends Scope {
+    TestProviders.init()
     val setup = for {
-      i <- TestProviders.init()
       d <- logDao.deleteAll()
       p1 <- logDao.createLogResource(LogResourceRecord("Logger for Component 1", componentId1, "Component 1"))
       p2 <- logDao.createLogResource(LogResourceRecord("Logger for Component 2", componentId2, "Component 2"))
