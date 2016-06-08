@@ -731,27 +731,29 @@ object PbService {
     val url = new URL(s"http://${c.host}:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     val ps = new PbService(sal)
-    val xc = c.mode match {
-      case Modes.STATUS => ps.runStatus(c.asJson)
-      case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
-      case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
-                                                   c.name, c.organism, c.ploidy)
-      case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
-                                                    c.block)
-      case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
-      case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
-                                            c.jobTitle, c.presetXml, c.block)
-      case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
-      case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
-      case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
-      case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
-      case _ => {
-        println("Unsupported action")
-        1
+    try {
+      c.mode match {
+        case Modes.STATUS => ps.runStatus(c.asJson)
+        case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
+        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
+                                                     c.name, c.organism, c.ploidy)
+        case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
+                                                      c.block)
+        case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+        case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
+                                              c.jobTitle, c.presetXml, c.block)
+        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
+        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+        case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case _ => {
+          println("Unsupported action")
+          1
+        }
       }
+    } finally {
+      actorSystem.shutdown()
     }
-    actorSystem.shutdown()
-    xc
   }
 }
 

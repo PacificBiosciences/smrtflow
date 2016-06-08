@@ -1,5 +1,4 @@
 SHELL=/bin/bash
-STRESS_DATASET_COUNT=1000
 
 clean:
 	rm -f secondary-smrt-server*.log
@@ -53,16 +52,3 @@ validate-pipeline-view-rules:
 	find ./smrt-server-analysis/src/main/resources/pipeline-template-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
 
 validate-resources: validate-report-view-rules validate-pipeline-view-rules
-
-test-data/copied-datasets: test-data/smrtserver-testdata
-	mkdir -p $@
-	ln test-data/smrtserver-testdata/ds-subreads/lambda/2372215/0007_micro/0007_micro/Analysis_Results/* $@/
-	cp $@/subreads.xml $@/subreads-1.xml
-	dataset newuuid $@/subreads-1.xml;
-	for x in `seq 2 $(STRESS_DATASET_COUNT)`; do \
-		cp $@/subreads-$$[ $$x - 1 ].xml $@/subreads-$$x.xml; \
-		dataset newuuid $@/subreads-$$x.xml; \
-	done
-
-test-stress-mass-import: test-data/copied-datasets
-	pbservice import-dataset --debug --port=8070 test-data/copied-datasets/

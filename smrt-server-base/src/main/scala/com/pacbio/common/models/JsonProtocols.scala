@@ -10,17 +10,6 @@ import fommil.sjs.FamilyFormats
 
 import scala.concurrent.duration.Duration
 
-trait UUIDJsonProtocol extends DefaultJsonProtocol with FamilyFormats {
-  implicit object UUIDFormat extends JsonFormat[UUID] {
-    def write(obj: UUID): JsValue = JsString(obj.toString)
-
-    def read(json: JsValue): UUID = json match {
-      case JsString(x) => UUID.fromString(x)
-      case _ => deserializationError("Expected UUID as JsString")
-    }
-  }
-}
-
 trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
   import PacBioDateTimeFormat.DATE_TIME_FORMAT
 

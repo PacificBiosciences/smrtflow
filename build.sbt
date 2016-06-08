@@ -54,7 +54,7 @@ def PacBioProject(name: String): Project = (
       "joda-time" % "joda-time" % "2.4",
       "org.joda" % "joda-convert" % "1.6",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-      "com.github.scopt" %% "scopt" % "3.3.0",
+      "com.github.scopt" %% "scopt" % "3.4.0",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
       "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
       "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
