@@ -9,8 +9,10 @@ import sys
 import logging
 import multiprocessing
 import time
-
 import uuid as U
+import xml.dom.minidom
+
+import requests
 
 from pbcommand.cli import (get_default_argparser_with_base_opts, pacbio_args_runner)
 
@@ -92,15 +94,38 @@ def import_dataset(host, port, original_dataset_path, output_dir_prefix):
 
 
 @register
+def add_run_design(host, port, run_design_path):
+    start_time = time.time()
+
+    run_design = xml.dom.minidom.parse(run_design_path)
+
+    run_elem = run_design.getElementsByTagName("Run")[0]
+    run_elem.attributes["UniqueId"].value = str(U.uuid4())
+
+    for subreadset in run_design.getElementsByTagName("SubreadSet"):
+        subreadset.attributes["UniqueId"].value = str(U.uuid4())
+
+    url = "http://{h}:{p}/smrt-link/runs".format(h=host,p=port)
+    response = requests.post(url, json={"dataModel": run_design.toxml()})
+
+    exit_code = 0 if response.status_code == 201 else response.status_code
+    return ExtCmdResult(exit_code,
+                        "POST {url}".format(url=url),
+                        time.time() - start_time)
+
+
+@register
 def run_analysis(host, port, path):
     return _run_cmd("pbservice run-analysis --host={h} --port={p} --block {x}".format(h=host, p=port, x=path))
 
 
-def _generate_data(host, port, dataset_paths, analysis_json, output_dir_prefix, ntimes):
+def _generate_data(host, port, dataset_paths, analysis_json,
+                   run_design_path, output_dir_prefix, ntimes):
     for x in xrange(ntimes):
         yield "get_status", host, port
         for dataset_path in dataset_paths:
             yield "import_dataset", host, port, dataset_path, output_dir_prefix
+        yield "add_run_design", host, port, run_design_path
         yield "get_status", host, port
         yield "run_analysis", host, port, analysis_json
 
@@ -134,6 +159,9 @@ def run_main(host, port, nprocesses, ntimes):
     referenceset_path = to_p("test-data/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml")
     subreadset_path = to_p("test-data/smrtserver-testdata/ds-subreads/lambda/2372215/0007_micro/0007_micro/Analysis_Results/subreads.xml")
 
+    # Run Design
+    run_design_path = to_p("test-data/runCreate2.xml")
+
     # Dev Diagnostic
     analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json")
 
@@ -145,7 +173,7 @@ def run_main(host, port, nprocesses, ntimes):
     _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=referenceset_path))
 
     xs = _generate_data(host, port, [referenceset_path, subreadset_path],
-                        analysis_json, output_dir_prefix, ntimes)
+                        analysis_json, run_design_path, output_dir_prefix, ntimes)
 
     log.info("Starting {i}".format(i=info))
 

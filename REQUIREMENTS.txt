@@ -8,3 +8,4 @@
 -e git://github.com/PacificBiosciences/pbcoretools.git#egg=pbcoretools
 -e git://github.com/PacificBiosciences/pbreports.git#egg=pbreports
 -e git://github.com/PacificBiosciences/pbsmrtpipe.git#egg=pbsmrtpipe
+requests
