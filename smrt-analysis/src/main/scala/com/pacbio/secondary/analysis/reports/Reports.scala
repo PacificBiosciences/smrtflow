@@ -90,7 +90,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
               case i: Int => JsNumber(i)
               case s: String => JsString(s)
               case _ => JsNull
-          }).toList
+          }).toList:_* // expand sequence
         )
       )
     }
