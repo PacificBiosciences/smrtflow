@@ -6,7 +6,8 @@ import java.util.UUID
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets.DataSetMetadataType
-import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
+import com.pacbio.common.models.Constants
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReports}
@@ -116,7 +117,7 @@ object DataSetReports {
         attribs(DataSetLoader.loadBarcodeSet(inPath).getDataSetMetadata())
     }
     val rpt = Report(
-      simple, GlobalConstants.PB_SCALA_VERSION, reportAttrs, List(), List())
+      simple, Constants.SMRTFLOW_VERSION, reportAttrs, List(), List())
 
     val reportPath = jobPath.resolve(simple + ".json")
     MockReportUtils.writeReport(rpt, reportPath)

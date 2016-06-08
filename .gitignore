@@ -8,6 +8,7 @@ smrt-server-analysis/db/*
 smrt-server-analysis/jobs-root
 
 test-data/*
+test-output/*
 
 # sbt specific
 .cache

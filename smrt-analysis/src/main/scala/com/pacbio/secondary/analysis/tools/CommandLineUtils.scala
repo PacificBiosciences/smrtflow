@@ -4,7 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.logging.LoggerConfig
-import com.pacbio.secondary.analysis.constants.GlobalConstants
+import com.pacbio.common.models.Constants
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -86,7 +86,7 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
 
       case Some(c) =>
         // TODO Setup logging if c.debug
-        logger.info(s"Starting to run tool $toolId with pbscala ${GlobalConstants.PB_SCALA_VERSION}")
+        logger.info(s"Starting to run tool $toolId with pbscala ${Constants.SMRTFLOW_VERSION}")
         logger.debug(s"Config $c")
 
         val result = Try {

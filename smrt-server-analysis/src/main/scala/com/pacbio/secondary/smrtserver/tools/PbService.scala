@@ -1,11 +1,12 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.jobs.JobModels._
-//import com.pacbio.secondary.smrtlink.client.ServicesClientJsonProtocol
 import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
+import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.analysis.pipelines._
+import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models.{ServiceStatus}
 
 import akka.actor.ActorSystem
@@ -30,6 +31,7 @@ import scala.math._
 import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
+import java.nio.file.Paths
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
@@ -43,6 +45,7 @@ object Modes {
   case object IMPORT_FASTA extends Mode {val name = "import-fasta"}
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
+  case object PIPELINE extends Mode {val name = "run-pipeline"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
   case object DATASET extends Mode {val name = "get-dataset"}
@@ -92,7 +95,11 @@ object PbServiceParser {
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
-      asJson: Boolean = false) extends LoggerConfig
+      asJson: Boolean = false,
+      pipelineId: String = "",
+      jobTitle: String = "",
+      entryPoints: Seq[String] = Seq(),
+      presetXml: File = null) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070)
@@ -132,7 +139,7 @@ object PbServiceParser {
     } children(
       arg[File]("dataset-path") required() action { (p, c) =>
         c.copy(path = p)
-      } text "DataSet XML path"
+      } text "DataSet XML path (or directory containing datasets)"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -147,7 +154,7 @@ object PbServiceParser {
         if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
         }
       } text "FASTA path",
-      arg[String]("reference-name") action { (name, c) =>
+      opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
       } text "Name of ReferenceSet",
       opt[String]("organism") action { (organism, c) =>
@@ -173,6 +180,23 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
     } children(
     ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
+
+    cmd(Modes.PIPELINE.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.PIPELINE)
+    } children(
+      arg[String]("pipeline-id") required() action { (p, c) =>
+        c.copy(pipelineId = p)
+      } text "Pipeline ID to run",
+      opt[String]('e', "entry-point") minOccurs(1) maxOccurs(1024) action { (e, c) =>
+        c.copy(entryPoints = c.entryPoints :+ e)
+      } text "Entry point (must be valid PacBio DataSet)",
+      opt[File]("preset-xml") action { (x, c) =>
+        c.copy(presetXml = x)
+      } text "XML file specifying pbsmrtpipe options",
+      opt[String]("job-title") action { (t, c) =>
+        c.copy(jobTitle = t)
+      } text "Job title (will be displayed in UI)"
+    ) text "Run a pbsmrtpipe pipeline by name on the server"
 
     cmd(Modes.JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOB)
@@ -208,6 +232,11 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
   }
 }
 
@@ -217,11 +246,27 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   import AnalysisClientJsonProtocol._
 
   protected val TIMEOUT = 10 seconds
+  private lazy val entryPointsLookup = Map(
+    "PacBio.DataSet.SubreadSet" -> "eid_subread",
+    "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
+    "PacBio.DataSet.BarcodeSet" -> "eid_barcode",
+    "PacBio.DataSet.HdfSubreadSet" -> "eid_hdfsubread",
+    "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
+    "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
+  private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
+    Seq[PipelineBaseOption](),
+    Seq[PipelineBaseOption]())
+
 
   // FIXME this is crude
   protected def errorExit(msg: String): Int = {
     println(msg)
     1
+  }
+
+  protected def printMsg(msg: String): Int = {
+    println(msg)
+    0
   }
 
   protected def dsMetaTypeFromPath(path: String): String = {
@@ -405,31 +450,36 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       path: String, name: String,
       organism: String,
       ploidy: String): Int = {
-    Try {
-      Await.result(sal.importFasta(path, name, organism, ploidy), TIMEOUT)
-    } match {
-      case Success(job: EngineJob) => {
-        println(job)
-        waitForJob(job.uuid) match {
-          case 0 => {
-            Try {
-              Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
-            } match {
-              case Success(dataStoreFiles) => {
-                for (dsFile <- dataStoreFiles) {
-                  if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                    return runGetDataSetInfo(Right(dsFile.uuid))
+    var nameFinal = name
+    if (name == "") nameFinal = "unknown" // this really shouldn't be optional
+    PacBioFastaValidator(Paths.get(path)) match {
+      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case _ => Try {
+        Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
+      } match {
+        case Success(job: EngineJob) => {
+          println(job)
+          waitForJob(job.uuid) match {
+            case 0 => {
+              Try {
+                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+              } match {
+                case Success(dataStoreFiles) => {
+                  for (dsFile <- dataStoreFiles) {
+                    if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
+                      return runGetDataSetInfo(Right(dsFile.uuid))
+                    }
                   }
+                  errorExit("Couldn't find ReferenceSet")
                 }
-                errorExit("Couldn't find ReferenceSet")
+                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
               }
-              case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
             }
+            case x => x
           }
-          case x => x
         }
+        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
       }
-      case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
     }
   }
 
@@ -467,6 +517,30 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     }
   }
 
+  private def listDataSetFiles(f: File): Array[File] = {
+      (f.listFiles.filter((fn) =>
+        Try {
+          dsMetaTypeFromPath(fn.getAbsolutePath)
+        } match {
+          case Success(dsType) => true
+          case _ => false
+        })
+      ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
+  }
+
+  def runImportDataSets(f: File): Int = {
+    if (f.isDirectory) {
+      val xmlFiles = listDataSetFiles(f)
+      if (xmlFiles.size == 0) {
+        errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
+      } else {
+        println(s"Found ${xmlFiles.size} DataSet XML files")
+        (for (xml <- xmlFiles) yield runImportDataSet(xml.getAbsolutePath)).toList.max
+      }
+    } else if (f.isFile) runImportDataSet(f.getAbsolutePath)
+    else errorExit(s"${f.getAbsolutePath} is not readable")
+  }
+
   def runEmitAnalysisTemplate: Int = {
     val analysisOpts = {
       val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", 1)
@@ -493,16 +567,8 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     runAnalysisPipelineImpl(analysisOptions, block)
   }
 
-  protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
-    Try {
-      Await.result(sal.getPipelineTemplateJson(analysisOptions.pipelineId), TIMEOUT)
-    } match {
-      case Success(x) => println(s"Found pipeline template ${analysisOptions.pipelineId}")
-      case Failure(err) => {
-        return errorExit(s"Can't find pipeline template ${analysisOptions.pipelineId}: ${err.getMessage}")
-      }
-    }
-    for (entryPoint: BoundServiceEntryPoint <- analysisOptions.entryPoints) {
+  protected def validateEntryPoints(entryPoints: Seq[BoundServiceEntryPoint]): Int = {
+    for (entryPoint <- entryPoints) {
       Try {
         Await.result(sal.getDataSetById(entryPoint.datasetId), TIMEOUT)
       } match {
@@ -519,8 +585,22 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     0
   }
 
+  protected def validatePipelineId(pipelineId: String): Int = {
+    Try {
+      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+    } match {
+      case Success(x) => printMsg(s"Found pipeline template ${pipelineId}")
+      case Failure(err) => errorExit(s"Can't find pipeline template ${pipelineId}: ${err.getMessage}\nUse 'pbsmrtpipe show-templates' to display a list of available pipelines")
+    }
+  }
+
+  protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
+    max(validatePipelineId(analysisOptions.pipelineId),
+        validateEntryPoints(analysisOptions.entryPoints))
+  }
+
   protected def runAnalysisPipelineImpl(analysisOptions: PbSmrtPipeServiceOptions, block: Boolean = true, validate: Boolean = true): Int = {
-    println(analysisOptions)
+    //println(analysisOptions)
     var xc = 0
     if (validate) {
       xc = validatePipelineOptions(analysisOptions)
@@ -537,6 +617,112 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       case Failure(err) => errorExit(err.getMessage)
     }
   }
+
+  protected def importEntryPoint(eid: String, xmlPath: String): BoundServiceEntryPoint = {
+    var dsType = dsMetaTypeFromPath(xmlPath)
+    var dsUuid = dsUuidFromPath(xmlPath)
+    var xc = runImportDataSetSafe(xmlPath)
+    if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
+    // this is stupidly inefficient
+    val dsId = Try {
+      Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT)
+    } match {
+      case Success(ds) => ds.id
+      case Failure(err) => throw new Exception(err.getMessage)
+    }
+    BoundServiceEntryPoint(eid, dsType, dsId)
+  }
+
+  protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
+    val epFields = entryPoint.split(':')
+    if (epFields.length == 2) importEntryPoint(epFields(0), epFields(1))
+    else if (epFields.length == 1) {
+      val xmlPath = epFields(0)
+      val dsType = dsMetaTypeFromPath(xmlPath)
+      val eid = entryPointsLookup(dsType)
+      importEntryPoint(eid, xmlPath)
+    } else throw new Exception(s"Can't interpret argument ${entryPoint}")
+  }
+
+  protected def getPipelinePresets(presetXml: File): PipelineTemplatePreset = {
+    if (presetXml != null) {
+      val presetPath = Paths.get(presetXml.getAbsolutePath)
+      PipelineTemplatePresetLoader.loadFrom(presetPath)
+    } else defaultPresets
+  }
+
+  protected object OptionTypes {
+    val FLOAT = "pbsmrtpipe.option_types.float"
+    val INTEGER = "pbsmrtpipe.option_types.integer"
+    val STRING = "pbsmrtpipe.option_types.string"
+    val BOOLEAN = "pbsmrtpipe.option_types.boolean"
+  }
+
+  // XXX there is a bit of a disconnect between how preset.xml is handled and
+  // how options are actually passed to services, so we need to convert them
+  // here
+  protected def getPipelineServiceOptions(jobTitle: String, pipelineId: String,
+      entryPoints: Seq[BoundServiceEntryPoint],
+      presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
+    Try {
+      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+    } match {
+      case Success(pipelineJson) => {
+        val presetOptionsLookup = (for (presetOpt <- presets.taskOptions) yield {
+          (presetOpt.id, presetOpt.value.toString)
+        }).toMap
+        // FIXME unmarshalling is broken, so this is a little hacky
+        val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
+        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
+          val template = templateOpt.asJsObject.fields
+          val optionValue = presetOptionsLookup.getOrElse(id,
+            template("default") match {
+              case JsString(x) => x
+              case JsNumber(x) => x.toString
+              case JsBoolean(x) => x.toString
+            })
+          template("optionTypeId").asInstanceOf[JsString].value match {
+            case OptionTypes.STRING => ServiceTaskStrOption(id, optionValue,
+                                                            OptionTypes.STRING)
+            case OptionTypes.INTEGER => ServiceTaskIntOption(id, optionValue.toInt, OptionTypes.INTEGER)
+            case OptionTypes.FLOAT => ServiceTaskDoubleOption(id, optionValue.toDouble, OptionTypes.FLOAT)
+            case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
+          }
+        }).toList
+        val workflowOptions = Seq[ServiceTaskOptionBase]()
+        PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
+                                 workflowOptions)
+      }
+      case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
+    }
+  }
+
+  def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
+                  presetXml: File = null, block: Boolean = true, validate: Boolean = true): Int = {
+    if (entryPoints.length == 0) return errorExit("At least one entry point is required")
+    var pipelineIdFull: String = pipelineId
+    val idFields = pipelineIdFull.split('.')
+    if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
+    println(s"pipeline ID: ${pipelineIdFull}")
+    if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
+    var jobTitleTmp = jobTitle
+    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
+    Try {
+      for (ep <- entryPoints) yield importEntryPointAutomatic(ep)
+    } match {
+      case Success(eps) => {
+        Try {
+          getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps,
+                                    getPipelinePresets(presetXml))
+        } match {
+          case Success(pipelineOptions) => runAnalysisPipelineImpl(
+            pipelineOptions, block=block, validate=false)
+          case Failure(err) => errorExit(err.getMessage)
+        }
+      }
+      case Failure(err) => errorExit(err.getMessage)
+    }
+  }
 }
 
 object PbService {
@@ -547,12 +733,14 @@ object PbService {
     val ps = new PbService(sal)
     val xc = c.mode match {
       case Modes.STATUS => ps.runStatus(c.asJson)
-      case Modes.IMPORT_DS => ps.runImportDataSetSafe(c.path.getAbsolutePath)
+      case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
       case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
                                                    c.name, c.organism, c.ploidy)
       case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
                                                     c.block)
       case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+      case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
+                                            c.jobTitle, c.presetXml, c.block)
       case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
       case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
       case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
