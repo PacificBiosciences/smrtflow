@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PacBioDataModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://pacificbiosciences.com/PacBioDataModel.xsd PacBioDataModel.xsd"
+xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+  <ExperimentContainer Name="Nice experiment" Description="Default"
+  CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+    <InvestigatorName>Default</InvestigatorName>
+    <CreatedDate>2015-10-05</CreatedDate>
+    <Runs>
+      <Run Name="run 1" Description="my first run"
+      CreatedAt="0001-01-01T00:00:00"
+      ModifiedAt="0001-01-01T00:00:00"
+      UniqueId="bc6ae494-7322-40bb-96dc-c94d53a5df77"
+      MetaType="Run" TimeStampedName="rUnset_20151013_031221"
+      Status="Ready">
+        <Outputs>
+          <SubreadSets>
+            <SubreadSet Name="eColi-Cell1"
+            UniqueId="b171e634-e1e9-46e2-b889-484bd4ba7777"
+            MetaType="SubreadSetCollection"
+            TimeStampedName="Unset-SubreadSetCollection-2015-12-13T03:12:21.431Z"
+            xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd">
+
+              <ExternalResources xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+
+                <ExternalResource UniqueId="df336936-47ad-4bcd-aa4b-031a44c97342"
+                MetaType="ExternalResource"
+                TimeStampedName="Unset-ExternalResource-2015-12-13T03:12:21.431Z" />
+              </ExternalResources>
+              <DataSetMetadata>
+                <TotalLength>0</TotalLength>
+                <NumRecords>0</NumRecords>
+                <Collections xmlns="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd">
+
+                  <CollectionMetadata Context="ContextId"
+                  CreatedAt="0001-01-01T00:00:00"
+                  ModifiedAt="0001-01-01T00:00:00"
+                  UniqueId="b2a48f16-bbdf-4bf1-ad31-3700ba278ad0"
+                  MetaType="CollectionMetadata"
+                  TimeStampedName="Unset-CollectionMetadata-2015-12-13T03:12:21.431Z"
+                  Status="Ready" InstrumentId="Unset"
+                  InstrumentName="InstUnset">
+                    <InstCtrlVer>String</InstCtrlVer>
+                    <SigProcVer>String</SigProcVer>
+                    <RunDetails>
+                      <Name>run 1</Name>
+                      <CreatedBy>String</CreatedBy>
+                      <WhenCreated>
+                      0001-01-01T00:00:00</WhenCreated>
+                      <WhenStarted>
+                      0001-01-01T00:00:00</WhenStarted>
+                    </RunDetails>
+                    <WellSample Name="eColi"
+                    CreatedAt="0001-01-01T00:00:00"
+                    ModifiedAt="0001-01-01T00:00:00">
+                      <WellName>A01</WellName>
+                      <Concentration>0</Concentration>
+                      <SampleReuseEnabled>
+                      false</SampleReuseEnabled>
+                      <StageHotstartEnabled>
+                      true</StageHotstartEnabled>
+                      <SizeSelectionEnabled>
+                      true</SizeSelectionEnabled>
+                      <UseCount>0</UseCount>
+                      <DNAControlComplex></DNAControlComplex>
+                    </WellSample>
+                    <Automation Name="Workflow_Magbead.py">
+                      <AutomationParameters xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+
+                        <AutomationParameter Name="Exposure"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double"
+                        SimpleValue="0.0125" />
+                        <AutomationParameter Name="LeftLaserPower"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="10" />
+                        <AutomationParameter Name="RightLaserPower"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="10" />
+                        <AutomationParameter Name="MovieLength"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="90" />
+                        <AutomationParameter Name="sequencingPixelROI"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="JSON"
+                        SimpleValue="[[0,0,1080,1920]]" />
+                        <AutomationParameter Name="traceFilePixelROI"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="JSON"
+                        SimpleValue="[[103,224,64,64],[103,704,64,64],[103,1184,64,64],[103,1664,64,64],[373,224,64,64],[373,704,64,64],[373,1184,64,64],[373,1664,64,64],[643,224,64,64],[643,704,64,64],[643,1184,64,64],[643,1664,64,64],[913,224,64,64],[913,704,64,64],[913,1184,64,64],[913,1664,64,64]]" />
+                        <AutomationParameter xsi:type="SequencingChemistry"
+                        Name="Sequel Dye Set v3.0"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00" />
+                        <AutomationParameter Name="UseStageHotStart"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="String"
+                        SimpleValue="true" />
+                        <AutomationParameter Name="CollectionNumber"
+                        ValueDataType="Int32" SimpleValue="0" />
+                        <AutomationParameter Name="CellReuseIndex"
+                        ValueDataType="Int32" SimpleValue="0" />
+                      </AutomationParameters>
+                    </Automation>
+                    <CollectionNumber>0</CollectionNumber>
+                    <CellIndex>0</CellIndex>
+                    <TemplatePrepKit Name="SMRTbell&#217;&#160;Template Prep Kit"
+                    Description="The SMRTbell&#217;&#160;Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb."
+                    Tags="Template Prep Kit, TPK" Version="3.0"
+                    PartNumber="TPK-100-259-100"
+                    MinInsertSize="500" MaxInsertSize="20000">
+                      <LeftAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT</LeftAdaptorSequence>
+                      <LeftPrimerSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      aacggaggaggagga</LeftPrimerSequence>
+                      <RightAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT</RightAdaptorSequence>
+                      <RightPrimerSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      aacggaggaggagga</RightPrimerSequence>
+                    </TemplatePrepKit>
+                    <BindingKit Name="Sequel Binding Kit v1"
+                    PartNumber="100619300" />
+                    <SequencingKitPlate Name="Sequel Sequencing Kit v1"
+                    PartNumber="100620000" />
+                    <Primary>
+                      <AutomationName>
+                      DefaultPrimaryAutomationName</AutomationName>
+                      <ConfigFileName>
+                      DefaultPrimaryConfigFileName</ConfigFileName>
+                      <OutputOptions>
+                        <ResultsFolder>
+                        Analysis_Results</ResultsFolder>
+                        <CollectionPathUri>
+                        /DefaultCollectionPathUri</CollectionPathUri>
+                        <CopyFiles>
+                          <CollectionFileCopy>
+                          Movie</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Trace</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Pulse</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Base</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Fasta</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Bam</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Baz</CollectionFileCopy>
+                        </CopyFiles>
+                        <Readout>Bases</Readout>
+                        <MetricsVerbosity>High</MetricsVerbosity>
+                      </OutputOptions>
+                    </Primary>
+                    <Secondary>
+                      <AutomationName>
+                      DefaultSecondaryAutomationName}</AutomationName>
+                      <AutomationParameters>
+                        <AutomationParameter Name="Reference"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="String"
+                        SimpleValue="DefaultSecondaryAnalysisReferenceName" />
+                      </AutomationParameters>
+                      <CellCountInJob>0</CellCountInJob>
+                    </Secondary>
+                    <UserDefinedFields>
+                      <DataEntities Name=" LIMS_IMPORT"
+                      ValueDataType="String"
+                      SimpleValue="DefaultUserDefinedFieldLIMS"
+                      xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" />
+                    </UserDefinedFields>
+                  </CollectionMetadata>
+                </Collections>
+              </DataSetMetadata>
+            </SubreadSet>
+            <SubreadSet Name="eColi-Cell2"
+            UniqueId="ea5e4f61-4cff-4ce2-96d6-010f12e00eaa"
+            MetaType="SubreadSetCollection"
+            TimeStampedName="Unset-SubreadSetCollection-2015-12-13T03:12:21.431Z"
+            xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd">
+
+              <ExternalResources xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+
+                <ExternalResource UniqueId="a8f12c0e-baf9-a990-91b9-2c537c868990"
+                MetaType="ExternalResource"
+                TimeStampedName="Unset-ExternalResource-2015-12-13T03:12:21.431Z" />
+              </ExternalResources>
+              <DataSetMetadata>
+                <TotalLength>0</TotalLength>
+                <NumRecords>0</NumRecords>
+                <Collections xmlns="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd">
+
+                  <CollectionMetadata CreatedAt="0001-01-01T00:00:00"
+                  ModifiedAt="0001-01-01T00:00:00"
+                  UniqueId="e8aa1366-c80f-430c-8a14-6e4620718d4c"
+                  MetaType="CollectionMetadata"
+                  TimeStampedName="Unset-CollectionMetadata-2015-12-13T03:12:21.431Z"
+                  Status="Ready" InstrumentId="Unset"
+                  InstrumentName="InstUnset">
+                    <InstCtrlVer>String</InstCtrlVer>
+                    <SigProcVer>String</SigProcVer>
+                    <RunDetails>
+                      <Name>run 1</Name>
+                      <CreatedBy>String</CreatedBy>
+                      <WhenCreated>
+                      0001-01-01T00:00:00</WhenCreated>
+                      <WhenStarted>
+                      0001-01-01T00:00:00</WhenStarted>
+                    </RunDetails>
+                    <WellSample Name="eColi"
+                    CreatedAt="0001-01-01T00:00:00"
+                    ModifiedAt="0001-01-01T00:00:00">
+                      <WellName>A02</WellName>
+                      <Concentration>0</Concentration>
+                      <SampleReuseEnabled>
+                      false</SampleReuseEnabled>
+                      <StageHotstartEnabled>
+                      true</StageHotstartEnabled>
+                      <SizeSelectionEnabled>
+                      true</SizeSelectionEnabled>
+                      <UseCount>0</UseCount>
+                      <DNAControlComplex>DNA Internal Control
+                      Complex SQ v1</DNAControlComplex>
+                    </WellSample>
+                    <Automation Name="Workflow_Diffusion.py">
+                      <AutomationParameters xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+
+                        <AutomationParameter Name="Exposure"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double"
+                        SimpleValue="0.0125" />
+                        <AutomationParameter Name="LeftLaserPower"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="10" />
+                        <AutomationParameter Name="RightLaserPower"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="10" />
+                        <AutomationParameter Name="MovieLength"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="Double" SimpleValue="30" />
+                        <AutomationParameter Name="sequencingPixelROI"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="JSON"
+                        SimpleValue="[[0,0,1080,1920]]" />
+                        <AutomationParameter Name="traceFilePixelROI"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="JSON"
+                        SimpleValue="[[103,224,64,64],[103,704,64,64],[103,1184,64,64],[103,1664,64,64],[373,224,64,64],[373,704,64,64],[373,1184,64,64],[373,1664,64,64],[643,224,64,64],[643,704,64,64],[643,1184,64,64],[643,1664,64,64],[913,224,64,64],[913,704,64,64],[913,1184,64,64],[913,1664,64,64]]" />
+                        <AutomationParameter xsi:type="SequencingChemistry"
+                        Name="Sequel Dye Set v3.0"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00" />
+                        <AutomationParameter Name="UseStageHotStart"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="String"
+                        SimpleValue="true" />
+                        <AutomationParameter Name="CollectionNumber"
+                        ValueDataType="Int32" SimpleValue="1" />
+                        <AutomationParameter Name="CellReuseIndex"
+                        ValueDataType="Int32" SimpleValue="0" />
+                      </AutomationParameters>
+                    </Automation>
+                    <CollectionNumber>1</CollectionNumber>
+                    <CellIndex>0</CellIndex>
+                    <TemplatePrepKit Name="SMRTbell&#217;&#160;Template Prep Kit"
+                    Description="The SMRTbell&#217;&#160;Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb."
+                    Tags="Template Prep Kit, TPK" Version="3.0"
+                    PartNumber="TPK-100-259-100"
+                    MinInsertSize="500" MaxInsertSize="20000">
+                      <LeftAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT</LeftAdaptorSequence>
+                      <LeftPrimerSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      aacggaggaggagga</LeftPrimerSequence>
+                      <RightAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT</RightAdaptorSequence>
+                      <RightPrimerSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                      aacggaggaggagga</RightPrimerSequence>
+                    </TemplatePrepKit>
+                    <BindingKit Name="Sequel Binding Kit v1"
+                    PartNumber="100619300" />
+                    <SequencingKitPlate Name="Sequel Sequencing Kit v1"
+                    PartNumber="100620000" />
+                    <Primary>
+                      <AutomationName>
+                      DefaultPrimaryAutomationName</AutomationName>
+                      <ConfigFileName>
+                      DefaultPrimaryConfigFileName</ConfigFileName>
+                      <OutputOptions>
+                        <ResultsFolder>
+                        Analysis_Results</ResultsFolder>
+                        <CollectionPathUri>
+                        /DefaultCollectionPathUri</CollectionPathUri>
+                        <CopyFiles>
+                          <CollectionFileCopy>
+                          Movie</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Trace</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Pulse</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Base</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Fasta</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Bam</CollectionFileCopy>
+                          <CollectionFileCopy>
+                          Baz</CollectionFileCopy>
+                        </CopyFiles>
+                        <Readout>Bases</Readout>
+                        <MetricsVerbosity>High</MetricsVerbosity>
+                      </OutputOptions>
+                    </Primary>
+                    <Secondary>
+                      <AutomationName>
+                      DefaultSecondaryAutomationName}</AutomationName>
+                      <AutomationParameters>
+                        <AutomationParameter Name="Reference"
+                        CreatedAt="0001-01-01T00:00:00"
+                        ModifiedAt="0001-01-01T00:00:00"
+                        ValueDataType="String"
+                        SimpleValue="DefaultSecondaryAnalysisReferenceName" />
+                      </AutomationParameters>
+                      <CellCountInJob>0</CellCountInJob>
+                    </Secondary>
+                    <UserDefinedFields>
+                      <DataEntities Name=" LIMS_IMPORT"
+                      ValueDataType="String"
+                      SimpleValue="DefaultUserDefinedFieldLIMS"
+                      xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" />
+                    </UserDefinedFields>
+                  </CollectionMetadata>
+                </Collections>
+              </DataSetMetadata>
+            </SubreadSet>
+          </SubreadSets>
+        </Outputs>
+      </Run>
+    </Runs>
+  </ExperimentContainer>
+</PacBioDataModel>
