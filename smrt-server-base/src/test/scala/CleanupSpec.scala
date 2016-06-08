@@ -1,26 +1,31 @@
 import com.pacbio.common.actors._
-import com.pacbio.common.cleanup.CleanupSchedulerProvider
-import com.pacbio.common.dependency.{StringConfigProvider, Singleton, SetBindings}
-import com.pacbio.common.models.ConfigCleanupJobCreate
+import com.pacbio.common.scheduling.CleanupSchedulerProvider
+import com.pacbio.common.dependency.{InitializationComposer, StringConfigProvider, Singleton, SetBindings}
+import com.pacbio.common.models.{CleanupJobResponse, ConfigCleanupJobCreate}
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
+import org.mockito.Mockito.when
 import org.specs2.mock._
-import org.specs2.mutable.Specification
+import org.specs2.mutable.{BeforeAfter, Specification}
+import org.specs2.time.NoTimeConversions
 
-class CleanupSpec extends Specification with Mockito {
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
+import scala.concurrent.duration._
+import scala.concurrent.{Future, Await}
+
+class CleanupSpec extends Specification with Mockito with NoTimeConversions {
   sequential
 
   val TEST_NAME = "TestCleanup"
   val TEST_PATH = "/test/path/*"
   val TEST_SCHEDULE = "0/5 * * * * ?" // run every 5 seconds
 
-  // TODO(smcclellan): Use mock FileSystem instead of mock CleanupDao
+  // TODO(smcclellan): Use mock FileSystem instead of mock CleanupDao?
   val mockCleanupDao = mock[CleanupDao]
 
   object TestProviders extends
       SetBindings with
+      InitializationComposer with
       StringConfigProvider with
       CleanupSchedulerProvider with
-      CleanupServiceActorRefProvider with
       CleanupDaoProvider with
       ActorSystemProvider {
     override val actorSystemName = Some("TestSystem")
@@ -48,17 +53,34 @@ class CleanupSpec extends Specification with Mockito {
     )
   }
 
+  trait SchedulerContext extends BeforeAfter {
+    override def before: Any = ()
+    override def after: Any = {
+      QuartzSchedulerExtension(TestProviders.actorSystem()).shutdown()
+    }
+  }
+
   "Cleanup Service" should {
     // TODO(smcclellan): Test service endpoints
 
     // TODO(smcclellan): Test DAO
 
-    "execute a configured job" in {
+    "execute a configured job" in new SchedulerContext {
+      val expectedCreate = ConfigCleanupJobCreate(TEST_NAME, TEST_PATH, TEST_SCHEDULE, None, None, Some(false))
+      val createResponse = CleanupJobResponse(TEST_NAME, TEST_PATH, TEST_SCHEDULE, None, None, dryRun = false, None, None)
+
       there was no(mockCleanupDao).runConfigJob(TEST_NAME)
 
-      TestProviders.cleanupScheduler().scheduleAll()
+      when(mockCleanupDao.createConfigJob(expectedCreate)).thenReturn(Future(createResponse))
+      when(mockCleanupDao.runConfigJob(TEST_NAME)).thenReturn(Future.successful(()))
 
-      val expectedCreate = ConfigCleanupJobCreate(TEST_NAME, TEST_PATH, TEST_SCHEDULE, None, None, Some(false))
+      val initResults = Await.result(TestProviders.init(), 10.second)
+      initResults.size === 1
+      val scheduleResults = initResults.head.asInstanceOf[Seq[CleanupJobResponse]]
+      scheduleResults.size === 1
+      val resp = scheduleResults.head
+      resp === createResponse
+
       there was one(mockCleanupDao).createConfigJob(expectedCreate)
 
       Thread.sleep(10 * 1000)

@@ -7,7 +7,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
-import com.pacbio.secondary.smrtlink.database.DatabaseRunDaoProvider
+import com.pacbio.secondary.smrtlink.database.{FlywayMigratorProvider, DatabaseRunDaoProvider}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider, MergeDataSetServiceJobTypeProvider, ImportDataSetServiceTypeProvider}
 import com.pacbio.secondary.smrtlink.services._
@@ -15,13 +15,11 @@ import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
 import spray.servlet.WebBoot
 
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
 object SmrtLinkApp
 
 trait SmrtLinkProviders extends
   AuthenticatedCoreProviders with
+  FlywayMigratorProvider with
   JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   EngineManagerActorProvider with
@@ -30,7 +28,6 @@ trait SmrtLinkProviders extends
   PbsmrtpipeConfigLoader with
   JobsDaoActorProvider with
   JobsDaoProvider with
-  SmrtLinkDalProvider with
   ProjectServiceProvider with
   DataSetServiceProvider with
   RunServiceProvider with
@@ -55,15 +52,6 @@ trait SmrtLinkApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
   override val providers = new SmrtLinkProviders {}
 
   override def startup(): Unit = {
-    try {
-      providers.jobsDao().initializeDb()
-    } catch {
-      case e: Exception => {
-        e.printStackTrace()
-        system.shutdown()
-      }
-    }
-
     val p = Paths.get(providers.engineConfig.pbRootJobDir)
     if (!Files.exists(p)) {
       logger.info(s"Creating root job dir $p")

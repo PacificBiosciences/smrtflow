@@ -88,7 +88,7 @@ class HealthService(dao: HealthDao, authenticator: Authenticator)
                   entity(as[HealthMetricUpdateMessage]) { m =>
                     complete {
                       created {
-                        dao.updateMetric(m)
+                        dao.updateMetric(id, m)
                       }
                     }
                   }

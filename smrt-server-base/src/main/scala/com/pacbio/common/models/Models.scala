@@ -99,13 +99,13 @@ case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, 
 
 
 // Health System
-case class HealthMetricCreateMessage(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[Double, HealthSeverity.HealthSeverity], windowSeconds: Option[Int])
+case class HealthMetricCreateMessage(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int])
 
-case class HealthMetric(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[Double, HealthSeverity.HealthSeverity], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, updatedAt: Option[JodaDateTime])
+case class HealthMetric(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, updatedAt: Option[JodaDateTime])
 
-case class HealthMetricUpdateMessage(id: String, updateValue: Double)
+case class HealthMetricUpdateMessage(updateValue: Double)
 
-case class HealthMetricUpdate(id: String, updateValue: Double, updateId: Long, metricValue: Double, severity: HealthSeverity.HealthSeverity, updatedAt: JodaDateTime)
+case class HealthMetricUpdate(updateValue: Double, updateId: Long, metricValue: Double, severity: HealthSeverity.HealthSeverity, updatedAt: JodaDateTime)
 
 
 // Logging System

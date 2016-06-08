@@ -1,17 +1,17 @@
 import akka.actor.ActorRefFactory
 import com.pacbio.common.actors.ActorRefFactoryProvider
+import com.pacbio.common.database.TestDatabaseProvider
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.DataSetServiceProvider
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import org.specs2.specification.BeforeExample
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
@@ -22,10 +22,9 @@ class DataSetSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
 with JobServiceConstants {
+  import SmrtLinkJsonProtocols._
 
   sequential
-
-  import SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
@@ -34,8 +33,8 @@ with JobServiceConstants {
   DataSetServiceProvider with
   JobsDaoActorProvider with
   JobsDaoProvider with
-  TestDalProvider with
   SmrtLinkConfigProvider with
+  TestDatabaseProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   FakeClockProvider with
@@ -45,21 +44,22 @@ with JobServiceConstants {
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
   def dbSetup() = {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
+    logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    println(s"completed setting up database $dbURI")
   }
 
   textFragment("creating database tables")
   step(dbSetup())
 
   "Service list" should {
+    var id = -1
+
     "Secondary analysis DataSets Types resources" in {
       Get(s"/$ROOT_SERVICE_PREFIX/dataset-types") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -75,8 +75,10 @@ with JobServiceConstants {
     "Secondary analysis Subread DataSetsType resource" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        //val dst = responseAs[DataSetType]
-        //dst.id must be_==("pacbio.datasets.subread")
+        val resp = responseAs[Seq[SubreadServiceDataSet]]
+        resp.isEmpty === false
+        id = resp.head.id
+        ok
       }
     }
     "Secondary analysis Subread Schema resource" in {
@@ -87,7 +89,7 @@ with JobServiceConstants {
       }
     }
     "Secondary analysis Subread DataSet resource by id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/$id") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         //val dst = responseAs[DataSetType]
         //dst.id must be_==("pacbio.datasets.subread")

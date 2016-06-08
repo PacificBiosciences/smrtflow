@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.services
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
+
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -22,8 +23,6 @@ import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
-import com.pacbio.common.actors.UserServiceActor._
-import com.pacbio.common.auth.ApiUser
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
@@ -93,10 +92,10 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+  def jobList(dbActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
     (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
 
-  def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route =
+  def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
       get {
         complete {

@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
 import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
 import com.pacbio.secondary.smrtlink.models._
 import shapeless.HNil
-import spray.httpx.marshalling.{Marshaller, ToResponseMarshallable}
+import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
 
 import scala.concurrent.Future

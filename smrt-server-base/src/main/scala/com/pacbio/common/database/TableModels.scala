@@ -33,7 +33,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
 
-    def uuid: Rep[UUID] = column[UUID]("UUID")
+    def uuid: Rep[UUID] = column[UUID]("UUID", O.PrimaryKey)
 
     def message: Rep[String] = column[String]("MESSAGE")
 

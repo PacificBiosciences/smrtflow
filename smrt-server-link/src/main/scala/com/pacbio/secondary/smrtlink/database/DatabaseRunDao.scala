@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.database
 
 import java.util.UUID
 
+import com.pacbio.common.database.DatabaseProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
 import com.pacbio.secondary.smrtlink.actors._
@@ -16,7 +17,7 @@ import slick.driver.SQLiteDriver.api._
 /**
  * RunDao that stores run designs in a Slick database.
  */
-class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
+class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
   import TableModels._
 
   private def updateOrCreate(
@@ -27,7 +28,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
 
     require(update || parseResults.isDefined, "Cannot create a run without ParseResults")
 
-    var action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
+    val action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
       if (prev.isEmpty && update)
         throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
       if (prev.isDefined && !update)
@@ -52,7 +53,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
       DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
     }
 
-    dal.db.run(action.transactionally)
+    db.run(action.transactionally)
   }
 
   override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
@@ -72,7 +73,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
     if (criteria.reserved.isDefined)
       query = query.filter(_.reserved === criteria.reserved.get)
 
-    dal.db.run(query.result).map(_.toSet)
+    db.run(query.result).map(_.toSet)
   }
 
   override def getRun(id: UUID): Future[Run] = {
@@ -86,7 +87,7 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
       }
     }
     
-    dal.db.run(run)
+    db.run(run)
   }
 
   override def createRun(create: RunCreate): Future[RunSummary] = {
@@ -105,14 +106,14 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
       dataModels.filter(_.uniqueId === id).delete,
       runSummaries.filter(_.uniqueId === id).delete
     ).map(_ => s"Successfully deleted run design $id")
-    dal.db.run(action.transactionally)
+    db.run(action.transactionally)
   }
 
   override def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
-    dal.db.run(collectionMetadata.filter(_.runId === runId).result)
+    db.run(collectionMetadata.filter(_.runId === runId).result)
 
   override def getCollectionMetadata(runId: UUID, uniqueId: UUID): Future[CollectionMetadata] = {
-    dal.db.run {
+    db.run {
       collectionMetadata
         .filter(_.runId === runId)
         .filter(_.uniqueId === uniqueId)
@@ -127,8 +128,8 @@ class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
  * Provides a DatabaseRunDao.
  */
 trait DatabaseRunDaoProvider extends RunDaoProvider {
-  this: DalProvider with DataModelParserProvider =>
+  this: DatabaseProvider with DataModelParserProvider =>
 
   override val runDao: Singleton[RunDao] =
-    Singleton(() => new DatabaseRunDao(dal(), dataModelParser()))
+    Singleton(() => new DatabaseRunDao(db(), dataModelParser()))
 }

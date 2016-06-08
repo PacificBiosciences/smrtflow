@@ -4,45 +4,45 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.actors._
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.dependency.{RequiresInitialization, InitializationComposer, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.{ClockProvider, Clock}
-import com.typesafe.scalalogging.LazyLogging
+import slick.driver.SQLiteDriver
 
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.meta.MTable
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**
  * Concrete implementation of LogDao that stores messages in a database.
  */
-class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogDao with LazyLogging {
+class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogDao with RequiresInitialization {
   import LogDaoConstants._
   import TableModels._
 
   val NO_CRITERIA = SearchCriteria(None, None, None, None)
+  val SYSTEM = LogResource(clock.dateNow(), SYSTEM_RESOURCE.description, SYSTEM_ID, SYSTEM_RESOURCE.name)
 
-  def init(): Future[Unit] = {
-    val createTables = MTable.getTables(logResources.baseTableRow.tableName).headOption.flatMap { r =>
-      MTable.getTables(logMessages.baseTableRow.tableName).headOption.map { m =>
-        Seq(r.map(_ => logResources), m.map(_ => logMessages))
-      }
-    }.flatMap { t =>
-      DBIO.sequence(t.filter(_.isDefined).map(_.get).map(_.schema.create))
+  override def init(): Future[Unit] = {
+    val resTable = MTable.getTables(logResources.baseTableRow.tableName).headOption
+    val msgTable = MTable.getTables(logMessages.baseTableRow.tableName).headOption
+
+    val createMissingTables = DBIO.sequence(Seq(resTable, msgTable)).flatMap { tables =>
+      val r = tables.head.isEmpty
+      val m = tables(1).isEmpty
+
+      val schemas: ArrayBuffer[SQLiteDriver.SchemaDescription] = new ArrayBuffer()
+      if (r) schemas += logResources.schema
+      if (m) schemas += logMessages.schema
+
+      if (schemas.isEmpty) DBIO.successful(()) else schemas.reduce(_ ++ _).create
     }
-    val actions = createTables >> {
-      logResources.filter(_.id === LogDaoConstants.SYSTEM_ID).result.headOption.flatMap { s =>
-        if (s.isEmpty) {
-          val systemResource =
-            LogResource(clock.dateNow(), SYSTEM_RESOURCE.description, SYSTEM_ID, SYSTEM_RESOURCE.name)
-          (logResources += systemResource).map(_ => ())
-        } else DBIO.successful()
-      }
-    }
-    db.run(actions.transactionally)
+
+    db.run(createMissingTables)
   }
 
   override def getAllLogResources: Future[Seq[LogResource]] = db.run(logResources.result)
@@ -62,40 +62,41 @@ class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogD
     }
 
   override def getLogResource(id: String): Future[LogResource] =
-    db.run {
+    if (id == SYSTEM_ID) Future.successful(SYSTEM) else db.run {
       logResources.filter(_.id === id).result.headOption.map {
         case Some(r) => r
         case None => throw new ResourceNotFoundError(s"Unable to find resource $id")
       }
     }
 
-  override def getLogMessages(id: String): Future[Seq[LogMessage]] = searchLogMessages(id, NO_CRITERIA)
+  override def getLogMessages(id: String): Future[Seq[LogMessage]] = search(Some(id), NO_CRITERIA)
 
   override def createLogMessage(id: String, m: LogMessageRecord): Future[LogMessage] =
     db.run {
       val message = LogMessage(clock.dateNow(), UUID.randomUUID(), m.message, m.level, m.sourceId)
-      val create = (logMessages += LogMessageRow(id, message)) >> (logMessages += LogMessageRow(SYSTEM_ID, message))
-      create.map(_ => message).transactionally
+      val create = logMessages += LogMessageRow(id, message)
+      create.map(_ => message)
     }
 
-  override def getSystemLogMessages: Future[Seq[LogMessage]] = getLogMessages(SYSTEM_ID)
+  override def getSystemLogMessages: Future[Seq[LogMessage]] = search(None, NO_CRITERIA)
 
-  override def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]] = db.run {
-    var q = logMessages.filter(_.resourceId === id)
-    criteria.substring.foreach { s => q = q.filter(_.message.substring(s)) }
+  override def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]] =
+    search(Some(id), criteria)
+
+  override def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] = search(None, criteria)
+
+  private def search(id: Option[String], criteria: SearchCriteria): Future[Seq[LogMessage]] = db.run {
+    var q: Query[LogMessageT, LogMessageRow, Seq] = logMessages
+    id.foreach { i => q = q.filter(_.resourceId === i) }
+    criteria.substring.foreach { s => q = q.filter(_.message.indexOf(s) >= 0) }
     criteria.sourceId.foreach { s => q = q.filter(_.sourceId === s) }
     criteria.startTime.foreach { t => q = q.filter(_.createdAt >= t) }
     criteria.endTime.foreach { t => q = q.filter(_.createdAt < t) }
-    q.sortBy(_.createdAt.desc).take(responseSize).result
+    q.sortBy(_.createdAt.asc).take(responseSize).result
   }.map(_.map(_.message))
 
-  override def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] =
-    searchLogMessages(SYSTEM_ID, criteria)
-
   @VisibleForTesting
-  def deleteAll(): Unit = {
-    db.run(logMessages.delete)
-  }
+  def deleteAll(): Future[Int] = db.run(logMessages.delete >> logResources.delete)
 }
 
 /**
@@ -103,7 +104,8 @@ class DatabaseLogDao(db: Database, clock: Clock, responseSize: Int) extends LogD
  * DatabaseProvider.
  */
 trait DatabaseLogDaoProvider extends LogDaoProvider {
-  this: DatabaseProvider with ClockProvider =>
+  this: DatabaseProvider with ClockProvider with InitializationComposer =>
 
-  override val logDao: Singleton[LogDao] = Singleton(() => new DatabaseLogDao(db(), clock(), logDaoResponseSize))
+  override val logDao: Singleton[LogDao] =
+    requireInitialization(Singleton(() => new DatabaseLogDao(db(), clock(), logDaoResponseSize)))
 }

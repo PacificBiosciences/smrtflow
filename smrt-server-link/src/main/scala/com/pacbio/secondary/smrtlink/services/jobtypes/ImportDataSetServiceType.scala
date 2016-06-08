@@ -8,13 +8,10 @@ import akka.pattern.ask
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
-
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
@@ -27,7 +24,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
-class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
+class ImportDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
 
   import SmrtLinkJsonProtocols._
 
@@ -57,13 +54,12 @@ class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineMan
     fx
   }
 
-
   override val routes =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -78,17 +74,16 @@ class ImportDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineMan
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait ImportDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
-    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
 }

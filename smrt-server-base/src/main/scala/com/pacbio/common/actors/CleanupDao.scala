@@ -175,7 +175,8 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
         create.target,
         create.schedule,
         create.olderThan,
-        create.minSize, dryRun,
+        create.minSize,
+        dryRun,
         lastCheck = None,
         lastDelete = None)
       configJobs += job.name -> job

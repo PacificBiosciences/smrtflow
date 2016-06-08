@@ -7,48 +7,40 @@ import java.util.UUID
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, EngineJob}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResolver}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.analysis.jobs.{SimpleUUIDJobResolver, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.database.FlywayMigrator
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-
 import org.joda.time.{DateTime => JodaDateTime}
+import slick.driver.SQLiteDriver.api._
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
 
-import slick.driver.SQLiteDriver.api._
+trait SetupMockData extends MockUtils {
+  def runSetup(dao: JobsDao): Unit =
+    Await.ready(
+      new FlywayMigrator(dao.dbURI).init() map { _ =>
+      println(s"Created database connection from URI ${dao.dbURI}")} flatMap { _ =>
+      insertMockProject()} flatMap { _ =>
+      insertMockSubreadDataSetsFromDir()} flatMap { _ =>
+      insertMockHdfSubreadDataSetsFromDir()} flatMap { _ =>
+      insertMockReferenceDataSetsFromDir()} flatMap { _ =>
+      insertMockAlignmentDataSets()} flatMap { _ =>
 
-trait SetupMockData extends MockUtils with InitializeTables {
-  def runSetup(dao: JobsDao): Unit = {
+      // Jobs
+      insertMockJobs()} flatMap { _ =>
+      insertMockJobEvents()} flatMap { _ =>
+      insertMockJobsTags()} flatMap { _ =>
 
-    createTables
-    println(s"Created database connection from URI ${dao.dal.dbURI}")
-
-    val f = Future(println("Inserting mock data")).flatMap { _ =>
-      Future.sequence(Seq(
-        insertMockProject(),
-        insertMockSubreadDataSetsFromDir(),
-        insertMockHdfSubreadDataSetsFromDir(),
-        insertMockReferenceDataSetsFromDir(),
-        insertMockAlignmentDataSets(),
-
-        // Jobs
-        insertMockJobs(),
-        insertMockJobEvents(),
-        insertMockJobsTags(),
-
-        // datastore
-        insertMockDataStoreFiles()
-      ))
-    }.andThen { case _ => println("Completed inserting mock data.") }
-
-    Await.ready(f, 1.minute)
-  }
+      // datastore
+      insertMockDataStoreFiles()} map { _ =>
+      println("Completed inserting mock data.")}, 1.minute)
 }
 
 /**
@@ -82,7 +74,6 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockJobs(): Future[Option[Int]] = {
-    import scala.util.{Success, Failure}
     def toJob(n: Int) = EngineJob(
         n,
         UUID.randomUUID(),
@@ -96,7 +87,7 @@ trait MockUtils extends LazyLogging{
         "{}",
         Some("root")
     )
-    dao.dal.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
+    dao.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
   }
 
   def insertMockSubreadDataSetsFromDir(): Future[Seq[String]] = {
@@ -169,7 +160,7 @@ trait MockUtils extends LazyLogging{
     def toE(i: Int) = JobEvent(UUID.randomUUID(), i, AnalysisJobStates.CREATED, s"message from job $i", JodaDateTime.now())
     def toEs(jobId: Int, nevents: Int) = (1 until randomElement(maxEvents)).toList.map(i => toE(jobId))
 
-    dao.dal.db.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
+    dao.db.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
   }
 
   def insertMockJobsTags(): Future[Unit] = {
@@ -179,7 +170,7 @@ trait MockUtils extends LazyLogging{
     val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
     val tagIds = tags.indices.toList
 
-    dao.dal.db.run(
+    dao.db.run(
       DBIO.seq(
         jobTags ++= tagIds.map(i => (i, tags(i))),
         jobsTags ++= jobIds.map( (_, randomInt(tagIds)) )
@@ -189,7 +180,7 @@ trait MockUtils extends LazyLogging{
 
   def insertMockProject(): Future[Unit] = {
     val projectId = 1
-    dao.dal.db.run(
+    dao.db.run(
       DBIO.seq(
         projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
         projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
@@ -198,7 +189,7 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockDataStoreFiles(): Future[Int] = {
-    dao.dal.db.run(
+    dao.db.run(
       engineJobs.filter(_.id === _MOCK_JOB_ID).result.head.flatMap { job =>
         datastoreServiceFiles += DataStoreServiceFile(
           UUID.randomUUID(),
@@ -222,18 +213,4 @@ trait MockUtils extends LazyLogging{
 trait TmpDirJobResolver {
   val tmpPath = FileUtils.getTempDirectory
   val resolver = new SimpleUUIDJobResolver(tmpPath.toPath)
-}
-
-trait InitializeTables extends MockUtils {
-  val dal: Dal
-
-  def createTables: Unit = dao.initializeDb()
-
-  /**
-   * Required data in db
-   */
-  def loadBaseMock = {
-    Await.ready(insertMockProject(), 10.seconds)
-    logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
-  }
 }

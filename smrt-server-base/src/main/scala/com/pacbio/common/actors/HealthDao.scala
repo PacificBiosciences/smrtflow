@@ -40,7 +40,7 @@ trait HealthDao {
   /**
    * Updates a metric.
    */
-  def updateMetric(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate]
+  def updateMetric(id: String, m: HealthMetricUpdateMessage): Future[HealthMetricUpdate]
 
   /**
    * Returns a seq of all metrics that are not in the OK state.
@@ -82,8 +82,10 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
     } else updates(id)
   }
 
-  private def severityByValue(severityLevels: Map[Double, HealthSeverity], value: Double): HealthSeverity =
-    severityLevels.filter(_._1 > value).maxBy(_._1)._2
+  private def severityByValue(severityLevels: Map[HealthSeverity, Double], value: Double): HealthSeverity = {
+    val l = severityLevels.filter(_._2 <= value)
+    if (l.isEmpty) OK else l.maxBy(_._2)._1
+  }
 
   override def getAllHealthMetrics: Future[Seq[HealthMetric]] = Future(metrics.values.toSeq)
 
@@ -100,7 +102,7 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
           m.name,
           m.description,
           m.metricType,
-          m.severityLevels,
+          m.severityLevels - OK,
           if (m.metricType == MetricType.LATEST) Some(0) else m.windowSeconds,
           HealthSeverity.OK,
           0.0,
@@ -117,40 +119,39 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
   override def getAllMetricUpdates(id: String): Future[Seq[HealthMetricUpdate]] =
     Future(updates.getOrElse(id, throw new ResourceNotFoundError(s"Unable to find metric $id")))
 
-  override def updateMetric(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate] = Future {
+  override def updateMetric(id: String, m: HealthMetricUpdateMessage): Future[HealthMetricUpdate] = Future {
     import MetricType._
 
-    if (updates contains m.id) {
-      updates(m.id).synchronized {
+    if (updates contains id) {
+      updates(id).synchronized {
         val updatedAt = clock.dateNow()
-        val metric = metrics(m.id)
+        val metric = metrics(id)
 
         val newValue: Double = metric.metricType match {
           case LATEST => m.updateValue
-          case SUM => getWindow(m.id, updatedAt).map(_.updateValue).sum + m.updateValue
+          case SUM => getWindow(id, updatedAt).map(_.updateValue).sum + m.updateValue
           case AVERAGE =>
-            val ups = getWindow(m.id, updatedAt).map(_.updateValue)
+            val ups = getWindow(id, updatedAt).map(_.updateValue)
             (ups.sum + m.updateValue) / (ups.size + 1)
           case MAX =>
-            val ups = getWindow(m.id, updatedAt).map(_.updateValue)
+            val ups = getWindow(id, updatedAt).map(_.updateValue)
             if (ups.isEmpty) m.updateValue else ups.max.max(m.updateValue)
         }
 
         val newSeverity = severityByValue(metric.severityLevels, newValue)
         val update = HealthMetricUpdate(
-          m.id,
           m.updateValue,
           nextUpdateId.getAndIncrement(),
           newValue,
           newSeverity,
           updatedAt)
 
-        updates(m.id) += update
-        if (windows contains m.id) windows(m.id) += update
-        metrics(m.id) = metrics(m.id).copy(metricValue = newValue, severity = newSeverity, updatedAt = Some(updatedAt))
+        updates(id) += update
+        if (windows contains id) windows(id) += update
+        metrics(id) = metrics(id).copy(metricValue = newValue, severity = newSeverity, updatedAt = Some(updatedAt))
         update
       }
-    } else throw new ResourceNotFoundError(s"Unable to find metric ${m.id}")
+    } else throw new ResourceNotFoundError(s"Unable to find metric $id")
   }
 
   override def getUnhealthyMetrics: Future[Seq[HealthMetric]] =

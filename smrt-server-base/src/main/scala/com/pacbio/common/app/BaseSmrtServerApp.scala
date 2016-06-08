@@ -9,11 +9,11 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
 import com.pacbio.common.auth.{BaseRolesInit, JwtUtilsImplProvider, FakeAuthenticatorProvider, AuthenticatorImplProvider}
-import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonReader, Singleton, SetBindings}
+import com.pacbio.common.dependency._
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
+import com.pacbio.common.scheduling.{CleanupSchedulerProvider, HealthMetricRecalculateSchedulerProvider}
 import com.pacbio.common.services._
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
@@ -35,22 +35,22 @@ trait CoreProviders extends
   SetBindings with
   DefaultConfigProvider with
   DatabaseProvider with
+  InitializationComposer with
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
   InMemoryHealthDaoProvider with
+  HealthMetricRecalculateSchedulerProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProvider with
-  CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   MimeTypeDetectors with
@@ -84,20 +84,20 @@ trait AuthenticatedCoreProviders extends
   DefaultConfigProvider with
   DatabaseProvider with
   ServiceComposer with
+  InitializationComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
   InMemoryHealthDaoProvider with
+  HealthMetricRecalculateSchedulerProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProviderx with
-  CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProviderx with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   MimeTypeDetectors with
@@ -126,7 +126,7 @@ trait AuthenticatedCoreProviders extends
 }
 
 trait BaseApi extends BaseRolesInit {
-  val providers: ActorSystemProvider with RouteProvider
+  val providers: ActorSystemProvider with RouteProvider with InitializationComposer
 
   // Override these with custom startup and shutdown logic
   def startup(): Unit = ()
@@ -163,16 +163,18 @@ trait BaseServer extends LazyLogging {
     val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.mkString(" "))
 
-    val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
+    val bind: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
       case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))
       case r => None
     }
+
+    val initAndBind = providers.init().flatMap(_ => bind)
 
     class StartupFailedException(cause: Throwable)
       extends RuntimeException("Startup failed", cause)
       with ControlThrowable
 
-    Await.result(f, 10.seconds) map { e =>
+    Await.result(initAndBind, 30.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll
       system.shutdown()
       throw new StartupFailedException(e)
@@ -187,8 +189,6 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val providers: CoreProviders = new CoreProviders {}
   override val host = providers.serverHost()
   override val port = providers.serverPort()
-
-  override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
 
   LoggerOptions.parseAddDebug(args)
 

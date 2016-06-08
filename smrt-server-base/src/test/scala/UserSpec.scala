@@ -1,4 +1,3 @@
-import akka.testkit.TestActorRef
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.models._
@@ -6,21 +5,23 @@ import com.pacbio.common.services.{PacBioServiceErrors, UserService}
 import com.pacbio.common.time.FakeClockProvider
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import scala.concurrent.duration.FiniteDuration
+import org.specs2.time.NoTimeConversions
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
 import spray.http.{BasicHttpCredentials, OAuth2BearerToken}
 import spray.httpx.SprayJsonSupport._
 import spray.routing._
 import spray.testkit.Specs2RouteTest
 
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, the JWT utils, etc.
-class UserSpec extends Specification with Directives with Specs2RouteTest with HttpService with BaseRolesInit with PacBioServiceErrors {
+class UserSpec extends Specification with Directives with Specs2RouteTest with HttpService with BaseRolesInit with NoTimeConversions with PacBioServiceErrors {
   // Tests must be run in sequence because of shared state in InMemoryUserDao
   sequential
 
   import PacBioJsonProtocol._
   import BaseRoles._
 
-  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(10, "sec"))
+  implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
   def actorRefFactory = system
 
@@ -30,7 +31,6 @@ class UserSpec extends Specification with Directives with Specs2RouteTest with H
   val rootUserPass = "rootPass"
 
   object TestProviders extends
-    UserServiceActorProvider with
     InMemoryUserDaoProvider with
     AuthenticatorImplProvider with
     JwtUtilsImplProvider with
@@ -38,20 +38,20 @@ class UserSpec extends Specification with Directives with Specs2RouteTest with H
       override lazy val defaultRoles = Set.empty[Role]
   }
 
-  val actorRef = TestActorRef[UserServiceActor](TestProviders.userServiceActor())
+  val userDao = TestProviders.userDao()
   val authenticator = TestProviders.authenticator()
-  val routes = new UserService(actorRef, authenticator).prefixedRoutes
+  val routes = new UserService(userDao, authenticator).prefixedRoutes
 
   trait daoSetup extends Scope {
-    TestProviders.userDao().asInstanceOf[InMemoryUserDao].clear()
+    userDao.asInstanceOf[InMemoryUserDao].clear()
 
-    TestProviders.userDao().createUser(basicUserLogin, UserRecord(basicUserPass))
-    TestProviders.userDao().createUser(rootUserLogin, UserRecord(rootUserPass))
-    TestProviders.userDao().addRole(rootUserLogin, ROOT)
+    Await.ready(
+      userDao.createUser(basicUserLogin, UserRecord(basicUserPass)) flatMap { _ =>
+      userDao.createUser(rootUserLogin, UserRecord(rootUserPass))} flatMap { _ =>
+      userDao.addRole(rootUserLogin, ROOT)}, 10.seconds)
   }
 
   "User Service" should {
-
     "return info about a specific user" in new daoSetup {
       Get("/smrt-base/user/" + rootUserLogin) ~> routes ~> check {
         status.isSuccess must beTrue
