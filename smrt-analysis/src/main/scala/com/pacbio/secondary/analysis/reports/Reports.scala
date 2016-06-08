@@ -1,10 +1,13 @@
 package com.pacbio.secondary.analysis.reports
 
+import com.pacbio.common.models.UUIDJsonProtocol
+
 import java.io.{FileWriter, BufferedWriter, File}
 import java.nio.file.{Path, Files}
 
 import org.apache.commons.io.FileUtils
 import spray.json._
+import java.util.UUID
 import DefaultJsonProtocol._
 
 
@@ -39,12 +42,14 @@ object ReportModels {
       version: String = DEFAULT_VERSION,
       attributes: List[ReportAttribute],
       plotGroups: List[ReportPlotGroup],
-      tables: List[ReportTable])
+      tables: List[ReportTable],
+      uuid: Option[UUID] = None,
+      datasetUuids: List[UUID] = List[UUID]())
 
 }
 
 
-trait ReportJsonProtocol extends DefaultJsonProtocol {
+trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
 
   import ReportModels._
 
@@ -84,7 +89,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
         "version" -> JsString(r.version),
         "attributes" -> r.attributes.toJson,
         "plotGroups" -> r.plotGroups.toJson,
-        "tables" -> r.tables.toJson)
+        "tables" -> r.tables.toJson,
+        "uuid" -> r.uuid.toJson,
+        "dataset_uuids" -> r.datasetUuids.toJson)
     }
     def read(value: JsValue) = {
       val jsObj = value.asJsObject
@@ -94,10 +101,19 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
             case Seq(JsString(v)) => v
             case _ => DEFAULT_VERSION
           }
+          val uuid = jsObj.getFields("uuid") match {
+            case Seq(JsString(u)) => Some(UUID.fromString(u))
+            case _ => None
+          }
+          val datasetUuids = jsObj.getFields("dataset_uuids") match {
+            case Seq(JsArray(uuids)) => uuids.map(_.convertTo[UUID]).toList
+            case _ => List[UUID]()
+          }
           val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
           val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
           val tables = jsTables.map(_.convertTo[ReportTable]).toList
-          Report(id, version, attributes, plotGroups, tables)
+          Report(id, version, attributes, plotGroups, tables, uuid,
+                 datasetUuids)
         }
         case x => deserializationError(s"Expected Report, got ${x}")
       }
@@ -162,7 +178,8 @@ object MockReportUtils extends ReportJsonProtocol {
     val plots = (1 until nplots).map(x => toP(x, toI(s"plot_$x")))
     val plotGroup = toPg(toI("plotgroups"), plots.toList)
     val attrs = (1 until nattrs).map(n => toA(n, s"attr$n"))
-    Report(rid, rversion, attrs.toList, List(plotGroup), List(toReportTable))
+    Report(rid, rversion, attrs.toList, List(plotGroup), List(toReportTable),
+           Some(UUID.randomUUID), List[UUID](UUID.randomUUID))
   }
 
   def writeReport(report: Report, path: Path): Report = {
