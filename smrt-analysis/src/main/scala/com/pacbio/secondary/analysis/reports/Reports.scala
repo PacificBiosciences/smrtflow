@@ -29,7 +29,9 @@ object ReportModels {
 
   case class ReportPlot(id: String, image: String, caption: Option[String] = None)
 
-  case class ReportTable(id: String, title: Option[String] = None, columns: JsArray)
+  case class ReportTable(id: String, title: Option[String] = None, columns: Seq[ReportTableColumn])
+
+  case class ReportTableColumn(id: String, header: Option[String] = None, values: Seq[Any])
 
   case class ReportPlotGroup(
       id: String,
@@ -77,6 +79,41 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
 
   implicit val reportPlotGroupFormat = jsonFormat3(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
+  //implicit val reportColumnFormat = jsonFormat3(ReportTableColumn)
+  implicit object reportColumnFormat extends JsonFormat[ReportTableColumn] {
+    def write(c: ReportTableColumn): JsObject = {
+      JsObject(
+        "id" -> JsString(c.id),
+        "header" -> c.header.toJson,
+        "values" -> JsArray(c.values.map((v) => v match {
+              case x: Double => JsNumber(x)
+              case i: Int => JsNumber(i)
+              case s: String => JsString(s)
+              case _ => JsNull
+          }).toList
+        )
+      )
+    }
+
+    def read(jsColumn: JsValue):  ReportTableColumn = {
+      val jsObj = jsColumn.asJsObject
+      jsObj.getFields("id", "values") match {
+        case Seq(JsString(id), JsArray(jsValues)) => {
+          val header = jsObj.getFields("header") match {
+            case Seq(JsString(h)) => Some(h)
+            case _ => None
+          }
+          val values = (for (value <- jsValues) yield value match {
+            case JsNumber(x) => x.doubleValue
+            case JsString(s) => s
+            case _ => null
+          }).toList
+          ReportTableColumn(id, header, values)
+        }
+        case x => deserializationError(s"Expected Column, got ${x}")
+      }
+    }
+  }
   implicit val reportTableFormat = jsonFormat3(ReportTable)
   //implicit val reportFormat = jsonFormat5(Report)
   // FIXME(nechols)(2016-06-06) this is basically a giant hack to allow the
@@ -137,7 +174,8 @@ object MockReportUtils extends ReportJsonProtocol {
     val nvalues = 10
     val ncolumns = 5
     val cs = (1 until ncolumns).map(x => toC(s"column_$x", nvalues))
-    ReportTable("report_table", Some("report title"), JsArray(cs.toVector))
+    ReportTable("report_table", Some("report title"), Seq[ReportTableColumn](
+      ReportTableColumn("col1", Some("Column 1"), Seq[Any](null, 10, 5.931, "asdf"))))
   }
 
   /**
