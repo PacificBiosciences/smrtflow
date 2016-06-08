@@ -102,7 +102,7 @@ with MockJobUtils with timeUtils {
       val datastore = toDatastore(resources, Seq(dsFile, logFile))
       val datastorePath = job.path.resolve("datastore.json")
       writeDataStore(datastore, datastorePath)
-      logger.info(s"Successfully wrote datastore to $datastorePath")
+      logger.info(s"Successfully wrote datastore with ${datastore.files.length} files to $datastorePath")
       datastore
     }
 
