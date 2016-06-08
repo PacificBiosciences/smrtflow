@@ -5,6 +5,7 @@ import java.net.URI
 import java.nio.file.{Files, Paths}
 import java.sql.Connection
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
@@ -39,6 +40,7 @@ class Dal(val dbURI: String) {
 
   // flag for use when Flyway migrations running on SQLite
   var migrating: Boolean = false
+  val lock = new AtomicBoolean(false)
   // DBCP for connection pooling and caching prepared statements for use in SQLite
   val connectionPool = new BasicDataSource() {
     // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
@@ -47,19 +49,53 @@ class Dal(val dbURI: String) {
     override def getConnection(): Connection = {
       // recycle the connection only for the special use case of Flyway database migrations
       if (migrating && cachedConnection != null && !cachedConnection.isClosed) {
-        println("Shared Connection")
-        return cachedConnection
+        cachedConnection
       }
       else {
-        // guard for SQLite use. also applicable in any case where only 1 connection is allowed
-        if (cachedConnection != null && !cachedConnection.isClosed) {
-          throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
-        }
-        cachedConnection = super.getConnection()
+        lockAndGetConnection()
       }
-      return cachedConnection
+    }
+
+    /**
+     * Guard for SQLite use and enforcing one DB connection across many execution contexts
+     *
+     * Non-block synchronization is used here. Blocking is not appropriate since it'd deadlock if
+     * the same code ended up trying to do multiple diff DB statements outside the same thread,
+     * namely via diff execution contexts.
+     *
+     * Default timeout is 10 seconds based on 200 attempts delayed by 50ms each.
+     */
+    private def lockAndGetConnection(
+        attempts: Int = 1,
+        maxAttempts: Int = 200,
+        sleepTimeInMillis: Int = 50): Connection = {
+
+      // when the timeout is reached, raise an error. likely inappropriate DB use or deadlock due to diff executors
+      if (attempts >= maxAttempts) {
+        throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
+      }
+
+      // if the connection is still open, wait.
+      if (cachedConnection != null && !cachedConnection.isClosed) {
+        Thread.sleep(sleepTimeInMillis)
+        cachedConnection = lockAndGetConnection(attempts + 1)
+      }
+      else {
+        // non-blocking reset of the lock -- don't care if it fails (i.e. lock already released)
+        lock.compareAndSet(true, false)
+        // required an atomic lock since multiple executors invoke this method
+        if (lock.compareAndSet(false, true)) {
+          cachedConnection = super.getConnection()
+        }
+        else {
+          println("getConnection() contention. Failed lock. Attempt " + attempts)
+          cachedConnection = lockAndGetConnection(attempts + 1)
+        }
+      }
+      cachedConnection
     }
   }
+
   connectionPool.setDriverClassName("org.sqlite.JDBC")
   connectionPool.setUrl(dbURI)
   connectionPool.setInitialSize(1)
