@@ -99,10 +99,11 @@ object PbServiceParser {
       pipelineId: String = "",
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
-      presetXml: File = null) extends LoggerConfig
+      presetXml: File = null,
+      maxTime: Int = -1) extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070)
+  lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=600)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
@@ -139,7 +140,10 @@ object PbServiceParser {
     } children(
       arg[File]("dataset-path") required() action { (p, c) =>
         c.copy(path = p)
-      } text "DataSet XML path (or directory containing datasets)"
+      } text "DataSet XML path (or directory containing datasets)",
+      opt[Int]("timeout") action { (t, c) =>
+        c.copy(maxTime = t)
+      } text "Maximum time to poll for running job status"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -162,7 +166,10 @@ object PbServiceParser {
       } text "Organism",
       opt[String]("ploidy") action { (ploidy, c) =>
         c.copy(ploidy = ploidy)
-      } text "Ploidy"
+      } text "Ploidy",
+      opt[Int]("timeout") action { (t, c) =>
+        c.copy(maxTime = t)
+      } text "Maximum time to poll for running job status"
     ) text "Import Reference FASTA"
 
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
@@ -173,7 +180,10 @@ object PbServiceParser {
       } text "JSON config file", // TODO validate json format
       opt[Boolean]("block") action { (_, c) =>
         c.copy(block = true)
-      } text "Block until job completes"
+      } text "Block until job completes",
+      opt[Int]("timeout") action { (t, c) =>
+        c.copy(maxTime = t)
+      } text "Maximum time to poll for running job status"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -195,7 +205,10 @@ object PbServiceParser {
       } text "XML file specifying pbsmrtpipe options",
       opt[String]("job-title") action { (t, c) =>
         c.copy(jobTitle = t)
-      } text "Job title (will be displayed in UI)"
+      } text "Job title (will be displayed in UI)",
+      opt[Int]("timeout") action { (t, c) =>
+        c.copy(maxTime = t)
+      } text "Maximum time to poll for running job status"
     ) text "Run a pbsmrtpipe pipeline by name on the server"
 
     cmd(Modes.JOB.name) action { (_, c) =>
@@ -242,7 +255,8 @@ object PbServiceParser {
 
 
 // TODO consolidate Try behavior
-class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
+class PbService (val sal: AnalysisServiceAccessLayer,
+                 val maxTime: Int = -1) extends LazyLogging {
   import AnalysisClientJsonProtocol._
 
   protected val TIMEOUT = 10 seconds
@@ -440,9 +454,12 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
 
   protected def waitForJob(jobId: UUID): Int = {
     println(s"waiting for job ${jobId} to complete...")
-    Try { sal.pollForJob(jobId) } match {
-      case Success(x) => runGetJobInfo(Right(jobId))
-      case Failure(err) => errorExit(err.getMessage)
+    Try { sal.pollForJob(jobId, maxTime) } match {
+      case Success(msg) => runGetJobInfo(Right(jobId))
+      case Failure(err) => {
+        runGetJobInfo(Right(jobId))
+        errorExit(err.getMessage)
+      }
     }
   }
 
@@ -486,7 +503,6 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   def runImportDataSetSafe(path: String): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
-
     Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) => {
         println(s"Dataset ${dsUuid.toString} already imported.")
@@ -495,7 +511,8 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
         //println(ex.getMessage)
-        runImportDataSet(path)
+        val rc = runImportDataSet(path)
+        if (rc == 0) runGetDataSetInfo(Right(dsUuid)) else rc
       }
     }
   }
@@ -506,10 +523,7 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
         println(jobInfo)
-        println("waiting for import job to complete...")
-        val f = sal.pollForJob(jobInfo.uuid)
-        // FIXME what happens if the job fails?
-        runGetJobInfo(Right(jobInfo.uuid))
+        waitForJob(jobInfo.uuid)
       }
       case Failure(err) => {
         errorExit(s"Dataset import failed: ${err}")
@@ -518,14 +532,14 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
   }
 
   private def listDataSetFiles(f: File): Array[File] = {
-      (f.listFiles.filter((fn) =>
-        Try {
-          dsMetaTypeFromPath(fn.getAbsolutePath)
-        } match {
-          case Success(dsType) => true
-          case _ => false
-        })
-      ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
+    (f.listFiles.filter((fn) =>
+      Try {
+        dsMetaTypeFromPath(fn.getAbsolutePath)
+      } match {
+        case Success(dsType) => true
+        case _ => false
+      })
+    ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
   def runImportDataSets(f: File): Int = {
@@ -535,9 +549,9 @@ class PbService (val sal: AnalysisServiceAccessLayer) extends LazyLogging {
         errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
       } else {
         println(s"Found ${xmlFiles.size} DataSet XML files")
-        (for (xml <- xmlFiles) yield runImportDataSet(xml.getAbsolutePath)).toList.max
+        (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.getAbsolutePath)).toList.max
       }
-    } else if (f.isFile) runImportDataSet(f.getAbsolutePath)
+    } else if (f.isFile) runImportDataSetSafe(f.getAbsolutePath)
     else errorExit(s"${f.getAbsolutePath} is not readable")
   }
 
@@ -730,28 +744,30 @@ object PbService {
     implicit val actorSystem = ActorSystem("pbservice")
     val url = new URL(s"http://${c.host}:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
-    val ps = new PbService(sal)
-    val xc = c.mode match {
-      case Modes.STATUS => ps.runStatus(c.asJson)
-      case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
-      case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
-                                                   c.name, c.organism, c.ploidy)
-      case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
-                                                    c.block)
-      case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
-      case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
-                                            c.jobTitle, c.presetXml, c.block)
-      case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
-      case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
-      case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
-      case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
-      case _ => {
-        println("Unsupported action")
-        1
+    val ps = new PbService(sal, c.maxTime)
+    try {
+      c.mode match {
+        case Modes.STATUS => ps.runStatus(c.asJson)
+        case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
+        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
+                                                     c.name, c.organism, c.ploidy)
+        case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
+                                                      c.block)
+        case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+        case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
+                                              c.jobTitle, c.presetXml, c.block)
+        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
+        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+        case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case _ => {
+          println("Unsupported action")
+          1
+        }
       }
+    } finally {
+      actorSystem.shutdown()
     }
-    actorSystem.shutdown()
-    xc
   }
 }
 

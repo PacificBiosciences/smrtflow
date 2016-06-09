@@ -1,10 +1,13 @@
 package com.pacbio.secondary.analysis.reports
 
+import com.pacbio.common.models.UUIDJsonProtocol
+
 import java.io.{FileWriter, BufferedWriter, File}
 import java.nio.file.{Path, Files}
 
 import org.apache.commons.io.FileUtils
 import spray.json._
+import java.util.UUID
 import DefaultJsonProtocol._
 
 
@@ -26,7 +29,9 @@ object ReportModels {
 
   case class ReportPlot(id: String, image: String, caption: Option[String] = None)
 
-  case class ReportTable(id: String, title: Option[String] = None, columns: JsArray)
+  case class ReportTable(id: String, title: Option[String] = None, columns: Seq[ReportTableColumn])
+
+  case class ReportTableColumn(id: String, header: Option[String] = None, values: Seq[Any])
 
   case class ReportPlotGroup(
       id: String,
@@ -39,12 +44,14 @@ object ReportModels {
       version: String = DEFAULT_VERSION,
       attributes: List[ReportAttribute],
       plotGroups: List[ReportPlotGroup],
-      tables: List[ReportTable])
+      tables: List[ReportTable],
+      uuid: Option[UUID] = None,
+      datasetUuids: List[UUID] = List[UUID]())
 
 }
 
 
-trait ReportJsonProtocol extends DefaultJsonProtocol {
+trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
 
   import ReportModels._
 
@@ -72,6 +79,41 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
 
   implicit val reportPlotGroupFormat = jsonFormat3(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
+  //implicit val reportColumnFormat = jsonFormat3(ReportTableColumn)
+  implicit object reportColumnFormat extends JsonFormat[ReportTableColumn] {
+    def write(c: ReportTableColumn): JsObject = {
+      JsObject(
+        "id" -> JsString(c.id),
+        "header" -> c.header.toJson,
+        "values" -> JsArray(c.values.map((v) => v match {
+              case x: Double => JsNumber(x)
+              case i: Int => JsNumber(i)
+              case s: String => JsString(s)
+              case _ => JsNull
+          }).toList:_* // expand sequence
+        )
+      )
+    }
+
+    def read(jsColumn: JsValue):  ReportTableColumn = {
+      val jsObj = jsColumn.asJsObject
+      jsObj.getFields("id", "values") match {
+        case Seq(JsString(id), JsArray(jsValues)) => {
+          val header = jsObj.getFields("header") match {
+            case Seq(JsString(h)) => Some(h)
+            case _ => None
+          }
+          val values = (for (value <- jsValues) yield value match {
+            case JsNumber(x) => x.doubleValue
+            case JsString(s) => s
+            case _ => null
+          }).toList
+          ReportTableColumn(id, header, values)
+        }
+        case x => deserializationError(s"Expected Column, got ${x}")
+      }
+    }
+  }
   implicit val reportTableFormat = jsonFormat3(ReportTable)
   //implicit val reportFormat = jsonFormat5(Report)
   // FIXME(nechols)(2016-06-06) this is basically a giant hack to allow the
@@ -84,7 +126,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
         "version" -> JsString(r.version),
         "attributes" -> r.attributes.toJson,
         "plotGroups" -> r.plotGroups.toJson,
-        "tables" -> r.tables.toJson)
+        "tables" -> r.tables.toJson,
+        "uuid" -> r.uuid.toJson,
+        "dataset_uuids" -> r.datasetUuids.toJson)
     }
     def read(value: JsValue) = {
       val jsObj = value.asJsObject
@@ -92,12 +136,25 @@ trait ReportJsonProtocol extends DefaultJsonProtocol {
         case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables)) => {
           val version = jsObj.getFields("version") match {
             case Seq(JsString(v)) => v
-            case _ => DEFAULT_VERSION
+            // fallback to support pbcommand model
+            case _ => jsObj.getFields("_version") match {
+              case Seq(JsString(v)) => v
+              case _ => DEFAULT_VERSION
+            }
+          }
+          val uuid = jsObj.getFields("uuid") match {
+            case Seq(JsString(u)) => Some(UUID.fromString(u))
+            case _ => None
+          }
+          val datasetUuids = jsObj.getFields("dataset_uuids") match {
+            case Seq(JsArray(uuids)) => uuids.map(_.convertTo[UUID]).toList
+            case _ => List[UUID]()
           }
           val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
           val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
           val tables = jsTables.map(_.convertTo[ReportTable]).toList
-          Report(id, version, attributes, plotGroups, tables)
+          Report(id, version, attributes, plotGroups, tables, uuid,
+                 datasetUuids)
         }
         case x => deserializationError(s"Expected Report, got ${x}")
       }
@@ -121,7 +178,8 @@ object MockReportUtils extends ReportJsonProtocol {
     val nvalues = 10
     val ncolumns = 5
     val cs = (1 until ncolumns).map(x => toC(s"column_$x", nvalues))
-    ReportTable("report_table", Some("report title"), JsArray(cs.toVector))
+    ReportTable("report_table", Some("report title"), Seq[ReportTableColumn](
+      ReportTableColumn("col1", Some("Column 1"), Seq[Any](null, 10, 5.931, "asdf"))))
   }
 
   /**
@@ -162,7 +220,8 @@ object MockReportUtils extends ReportJsonProtocol {
     val plots = (1 until nplots).map(x => toP(x, toI(s"plot_$x")))
     val plotGroup = toPg(toI("plotgroups"), plots.toList)
     val attrs = (1 until nattrs).map(n => toA(n, s"attr$n"))
-    Report(rid, rversion, attrs.toList, List(plotGroup), List(toReportTable))
+    Report(rid, rversion, attrs.toList, List(plotGroup), List(toReportTable),
+           Some(UUID.randomUUID), List[UUID](UUID.randomUUID))
   }
 
   def writeReport(report: Report, path: Path): Report = {
