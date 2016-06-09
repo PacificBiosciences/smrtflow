@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
 import slick.dbio.{DBIOAction, NoStream}
-import slick.driver.SQLiteDriver.api.Database
+import slick.driver.SQLiteDriver.api.{Database => SQLiteDatabase}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.duration.Duration
@@ -39,10 +39,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
  *   <li>A wrapper for DBIO Future instances to provide SQLite compatibility and debugging</li>
  * </ul>
  *
- * @param dbURI JDBC driver string. Typically configured by application.conf
  */
-class Database(val dbURI: String) extends LazyLogging {
+class Database(dbURI: String) extends LazyLogging {
 
+  val dbUri: String = dbURI
   // flag for indicating if migrations are complete
   protected var migrationsComplete: Boolean = false
   // flag for use when Flyway migrations running on SQLite
@@ -71,7 +71,7 @@ class Database(val dbURI: String) extends LazyLogging {
     }
   }
   connectionPool.setDriverClassName("org.sqlite.JDBC")
-  connectionPool.setUrl(dbURI)
+  connectionPool.setUrl(dbUri)
   connectionPool.setInitialSize(1)
   connectionPool.setMaxTotal(1)
   // pool prepared statements
@@ -86,8 +86,8 @@ class Database(val dbURI: String) extends LazyLogging {
       try {
         shareConnection = true
         // lazy make directories as needed for sqlite
-        if (dbURI.startsWith("jdbc:sqlite:")) {
-          val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
+        if (dbUri.startsWith("jdbc:sqlite:") && dbUri != "jdbc:sqlite:") {
+          val file = Paths.get(dbUri.stripPrefix("jdbc:sqlite:"))
           if (file.getParent != null) {
             val dir = file.getParent.toFile
             if (!dir.exists()) dir.mkdirs()
@@ -107,7 +107,7 @@ class Database(val dbURI: String) extends LazyLogging {
 
   // keep access to the real database restricted. we don't want atyptical use in the codebase
   // TODO: -1 queueSize means unlimited. This probably needs to be tuned
-  private lazy val db = Database.forDataSource(
+  private lazy val db = SQLiteDatabase.forDataSource(
     connectionPool,
     executor = AsyncExecutor("db-executor", 1, -1))
 
@@ -155,7 +155,7 @@ class Database(val dbURI: String) extends LazyLogging {
     val Prefix = "[PacBio:Database] "
 
     // track timing for queue wait and RBMS execution
-    val start = if (dbug) System.currentTimeMillis() else null
+    val start: Long = if (dbug) System.currentTimeMillis() else 0
     // track what code is doing DB access (stack trace outside of the execution context)
     val stacktrace = if(dbug) new Exception().getStackTrace else null
     Future[R] {
@@ -163,12 +163,12 @@ class Database(val dbURI: String) extends LazyLogging {
         // toggle on connection sharing so that Flyway migrations and DBIO.seq are supported
         shareConnection = true
         // track RMDS execution timing
-        val startRDMS = if (dbug) System.currentTimeMillis() else null
+        val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
         val f = db.run(a)
-        Await.result(f, Duration.Inf)
+        val toreturn = Await.result(f, Duration.Inf)
         // track RDBMS execution timing
-        val endRDMS = if (dbug) System.currentTimeMillis() else null
+        val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         if (dbug) {
           logger.debug(s"$Prefix RDMS executed x in ${endRDMS - startRDMS} ms")
 
@@ -177,11 +177,12 @@ class Database(val dbURI: String) extends LazyLogging {
             case t => logger.error(s"$Prefix RDMS error", t)
           }
         }
+        toreturn
       }
       finally {
-        val end = if (dbug) System.currentTimeMillis() else null
+        val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for quere and RDMS execution
-        if (debug) logger.debug(s"$Prefix total timing for x was ${end - start}")
+        if (dbug) logger.debug(s"$Prefix total timing for x was ${end - start}")
         // teardown the connection and flag off connection sharing
         shareConnection = false
         val conn = connectionPool.cachedConnection
