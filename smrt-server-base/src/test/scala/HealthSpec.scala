@@ -35,10 +35,13 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
     HealthSeverity.CRITICAL -> 3.0
   )
 
+  // TODO(smcclellan): Test coverage for TagCriteria
+
   val latestMetricCreate = HealthMetricCreateMessage(
     latestMetricId,
     "LatestMetric",
     "Metric of type LATEST",
+    TagCriteria(hasAll = Set(latestMetricId)),
     MetricType.LATEST,
     severityLevels,
     None)
@@ -47,6 +50,7 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
     sumMetricId,
     "SumMetric",
     "Metric of type SUM",
+    TagCriteria(hasAll = Set(sumMetricId)),
     MetricType.SUM,
     severityLevels,
     Some(1))
@@ -55,6 +59,7 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
     avgMetricId,
     "AvgMetric",
     "Metric of type AVERAGE",
+    TagCriteria(hasAll = Set(avgMetricId)),
     MetricType.AVERAGE,
     severityLevels,
     Some(1))
@@ -63,6 +68,7 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
     maxMetricId,
     "MaxMetric",
     "Metric of type MAX",
+    TagCriteria(hasAll = Set(maxMetricId)),
     MetricType.MAX,
     severityLevels,
     Some(1))
@@ -155,15 +161,15 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         status.isSuccess must beTrue
         responseAs[HealthMetric].id === newId
         responseAs[HealthMetric].createdAt === clock.dateNow()
-        responseAs[HealthMetric].updatedAt === None
+        responseAs[HealthMetric].updatedAt === Some(clock.dateNow())
       }
     }
 
     "update health metrics" in new daoSetup {
       val credentials = OAuth2BearerToken(writeUserLogin)
-      val message1 = HealthMetricUpdateMessage(1.0)
-      val message3 = HealthMetricUpdateMessage(3.0)
-      val message2 = HealthMetricUpdateMessage(2.0)
+      val message1 = HealthMetricUpdateMessage(1.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
+      val message3 = HealthMetricUpdateMessage(3.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
+      val message2 = HealthMetricUpdateMessage(2.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
 
       // Post updates to each metric in order of 1 -> 3 -> 2
       //
@@ -176,12 +182,10 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
 
       clock.reset(10)
       val updatedAt10 = clock.dateNow()
-      Post(s"/smrt-base/health/metrics/$latestMetricId/updates", message1) ~> addCredentials(credentials) ~> routes ~> check {
+      Post("/smrt-base/health/updates", message1) ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val update = responseAs[HealthMetricUpdate]
         update.updateValue === 1.0
-        update.metricValue === 1.0
-        update.severity === HealthSeverity.CAUTION
         update.updatedAt === updatedAt10
       }
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
@@ -191,15 +195,6 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.CAUTION
         metric.updatedAt === Some(updatedAt10)
       }
-
-      Post(s"/smrt-base/health/metrics/$sumMetricId/updates", message1) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 1.0
-        update.metricValue === 1.0
-        update.severity === HealthSeverity.CAUTION
-        update.updatedAt === updatedAt10
-      }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
@@ -207,30 +202,12 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.CAUTION
         metric.updatedAt === Some(updatedAt10)
       }
-
-      Post(s"/smrt-base/health/metrics/$avgMetricId/updates", message1) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 1.0
-        update.metricValue === 1.0
-        update.severity === HealthSeverity.CAUTION
-        update.updatedAt === updatedAt10
-      }
       Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 1.0
         metric.severity === HealthSeverity.CAUTION
         metric.updatedAt === Some(updatedAt10)
-      }
-
-      Post(s"/smrt-base/health/metrics/$maxMetricId/updates", message1) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 1.0
-        update.metricValue === 1.0
-        update.severity === HealthSeverity.CAUTION
-        update.updatedAt === updatedAt10
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -244,12 +221,10 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
 
       clock.reset(20)
       val updatedAt20 = clock.dateNow()
-      Post(s"/smrt-base/health/metrics/$latestMetricId/updates", message3) ~> addCredentials(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/health/updates", message3) ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val update = responseAs[HealthMetricUpdate]
         update.updateValue === 3.0
-        update.metricValue === 3.0
-        update.severity === HealthSeverity.CRITICAL
         update.updatedAt === updatedAt20
       }
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
@@ -259,15 +234,6 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.CRITICAL
         metric.updatedAt === Some(updatedAt20)
       }
-
-      Post(s"/smrt-base/health/metrics/$sumMetricId/updates", message3) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 3.0
-        update.metricValue === 4.0
-        update.severity === HealthSeverity.CRITICAL
-        update.updatedAt === updatedAt20
-      }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
@@ -275,30 +241,12 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.CRITICAL
         metric.updatedAt === Some(updatedAt20)
       }
-
-      Post(s"/smrt-base/health/metrics/$avgMetricId/updates", message3) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 3.0
-        update.metricValue === 2.0
-        update.severity === HealthSeverity.ALERT
-        update.updatedAt === updatedAt20
-      }
       Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
         metric.updatedAt === Some(updatedAt20)
-      }
-
-      Post(s"/smrt-base/health/metrics/$maxMetricId/updates", message3) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 3.0
-        update.metricValue === 3.0
-        update.severity === HealthSeverity.CRITICAL
-        update.updatedAt === updatedAt20
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -312,12 +260,10 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
 
       clock.reset(30)
       val updatedAt30 = clock.dateNow()
-      Post(s"/smrt-base/health/metrics/$latestMetricId/updates", message2) ~> addCredentials(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/health/updates", message2) ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val update = responseAs[HealthMetricUpdate]
         update.updateValue === 2.0
-        update.metricValue === 2.0
-        update.severity === HealthSeverity.ALERT
         update.updatedAt === updatedAt30
       }
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
@@ -327,15 +273,6 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.ALERT
         metric.updatedAt === Some(updatedAt30)
       }
-
-      Post(s"/smrt-base/health/metrics/$sumMetricId/updates", message2) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 2.0
-        update.metricValue === 6.0
-        update.severity === HealthSeverity.CRITICAL
-        update.updatedAt === updatedAt30
-      }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
@@ -343,30 +280,12 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         metric.severity === HealthSeverity.CRITICAL
         metric.updatedAt === Some(updatedAt30)
       }
-
-      Post(s"/smrt-base/health/metrics/$avgMetricId/updates", message2) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 2.0
-        update.metricValue === 2.0
-        update.severity === HealthSeverity.ALERT
-        update.updatedAt === updatedAt30
-      }
       Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
         metric.updatedAt === Some(updatedAt30)
-      }
-
-      Post(s"/smrt-base/health/metrics/$maxMetricId/updates", message2) ~> addCredentials(credentials) ~> routes ~> check {
-        status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
-        update.updateValue === 2.0
-        update.metricValue === 3.0
-        update.severity === HealthSeverity.CRITICAL
-        update.updatedAt === updatedAt30
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -377,37 +296,37 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
       }
 
       clock.reset(1005)
+      val updatedAt1005 = clock.dateNow()
       // All metrics have a window of 1 second, the first updates were at t = 10 ms, 1005 ms - 10 ms < 1000 ms, so
       // recalculating should not change the metric values
-      Await.ready(dao.recalculate, 10.seconds)
 
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1005)
       }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 6.0
         metric.severity === HealthSeverity.CRITICAL
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1005)
       }
       Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1005)
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 3.0
         metric.severity === HealthSeverity.CRITICAL
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1005)
       }
 
       clock.reset(1015)
@@ -415,14 +334,13 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
       // Recalculating now should drop the first update at t = 10 ms
       // Note: this does not apply to the LATEST metric
       // Note: a metric's updatedAt field is only reset on recalculation if the metric's value changes
-      Await.ready(dao.recalculate, 10.seconds)
 
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1015)
       }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -443,20 +361,19 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         val metric = responseAs[HealthMetric]
         metric.metricValue === 3.0
         metric.severity === HealthSeverity.CRITICAL
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1015)
       }
 
       clock.reset(1025)
       val updatedAt1025 = clock.dateNow()
       // Recalculating now should drop the second update
-      Await.ready(dao.recalculate, 10.seconds)
 
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1025)
       }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -483,14 +400,13 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
       clock.reset(1035)
       val updatedAt1035 = clock.dateNow()
       // Recalculating now should drop the third update
-      Await.ready(dao.recalculate, 10.seconds)
 
       Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 2.0
         metric.severity === HealthSeverity.ALERT
-        metric.updatedAt === Some(updatedAt30)
+        metric.updatedAt === Some(updatedAt1035)
       }
       Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -516,79 +432,56 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
 
       // Check the update records
 
+      Get(s"/smrt-base/health/updates") ~> addCredentials(credentials) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val updates = responseAs[Seq[HealthMetricUpdate]]
+        updates.size === 3
+        updates(0).updatedAt === updatedAt10
+        updates(0).updateValue === 1.0
+        updates(1).updatedAt === updatedAt20
+        updates(1).updateValue === 3.0
+        updates(2).updatedAt === updatedAt30
+        updates(2).updateValue === 2.0
+      }
       Get(s"/smrt-base/health/metrics/$latestMetricId/updates") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val updates = responseAs[Seq[HealthMetricUpdate]]
         updates.size === 3
         updates(0).updatedAt === updatedAt10
         updates(0).updateValue === 1.0
-        updates(0).metricValue === 1.0
         updates(1).updatedAt === updatedAt20
         updates(1).updateValue === 3.0
-        updates(1).metricValue === 3.0
         updates(2).updatedAt === updatedAt30
         updates(2).updateValue === 2.0
-        updates(2).metricValue === 2.0
       }
       Get(s"/smrt-base/health/metrics/$sumMetricId/updates") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val updates = responseAs[Seq[HealthMetricUpdate]]
-        updates.size === 3
-        updates(0).updatedAt === updatedAt10
-        updates(0).updateValue === 1.0
-        updates(0).metricValue === 1.0
-        updates(1).updatedAt === updatedAt20
-        updates(1).updateValue === 3.0
-        updates(1).metricValue === 4.0
-        updates(2).updatedAt === updatedAt30
-        updates(2).updateValue === 2.0
-        updates(2).metricValue === 6.0
+        updates.size === 0
       }
       Get(s"/smrt-base/health/metrics/$avgMetricId/updates") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val updates = responseAs[Seq[HealthMetricUpdate]]
-        updates.size === 3
-        updates(0).updatedAt === updatedAt10
-        updates(0).updateValue === 1.0
-        updates(0).metricValue === 1.0
-        updates(1).updatedAt === updatedAt20
-        updates(1).updateValue === 3.0
-        updates(1).metricValue === 2.0
-        updates(2).updatedAt === updatedAt30
-        updates(2).updateValue === 2.0
-        updates(2).metricValue === 2.0
+        updates.size === 0
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId/updates") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val updates = responseAs[Seq[HealthMetricUpdate]]
-        updates.size === 3
-        updates(0).updatedAt === updatedAt10
-        updates(0).updateValue === 1.0
-        updates(0).metricValue === 1.0
-        updates(1).updatedAt === updatedAt20
-        updates(1).updateValue === 3.0
-        updates(1).metricValue === 3.0
-        updates(2).updatedAt === updatedAt30
-        updates(2).updateValue === 2.0
-        updates(2).metricValue === 3.0
+        updates.size === 0
       }
     }
 
     "return unhealthy messages" in new daoSetup {
       val credentials = OAuth2BearerToken(writeUserLogin)
-      Post(s"/smrt-base/health/metrics/$latestMetricId/updates", HealthMetricUpdateMessage(1.0)) ~> addCredentials(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(1.0, Set(latestMetricId))) ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val update = responseAs[HealthMetricUpdate]
         update.updateValue === 1.0
-        update.metricValue === 1.0
-        update.severity === HealthSeverity.CAUTION
       }
-      Post(s"/smrt-base/health/metrics/$sumMetricId/updates", HealthMetricUpdateMessage(2.0)) ~> addCredentials(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(2.0, Set(sumMetricId))) ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val update = responseAs[HealthMetricUpdate]
         update.updateValue === 2.0
-        update.metricValue === 2.0
-        update.severity === HealthSeverity.ALERT
       }
 
       Get("/smrt-base/health") ~> addCredentials(credentials) ~> routes ~> check {
@@ -613,7 +506,7 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
       }
 
       val noWrite = OAuth2BearerToken(readUserLogin)
-      Post(s"/smrt-base/health/metrics/$latestMetricId/updates", HealthMetricUpdateMessage(0.0)) ~> addCredentials(noWrite) ~> routes ~> check {
+      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(0.0, Set.empty)) ~> addCredentials(noWrite) ~> routes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }

@@ -6,6 +6,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
@@ -30,6 +31,7 @@ class ImportFastaServiceType(
     dbActor: ActorRef,
     engineManagerActor: ActorRef,
     authenticator: Authenticator,
+    metrics: Metrics,
     serviceStatusHost: String,
     port: Int)
   extends JobTypeService with LazyLogging {
@@ -85,7 +87,7 @@ class ImportFastaServiceType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -97,7 +99,7 @@ class ImportFastaServiceType(
 
               val fx = Future {sopts.validate}.flatMap {
                 case Some(e) => Future { throw new UnprocessableEntityError(s"Failed to validate: $e") }
-                case _ => (dbActor ? CreateJobType(
+                case _ => metrics(dbActor ? CreateJobType(
                   uuid,
                   s"Job $endpoint",
                   comment,
@@ -117,18 +119,24 @@ class ImportFastaServiceType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
 trait ImportFastaServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
-    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), engineManagerActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
+    Singleton(() => new ImportFastaServiceType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics(),
+      if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port())).bindToSet(JobTypes)
 }

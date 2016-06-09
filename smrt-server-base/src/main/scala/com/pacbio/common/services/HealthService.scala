@@ -79,18 +79,27 @@ class HealthService(dao: HealthDao, authenticator: Authenticator)
               get {
                 complete {
                   ok {
-                    dao.getAllMetricUpdates(id)
+                    dao.getMetricUpdates(id)
                   }
                 }
-              } ~
-              post {
-                authorize(authInfo.hasPermission(HEALTH_AND_LOGS_WRITE)) {
-                  entity(as[HealthMetricUpdateMessage]) { m =>
-                    complete {
-                      created {
-                        dao.updateMetric(id, m)
-                      }
-                    }
+              }
+            }
+          }
+        } ~
+        path("updates") {
+          get {
+            complete {
+              ok {
+                dao.getAllUpdates
+              }
+            }
+          } ~
+          post {
+            authorize(authInfo.hasPermission(HEALTH_AND_LOGS_WRITE)) {
+              entity(as[HealthMetricUpdateMessage]) { m =>
+                complete {
+                  created {
+                    dao.update(m)
                   }
                 }
               }

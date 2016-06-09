@@ -99,13 +99,23 @@ case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, 
 
 
 // Health System
-case class HealthMetricCreateMessage(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int])
+case class TagCriteria(hasAny: Set[String] = Set.empty, hasAll: Set[String] = Set.empty, hasAnyPrefix: Set[String] = Set.empty, hasAllPrefix: Set[String] = Set.empty) {
+  def matches(tags: Set[String]): Boolean = {
+    hasAll.foreach { t => if (!tags.contains(t)) return false }
+    hasAllPrefix.foreach { p => if (!tags.exists(_.startsWith(p))) return false }
+    if ( !hasAny.forall { t => !tags(t) } ) return false
+    if ( !hasAnyPrefix.forall { p => !tags.exists(_.startsWith(p)) } ) return false
+    true
+  }
+}
 
-case class HealthMetric(id: String, name: String, description: String, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, updatedAt: Option[JodaDateTime])
+case class HealthMetricCreateMessage(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int])
 
-case class HealthMetricUpdateMessage(updateValue: Double)
+case class HealthMetric(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, updatedAt: Option[JodaDateTime])
 
-case class HealthMetricUpdate(updateValue: Double, updateId: Long, metricValue: Double, severity: HealthSeverity.HealthSeverity, updatedAt: JodaDateTime)
+case class HealthMetricUpdateMessage(updateValue: Double, tags: Set[String], note: Option[String] = None)
+
+case class HealthMetricUpdate(updateValue: Double, tags: Set[String], note: Option[String], updateId: Long, updatedAt: JodaDateTime)
 
 
 // Logging System

@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -21,7 +22,10 @@ import spray.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class SimpleServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class SimpleServiceJobType(dbActor: ActorRef,
+                           engineManagerActor: ActorRef,
+                           authenticator: Authenticator,
+                           metrics: Metrics) extends JobTypeService with LazyLogging {
   import SecondaryAnalysisJsonProtocols._
 
   override val endpoint = "simple"
@@ -33,7 +37,7 @@ class SimpleServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef, auth
         get {
           // Get All Job types of "Simple"
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -46,7 +50,7 @@ class SimpleServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef, auth
               val coreJob = CoreJob(uuid, opts)
               val jsonSettings = opts.toJson.toString()
               logger.info(s"Got options $opts")
-              val fx = (dbActor ? CreateJobType(
+              val fx = metrics(dbActor ? CreateJobType(
                 uuid,
                 s"Job name $endpoint", s"Simple Pipeline ${opts.toString}",
                 endpoint,
@@ -64,16 +68,21 @@ class SimpleServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef, auth
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
 trait SimpleServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val simpleServiceJobType: Singleton[SimpleServiceJobType] =
-    Singleton(() => new SimpleServiceJobType(jobsDaoActor(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new SimpleServiceJobType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics())).bindToSet(JobTypes)
 }

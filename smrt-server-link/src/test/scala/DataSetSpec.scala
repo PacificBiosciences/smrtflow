@@ -1,7 +1,7 @@
 import akka.actor.ActorRefFactory
-import com.pacbio.common.actors.ActorRefFactoryProvider
+import com.pacbio.common.actors.{InMemoryHealthDaoProvider, MetricsProvider, ActorRefFactoryProvider}
 import com.pacbio.common.database.TestDatabaseProvider
-import com.pacbio.common.dependency.{SetBindings, Singleton}
+import com.pacbio.common.dependency.{InitializationComposer, SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -30,6 +30,7 @@ with JobServiceConstants {
 
   object TestProviders extends
   ServiceComposer with
+  InitializationComposer with
   DataSetServiceProvider with
   JobsDaoActorProvider with
   JobsDaoProvider with
@@ -38,6 +39,8 @@ with JobServiceConstants {
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   FakeClockProvider with
+  MetricsProvider with
+  InMemoryHealthDaoProvider with
   SetBindings with
   ActorRefFactoryProvider {
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)

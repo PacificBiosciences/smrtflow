@@ -17,7 +17,7 @@ import SprayJsonSupport._
 import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import com.pacbio.common.actors.ActorSystemProvider
+import com.pacbio.common.actors.{MetricsProvider, Metrics, ActorSystemProvider}
 import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.LoggerFactoryProvider
@@ -40,7 +40,7 @@ import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, Job
 import com.typesafe.scalalogging.LazyLogging
 
 
-class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(implicit val actorSystem: ActorSystem)
+class ConditionJobType(dbActor: ActorRef, metrics: Metrics, serviceStatusHost: String, port: Int)(implicit val actorSystem: ActorSystem)
   extends JobTypeService with LazyLogging{
 
   // import SecondaryAnalysisJsonProtocols._
@@ -162,7 +162,7 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         }
       }
@@ -199,7 +199,7 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
       }
     }
 
-  val routes = helpRoute ~ sharedJobRoutes(dbActor) ~ validateConditionRunRoute ~ createJobRoute ~ getJobsRoute
+  val routes = helpRoute ~ sharedJobRoutes(dbActor, metrics) ~ validateConditionRunRoute ~ createJobRoute ~ getJobsRoute
 
 
 }
@@ -207,6 +207,7 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
 trait ConditionJobTypeServiceProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
@@ -218,6 +219,7 @@ trait ConditionJobTypeServiceProvider {
       implicit val system = actorSystem()
       new ConditionJobType(
         jobsDaoActor(),
+        metrics(),
         if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
         port()
       )

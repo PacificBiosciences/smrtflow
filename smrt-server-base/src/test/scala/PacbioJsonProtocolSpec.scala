@@ -1,7 +1,6 @@
 import com.pacbio.common.models._
 import spray.json._
 import org.specs2.mutable._
-import org.joda.time.{DateTime => JodaDateTime}
 
 class PacbioJsonProtocolSpec extends Specification {
 
@@ -13,6 +12,7 @@ class PacbioJsonProtocolSpec extends Specification {
         "metric_id",
         "Metric",
         "Test Metric",
+        TagCriteria(),
         MetricType.SUM,
         Map(
           HealthSeverity.CAUTION -> 1.0,

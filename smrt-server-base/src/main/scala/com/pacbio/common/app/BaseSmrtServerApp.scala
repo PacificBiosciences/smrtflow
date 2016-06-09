@@ -13,7 +13,7 @@ import com.pacbio.common.database._
 import com.pacbio.common.dependency._
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
-import com.pacbio.common.scheduling.{CleanupSchedulerProvider, HealthMetricRecalculateSchedulerProvider}
+import com.pacbio.common.scheduling.CleanupSchedulerProvider
 import com.pacbio.common.services._
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
@@ -41,7 +41,6 @@ trait CoreProviders extends
   ManifestServiceProvider with
   HealthServiceProvider with
   InMemoryHealthDaoProvider with
-  HealthMetricRecalculateSchedulerProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
@@ -62,6 +61,7 @@ trait CoreProviders extends
   // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
   FakeAuthenticatorProvider with
   LoggerFactoryImplProvider with
+  MetricsProvider with
   SystemClockProvider {
 
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
@@ -88,7 +88,6 @@ trait AuthenticatedCoreProviders extends
   ManifestServiceProviderx with
   HealthServiceProviderx with
   InMemoryHealthDaoProvider with
-  HealthMetricRecalculateSchedulerProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
@@ -108,6 +107,7 @@ trait AuthenticatedCoreProviders extends
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
+  MetricsProvider with
   SystemClockProvider {
 
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")

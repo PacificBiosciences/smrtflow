@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -62,7 +63,10 @@ object ValidatorDataSetMergeServiceOptions {
 }
 
 
-class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator)
+class MergeDataSetServiceJobType(dbActor: ActorRef,
+                                 engineManagerActor: ActorRef,
+                                 authenticator: Authenticator,
+                                 metrics: Metrics)
   extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
@@ -75,7 +79,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -93,7 +97,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef
                 engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
                 mergeDataSetOptions <- Future { MergeDataSetOptions(sopts.datasetType, resolvedPaths, sopts.name) }
                 coreJob <- Future { CoreJob(uuid, mergeDataSetOptions) }
-                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString, authInfo.map(_.login))).mapTo[EngineJob]
+                engineJob <- metrics(dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString, authInfo.map(_.login))).mapTo[EngineJob]
               } yield engineJob
 
               fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
@@ -107,7 +111,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, engineManagerActor: ActorRef
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
@@ -115,8 +119,13 @@ trait MergeDataSetServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with EngineManagerActorProvider
+    with MetricsProvider
     with JobManagerServiceProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
-    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MergeDataSetServiceJobType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics())).bindToSet(JobTypes)
 }

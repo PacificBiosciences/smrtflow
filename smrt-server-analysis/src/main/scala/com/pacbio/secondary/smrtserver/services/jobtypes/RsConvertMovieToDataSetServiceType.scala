@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -15,14 +16,16 @@ import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
-import spray.httpx.SprayJsonSupport
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
+                                         engineManagerActor: ActorRef,
+                                         authenticator: Authenticator,
+                                         metrics: Metrics) extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
 
@@ -34,7 +37,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: 
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -43,7 +46,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: 
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
               val jsonSettings = sopts.toJson.toString()
-              val fx = (dbActor ? CreateJobType(
+              val fx = metrics(dbActor ? CreateJobType(
                 uuid,
                 s"Job $endpoint", s"RS movie convert to HdfSubread XML ",
                 endpoint,
@@ -61,16 +64,21 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, engineManagerActor: 
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
 trait RsConvertMovieToDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val rsConvertMovieToDataSetServiceType: Singleton[RsConvertMovieToDataSetServiceType] =
-    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new RsConvertMovieToDataSetServiceType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics())).bindToSet(JobTypes)
 }

@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
@@ -37,6 +38,7 @@ class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
     engineManagerActor: ActorRef,
     authenticator: Authenticator,
+    metrics: Metrics,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -65,7 +67,7 @@ class PbsmrtpipeServiceJobType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -116,7 +118,7 @@ class PbsmrtpipeServiceJobType(
               logger.info(jopts.prettyPrint)
               logger.info(s"Resolved options to $opts")
 
-              val fx = (dbActor ? CreateJobType(
+              val fx = metrics(dbActor ? CreateJobType(
                 uuid,
                 ropts.name,
                 s"pbsmrtpipe ${opts.pipelineId}",
@@ -138,7 +140,7 @@ class PbsmrtpipeServiceJobType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     } ~
     path(endpoint / IntNumber / LOG_PREFIX) { id =>
       post {
@@ -161,7 +163,7 @@ class PbsmrtpipeServiceJobType(
           respondWithMediaType(MediaTypes.`application/json`) {
             complete {
               created {
-                (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                metrics(dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
                   val sourceId = s"job::${engineJob.id}::${m.sourceId}"
                   loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
                   // an "ok" message should
@@ -178,6 +180,7 @@ class PbsmrtpipeServiceJobType(
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
@@ -187,6 +190,7 @@ trait PbsmrtpipeServiceJobTypeProvider {
       jobsDaoActor(),
       engineManagerActor(),
       authenticator(),
+      metrics(),
       loggerFactory(),
       jobEngineConfig(),
       pbsmrtpipeEngineOptions(),

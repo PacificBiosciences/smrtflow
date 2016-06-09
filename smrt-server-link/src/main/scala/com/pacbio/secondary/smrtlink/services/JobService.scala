@@ -3,26 +3,10 @@ package com.pacbio.secondary.smrtlink.services
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
-
-import scala.collection.JavaConversions._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
-
-import spray.routing._
-
-// For serialization magic. This is required for any serialization in spray to work.
-import spray.http._
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-
+import com.pacbio.common.actors.Metrics
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
@@ -30,6 +14,17 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.{FileUtils, FilenameUtils}
+import spray.http._
+import spray.httpx.SprayJsonSupport._
+import spray.json._
+import spray.routing._
+
+import scala.collection.JavaConversions._
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 
 object JobResourceUtils extends  LazyLogging{
@@ -92,15 +87,15 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
-    (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+  def jobList(dbActor: ActorRef, endpoint: String, metrics: Metrics)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+    metrics((dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]])
 
-  def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route =
+  def sharedJobRoutes(dbActor: ActorRef, metrics: Metrics)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
       get {
         complete {
           ok {
-            (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
+            metrics(dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
           }
         }
       }
@@ -109,7 +104,7 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetJobById(id)).mapTo[EngineJob]
+            metrics(dbActor ? GetJobById(id)).mapTo[EngineJob]
           }
         }
       }
@@ -117,14 +112,14 @@ trait JobService
     path(IntNumber / JOB_EVENT_PREFIX) { id =>
       get {
         complete {
-          (dbActor ? GetJobEventsByJobId(id)).mapTo[Seq[JobEvent]]
+          metrics(dbActor ? GetJobEventsByJobId(id)).mapTo[Seq[JobEvent]]
         }
       }
     } ~
     path(IntNumber / JOB_REPORT_PREFIX) { jobId =>
       get {
         complete {
-          (dbActor ? GetDataStoreReportFileByJobId(jobId)).mapTo[Seq[DataStoreReportFile]]
+          metrics(dbActor ? GetDataStoreReportFileByJobId(jobId)).mapTo[Seq[DataStoreReportFile]]
         }
       }
     } ~
@@ -133,7 +128,7 @@ trait JobService
         respondWithMediaType(MediaTypes.`application/json`) {
           complete {
             ok {
-              (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[String]
+              metrics(dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[String]
             }
           }
         }
@@ -142,7 +137,7 @@ trait JobService
     path(IntNumber / JOB_DATASTORE_PREFIX) { jobId =>
       get {
         complete {
-          (dbActor ? GetDataStoreServiceFilesByJobId(jobId)).mapTo[Seq[DataStoreServiceFile]]
+          metrics(dbActor ? GetDataStoreServiceFilesByJobId(jobId)).mapTo[Seq[DataStoreServiceFile]]
         }
       }
     } ~
@@ -150,7 +145,7 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
+            metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
           }
         }
       }
@@ -160,7 +155,7 @@ trait JobService
         respondWithMediaType(MediaTypes.`application/json`) {
           complete {
             ok {
-              (dbActor ? GetJobById(id)).mapTo[EngineJob].map(_.jsonSettings)
+              metrics(dbActor ? GetJobById(id)).mapTo[EngineJob].map(_.jsonSettings)
             }
           }
         }
@@ -170,7 +165,7 @@ trait JobService
       jobId =>
       get {
         complete {
-          (dbActor ? GetEngineJobEntryPoints(jobId)).mapTo[Seq[EngineJobEntryPoint]]
+          metrics(dbActor ? GetEngineJobEntryPoints(jobId)).mapTo[Seq[EngineJobEntryPoint]]
         }
       }
     } ~
@@ -183,7 +178,7 @@ trait JobService
               created {
                 // this is a hacky way to emit an OK message
                 for {
-                  msg <- (dbActor ? ImportDataStoreFileByJobId(dsf, jobId)).mapTo[String]
+                  msg <- metrics(dbActor ? ImportDataStoreFileByJobId(dsf, jobId)).mapTo[String]
                 } yield Map("message" -> msg)
               }
             }
@@ -195,7 +190,7 @@ trait JobService
       (jobId, datastoreFileUUID) =>
       get {
         complete {
-          (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID))
+          metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID))
             .mapTo[DataStoreServiceFile]
             .map { dsf =>
             val httpEntity = toHttpEntity(Paths.get(dsf.path))
@@ -217,7 +212,7 @@ trait JobService
             complete {
               created {
                 for {
-                  msg <-(dbActor ? ImportDataStoreFile(dsf, jobId)).mapTo[String]
+                  msg <- metrics(dbActor ? ImportDataStoreFile(dsf, jobId)).mapTo[String]
                 } yield Map("message" -> msg)
               }
             }
@@ -229,7 +224,7 @@ trait JobService
       parameter('id) { id =>
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
-          resolveJobResource((dbActor ? GetJobById(jobId)).mapTo[EngineJob], id)
+          resolveJobResource(metrics(dbActor ? GetJobById(jobId)).mapTo[EngineJob], id)
         }
       }
     } ~
@@ -237,7 +232,7 @@ trait JobService
       parameter('id) { id =>
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
-          resolveJobResource((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob], id)
+          resolveJobResource(metrics(dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob], id)
         }
       }
     }

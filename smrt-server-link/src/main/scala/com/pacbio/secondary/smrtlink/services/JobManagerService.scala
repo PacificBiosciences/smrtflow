@@ -30,6 +30,7 @@ import SprayJsonSupport._
 class JobManagerService(
     dbActor: ActorRef,
     statusGenerator: StatusGenerator,
+    metrics: Metrics,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -77,7 +78,7 @@ class JobManagerService(
         }
       } ~
       path(JOB_ROOT_PREFIX) {
-        sharedJobRoutes(dbActor)
+        sharedJobRoutes(dbActor, metrics)
       }
     }
 
@@ -87,7 +88,7 @@ class JobManagerService(
       pathEnd {
         get {
           complete {
-            (dbActor ? GetDataStoreFiles(1000)).mapTo[Seq[DataStoreServiceFile]]
+            metrics(dbActor ? GetDataStoreFiles(1000)).mapTo[Seq[DataStoreServiceFile]]
           }
         }
       } ~
@@ -96,7 +97,7 @@ class JobManagerService(
           get {
             complete {
               ok {
-                (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
+                metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
               }
             }
           }
@@ -104,7 +105,7 @@ class JobManagerService(
         // TODO(smcclellan): Combine download and resources endpoints?
         path("download") {
           get {
-            onSuccess((dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
+            onSuccess(metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
               getFromFile(file.path)
             }
           }
@@ -112,7 +113,7 @@ class JobManagerService(
         path("resources") {
           get {
             parameter("relpath") { relpath =>
-              onSuccess((dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
+              onSuccess(metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
                 val resourcePath = Paths.get(file.path).resolveSibling(relpath)
                 getFromFile(resourcePath.toFile)
               }
@@ -141,6 +142,7 @@ trait JobManagerServiceProvider {
     with SmrtLinkConfigProvider
     with StatusGeneratorProvider
     with JobsDaoActorProvider
+    with MetricsProvider
     with ActorSystemProvider
     with ServiceComposer =>
 
@@ -150,6 +152,7 @@ trait JobManagerServiceProvider {
       new JobManagerService(
         jobsDaoActor(),
         statusGenerator(),
+        metrics(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),

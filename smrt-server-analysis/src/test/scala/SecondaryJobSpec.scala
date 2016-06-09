@@ -2,7 +2,7 @@ import akka.actor.{ActorSystem, ActorRefFactory}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.database.TestDatabaseProvider
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.dependency.{InitializationComposer, ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.services.{StatusGeneratorProvider, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -16,7 +16,6 @@ import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProv
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.specification.Scope
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
@@ -38,6 +37,7 @@ with JobServiceConstants {
 
   object TestProviders extends
   ServiceComposer with
+  InitializationComposer with
   JobManagerServiceProvider with
   StatusGeneratorProvider with
   MockPbsmrtpipeJobTypeProvider with
@@ -57,6 +57,8 @@ with JobServiceConstants {
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
+  MetricsProvider with
+  InMemoryHealthDaoProvider with
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {

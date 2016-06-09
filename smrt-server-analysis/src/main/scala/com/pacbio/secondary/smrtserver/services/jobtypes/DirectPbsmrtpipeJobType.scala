@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
@@ -34,6 +35,7 @@ class DirectPbsmrtpipeJobType(
     dbActor: ActorRef,
     engineManagerActor: ActorRef,
     authenticator: Authenticator,
+    metrics: Metrics,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -68,7 +70,7 @@ class DirectPbsmrtpipeJobType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
           post {
@@ -97,7 +99,7 @@ class DirectPbsmrtpipeJobType(
                 // It might be useful for this to try to look up the files by path. For now this is fine.
                 val entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None
 
-                val fx = (dbActor ? CreateJobType(
+                val fx = metrics(dbActor ? CreateJobType(
                   uuid,
                   name,
                   s"pbsmrtpipe ${ropts.pipelineId}",
@@ -117,7 +119,7 @@ class DirectPbsmrtpipeJobType(
             }
           }
       } ~
-        sharedJobRoutes(dbActor)
+        sharedJobRoutes(dbActor, metrics)
     } ~
       path(endpoint / IntNumber / LOG_PREFIX) { id =>
         post {
@@ -140,7 +142,7 @@ class DirectPbsmrtpipeJobType(
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                  metrics(dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
                     val sourceId = s"job::${engineJob.id}::${m.sourceId}"
                     loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
                     // an "ok" message should
@@ -157,6 +159,7 @@ class DirectPbsmrtpipeJobType(
 trait DirectPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
@@ -166,6 +169,7 @@ trait DirectPbsmrtpipeJobTypeProvider {
       jobsDaoActor(),
       engineManagerActor(),
       authenticator(),
+      metrics(),
       loggerFactory(),
       jobEngineConfig(),
       pbsmrtpipeEngineOptions(),

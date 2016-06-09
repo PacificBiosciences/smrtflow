@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
@@ -35,7 +36,7 @@ import scala.reflect.ClassTag
  *
  * @param dbActor
  */
-class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLinkConstants {
+class DataSetService(dbActor: ActorRef, metrics: Metrics) extends JobsBaseMicroService with SmrtLinkConstants {
   // For all the Message types
 
   import JobsDaoActor._
@@ -96,7 +97,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         get {
           complete {
             ok {
-              (dbActor ? GetDataSets(DS_LIMIT)).mapTo[Seq[R]]
+              metrics(dbActor ? GetDataSets(DS_LIMIT)).mapTo[Seq[R]]
             }
           }
         }
@@ -117,7 +118,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
           get {
             complete {
               ok {
-                (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+                metrics(dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
               }
             }
           }
@@ -127,7 +128,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 ok {
-                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                  metrics(dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
                 }
               }
             }
@@ -137,9 +138,9 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
           get {
             complete {
               ok {
-                val dataset: Future[R] = (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+                val dataset: Future[R] = metrics(dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
                 val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
-                  (dbActor ? GetDataStoreReportFileByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
+                  metrics(dbActor ? GetDataStoreReportFileByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
                 }
                 reports
               }
@@ -155,7 +156,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         get {
           complete {
             ok {
-              (dbActor ? GetDataSetTypes).mapTo[Seq[ServiceDataSetMetaType]]
+              metrics(dbActor ? GetDataSetTypes).mapTo[Seq[ServiceDataSetMetaType]]
             }
           }
         }
@@ -165,7 +166,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
           complete {
             ok {
               DataSetMetaTypes.fromShortName(shortName)
-                .map(t => (dbActor ? GetDataSetTypeById(t.dsId)).mapTo[ServiceDataSetMetaType])
+                .map(t => metrics(dbActor ? GetDataSetTypeById(t.dsId)).mapTo[ServiceDataSetMetaType])
                 .getOrElse(throw new ResourceNotFoundError(s"Unable to find dataset type Id '$shortName"))
             }
           }
@@ -177,7 +178,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         get {
           complete {
             ok {
-              (dbActor ? id.map(GetDataSetMetaById, GetDataSetMetaByUUID)).mapTo[DataSetMetaDataSet]
+              metrics(dbActor ? id.map(GetDataSetMetaById, GetDataSetMetaByUUID)).mapTo[DataSetMetaDataSet]
             }
           }
         }
@@ -290,10 +291,10 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
 }
 
 trait DataSetServiceProvider {
-  this: JobsDaoActorProvider with ServiceComposer =>
+  this: JobsDaoActorProvider with MetricsProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDaoActor()))
+    Singleton(() => new DataSetService(jobsDaoActor(), metrics()))
 
   addService(dataSetService)
 }

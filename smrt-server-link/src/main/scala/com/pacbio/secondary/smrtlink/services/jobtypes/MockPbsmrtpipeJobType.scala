@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
@@ -22,7 +23,10 @@ import SprayJsonSupport._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef,
+                            engineManagerActor: ActorRef,
+                            authenticator: Authenticator,
+                            metrics: Metrics) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -34,7 +38,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef, aut
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -53,7 +57,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef, aut
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")
               val jsonSettings = ropts.toJson.toString()
-              val fx = (dbActor ? CreateJobType(
+              val fx = metrics(dbActor ? CreateJobType(
                 uuid,
                 ropts.name,
                 s"Mock pbsmrtpipe Pipeline ${opts.toString}",
@@ -75,7 +79,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, engineManagerActor: ActorRef, aut
           }
         }
       } ~
-      sharedJobRoutes(dbActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
@@ -83,8 +87,13 @@ trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with EngineManagerActorProvider
+    with MetricsProvider
     with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics())).bindToSet(JobTypes)
 }

@@ -2,7 +2,7 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.database.TestDatabaseProvider
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.dependency.{InitializationComposer, ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.{StatusGeneratorProvider, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
@@ -50,6 +50,7 @@ with NoTimeConversions {
 
   object TestProviders extends
   ServiceComposer with
+  InitializationComposer with
   JobManagerServiceProvider with
   StatusGeneratorProvider with
   MockPbsmrtpipeJobTypeProvider with
@@ -69,6 +70,8 @@ with NoTimeConversions {
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
+  MetricsProvider with
+  InMemoryHealthDaoProvider with
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
