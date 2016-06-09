@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
@@ -19,6 +18,7 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.database.Dal
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -28,34 +28,8 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import org.flywaydb.core.Flyway
-
 import slick.driver.SQLiteDriver.api._
 
-
-// TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
-class Dal(val dbURI: String) {
-  val flyway = new Flyway() {
-    override def migrate(): Int = {
-      // lazy make directories as needed for sqlite
-      if (dbURI.startsWith("jdbc:sqlite:")) {
-        val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
-        if (file.getParent != null) {
-          val dir = file.getParent.toFile
-          if (!dir.exists()) dir.mkdirs()
-        }
-      }
-
-      super.migrate()
-    }
-  }
-  flyway.setDataSource(dbURI, "", "")
-  flyway.setBaselineOnMigrate(true)
-  flyway.setBaselineVersionAsString("1")
-
-  // -1 queueSize means unlimited. This probably needs to be tuned
-  lazy val db = Database.forURL(dbURI, driver = "org.sqlite.JDBC", executor = AsyncExecutor("db-executor", 1, -1))
-}
 
 trait DalProvider {
   val dal: Singleton[Dal]
@@ -70,12 +44,8 @@ trait SmrtLinkDalProvider extends DalProvider {
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val dal: Singleton[Dal] = Singleton(() => {
-    val dbFile = File.createTempFile("test_dal_", ".db")
-    dbFile.deleteOnExit()
-
-    val dbURI = s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared"
-
-    new Dal(dbURI)
+    // in-memory DB for tests
+    new Dal(dbURI = "jdbc:sqlite:")
   })
 }
 

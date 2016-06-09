@@ -1,16 +1,18 @@
-import akka.actor.{ActorSystem, ActorRefFactory}
+import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
+import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.Dal
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServiceProvider}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.services.jobtypes.SimpleServiceJobTypeProvider
@@ -21,12 +23,12 @@ import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
 
-
-class JobManagerServiceSpec extends Specification
+abstract class JobExecutorSpecBase extends Specification
 with Specs2RouteTest
 with SetupMockData
 with JobServiceConstants {
 
+  // TODO(smcclellan): This test succeeds when run on its own, but fails when run with other tests, even though parallelExecution is disabled???
   sequential
 
   import SecondaryAnalysisJsonProtocols._
@@ -38,6 +40,7 @@ with JobServiceConstants {
   object TestProviders extends
   ServiceComposer with
   JobManagerServiceProvider with
+  MockPbsmrtpipeJobTypeProvider with
   SimpleServiceJobTypeProvider with
   JobsDaoActorProvider with
   StatusServiceActorRefProvider with
@@ -77,6 +80,21 @@ with JobServiceConstants {
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
+  def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
+
+  val mockOpts = {
+    val ep = BoundServiceEntryPoint("e_01", "DataSet.Subread.", 1)
+    val eps = Seq(ep)
+    val taskOptions = Seq[ServiceTaskOptionBase]()
+    val workflowOptions = Seq[ServiceTaskOptionBase]()
+    PbSmrtPipeServiceOptions(
+      "My-job-name",
+      "pbsmrtpipe.pipelines.mock_dev01",
+      eps,
+      taskOptions,
+      workflowOptions)
+  }
+
   def dbSetup() = {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
@@ -86,18 +104,4 @@ with JobServiceConstants {
 
   textFragment("creating database tables")
   step(dbSetup())
-
-  "Smoke test for 'simple' job type" should {
-    "Simple job should run" in {
-      val record = SimpleDevJobOptions(7, 13)
-      Post(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple", record) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
-    "Get Simple types" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
-  }
 }
