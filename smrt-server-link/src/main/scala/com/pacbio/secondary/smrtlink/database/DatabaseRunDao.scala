@@ -3,20 +3,20 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.database.Database
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-
 import slick.driver.SQLiteDriver.api._
 
 
 /**
  * RunDao that stores run designs in a Slick database.
  */
-class DatabaseRunDao(dal: Dal, parser: DataModelParser) extends RunDao {
+class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
   import TableModels._
 
   private def updateOrCreate(

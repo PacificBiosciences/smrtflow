@@ -5,23 +5,21 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, EngineJob}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.database.Dal
-import com.pacbio.secondary.analysis.jobs.{SimpleUUIDJobResolver, AnalysisJobStates}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResolver}
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-
 import slick.driver.SQLiteDriver.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
@@ -226,7 +224,7 @@ trait TmpDirJobResolver {
 }
 
 trait InitializeTables extends MockUtils {
-  val dal: Dal
+  val dal: Database
 
   def createTables: Unit = dao.initializeDb()
 

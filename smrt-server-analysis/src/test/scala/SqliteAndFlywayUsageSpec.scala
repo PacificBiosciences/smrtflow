@@ -1,5 +1,6 @@
 import java.sql.Connection
 import java.util
+import org.specs2.mutable.Specification
 
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors.{DalProvider, JobsDaoProvider, TestDalProvider}

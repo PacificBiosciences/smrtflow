@@ -4,16 +4,16 @@ import java.util.UUID
 
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.Clock
+import com.pacbio.database.Database
 import com.pacbio.secondary.smrtlink.actors.SampleDao
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-
 import slick.driver.SQLiteDriver.api._
 
-class DatabaseSampleDao(dal: Dal, clock: Clock) extends SampleDao {
+class DatabaseSampleDao(dal: Database, clock: Clock) extends SampleDao {
 
   /*
    * Returns a Set() of all samples in the database

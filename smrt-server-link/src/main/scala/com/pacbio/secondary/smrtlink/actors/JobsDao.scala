@@ -6,6 +6,7 @@ import java.util.UUID
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -18,7 +19,6 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.database.Dal
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -32,20 +32,20 @@ import slick.driver.SQLiteDriver.api._
 
 
 trait DalProvider {
-  val dal: Singleton[Dal]
+  val dal: Singleton[Database]
 }
 
 trait SmrtLinkDalProvider extends DalProvider {
   this: SmrtLinkConfigProvider =>
 
-  override val dal: Singleton[Dal] = Singleton(() => new Dal(dbURI()))
+  override val dal: Singleton[Database] = Singleton(() => new Database(dbURI()))
 }
 
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
-  override val dal: Singleton[Dal] = Singleton(() => {
+  override val dal: Singleton[Database] = Singleton(() => {
     // in-memory DB for tests
-    new Dal(dbURI = "jdbc:sqlite:")
+    new Database(dbURI = "jdbc:sqlite:")
   })
 }
 
@@ -53,7 +53,7 @@ trait TestDalProvider extends DalProvider {
  * SQL Datastore backend configuration and db connection
  */
 trait DalComponent {
-  val dal: Dal
+  val dal: Database
 }
 
 trait ProjectDataStore extends LazyLogging {
@@ -834,7 +834,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 }
 
-class JobsDao(val dal: Dal, val resolver: JobResourceResolver) extends JobEngineDataStore
+class JobsDao(val dal: Database, val resolver: JobResourceResolver) extends JobEngineDataStore
 with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
