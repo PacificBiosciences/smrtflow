@@ -37,10 +37,6 @@ import slick.driver.SQLiteDriver.api._
 
 import scala.concurrent.duration.Duration
 
-// TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
-
-
-
 
 trait DalProvider {
   val dal: Singleton[Dal]
