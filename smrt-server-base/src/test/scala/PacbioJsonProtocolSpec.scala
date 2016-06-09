@@ -1,8 +1,6 @@
-import com.pacbio.common.models.{HealthGaugeMessage, PacBioComponentManifest, HealthSeverity, PacBioComponent}
+import com.pacbio.common.models._
 import spray.json._
 import org.specs2.mutable._
-import com.pacbio.common.models.PacBioJsonProtocol
-import org.joda.time.{DateTime => JodaDateTime}
 
 class PacbioJsonProtocolSpec extends Specification {
 
@@ -10,14 +8,23 @@ class PacbioJsonProtocolSpec extends Specification {
 
   "Serialize Alert Spec" should {
     "Alert serialize to Json " in {
-      val u = java.util.UUID.randomUUID()
-      val n = JodaDateTime.now()
-      val m = HealthGaugeMessage( n, u, "message", HealthSeverity.ALERT, "source")
-      m.message must beEqualTo("message")
+      val m = HealthMetricCreateMessage(
+        "metric_id",
+        "Metric",
+        "Test Metric",
+        TagCriteria(),
+        MetricType.SUM,
+        Map(
+          HealthSeverity.CAUTION -> 1.0,
+          HealthSeverity.ALERT -> 2.0,
+          HealthSeverity.CRITICAL -> 3.0
+        ),
+        Some(60))
+      m.name must beEqualTo("Metric")
       val x = m.toJson
       println(x)
-      m.uuid must beEqualTo(u)
-      m.severity must beEqualTo(HealthSeverity.ALERT)
+      m.id must beEqualTo("metric_id")
+      m.metricType must beEqualTo(MetricType.SUM)
     }
     "Manifest serialization" in {
       val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")

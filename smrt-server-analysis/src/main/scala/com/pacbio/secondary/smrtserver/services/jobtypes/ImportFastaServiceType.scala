@@ -1,45 +1,42 @@
 package com.pacbio.secondary.smrtserver.services.jobtypes
 
 import java.net.{URI, URL}
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActor, UserServiceActorRefProvider}
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
-import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
-import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
-import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
-import com.pacbio.secondary.smrtlink.models._
-import com.typesafe.scalalogging.LazyLogging
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import spray.json._
-import spray.http.MediaTypes
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
+import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
+import com.typesafe.scalalogging.LazyLogging
+import spray.json._
+import spray.httpx.SprayJsonSupport._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 class ImportFastaServiceType(
     dbActor: ActorRef,
-    userActor: ActorRef,
     engineManagerActor: ActorRef,
     authenticator: Authenticator,
+    metrics: Metrics,
     serviceStatusHost: String,
     port: Int)
   extends JobTypeService with LazyLogging {
 
-  import SecondaryAnalysisJsonProtocols._
+  import SmrtLinkJsonProtocols._
 
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
@@ -85,13 +82,12 @@ class ImportFastaServiceType(
     else CoreJob(uuid, toPbsmrtPipeJobOptions(sopts, Option(toURI(rootUpdateURL, uuid))))
   }
 
-
   override val routes =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -103,7 +99,7 @@ class ImportFastaServiceType(
 
               val fx = Future {sopts.validate}.flatMap {
                 case Some(e) => Future { throw new UnprocessableEntityError(s"Failed to validate: $e") }
-                case _ => (dbActor ? CreateJobType(
+                case _ => metrics(dbActor ? CreateJobType(
                   uuid,
                   s"Job $endpoint",
                   comment,
@@ -123,19 +119,24 @@ class ImportFastaServiceType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
 trait ImportFastaServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
-    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
+    Singleton(() => new ImportFastaServiceType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics(),
+      if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port())).bindToSet(JobTypes)
 }

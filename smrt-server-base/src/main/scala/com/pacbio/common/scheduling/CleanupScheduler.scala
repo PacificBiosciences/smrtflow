@@ -1,13 +1,30 @@
-package com.pacbio.common.cleanup
+package com.pacbio.common.scheduling
+
+import java.util.Date
 
 import akka.actor._
-import com.pacbio.common.actors.{CleanupServiceActorRefProvider, ActorSystemProvider, CleanupServiceActor}
-import com.pacbio.common.dependency.{ConfigProvider, Singleton}
-import com.pacbio.common.models.{CleanupSize, ConfigCleanupJobCreate}
+import akka.pattern.pipe
+import com.pacbio.common.actors._
+import com.pacbio.common.dependency.{ConfigProvider, InitializationComposer, RequiresInitialization, Singleton}
+import com.pacbio.common.models.{CleanupJobResponse, CleanupSize, ConfigCleanupJobCreate}
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import com.typesafe.config.ConfigObject
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+
+object CleanupServiceActor {
+  case class RunConfigJob(name: String)
+}
+
+class CleanupServiceActor(dao: CleanupDao) extends PacBioActor {
+  import CleanupServiceActor._
+
+  def receive: Receive = {
+    case RunConfigJob(name) => dao.runConfigJob(name) pipeTo sender
+  }
+}
 
 /**
  * Example config:
@@ -37,21 +54,22 @@ import scala.concurrent.duration.Duration
  */
 class CleanupScheduler(
     actorSystem: ActorSystem,
+    cleanupDao: CleanupDao,
     cleanupActor: ActorRef,
-    cleanupJobs: Set[ConfigCleanupJobCreate]) {
+    cleanupJobs: Set[ConfigCleanupJobCreate]) extends RequiresInitialization {
 
   import CleanupServiceActor._
 
-  def scheduleAll(): Unit = {
-    cleanupJobs.foreach { c =>
-      cleanupActor ! CreateConfigJob(c)
-      QuartzSchedulerExtension(actorSystem).schedule(c.name, cleanupActor, RunConfigJob(c.name))
-    }
-  }
+  def init(): Seq[(CleanupJobResponse, Date)] =
+    cleanupJobs.map { j =>
+      val r = Await.result(cleanupDao.createConfigJob(j), 1.second)
+      val d = QuartzSchedulerExtension(actorSystem).schedule(j.name, cleanupActor, RunConfigJob(j.name))
+      (r, d)
+    }.toSeq
 }
 
 trait CleanupSchedulerProvider {
-  this: ActorSystemProvider with CleanupServiceActorRefProvider with ConfigProvider =>
+  this: CleanupDaoProvider with ActorSystemProvider with ConfigProvider with InitializationComposer =>
 
   import scala.collection.JavaConversions._
 
@@ -98,6 +116,10 @@ trait CleanupSchedulerProvider {
     jobs
   })
 
+
   val cleanupScheduler: Singleton[CleanupScheduler] =
-    Singleton(() => new CleanupScheduler(actorSystem(), cleanupServiceActorRef(), cleanupJobs()))
+    requireInitialization(Singleton { () =>
+      val actorRef = actorRefFactory().actorOf(Props(classOf[CleanupServiceActor], cleanupDao()))
+      new CleanupScheduler(actorSystem(), cleanupDao(), actorRef, cleanupJobs())
+    })
 }

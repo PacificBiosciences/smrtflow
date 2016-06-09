@@ -7,6 +7,8 @@ import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 object UserDao {
   val ROOT_USER = ApiUser(
@@ -22,20 +24,20 @@ object UserDao {
  * Interface for the User Service DAO.
  */
 trait UserDao {
-  def createUser(login: String, userRecord: UserRecord): ApiUser
+  def createUser(login: String, userRecord: UserRecord): Future[ApiUser]
 
   // Note: this is not exposed by the UserServiceActor, and should only be used by the Authenticator
-  def authenticate(login: String, password: String): ApiUser
+  def authenticate(login: String, password: String): Future[ApiUser]
 
-  def getUser(login: String): ApiUser
+  def getUser(login: String): Future[ApiUser]
 
-  def addRole(login: String, role: Role): ApiUser
+  def addRole(login: String, role: Role): Future[ApiUser]
 
-  def removeRole(login: String, role: Role): ApiUser
+  def removeRole(login: String, role: Role): Future[ApiUser]
 
-  def deleteUser(login: String): String
+  def deleteUser(login: String): Future[String]
 
-  def getToken(login: String): String
+  def getToken(login: String): Future[String]
 }
 
 /**
@@ -46,7 +48,7 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
 
   val usersByLogin: mutable.HashMap[String, ApiUser] = new mutable.HashMap()
 
-  override def createUser(login: String, userRecord: UserRecord): ApiUser =
+  override def createUser(login: String, userRecord: UserRecord): Future[ApiUser] = Future {
     if (usersByLogin contains login)
       throw new UnprocessableEntityError(s"A user with login $login already exists")
     else {
@@ -61,8 +63,9 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
       usersByLogin.put(login, user)
       user
     }
+  }
 
-  override def authenticate(login: String, password: String): ApiUser =
+  override def authenticate(login: String, password: String): Future[ApiUser] = Future {
     if (usersByLogin contains login) {
       val user = usersByLogin(login)
       if (user.passwordMatches(password))
@@ -72,41 +75,47 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
     }
     else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
-  override def getUser(login: String): ApiUser =
+  override def getUser(login: String): Future[ApiUser] = Future {
     if (usersByLogin contains login)
       usersByLogin(login)
     else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
-  override def addRole(login: String, role: Role): ApiUser =
+  override def addRole(login: String, role: Role): Future[ApiUser] = Future {
     if (usersByLogin contains login) {
       val user = usersByLogin(login).withRole(role)
       usersByLogin.put(login, user)
       user
     } else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
-  override def removeRole(login: String, role: Role): ApiUser =
+  override def removeRole(login: String, role: Role): Future[ApiUser] = Future {
     if (usersByLogin contains login) {
       val user = usersByLogin(login).withoutRole(role)
       usersByLogin.put(login, user)
       user
     } else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
-  override def deleteUser(login: String): String =
+  override def deleteUser(login: String): Future[String] = Future {
     if (usersByLogin contains login) {
       usersByLogin.remove(login)
       s"Successfully deleted user $login"
     } else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
-  override def getToken(login: String): String =
+  override def getToken(login: String): Future[String] = Future {
     if (usersByLogin contains login)
       jwtUtils.getJwt(usersByLogin(login))
     else
       throw new ResourceNotFoundError(s"Unable to find user $login")
+  }
 
   def clear(): Unit = usersByLogin.clear()
 }
@@ -115,32 +124,36 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
  * A read-only user DAO that contains one user: root. This is used when auth is disabled.
  */
 class RootOnlyUserDao(jwtUtils: JwtUtils) extends UserDao {
-  import UserDao.ROOT_USER
   import PacBioServiceErrors._
+  import UserDao.ROOT_USER
 
-  override def createUser(login: String, userRecord: UserRecord): ApiUser =
-    throw new MethodNotImplementedError("Cannot create users. Authentication is disabled.")
+  override def createUser(login: String, userRecord: UserRecord): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("Cannot create users. Authentication is disabled."))
 
   // Automatically authenticate as root
-  def authenticate(login: String, password: String): ApiUser = ROOT_USER
+  def authenticate(login: String, password: String): Future[ApiUser] = Future.successful(ROOT_USER)
 
-  def getUser(login: String): ApiUser = login match {
-    case ROOT_USER.login => ROOT_USER
-    case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+  def getUser(login: String): Future[ApiUser] = Future {
+    login match {
+      case ROOT_USER.login => ROOT_USER
+      case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+    }
   }
 
-  def addRole(login: String, role: Role): ApiUser =
-    throw new MethodNotImplementedError("Cannot add roles. Authentication is disabled.")
+  def addRole(login: String, role: Role): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("Cannot add roles. Authentication is disabled."))
 
-  def removeRole(login: String, role: Role): ApiUser =
-    throw new MethodNotImplementedError("Cannot remove roles. Authentication is disabled.")
+  def removeRole(login: String, role: Role): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("Cannot remove roles. Authentication is disabled."))
 
-  def deleteUser(login: String): String =
-    throw new MethodNotImplementedError("Cannot delete users. Authentication is disabled.")
+  def deleteUser(login: String): Future[String] =
+    Future.failed(new MethodNotImplementedError("Cannot delete users. Authentication is disabled."))
 
-  def getToken(login: String): String = login match {
-    case ROOT_USER.login => jwtUtils.getJwt(ROOT_USER)
-    case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+  def getToken(login: String): Future[String] = Future {
+    login match {
+      case ROOT_USER.login => jwtUtils.getJwt(ROOT_USER)
+      case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+    }
   }
 }
 

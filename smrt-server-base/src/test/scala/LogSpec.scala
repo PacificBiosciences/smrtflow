@@ -1,12 +1,11 @@
 import java.io.File
 
-import akka.testkit.TestActorRef
-import com.pacbio.common.actors.{InMemoryUserDaoProvider, LogServiceActorProvider, LogServiceActor, UserDao}
+import com.pacbio.common.actors.{InMemoryUserDaoProvider, UserDao}
 import com.pacbio.common.auth._
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{SetBindings, Singleton}
+import com.pacbio.common.dependency.{InitializationComposer, SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.LogService
+import com.pacbio.common.services.LogServiceProvider
 import com.pacbio.common.time._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
@@ -16,11 +15,11 @@ import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives, HttpService}
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
 class LogSpec extends Specification with NoTimeConversions with Directives with Specs2RouteTest with HttpService with BaseRolesInit {
-  // Tests must be run in sequence because of shared state in InMemoryLogDao
   sequential
 
   import PacBioJsonProtocol._
@@ -42,9 +41,10 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
 
   object TestProviders extends
       SetBindings with
-      LogServiceActorProvider with
+      InitializationComposer with
+      DatabaseProvider with
+      LogServiceProvider with
       DatabaseLogDaoProvider with
-      BaseSmrtServerDatabaseConfigProviders with
       InMemoryUserDaoProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
@@ -58,47 +58,43 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
 
     override final val defaultRoles = Set.empty[Role]
 
-    override final val logDaoBufferSize = 4
-
     // Database config that uses a temporary database file
     val dbFile = File.createTempFile("log_spec_", ".db")
     dbFile.deleteOnExit()
-    override final val logDaoDatabaseConfigProvider = DatabaseConfigProvider(
-      new DatabaseConfig.Configured(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared", "org.sqlite.JDBC")
-    )
+    override val logDbURI: Singleton[String] = Singleton(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared")
   }
 
-  val actorRef = TestActorRef[LogServiceActor](TestProviders.logServiceActor())
   val authenticator = TestProviders.authenticator()
   val userDao: UserDao = TestProviders.userDao()
   val logDao: DatabaseLogDao = TestProviders.logDao().asInstanceOf[DatabaseLogDao]
 
-  userDao.createUser(readUserLogin, UserRecord("pass"))
-  userDao.createUser(writeUserLogin, UserRecord("pass"))
-  userDao.addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
-  userDao.createUser(adminUserLogin, UserRecord("pass"))
-  userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  Await.ready(
+    userDao.createUser(readUserLogin, UserRecord("pass")) flatMap { _ =>
+    userDao.createUser(writeUserLogin, UserRecord("pass"))} flatMap { _ =>
+    userDao.addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)} flatMap { _ =>
+    userDao.createUser(adminUserLogin, UserRecord("pass"))} flatMap { _ =>
+    userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)}, 10.seconds)
 
-  val routes = new LogService(actorRef, authenticator).prefixedRoutes
+  val routes = TestProviders.logService().prefixedRoutes
 
   trait daoSetup extends Scope {
-    logDao.clear()
-    logDao.deleteAll()
+    TestProviders.init()
+    val setup = for {
+      d <- logDao.deleteAll()
+      p1 <- logDao.createLogResource(LogResourceRecord("Logger for Component 1", componentId1, "Component 1"))
+      p2 <- logDao.createLogResource(LogResourceRecord("Logger for Component 2", componentId2, "Component 2"))
+      p3 <- logDao.createLogMessage(
+        componentId1, LogMessageRecord("This component has some info.", LogLevel.INFO, "test source"))
+      p4 <- logDao.createLogMessage(
+        componentId1, LogMessageRecord("This component has an error.", LogLevel.ERROR, "test source"))
+      p5 <- logDao.createLogMessage(
+        componentId2, LogMessageRecord("This component has some debug info.", LogLevel.DEBUG, "test source"))
+    } yield ()
 
-    logDao.createLogResource(LogResourceRecord("Logger for Component 1", componentId1, "Component 1"))
-    logDao.createLogResource(LogResourceRecord("Logger for Component 2", componentId2, "Component 2"))
-
-    logDao.createLogMessage(
-      componentId1, LogMessageRecord("This component has some info.", LogLevel.INFO, "test source"))
-    logDao.createLogMessage(
-      componentId1, LogMessageRecord("This component has an error.", LogLevel.ERROR, "test source"))
-
-    logDao.createLogMessage(
-      componentId2, LogMessageRecord("This component has some debug info.", LogLevel.DEBUG, "test source"))
+    Await.ready(setup, 10.seconds)
   }
 
   "Log Service" should {
-
     "return a list of log resources" in new daoSetup {
       val credentials = OAuth2BearerToken(readUserLogin)
       Get("/smrt-base/loggers") ~> addCredentials(credentials) ~> routes ~> check {

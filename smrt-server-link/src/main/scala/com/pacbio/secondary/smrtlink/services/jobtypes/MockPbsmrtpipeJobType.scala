@@ -4,13 +4,12 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, PipelineBaseOption, BoundEntryPoint, EngineJob}
+import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineBaseOption, BoundEntryPoint, EngineJob}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -18,15 +17,16 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
-import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef,
+                            engineManagerActor: ActorRef,
+                            authenticator: Authenticator,
+                            metrics: Metrics) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -38,7 +38,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
         post {
@@ -57,7 +57,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")
               val jsonSettings = ropts.toJson.toString()
-              val fx = (dbActor ? CreateJobType(
+              val fx = metrics(dbActor ? CreateJobType(
                 uuid,
                 ropts.name,
                 s"Mock pbsmrtpipe Pipeline ${opts.toString}",
@@ -79,17 +79,21 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor, metrics)
     }
 }
 
 trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with EngineManagerActorProvider
+    with MetricsProvider
     with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(
+      jobsDaoActor(),
+      engineManagerActor(),
+      authenticator(),
+      metrics())).bindToSet(JobTypes)
 }

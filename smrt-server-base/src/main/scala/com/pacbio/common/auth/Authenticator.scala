@@ -8,7 +8,6 @@ import spray.routing.authentication.{BasicAuth, UserPass}
 import spray.routing.directives.AuthMagnet
 
 import scala.concurrent.{Future, ExecutionContext}
-import scala.util.Try
 
 // TODO(smcclellan): Add unit tests
 
@@ -89,13 +88,13 @@ class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authentica
   val REALM = "pacificbiosciences.com"
 
   override def userPassAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
-    def validateUser(userPass: Option[UserPass]): Option[AuthInfo] =
-      for {
-        up <- userPass
-        user <- Try(userDao.authenticate(up.user, up.pass)).toOption
-      } yield new AuthInfo(user)
+    def validateUser(userPass: Option[UserPass]): Future[Option[AuthInfo]] = userPass match {
+      case Some(up) => userDao.authenticate(up.user, up.pass).map(u => Some(new AuthInfo(u)))
+      case None => Future.successful(None)
+    }
 
-    def authenticator(userPass: Option[UserPass]): Future[Option[AuthInfo]] = Future { validateUser(userPass) }
+    def authenticator(userPass: Option[UserPass]): Future[Option[AuthInfo]] =
+      validateUser(userPass).recover { case _ => None }
 
     BasicAuth(authenticator _, realm = REALM)
   }
@@ -107,31 +106,34 @@ class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authentica
 
     def authHeader(ctx: RequestContext) = ctx.request.headers.findByType[`Authorization`]
 
-    def validateToken(ctx: RequestContext): Option[AuthInfo] = {
+    def validateToken(ctx: RequestContext): Future[Option[AuthInfo]] = {
       // Expect JWT to be passed in authorization header as "Authorization: Bearer jwtstring"
-      authHeader(ctx)
+      val login: Option[String] = authHeader(ctx)
         .map(_.renderValue(new StringRendering).get)            // Render header as string, e.g. "Bearer jwtstring"
         .map(_.split(" "))                                      // Split into words, e.g. Array("Bearer", "jwtstring")
         .withFilter(_.length == 2)                              // Filter out headers w/ wrong number of words
         .withFilter(_.head == "Bearer")                         // Filter out headers w/ wrong first word
         .map(_(1))                                              // Get second word, which should be the JWT
         .flatMap(jwt => jwtUtils.validate(jwt))                 // Validate JWT, and get user login
-        .flatMap(login => Try(userDao.getUser(login)).toOption) // Get user from DAO
-        .map(user => new AuthInfo(user))                        // Convert user object to AuthInfo object
-    }
+
+      login.map(l => userDao.getUser(l)) match {                // Get user from DAO
+        case Some(user) => user.map(u => Some(new AuthInfo(u))) // Convert user object to AuthInfo object
+        case None => Future.successful(None)
+      }
+    }.recover { case _ => None }
 
     val challengeHeaders =
       `WWW-Authenticate`(HttpChallenge(scheme = "Bearer", realm = REALM, params = Map.empty)) :: Nil
 
     def authenticate(ctx: RequestContext) =
-      validateToken(ctx) match {
+      validateToken(ctx).map {
         case Some(authInfo) => Right(authInfo)
         case None =>
           val cause = if (authHeader(ctx).isEmpty) CredentialsMissing else CredentialsRejected
           Left(AuthenticationFailedRejection(cause, challengeHeaders))
       }
 
-    ctx: RequestContext => Future { authenticate(ctx) }
+    ctx: RequestContext => authenticate(ctx)
   }
 }
 

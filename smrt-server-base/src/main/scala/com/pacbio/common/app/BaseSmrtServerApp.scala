@@ -9,11 +9,11 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
 import com.pacbio.common.auth.{BaseRolesInit, JwtUtilsImplProvider, FakeAuthenticatorProvider, AuthenticatorImplProvider}
-import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonReader, Singleton, SetBindings}
+import com.pacbio.common.dependency._
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
+import com.pacbio.common.scheduling.CleanupSchedulerProvider
 import com.pacbio.common.services._
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
@@ -34,36 +34,34 @@ object BaseSmrtServerApp
 trait CoreProviders extends
   SetBindings with
   DefaultConfigProvider with
+  DatabaseProvider with
+  InitializationComposer with
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProvider with
-  CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   MimeTypeDetectors with
   SubSystemComponentServiceProvider with
   SubSystemResourceServiceProvider with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
   FakeAuthenticatorProvider with
   LoggerFactoryImplProvider with
+  MetricsProvider with
   SystemClockProvider {
 
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
@@ -75,9 +73,8 @@ trait CoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
+  // TODO(smcclellan): Move to configs
+  override val logDbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
@@ -85,34 +82,32 @@ trait CoreProviders extends
 trait AuthenticatedCoreProviders extends
   SetBindings with
   DefaultConfigProvider with
+  DatabaseProvider with
   ServiceComposer with
+  InitializationComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProviderx with
-  CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProviderx with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   MimeTypeDetectors with
   SubSystemComponentServiceProviderx with
   SubSystemResourceServiceProviderx with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
+  MetricsProvider with
   SystemClockProvider {
 
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
@@ -124,15 +119,14 @@ trait AuthenticatedCoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
+  // TODO(smcclellan): Move to configs
+  override val logDbURI: Singleton[String] = Singleton("jdbc:sqlite:file:/tmp/logs.db")
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
 
 trait BaseApi extends BaseRolesInit {
-  val providers: ActorSystemProvider with RouteProvider
+  val providers: ActorSystemProvider with RouteProvider with InitializationComposer
 
   // Override these with custom startup and shutdown logic
   def startup(): Unit = ()
@@ -163,13 +157,15 @@ trait BaseServer extends LazyLogging {
 
   def start = {
     logger.info("Starting App")
-    logger.info("Java Version: " + System.getProperty("java.version"));
-    logger.info("Java Home: " + System.getProperty("java.home"));
-    val runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-    val arguments = runtimeMxBean.getInputArguments();
-    logger.info("Java Args: " + arguments.mkString(" "));
+    logger.info("Java Version: " + System.getProperty("java.version"))
+    logger.info("Java Home: " + System.getProperty("java.home"))
+    val runtimeMxBean = ManagementFactory.getRuntimeMXBean
+    val arguments = runtimeMxBean.getInputArguments
+    logger.info("Java Args: " + arguments.mkString(" "))
 
-    val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
+    providers.init()
+
+    val bind: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
       case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))
       case r => None
     }
@@ -178,7 +174,7 @@ trait BaseServer extends LazyLogging {
       extends RuntimeException("Startup failed", cause)
       with ControlThrowable
 
-    Await.result(f, 10.seconds) map { e =>
+    Await.result(bind, 30.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll
       system.shutdown()
       throw new StartupFailedException(e)
@@ -193,8 +189,6 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val providers: CoreProviders = new CoreProviders {}
   override val host = providers.serverHost()
   override val port = providers.serverPort()
-
-  override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
 
   LoggerOptions.parseAddDebug(args)
 

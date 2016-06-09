@@ -9,12 +9,10 @@ import akka.actor.{ActorSystem, ActorRef}
 import akka.pattern.ask
 import akka.util.Timeout
 
-import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider, UserServiceActorRefProvider, UserServiceActor}
-import UserServiceActor._
-import com.pacbio.common.actors.StatusServiceActor._
+import com.pacbio.common.actors._
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.{StatusGeneratorProvider, StatusGenerator, ServiceComposer}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.actors._
@@ -31,8 +29,8 @@ import SprayJsonSupport._
 
 class JobManagerService(
     dbActor: ActorRef,
-    statusActor: ActorRef,
-    userActor: ActorRef,
+    statusGenerator: StatusGenerator,
+    metrics: Metrics,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -62,7 +60,7 @@ class JobManagerService(
 
   val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.endpoint, x.description))
   val jobTypeRoutes =
-    pathPrefix(SERVICE_PREFIX / JOB_TYPES_PREFIX) {
+    path(SERVICE_PREFIX / JOB_TYPES_PREFIX) {
       get {
         complete {
           jobTypeEndPoints
@@ -70,20 +68,17 @@ class JobManagerService(
       }
     }
 
-  val statusRoutes =
+  val jobRoutes =
     pathPrefix(SERVICE_PREFIX) {
-      // TODO(smcclellan): Do we need this endpoint? Why not use the /status endpoint in base-smrt-server?
       path("status") {
-        get {
-          complete {
-            for {
-              up <- (statusActor ? GetUptime).mapTo[Long]
-            } yield SimpleStatus(manifest.id, s"${manifest.name} are up and running for ${up/1000} seconds.", up)
+        complete {
+          ok {
+            statusGenerator.status
           }
         }
       } ~
-      pathPrefix(JOB_ROOT_PREFIX) {
-        sharedJobRoutes(dbActor, userActor)
+      path(JOB_ROOT_PREFIX) {
+        sharedJobRoutes(dbActor, metrics)
       }
     }
 
@@ -93,7 +88,7 @@ class JobManagerService(
       pathEnd {
         get {
           complete {
-            (dbActor ? GetDataStoreFiles(1000)).mapTo[Seq[DataStoreServiceFile]]
+            metrics(dbActor ? GetDataStoreFiles(1000)).mapTo[Seq[DataStoreServiceFile]]
           }
         }
       } ~
@@ -102,7 +97,7 @@ class JobManagerService(
           get {
             complete {
               ok {
-                (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
+                metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
               }
             }
           }
@@ -110,7 +105,7 @@ class JobManagerService(
         // TODO(smcclellan): Combine download and resources endpoints?
         path("download") {
           get {
-            onSuccess((dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
+            onSuccess(metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
               getFromFile(file.path)
             }
           }
@@ -118,7 +113,7 @@ class JobManagerService(
         path("resources") {
           get {
             parameter("relpath") { relpath =>
-              onSuccess((dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
+              onSuccess(metrics(dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
                 val resourcePath = Paths.get(file.path).resolveSibling(relpath)
                 getFromFile(resourcePath.toFile)
               }
@@ -139,15 +134,15 @@ class JobManagerService(
       }
     }
 
-  override val routes = statusRoutes ~ engineConfigRoutes ~ jobTypeRoutes ~ dataStoreFilesRoutes ~ jobServiceTypeRoutes
+  override val routes = jobRoutes ~ engineConfigRoutes ~ jobTypeRoutes ~ dataStoreFilesRoutes ~ jobServiceTypeRoutes
 }
 
 trait JobManagerServiceProvider {
   this: SetBindings
     with SmrtLinkConfigProvider
+    with StatusGeneratorProvider
     with JobsDaoActorProvider
-    with StatusServiceActorRefProvider
-    with UserServiceActorRefProvider
+    with MetricsProvider
     with ActorSystemProvider
     with ServiceComposer =>
 
@@ -156,8 +151,8 @@ trait JobManagerServiceProvider {
       implicit val system = actorSystem()
       new JobManagerService(
         jobsDaoActor(),
-        statusServiceActorRef(),
-        userServiceActorRef(),
+        statusGenerator(),
+        metrics(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),

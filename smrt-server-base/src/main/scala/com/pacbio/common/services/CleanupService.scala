@@ -1,9 +1,7 @@
 package com.pacbio.common.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.actors.{CleanupServiceActorRefProvider, CleanupServiceActor}
+import com.pacbio.common.actors.{CleanupDao, CleanupDaoProvider}
 import com.pacbio.common.auth.{AuthenticatorProvider, BaseRoles, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
@@ -16,12 +14,11 @@ import scala.concurrent.duration._
 
 // TODO(smcclellan): add scaladoc, unittests, .rst docs
 
-class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
+class CleanupService(dao: CleanupDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
   import BaseRoles._
-  import CleanupServiceActor._
   import PacBioJsonProtocol._
 
   implicit val timeout = Timeout(10.seconds)
@@ -37,7 +34,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
         pathEnd {
           get {
             complete {
-              (cleanupActor ? GetAllJobs).mapTo[Set[CleanupJobResponse]]
+              dao.getAllJobs()
             }
           } ~
           post {
@@ -45,7 +42,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
               entity(as[ApiCleanupJobCreate]) { c =>
                 complete {
                   created {
-                    (cleanupActor ? CreateJob(c)).mapTo[CleanupJobResponse]
+                    dao.createJob(c)
                   }
                 }
               }
@@ -57,7 +54,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
             get {
               complete {
                 ok {
-                  (cleanupActor ? GetJob(id)).mapTo[CleanupJobResponse]
+                  dao.getJob(id)
                 }
               }
             } ~
@@ -66,7 +63,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
                 respondWithMediaType(MediaTypes.`application/json`) {
                   complete {
                     ok {
-                      (cleanupActor ? DeleteJob(id)).mapTo[String]
+                      dao.deleteJob(id)
                     }
                   }
                 }
@@ -77,7 +74,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
             post {
               complete {
                 ok {
-                  (cleanupActor ? StartJob(id)).mapTo[CleanupJobResponse]
+                  dao.startJob(id)
                 }
               }
             }
@@ -86,7 +83,7 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
             post {
               complete {
                 ok {
-                  (cleanupActor ? PauseJob(id)).mapTo[CleanupJobResponse]
+                  dao.startJob(id)
                 }
               }
             }
@@ -97,19 +94,19 @@ class CleanupService(cleanupActor: ActorRef, authenticator: Authenticator)
 }
 
 trait CleanupServiceProvider {
-  this: CleanupServiceActorRefProvider with AuthenticatorProvider =>
+  this: CleanupDaoProvider with AuthenticatorProvider =>
 
   final val cleanupService: Singleton[CleanupService] =
-    Singleton(() => new CleanupService(cleanupServiceActorRef(), authenticator())).bindToSet(AllServices)
+    Singleton(() => new CleanupService(cleanupDao(), authenticator())).bindToSet(AllServices)
 }
 
 trait CleanupServiceProviderx {
-  this: CleanupServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: CleanupDaoProvider
+      with AuthenticatorProvider
+      with ServiceComposer =>
 
   final val cleanupService: Singleton[CleanupService] =
-    Singleton(() => new CleanupService(cleanupServiceActorRef(), authenticator()))
+    Singleton(() => new CleanupService(cleanupDao(), authenticator()))
 
   addService(cleanupService)
 }

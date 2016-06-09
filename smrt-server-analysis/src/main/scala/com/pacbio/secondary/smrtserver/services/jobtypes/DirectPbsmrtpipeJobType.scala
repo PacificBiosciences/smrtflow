@@ -1,57 +1,41 @@
 package com.pacbio.secondary.smrtserver.services.jobtypes
 
-
-import java.io.File
 import java.net.{URI, URL}
-import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
-import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActor, UserServiceActorRefProvider}
+import com.pacbio.common.actors.{MetricsProvider, Metrics}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.LogMessageRecord
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages.{CheckForRunnableJob, ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.{CoreJob, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.{CoreJob, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, ValidateImportDataSetUtils}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.SmrtServerConstants
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
-
-import scala.collection.JavaConversions._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-
-
-// For serialization magic. This is required for any serialization in spray to work.
-
 import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class DirectPbsmrtpipeJobType(
     dbActor: ActorRef,
-    userActor: ActorRef,
     engineManagerActor: ActorRef,
     authenticator: Authenticator,
+    metrics: Metrics,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -63,8 +47,8 @@ class DirectPbsmrtpipeJobType(
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
 
   import SecondaryAnalysisJsonProtocols._
-  import SmrtServerConstants._
   import SecondaryJobProtocols.directPbsmrtpipeJobOptionsFormat
+  import SmrtServerConstants._
 
   // Not thrilled with this name
   val endpoint = "pbsmrtpipe-direct"
@@ -86,7 +70,7 @@ class DirectPbsmrtpipeJobType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint, metrics)
           }
         } ~
           post {
@@ -115,7 +99,7 @@ class DirectPbsmrtpipeJobType(
                 // It might be useful for this to try to look up the files by path. For now this is fine.
                 val entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None
 
-                val fx = (dbActor ? CreateJobType(
+                val fx = metrics(dbActor ? CreateJobType(
                   uuid,
                   name,
                   s"pbsmrtpipe ${ropts.pipelineId}",
@@ -135,7 +119,7 @@ class DirectPbsmrtpipeJobType(
             }
           }
       } ~
-        sharedJobRoutes(dbActor, userActor)
+        sharedJobRoutes(dbActor, metrics)
     } ~
       path(endpoint / IntNumber / LOG_PREFIX) { id =>
         post {
@@ -158,7 +142,7 @@ class DirectPbsmrtpipeJobType(
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                  metrics(dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
                     val sourceId = s"job::${engineJob.id}::${m.sourceId}"
                     loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
                     // an "ok" message should
@@ -175,7 +159,7 @@ class DirectPbsmrtpipeJobType(
 trait DirectPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
+    with MetricsProvider
     with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
@@ -183,9 +167,9 @@ trait DirectPbsmrtpipeJobTypeProvider {
   val pbsmrtpipeDirectServiceJobType: Singleton[DirectPbsmrtpipeJobType] =
     Singleton(() => new DirectPbsmrtpipeJobType(
       jobsDaoActor(),
-      userServiceActorRef(),
       engineManagerActor(),
       authenticator(),
+      metrics(),
       loggerFactory(),
       jobEngineConfig(),
       pbsmrtpipeEngineOptions(),

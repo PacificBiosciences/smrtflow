@@ -1,8 +1,9 @@
-import akka.actor.{ActorSystem, ActorRefFactory}
+import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.database.TestDatabaseProvider
+import com.pacbio.common.dependency.{InitializationComposer, ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.services.{StatusGeneratorProvider, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
@@ -40,28 +41,29 @@ with JobServiceConstants {
 
   object TestProviders extends
   ServiceComposer with
+  InitializationComposer with
   JobManagerServiceProvider with
+  StatusGeneratorProvider with
   MockPbsmrtpipeJobTypeProvider with
   SimpleServiceJobTypeProvider with
   JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
   JobsDaoProvider with
-  TestDalProvider with
   SmrtLinkConfigProvider with
+  TestDatabaseProvider with
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
+  MetricsProvider with
+  InMemoryHealthDaoProvider with
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
@@ -72,14 +74,13 @@ with JobServiceConstants {
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
-    override val baseServiceId: Singleton[String] = Singleton("test-service")
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+    override val baseServiceId: Singleton[String] = Singleton("test_package")
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
+  val dbURI = TestProviders.getFullURI(TestProviders.dbURI())
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
 
@@ -98,9 +99,9 @@ with JobServiceConstants {
 
   def dbSetup() = {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
-    runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    logger.info(s"Running tests from db-uri $dbURI")
+    runSetup(dbURI)
+    println(s"completed setting up database $dbURI")
   }
 
   textFragment("creating database tables")

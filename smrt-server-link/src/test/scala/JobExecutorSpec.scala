@@ -1,39 +1,43 @@
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.{UserRecord, UserResponse}
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.database.TestDatabaseProvider
+import com.pacbio.common.dependency.{InitializationComposer, ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.models.UserRecord
+import com.pacbio.common.services.{StatusGeneratorProvider, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServiceProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants
+with NoTimeConversions {
 
   sequential
 
   import SmrtLinkJsonProtocols._
 
-  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
+  implicit val routeTestTimeout = RouteTestTimeout(5.seconds)
 
   val READ_USER_LOGIN = "reader"
   val WRITE_USER_1_LOGIN = "root"
@@ -46,27 +50,28 @@ with JobServiceConstants {
 
   object TestProviders extends
   ServiceComposer with
+  InitializationComposer with
   JobManagerServiceProvider with
+  StatusGeneratorProvider with
   MockPbsmrtpipeJobTypeProvider with
   JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
   JobsDaoProvider with
-  TestDalProvider with
   SmrtLinkConfigProvider with
+  TestDatabaseProvider with
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
+  MetricsProvider with
+  InMemoryHealthDaoProvider with
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
@@ -77,18 +82,18 @@ with JobServiceConstants {
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
-    override val baseServiceId: Singleton[String] = Singleton("test-service")
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+    override val baseServiceId: Singleton[String] = Singleton("test_package")
   }
 
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  Await.ready(
+    TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass")) flatMap { _ =>
+    TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))} flatMap { _ =>
+    TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))}, 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
+  val dbURI = TestProviders.getFullURI(TestProviders.dbURI())
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"
@@ -105,9 +110,9 @@ with JobServiceConstants {
 
   trait daoSetup extends Scope {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
-    runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}.")
+    logger.info(s"Running tests from db-uri $dbURI")
+    runSetup(dbURI)
+    println(s"completed setting up database $dbURI.")
   }
 
   "Job Execution Service list" should {

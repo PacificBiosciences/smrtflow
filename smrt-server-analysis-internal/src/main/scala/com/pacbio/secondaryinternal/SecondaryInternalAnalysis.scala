@@ -67,15 +67,6 @@ trait SecondaryInternalAnalysisApi extends BaseApi with SmrtLinkRolesInit with L
   override val providers = new SecondaryInternalAnalysisProviders {}
 
   override def startup(): Unit = {
-    try {
-      providers.jobsDao().initializeDb()
-    } catch {
-      case e: Exception => {
-        e.printStackTrace()
-        system.shutdown()
-      }
-    }
-
     val p = Paths.get(providers.engineConfig.pbRootJobDir)
     if (!Files.exists(p)) {
       logger.info(s"Creating root job dir $p")

@@ -2,23 +2,18 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
-import com.pacbio.common.auth.{AuthenticatorProvider, ApiUser, Authenticator}
+import com.pacbio.common.actors.{UserDao, UserDaoProvider}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol, UserResponse}
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
 import com.pacbio.secondary.smrtlink.models._
-import spray.routing.Route
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import com.typesafe.scalalogging.LazyLogging
-
-import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
@@ -26,15 +21,12 @@ import SprayJsonSupport._
 
 /**
  * Accessing Projects
- *
- * @param dbActor
  */
-class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
+class ProjectService(dbActor: ActorRef, userDao: UserDao, authenticator: Authenticator)
   extends JobsBaseMicroService
   with SmrtLinkConstants {
 
   // import message types
-  import UserServiceActor._
   import JobsDaoActor._
 
   // import serialzation protocols
@@ -107,12 +99,11 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
                 val userResponses = for {
                   users <- (dbActor ? GetProjectUsers(projId)).mapTo[Seq[ProjectUser]]
 
-                  apiUsers <- Future.sequence(users.map(u =>
-                    (userActor ? GetUser(u.login)).mapTo[ApiUser]))
+                  apiUsers <- Future.sequence(users.map(u => userDao.getUser(u.login)))
 
                   fullUsers <- Future {
                     (users, apiUsers).zipped.map((u, au) =>
-                      ProjectUserResponse(au.toResponse, u.role))
+                      ProjectUserResponse(au.toResponse(), u.role))
                   }
                 } yield fullUsers
 
@@ -200,13 +191,12 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
 
 trait ProjectServiceProvider {
   this: JobsDaoActorProvider
-    with UserServiceActorRefProvider
+    with UserDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
-    Singleton(() => new ProjectService(
-      jobsDaoActor(), userServiceActorRef(), authenticator()))
+    Singleton(() => new ProjectService(jobsDaoActor(), userDao(), authenticator()))
 
   addService(projectService)
 }

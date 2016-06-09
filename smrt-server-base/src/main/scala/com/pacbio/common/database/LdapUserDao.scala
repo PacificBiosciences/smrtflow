@@ -1,14 +1,16 @@
 package com.pacbio.common.database
 
-import com.pacbio.common.actors.{UserDaoProvider, UserDao}
-import com.pacbio.common.auth.{JwtUtilsProvider, Role, ApiUser, JwtUtils}
+import com.pacbio.common.actors.{UserDao, UserDaoProvider}
+import com.pacbio.common.auth.{ApiUser, JwtUtils, JwtUtilsProvider, Role}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.PacBioServiceErrors
 import com.unboundid.ldap.sdk._
-
 import resource._
+
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 // TODO(smcclellan): Add unit tests
 class LdapUserDao(
@@ -91,9 +93,10 @@ class LdapUserDao(
     entryCache.cache(login, entry)
   }
 
-  override def getUser(login: String): ApiUser = ldapUsersConfig.getApiUser(getUserEntry(login)).withRoles(defaultRoles)
+  override def getUser(login: String): Future[ApiUser] =
+    Future(ldapUsersConfig.getApiUser(getUserEntry(login)).withRoles(defaultRoles))
 
-  override def authenticate(login: String, password: String): ApiUser = {
+  override def authenticate(login: String, password: String): Future[ApiUser] = Future {
     import ResultCode.SUCCESS
 
     val entry = getUserEntry(login)
@@ -107,22 +110,22 @@ class LdapUserDao(
   }
 
   // TODO(smcclellan): Implement createUser for LDAP?
-  override def createUser(login: String, userRecord: UserRecord): ApiUser =
-    throw new MethodNotImplementedError("CreateUser method not implemented for LDAP User DAO.")
+  override def createUser(login: String, userRecord: UserRecord): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("CreateUser method not implemented for LDAP User DAO."))
 
   // TODO(smcclellan): Implement deleteUser for LDAP?
-  override def deleteUser(login: String): String =
-    throw new MethodNotImplementedError("DeleteUser method not implemented for LDAP User DAO.")
+  override def deleteUser(login: String): Future[String] =
+    Future.failed(new MethodNotImplementedError("DeleteUser method not implemented for LDAP User DAO."))
 
   // TODO(smcclellan): Implement addRole for LDAP?
-  override def addRole(login: String, role: Role): ApiUser =
-    throw new MethodNotImplementedError("AddRole method not implemented for LDAP User DAO.")
+  override def addRole(login: String, role: Role): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("AddRole method not implemented for LDAP User DAO."))
 
   // TODO(smcclellan): Implement removeRole for LDAP?
-  override def removeRole(login: String, role: Role): ApiUser =
-    throw new MethodNotImplementedError("RemoveRole method not implemented for LDAP User DAO.")
+  override def removeRole(login: String, role: Role): Future[ApiUser] =
+    Future.failed(new MethodNotImplementedError("RemoveRole method not implemented for LDAP User DAO."))
 
-  override def getToken(login: String): String = jwtUtils.getJwt(getUser(login))
+  override def getToken(login: String): Future[String] = getUser(login).map(jwtUtils.getJwt)
 }
 
 /**
