@@ -5,7 +5,8 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.database.Dal
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.DataSetServiceProvider

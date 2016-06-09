@@ -48,7 +48,7 @@ class SqliteAndFlywayUsageSpec
     }
     "share Connection instances during Flyway migrations" in {
       val dao = jobsDao()
-      dao.dal.migrating = true
+      dao.dal.shareConnection = true
       val conn1 = dao.dal.connectionPool.getConnection
       val conn2 = dao.dal.connectionPool.getConnection
       try conn1 mustEqual conn2
@@ -56,14 +56,14 @@ class SqliteAndFlywayUsageSpec
     }
     "guard against failing to close Connection instances" in {
       val dao = jobsDao()
-      dao.dal.migrating = false
+      dao.dal.shareConnection = false
       val conn1 = dao.dal.connectionPool.getConnection
       try dao.dal.connectionPool.getConnection() must throwA[RuntimeException]
       finally conn1.close()
     }
     "return unique Connection instances during normal, non-migration use" in {
       val dao = jobsDao()
-      dao.dal.migrating = false
+      dao.dal.shareConnection = false
       val conn1 = dao.dal.connectionPool.getConnection
       conn1.close()
       val conn2 = dao.dal.connectionPool.getConnection

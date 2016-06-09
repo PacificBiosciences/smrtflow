@@ -21,84 +21,26 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.database.Dal
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import org.flywaydb.core.Flyway
 import slick.driver.SQLiteDriver.api._
 
+import scala.concurrent.duration.Duration
+
 // TODO(smcclellan): Move this class into the c.p.s.s.database package? Or eliminate it?
-class Dal(val dbURI: String) {
-
-  // flag for use when Flyway migrations running on SQLite
-  var migrating: Boolean = false
-  // DBCP for connection pooling and caching prepared statements for use in SQLite
-  val connectionPool = new BasicDataSource() {
-    // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
-    var cachedConnection: Connection = null
-
-    override def getConnection(): Connection = {
-      // recycle the connection only for the special use case of Flyway database migrations
-      if (migrating && cachedConnection != null && !cachedConnection.isClosed) {
-        println("Shared Connection")
-        return cachedConnection
-      }
-      else {
-        // guard for SQLite use. also applicable in any case where only 1 connection is allowed
-        if (cachedConnection != null && !cachedConnection.isClosed) {
-          throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
-        }
-        cachedConnection = super.getConnection()
-      }
-      return cachedConnection
-    }
-  }
-  connectionPool.setDriverClassName("org.sqlite.JDBC")
-  connectionPool.setUrl(dbURI)
-  connectionPool.setInitialSize(1)
-  connectionPool.setMaxTotal(1)
-  // pool prepared statements
-  connectionPool.setPoolPreparedStatements(true)
-  // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
-  // enforce no auto-commit
-  //connectionPool.setDefaultAutoCommit(false)
-  //connectionPool.setEnableAutoCommitOnReturn(true)
 
 
-  val flyway = new Flyway() {
-    override def migrate(): Int = {
-      try {
-        migrating = true
-        // lazy make directories as needed for sqlite
-        if (dbURI.startsWith("jdbc:sqlite:")) {
-          val file = Paths.get(dbURI.stripPrefix("jdbc:sqlite:"))
-          if (file.getParent != null) {
-            val dir = file.getParent.toFile
-            if (!dir.exists()) dir.mkdirs()
-          }
-        }
 
-        super.migrate()
-      }
-      finally {
-        migrating = false
-      }
-    }
-  }
-  flyway.setDataSource(connectionPool)
-  flyway.setBaselineOnMigrate(true)
-  flyway.setBaselineVersionAsString("1")
-
-  // -1 queueSize means unlimited. This probably needs to be tuned
-  lazy val db = Database.forDataSource(connectionPool, executor = AsyncExecutor("db-executor", 1, -1))
-}
 
 trait DalProvider {
   val dal: Singleton[Dal]

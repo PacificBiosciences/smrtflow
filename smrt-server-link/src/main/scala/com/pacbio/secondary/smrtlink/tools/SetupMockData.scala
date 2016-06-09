@@ -9,6 +9,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, EngineJob}
 import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.database.Dal
 import com.pacbio.secondary.analysis.jobs.{SimpleUUIDJobResolver, AnalysisJobStates}
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging

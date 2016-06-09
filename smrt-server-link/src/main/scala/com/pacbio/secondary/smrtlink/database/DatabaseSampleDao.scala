@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.Clock
-import com.pacbio.secondary.smrtlink.actors.{Dal, SampleDao}
+import com.pacbio.secondary.smrtlink.actors.SampleDao
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 
