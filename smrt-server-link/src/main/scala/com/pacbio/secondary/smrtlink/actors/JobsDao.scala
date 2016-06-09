@@ -1,9 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.io.File
-import java.net.URI
 import java.nio.file.{Files, Paths}
-import java.sql.Connection
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
@@ -23,19 +20,15 @@ import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.database.Dal
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import org.flywaydb.core.Flyway
 import slick.driver.SQLiteDriver.api._
-
-import scala.concurrent.duration.Duration
 
 
 trait DalProvider {
