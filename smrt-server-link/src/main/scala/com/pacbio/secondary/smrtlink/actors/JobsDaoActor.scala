@@ -209,7 +209,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
 
   override def preStart(): Unit = {
-    log.info(s"Starting manager actor $self with $engineConfig")
+    log.info(s"Starting engine manager actor $self with $engineConfig")
 
     (0 until engineConfig.maxWorkers).foreach { x =>
       val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner), s"engine-worker-$x")
@@ -228,14 +228,14 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
 
     if (workerQueue.nonEmpty) {
-      log.info(s"Checking for work. Number of available Workers ${workerQueue.size}")
+      log.info(s"Checking for work. numWorkers ${workerQueue.size}, numQuickWorkers ${quickWorkers.size}")
       log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
       // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
       // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
       val f = for {
-        m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
-        m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING)
+        m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
+        m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
       } yield s"$m1,$m2"
 
       f onComplete {
@@ -298,7 +298,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case StandardWorkType => workers.enqueue(sender)
       }
 
-      val f = dao.updateJobStateByUUID(result.uuid, result.state)
+      val f = dao.updateJobStateByUUID(result.uuid, result.state, s"Updated to ${result.state}")
 
       f onComplete {
         case Success(_) =>
@@ -332,14 +332,20 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     //case UpdateJobStatus(uuid, state) => dao.updateJobStateByUUID(uuid, state) pipeTo sender
 
     case ImportDataStoreFile(dataStoreFile, jobUUID) =>
-      log.debug(s"importing datastore file $dataStoreFile for job ${jobUUID.toString}")
-      dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)) pipeTo sender
+      log.debug(s"ImportDataStoreFile importing datastore file $dataStoreFile for job ${jobUUID.toString}")
+      dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)).flatMap {
+        case Right(m) => Future { m.message }
+        case Left(m) => Future.failed(new Exception(s"Failed to import datastore ${m.message}"))
+      } pipeTo sender
 
     case PacBioImportDataSet(x, jobUUID) =>
+
+      val thisSender = sender()
+
       x match {
         case ds: DataStoreFile =>
-          log.info(s"importing dataset from $ds")
-          dao.addDataStoreFile(DataStoreJobFile(jobUUID, ds)) pipeTo sender
+          log.info(s"PacbioImportDataset importing dataset from $ds")
+          dao.addDataStoreFile(DataStoreJobFile(jobUUID, ds)) pipeTo thisSender
 
         case ds: PacBioDataStore =>
           log.info(s"loading files from datastore $ds")
@@ -349,9 +355,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
             if (f.nonEmpty) {
               Left(FailedMessage(s"Failed to import datastore $failures"))
             } else {
-              Right(SuccessMessage(s"Successfully imported files from $x"))
+              Right(SuccessMessage(s"Successfully imported files from PacBioDataStore $x"))
             }
-          } pipeTo sender
+          } pipeTo thisSender
       }
 
     // End of EngineDaoActor
@@ -592,7 +598,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     // Need to consolidate this
     case UpdateJobStatus(uuid, state) =>
-      pipeWith(dao.updateJobStateByUUID(uuid, state))
+      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state"))
 
     // Testing/Debugging messages
     case "example-test-message" => respondWith("Successfully got example-test-message")

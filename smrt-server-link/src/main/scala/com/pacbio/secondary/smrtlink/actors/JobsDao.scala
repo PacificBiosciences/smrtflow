@@ -317,7 +317,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       .map(_ => s"Successfully updated job $uuid to $state")
     f.onComplete {
       case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
-      case Failure(ex) => logger.error(s"Unable to update state of job id ${uuid.toString} ${ex.getMessage}")
+      case Failure(ex) => logger.error(s"Unable to update state of job id ${uuid.toString} to state $state Error ${ex.getMessage}")
     }
     f
   }
@@ -464,11 +464,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   }
 
   override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
+    logger.info(s"adding datastore file for $ds")
     getJobByUUID(ds.jobId).flatMap {
       case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
         .map(m => Right(CommonMessages.SuccessMessage(m)))
         .recover {
-          case NonFatal(e) => Left(CommonMessages.FailedMessage(e.getMessage))
+          case NonFatal(e) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
         }
       case None => Future(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
     }
@@ -527,6 +528,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
               logger.info(s"Already imported. Skipping inserting of datastore file $ds")
               insert
             case None =>
+              logger.info(s"importing datastore file into db $ds")
               val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
               (datastoreServiceFiles += dss).flatMap(_ => insert)
           }

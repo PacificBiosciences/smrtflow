@@ -150,7 +150,7 @@ package object services {
         } else {
           resp.message
         }
-        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${message}")
+        logger.warn(s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${message} Request ${ctx.request}")
         ctx
           // Exception handling bypasses CORSSupport, so we add the header here
           .withHttpResponseHeadersMapped(addAccessControlHeader)
