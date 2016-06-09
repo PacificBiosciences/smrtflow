@@ -25,6 +25,7 @@ import scala.xml.XML
 
 import java.net.URL
 import java.util.UUID
+import java.lang.System
 
 //FIXME(mkocher)(2016-2-2): This needs to be centralized.
 object AnalysisServicesModels {
@@ -134,45 +135,38 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
       pipelineOptions)
   }
 
-  def pollForJob(jobId: UUID): Future[String] = {
+  // FIXME this could be cleaner, and logging would be helpful
+  def pollForJob(jobId: UUID, maxTime: Int = -1): Int = {
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
     val requestTimeOut = 10.seconds
     var jobState: Option[String] = None
+    val tStart = java.lang.System.currentTimeMillis() / 1000.0
 
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
       Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
-        case Success(x) =>
-          x.state match {
-            case AnalysisJobStates.SUCCESSFUL =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("SUCCESSFUL")
-            case AnalysisJobStates.FAILED =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("FAILED")
-            case sx =>
-              //logger.info(s"Iteration $nIterations. Got job state $sx Sleeping for $sleepTime ms")
-              jobState = Some(s"${x.state.stateId}")
+        case Success(x) => x.state match {
+          case AnalysisJobStates.SUCCESSFUL => {
+            exitFlag = false
+            jobState = Some("SUCCESSFUL")
           }
-
-        case Failure(err) =>
-          val emsg = s"Failed getting job $jobId state ${err.getMessage}"
-          //logger.error(emsg)
-          exitFlag = false
-          // this needs to return a JobResult
-          jobState = Some("FAILED")
+          case AnalysisJobStates.FAILED => throw new Exception(s"Analysis job $jobId failed")
+          case sx => jobState = Some(s"${x.state.stateId}")
+        }
+        case Failure(err) => throw new Exception(s"Failed getting job $jobId state ${err.getMessage}")
+      }
+      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
+      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
+        throw new Exception(s"Run time exceeded specified limit (${maxTime} s)")
       }
     }
 
     jobState match {
-      case sx @ Some("SUCCESSFUL") => Future { "SUCCESSFUL" }
-      case Some(sx) =>  Future.failed(new Exception(s"Unable to Successfully run job $jobId $sx"))
-      case _ => Future.failed(new Exception(s"Unable to Successfully run job $jobId"))
+      case sx @ Some("SUCCESSFUL") => 0
+      case _ => throw new Exception(s"Unable to Successfully run job $jobId")
     }
   }
 
