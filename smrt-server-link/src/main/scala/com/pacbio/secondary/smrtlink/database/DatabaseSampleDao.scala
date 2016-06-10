@@ -13,26 +13,26 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import slick.driver.SQLiteDriver.api._
 
-class DatabaseSampleDao(dal: Database, clock: Clock) extends SampleDao {
+class DatabaseSampleDao(db: Database, clock: Clock) extends SampleDao {
 
   /*
    * Returns a Set() of all samples in the database
    */
-  def getSamples(): Future[Set[Sample]] = dal.run(samples.result).map(_.toSet)
+  def getSamples(): Future[Set[Sample]] = db.run(samples.result).map(_.toSet)
 
   /*
    * Returns a single sample matching the passed uniqueId
    * Throws if the uniqueId was not found (or was more than once)
    */
   def getSample(uniqueId: UUID): Future[Sample] =
-    dal.run(samples.filter(_.uniqueId === uniqueId).result.headOption)
+    db.run(samples.filter(_.uniqueId === uniqueId).result.headOption)
       .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")))
 
   /*
    * Checks if a UUID is already a known sample in the DB, and if so returns true
    */
   def exists(uniqueId: UUID): Future[Boolean] =
-    dal.run(samples.filter(_.uniqueId === uniqueId).exists.result)
+    db.run(samples.filter(_.uniqueId === uniqueId).exists.result)
 
   /*
    * Creates a new sample in the database
@@ -50,7 +50,7 @@ class DatabaseSampleDao(dal: Database, clock: Clock) extends SampleDao {
       )
       (samples += sample).map(_ => sample)
     }
-    dal.run(insert.transactionally)
+    db.run(insert.transactionally)
   }
 
   /*
@@ -70,7 +70,7 @@ class DatabaseSampleDao(dal: Database, clock: Clock) extends SampleDao {
       samples.filter(_.uniqueId === uniqueId).result.head
     }
 
-    dal.run(totalAction)
+    db.run(totalAction)
   }
 
   /*
@@ -88,6 +88,6 @@ class DatabaseSampleDao(dal: Database, clock: Clock) extends SampleDao {
       }
     }.transactionally
 
-    dal.run(action)
+    db.run(action)
   }
 }
