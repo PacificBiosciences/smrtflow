@@ -160,8 +160,6 @@ class Database(dbURI: String) extends LazyLogging {
     val stacktrace = if(dbug) new Exception().getStackTrace else null
     Future[R] {
       try {
-        // toggle on connection sharing so that Flyway migrations and DBIO.seq are supported
-        shareConnection = true
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -183,14 +181,11 @@ class Database(dbURI: String) extends LazyLogging {
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for quere and RDMS execution
         if (dbug) logger.debug(s"$Prefix total timing for x was ${end - start}")
-        // teardown the connection and flag off connection sharing
-        shareConnection = false
         val conn = connectionPool.cachedConnection
         if (conn != null && !conn.isClosed) {
           if (dbug) {
             logger.debug(s"$Prefix connection left open. Running commit() and close()")
           }
-          conn.commit()
           conn.close()
         }
       }
