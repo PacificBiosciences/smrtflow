@@ -1,5 +1,4 @@
 import java.nio.file.{Paths, Files}
-import com.pacbio.secondary.analysis.datasets.GmapReferenceDataset
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 //import com.pacbio.secondary.analysis.legacy.{ReferenceInfoUtils, ReferenceEntry}
 //import com.pacbio.secondary.analysis.tools.{ReferenceInfoToDataSetTool, ReferenceConverterConfig}
