@@ -42,7 +42,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 class Database(dbURI: String) extends LazyLogging {
 
-  val dbUri: String = dbURI
+  def dbUri: String = dbURI
   // flag for indicating if migrations are complete
   protected var migrationsComplete: Boolean = false
   // flag for use when Flyway migrations running on SQLite
