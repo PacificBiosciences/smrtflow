@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtserver.client
 
 import com.pacbio.secondary.smrtserver.models._
-import com.pacbio.secondary.analysis.constants.{GlobalConstants, FileTypes}
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
@@ -25,6 +25,7 @@ import scala.xml.XML
 
 import java.net.URL
 import java.util.UUID
+import java.lang.System
 
 //FIXME(mkocher)(2016-2-2): This needs to be centralized.
 object AnalysisServicesModels {
@@ -51,8 +52,61 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
   }
 
+  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
+  def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  // XXX this fails when createdBy is an object instead of a string
+  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
+
+  protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
+  }
+
+  def getAnalysisJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.PB_PIPE)
+  }
+
+  def getImportJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.IMPORT_DS)
+  }
+
+  def getMergeJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.MERGE_DS)
+  }
+
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
+    getJobsByType(JobTypes.CONVERT_FASTA)
+  }
+
+  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
+    jobId match {
+      case Left(x) => getJobById(x)
+      case Right(x) => getJobByUuid(x)
+    }
+  }
+
+  def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
+  }
+
+  def getJobByUuid(jobId: UUID): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
+  }
+
+  def getJobByTypeAndId(jobType: String, jobId: Int): Future[EngineJob] = getJobPipeline {
+    Get(toJobUrl(jobType, jobId))
+  }
+
+  def getAnalysisJobById(jobId: Int): Future[EngineJob] = {
+    getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
+  }
+
+  protected def getJobReport(jobType: String, jobId: Int, reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
+  }
+
+  def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     Post(
@@ -81,45 +135,38 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
       pipelineOptions)
   }
 
-  def pollForJob(jobId: UUID): Future[String] = {
+  // FIXME this could be cleaner, and logging would be helpful
+  def pollForJob(jobId: UUID, maxTime: Int = -1): Int = {
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
     val requestTimeOut = 10.seconds
     var jobState: Option[String] = None
+    val tStart = java.lang.System.currentTimeMillis() / 1000.0
 
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
       Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
-        case Success(x) =>
-          x.state match {
-            case AnalysisJobStates.SUCCESSFUL =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("SUCCESSFUL")
-            case AnalysisJobStates.FAILED =>
-              //logger.info(s"Transfer Job $jobId was successful.")
-              exitFlag = false
-              jobState = Some("FAILED")
-            case sx =>
-              //logger.info(s"Iteration $nIterations. Got job state $sx Sleeping for $sleepTime ms")
-              jobState = Some(s"${x.state.stateId}")
+        case Success(x) => x.state match {
+          case AnalysisJobStates.SUCCESSFUL => {
+            exitFlag = false
+            jobState = Some("SUCCESSFUL")
           }
-
-        case Failure(err) =>
-          val emsg = s"Failed getting job $jobId state ${err.getMessage}"
-          //logger.error(emsg)
-          exitFlag = false
-          // this needs to return a JobResult
-          jobState = Some("FAILED")
+          case AnalysisJobStates.FAILED => throw new Exception(s"Analysis job $jobId failed")
+          case sx => jobState = Some(s"${x.state.stateId}")
+        }
+        case Failure(err) => throw new Exception(s"Failed getting job $jobId state ${err.getMessage}")
+      }
+      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
+      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
+        throw new Exception(s"Run time exceeded specified limit (${maxTime} s)")
       }
     }
 
     jobState match {
-      case sx @ Some("SUCCESSFUL") => Future { "SUCCESSFUL" }
-      case Some(sx) =>  Future.failed(new Exception(s"Unable to Successfully run job $jobId $sx"))
-      case _ => Future.failed(new Exception(s"Unable to Successfully run job $jobId"))
+      case sx @ Some("SUCCESSFUL") => 0
+      case _ => throw new Exception(s"Unable to Successfully run job $jobId")
     }
   }
 

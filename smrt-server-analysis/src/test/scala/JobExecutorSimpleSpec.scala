@@ -1,5 +1,3 @@
-import java.util
-
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
@@ -8,6 +6,7 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
+import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -24,19 +23,15 @@ import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
 
-class JobExecutorSpec extends JobExecutorSpecBase {
+class JobExecutorSimpleSpec extends JobExecutorSpecBase {
 
   import SecondaryAnalysisJsonProtocols._
 
-  "Job Execution Status" should {
-    "job execution status" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
-    "Sanity 'Example' Job Execution test" in {
-      val url = toJobType("mock-pbsmrtpipe")
-      Post(url, mockOpts) ~> totalRoutes ~> check {
+  "Job Simple Example " should {
+    "Mock 'simple' job " in {
+      val r = SimpleDevJobOptions(5, 6)
+      val url = toJobType("simple")
+      Post(url, r) ~> totalRoutes ~> check {
         val msg = responseAs[EngineJob]
         logger.info(s"Response to $url -> $msg")
         status.isSuccess must beTrue
