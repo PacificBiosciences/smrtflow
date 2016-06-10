@@ -742,7 +742,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 object PbService {
   def apply (c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
-    val url = new URL(s"http://${c.host}:${c.port}")
+    // FIXME we need some kind of hostname validation here - supposedly URL
+    // creation includes validation, but it wasn't failing on extra 'http://'
+    val host = c.host.replaceFirst("http://", "")
+    val url = new URL(s"http://${host}:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {
