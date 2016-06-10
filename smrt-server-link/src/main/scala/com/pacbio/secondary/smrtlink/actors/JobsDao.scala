@@ -844,10 +844,6 @@ with DataSetStore {
   import JobModels._
 
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
-
-  def initializeDb(): Unit = {
-    dal.migrate()
-  }
 }
 
 trait JobsDaoProvider {

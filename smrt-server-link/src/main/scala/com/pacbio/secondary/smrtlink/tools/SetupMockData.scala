@@ -226,7 +226,7 @@ trait TmpDirJobResolver {
 trait InitializeTables extends MockUtils {
   val dal: Database
 
-  def createTables: Unit = dao.initializeDb()
+  def createTables: Unit = dal.migrate()
 
   /**
    * Required data in db
