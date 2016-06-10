@@ -252,7 +252,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
   // This should return a future
   def checkForWork(): Unit = {
-    log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
+    //log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
 
     if (workers.nonEmpty || quickWorkers.nonEmpty) {
       val f = dao.getNextRunnableJobWithId
