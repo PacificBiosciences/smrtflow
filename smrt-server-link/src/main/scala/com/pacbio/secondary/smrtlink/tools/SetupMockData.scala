@@ -26,7 +26,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
     createTables
-    println(s"Created database connection from URI ${dao.dal.dbURI}")
+    println(s"Created database connection from URI ${dao.dal.dbUri}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
       Future.sequence(Seq(
