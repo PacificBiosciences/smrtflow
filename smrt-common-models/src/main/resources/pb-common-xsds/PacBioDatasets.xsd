@@ -104,6 +104,16 @@
 			</xs:complexContent>
 		</xs:complexType>
 	</xs:element>
+	<xs:element name="GmapReferenceSet">
+		<xs:annotation>
+			<xs:documentation>DataSets of reference sequences, with GMAP indices.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="ContigSetType"/>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
 	<xs:element name="SubreadSet">
 		<xs:complexType>
 			<xs:complexContent>

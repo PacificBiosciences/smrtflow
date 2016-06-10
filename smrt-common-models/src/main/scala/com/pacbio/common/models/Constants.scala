@@ -6,7 +6,7 @@ import java.util.Properties
  * Created by mkocher on 10/13/15.
  */
 trait Constants {
-  final val DATASET_VERSION = "3.0.1"
+  final val DATASET_VERSION = "3.2.0"
 
   val SMRTFLOW_VERSION = {
     val files = getClass().getClassLoader().getResources("version.properties")

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pbds:GmapReferenceSet CreatedAt="2016-05-23T17:11:52" MetaType="PacBio.DataSet.GmapReferenceSet" Name="pacbio_dataset_gmapreferenceset-160524_001152523" Tags="" TimeStampedName="pacbio_dataset_gmapreferenceset-160524_001152523" UniqueId="6eda478a-2ca1-bfc6-0f54-ec02721c38ac" Version="3.0.1" xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pacificbiosciences.com/PacBioDataModel.xsd">
+  <pbbase:ExternalResources>
+    <pbbase:ExternalResource MetaType="PacBio.ContigFile.ContigFastaFile" ResourceId="sequence/genome.fasta" TimeStampedName="pacbio_contigfile_contigfastafile-160524_001152522" UniqueId="1a2137c3-8dce-43c6-99a5-c1a0a914a3c8">
+      <pbbase:ExternalResources>
+        <pbbase:ExternalResource MetaType="PacBio.FileTypes.json" Name="JSON" ResourceId="sequence/gmap_db/db.json" TimeStampedName="pacbio_gmapdb_jsonpath-160524_001152529" UniqueId="d6ceeaaf-e937-41cd-8a8e-5b113c6d9dcc" Version="2016-06-09"/>
+      </pbbase:ExternalResources>
+    </pbbase:ExternalResource>
+  </pbbase:ExternalResources>
+  <pbds:DataSetMetadata>
+    <pbds:TotalLength>100</pbds:TotalLength>
+    <pbds:NumRecords>1</pbds:NumRecords>
+    <pbds:Organism/>
+    <pbds:Ploidy/>
+    <pbds:Contigs>
+      <pbds:Contig Description="" Digest="DEPRECATED" Length="100" Name="ctg1"/>
+    </pbds:Contigs>
+  </pbds:DataSetMetadata>
+</pbds:GmapReferenceSet>
