@@ -52,7 +52,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
     }
 
-    db.run(action.transactionally)
+    dal.db.run(action.transactionally)
   }
 
   override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
@@ -72,7 +72,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
     if (criteria.reserved.isDefined)
       query = query.filter(_.reserved === criteria.reserved.get)
 
-    db.run(query.result).map(_.toSet)
+    dal.db.run(query.result).map(_.toSet)
   }
 
   override def getRun(id: UUID): Future[Run] = {
@@ -86,7 +86,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       }
     }
     
-    db.run(run)
+    dal.db.run(run)
   }
 
   override def createRun(create: RunCreate): Future[RunSummary] = {
@@ -105,11 +105,11 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       dataModels.filter(_.uniqueId === id).delete,
       runSummaries.filter(_.uniqueId === id).delete
     ).map(_ => s"Successfully deleted run design $id")
-    db.run(action.transactionally)
+    dal.db.run(action.transactionally)
   }
 
   override def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
-    db.run(collectionMetadata.filter(_.runId === runId).result)
+    dal.db.run(collectionMetadata.filter(_.runId === runId).result)
 
   override def getCollectionMetadata(runId: UUID, uniqueId: UUID): Future[CollectionMetadata] = {
     dal.db.run {
