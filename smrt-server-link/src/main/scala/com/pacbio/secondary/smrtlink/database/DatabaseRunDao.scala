@@ -16,7 +16,7 @@ import slick.driver.SQLiteDriver.api._
 /**
  * RunDao that stores run designs in a Slick database.
  */
-class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
+class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
   import TableModels._
 
   private def updateOrCreate(
@@ -52,7 +52,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
     }
 
-    dal.run(action.transactionally)
+    db.run(action.transactionally)
   }
 
   override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
@@ -72,7 +72,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
     if (criteria.reserved.isDefined)
       query = query.filter(_.reserved === criteria.reserved.get)
 
-    dal.run(query.result).map(_.toSet)
+    db.run(query.result).map(_.toSet)
   }
 
   override def getRun(id: UUID): Future[Run] = {
@@ -86,7 +86,7 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       }
     }
     
-    dal.run(run)
+    db.run(run)
   }
 
   override def createRun(create: RunCreate): Future[RunSummary] = {
@@ -105,14 +105,14 @@ class DatabaseRunDao(dal: Database, parser: DataModelParser) extends RunDao {
       dataModels.filter(_.uniqueId === id).delete,
       runSummaries.filter(_.uniqueId === id).delete
     ).map(_ => s"Successfully deleted run design $id")
-    dal.run(action.transactionally)
+    db.run(action.transactionally)
   }
 
   override def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
-    dal.run(collectionMetadata.filter(_.runId === runId).result)
+    db.run(collectionMetadata.filter(_.runId === runId).result)
 
   override def getCollectionMetadata(runId: UUID, uniqueId: UUID): Future[CollectionMetadata] = {
-    dal.run {
+    db.run {
       collectionMetadata
         .filter(_.runId === runId)
         .filter(_.uniqueId === uniqueId)
@@ -130,5 +130,5 @@ trait DatabaseRunDaoProvider extends RunDaoProvider {
   this: DalProvider with DataModelParserProvider =>
 
   override val runDao: Singleton[RunDao] =
-    Singleton(() => new DatabaseRunDao(dal(), dataModelParser()))
+    Singleton(() => new DatabaseRunDao(db(), dataModelParser()))
 }

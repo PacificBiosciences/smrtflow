@@ -26,7 +26,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
     createTables
-    println(s"Created database connection from URI ${dao.dal.dbUri}")
+    println(s"Created database connection from URI ${dao.db.dbUri}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
       Future.sequence(Seq(
@@ -95,7 +95,7 @@ trait MockUtils extends LazyLogging{
         "{}",
         Some("root")
     )
-    dao.dal.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
+    dao.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
   }
 
   def insertMockSubreadDataSetsFromDir(): Future[Seq[String]] = {
@@ -168,7 +168,7 @@ trait MockUtils extends LazyLogging{
     def toE(i: Int) = JobEvent(UUID.randomUUID(), i, AnalysisJobStates.CREATED, s"message from job $i", JodaDateTime.now())
     def toEs(jobId: Int, nevents: Int) = (1 until randomElement(maxEvents)).toList.map(i => toE(jobId))
 
-    dao.dal.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
+    dao.db.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
   }
 
   def insertMockJobsTags(): Future[Unit] = {
@@ -178,7 +178,7 @@ trait MockUtils extends LazyLogging{
     val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
     val tagIds = tags.indices.toList
 
-    dao.dal.run(
+    dao.db.run(
       DBIO.seq(
         jobTags ++= tagIds.map(i => (i, tags(i))),
         jobsTags ++= jobIds.map( (_, randomInt(tagIds)) )
@@ -188,7 +188,7 @@ trait MockUtils extends LazyLogging{
 
   def insertMockProject(): Future[Unit] = {
     val projectId = 1
-    dao.dal.run(
+    dao.db.run(
       DBIO.seq(
         projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
         projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
@@ -197,7 +197,7 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockDataStoreFiles(): Future[Int] = {
-    dao.dal.run(
+    dao.db.run(
       engineJobs.filter(_.id === _MOCK_JOB_ID).result.head.flatMap { job =>
         datastoreServiceFiles += DataStoreServiceFile(
           UUID.randomUUID(),
