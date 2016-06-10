@@ -128,7 +128,6 @@ object DataSetLoader extends LazyLogging{
   def loadReferenceSetIO(path: Path): ReferenceSetIO =
     ReferenceSetIO(loadReferenceSet(path), path)
 
-
   def loadSubreadSet(path: Path): SubreadSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path).asInstanceOf[SubreadSet]
 
@@ -168,6 +167,15 @@ object DataSetLoader extends LazyLogging{
 
   def loadContigSetIO(path: Path) = ContigSetIO(loadContigSet(path), path)
 
+  def loadGmapReferenceSet(path: Path): GmapReferenceSet =
+    toUnMarshaller(JAXBContext.newInstance(classOf[GmapReferenceSet]), path).asInstanceOf[GmapReferenceSet]
+
+  def loadAndResolveGmapReferenceSet(path: Path): GmapReferenceSet =
+    resolveDataSet(loadGmapReferenceSet(path), path.toAbsolutePath.getParent)
+
+  def loadGmapReferenceSetIO(path: Path): GmapReferenceSetIO =
+    GmapReferenceSetIO(loadGmapReferenceSet(path), path)
+
   def loadType(dst: DataSetMetaTypes.DataSetMetaType, input: Path): DataSetType = {
     dst match {
       case DataSetMetaTypes.Subread => loadSubreadSet(input)
@@ -178,6 +186,7 @@ object DataSetLoader extends LazyLogging{
       case DataSetMetaTypes.AlignmentCCS => loadConsensusAlignmentSet(input)
       case DataSetMetaTypes.Contig => loadContigSet(input)
       case DataSetMetaTypes.Barcode => loadBarcodeSet(input)
+      case DataSetMetaTypes.GmapReference => loadGmapReferenceSet(input)
     }
   }
 }
@@ -220,6 +229,10 @@ object ImplicitDataSetLoader {
 
   implicit object ContigSetLoader extends DataSetLoader[ContigSet] {
     def load(path: Path) = loadContigSet(path)
+  }
+
+  implicit object GmapReferenceSetLoader extends DataSetLoader[GmapReferenceSet] {
+    def load(path: Path) = loadGmapReferenceSet(path)
   }
 
   def loader[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
@@ -268,6 +281,10 @@ object ImplicitDataSetIOLoader {
 
   implicit object ContigSetIOLoader extends DataSetIOLoader[ContigSetIO] {
     def load(path: Path) = loadContigSetIO(path)
+  }
+
+  implicit object GmapReferenceSetIOLoader extends DataSetIOLoader[GmapReferenceSetIO] {
+    def load(path: Path) = loadGmapReferenceSetIO(path)
   }
 
   def loader[T <: DataSetIO](path: Path)(implicit lx: DataSetIOLoader[T]) =

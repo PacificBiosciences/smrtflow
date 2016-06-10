@@ -61,4 +61,9 @@ object DataSetWriter {
     toMarshaller(JAXBContext.newInstance(classOf[ConsensusAlignmentSet])).marshal(dataset, path.toFile)
     dataset
   }
+
+  def writeGmapReferenceSet(dataset: GmapReferenceSet, path: Path): GmapReferenceSet = {
+    toMarshaller(JAXBContext.newInstance(classOf[GmapReferenceSet])).marshal(dataset, path.toFile)
+    dataset
+  }
 }

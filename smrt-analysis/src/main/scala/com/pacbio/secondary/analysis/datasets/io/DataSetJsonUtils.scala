@@ -52,4 +52,7 @@ object DataSetJsonUtils {
   def contigSetToJson(dataset: ContigSet) =
     contextToJson(JAXBContext.newInstance(classOf[ContigSet]), dataset)
 
+  def gmapReferenceSetToJson(dataset: GmapReferenceSet) =
+    contextToJson(JAXBContext.newInstance(classOf[GmapReferenceSet]), dataset)
+
 }
