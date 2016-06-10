@@ -49,6 +49,10 @@ package object validators {
       def validate(ds: ReferenceSet) = ValidateReferenceSet.validator(ds)
     }
 
+    implicit object GmapReferenceSetValidator extends DataSetValidator[GmapReferenceSet] {
+      def validate(ds: GmapReferenceSet) = ValidateGmapReferenceSet.validator(ds)
+    }
+
     def validator[T <: XmlDataSetType](ds: T)(implicit vx: DataSetValidator[T]) = {
       vx.validate(ds: T)
     }
