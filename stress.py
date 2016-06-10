@@ -160,7 +160,7 @@ def run_main(host, port, nprocesses, ntimes):
     subreadset_path = to_p("test-data/smrtserver-testdata/ds-subreads/lambda/2372215/0007_micro/0007_micro/Analysis_Results/subreads.xml")
 
     # Run Design
-    run_design_path = to_p("test-data/runCreate2.xml")
+    run_design_path = to_p("smrt-server-link/src/test/resources/runCreate2.xml")
 
     # Dev Diagnostic
     analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json")
