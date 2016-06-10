@@ -39,7 +39,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeHdfSubreadSet(mergedDataSet, p)
 
-      mergedDataSet.getVersion must beEqualTo("3.2.0")
+      mergedDataSet.getVersion must beEqualTo("3.0.1")
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
     }
