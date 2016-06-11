@@ -35,9 +35,6 @@ object CommonMessages {
 
   case class UpdateJobStatus(uuid: UUID, state: AnalysisJobStates.JobStates)
 
-  // Update the resolved jobOptions directory
-  case class UpdateJobOutputDir(uuid: UUID, path: Path)
-
   case class GetAllJobs(limit: Int)
 
   case object GetSystemJobSummary

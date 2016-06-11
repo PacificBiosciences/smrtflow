@@ -27,6 +27,14 @@ object EngineManagerActor {
 
 }
 
+trait EngineActorCore {
+  val engineConfig: EngineConfig
+  val workers: mutable.Queue[ActorRef]
+  val quickWorkers: mutable.Queue[ActorRef]
+  val jobRunner: JobRunner
+  val resolver: JobResourceResolver
+}
+
 
 /**
  * This Engine Manager is the hub of adding tasks and running tasks via workers
@@ -38,8 +46,11 @@ object EngineManagerActor {
  *
  * @param daoActor Access point for persisting state
  */
-class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolver: JobResourceResolver, jobRunner: JobRunner)
-  extends Actor with ActorLogging {
+class EngineManagerActor(val daoActor: ActorRef,
+                         val engineConfig: EngineConfig,
+                         val resolver: JobResourceResolver,
+                         val jobRunner: JobRunner)
+    extends Actor with EngineActorCore with ActorLogging {
 
   final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
 
@@ -100,8 +111,6 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
         case Success(_) =>
           val worker = workerQueue.dequeue()
           val outputDir = resolver.resolve(runnableJobWithId)
-          // Update jobOptions output dir
-          daoActor ! UpdateJobOutputDir(runnableJobWithId.job.uuid, outputDir)
           worker ! RunJob(runnableJobWithId.job, outputDir)
         case Failure(ex) =>
           log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
@@ -177,11 +186,6 @@ class EngineManagerActor(daoActor: ActorRef, engineConfig: EngineConfig, resolve
           }
           self ! CheckForRunnableJob
       }
-
-    case UpdateJobStatus(uuid, state) =>
-      // FIXME. handle completed states differently
-      daoActor ! UpdateJobStatus(uuid, state)
-      self ! CheckForRunnableJob
 
     case x => log.debug(s"Unhandled Message to Engine Message $x")
   }

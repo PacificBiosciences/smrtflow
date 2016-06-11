@@ -10,7 +10,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.analysis.engine.CommonMessages
+import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
 import com.pacbio.secondary.analysis.engine.EngineDao.{DataStoreComponent, JobEngineDaoComponent, JobEngineDataStore}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs._
@@ -18,6 +18,7 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.services.JobRunnerProvider
 import com.pacbio.secondary.smrtlink.database.Dal
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
@@ -28,6 +29,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
+import org.flywaydb.core.Flyway
 import slick.driver.SQLiteDriver.api._
 
 
@@ -279,6 +281,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   }
 
   override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
+    logger.info(s"attempting db update of job $uuid state to $state")
     val f = dal.db.run(engineJobs
       .filter(_.uuid === uuid)
       .map(j => (j.state, j.updatedAt))
@@ -286,7 +289,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       .map(_ => s"Successfully updated job $uuid to $state")
     f.onComplete {
       case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
-      case Failure(_) => logger.error(s"Unable to update state of job id ${uuid.toString}")
+      case Failure(ex) => logger.error(s"Unable to update state of job id ${uuid.toString} to state $state Error ${ex.getMessage}")
     }
     f
   }
@@ -337,6 +340,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val createdAt = JodaDateTime.now()
 
     val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+
+    logger.info(s"Creating Job $engineJob")
 
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
@@ -431,11 +436,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   }
 
   override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
+    logger.info(s"adding datastore file for $ds")
     getJobByUUID(ds.jobId).flatMap {
       case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
         .map(m => Right(CommonMessages.SuccessMessage(m)))
         .recover {
-          case NonFatal(e) => Left(CommonMessages.FailedMessage(e.getMessage))
+          case NonFatal(e) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
         }
       case None => Future(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
     }
@@ -494,6 +500,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
               logger.info(s"Already imported. Skipping inserting of datastore file $ds")
               insert
             case None =>
+              logger.info(s"importing datastore file into db $ds")
               val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
               (datastoreServiceFiles += dss).flatMap(_ => insert)
           }
@@ -834,7 +841,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 }
 
-class JobsDao(val dal: Dal, val resolver: JobResourceResolver) extends JobEngineDataStore
+class JobsDao(val dal: Dal, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore
 with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
@@ -851,7 +858,7 @@ with DataSetStore {
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider =>
+  this: DalProvider with SmrtLinkConfigProvider  =>
 
-  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobResolver()))
+  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(dal(), jobEngineConfig(), jobResolver()))
 }

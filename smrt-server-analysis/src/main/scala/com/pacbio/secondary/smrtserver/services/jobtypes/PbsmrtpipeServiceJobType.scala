@@ -14,14 +14,14 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
 import com.pacbio.common.models.LogMessageRecord
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages.{CheckForRunnableJob, ImportDataStoreFile, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, ValidateImportDataSetUtils}
@@ -47,7 +47,6 @@ import spray.json._
 class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
     userActor: ActorRef,
-    engineManagerActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -139,8 +138,6 @@ class PbsmrtpipeServiceJobType(
                 authInfo.map(_.login)
               )).mapTo[EngineJob]
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -191,7 +188,6 @@ trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
@@ -199,7 +195,6 @@ trait PbsmrtpipeServiceJobTypeProvider {
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
       userServiceActorRef(),
-      engineManagerActor(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),
