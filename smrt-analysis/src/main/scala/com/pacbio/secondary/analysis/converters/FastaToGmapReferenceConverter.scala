@@ -45,7 +45,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     if (Files.exists(dbDir)) throw DatasetConvertError(s"The directory ${dbDir} already exists -please remove it or specify an alternate output directory or reference name.")
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     CallGmapBuild.run(fastaPath, name, outputDir) match {
-      case Right(dbPath) => Right(GmapDbInfo(sanitizedName, timeStamp, dbPath.toString))
+      case Right(dbPath) => Right(GmapDbInfo(sanitizedName, timeStamp, dbPath.toAbsolutePath.toString))
       case Left(err) => Left(err)
     }
   }
