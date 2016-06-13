@@ -2,6 +2,7 @@ package com.pacbio.database
 
 import java.nio.file.Paths
 import java.sql.Connection
+import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.dbcp2.BasicDataSource
@@ -40,7 +41,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * </ul>
  *
  */
-class Database(dbURI: String) extends LazyLogging {
+class Database(dbURI: String) {
 
   def dbUri: String = dbURI
   // flag for indicating if migrations are complete
@@ -48,7 +49,9 @@ class Database(dbURI: String) extends LazyLogging {
   // flag for use when Flyway migrations running on SQLite
   protected var shareConnection: Boolean = false
   // flag for tracking debugging and timing info
-  var debug: Boolean = false
+  var debug: Boolean = true
+  var listeners: List[DatabaseListener] = List(new LoggingListener(), new ProfilingListener())
+
 
   // DBCP for connection pooling and caching prepared statements for use in SQLite
   protected val connectionPool = new BasicDataSource() {
@@ -75,7 +78,7 @@ class Database(dbURI: String) extends LazyLogging {
   connectionPool.setInitialSize(1)
   connectionPool.setMaxTotal(1)
   // pool prepared statements
-  connectionPool.setPoolPreparedStatements(true)
+  //connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
   // enforce no auto-commit
   //connectionPool.setDefaultAutoCommit(false)
@@ -141,6 +144,7 @@ class Database(dbURI: String) extends LazyLogging {
    *   would otherwise cause SQLite to lockup during use. e.g. Flyway migrations and DBIO.seq use.</li>
    *   <li>Exposes debugging and timing information about RDMS use, if needed</li>
    * </ul>
+   *
    * @param a
    * @tparam R
    * @return
@@ -149,44 +153,45 @@ class Database(dbURI: String) extends LazyLogging {
     // lazy migrate via Flyway
     if (!migrationsComplete) migrate()
 
-    // local copy of the debug flag in case state changes
-    val dbug = debug
-    // shared prefix so that log messages can be easily grep'd
-    val Prefix = "[PacBio:Database] "
+    val dbug = !listeners.isEmpty
 
     // track timing for queue wait and RBMS execution
     val start: Long = if (dbug) System.currentTimeMillis() else 0
     // track what code is doing DB access (stack trace outside of the execution context)
-    val stacktrace = if(dbug) new Exception().getStackTrace else null
+    val stacktrace = if(dbug) new Exception("RDMS Query Tracking") else null
+    val code = if(dbug) stacktrace.getStackTrace()(1).toString else null
     Future[R] {
       try {
+        //shareConnection = true
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
         val f = db.run(a)
+        if (dbug) {
+          // tool the future to dump failure reasons
+          f onFailure {
+            case t => listeners.foreach(l => l.error(code, stacktrace, t))
+          }
+          // tool the future to dump failure reasons
+          f onSuccess {
+            case x => listeners.foreach(l => l.success(code, stacktrace, x))
+          }
+        }
         val toreturn = Await.result(f, Duration.Inf)
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
-        if (dbug) {
-          logger.debug(s"$Prefix RDMS executed x in ${endRDMS - startRDMS} ms")
-
-          // tool the future to dump failure reasons
-          f onFailure {
-            case t => logger.error(s"$Prefix RDMS error", t)
-          }
-        }
+        listeners.foreach(l => l.dbDone(startRDMS, endRDMS, code, stacktrace))
         toreturn
+        //f
       }
       finally {
+        //shareConnection = false
         val end: Long = if (dbug) System.currentTimeMillis() else 0
-        // track timing for quere and RDMS execution
-        if (dbug) logger.debug(s"$Prefix total timing for x was ${end - start}")
+        // track timing for queue and RDMS execution
+        listeners.foreach(l => l.allDone(start, end, code, stacktrace))
         val conn = connectionPool.cachedConnection
-        if (conn != null && !conn.isClosed) {
-          if (dbug) {
-            logger.debug(s"$Prefix connection left open. Running commit() and close()")
-          }
-          conn.close()
+        if (!conn.isClosed) try conn.close() catch {
+          case ex: Throwable => println("Ignoring close() fail: " + ex)
         }
       }
     }
