@@ -129,10 +129,9 @@ object PbServiceParser {
     } text "Display output as raw JSON"
 
     opt[Unit]("debug") action { (_, c) =>
-      c.copy(debug = true)
+      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig]
     } text "Display debugging log output"
 
-    // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(Modes.STATUS.name) action { (_, c) =>
