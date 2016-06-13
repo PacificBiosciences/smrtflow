@@ -93,9 +93,6 @@ object ReferenceInfoConverter extends LazyLogging {
     val metatype = FileTypes.DS_REFERENCE.fileTypeId
     val fastaMetaType = FileTypes.FASTA_REF.fileTypeId
 
-    // Is this really not defined as a constant somewhere?
-    val version = "3.0.1"
-
     val tags = "converted, reference"
     val name = referenceInfoType.getId
     val description = s"Converted Reference $name"
@@ -160,7 +157,7 @@ object ReferenceInfoConverter extends LazyLogging {
     externalResources.getExternalResource.add(er)
 
     val rs = new ReferenceSet()
-    rs.setVersion(version)
+    rs.setVersion(CommonConstants.DATASET_VERSION)
     rs.setMetaType(metatype)
     rs.setCreatedAt(createdAt)
     rs.setModifiedAt(createdAt)

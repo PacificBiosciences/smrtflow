@@ -22,9 +22,122 @@ import scala.collection.mutable
  * Converts a Fasta File to a Reference DataSet
  * Created by mkocher on 9/26/15.
  */
-object FastaConverter extends LazyLogging{
+trait FastaConverterBase extends LazyLogging{
+  // The header is defined as the first space, ">my-header-value this is metadata"
+  case class PacBioFastaRecord(header: String, metadata: Option[String], bases: Seq[Char], recordIndex: Int)
 
 
+  def validateCharNotInHeader(char: Char): PacBioFastaRecord => Either[InValidFastaFileError, PacBioFastaRecord] = {
+
+    def validateC(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
+      if (fastaRecord.header contains char) {
+        Left(InValidFastaFileError(s"Header contains '$char'"))
+      } else {
+        Right(fastaRecord)
+      }
+    }
+    validateC
+  }
+
+  val validateNoDoubleQuote = validateCharNotInHeader('\"')
+  val validateNoColon = validateCharNotInHeader(':')
+  val validateNoTab = validateCharNotInHeader('\t')
+
+  /**
+   * Validate a PacBio Fasta Record
+   * Specific Validation of header
+   * \t is not allowed
+   * '"' is not allowed
+   * ':' is not allowed
+   * 'id's are unique in the entire file
+   * non-empty file
+   * At least one fasta record
+   * Using Either to propagate up Error messages
+   *
+   * Bases must only contain IUPAC (or lowercase versions)
+ *
+   * @param fastaRecord
+   * @return
+   */
+  def validateFastaRecord(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
+    for {
+      r1 <- validateNoTab(fastaRecord).right
+      r2 <- validateNoColon(r1).right
+      r3 <- validateNoDoubleQuote(r2).right
+    } yield r3
+  }
+
+  def seqRecordToPacBioFastaRecord(referenceSequence: ReferenceSequence): PacBioFastaRecord = {
+    //FIXME. Add validation to bases (only IUPAC?)
+    val bases = referenceSequence.getBases.toList.map(_.toChar)
+    PacBioFastaRecord(referenceSequence.getName, None, bases, referenceSequence.getContigIndex)
+  }
+
+  /**
+   * Validate that Fasta file is compliant with PacBio Spec
+ *
+   * @param path
+   * @return
+   */
+ def validateFastaFile(path: Path): Either[InValidFastaFileError, Seq[ReferenceContig]] = {
+    logger.info(s"Loading fasta file $path")
+
+    // Probably want this to be false so manually parse the raw header
+    val truncateNamesAtWhitespace = true
+    val f = new FastaSequenceFile(path.toFile, truncateNamesAtWhitespace)
+
+    var toBreak = false
+
+    val headerIds = mutable.Set[String]()
+    val errors = mutable.MutableList[String]()
+
+    val contigs = mutable.MutableList[ReferenceContig]()
+    val digest = MessageDigest.getInstance("MD5")
+
+    while (!toBreak) {
+      val xseq = f.nextSequence()
+      xseq match {
+        case xs: ReferenceSequence =>
+          val results = validateFastaRecord(seqRecordToPacBioFastaRecord(xs))
+          results match {
+            case Right(x) =>
+              // Check if the header is already in another record
+              headerIds.add(xs.getName)
+              // FIXME Is this what the original pbcore version using?
+              val md5 = digest.digest(xs.getName.getBytes).map("%02x".format(_)).mkString
+              val contig = ReferenceContig(xs.getName, s"Description ${xs.getName}-${xs.getContigIndex}", xs.getBases.length, md5)
+              contigs += contig
+            // write contig details to ReferenceSet.xml
+            case Left(er) =>
+              println(s"Failed to valid ${er.msg}")
+              errors += er.msg
+              toBreak = true
+
+          }
+        case _ => toBreak = true
+      }
+    }
+    f.close()
+
+    if (errors.isEmpty) {
+      Right(contigs)
+    } else {
+      Left(InValidFastaFileError(errors.toString()))
+    }
+  }
+
+    // FIXME. Hack to get this to compose
+  protected def handleCmdError(e: Either[ExternalCmdFailure, Path]): Either[InValidFastaFileError, Path] = {
+    e match {
+      case Right(p) => Right(p)
+      case Left(ex) => Left(InValidFastaFileError(ex.msg))
+    }
+  }
+
+}
+
+// ReferenceSet-specific functionality
+trait FastaConverter extends FastaConverterBase {
   /**
    * 1. Validate contigs
    * 2. Copy Fasta file to directory
@@ -51,17 +164,10 @@ object FastaConverter extends LazyLogging{
 
     logger.debug(s"Loading fasta file from $fastaPath")
 
-    // FIXME. Hack to get this to compose
-    def toE(e: Either[ExternalCmdFailure, Path]): Either[InValidFastaFileError, Path] = {
-      e match {
-        case Right(p) => Right(p)
-        case Left(ex) => Left(InValidFastaFileError(ex.msg))
-      }
-    }
     val fx = for {
       contigs <- validateFastaFile(fastaPath).right
-      faiIndex <- toE(CallSamToolsIndex.run(fastaPath)).right
-      saIndex <- toE(CallSaWriterIndex.run(fastaPath)).right
+      faiIndex <- handleCmdError(CallSamToolsIndex.run(fastaPath)).right
+      saIndex <- handleCmdError(CallSaWriterIndex.run(fastaPath)).right
     } yield (contigs, faiIndex, saIndex)
 
 
@@ -114,110 +220,6 @@ object FastaConverter extends LazyLogging{
     }
   }
 
-  // The header is defined as the first space, ">my-header-value this is metadata"
-  case class PacBioFastaRecord(header: String, metadata: Option[String], bases: Seq[Char], recordIndex: Int)
-
-
-  def validateCharNotInHeader(char: Char): PacBioFastaRecord => Either[InValidFastaFileError, PacBioFastaRecord] = {
-
-    def validateC(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
-      if (fastaRecord.header contains char) {
-        Left(InValidFastaFileError(s"Header contains '$char'"))
-      } else {
-        Right(fastaRecord)
-      }
-    }
-    validateC
-  }
-
-  val validateNoDoubleQuote = validateCharNotInHeader('\"')
-  val validateNoColon = validateCharNotInHeader(':')
-  val validateNoTab = validateCharNotInHeader('\t')
-
-  /**
-   * Validate a PacBio Fasta Record
-   * Specific Validation of header
-   * \t is not allowed
-   * '"' is not allowed
-   * ':' is not allowed
-   * 'id's are unique in the entire file
-   * non-empty file
-   * At least one fasta record
-   * Using Either to propagate up Error messages
-   *
-   * Bases must only contain IUPAC (or lowercase versions)
- *
-   * @param fastaRecord
-   * @return
-   */
-  def validateFastaRecord(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
-
-    for {
-      r1 <- validateNoTab(fastaRecord).right
-      r2 <- validateNoColon(r1).right
-      r3 <- validateNoDoubleQuote(r2).right
-    } yield r3
-  }
-
-  def seqRecordToPacBioFastaRecord(referenceSequence: ReferenceSequence): PacBioFastaRecord = {
-    //FIXME. Add validation to bases (only IUPAC?)
-    val bases = referenceSequence.getBases.toList.map(_.toChar)
-    PacBioFastaRecord(referenceSequence.getName, None, bases, referenceSequence.getContigIndex)
-  }
-
-  /**
-   * Validate that Fasta file is compliant with PacBio Spec
- *
-   * @param path
-   * @return
-   */
-  def validateFastaFile(path: Path): Either[InValidFastaFileError, Seq[ReferenceContig]] = {
-    logger.info(s"Loading fasta file $path")
-
-    // Probably want this to be false so manually parse the raw header
-    val truncateNamesAtWhitespace = true
-    val f = new FastaSequenceFile(path.toFile, truncateNamesAtWhitespace)
-
-    var toBreak = false
-
-    val headerIds = mutable.Set[String]()
-    val errors = mutable.MutableList[String]()
-
-    val contigs = mutable.MutableList[ReferenceContig]()
-    val digest = MessageDigest.getInstance("MD5")
-
-    while (!toBreak) {
-      val xseq = f.nextSequence()
-      xseq match {
-        case xs: ReferenceSequence =>
-          val results = validateFastaRecord(seqRecordToPacBioFastaRecord(xs))
-          results match {
-            case Right(x) =>
-              // Check if the header is already in another record
-              headerIds.add(xs.getName)
-              // FIXME Is this what the original pbcore version using?
-              val md5 = digest.digest(xs.getName.getBytes).map("%02x".format(_)).mkString
-              val contig = ReferenceContig(xs.getName, s"Description ${xs.getName}-${xs.getContigIndex}", xs.getBases.length, md5)
-              contigs += contig
-            // write contig details to ReferenceSet.xml
-            case Left(er) =>
-              println(s"Failed to valid ${er.msg}")
-              errors += er.msg
-              toBreak = true
-
-          }
-        case _ => toBreak = true
-      }
-    }
-    f.close()
-
-    if (errors.isEmpty) {
-      Right(contigs)
-    } else {
-      Left(InValidFastaFileError(errors.toString()))
-    }
-  }
-
   /**
    * This is the new model for writing a ReferenceSet using jaxb
    * This should eventually replace the manual XML ReferenceSet creation
@@ -264,7 +266,10 @@ object FastaConverter extends LazyLogging{
     rs.setDataSetMetadata(md)
     rs
   }
+}
 
+
+object FastaConverter extends FastaConverter {
   def fastaToReferenceSet(path: Path): Either[InValidFastaFileError, ReferenceSet] = {
 
     val rs = new ReferenceSet()
