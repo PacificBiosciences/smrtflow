@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.externaltools.{CallGmapBuild, ExternalCmdFailure, ExternalToolsUtils}
+import com.pacbio.secondary.analysis.externaltools.{CallGmapBuild, CallSamToolsIndex, ExternalCmdFailure, ExternalToolsUtils}
 //import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
@@ -25,6 +25,7 @@ import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 import com.pacbio.secondary.analysis.legacy.ReferenceContig
 import com.pacbio.secondary.analysis.referenceUploader.ReposUtils
 import com.pacificbiosciences.pacbiodatasets.Contigs.Contig
+import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
 import com.pacificbiosciences.pacbiodatasets.{ContigSetMetadataType, Contigs, GmapReferenceSet}
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
 
@@ -55,6 +56,10 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
                              name: String,
                              organism: Option[String],
                              ploidy: Option[String]): GmapReferenceSet = {
+    val faiIndex = handleCmdError(CallSamToolsIndex.run(fastaPath)) match {
+      case Right(f) => f.toAbsolutePath
+      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
+    }
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
     val dbFile = Paths.get(dbInfo.dbPath).resolve("gmap_build.json").toAbsolutePath.toString
@@ -71,7 +76,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     val timeStampName = toTimeStampName("gmapreferenceset")
     val fastaTimeStampName = toTimeStampName("fasta")
     
-    val metatype = FileTypes.DS_REFERENCE.fileTypeId
+    val metatype = FileTypes.DS_GMAP_REF.fileTypeId
     val fastaMetaType = FileTypes.FASTA_REF.fileTypeId
     
     // Is this really not defined as a constant somewhere?
@@ -110,7 +115,17 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     er.setDescription("Converted with fasta-to-gmap-reference")
     er.setTimeStampedName(fastaTimeStampName)
     er.setResourceId(fastaPath.toAbsolutePath.toString)
-    
+
+    val fai = new InputOutputDataType()
+    fai.setUniqueId(UUID.randomUUID().toString)
+    fai.setTimeStampedName(toTimeStampName("index"))
+    fai.setResourceId(faiIndex.toString)
+    fai.setMetaType(FileTypes.I_SAM.fileTypeId)
+
+    val fileIndices = new FileIndices()
+    fileIndices.getFileIndex.add(fai)
+    er.setFileIndices(fileIndices)
+
     val db = new ExternalResource()
     db.setCreatedAt(createdAt)
     db.setModifiedAt(createdAt)
