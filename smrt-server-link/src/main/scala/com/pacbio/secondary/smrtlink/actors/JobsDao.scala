@@ -535,7 +535,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         .filter(_.jobId === jobId)
         .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
         .result
-    }.map(_.map(DataStoreReportFile(_, "mock-report-type-id")))
+    }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
 
   // Return the contents of the Report
   def getDataStoreReportByUUID(reportUUID: UUID): Future[Option[String]] = {
