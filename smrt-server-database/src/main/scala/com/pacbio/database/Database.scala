@@ -189,10 +189,10 @@ class Database(dbURI: String) {
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
         listeners.foreach(l => l.allDone(start, end, code, stacktrace))
-        val conn = connectionPool.cachedConnection
-        if (!conn.isClosed) try conn.close() catch {
-          case ex: Throwable => println("Ignoring close() fail: " + ex)
-        }
+        //val conn = connectionPool.cachedConnection
+        //if (!conn.isClosed) try conn.close() catch {
+        //  case ex: Throwable => println("Ignoring close() fail: " + ex)
+        //}
       }
     }
   }
