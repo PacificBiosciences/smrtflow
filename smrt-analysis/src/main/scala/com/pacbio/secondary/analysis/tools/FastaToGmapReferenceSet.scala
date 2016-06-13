@@ -37,7 +37,7 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
 
     arg[String]("output-dir") action { (x, c) =>
       c.copy(outputDir = x)
-    } text "Path to output Pacbio GMAP Reference Dataset XML"
+    } text "Path to write GMAP database and dataset XML"
 
     arg[String]("name") action { (x, c) =>
       c.copy(name = x)
@@ -66,13 +66,16 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
     val ploidy = Option(c.ploidy)
     val organism = Option(c.organism)
 
-    val rio = GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy)
-
-    rio match {
-      case Right(x) =>
-        println(x)
-        Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
-      case Left(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
+    Try {
+      GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy)
+    } match {
+      case Success(x) => x match {
+        case Right(rs) =>
+          println(rs)
+          Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
+        case Left(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
+      }
+      case Failure(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
     }
   }
 }

@@ -1,7 +1,9 @@
 
 package com.pacbio.secondary.analysis.converters
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
+import java.io.File
+import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
 import javax.xml.datatype.DatatypeFactory
@@ -18,6 +20,7 @@ import com.pacbio.secondary.analysis.datasets._
 import com.pacbio.secondary.analysis.externaltools.{CallGmapBuild, ExternalCmdFailure, ExternalToolsUtils}
 //import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 import com.pacbio.common.models.{Constants => CommonConstants}
+import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
 import com.pacbio.secondary.analysis.legacy.ReferenceContig
 import com.pacbio.secondary.analysis.referenceUploader.ReposUtils
@@ -37,7 +40,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
 
   def generateGmapDb(fastaPath: Path, name: String, outputDir: Path): Either[ExternalCmdFailure, GmapDbInfo] = {
     val sanitizedName = ReposUtils.nameToFileName(name)
-    var dbDir = outputDir.resolve(sanitizedName)
+    var dbDir = outputDir.resolve(sanitizedName).toAbsolutePath
     if (Files.exists(dbDir)) throw DatasetConvertError(s"The directory ${dbDir} already exists -please remove it or specify an alternate output directory or reference name.")
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     CallGmapBuild.run(fastaPath, name, outputDir) match {
@@ -48,12 +51,16 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
 
   def createGmapReferenceSet(fastaPath: Path,
                              contigs: Seq[ReferenceContig],
-                             dbPath: GmapDbInfo,
+                             dbInfo: GmapDbInfo,
                              name: String,
                              organism: Option[String],
                              ploidy: Option[String]): GmapReferenceSet = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
+    val dbFile = Paths.get(dbInfo.dbPath).resolve("gmap_build.json").toAbsolutePath.toString
+    val dbOut = new PrintWriter(new File(dbFile))
+    dbOut.write(dbInfo.toJson.toString)
+    dbOut.close
 
     val nrecords = contigs.length
     val totalLength = contigs.foldLeft(0)((m, n) => m + n.length)
@@ -73,7 +80,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     val description = s"Converted Reference $name"
     
     val metadata = new ContigSetMetadataType()
-    /*val contigItems = Seq[Contig]()
+   /*val contigItems = Seq[Contig]()
     
     val contigs = new Contigs()
     contigs.getContig.addAll(contigItems)
@@ -105,22 +112,23 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     er.setResourceId(fastaPath.toAbsolutePath.toString)
     
     val db = new ExternalResource()
-    er.setCreatedAt(createdAt)
-    er.setModifiedAt(createdAt)
-    er.setMetaType(FileTypes.JSON.fileTypeId)
-    er.setName("GMAP DB")
-    er.setName(s"Fasta $name")
-    er.setUniqueId(UUID.randomUUID().toString)
-    er.setTags(tags)
-    er.setDescription("Created by fasta-to-gmap-reference")
+    db.setCreatedAt(createdAt)
+    db.setModifiedAt(createdAt)
+    db.setMetaType(FileTypes.JSON.fileTypeId)
+    db.setName("GMAP DB")
+    db.setName(s"Fasta $name")
+    db.setUniqueId(UUID.randomUUID().toString)
+    db.setTags(tags)
+    db.setDescription("Created by fasta-to-gmap-reference")
+    db.setResourceId(dbFile)
     
     val fastaResources = new ExternalResources()
     fastaResources.getExternalResource.add(db)
     er.setExternalResources(fastaResources)
-    
+
     val externalResources = new ExternalResources()
     externalResources.getExternalResource.add(er)
-    
+
     val rs = new GmapReferenceSet()
     rs.setVersion(CommonConstants.DATASET_VERSION)
     rs.setMetaType(metatype)
@@ -137,16 +145,27 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   }
 
   def apply(name: String, fastaPath: Path, outputDir: Path,
-            organism: Option[String], ploidy: Option[String]):
-            Either[DatasetConvertError, GmapReferenceSet] = {
+            organism: Option[String], ploidy: Option[String],
+            outputFile: Path): Either[DatasetConvertError, GmapReferenceSet] = {
     validateFastaFile(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(contigs) => generateGmapDb(fastaPath, name, outputDir) match {
-        case Right(dbInfo) => Right(createGmapReferenceSet(fastaPath, contigs,
-                                                           dbInfo, name,
-                                                           organism, ploidy))
+        case Right(dbInfo) => {
+          val rs = createGmapReferenceSet(fastaPath, contigs, dbInfo, name,
+                                          organism, ploidy)
+          DataSetWriter.writeGmapReferenceSet(rs, outputFile)
+          Right(rs)
+        }
         case Left(x) => Left(DatasetConvertError(s"${x}"))
       }
     }
+  }
+
+  def apply(name: String, fastaPath: Path, outputDir: Path,
+            organism: Option[String], ploidy: Option[String]):
+            Either[DatasetConvertError, GmapReferenceSet] = {
+    val sanitizedName = ReposUtils.nameToFileName(name)
+    val ofn = outputDir.resolve(s"${sanitizedName}.gmapreferenceset.xml")
+    apply(sanitizedName, fastaPath, outputDir, organism, ploidy, ofn)
   }
 }
