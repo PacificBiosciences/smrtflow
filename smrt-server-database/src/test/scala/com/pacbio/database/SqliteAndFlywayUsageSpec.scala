@@ -1,9 +1,7 @@
-import java.sql.Connection
-import java.util
+package com.pacbio.database
 
-import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
-import com.pacbio.secondary.smrtlink.actors.{DalProvider, JobsDaoProvider, TestDalProvider}
-import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import java.sql.Connection
+
 import org.specs2.mutable.Specification
 
 
@@ -31,44 +29,37 @@ import org.specs2.mutable.Specification
  * can be scrapped in favor of standard JDBC driver use and connection pooling via DBCP.
  * @author Jayson Falkner - jfalkner@pacificbiosciences.com
  */
-class SqliteAndFlywayUsageSpec
-  extends Specification
-  with PbsmrtpipeConfigLoader
-  with SmrtLinkConfigProvider
-  with DalProvider
-  with JobsDaoProvider
-  with TestDalProvider{
+class SqliteAndFlywayUsageSpec extends Specification {
 
   // force these tests to run sequentially since they can lock up the database
   sequential
 
+  val db = new TestDatabase()
+
   "Connection pooling for SQLite" should {
     "be in use" in {
-      jobsDao().dal.dbURI startsWith "jdbc:sqlite:" must beTrue
+      db.dbUri startsWith "jdbc:sqlite:" must beTrue
     }
     "share Connection instances during Flyway migrations" in {
-      val dao = jobsDao()
-      dao.dal.shareConnection = true
-      val conn1 = dao.dal.connectionPool.getConnection
-      val conn2 = dao.dal.connectionPool.getConnection
+      db.setShareConnection(true)
+      val (conn1, conn2) = (db.connection, db.connection)
       try conn1 mustEqual conn2
       finally List.apply[Connection](conn1, conn2).foreach(x => x.close())
     }
     "guard against failing to close Connection instances" in {
-      val dao = jobsDao()
-      dao.dal.shareConnection = false
-      val conn1 = dao.dal.connectionPool.getConnection
-      try dao.dal.connectionPool.getConnection() must throwA[RuntimeException]
+      db.setShareConnection(false)
+      val conn1 = db.connection
+      try db.connection must throwA[RuntimeException]
       finally conn1.close()
     }
     "return unique Connection instances during normal, non-migration use" in {
-      val dao = jobsDao()
-      dao.dal.shareConnection = false
-      val conn1 = dao.dal.connectionPool.getConnection
+      db.setShareConnection(false)
+      val conn1 = db.connection
       conn1.close()
-      val conn2 = dao.dal.connectionPool.getConnection
+      val conn2 = db.connection
       conn2.close()
       conn1 mustNotEqual conn2
     }
   }
 }
+

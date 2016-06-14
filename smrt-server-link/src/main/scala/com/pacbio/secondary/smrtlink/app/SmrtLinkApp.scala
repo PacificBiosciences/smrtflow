@@ -52,15 +52,6 @@ trait SmrtLinkApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
   override val providers = new SmrtLinkProviders {}
 
   override def startup(): Unit = {
-    try {
-      providers.jobsDao().initializeDb()
-    } catch {
-      case e: Exception => {
-        e.printStackTrace()
-        system.shutdown()
-      }
-    }
-
     val p = Paths.get(providers.engineConfig.pbRootJobDir)
     if (!Files.exists(p)) {
       logger.info(s"Creating root job dir $p")

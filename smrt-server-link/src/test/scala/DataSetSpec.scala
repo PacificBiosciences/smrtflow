@@ -3,11 +3,11 @@ import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
-import com.pacbio.secondary.smrtlink.database.Dal
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
@@ -48,7 +48,7 @@ with JobServiceConstants {
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -56,7 +56,7 @@ with JobServiceConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    println(s"completed setting up database ${db.dbUri}")
   }
 
   textFragment("creating database tables")
