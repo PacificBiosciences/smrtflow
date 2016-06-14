@@ -39,6 +39,7 @@ object DataSetValidators {
     val validateHdfSubreadSet = vx[HdfSubreadSet](DataSetLoader.loadHdfSubreadSet)
     val validateAlignmentSet = vx[AlignmentSet](DataSetLoader.loadAlignmentSet)
     val validateBarcodSet = vx[BarcodeSet](DataSetLoader.loadBarcodeSet)
+    val validateGmapReferenceSet = vx[GmapReferenceSet](DataSetLoader.loadGmapReferenceSet)
 
     if (Files.exists(path)) {
       dst match {
@@ -47,6 +48,7 @@ object DataSetValidators {
         case DataSetMetaTypes.HdfSubread => validateHdfSubreadSet(path)
         case DataSetMetaTypes.Alignment => validateAlignmentSet(path)
         case DataSetMetaTypes.Barcode => validateBarcodSet(path)
+        case DataSetMetaTypes.GmapReference => validateGmapReferenceSet(path)
         case x =>
           Left(InvalidDataSetError(s"Unsupported dataset type $x"))
       }

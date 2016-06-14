@@ -121,6 +121,7 @@ object Converters {
       toMd5(dataset.getUniqueId),
       instrumentName, contextId, wellSampleName, wellName, bioSampleName, cellIndex, runName, userId, jobId, projectId)
   }
+
   def convert(dataset: ReferenceSet, path: Path, userId: Int, jobId: Int, projectId: Int): ReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
@@ -135,6 +136,35 @@ object Converters {
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
 
     ReferenceServiceDataSet(-99,
+      uuid,
+      dataset.getName,
+      path.toFile.toString,
+      createdAt,
+      modifiedAt,
+      numRecords,
+      totalLength,
+      dataset.getVersion,
+      comments,
+      tags, toMd5(uuid.toString), userId, jobId, projectId,
+      dataset.getDataSetMetadata.getPloidy,
+      dataset.getDataSetMetadata.getOrganism)
+  }
+
+  // FIXME way too much code duplication here
+  def convert(dataset: GmapReferenceSet, path: Path, userId: Int, jobId: Int, projectId: Int): GmapReferenceServiceDataSet = {
+    val uuid = UUID.fromString(dataset.getUniqueId)
+    // this is not correct
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    val comments = "reference dataset comments"
+
+    //val tags = dataset.getTags
+    val tags = ""
+
+    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+    val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
+
+    GmapReferenceServiceDataSet(-99,
       uuid,
       dataset.getName,
       path.toFile.toString,
