@@ -238,10 +238,14 @@ case class BarcodeServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
 
+// FIXME for consistency this should be ConsensusRead...
 case class CCSreadServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class CCSreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: CCSreadServiceSet)
 
+case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends IdAble
+
+case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
 
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
@@ -441,6 +445,26 @@ case class ContigServiceDataSet(
     datasetType: String = Contig.toString())
   extends ServiceDataSetMetadata
 
+case class GmapReferenceServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    ploidy: String,
+    organism: String,
+    datasetType: String = GmapReference.toString())
+    extends ServiceDataSetMetadata
 
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
