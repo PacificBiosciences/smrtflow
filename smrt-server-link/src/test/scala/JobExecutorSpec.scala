@@ -5,13 +5,13 @@ import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models.{UserRecord, UserResponse}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.database.Dal
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -87,7 +87,7 @@ with JobServiceConstants {
   TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -108,7 +108,7 @@ with JobServiceConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}.")
+    println(s"completed setting up database ${db.dbUri}.")
   }
 
   "Job Execution Service list" should {
