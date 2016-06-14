@@ -204,6 +204,32 @@ object Converters {
       tags, toMd5(uuid.toString), userId, jobId, projectId)
   }
 
+  // FIXME consolidate with AlignmentSet implementation
+  def convert(dataset: ConsensusAlignmentSet, path: Path, userId: Int, jobId: Int, projectId: Int): ConsensusAlignmentServiceDataSet = {
+    val uuid = UUID.fromString(dataset.getUniqueId)
+    // this is not correct
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    val comments = "ccs alignment dataset converted"
+
+    //val tags = dataset.getTags
+    val tags = ""
+    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+    val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
+
+    ConsensusAlignmentServiceDataSet(-99,
+      uuid,
+      dataset.getName,
+      path.toFile.toString,
+      createdAt,
+      modifiedAt,
+      numRecords,
+      totalLength,
+      dataset.getVersion,
+      comments,
+      tags, toMd5(uuid.toString), userId, jobId, projectId)
+  }
+
   def convert(dataset: BarcodeSet, path: Path, userId: Int, jobId: Int, projectId: Int): BarcodeServiceDataSet = {
 
     val uuid = UUID.fromString(dataset.getUniqueId)
