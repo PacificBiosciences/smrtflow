@@ -68,6 +68,7 @@ object FileTypes {
   final val CSV = FileBaseType(toFT("Csv"), "file", "csv", "text/plain")
   final val XML = FileBaseType(toFT("Xml"), "file", "xml", "application/xml")
   final val JSON = FileBaseType(toFT("Json"), "file", "json", "application/json")
+  final val BIGWIG = FileBaseType(toFT("BigWig"), "file", "bw", "application/octet-stream")
 
   final val REPORT = FileBaseType(toFT("JsonReport"), "file", "report.json", "application/json")
 
