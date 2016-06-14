@@ -6,6 +6,7 @@ Template taken from: https://github.com/PacificBiosciences/pbcommand/blob/master
 
 import os
 import sys
+import json
 import logging
 import multiprocessing
 import time
@@ -24,7 +25,7 @@ from pbcore.io.dataset import openDataSet
 
 log = logging.getLogger(__name__)
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 
 def _process_original_dataset(path, output_dir_prefix):
@@ -136,16 +137,36 @@ def get_parser():
     f = p.add_argument
     f('--host', default="localhost", help="Host name")
     f('--port', default=8070, type=int, help="Port")
-    f('--nprocesses', default=10, type=int, help="Number of worker processes to launch")
+    f('-n', '--nprocesses', default=10, type=int, help="Number of worker processes to launch")
     # FIXME this naming is terrible
     f('-x', default=5, type=int, help="Total number of tasks will be ~ 3 x")
+    f('--profile', default="profile.json", help="Path to output profile.json")
     return p
 
 
-def run_main(host, port, nprocesses, ntimes):
-    logging.basicConfig(level=logging.DEBUG, file=sys.stdout)
+def write_profile(d, output_file):
+    with open(output_file, 'w') as f:
+        f.write(json.dumps(d, indent=4, sort_keys=True))
+    return d
 
-    print FUNCS.keys()
+
+def run_main(host, port, nprocesses, ntimes, profile_csv):
+    # logging.basicConfig(level=logging.DEBUG, file=sys.stdout)
+
+    profile_d = {}
+
+    started_at = time.time()
+
+    log.info(FUNCS.keys())
+
+    sal = ServiceAccessLayer(host, port)
+    status = sal.get_status()
+    log.info("Status {}".format(status))
+
+    profile_d['nprocesses'] = nprocesses
+    profile_d["init_nsubreads"] = len(sal.get_subreadsets())
+    profile_d['init_nreferences'] = len(sal.get_referencesets())
+    profile_d['init_njobs'] = len(sal.get_analysis_jobs())
 
     chunksize = 6
 
@@ -186,12 +207,26 @@ def run_main(host, port, nprocesses, ntimes):
         log.error(f)
 
     log.debug("exiting {i}".format(i=info))
-    log.error("Failed Results {r} of {x}".format(r=len(failed), x=len(results)))
+    if failed:
+        log.error("Failed Results {r} of {x}".format(r=len(failed), x=len(results)))
+
+    run_time_sec = time.time() - started_at
+
+    profile_d['nresults'] = len(results)
+    profile_d['nfailed'] = len(failed)
+    profile_d['was_successful'] = len(failed) == 0
+
+    profile_d["final_nsubreads"] = len(sal.get_subreadsets())
+    profile_d['final_nreferences'] = len(sal.get_referencesets())
+    profile_d['final_njobs'] = len(sal.get_analysis_jobs())
+    profile_d['run_time_sec'] = run_time_sec
+
+    write_profile(profile_d, profile_csv)
     return 0
 
 
 def args_runner(args):
-    return run_main(args.host, args.port, args.nprocesses, args.x)
+    return run_main(args.host, args.port, args.nprocesses, args.x, args.profile)
 
 
 def main(argv):
