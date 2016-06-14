@@ -2,9 +2,8 @@ package com.pacbio.database
 
 import java.nio.file.Paths
 import java.sql.Connection
-import java.util
+import java.util.concurrent.Executors
 
-import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
 import slick.dbio.{DBIOAction, NoStream}
@@ -12,9 +11,8 @@ import slick.driver.SQLiteDriver.api.{Database => SQLiteDatabase}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-
+import scala.concurrent.{Await, ExecutionContext, Future}
+import ExecutionContext.Implicits.global
 
 /**
  * Abstraction for the Data Access Layer (DAL)
@@ -78,7 +76,7 @@ class Database(dbURI: String) {
   connectionPool.setInitialSize(1)
   connectionPool.setMaxTotal(1)
   // pool prepared statements
-  //connectionPool.setPoolPreparedStatements(true)
+  connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
   // enforce no auto-commit
   //connectionPool.setDefaultAutoCommit(false)
@@ -114,6 +112,8 @@ class Database(dbURI: String) {
     connectionPool,
     executor = AsyncExecutor("db-executor", 1, -1))
 
+  // special execution context for wrapped, serial DB access
+  val dec = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
 
   /**
    * Force database migrations
@@ -162,7 +162,7 @@ class Database(dbURI: String) {
     val code = if(dbug) stacktrace.getStackTrace()(1).toString else null
     Future[R] {
       try {
-        //shareConnection = true
+        shareConnection = true
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -170,30 +170,35 @@ class Database(dbURI: String) {
         if (dbug) {
           // tool the future to dump failure reasons
           f onFailure {
-            case t => listeners.foreach(l => l.error(code, stacktrace, t))
+            case t => listeners.foreach(_.error(code, stacktrace, t))
           }
           // tool the future to dump failure reasons
           f onSuccess {
-            case x => listeners.foreach(l => l.success(code, stacktrace, x))
+            case x => listeners.foreach(_.success(code, stacktrace, x))
           }
         }
         val toreturn = Await.result(f, Duration.Inf)
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
-        listeners.foreach(l => l.dbDone(startRDMS, endRDMS, code, stacktrace))
+        listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace))
         toreturn
         //f
       }
       finally {
-        //shareConnection = false
+        shareConnection = false
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
-        listeners.foreach(l => l.allDone(start, end, code, stacktrace))
+        listeners.foreach(_.allDone(start, end, code, stacktrace))
         val conn = connectionPool.cachedConnection
-        if (!conn.isClosed) try conn.close() catch {
-          case ex: Throwable => println("Ignoring close() fail: " + ex)
-        }
+        if (!conn.isClosed)
+          try {
+            conn.commit()
+            conn.close()
+          } catch {
+            case ex: Throwable => println("Ignoring commit()/close() fail: " + ex)
+          }
       }
-    }
+      // share the execution context the DB uses
+    } (dec)
   }
 }
