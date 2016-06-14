@@ -30,7 +30,7 @@ import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPoint, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
@@ -210,7 +210,6 @@ trait ConditionJobTypeServiceProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider

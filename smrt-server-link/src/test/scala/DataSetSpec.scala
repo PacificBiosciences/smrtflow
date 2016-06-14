@@ -6,10 +6,11 @@ import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
+
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.DataSetServiceProvider
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeExample
@@ -31,16 +32,17 @@ with JobServiceConstants {
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
   object TestProviders extends
-  ServiceComposer with
-  DataSetServiceProvider with
-  JobsDaoActorProvider with
-  JobsDaoProvider with
-  TestDalProvider with
-  SmrtLinkConfigProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  FakeClockProvider with
-  SetBindings with
+      ServiceComposer with
+      SmrtLinkConfigProvider with
+      PbsmrtpipeConfigLoader with
+      EngineCoreConfigLoader with
+      JobRunnerProvider with
+      DataSetServiceProvider with
+      JobsDaoActorProvider with
+      JobsDaoProvider with
+      TestDalProvider with
+      FakeClockProvider with
+      SetBindings with
   ActorRefFactoryProvider {
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
   }

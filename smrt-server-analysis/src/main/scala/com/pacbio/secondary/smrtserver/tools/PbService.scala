@@ -128,7 +128,10 @@ object PbServiceParser {
       c.copy(asJson = true)
     } text "Display output as raw JSON"
 
-    // add the shared `--debug` and logging options
+    opt[Unit]("debug") action { (_, c) =>
+      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig]
+    } text "Display debugging log output"
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(Modes.STATUS.name) action { (_, c) =>
@@ -742,7 +745,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 object PbService {
   def apply (c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
-    val url = new URL(s"http://${c.host}:${c.port}")
+    // FIXME we need some kind of hostname validation here - supposedly URL
+    // creation includes validation, but it wasn't failing on extra 'http://'
+    val host = c.host.replaceFirst("http://", "")
+    val url = new URL(s"http://${host}:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {

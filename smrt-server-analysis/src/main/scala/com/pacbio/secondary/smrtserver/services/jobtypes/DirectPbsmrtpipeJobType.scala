@@ -15,7 +15,6 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.LogMessageRecord
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages.{CheckForRunnableJob, ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{CoreJob, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -50,7 +49,6 @@ import spray.json._
 class DirectPbsmrtpipeJobType(
     dbActor: ActorRef,
     userActor: ActorRef,
-    engineManagerActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -176,7 +174,6 @@ trait DirectPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
     with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
@@ -184,7 +181,6 @@ trait DirectPbsmrtpipeJobTypeProvider {
     Singleton(() => new DirectPbsmrtpipeJobType(
       jobsDaoActor(),
       userServiceActorRef(),
-      engineManagerActor(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),
