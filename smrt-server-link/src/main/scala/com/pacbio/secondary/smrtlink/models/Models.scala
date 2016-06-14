@@ -251,6 +251,10 @@ case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
 
+case class ContigServiceSet(id: Int, uuid: UUID) extends IdAble
+
+case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
+
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
 case class DataStoreServiceFile(

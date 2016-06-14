@@ -122,6 +122,32 @@ object Converters {
       instrumentName, contextId, wellSampleName, wellName, bioSampleName, cellIndex, runName, userId, jobId, projectId)
   }
 
+  def convert(dataset: ContigSet, path: Path, userId: Int, jobId: Int, projectId: Int): ContigServiceDataSet = {
+    val uuid = UUID.fromString(dataset.getUniqueId)
+    // this is not correct
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    val comments = "contig dataset comments"
+
+    //val tags = dataset.getTags
+    val tags = ""
+
+    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+    val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
+
+    ContigServiceDataSet(-99,
+      uuid,
+      dataset.getName,
+      path.toFile.toString,
+      createdAt,
+      modifiedAt,
+      numRecords,
+      totalLength,
+      dataset.getVersion,
+      comments,
+      tags, toMd5(uuid.toString), userId, jobId, projectId)
+  }
+
   def convert(dataset: ReferenceSet, path: Path, userId: Int, jobId: Int, projectId: Int): ReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct

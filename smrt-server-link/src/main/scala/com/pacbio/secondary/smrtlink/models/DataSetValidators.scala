@@ -42,6 +42,7 @@ object DataSetValidators {
     val validateGmapReferenceSet = vx[GmapReferenceSet](DataSetLoader.loadGmapReferenceSet)
     val validateConsensusReadSet = vx[ConsensusReadSet](DataSetLoader.loadConsensusReadSet)
     val validateConsensusAlignmentSet = vx[ConsensusAlignmentSet](DataSetLoader.loadConsensusAlignmentSet)
+    val validateContigSet = vx[ContigSet](DataSetLoader.loadContigSet)
 
     if (Files.exists(path)) {
       dst match {
@@ -52,6 +53,7 @@ object DataSetValidators {
         case DataSetMetaTypes.Barcode => validateBarcodeSet(path)
         case DataSetMetaTypes.GmapReference => validateGmapReferenceSet(path)
         case DataSetMetaTypes.CCS => validateConsensusReadSet(path)
+        case DataSetMetaTypes.Contig => validateContigSet(path)
         case DataSetMetaTypes.AlignmentCCS => validateConsensusAlignmentSet(path)
         case x =>
           Left(InvalidDataSetError(s"Unsupported dataset type $x"))
