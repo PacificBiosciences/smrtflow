@@ -60,9 +60,16 @@ val db = new TestDatabase()
 
 ### Debugging and Profiling 
 
-> WIP: Kind of hacky. Will try to clean this up.
+Set the `PACBIO_DATABASE` Java system property to enable the built in
+logging and profiling. This is a `-D` flag for `java` on the 
+command-line. It can be set in SBT by adding this line.
 
-Run the code 
+```scala
+javaOptions in ThisBuild += "-DPACBIO_DATABASE=profile"
+```
+
+Run the code. Verbose logging about the DB use will be displayed so pipe
+it to a file.
 
 ```scala
 # add debugging log level to `make start-smrt-server-analysis`
