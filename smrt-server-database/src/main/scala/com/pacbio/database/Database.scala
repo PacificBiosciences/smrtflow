@@ -48,7 +48,11 @@ class Database(dbURI: String) {
   protected var shareConnection: Boolean = false
   // flag for tracking debugging and timing info
   var debug: Boolean = true
-  var listeners: List[DatabaseListener] = List(new LoggingListener(), new ProfilingListener())
+  val listeners: List[DatabaseListener] =
+    if (System.getProperty("PACBIO_DATABASE") == null)
+      List()
+    else
+      List(new LoggingListener(), new ProfilingListener())
 
 
   // DBCP for connection pooling and caching prepared statements for use in SQLite
