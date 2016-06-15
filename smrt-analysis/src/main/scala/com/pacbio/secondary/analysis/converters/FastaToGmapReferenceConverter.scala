@@ -2,7 +2,7 @@
 package com.pacbio.secondary.analysis.converters
 
 import java.nio.file.{Files, Path, Paths}
-import java.io.File
+import java.io.{File,FileInputStream,FileOutputStream}
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
@@ -40,12 +40,9 @@ trait GmapDbProtocol extends DefaultJsonProtocol {
 object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with FastaConverterBase with ExternalToolsUtils {
 
   def generateGmapDb(fastaPath: Path, name: String, outputDir: Path): Either[ExternalCmdFailure, GmapDbInfo] = {
-    val sanitizedName = ReposUtils.nameToFileName(name)
-    var dbDir = outputDir.resolve(sanitizedName).toAbsolutePath
-    if (Files.exists(dbDir)) throw DatasetConvertError(s"The directory ${dbDir} already exists -please remove it or specify an alternate output directory or reference name.")
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
-    CallGmapBuild.run(fastaPath, name, outputDir) match {
-      case Right(dbPath) => Right(GmapDbInfo(sanitizedName, timeStamp, dbPath.toAbsolutePath.toString))
+    CallGmapBuild.run(fastaPath, outputDir) match {
+      case Right(dbPath) => Right(GmapDbInfo(name, timeStamp, dbPath.toAbsolutePath.toString))
       case Left(err) => Left(err)
     }
   }
@@ -159,7 +156,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     rs
   }
 
-  def apply(name: String, fastaPath: Path, outputDir: Path,
+  def createDataset(name: String, fastaPath: Path, outputDir: Path,
             organism: Option[String], ploidy: Option[String],
             outputFile: Path): Either[DatasetConvertError, GmapReferenceSet] = {
     validateFastaFile(fastaPath) match {
@@ -177,10 +174,21 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   }
 
   def apply(name: String, fastaPath: Path, outputDir: Path,
-            organism: Option[String], ploidy: Option[String]):
+            organism: Option[String], ploidy: Option[String],
+            inPlace: Boolean = false):
             Either[DatasetConvertError, GmapReferenceSet] = {
     val sanitizedName = ReposUtils.nameToFileName(name)
-    val ofn = outputDir.resolve(s"${sanitizedName}.gmapreferenceset.xml")
-    apply(sanitizedName, fastaPath, outputDir, organism, ploidy, ofn)
+    val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
+    if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
+    targetDir.toFile.mkdir()
+    var fastaFinal = fastaPath
+    if (! inPlace) {
+      targetDir.resolve("sequence").toFile().mkdir
+      fastaFinal = targetDir.resolve(s"sequence/${sanitizedName}.fasta")
+      new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
+        new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
+    }
+    val ofn = outputDir.resolve(s"${sanitizedName}/${sanitizedName}.gmapreferenceset.xml")
+    createDataset(sanitizedName, fastaFinal, targetDir, organism, ploidy, ofn)
   }
 }
