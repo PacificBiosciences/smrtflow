@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.database
 
+import java.nio.file.{Paths, Path}
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
@@ -411,10 +412,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
-  implicit val collectionStatusType = MappedColumnType.base[SupportedAcquisitionStates, String](
-    {s => s.value()} ,
-    {s => SupportedAcquisitionStates.fromValue(s)}
-  )
+  implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
+  implicit val collectionStatusType =
+    MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
   class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
@@ -428,6 +428,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def summary: Rep[Option[String]] = column[Option[String]]("COLUMN")
 
     def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
+
+    def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("COLLECTION_PATH_URI")
 
     def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
 
@@ -450,6 +452,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         well,
         summary,
         context,
+        collectionPathUri,
         status,
         instrumentId,
         instrumentName,
