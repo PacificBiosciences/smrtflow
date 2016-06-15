@@ -247,6 +247,14 @@ case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism
 
 case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
 
+case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends IdAble
+
+case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
+
+case class ContigServiceSet(id: Int, uuid: UUID) extends IdAble
+
+case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
+
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
 case class DataStoreServiceFile(
@@ -405,6 +413,25 @@ case class CCSreadServiceDataSet(
     jobId: Int,
     projectId: Int,
     datasetType: String = CCS.toString())
+    extends ServiceDataSetMetadata
+
+case class ConsensusAlignmentServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = AlignmentCCS.toString())
     extends ServiceDataSetMetadata
 
 case class BarcodeServiceDataSet(

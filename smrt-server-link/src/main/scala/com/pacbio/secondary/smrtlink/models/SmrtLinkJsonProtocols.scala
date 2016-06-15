@@ -125,6 +125,7 @@ trait SmrtLinkJsonProtocols
   implicit val barcodeDataSetFormat: RootJsonFormat[BarcodeServiceDataSet] = cachedImplicit
   implicit val contigServiceDataSetFormat: RootJsonFormat[ContigServiceDataSet] = cachedImplicit
   implicit val gmapReferenceDataSetFormat: RootJsonFormat[GmapReferenceServiceDataSet] = cachedImplicit
+  implicit val consensusAlignmentDataSetFormat: RootJsonFormat[ConsensusAlignmentServiceDataSet] = cachedImplicit
 
   implicit val dataStoreJobFileFormat = jsonFormat2(DataStoreJobFile)
   implicit val dataStoreServiceFileFormat = jsonFormat12(DataStoreServiceFile)
