@@ -9,8 +9,8 @@ import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-
 
 class V9__CollectionPathUri extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
