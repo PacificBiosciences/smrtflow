@@ -75,8 +75,8 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
       GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy, c.inPlace)
     } match {
       case Success(x) => x match {
-        case Right(rs) =>
-          println(rs)
+        case Right(ofn) =>
+          println(s"Wrote dataset to ${ofn}")
           Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
         case Left(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
       }

@@ -157,15 +157,14 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   }
 
   def createDataset(name: String, fastaPath: Path, outputDir: Path,
-            organism: Option[String], ploidy: Option[String],
-            outputFile: Path): Either[DatasetConvertError, GmapReferenceSet] = {
+            organism: Option[String], ploidy: Option[String]):
+            Either[DatasetConvertError, GmapReferenceSet] = {
     validateFastaFile(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(contigs) => generateGmapDb(fastaPath, name, outputDir) match {
         case Right(dbInfo) => {
           val rs = createGmapReferenceSet(fastaPath, contigs, dbInfo, name,
                                           organism, ploidy)
-          DataSetWriter.writeGmapReferenceSet(rs, outputFile)
           Right(rs)
         }
         case Left(x) => Left(DatasetConvertError(s"${x}"))
@@ -176,7 +175,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   def apply(name: String, fastaPath: Path, outputDir: Path,
             organism: Option[String], ploidy: Option[String],
             inPlace: Boolean = false):
-            Either[DatasetConvertError, GmapReferenceSet] = {
+            Either[DatasetConvertError, Path] = {
     val sanitizedName = ReposUtils.nameToFileName(name)
     val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
     if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
@@ -189,6 +188,12 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
         new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
     }
     val ofn = outputDir.resolve(s"${sanitizedName}/${sanitizedName}.gmapreferenceset.xml")
-    createDataset(sanitizedName, fastaFinal, targetDir, organism, ploidy, ofn)
+    createDataset(sanitizedName, fastaFinal, targetDir, organism, ploidy) match {
+      case Right(rs) => {
+        DataSetWriter.writeGmapReferenceSet(rs, ofn)
+        Right(ofn)
+      }
+      case Left(err) => Left(err)
+    }
   }
 }
