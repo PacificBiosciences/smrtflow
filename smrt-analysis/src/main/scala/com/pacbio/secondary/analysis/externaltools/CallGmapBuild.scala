@@ -13,20 +13,21 @@ object CallGmapBuild extends ExternalToolsUtils{
   val EXE = "gmap_build"
   lazy val CWD = Paths.get(".")
 
-  def apply(fastaPath: Path, refName: String, outputDir: Path = CWD,
+  def apply(fastaPath: Path,
+            outputDir: Path = CWD,
             gmapBuildExePath: String = EXE): Option[ExternalCmdFailure] = {
     val cmd = Seq(gmapBuildExePath, "-D", outputDir.toAbsolutePath.toString,
-                  "-d", refName, fastaPath.toAbsolutePath.toString)
+                  "-d", "gmap_db", fastaPath.toAbsolutePath.toString)
     runSimpleCmd(cmd)
   }
 
-  def run(fastaPath: Path, refName: String, outputDir: Path = CWD,
+  def run(fastaPath: Path,
+          outputDir: Path = CWD,
           gmapBuildExePath: String = EXE): Either[ExternalCmdFailure, Path] = {
     // the output directory will be $refName in $PWD
-    val dbPath = Paths.get(refName)
-    apply(fastaPath, refName, outputDir, gmapBuildExePath) match {
+    apply(fastaPath, outputDir, gmapBuildExePath) match {
       case Some(e) => Left(e)
-      case _ => Right(dbPath)
+      case _ => Right(outputDir.resolve("gmap_db"))
     }
   }
 }

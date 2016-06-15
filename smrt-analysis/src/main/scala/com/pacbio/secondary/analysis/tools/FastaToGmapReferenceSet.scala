@@ -18,7 +18,8 @@ case class FastaToGmapReferenceSetConfig(
     outputDir: String,
     name: String,
     organism: String,
-    ploidy: String) extends LoggerConfig
+    ploidy: String,
+    inPlace: Boolean = false) extends LoggerConfig
 
 object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenceSetConfig] {
 
@@ -51,6 +52,10 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
       c.copy(ploidy = x)
     } text "ploidy "
 
+    opt[Unit]("in-place") action { (x, c) =>
+      c.copy(inPlace = true)
+    } text "Don't copy input FASTA file to output location"
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     opt[Unit]('h', "help") action { (x, c) =>
@@ -67,7 +72,7 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
     val organism = Option(c.organism)
 
     Try {
-      GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy)
+      GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy, c.inPlace)
     } match {
       case Success(x) => x match {
         case Right(rs) =>
