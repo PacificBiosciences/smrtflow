@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.models
 
 import java.io.ByteArrayInputStream
+import java.nio.file.{Paths, Path}
 import java.util.UUID
 import javax.xml.bind.{Unmarshaller, JAXBContext}
 import javax.xml.datatype.XMLGregorianCalendar
@@ -86,6 +87,13 @@ object DataModelParserImpl extends DataModelParser {
             .getSimpleValue
             .toDouble
 
+        val collectionPathUri: Option[Path] = for {
+          pr <- Option(collectionMetadataModel.getPrimary)
+          oo <- Option(pr.getOutputOptions)
+          ur <- Option(oo.getCollectionPathUri)
+          pa <- Option(Paths.get(ur))
+        } yield pa
+
         CollectionMetadata(
           UUID.fromString(runModel.getUniqueId),
           UUID.fromString(s.getUniqueId),
@@ -93,6 +101,7 @@ object DataModelParserImpl extends DataModelParser {
           collectionMetadataModel.getWellSample.getName,
           Option(collectionMetadataModel.getDescription),
           Option(collectionMetadataModel.getContext),
+          collectionPathUri,
           collectionMetadataModel.getStatus,
           Option(collectionMetadataModel.getInstrumentId),
           Option(collectionMetadataModel.getInstrumentName),

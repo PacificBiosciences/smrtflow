@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.models
 
+import java.nio.file.Path
 import java.util.UUID
 
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
@@ -109,6 +110,7 @@ case class CollectionMetadata(
     name: String,
     summary: Option[String],
     context: Option[String],
+    collectionPathUri: Option[Path],
     status: SupportedAcquisitionStates,
     instrumentId: Option[String],
     instrumentName: Option[String],

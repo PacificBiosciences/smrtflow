@@ -1,5 +1,7 @@
 package com.pacbio.secondary.smrtlink.models
 
+import java.nio.file.{Paths, Path}
+
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
@@ -71,12 +73,23 @@ trait SupportedAcquisitionStatesProtocols extends DefaultJsonProtocol {
   }
 }
 
+trait PathProtocols extends DefaultJsonProtocol {
+  implicit object PathFormat extends RootJsonFormat[Path] {
+    def write(p: Path): JsValue = JsString(p.toString)
+    def read(v: JsValue): Path = v match {
+      case JsString(s) => Paths.get(s)
+      case _ => deserializationError("Expected Path as JsString")
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
   with ServiceTaskOptionProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
+  with PathProtocols
   with FamilyFormats {
 
   implicit val pbSampleFormat = jsonFormat5(Sample)
@@ -87,7 +100,7 @@ trait SmrtLinkJsonProtocols
   implicit val pbRunUpdateFormat = jsonFormat2(RunUpdate)
   implicit val pbRunFormat = jsonFormat19(Run)
   implicit val pbRunSummaryFormat = jsonFormat18(RunSummary)
-  implicit val pbCollectionMetadataFormat = jsonFormat13(CollectionMetadata)
+  implicit val pbCollectionMetadataFormat = jsonFormat14(CollectionMetadata)
 
   implicit val pbRegistryResourceFormat = jsonFormat6(RegistryResource)
   implicit val pbRegistryResourceCreateFormat = jsonFormat3(RegistryResourceCreate)
