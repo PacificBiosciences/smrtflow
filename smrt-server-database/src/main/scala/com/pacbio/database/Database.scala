@@ -10,7 +10,7 @@ import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.SQLiteDriver.api.{Database => SQLiteDatabase}
 import slick.util.AsyncExecutor
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 
@@ -166,7 +166,6 @@ class Database(dbURI: String) {
     val code = if(dbug) stacktrace.getStackTrace()(1).toString else null
     Future[R] {
       try {
-        shareConnection = true
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -181,15 +180,13 @@ class Database(dbURI: String) {
             case x => listeners.foreach(_.success(code, stacktrace, x))
           }
         }
-        val toreturn = Await.result(f, Duration.Inf)
+        val toreturn = Await.result(f, 10 seconds) // TODO: config via param
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace))
         toreturn
-        //f
       }
       finally {
-        shareConnection = false
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
         listeners.foreach(_.allDone(start, end, code, stacktrace))
