@@ -38,7 +38,6 @@ trait CoreProviders extends
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
   LogServiceActorRefProvider with
@@ -88,7 +87,6 @@ trait AuthenticatedCoreProviders extends
   ServiceComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
   LogServiceActorRefProvider with
@@ -165,8 +163,8 @@ trait BaseServer extends LazyLogging {
     logger.info("Starting App")
     logger.info("Java Version: " + System.getProperty("java.version"))
     logger.info("Java Home: " + System.getProperty("java.home"))
-    val runtimeMxBean = ManagementFactory.getRuntimeMXBean()
-    val arguments = runtimeMxBean.getInputArguments()
+    val runtimeMxBean = ManagementFactory.getRuntimeMXBean
+    val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.mkString(" "))
 
     val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
