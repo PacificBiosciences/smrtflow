@@ -1,25 +1,17 @@
 package com.pacbio.common.services
 
-import java.util.UUID
-
-import akka.actor.ActorRef
-import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.actors.{StatusServiceActorRefProvider, StatusServiceActor}
-import org.joda.time.Period
-import org.joda.time.format.PeriodFormatterBuilder
+import com.pacbio.common.services.utils.{StatusGeneratorProvider, StatusGenerator}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import DefaultJsonProtocol._
 
-import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class StatusService(statusActor: ActorRef) extends PacBioService {
+class StatusService(statusGenerator: StatusGenerator) extends PacBioService {
 
-  import StatusServiceActor._
   import PacBioJsonProtocol._
 
   implicit val timeout = Timeout(10.seconds)
@@ -35,32 +27,12 @@ class StatusService(statusActor: ActorRef) extends PacBioService {
     path(statusServiceName) {
       get {
         complete {
-          for {
-            id <- (statusActor ? GetBaseServiceId).mapTo[String].map(toServiceId)
-            up <- (statusActor ? GetUptime).mapTo[Long]
-            uuid <- (statusActor ? GetUUID).mapTo[UUID]
-            ver <- (statusActor ? GetBuildVersion).mapTo[String]
-            user <- (statusActor ? GetUser).mapTo[String]
-          } yield ServiceStatus(id, s"Services have been up for ${uptimeString(up)}.", up, uuid, ver, user)
+          ok {
+            statusGenerator.getStatus
+          }
         }
       }
     }
-
-  def uptimeString(uptimeMillis: Long): String = {
-    val period = new Period(uptimeMillis)
-    val formatter = new PeriodFormatterBuilder()
-      .printZeroRarelyLast()
-      .appendHours()
-      .appendSuffix(" hour", " hours")
-      .appendSeparator(", ", " and ")
-      .appendMinutes()
-      .appendSuffix(" minute", " minutes")
-      .appendSeparator(", ", " and ")
-      .appendSecondsWithOptionalMillis()
-      .appendSuffix(" second", " seconds")
-      .toFormatter
-    period.toString(formatter)
-  }
 }
 
 /**
@@ -68,18 +40,18 @@ class StatusService(statusActor: ActorRef) extends PacBioService {
  * {{{StatusServiceActorRefProvider}}}.
  */
 trait StatusServiceProvider {
-  this: StatusServiceActorRefProvider =>
+  this: StatusGeneratorProvider =>
 
   val statusService: Singleton[StatusService] =
-    Singleton(() => new StatusService(statusServiceActorRef())).bindToSet(AllServices)
+    Singleton(() => new StatusService(statusGenerator())).bindToSet(AllServices)
 }
 
 trait StatusServiceProviderx {
-  this: StatusServiceActorRefProvider
+  this: StatusGeneratorProvider
     with ServiceComposer =>
 
   final val statusService: Singleton[StatusService] =
-    Singleton(() => new StatusService(statusServiceActorRef()))
+    Singleton(() => new StatusService(statusGenerator()))
 
   addService(statusService)
 }
