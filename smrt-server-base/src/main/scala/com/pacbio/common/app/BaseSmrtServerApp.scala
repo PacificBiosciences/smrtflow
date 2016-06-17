@@ -15,6 +15,7 @@ import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonRea
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
+import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
@@ -51,7 +52,7 @@ trait CoreProviders extends
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   MimeTypeDetectors with
@@ -101,7 +102,7 @@ trait AuthenticatedCoreProviders extends
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProviderx with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   MimeTypeDetectors with
@@ -165,8 +166,8 @@ trait BaseServer extends LazyLogging {
     logger.info("Starting App")
     logger.info("Java Version: " + System.getProperty("java.version"))
     logger.info("Java Home: " + System.getProperty("java.home"))
-    val runtimeMxBean = ManagementFactory.getRuntimeMXBean()
-    val arguments = runtimeMxBean.getInputArguments()
+    val runtimeMxBean = ManagementFactory.getRuntimeMXBean
+    val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.mkString(" "))
 
     val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {

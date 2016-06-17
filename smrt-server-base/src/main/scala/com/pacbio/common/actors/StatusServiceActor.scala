@@ -9,11 +9,12 @@ import com.pacbio.common.time.{Clock, ClockProvider}
 import org.joda.time.{Duration => JodaDuration, Instant => JodaInstant}
 import scala.collection.JavaConverters._
 
+// TODO(smcclellan): Delete this file
 
 /**
  * Companion object for the StatusServiceActor class, defining the set of messages it can handle.
  */
-
+@deprecated
 object StatusServiceActor {
   case object GetUptime
   case object GetBaseServiceId
@@ -26,6 +27,7 @@ object StatusServiceActor {
  * Akka actor that can provide basic status info. (Currently only provides the start time of the
  * system.)
  */
+@deprecated
 class StatusServiceActor(
     clock: Clock,
     baseServiceId: String,
@@ -46,6 +48,7 @@ class StatusServiceActor(
   }
 }
 
+@deprecated
 sealed trait BaseStatusServiceActorProvider {
   /**
    * Should be initialized at the top-level with
@@ -70,6 +73,7 @@ sealed trait BaseStatusServiceActorProvider {
  * Provides a singleton ActorRef for a StatusServiceActor. Concrete providers must mixin a ClockProvider and an
  * ActorRefFactoryProvider.
  */
+@deprecated
 trait StatusServiceActorRefProvider extends BaseStatusServiceActorProvider {
   this: ClockProvider with ActorRefFactoryProvider =>
 
@@ -82,6 +86,7 @@ trait StatusServiceActorRefProvider extends BaseStatusServiceActorProvider {
  * designed for tests, and should generally not be used in production. To create a production app, use the
  * {{{StatusServiceActorRefProvider}}}.
  */
+@deprecated
 trait StatusServiceActorProvider extends BaseStatusServiceActorProvider {
   this: ClockProvider =>
 
