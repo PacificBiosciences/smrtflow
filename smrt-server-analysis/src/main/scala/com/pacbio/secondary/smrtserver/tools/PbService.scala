@@ -181,7 +181,7 @@ object PbServiceParser {
       arg[File]("json-file") required() action { (p, c) =>
         c.copy(path = p)
       } text "JSON config file", // TODO validate json format
-      opt[Boolean]("block") action { (_, c) =>
+      opt[Unit]("block") action { (_, c) =>
         c.copy(block = true)
       } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
