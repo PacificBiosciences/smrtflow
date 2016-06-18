@@ -1,5 +1,9 @@
 dependencies:
   pre:
+    - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+    - sudo apt-get install git-lfs=1.1.0
+    - git clone https://github.com/PacificBiosciences/PacBioTestData.git
+    - (cd PacBioTestData && git lfs pull && make python)
     - wget -q https://dl.bintray.com/sbt/debian/sbt-0.13.11.deb
     - sudo dpkg -i sbt-0.13.11.deb
   cache_directories:
