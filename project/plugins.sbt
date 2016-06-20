@@ -10,6 +10,7 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.2")
 
 // Code coverage support and plugin for (optional) Coveralls.io
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.3.5")
+
 addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.1.0")
 
 // Scalastyle.org checker via `sbt scalastyle`
