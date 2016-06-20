@@ -1,16 +1,17 @@
 package com.pacbio.common.actors
 
 import java.io.File
-import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 
-import akka.actor.{Cancellable, ActorSystem}
+import akka.actor.{ActorSystem, Cancellable}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.logging.{LoggerFactoryProvider, Logger, LoggerFactory, LogResources}
+import com.pacbio.common.logging.{LogResources, Logger, LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors
-import com.pacbio.common.time.{PacBioDateTimeFormat, ClockProvider, Clock}
+import com.pacbio.common.time.{Clock, ClockProvider, PacBioDateTimeFormat}
 import org.joda.time.{DateTime => JodaDateTime, Duration => JodaDuration}
 
 import scala.collection.mutable
@@ -53,12 +54,14 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
   import CleanupDao._
   import PacBioServiceErrors._
 
-  val apiJobs: mutable.Map[UUID, ApiCleanupJob] = new mutable.HashMap
-  val apiLoggers: mutable.Map[UUID, Logger] = new mutable.HashMap
-  val apiCancels: mutable.Map[UUID, Cancellable] = new mutable.HashMap
+  import scala.collection.JavaConversions._
 
-  val configJobs: mutable.Map[String, ConfigCleanupJob] = new mutable.HashMap
-  val configLoggers: mutable.Map[String, Logger] = new mutable.HashMap
+  val apiJobs: ConcurrentMap[UUID, ApiCleanupJob] = new ConcurrentHashMap
+  val apiLoggers: ConcurrentMap[UUID, Logger] = new ConcurrentHashMap
+  val apiCancels: ConcurrentMap[UUID, Cancellable] = new ConcurrentHashMap
+
+  val configJobs: ConcurrentMap[String, ConfigCleanupJob] = new ConcurrentHashMap
+  val configLoggers: ConcurrentMap[String, Logger] = new ConcurrentHashMap
 
   private def allJobs: Map[String, CleanupJobBase[_]] = (apiJobs.map(e => e._1.toString -> e._2) ++ configJobs).toMap
 
