@@ -64,7 +64,7 @@ trait LogServiceActorRefProvider {
   this: LogDaoProvider with ActorRefFactoryProvider =>
 
   val logServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[LogServiceActor], logDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[LogServiceActor], logDao()), "LogServiceActor"))
 }
 
 /**

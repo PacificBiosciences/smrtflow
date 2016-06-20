@@ -611,5 +611,5 @@ trait JobsDaoActorProvider {
   this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val jobsDaoActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao(), jobEngineConfig(), jobResolver())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao(), jobEngineConfig(), jobResolver()), "JobsDaoActor"))
 }

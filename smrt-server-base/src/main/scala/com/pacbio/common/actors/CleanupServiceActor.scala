@@ -38,7 +38,7 @@ trait CleanupServiceActorRefProvider {
   this: CleanupDaoProvider with ActorRefFactoryProvider =>
 
   final val cleanupServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[CleanupServiceActor], cleanupDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[CleanupServiceActor], cleanupDao()), "CleanupServiceActor"))
 }
 
 trait CleanupServiceActorProvider {
