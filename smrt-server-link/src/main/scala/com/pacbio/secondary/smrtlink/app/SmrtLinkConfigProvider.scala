@@ -11,7 +11,7 @@ import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, Comman
 trait SmrtLinkConfigProvider {
   this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
 
-  private def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+  private def toURI(sx: String) = if (sx.startsWith("jdbc:h2:")) sx else s"jdbc:h2:$sx"
 
   val configReader = TypesafeSingletonReader.fromConfig().in("pb-services")
 

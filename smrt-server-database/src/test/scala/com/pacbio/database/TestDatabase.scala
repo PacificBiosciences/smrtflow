@@ -7,16 +7,16 @@ import java.sql.Connection
  *
  * Database exposes the minimal contract for use by the codebase. Much of the internal state is
  * hidden and should not be directly used outside of tests. This class is included with the test
- * code and exposes needed state to confirm that connection sharing and the multi-connection
- * guard work as expected.
+ * code and exposes needed state to confirm that multiple connections are supported.
+ *
+ * When SQLite was in use, this test also exercised a few of the edge cases; however, the codebase
+ * no longer needs to do those checks with H2 and Postgres.
  *
  * @author Jayson Falkner - jfalkner@pacificbiosciences.com
  */
-class TestDatabase (dbURI: String = "jdbc:sqlite:") extends Database(dbURI) {
+class TestDatabase (dbURI: String = "jdbc:h2:mem:") extends Database(dbURI) {
 
   override def dbUri: String = super.dbUri
-
-  def setShareConnection(b: Boolean): Unit = shareConnection = b
 
   def connection: Connection = connectionPool.getConnection()
 

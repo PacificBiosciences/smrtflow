@@ -67,7 +67,6 @@ def PacBioProject(name: String): Project = (
       "org.apache.avro" % "avro" % "1.7.7",
       "com.github.broadinstitute" % "picard" % "1.131",
       "com.typesafe.slick" %% "slick" % "3.1.0",
-      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
       "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
       // added from bss
       "io.spray" % "spray-io_2.11" % sprayV,
@@ -98,8 +97,11 @@ def PacBioProject(name: String): Project = (
       "org.flywaydb" % "flyway-core" % "4.0",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full,
       "org.ini4j" % "ini4j" % "0.5.4",
-      "org.apache.commons" % "commons-dbcp2" % "2.0.1"
-    )
+      // database libraries
+      "org.apache.commons" % "commons-dbcp2" % "2.0.1",
+      "com.h2database" % "h2" % "1.4.192"
+      //"org.xerial" % "sqlite-jdbc" % "3.8.11.2"
+)
     )
   )
     .disablePlugins (plugins.JUnitXmlReportPlugin)

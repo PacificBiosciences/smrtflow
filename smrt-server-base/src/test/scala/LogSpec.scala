@@ -64,7 +64,7 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
     val dbFile = File.createTempFile("log_spec_", ".db")
     dbFile.deleteOnExit()
     override final val logDaoDatabaseConfigProvider = DatabaseConfigProvider(
-      new DatabaseConfig.Configured(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared", "org.sqlite.JDBC")
+      new DatabaseConfig.Configured(s"jdbc:h2:${dbFile.getCanonicalPath}?cache=shared", "org.h2.Driver")
     )
   }
 
