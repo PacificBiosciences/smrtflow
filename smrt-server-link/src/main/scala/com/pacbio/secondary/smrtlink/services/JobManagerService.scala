@@ -2,6 +2,8 @@ package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.Paths
 
+import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -9,9 +11,7 @@ import akka.actor.{ActorSystem, ActorRef}
 import akka.pattern.ask
 import akka.util.Timeout
 
-import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider, UserServiceActorRefProvider, UserServiceActor}
-import UserServiceActor._
-import com.pacbio.common.actors.StatusServiceActor._
+import com.pacbio.common.actors.{ActorSystemProvider, UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
@@ -31,7 +31,7 @@ import SprayJsonSupport._
 
 class JobManagerService(
     dbActor: ActorRef,
-    statusActor: ActorRef,
+    statusGenerator: StatusGenerator,
     userActor: ActorRef,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
@@ -76,9 +76,9 @@ class JobManagerService(
       path("status") {
         get {
           complete {
-            for {
-              up <- (statusActor ? GetUptime).mapTo[Long]
-            } yield SimpleStatus(manifest.id, s"${manifest.name} are up and running for ${up/1000} seconds.", up)
+            ok {
+              statusGenerator.getStatus
+            }
           }
         }
       } ~
@@ -146,7 +146,7 @@ trait JobManagerServiceProvider {
   this: SetBindings
     with SmrtLinkConfigProvider
     with JobsDaoActorProvider
-    with StatusServiceActorRefProvider
+    with StatusGeneratorProvider
     with UserServiceActorRefProvider
     with ActorSystemProvider
     with ServiceComposer =>
@@ -156,7 +156,7 @@ trait JobManagerServiceProvider {
       implicit val system = actorSystem()
       new JobManagerService(
         jobsDaoActor(),
-        statusServiceActorRef(),
+        statusGenerator(),
         userServiceActorRef(),
         jobEngineConfig(),
         set(JobTypes),

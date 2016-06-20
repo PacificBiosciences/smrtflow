@@ -2,8 +2,9 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.{UserRecord, UserResponse}
+import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -50,7 +51,7 @@ with JobServiceConstants {
   JobManagerServiceProvider with
   MockPbsmrtpipeJobTypeProvider with
   JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
   JobsDaoProvider with
