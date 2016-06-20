@@ -43,7 +43,7 @@ trait HealthServiceActorRefProvider {
   this: HealthDaoProvider with ActorRefFactoryProvider =>
 
   final val healthServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[HealthServiceActor], healthDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[HealthServiceActor], healthDao()), "HealthServiceActor"))
 }
 
 /**

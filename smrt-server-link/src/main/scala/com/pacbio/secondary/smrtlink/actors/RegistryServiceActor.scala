@@ -35,7 +35,7 @@ trait RegistryServiceActorRefProvider {
   this: RegistryDaoProvider with ActorRefFactoryProvider =>
 
   val registryServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[RegistryServiceActor], registryDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[RegistryServiceActor], registryDao()), "RegistryServiceActor"))
 }
 
 trait RegistryServiceActorProvider {
