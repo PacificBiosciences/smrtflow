@@ -407,21 +407,21 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
         val metric = responseAs[HealthMetric]
         metric.metricValue === 0.0
         metric.severity === HealthSeverity.OK
-        metric.lastUpdate === Some(t30)
+        metric.lastUpdate === None
       }
       Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 0.0
         metric.severity === HealthSeverity.OK
-        metric.lastUpdate === Some(t30)
+        metric.lastUpdate === None
       }
       Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addCredentials(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val metric = responseAs[HealthMetric]
         metric.metricValue === 0.0
         metric.severity === HealthSeverity.OK
-        metric.lastUpdate === Some(t30)
+        metric.lastUpdate === None
       }
 
       // Check the update records

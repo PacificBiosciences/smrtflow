@@ -95,7 +95,7 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
       case MAX => if (updates.isEmpty) 0.0 else updates.map(_.updateValue).max
     }
     val newSeverity = severityByValue(metric.severityLevels, newValue)
-    val newLastUpdate = if (updates.isEmpty) metric.lastUpdate else Some(updates.map(_.timestamp).maxBy(_.getMillis))
+    val newLastUpdate = if (updates.isEmpty) None else Some(updates.map(_.timestamp).maxBy(_.getMillis))
     val newMetric = metric.copy(metricValue = newValue, severity = newSeverity, lastUpdate = newLastUpdate)
     metrics(metric.id) = newMetric
     newMetric
@@ -121,7 +121,7 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
           m.criteria,
           m.metricType,
           m.severityLevels - OK,
-          if (m.metricType == MetricType.LATEST) None else m.windowSeconds,
+          m.windowSeconds,
           HealthSeverity.OK,
           0.0,
           clock.dateNow(),
