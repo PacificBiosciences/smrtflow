@@ -25,11 +25,16 @@ object LoggerOptions {
       c.configure(c.logbackFile, c.logFile, true, c.logLevel)
     } text "If true, log output will be displayed to the console. Default is false."
 
-    parser.opt[String]("loglevel") action { (x, c) =>
+    parser.opt[String]("log-level") action { (x, c) =>
       c.configure(c.logbackFile, c.logFile, c.debug, x)
     } text "Level for logging: \"ERROR\", \"WARN\", \"DEBUG\", or \"INFO\". Default is \"ERROR\""
 
-    parser.opt[String]("logfile") action { (x, c) =>
+    for ((n, l) <- List(("debug", "DEBUG"), ("quiet", "ERROR"), ("verbose", "INFO")))
+      parser.opt[String](n) action { (x, c) =>
+        c.configure(c.logbackFile, c.logFile, c.debug, l)
+      } text s"Same as --log-level $l"
+
+    parser.opt[String]("log-file") action { (x, c) =>
       c.configure(c.logbackFile, x, c.debug, c.logLevel)
     } text "File for log output. Default is \".\""
 
