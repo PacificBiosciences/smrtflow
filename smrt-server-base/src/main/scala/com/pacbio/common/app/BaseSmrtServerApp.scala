@@ -42,7 +42,6 @@ trait CoreProviders extends
   HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
   UserServiceActorRefProvider with
@@ -92,7 +91,6 @@ trait AuthenticatedCoreProviders extends
   HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
   UserServiceActorRefProvider with
