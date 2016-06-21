@@ -151,7 +151,7 @@ case class JobTypeEndPoint(jobTypeId: String, description: String) {
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
-case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Int)
+case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Either[Int,UUID])
 
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)

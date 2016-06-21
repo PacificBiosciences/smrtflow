@@ -98,7 +98,7 @@ class PbsmrtpipeServiceJobType(
               val uuid = UUID.randomUUID()
               logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
-              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSet(x.fileTypeId, x.datasetId, dbActor))
+              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSetByAny(x.fileTypeId, x.datasetId, dbActor))
 
               val pathsFs = Future sequence fsx
               val rs = Await.result(pathsFs, 4.seconds)
