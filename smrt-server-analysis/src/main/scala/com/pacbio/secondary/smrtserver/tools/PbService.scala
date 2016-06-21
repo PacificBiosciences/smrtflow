@@ -560,7 +560,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   def runEmitAnalysisTemplate: Int = {
     val analysisOpts = {
-      val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", 1)
+      val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Left(0))
       val eps = Seq(ep)
       val taskOptions = Seq[ServiceTaskOptionBase]()
       val workflowOptions = Seq[ServiceTaskOptionBase]()
@@ -587,7 +587,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   protected def validateEntryPoints(entryPoints: Seq[BoundServiceEntryPoint]): Int = {
     for (entryPoint <- entryPoints) {
       Try {
-        Await.result(sal.getDataSetById(entryPoint.datasetId), TIMEOUT)
+        Await.result(sal.getDataSetByAny(entryPoint.datasetId), TIMEOUT)
       } match {
         case Success(dsInfo) => {
           // TODO check metatype against input
@@ -647,7 +647,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
     }
-    BoundServiceEntryPoint(eid, dsType, dsId)
+    BoundServiceEntryPoint(eid, dsType, Left(dsId))
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {

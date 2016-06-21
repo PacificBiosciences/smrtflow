@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
 import java.nio.file.{Files, Paths}
+import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
@@ -80,6 +81,25 @@ trait ValidateImportDataSetUtils {
         }
     } catch {
       case e: ResourceNotFoundError => Future.failed(new UnprocessableEntityError(s"Could not resolve dataset with id: $id"))
+    }
+  }
+
+  def resolveDataSetByAny(datasetType: String, id: Either[Int,UUID], dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
+    import JobsDaoActor._
+    id match {
+      case Left(id_) => resolveDataSet(datasetType, id_, dbActor)
+      case Right(uuid) => try {
+        DataSetMetaTypes.toDataSetType(datasetType) match {
+          case Some(DataSetMetaTypes.HdfSubread) => (dbActor ? GetHdfSubreadDataSetByUUID(uuid)).mapTo[HdfSubreadServiceDataSet]
+          case Some(DataSetMetaTypes.Subread) => (dbActor ? GetSubreadDataSetByUUID(uuid)).mapTo[SubreadServiceDataSet]
+          case Some(DataSetMetaTypes.Reference) => (dbActor ? GetReferenceDataSetByUUID(uuid)).mapTo[ReferenceServiceDataSet]
+          case Some(DataSetMetaTypes.Alignment) => (dbActor ? GetAlignmentDataSetByUUID(uuid)).mapTo[AlignmentServiceDataSet]
+          case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetsByUUID(uuid)).mapTo[BarcodeServiceDataSet]
+          case _ => Future.failed(new UnprocessableEntityError(s"Unsupported dataset type: $datasetType"))
+          }
+      } catch {
+        case e: ResourceNotFoundError => Future.failed(new UnprocessableEntityError(s"Could not resolve dataset with uuid: $uuid"))
+      }
     }
   }
 }
