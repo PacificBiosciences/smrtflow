@@ -1,12 +1,11 @@
 import java.io.File
 
-import akka.testkit.TestActorRef
-import com.pacbio.common.actors.{InMemoryUserDaoProvider, LogServiceActorProvider, LogServiceActor, UserDao}
+import com.pacbio.common.actors.{InMemoryUserDaoProvider, UserDao}
 import com.pacbio.common.auth._
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.LogService
+import com.pacbio.common.services.LogServiceProvider
 import com.pacbio.common.time._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
@@ -16,11 +15,18 @@ import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives, HttpService}
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
-class LogSpec extends Specification with NoTimeConversions with Directives with Specs2RouteTest with HttpService with BaseRolesInit {
-  // Tests must be run in sequence because of shared state in InMemoryLogDao
+class LogSpec
+  extends Specification
+  with NoTimeConversions
+  with Directives
+  with Specs2RouteTest
+  with HttpService
+  with BaseRolesInit {
+
   sequential
 
   import PacBioJsonProtocol._
@@ -42,7 +48,7 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
 
   object TestProviders extends
       SetBindings with
-      LogServiceActorProvider with
+      LogServiceProvider with
       DatabaseLogDaoProvider with
       BaseSmrtServerDatabaseConfigProviders with
       InMemoryUserDaoProvider with
@@ -68,7 +74,6 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
     )
   }
 
-  val actorRef = TestActorRef[LogServiceActor](TestProviders.logServiceActor())
   val authenticator = TestProviders.authenticator()
   val userDao: UserDao = TestProviders.userDao()
   val logDao: DatabaseLogDao = TestProviders.logDao().asInstanceOf[DatabaseLogDao]
@@ -79,22 +84,21 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
   userDao.createUser(adminUserLogin, UserRecord("pass"))
   userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
 
-  val routes = new LogService(actorRef, authenticator).prefixedRoutes
+  val routes = TestProviders.logService().prefixedRoutes
 
   trait daoSetup extends Scope {
-    logDao.clear()
-    logDao.deleteAll()
+    Await.ready(for {
+      _ <- logDao.clear()
 
-    logDao.createLogResource(LogResourceRecord("Logger for Component 1", componentId1, "Component 1"))
-    logDao.createLogResource(LogResourceRecord("Logger for Component 2", componentId2, "Component 2"))
+      _ <- logDao.createLogResource(LogResourceRecord("Logger for Component 1", componentId1, "Component 1"))
+      _ <- logDao.createLogResource(LogResourceRecord("Logger for Component 2", componentId2, "Component 2"))
 
-    logDao.createLogMessage(
-      componentId1, LogMessageRecord("This component has some info.", LogLevel.INFO, "test source"))
-    logDao.createLogMessage(
-      componentId1, LogMessageRecord("This component has an error.", LogLevel.ERROR, "test source"))
 
-    logDao.createLogMessage(
-      componentId2, LogMessageRecord("This component has some debug info.", LogLevel.DEBUG, "test source"))
+      _ <- logDao.createLogMessage(componentId1, LogMessageRecord("This component has some info.", LogLevel.INFO, "test source"))
+      _ <- logDao.createLogMessage(componentId1, LogMessageRecord("This component has an error.", LogLevel.ERROR, "test source"))
+
+      _ <- logDao.createLogMessage(componentId2, LogMessageRecord("This component has some debug info.", LogLevel.DEBUG, "test source"))
+    } yield (), 10.seconds)
   }
 
   "Log Service" should {
@@ -201,19 +205,13 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
       val read = OAuth2BearerToken(readUserLogin)
       val write = OAuth2BearerToken(writeUserLogin)
       for (i <- 0 until 100) {
-        val parity = i % 2 match {
-          case 0 => "even"
-          case 1 => "odd"
-        }
+        val parity = if (i % 2 == 0) "even" else "odd"
         val message = "This is message number " + i + " and it is " + parity
         val source = "source" + (i % 3) // source0, source1, source2
         val timeMs = i + (i % 5) * 100 // 0, 101, 202, 303, 404, 5, 106, 207, 308, 409, 10, 111, 212, etc.
 
         // The system logs should contain messages written to every component
-        val target = i < 50 match {
-          case true => componentId1
-          case false => componentId2
-        }
+        val target = if (i < 50) componentId1 else componentId2
 
         TestProviders.clock().asInstanceOf[FakeClock].reset(timeMs)
         val record = LogMessageRecord(message, LogLevel.NOTICE, source)
@@ -236,19 +234,20 @@ class LogSpec extends Specification with NoTimeConversions with Directives with 
     }
 
     "reject unauthorized users" in new daoSetup {
-      Get("/smrt-base/loggers") ~> routes ~> check {
+      val message = LogMessageRecord("This component has critical info", LogLevel.CRITICAL, "test source")
+
+      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
 
       val invalid = OAuth2BearerToken(invalidJwt)
-      Get("/smrt-base/loggers") ~> addCredentials(invalid) ~> routes ~> check {
+      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addCredentials(invalid) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
 
       val noWrite = OAuth2BearerToken(readUserLogin)
-      val message = LogMessageRecord("This component has critical info", LogLevel.CRITICAL, "test source")
       Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addCredentials(noWrite) ~> routes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection

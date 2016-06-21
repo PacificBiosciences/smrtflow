@@ -56,7 +56,6 @@ with JobServiceConstants {
   UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
