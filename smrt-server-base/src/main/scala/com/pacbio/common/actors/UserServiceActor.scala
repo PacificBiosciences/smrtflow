@@ -42,7 +42,7 @@ trait UserServiceActorRefProvider {
   this: UserDaoProvider with ActorRefFactoryProvider =>
 
   final val userServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[UserServiceActor], userDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[UserServiceActor], userDao()), "UserServiceActor"))
 }
 
 /**

@@ -224,6 +224,11 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
   }
 
+  override def preRestart(reason:Throwable, message:Option[Any]){
+    super.preRestart(reason, message)
+    log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
+  }
+
   // This should return a Future
   def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
 
@@ -611,5 +616,5 @@ trait JobsDaoActorProvider {
   this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val jobsDaoActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao(), jobEngineConfig(), jobResolver())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[JobsDaoActor], jobsDao(), jobEngineConfig(), jobResolver()), "JobsDaoActor"))
 }
