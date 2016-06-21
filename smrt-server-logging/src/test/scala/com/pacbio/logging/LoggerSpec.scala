@@ -16,7 +16,11 @@ import org.specs2.mutable.Specification
 import scala.concurrent.{Await, Future}
 
 /**
- * Created by jfalkner on 6/21/16.
+ * Tests showing that the logging CLI flags work as exepected
+ *
+ * A start to covering the expected use cases with a test. This spec or related ones could improve
+ * the testing to verify that expected param combinations, logging to files and using logback files
+ * works.
  */
 class LoggerSpec  extends Specification with LazyLogging {
 
