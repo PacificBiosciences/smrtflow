@@ -30,7 +30,7 @@ object LoggerOptions {
     } text "Level for logging: \"ERROR\", \"WARN\", \"DEBUG\", or \"INFO\". Default is \"ERROR\""
 
     for ((n, l) <- List(("debug", "DEBUG"), ("quiet", "ERROR"), ("verbose", "INFO")))
-      parser.opt[String](n) action { (x, c) =>
+      parser.opt[Unit](n) action { (x, c) =>
         c.configure(c.logbackFile, c.logFile, c.debug, l)
       } text s"Same as --log-level $l"
 
