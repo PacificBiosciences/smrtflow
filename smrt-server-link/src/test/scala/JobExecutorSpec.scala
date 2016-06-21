@@ -64,7 +64,6 @@ with JobServiceConstants {
   UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
@@ -99,7 +98,7 @@ with JobServiceConstants {
   val mockOpts = PbSmrtPipeServiceOptions(
     "My-job-name",
     "pbsmrtpipe.pipelines.mock_dev01",
-    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
+    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
     Nil,
     Nil)
 

@@ -30,11 +30,8 @@ class DatabaseLogDao(
 
   override def newBuffer(id: String) = new LogBuffer with BaseJsonProtocol {
 
-    override def handleStaleMessage(message: LogMessage): Unit = {
-      db.run {
-        logMessageTable += LogMessageRow(id, message)
-      }
-    }
+    override def handleStaleMessage(message: LogMessage): Future[Unit] =
+      db.run(logMessageTable += LogMessageRow(id, message)).map(_ => ())
 
     override def searchStaleMessages(criteria: SearchCriteria, limit: Int): Future[Seq[LogMessage]] = {
       if (limit <= 0) return Future(Nil)
@@ -59,9 +56,8 @@ class DatabaseLogDao(
   }
 
   @VisibleForTesting
-  def deleteAll(): Unit = {
-    db.run(logMessageTable.delete)
-  }
+  override def clear(): Future[Unit] =
+    Future.sequence(Seq(db.run(logMessageTable.delete), super.clear())).map(_ => ())
 }
 
 /**

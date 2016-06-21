@@ -20,5 +20,5 @@ trait EngineDaoActorProvider {
   // TODO(smcclellan): EngineDaoActor constructor 'listeners' argument should take a Set
   val engineDaoActor: Singleton[ActorRef] =
     Singleton(() => actorRefFactory().actorOf(
-      Props(classOf[EngineDaoActor], jobsDao(), set(JobListeners).toSeq)))
+      Props(classOf[EngineDaoActor], jobsDao(), set(JobListeners).toSeq), "EngineDaoActor"))
 }

@@ -25,7 +25,7 @@ object LogDatabaseSchema extends PacBioDateTimeDatabaseFormat {
     def level: Rep[LogLevel.LogLevel] = column[LogLevel.LogLevel]("SEVERITY")
     def sourceId: Rep[String] = column[String]("SOURCE_ID")
 
-    // def key = primaryKey("KEY", (id, uuid))
+    def key = primaryKey("KEY", (id, uuid))
 
     def logMessage =
       (createdAt, uuid, message, level, sourceId) <> (LogMessage.tupled, LogMessage.unapply)

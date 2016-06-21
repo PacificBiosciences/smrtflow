@@ -11,6 +11,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, Supported
 import spray.json._
 import fommil.sjs.FamilyFormats
 import shapeless.cachedImplicit
+import java.util.UUID
 
 
 trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
@@ -83,6 +84,20 @@ trait PathProtocols extends DefaultJsonProtocol {
   }
 }
 
+trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
+  implicit object EitherIntOrUUIDFormat extends RootJsonFormat[Either[Int,UUID]] {
+    def write(id: Either[Int, UUID]): JsValue = id match {
+      case Left(id) => JsNumber(id)
+      case Right(uuid) => uuid.toJson
+    }
+    def read(v: JsValue): Either[Int, UUID] = v match {
+      case JsNumber(x) => Left(x.toInt)
+      case JsString(s) => Right(UUID.fromString(s))
+      case _ => deserializationError("Expected datasetId as either JsString or JsNumber")
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
@@ -90,6 +105,7 @@ trait SmrtLinkJsonProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
   with PathProtocols
+  with EntryPointProtocols
   with FamilyFormats {
 
   implicit val pbSampleFormat = jsonFormat5(Sample)

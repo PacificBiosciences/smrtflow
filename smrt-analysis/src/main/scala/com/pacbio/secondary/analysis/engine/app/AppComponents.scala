@@ -47,11 +47,11 @@ object AppComponents {
 
     val jobRunner = new SimpleJobRunner
     val listeners = Seq[ActorRef]()
-    val engineDaoActor = system.actorOf(Props(new EngineDaoActor(dao, listeners)))
-    val engineManagerActor = system.actorOf(Props(new EngineManagerActor(engineDaoActor, engineConfig, resolver, jobRunner)))
+    val engineDaoActor = system.actorOf(Props(new EngineDaoActor(dao, listeners)), "AppComponents$EngineDaoActor")
+    val engineManagerActor = system.actorOf(Props(new EngineManagerActor(engineDaoActor, engineConfig, resolver, jobRunner)), "AppComponents$EngineManagerActor")
 
     val pipelineTemplateDao = new PipelineTemplateDao(pipelineTemplates)
-    val pipelineTemplateActor = system.actorOf(Props(new PipelineTemplateDaoActor(pipelineTemplateDao)))
+    val pipelineTemplateActor = system.actorOf(Props(new PipelineTemplateDaoActor(pipelineTemplateDao)), "AppComponents$PipelineTemplateDaoActor")
 
   }
 

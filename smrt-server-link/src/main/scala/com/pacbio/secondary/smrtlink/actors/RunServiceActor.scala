@@ -62,7 +62,7 @@ trait RunServiceActorRefProvider {
   this: RunDaoProvider with ActorRefFactoryProvider =>
 
   final val runServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[RunServiceActor], runDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[RunServiceActor], runDao()), "RunServiceActor"))
 }
 
 /**

@@ -1,21 +1,31 @@
 package com.pacbio.common.actors
 
-import java.io.{PrintWriter, File, FileWriter, BufferedWriter}
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models._
-import com.pacbio.common.models.BaseJsonProtocol
+import com.pacbio.common.models.{BaseJsonProtocol, _}
 import com.pacbio.common.services.PacBioServiceErrors
-import com.pacbio.common.time.{ClockProvider, Clock}
-
-import scala.collection.mutable
-
+import com.pacbio.common.time.{Clock, ClockProvider}
+import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
+
+/**
+ * Represents a set of search criteria for searching log messages.
+ * @param substring if present, only log messages containing this substring will be returned
+ * @param sourceId if present, only log messages from the specified source will be returned
+ * @param startTime if present, only log messages from this time or after will be returned (as ms since epoch)
+ * @param endTime if present, only log messages from before this time will be returned (as ms since epoch)
+ */
+case class SearchCriteria(substring: Option[String],
+                          sourceId: Option[String],
+                          startTime: Option[JodaDateTime],
+                          endTime: Option[JodaDateTime])
 
 /**
  * Interface for the Logging DAO
@@ -24,32 +34,32 @@ trait LogDao {
   /**
    * Provides a list of all log resources.
    */
-  def getAllLogResources: Seq[LogResource]
+  def getAllLogResources: Future[Seq[LogResource]]
 
   /**
    * Creates a new log resource.
    */
-  def createLogResource(m: LogResourceRecord): String
+  def createLogResource(m: LogResourceRecord): Future[String]
 
   /**
    * Gets a specific log resource by id.
    */
-  def getLogResource(id: String): LogResource
+  def getLogResource(id: String): Future[LogResource]
 
   /**
    * Gets recent messages from a given log resource.
    */
-  def getLogMessages(id: String): Seq[LogMessage]
+  def getLogMessages(id: String): Future[Seq[LogMessage]]
 
   /**
    * Creates a new log message.
    */
-  def createLogMessage(id: String, m: LogMessageRecord): LogMessage
+  def createLogMessage(id: String, m: LogMessageRecord): Future[LogMessage]
 
   /**
    * Gets recent messages from all log resources.
    */
-  def getSystemLogMessages: Seq[LogMessage]
+  def getSystemLogMessages: Future[Seq[LogMessage]]
 
   /**
    * Searches for messages in a given log resource that contain the given substring.
@@ -64,7 +74,7 @@ trait LogDao {
   /**
    * Flush all messages from buffers into long-term storage.
    */
-  def flushAll(): Unit
+  def flushAll(): Future[Unit]
 }
 
 /**
@@ -127,15 +137,20 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
 
     final def +=(message: LogMessage) = buffer(message)
 
-    final def buffer(message: LogMessage): Unit = {
+    final def buffer(message: LogMessage): Future[Unit] = {
       buffer.enqueue(message)
-      while (buffer.length > bufferSize)
-        handleStaleMessage(buffer.dequeue())
+      handleUntilSizeIs(bufferSize)
     }
 
-    final def flush(): Unit = {
-      while (buffer.nonEmpty)
-        handleStaleMessage(buffer.dequeue())
+    final def flush(): Future[Unit] = handleUntilSizeIs(0)
+
+    private def handleUntilSizeIs(size: Int): Future[Unit] = {
+      var f: Future[Unit] = Future.successful(())
+      while (buffer.length > size){
+        val s = buffer.dequeue()
+        f = f.flatMap(_ => handleStaleMessage(s))
+      }
+      f
     }
 
     @VisibleForTesting
@@ -164,7 +179,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
      * <p> Does nothing by default, essentially causing stale messages to be deleted. Subclasses may override this
      * method to provide for custom storage or handling of stale messages.
      */
-    protected def handleStaleMessage(message: LogMessage): Unit = {}
+    protected def handleStaleMessage(message: LogMessage): Future[Unit] = Future.successful(())
 
     /**
      * Searches messages that have been flushed from the buffer via handleStaleMessage. The returned list should be in
@@ -174,7 +189,8 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
      * <p> By default, this returns Nil. Subclasses may override this method to search their custom storage solutions
      * for matching messages.
      */
-    protected def searchStaleMessages(criteria: SearchCriteria, limit: Int): Future[Seq[LogMessage]] = Future(Nil)
+    protected def searchStaleMessages(criteria: SearchCriteria, limit: Int): Future[Seq[LogMessage]] =
+      Future.successful(Nil)
   }
 
   /**
@@ -183,62 +199,68 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
    */
   def newBuffer(id: String): LogBuffer
 
-  override final def getAllLogResources: Seq[LogResource] = resources.values.toSeq
+  override final def getAllLogResources: Future[Seq[LogResource]] = Future(resources.values.toSeq)
 
-  override final def createLogResource(m: LogResourceRecord): String = {
-    val id = m.id
-    if (resources contains id)
-      throw new UnprocessableEntityError(s"Resource with id $id already exists")
-    else if (id == LogDaoConstants.SYSTEM_ID)
-      throw new UnprocessableEntityError(s"Resource with id $id is reserved for the system log")
-    else {
-      val newResource = LogResource(clock.dateNow(), m.description, m.id, m.name)
-      resources(id) = newResource
-      buffers(id) = newBuffer(id)
-      s"Successfully created resource $id"
+  override final def createLogResource(m: LogResourceRecord): Future[String] = Future {
+    resources.synchronized {
+      val id = m.id
+      if (resources contains id)
+        throw new UnprocessableEntityError(s"Resource with id $id already exists")
+      else if (id == LogDaoConstants.SYSTEM_ID)
+        throw new UnprocessableEntityError(s"Resource with id $id is reserved for the system log")
+      else {
+        val newResource = LogResource(clock.dateNow(), m.description, m.id, m.name)
+        resources(id) = newResource
+        buffers(id) = newBuffer(id)
+        s"Successfully created resource $id"
+      }
     }
   }
 
-  override final def getLogResource(id: String): LogResource =
+  override final def getLogResource(id: String): Future[LogResource] = Future {
     if (resources contains id)
       resources(id)
     else if (id == LogDaoConstants.SYSTEM_ID)
       systemResource
     else throw new ResourceNotFoundError(s"Unable to find resource $id")
+  }
 
-  override final def getLogMessages(id: String): Seq[LogMessage] =
-    if (buffers contains id) buffers.get(id).get.getRecent else Nil
+  override final def getLogMessages(id: String): Future[Seq[LogMessage]] =
+    Future(if (buffers contains id) buffers.get(id).get.getRecent else Nil)
 
-  override final def createLogMessage(id: String, m: LogMessageRecord): LogMessage =
-    if (resources contains id) {
-      val newMessage = LogMessage(clock.dateNow(), UUID.randomUUID(), m.message, m.level, m.sourceId)
-      buffers(id) += newMessage
-      systemBuffer += newMessage
-      newMessage
-    } else throw new ResourceNotFoundError(s"Unable to find resource $id")
+  override final def createLogMessage(id: String, m: LogMessageRecord): Future[LogMessage] =
+    Future(resources contains id).flatMap {
+      case true =>
+        systemBuffer.synchronized {
+          val newMessage = LogMessage(clock.dateNow(), UUID.randomUUID(), m.message, m.level, m.sourceId)
+          Future.sequence(Seq(buffers(id) += newMessage, systemBuffer += newMessage)).map(_ => newMessage)
+        }
+      case _ => throw new ResourceNotFoundError(s"Unable to find resource $id")
+    }
 
-  override final def getSystemLogMessages: Seq[LogMessage] = systemBuffer.getRecent
+  override final def getSystemLogMessages: Future[Seq[LogMessage]] = Future(systemBuffer.getRecent)
 
-  override final def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]] = {
+  override final def searchLogMessages(id: String, criteria: SearchCriteria): Future[Seq[LogMessage]] =
     if (resources contains id) {
       buffers(id).searchMessages(criteria)
     } else Future(Nil)
-  }
 
-  override final def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] = {
+  override final def searchSystemLogMessages(criteria: SearchCriteria): Future[Seq[LogMessage]] =
     systemBuffer.searchMessages(criteria)
-  }
 
-  override def flushAll(): Unit = {
-    systemBuffer.flush()
-    buffers.values.foreach(_.flush())
+  override def flushAll(): Future[Unit] = systemBuffer.synchronized {
+    Future.sequence((buffers.values.toSeq :+ systemBuffer).map(_.flush())).map(_ => ())
   }
 
   @VisibleForTesting
-  def clear(): Unit = {
-    systemBuffer.clear()
-    resources.clear()
-    buffers.clear()
+  def clear(): Future[Unit] = Future {
+    systemBuffer.synchronized {
+      systemBuffer.clear()
+    }
+    resources.synchronized {
+      resources.clear()
+      buffers.clear()
+    }
   }
 }
 
@@ -268,7 +290,8 @@ class FileLogDao(logDirPath: String, clock: Clock, bufferSize: Int) extends Abst
     // TODO(smcclellan): Consider sharding log files by date.
     val writer = new PrintWriter(new BufferedWriter(new FileWriter(new File(logDirPath, id))))
 
-    override def handleStaleMessage(message: LogMessage): Unit = writer.println(message.toJson.compactPrint)
+    override def handleStaleMessage(message: LogMessage): Future[Unit] =
+      Future(writer.println(message.toJson.compactPrint))
   }
 }
 

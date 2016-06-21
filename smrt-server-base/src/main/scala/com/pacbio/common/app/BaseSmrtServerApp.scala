@@ -42,7 +42,6 @@ trait CoreProviders extends
   HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
   UserServiceActorRefProvider with
@@ -92,7 +91,6 @@ trait AuthenticatedCoreProviders extends
   HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
   UserServiceActorRefProvider with
@@ -146,7 +144,7 @@ trait BaseApi extends BaseRolesInit {
 
   lazy val system = providers.actorSystem()
   lazy val routes = providers.routes()
-  lazy val rootService = system.actorOf(Props(new ServiceActor(routes)))
+  lazy val rootService = system.actorOf(Props(new ServiceActor(routes)), name = "ServiceActor")
 
     // This is needed with Mixin routes from traits that only extend HttpService
   def actorRefFactory: ActorRefFactory = system
