@@ -83,7 +83,7 @@ with JobServiceConstants {
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
 
   val mockOpts = {
-    val ep = BoundServiceEntryPoint("e_01", "DataSet.Subread.", 1)
+    val ep = BoundServiceEntryPoint("e_01", "DataSet.Subread.", Left(1))
     val eps = Seq(ep)
     val taskOptions = Seq[ServiceTaskOptionBase]()
     val workflowOptions = Seq[ServiceTaskOptionBase]()
