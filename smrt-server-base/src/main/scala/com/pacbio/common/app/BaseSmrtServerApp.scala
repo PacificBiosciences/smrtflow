@@ -44,7 +44,6 @@ trait CoreProviders extends
   LogServiceProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProvider with
   CleanupServiceActorRefProvider with
@@ -93,7 +92,6 @@ trait AuthenticatedCoreProviders extends
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProviderx with
   CleanupServiceActorRefProvider with

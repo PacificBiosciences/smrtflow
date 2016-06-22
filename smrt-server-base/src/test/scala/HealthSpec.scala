@@ -3,22 +3,32 @@ import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.SetBindings
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, HealthService}
+import com.pacbio.common.services.HealthService
 import com.pacbio.common.time.FakeClockProvider
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.routing._
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
-class HealthSpec extends Specification with Directives with Specs2RouteTest with HttpService with BaseRolesInit  {
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
+class HealthSpec
+  extends Specification
+  with Directives
+  with Specs2RouteTest
+  with HttpService
+  with NoTimeConversions
+  with BaseRolesInit  {
+
   sequential
 
-  import PacBioJsonProtocol._
   import BaseRoles._
+  import PacBioJsonProtocol._
 
   def actorRefFactory = system
 
@@ -55,11 +65,13 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
   val actorRef = TestActorRef[HealthServiceActor](TestProviders.healthServiceActor())
   val authenticator = TestProviders.authenticator()
 
-  TestProviders.userDao().createUser(readUserLogin, UserRecord("pass"))
-  TestProviders.userDao().createUser(writeUserLogin, UserRecord("pass"))
-  TestProviders.userDao().addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
-  TestProviders.userDao().createUser(adminUserLogin, UserRecord("pass"))
-  TestProviders.userDao().addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(readUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(writeUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
+    _ <- TestProviders.userDao().createUser(adminUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  } yield (), 10.seconds)
 
   val routes = new HealthService(actorRef, authenticator).prefixedRoutes
 

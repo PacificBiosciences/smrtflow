@@ -8,7 +8,6 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
@@ -46,7 +45,6 @@ import spray.json._
 
 class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
-    userActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -76,7 +74,7 @@ class PbsmrtpipeServiceJobType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -147,7 +145,7 @@ class PbsmrtpipeServiceJobType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     } ~
     path(endpoint / IntNumber / LOG_PREFIX) { id =>
       post {
@@ -187,14 +185,12 @@ class PbsmrtpipeServiceJobType(
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
   val pbsmrtpipeServiceJobType: Singleton[PbsmrtpipeServiceJobType] =
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
-      userServiceActorRef(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),

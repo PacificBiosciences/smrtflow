@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.UserServiceActorRefProvider
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -26,7 +25,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class ImportDataStoreServiceType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
+class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -39,7 +38,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, userActor: ActorRef, authent
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -67,16 +66,15 @@ class ImportDataStoreServiceType(dbActor: ActorRef, userActor: ActorRef, authent
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait ImportDataStoreServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with JobManagerServiceProvider =>
 
   val importDataStoreServiceType: Singleton[ImportDataStoreServiceType] =
-    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
 }
