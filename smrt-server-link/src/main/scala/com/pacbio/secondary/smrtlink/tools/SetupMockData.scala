@@ -347,11 +347,10 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
 
   def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
 
+  val db = new Database(toURI(conf.getString("pb-services.db-uri")))
+  val dao = new JobsDao(db, engineConfig, resolver)
+
   def runner(args: Array[String]): Int = {
-
-    val db = new Database(toURI(conf.getString("pb-services.db-uri")))
-    val dao = new JobsDao(db, engineConfig, resolver)
-
     println(s"Loading DB ${dao.db.dbUri}")
 
     createTables
