@@ -1,6 +1,7 @@
 import java.nio.file.{Paths, Files}
+
 import com.pacbio.secondary.analysis.bio.Fasta
-import com.pacbio.secondary.analysis.converters.FastaConverter._
+import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
@@ -28,10 +29,14 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
       Files.copy(Paths.get(path.toURI), tmpFasta)
 
       logger.info(s"Writing Reference Dataset to $outputDir")
-      val referenceName = Option("Dragon")
+      val referenceName = "Dragon"
       val ploidy = Option("Haploid")
       val organism = Option("Lambda")
-      val x = createReferenceFromFasta(tmpFasta, outputDir, referenceName, organism, ploidy)
+      val x = FastaToReferenceConverter(referenceName, organism, ploidy,
+                                        tmpFasta, outputDir) match {
+        case Right(rio) => rio.path
+        case _ => null
+      }
       logger.info(s"Reference DataSet File IO $x")
       f must not beNull
     }
