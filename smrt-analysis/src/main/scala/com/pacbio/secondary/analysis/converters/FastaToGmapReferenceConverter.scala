@@ -52,7 +52,8 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
                              dbInfo: GmapDbInfo,
                              name: String,
                              organism: Option[String],
-                             ploidy: Option[String]): GmapReferenceSet = {
+                             ploidy: Option[String],
+                             outputDir: Path): GmapReferenceSet = {
     val faiIndex = handleCmdError(CallSamToolsIndex.run(fastaPath)) match {
       case Right(f) => f.toAbsolutePath
       case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
@@ -111,12 +112,12 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     er.setTags(tags)
     er.setDescription("Converted with fasta-to-gmap-reference")
     er.setTimeStampedName(fastaTimeStampName)
-    er.setResourceId(fastaPath.toAbsolutePath.toString)
+    er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
 
     val fai = new InputOutputDataType()
     fai.setUniqueId(UUID.randomUUID().toString)
     fai.setTimeStampedName(toTimeStampName("index"))
-    fai.setResourceId(faiIndex.toString)
+    fai.setResourceId(outputDir.relativize(faiIndex).toString)
     fai.setMetaType(FileTypes.I_SAM.fileTypeId)
 
     val fileIndices = new FileIndices()
@@ -132,7 +133,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     db.setUniqueId(UUID.randomUUID().toString)
     db.setTags(tags)
     db.setDescription("Created by fasta-to-gmap-reference")
-    db.setResourceId(dbFile)
+    db.setResourceId(outputDir.relativize(Paths.get(dbFile)).toString)
     
     val fastaResources = new ExternalResources()
     fastaResources.getExternalResource.add(db)
@@ -164,7 +165,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
       case Right(contigs) => generateGmapDb(fastaPath, name, outputDir) match {
         case Right(dbInfo) => {
           val rs = createGmapReferenceSet(fastaPath, contigs, dbInfo, name,
-                                          organism, ploidy)
+                                          organism, ploidy, outputDir)
           Right(rs)
         }
         case Left(x) => Left(DatasetConvertError(s"${x}"))
@@ -187,7 +188,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
       new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
         new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
     }
-    val ofn = outputDir.resolve(s"${sanitizedName}/${sanitizedName}.gmapreferenceset.xml")
+    val ofn = outputDir.resolve(s"${sanitizedName}/gmapreferenceset.xml")
     createDataset(sanitizedName, fastaFinal, targetDir, organism, ploidy) match {
       case Right(rs) => {
         DataSetWriter.writeGmapReferenceSet(rs, ofn)
