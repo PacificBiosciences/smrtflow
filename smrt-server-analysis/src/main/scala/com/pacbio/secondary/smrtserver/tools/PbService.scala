@@ -95,6 +95,7 @@ object PbServiceParser {
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
+      nonLocal: String = null,
       asJson: Boolean = false,
       pipelineId: String = "",
       jobTitle: String = "",
@@ -146,7 +147,10 @@ object PbServiceParser {
       } text "DataSet XML path (or directory containing datasets)",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status"
+      } text "Maximum time to poll for running job status",
+      opt[String]("non-local") action { (t, c) =>
+        c.copy(nonLocal = t)
+      } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -514,14 +518,14 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Failure(err) => {
         println(s"Could not retrieve existing dataset record: ${err}")
         //println(ex.getMessage)
-        val rc = runImportDataSet(path)
+        val dsType = dsMetaTypeFromPath(path)
+        val rc = runImportDataSet(path, dsType)
         if (rc == 0) runGetDataSetInfo(Right(dsUuid)) else rc
       }
     }
   }
 
-  def runImportDataSet(path: String): Int = {
-    val dsType = dsMetaTypeFromPath(path)
+  def runImportDataSet(path: String, dsType: String): Int = {
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
@@ -545,8 +549,11 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
-  def runImportDataSets(f: File): Int = {
-    if (f.isDirectory) {
+  def runImportDataSets(f: File, nonLocal: String = null): Int = {
+    if (nonLocal != null) {
+      logger.info(s"Non-local file, importing as type ${nonLocal}")
+      runImportDataSet(f.getAbsolutePath, nonLocal)
+    } else if (f.isDirectory) {
       val xmlFiles = listDataSetFiles(f)
       if (xmlFiles.size == 0) {
         errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
@@ -754,7 +761,7 @@ object PbService {
     try {
       c.mode match {
         case Modes.STATUS => ps.runStatus(c.asJson)
-        case Modes.IMPORT_DS => ps.runImportDataSets(c.path)
+        case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal)
         case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
                                                      c.name, c.organism, c.ploidy)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
