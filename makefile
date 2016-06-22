@@ -58,18 +58,18 @@ validate-resources: validate-report-view-rules validate-pipeline-view-rules
 full-stress-run: test-data/smrtserver-testdata
 	@for i in `seq 1 $(STRESS_RUNS)`; do \
 	    RUN=run-$$(date +%s) && \
-	    RUNDIR=test-output/stress-runs/ && \
+	    RUNDIR=test-output/stress-runs && \
 	    OUTDIR=$$RUNDIR/$$RUN && \
 	    mkdir -p $$OUTDIR && \
-	    rm $$RUNDIR/latest && \
+	    rm -f $$RUNDIR/latest && \
 	    ln -s $$RUN $$RUNDIR/latest && \
-	    rm smrt-server-analysis/db/analysis_services.db; \
-	    rm -r smrt-server-analysis/jobs-root/*; \
+	    rm -f smrt-server-analysis/db/analysis_services.db; \
+	    rm -rf smrt-server-analysis/jobs-root/*; \
 	    sbt smrt-server-analysis/compile && \
-	    sbt "smrt-server-analysis/run --logfile $(CURDIR)/$$OUTDIR/secondary-smrt-server.log" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & \
+	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-analysis/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & echo \$$!") && \
 	    sleep 20 && \
 	    ./stress.py --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
 	    sleep 2 ; \
-	    pkill -g 0 ; \
+	    pkill -g $$SERVERPID ; \
 	    sleep 2 ; \
         done
