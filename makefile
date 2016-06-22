@@ -1,4 +1,5 @@
 SHELL=/bin/bash
+STRESS_RUNS=1
 
 clean:
 	rm -f secondary-smrt-server*.log
@@ -52,3 +53,23 @@ validate-pipeline-view-rules:
 	find ./smrt-server-analysis/src/main/resources/pipeline-template-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
 
 validate-resources: validate-report-view-rules validate-pipeline-view-rules
+
+# e.g., make full-stress-run STRESS_RUNS=2
+full-stress-run: test-data/smrtserver-testdata
+	@for i in `seq 1 $(STRESS_RUNS)`; do \
+	    RUN=run-$$(date +%s) && \
+	    RUNDIR=test-output/stress-runs/ && \
+	    OUTDIR=$$RUNDIR/$$RUN && \
+	    mkdir -p $$OUTDIR && \
+	    rm $$RUNDIR/latest && \
+	    ln -s $$RUN $$RUNDIR/latest && \
+	    rm smrt-server-analysis/db/analysis_services.db; \
+	    rm -r smrt-server-analysis/jobs-root/*; \
+	    sbt smrt-server-analysis/compile && \
+	    sbt "smrt-server-analysis/run --logfile $(CURDIR)/$$OUTDIR/secondary-smrt-server.log" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & \
+	    sleep 20 && \
+	    ./stress.py --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
+	    sleep 2 ; \
+	    pkill -g 0 ; \
+	    sleep 2 ; \
+        done
