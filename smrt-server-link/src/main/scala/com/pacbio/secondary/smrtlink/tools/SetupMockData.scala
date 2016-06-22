@@ -6,6 +6,7 @@ import java.security.MessageDigest
 import java.util.UUID
 
 import com.pacbio.database.Database
+import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
@@ -46,7 +47,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
       ))
     }.andThen { case _ => println("Completed inserting mock data.") }
 
-    Await.ready(f, 1.minute)
+    Await.result(f, 1.minute)
   }
 }
 
@@ -80,22 +81,57 @@ trait MockUtils extends LazyLogging{
     files
   }
 
-  def insertMockJobs(): Future[Option[Int]] = {
-    import scala.util.{Success, Failure}
-    def toJob(n: Int) = EngineJob(
-        n,
-        UUID.randomUUID(),
-        s"Job name $n",
-        s"Comment for job $n",
+  def insertMockJobs(numJobs: Int = _MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
+
+    val states = AnalysisJobStates.VALID_STATES
+    val rnd = new Random
+
+    def getRandomState = states.toVector(rnd.nextInt(states.size))
+
+    def toJob = {
+
+      val uuid = UUID.randomUUID()
+      EngineJob(
+        -1,
+        uuid,
+        s"Job name $uuid",
+        s"Comment for job $uuid",
         JodaDateTime.now(),
         JodaDateTime.now(),
-        AnalysisJobStates.CREATED,
-        "mock-pbsmrtpipe",
+        getRandomState,
+        jobType,
         "path",
         "{}",
-        Some("root")
-    )
-    dao.db.run(engineJobs ++= (1 until _MOCK_NJOBS).map(toJob))
+        Some("root"))}
+    dao.db.run(engineJobs ++= (0 until numJobs ).map(x => toJob))
+  }
+
+  def insertDummySubreadSets(n: Int): Future[Seq[String]] = {
+    def toS = {
+      val importJobId = 1
+      val ux = UUID.randomUUID()
+      val now = JodaDateTime.now()
+      SubreadServiceDataSet(-1, ux, "DataSet",
+        "/path/to/dataset.xml",
+        now,
+        now,
+        1,
+        1L,
+        "3.1.0",
+        "Comment",
+        "tag1, tag2",
+        "md5",
+        "inst-name",
+        "movie-context-id",
+        "well-sample-name",
+        "well-anme",
+        "bio-sample",
+        0,
+        "run-name",
+        _MOCK_USER_ID, importJobId, _MOCK_PROJECT_ID)
+    }
+
+    Future.sequence((0 until n).map(_ => dao.insertSubreadDataSet(toS)))
   }
 
   def insertMockSubreadDataSetsFromDir(): Future[Seq[String]] = {
@@ -140,13 +176,13 @@ trait MockUtils extends LazyLogging{
     Future.sequence(files.map(toS).map(dao.insertReferenceDataSet))
   }
 
-  def insertMockAlignmentDataSets(): Future[Seq[String]] = {
-    def toDS(n: Int) = {
+  def insertMockAlignmentDataSets(n: Int = _MOCK_NDATASETS): Future[Seq[String]] = {
+    def toDS =  {
       val uuid = UUID.randomUUID()
-      AlignmentServiceDataSet(n,
+      AlignmentServiceDataSet(-1,
         UUID.randomUUID(),
-        s"Alignment DataSet $n",
-        s"/path/to/dataset/$n.xml",
+        s"Alignment DataSet $uuid",
+        s"/path/to/dataset/$uuid.xml",
         JodaDateTime.now(),
         JodaDateTime.now(),
         1,
@@ -155,7 +191,7 @@ trait MockUtils extends LazyLogging{
         "mock Alignment Dataset comments",
         "mock-alignment-dataset-tags", toMd5(uuid.toString), _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
     }
-    val dss = (1 until _MOCK_NDATASETS).map(toDS)
+    val dss = (0 until n).map(x => toDS)
     Future.sequence(dss.map(dao.insertAlignmentDataSet))
   }
 
@@ -216,6 +252,37 @@ trait MockUtils extends LazyLogging{
       }
     )
   }
+
+  /**
+    * Simple Summary of Job list
+    * @param engineJobs List of Engine Jobs
+    * @return Summary
+    */
+  def jobSummary(engineJobs: Seq[EngineJob]): String = {
+
+    val states = engineJobs.map(_.state).toSet
+
+    val summary = states.map(sx => s" $sx => ${engineJobs.count(_.state == sx)}")
+        .reduceOption(_ + "\n" + _)
+        .getOrElse("")
+
+    Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
+  }
+
+  def getSystemSummary(maxJobs: Int = 20000): Future[String] = {
+
+    for {
+      ssets <- dao.getSubreadDataSets()
+      rsets <- dao.getReferenceDataSets()
+      asets <- dao.getAlignmentDataSets(maxJobs)
+      jobs <- dao.getJobs(maxJobs)
+      ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
+      ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
+    } yield s" nsubreads:${ssets.length}\n references:${rsets.length}\n alignmentsets: ${asets.length} \nTotal Jobs:${jobSummary(jobs)} \nImportDataset:${jobSummary(ijobs)} \nAnalysisJobs ${jobSummary(ajobs)}"
+
+  }
+
+
 }
 
 trait TmpDirJobResolver {
@@ -226,13 +293,63 @@ trait TmpDirJobResolver {
 trait InitializeTables extends MockUtils {
   val db: Database
 
-  def createTables: Unit = db.migrate()
+  def createTables: Unit = {
+    logger.info("Applying migrations")
+    db.migrate()
+    logger.info("Completed applying migrations")
+  }
 
   /**
    * Required data in db
    */
   def loadBaseMock = {
-    Await.ready(insertMockProject(), 10.seconds)
+    Await.result(insertMockProject(), 10.seconds)
     logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
   }
+}
+
+
+object InsertMockData extends App with TmpDirJobResolver with InitializeTables with EngineCoreConfigLoader with SetupMockData{
+
+  val maxJobs = 20000
+
+  val insertMaxAnalysisJobs = 5000
+  val insertMaxInsertJobs = 10000
+  val numSubreadSets = 10000
+  val numAlignmentSets = 10000
+
+  def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+
+  val db = new Database(toURI(conf.getString("pb-services.db-uri")))
+  val dao = new JobsDao(db, engineConfig, resolver)
+
+  def runner(args: Array[String]): Int = {
+    println(s"Loading DB ${dao.db.dbUri}")
+
+    createTables
+
+    val initialSummary = Await.result(getSystemSummary(maxJobs), 5.seconds)
+    println(s"Initial System Summary\n$initialSummary")
+
+    val fx = for {
+      _ <- insertMockProject()
+      _ <- insertDummySubreadSets(numSubreadSets)
+      _ <- insertMockAlignmentDataSets(numAlignmentSets)
+      _ <- insertMockJobs(insertMaxAnalysisJobs, "pbsmrtpipe")
+      _ <- insertMockJobs(insertMaxInsertJobs, "import-dataset")
+      sx <- getSystemSummary(maxJobs)
+    } yield sx
+
+
+    val result = Await.result(fx, 360.seconds)
+    println(s"System Summary \n$result")
+
+    println("Exiting main")
+    // Not sure why this is necessary, but it is. Otherwise it will hang
+    System.exit(0)
+    0
+  }
+
+  runner(args)
+
 }
