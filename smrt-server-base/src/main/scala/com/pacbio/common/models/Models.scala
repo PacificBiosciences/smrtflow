@@ -21,6 +21,36 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
+object MetricType {
+
+  /**
+   * Supertype for different types of health metrics
+   */
+  sealed trait MetricType
+
+  /**
+   * The value of the metric is the value of the latest update
+   */
+  case object LATEST extends MetricType
+
+  /**
+   * The value of the metric is the sum of the update values
+   */
+  case object SUM extends MetricType
+
+  /**
+   * The value of the metric is determined by a running average of the update values
+   */
+  case object AVERAGE extends MetricType
+
+  /**
+   * The value of the metric is the maximum update value seen
+   */
+  case object MAX extends MetricType
+
+  val ALL = Seq(LATEST, SUM, AVERAGE, MAX)
+}
+
 object HealthSeverity {
   sealed class HealthSeverity(val severity: Int) extends Ordered[HealthSeverity] {
     def compare(s2: HealthSeverity): Int = severity compareTo s2.severity
@@ -69,13 +99,23 @@ case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, 
 
 
 // Health System
-case class HealthGaugeRecord(id: String, name: String)
+case class TagCriteria(hasAny: Set[String] = Set.empty, hasAll: Set[String] = Set.empty, hasAnyPrefix: Set[String] = Set.empty, hasAllPrefix: Set[String] = Set.empty) {
+  def matches(tags: Set[String]): Boolean = {
+    hasAll.foreach { t => if (!tags.contains(t)) return false }
+    hasAllPrefix.foreach { p => if (!tags.exists(_.startsWith(p))) return false }
+    if ( !hasAny.forall { t => !tags(t) } ) return false
+    if ( !hasAnyPrefix.forall { p => !tags.exists(_.startsWith(p)) } ) return false
+    true
+  }
+}
 
-case class HealthGauge(createdAt: JodaDateTime, description: String, id: String, name: String, severity: HealthSeverity.HealthSeverity)
+case class HealthMetricCreateMessage(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int])
 
-case class HealthGaugeMessageRecord(message: String, severity: HealthSeverity.HealthSeverity, sourceId: String)
+case class HealthMetric(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, lastUpdate: Option[JodaDateTime])
 
-case class HealthGaugeMessage(createdAt: JodaDateTime, uuid: UUID, message: String, severity: HealthSeverity.HealthSeverity, sourceId: String)
+case class HealthMetricUpdateMessage(updateValue: Double, tags: Set[String], note: Option[String] = None)
+
+case class HealthMetricUpdate(updateValue: Double, tags: Set[String], note: Option[String], updateId: Long, timestamp: JodaDateTime)
 
 
 // Logging System

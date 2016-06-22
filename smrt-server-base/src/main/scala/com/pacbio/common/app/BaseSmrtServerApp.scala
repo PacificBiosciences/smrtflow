@@ -39,7 +39,6 @@ trait CoreProviders extends
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
@@ -88,7 +87,6 @@ trait AuthenticatedCoreProviders extends
   ServiceComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
