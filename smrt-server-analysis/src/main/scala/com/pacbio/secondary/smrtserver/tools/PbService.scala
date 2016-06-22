@@ -95,7 +95,7 @@ object PbServiceParser {
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
-      nonLocal: String = null,
+      nonLocal: Option[String] = None,
       asJson: Boolean = false,
       pipelineId: String = "",
       jobTitle: String = "",
@@ -149,7 +149,7 @@ object PbServiceParser {
         c.copy(maxTime = t)
       } text "Maximum time to poll for running job status",
       opt[String]("non-local") action { (t, c) =>
-        c.copy(nonLocal = t)
+        c.copy(nonLocal = Some(t))
       } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)"
     ) text "Import DataSet XML"
 
@@ -549,20 +549,23 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
-  def runImportDataSets(f: File, nonLocal: String = null): Int = {
-    if (nonLocal != null) {
-      logger.info(s"Non-local file, importing as type ${nonLocal}")
-      runImportDataSet(f.getAbsolutePath, nonLocal)
-    } else if (f.isDirectory) {
-      val xmlFiles = listDataSetFiles(f)
-      if (xmlFiles.size == 0) {
-        errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
-      } else {
-        println(s"Found ${xmlFiles.size} DataSet XML files")
-        (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.getAbsolutePath)).toList.max
-      }
-    } else if (f.isFile) runImportDataSetSafe(f.getAbsolutePath)
-    else errorExit(s"${f.getAbsolutePath} is not readable")
+  def runImportDataSets(f: File, nonLocal: Option[String]): Int = {
+    nonLocal match {
+      case Some(dsType) =>
+        logger.info(s"Non-local file, importing as type ${dsType}")
+        runImportDataSet(f.getAbsolutePath, dsType)
+      case _ =>
+        if (f.isDirectory) {
+          val xmlFiles = listDataSetFiles(f)
+          if (xmlFiles.size == 0) {
+            errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
+          } else {
+            println(s"Found ${xmlFiles.size} DataSet XML files")
+            (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.getAbsolutePath)).toList.max
+          }
+        } else if (f.isFile) runImportDataSetSafe(f.getAbsolutePath)
+        else errorExit(s"${f.getAbsolutePath} is not readable")
+    }
   }
 
   def runEmitAnalysisTemplate: Int = {
