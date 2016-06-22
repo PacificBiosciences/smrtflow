@@ -9,6 +9,21 @@ class LoggingListener extends DatabaseListener with LazyLogging {
 
   val Prefix = "[PacBio:Database] "
 
+
+  // life cycle of the nested Future. useful for debugging nested db.run use
+  override def create(code: String, stacktrace: Throwable): Unit =
+    logger.error(s"$Prefix RDMS created DBIOAction $code")
+  override def start(code: String, stacktrace: Throwable, qc: Int): Unit =
+    logger.error(s"$Prefix RDMS started DBIOAction $code, queryCount = $qc")
+  override def end(code: String, stacktrace: Throwable, qc: Int): Unit =
+    logger.error(s"$Prefix RDMS finished DBIOAction $code, queryCount = $qc")
+
+  override def timeout(
+      code: String,
+      stacktrace: Throwable,
+      t: Throwable): Unit =
+    logger.error(s"$Prefix RDMS timeout for $code", t)
+
   override def error(
       code: String,
       stacktrace: Throwable,
