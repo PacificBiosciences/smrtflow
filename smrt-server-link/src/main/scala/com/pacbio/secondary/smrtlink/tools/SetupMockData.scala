@@ -60,20 +60,22 @@ trait MockUtils extends LazyLogging{
 
   val dao: JobsDao
 
-  // For Mock importing of data
-  val _MOCK_DS_VERSION = "0.5.0"
-  val _MOCK_NJOBS = 5
-  val _MOCK_NDATASETS = 5
-  val _MOCK_WORKFLOW_TEMPLATES = 5
-  val _ROOT_MOCK_DATA_DIR = "/mock-datasets"
-  val _MOCK_USER_ID = 1
-  val _MOCK_PROJECT_ID = 1
-  val _MOCK_JOB_ID = 1
+  // This is a weak way to indentify MOCK jobs from real jobs
+  val MOCK_JOB_NAME_PREFIX = "MOCK-"
+
+  val MOCK_DS_VERSION = "0.5.0"
+  val MOCK_NJOBS = 5
+  val MOCK_NDATASETS = 5
+  val MOCK_NUM_PIPELINE_TEMPLATES = 5
+  val ROOT_MOCK_DATASET_DIR = "/mock-datasets"
+  val MOCK_USER_ID = 1
+  val MOCK_PROJECT_ID = 1
+  val MOCK_JOB_ID = 1
 
   def toMd5(text: String): String = MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
 
   def getMockDataSetFiles(dirName: String): Seq[File] = {
-    val u = getClass.getResource(_ROOT_MOCK_DATA_DIR)
+    val u = getClass.getResource(ROOT_MOCK_DATASET_DIR)
     val p = Paths.get(u.toURI)
     val f = p.resolve(dirName).toFile
     val files = f.listFiles.toList
@@ -81,7 +83,7 @@ trait MockUtils extends LazyLogging{
     files
   }
 
-  def insertMockJobs(numJobs: Int = _MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
+  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
 
     val states = AnalysisJobStates.VALID_STATES
     val rnd = new Random
@@ -94,7 +96,7 @@ trait MockUtils extends LazyLogging{
       EngineJob(
         -1,
         uuid,
-        s"Job name $uuid",
+        s"$MOCK_JOB_NAME_PREFIX Job name $uuid",
         s"Comment for job $uuid",
         JodaDateTime.now(),
         JodaDateTime.now(),
@@ -128,7 +130,7 @@ trait MockUtils extends LazyLogging{
         "bio-sample",
         0,
         "run-name",
-        _MOCK_USER_ID, importJobId, _MOCK_PROJECT_ID)
+        MOCK_USER_ID, importJobId, MOCK_PROJECT_ID)
     }
 
     Future.sequence((0 until n).map(_ => dao.insertSubreadDataSet(toS)))
@@ -142,7 +144,7 @@ trait MockUtils extends LazyLogging{
       logger.info(s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
       val d = DataSetLoader.loadSubreadSet(file.toPath)
       logger.info(s"DataSet $d")
-      val sds = Converters.convert(d, file.toPath.toAbsolutePath, _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
+      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_USER_ID, MOCK_JOB_ID, MOCK_PROJECT_ID)
       logger.info(s"Loading dataset $sds")
       sds
     }
@@ -157,7 +159,7 @@ trait MockUtils extends LazyLogging{
       logger.info(s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
       val d = DataSetLoader.loadHdfSubreadSet(file.toPath)
       logger.info(s"DataSet $d")
-      val sds = Converters.convert(d, file.toPath.toAbsolutePath, _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
+      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_USER_ID, MOCK_JOB_ID, MOCK_PROJECT_ID)
       logger.info(s"Loading dataset $sds")
       sds
     }
@@ -171,12 +173,12 @@ trait MockUtils extends LazyLogging{
     def toS(file: File): ReferenceServiceDataSet = {
       val dataset = DataSetLoader.loadReferenceSet(file.toPath)
       logger.debug(s"Loading reference from ${file.toPath}")
-      Converters.convert(dataset, file.toPath, _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
+      Converters.convert(dataset, file.toPath, MOCK_USER_ID, MOCK_JOB_ID, MOCK_PROJECT_ID)
     }
     Future.sequence(files.map(toS).map(dao.insertReferenceDataSet))
   }
 
-  def insertMockAlignmentDataSets(n: Int = _MOCK_NDATASETS): Future[Seq[String]] = {
+  def insertMockAlignmentDataSets(n: Int = MOCK_NDATASETS): Future[Seq[String]] = {
     def toDS =  {
       val uuid = UUID.randomUUID()
       AlignmentServiceDataSet(-1,
@@ -187,9 +189,9 @@ trait MockUtils extends LazyLogging{
         JodaDateTime.now(),
         1,
         9876,
-        _MOCK_DS_VERSION,
+        MOCK_DS_VERSION,
         "mock Alignment Dataset comments",
-        "mock-alignment-dataset-tags", toMd5(uuid.toString), _MOCK_USER_ID, _MOCK_JOB_ID, _MOCK_PROJECT_ID)
+        "mock-alignment-dataset-tags", toMd5(uuid.toString), MOCK_USER_ID, MOCK_JOB_ID, MOCK_PROJECT_ID)
     }
     val dss = (0 until n).map(x => toDS)
     Future.sequence(dss.map(dao.insertAlignmentDataSet))
@@ -210,7 +212,7 @@ trait MockUtils extends LazyLogging{
   def insertMockJobsTags(): Future[Unit] = {
     def randomInt(x: List[Int]) = Random.shuffle(x).head
 
-    val jobIds = (1 until _MOCK_NJOBS).toList
+    val jobIds = (1 until MOCK_NJOBS).toList
     val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
     val tagIds = tags.indices.toList
 
@@ -232,9 +234,32 @@ trait MockUtils extends LazyLogging{
     )
   }
 
+  // Add Mock Events to all Mock Jobs
+  def insertMockJobEventsForMockJobs: Future[Unit] = {
+
+    val createdAt = JodaDateTime.now()
+
+    def toJobEvents(jobId: Int): Seq[JobEvent] =
+      Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING, AnalysisJobStates.SUCCESSFUL)
+          .map(s => JobEvent(UUID.randomUUID, jobId, s, "Update status", JodaDateTime.now()))
+
+    // Batch up the inserts so it's not absurdly slow
+    val nchunks = 20
+
+    val fx = for {
+      engineJobs <- dao.getJobs()
+      jobIds <- Future { engineJobs.filter(_.name.startsWith(MOCK_JOB_NAME_PREFIX)).map(_.id)}
+      events <- Future {jobIds.map(toJobEvents).flatMap(identity)}
+      batchedEvents <- Future {events.grouped(scala.math.min(nchunks, events.length))}
+      _ <- Future.sequence(batchedEvents.map(events => dao.addJobEvents(events)))
+    } yield ()
+
+    fx
+  }
+
   def insertMockDataStoreFiles(): Future[Int] = {
     dao.db.run(
-      engineJobs.filter(_.id === _MOCK_JOB_ID).result.head.flatMap { job =>
+      engineJobs.filter(_.id === MOCK_JOB_ID).result.head.flatMap { job =>
         datastoreServiceFiles += DataStoreServiceFile(
           UUID.randomUUID(),
           FileTypes.REPORT.fileTypeId.toString,
@@ -255,6 +280,7 @@ trait MockUtils extends LazyLogging{
 
   /**
     * Simple Summary of Job list
+ *
     * @param engineJobs List of Engine Jobs
     * @return Summary
     */
@@ -276,9 +302,10 @@ trait MockUtils extends LazyLogging{
       rsets <- dao.getReferenceDataSets()
       asets <- dao.getAlignmentDataSets(maxJobs)
       jobs <- dao.getJobs(maxJobs)
+      jobEvents <- dao.getJobEvents
       ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
       ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
-    } yield s" nsubreads:${ssets.length}\n references:${rsets.length}\n alignmentsets: ${asets.length} \nTotal Jobs:${jobSummary(jobs)} \nImportDataset:${jobSummary(ijobs)} \nAnalysisJobs ${jobSummary(ajobs)}"
+    } yield s" nsubreads:${ssets.length}\n references:${rsets.length}\n alignmentsets: ${asets.length} \nTotal Jobs:${jobSummary(jobs)} \nTotal JobEvents:${jobEvents.length} \nImportDataset:${jobSummary(ijobs)} \nAnalysisJobs ${jobSummary(ajobs)}"
 
   }
 
@@ -337,11 +364,12 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
       _ <- insertMockAlignmentDataSets(numAlignmentSets)
       _ <- insertMockJobs(insertMaxAnalysisJobs, "pbsmrtpipe")
       _ <- insertMockJobs(insertMaxInsertJobs, "import-dataset")
+      _ <- insertMockJobEventsForMockJobs
       sx <- getSystemSummary(maxJobs)
     } yield sx
 
 
-    val result = Await.result(fx, 360.seconds)
+    val result = Await.result(fx, 480.seconds)
     println(s"System Summary \n$result")
 
     println("Exiting main")
