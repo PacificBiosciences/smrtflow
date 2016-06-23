@@ -500,39 +500,45 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     if (ds.isChunked) {
       Future(s"Skipping inserting of Chunked DataStoreFile $ds")
     } else {
-      // This needed queries un-nested due to SQLite limitations -- see #197
-      //
-      // The desired logic here is a transaction with (add, insert) but both being conditional so
-      // that data isn't duplicated in the database. Split in 3 steps below.
-      // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
-      val existing: Option[Any] = Await.result(db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption), 12345 milliseconds)
-      val addDataStoreServiceFile = existing match {
-        case Some(_) =>
-          DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
-        case None =>
-          logger.info(s"importing datastore file into db $ds")
-          val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-          datastoreServiceFiles += dss
-      }
-      // 2 of 3: insert of the data set, if it is a known/supported file type
-      val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-        case Some(typ) => {
-          DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
+
+      /**
+       *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
+       */
+      def addOptionalInsert(existing: Option[Any]): Future[String] = {
+        // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
+        val addDataStoreServiceFile = existing match {
+          case Some(_) =>
+            DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
+          case None =>
+            logger.info(s"importing datastore file into db $ds")
+            val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
+            datastoreServiceFiles += dss
         }
-        case None =>
-          existing match {
-            case Some(_) =>
-              DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
-            case None =>
-              DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
+        // 2 of 3: insert of the data set, if it is a known/supported file type
+        val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+          case Some(typ) => {
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
           }
+          case None =>
+            existing match {
+              case Some(_) =>
+                DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
+              case None =>
+                DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
+            }
+        }
+        // 3 of 3: run the appropriate actions in a transaction
+        val fin = for {
+          _ <- addDataStoreServiceFile
+          oi <- optionalInsert
+        } yield (oi)
+        db.run(fin.transactionally)
       }
-      // 3 of 3: run the appropriate actions in a transaction
-      val fin = for {
-        _ <- addDataStoreServiceFile
-        oi <- optionalInsert
-      } yield (oi)
-      db.run(fin.transactionally)
+      
+      // This needed queries un-nested due to SQLite limitations -- see #197
+      db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption).flatMap{
+        addOptionalInsert
+      }
     }
   }
 
