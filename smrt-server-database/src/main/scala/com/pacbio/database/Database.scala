@@ -135,6 +135,9 @@ class Database(dbURI: String) {
     }
   }
 
+
+  var queryCount = 0
+
   /**
    * Runs DBIOAction instances on the underlying SQLite RDMS
    *
@@ -162,10 +165,15 @@ class Database(dbURI: String) {
     // track timing for queue wait and RBMS execution
     val start: Long = if (dbug) System.currentTimeMillis() else 0
     // track what code is doing DB access (stack trace outside of the execution context)
-    val stacktrace = if(dbug) new Exception("RDMS Query Tracking") else null
-    val code = if(dbug) stacktrace.getStackTrace()(1).toString else null
+    val stacktrace = if (dbug) new Exception("RDMS Query Tracking") else null
+    val code = if (dbug) stacktrace.getStackTrace()(1).toString else null
+    if (dbug) Future { listeners.foreach(_.create(code, stacktrace)) }
+    // main wrapper for running the query and blocking with timeout for detecting SQLite related issues
     Future[R] {
       try {
+        // tally how many db.run() are being invoked -- TODO: can remove queryCount entirely?
+        queryCount += 1
+        if (dbug) Future { listeners.foreach(_.start(code, stacktrace, queryCount)) }
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -173,31 +181,46 @@ class Database(dbURI: String) {
         if (dbug) {
           // tool the future to dump failure reasons
           f onFailure {
-            case t => listeners.foreach(_.error(code, stacktrace, t))
+            case t => Future { listeners.foreach(_.error(code, stacktrace, t)) }
           }
           // tool the future to dump failure reasons
           f onSuccess {
-            case x => listeners.foreach(_.success(code, stacktrace, x))
+            case x => Future { listeners.foreach(_.success(code, stacktrace, x)) }
           }
         }
-        val toreturn = Await.result(f, 10 seconds) // TODO: config via param
+        val toreturn = Await.result(f, 12345 milliseconds) // TODO: config via param
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
-        listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace))
+        if (dbug) Future { listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace)) }
         toreturn
       }
+      catch {
+        case t => {
+          if (dbug) Future {
+            listeners.foreach(_.timeout(code, stacktrace, new Exception("Nested db.run() calls?", t)))
+          }
+          throw t
+        }
+      }
       finally {
+        // decrement query count
+        queryCount -= 1
+        if (dbug) Future { listeners.foreach(_.end(code, stacktrace, queryCount)) }
+
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
-        listeners.foreach(_.allDone(start, end, code, stacktrace))
-        val conn = connectionPool.cachedConnection
-        if (!conn.isClosed)
-          try {
-            conn.commit()
-            conn.close()
-          } catch {
-            case ex: Throwable => println("Ignoring commit()/close() fail: " + ex)
-          }
+        if (dbug) Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }
+        // only force close if all (sub-)queries are done
+        if (queryCount == 0) {
+          val conn = connectionPool.cachedConnection
+          if (!conn.isClosed)
+            try {
+              conn.commit()
+              conn.close()
+            } catch {
+              case ex: Throwable => println("Ignoring commit()/close() fail: " + ex)
+            }
+        }
       }
       // share the execution context the DB uses
     } (dec)
