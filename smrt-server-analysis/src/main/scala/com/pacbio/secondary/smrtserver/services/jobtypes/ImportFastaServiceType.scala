@@ -6,7 +6,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActor, UserServiceActorRefProvider}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
@@ -32,7 +31,6 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 
 class ImportFastaServiceType(
     dbActor: ActorRef,
-    userActor: ActorRef,
     authenticator: Authenticator,
     serviceStatusHost: String,
     port: Int)
@@ -90,7 +88,7 @@ class ImportFastaServiceType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -122,18 +120,17 @@ class ImportFastaServiceType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait ImportFastaServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
-    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), userServiceActorRef(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
+    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port())).bindToSet(JobTypes)
 }

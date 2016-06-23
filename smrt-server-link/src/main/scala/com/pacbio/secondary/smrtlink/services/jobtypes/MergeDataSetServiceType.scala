@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -63,7 +62,7 @@ object ValidatorDataSetMergeServiceOptions {
 }
 
 
-class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
+class MergeDataSetServiceJobType(dbActor: ActorRef, authenticator: Authenticator)
   extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
@@ -76,7 +75,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, authent
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -106,16 +105,15 @@ class MergeDataSetServiceJobType(dbActor: ActorRef, userActor: ActorRef, authent
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait MergeDataSetServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
     with JobManagerServiceProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
-    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), userServiceActorRef(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
 }

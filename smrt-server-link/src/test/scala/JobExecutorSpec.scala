@@ -19,23 +19,26 @@ import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
+with NoTimeConversions
 with JobServiceConstants {
 
   sequential
 
   import SmrtLinkJsonProtocols._
 
-  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
+  implicit val routeTestTimeout = RouteTestTimeout(5.seconds)
 
   val READ_USER_LOGIN = "reader"
   val WRITE_USER_1_LOGIN = "root"
@@ -61,7 +64,6 @@ with JobServiceConstants {
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
   InMemoryLogDaoProvider with
@@ -82,9 +84,11 @@ with JobServiceConstants {
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
   }
 
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  } yield (), 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db

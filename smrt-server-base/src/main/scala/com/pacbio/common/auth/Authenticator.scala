@@ -1,14 +1,13 @@
 package com.pacbio.common.auth
 
-import com.pacbio.common.actors.{UserDaoProvider, UserDao}
-import com.pacbio.common.dependency.{TypesafeSingletonReader, Singleton}
+import com.pacbio.common.actors.{UserDao, UserDaoProvider}
+import com.pacbio.common.dependency.{ConfigProvider, Singleton, TypesafeSingletonReader}
 import spray.http._
-import spray.routing.{AuthenticationFailedRejection, RequestContext}
 import spray.routing.authentication.{BasicAuth, UserPass}
 import spray.routing.directives.AuthMagnet
+import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
 
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
 
 // TODO(smcclellan): Add unit tests
 
@@ -89,49 +88,53 @@ class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authentica
   val REALM = "pacificbiosciences.com"
 
   override def userPassAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
-    def validateUser(userPass: Option[UserPass]): Option[AuthInfo] =
-      for {
-        up <- userPass
-        user <- Try(userDao.authenticate(up.user, up.pass)).toOption
-      } yield new AuthInfo(user)
+    def validateUser(userPass: Option[UserPass]): Future[Option[AuthInfo]] = {
+      userPass.map { up =>
+        userDao
+          .authenticate(up.user, up.pass)
+          .map(new AuthInfo(_))
+          .map(Some(_))
+          .recover { case _ => None }
+      }.getOrElse(Future.successful(None))
+    }
 
-    def authenticator(userPass: Option[UserPass]): Future[Option[AuthInfo]] = Future { validateUser(userPass) }
-
-    BasicAuth(authenticator _, realm = REALM)
+    BasicAuth(validateUser _, realm = REALM)
   }
 
   override def jwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
-    import spray.util._
-    import HttpHeaders._
     import AuthenticationFailedRejection._
+    import HttpHeaders._
+    import spray.util._
 
     def authHeader(ctx: RequestContext) = ctx.request.headers.findByType[`Authorization`]
 
-    def validateToken(ctx: RequestContext): Option[AuthInfo] = {
+    def validateToken(ctx: RequestContext): Future[Option[AuthInfo]] = {
       // Expect JWT to be passed in authorization header as "Authorization: Bearer jwtstring"
       authHeader(ctx)
-        .map(_.renderValue(new StringRendering).get)            // Render header as string, e.g. "Bearer jwtstring"
-        .map(_.split(" "))                                      // Split into words, e.g. Array("Bearer", "jwtstring")
-        .withFilter(_.length == 2)                              // Filter out headers w/ wrong number of words
-        .withFilter(_.head == "Bearer")                         // Filter out headers w/ wrong first word
-        .map(_(1))                                              // Get second word, which should be the JWT
-        .flatMap(jwt => jwtUtils.validate(jwt))                 // Validate JWT, and get user login
-        .flatMap(login => Try(userDao.getUser(login)).toOption) // Get user from DAO
-        .map(user => new AuthInfo(user))                        // Convert user object to AuthInfo object
+        .map(_.renderValue(new StringRendering).get)    // Render header as string, e.g. "Bearer jwtstring"
+        .map(_.split(" "))                              // Split into words, e.g. Array("Bearer", "jwtstring")
+        .withFilter(_.length == 2)                      // Filter out headers w/ wrong number of words
+        .withFilter(_.head == "Bearer")                 // Filter out headers w/ wrong first word
+        .map(_(1))                                      // Get second word, which should be the JWT
+        .flatMap(jwt => jwtUtils.validate(jwt))         // Validate JWT, and get user login
+        .map(login => userDao.getUser(login))           // Get user from DAO
+        .map(_.map(user => new AuthInfo(user)))         // Convert user object to AuthInfo object
+        .map(_.map(Some(_)).recover { case _ => None }) // Convert AuthInfo to Option (None if getUser fails)
+        .getOrElse(Future.successful(None))             // Option[Future[Option[_]]] -> Future[Option[_]]
     }
 
     val challengeHeaders =
       `WWW-Authenticate`(HttpChallenge(scheme = "Bearer", realm = REALM, params = Map.empty)) :: Nil
 
-    def authenticate(ctx: RequestContext) =
-      validateToken(ctx) match {
+    def authenticate(ctx: RequestContext): Future[Either[Rejection, AuthInfo]] =
+      validateToken(ctx).map {
         case Some(authInfo) => Right(authInfo)
         case None =>
           val cause = if (authHeader(ctx).isEmpty) CredentialsMissing else CredentialsRejected
           Left(AuthenticationFailedRejection(cause, challengeHeaders))
       }
 
-    ctx: RequestContext => Future { authenticate(ctx) }
+    ctx: RequestContext => authenticate(ctx)
   }
 }
 

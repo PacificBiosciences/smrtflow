@@ -49,7 +49,6 @@ with JobServiceConstants {
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
   InMemoryLogDaoProvider with

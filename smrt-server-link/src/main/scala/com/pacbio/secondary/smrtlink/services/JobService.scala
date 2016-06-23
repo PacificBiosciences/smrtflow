@@ -3,27 +3,9 @@ package com.pacbio.secondary.smrtlink.services
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
-import scala.collection.JavaConversions._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
-
-import spray.routing._
-
-// For serialization magic. This is required for any serialization in spray to work.
-import spray.http._
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-
-import com.pacbio.common.actors.UserServiceActor._
-import com.pacbio.common.auth.ApiUser
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
@@ -31,6 +13,17 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.{FileUtils, FilenameUtils}
+import spray.http._
+import spray.httpx.SprayJsonSupport._
+import spray.json._
+import spray.routing._
+
+import scala.collection.JavaConversions._
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 
 object JobResourceUtils extends  LazyLogging{
@@ -93,10 +86,10 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, userActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+  def jobList(dbActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
     (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
 
-  def sharedJobRoutes(dbActor: ActorRef, userActor: ActorRef)(implicit ec: ExecutionContext): Route =
+  def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
       get {
         complete {
