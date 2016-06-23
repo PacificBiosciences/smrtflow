@@ -167,13 +167,13 @@ class Database(dbURI: String) {
     // track what code is doing DB access (stack trace outside of the execution context)
     val stacktrace = if (dbug) new Exception("RDMS Query Tracking") else null
     val code = if (dbug) stacktrace.getStackTrace()(1).toString else null
-    Future { listeners.foreach(_.create(code, stacktrace)) }
+    if (dbug) Future { listeners.foreach(_.create(code, stacktrace)) }
     // main wrapper for running the query and blocking with timeout for detecting SQLite related issues
     Future[R] {
       try {
         // tally how many db.run() are being invoked -- TODO: can remove queryCount entirely?
         queryCount += 1
-        Future { listeners.foreach(_.start(code, stacktrace, queryCount)) }
+        if (dbug) Future { listeners.foreach(_.start(code, stacktrace, queryCount)) }
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -191,12 +191,12 @@ class Database(dbURI: String) {
         val toreturn = Await.result(f, 12345 milliseconds) // TODO: config via param
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
-        Future { listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace)) }
+        if (dbug) Future { listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace)) }
         toreturn
       }
       catch {
         case t => {
-          Future {
+          if (dbug) Future {
             listeners.foreach(_.timeout(code, stacktrace, new Exception("Nested db.run() calls?", t)))
           }
           throw t
@@ -205,11 +205,11 @@ class Database(dbURI: String) {
       finally {
         // decrement query count
         queryCount -= 1
-        Future { listeners.foreach(_.end(code, stacktrace, queryCount)) }
+        if (dbug) Future { listeners.foreach(_.end(code, stacktrace, queryCount)) }
 
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
-        Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }
+        if (dbug) Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }
         // only force close if all (sub-)queries are done
         if (queryCount == 0) {
           val conn = connectionPool.cachedConnection
