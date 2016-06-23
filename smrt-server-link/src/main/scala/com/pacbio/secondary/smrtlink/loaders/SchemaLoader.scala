@@ -53,6 +53,7 @@ trait SchemaLoader extends LazyLogging{
   val ccsAlignmentSchema = loadAndRegister("pacbio.secondary.schemas.datasets.alignments", "ccs-alignment.schema.json")
   val ccsReadSchema = loadAndRegister("pacbio.secondary.schemas.datasets.ccsreads", "ccs-read.schema.json")
   val contigSchema = loadAndRegister("pacbio.secondary.schemas.datasets.contig", "contigs.schema.json")
+  val gmapReferenceSchema = loadAndRegister("pacbio.secondary.schemas.datasets.gmapreferences", "gmapreference.schema.json")
 }
 
 object SchemaLoader extends SchemaLoader

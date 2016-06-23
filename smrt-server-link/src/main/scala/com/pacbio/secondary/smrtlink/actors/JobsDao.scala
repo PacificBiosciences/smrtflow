@@ -24,11 +24,13 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import slick.driver.SQLiteDriver.api._
+
+import scala.concurrent.duration._
 
 
 trait DalProvider {
@@ -364,6 +366,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     db.run(updates.transactionally)
   }
 
+  def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
+    db.run(jobEvents += jobEvent).map(_ => jobEvent)
+
+  def addJobEvents(events: Seq[JobEvent]): Future[Seq[JobEvent]] =
+    db.run(jobEvents ++= events).map(_ => events)
+
+  def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
+
+
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
   override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = db.run(engineJobs.result)
 
@@ -459,6 +470,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         val dataset = DataSetLoader.loadReferenceSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
         insertReferenceDataSet(sds)
+      case DataSetMetaTypes.GmapReference =>
+        val dataset = DataSetLoader.loadGmapReferenceSet(path)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        insertGmapReferenceDataSet(sds)
       case DataSetMetaTypes.HdfSubread =>
         val dataset = DataSetLoader.loadHdfSubreadSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
@@ -489,32 +504,44 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     if (ds.isChunked) {
       Future(s"Skipping inserting of Chunked DataStoreFile $ds")
     } else {
-      // Extended details import if file type is a DataSet
-      DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-        case Some(typ) =>
-          val insert = DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
-          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
-            case Some(_) =>
-              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-              insert
-            case None =>
-              logger.info(s"importing datastore file into db $ds")
-              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              (datastoreServiceFiles += dss).flatMap(_ => insert)
+
+      /**
+       *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
+       */
+      def addOptionalInsert(existing: Option[Any]): Future[String] = {
+        // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
+        val addDataStoreServiceFile = existing match {
+          case Some(_) =>
+            DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
+          case None =>
+            logger.info(s"importing datastore file into db $ds")
+            val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
+            datastoreServiceFiles += dss
+        }
+        // 2 of 3: insert of the data set, if it is a known/supported file type
+        val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+          case Some(typ) => {
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
           }
-          db.run(action.transactionally)
-        case None =>
-          val unsupportedString =
-            s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"
-          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
-            case Some(_) =>
-              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-              DBIO.from(Future(unsupportedString))
-            case None =>
-              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              (datastoreServiceFiles += dss).map(_ => unsupportedString)
-          }
-          db.run(action.transactionally)
+          case None =>
+            existing match {
+              case Some(_) =>
+                DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
+              case None =>
+                DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
+            }
+        }
+        // 3 of 3: run the appropriate actions in a transaction
+        val fin = for {
+          _ <- addDataStoreServiceFile
+          oi <- optionalInsert
+        } yield (oi)
+        db.run(fin.transactionally)
+      }
+      
+      // This needed queries un-nested due to SQLite limitations -- see #197
+      db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption).flatMap{
+        addOptionalInsert
       }
     }
   }
@@ -553,6 +580,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
     db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
 
+  // removes a query that seemed like it was potentially nested based on race condition with executor
+  private def getDataSetMetaDataSetBlocking(uuid: UUID): Option[DataSetMetaDataSet] =
+    Await.result(getDataSetMetaDataSet(uuid), 23456 milliseconds)
+
   private def insertMetaData(ds: ServiceDataSetMetadata): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -563,7 +594,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   // TODO(smcclellan): Can these insertXXXDataSet methods by combined into one method?
   def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[String] =
-    getDataSetMetaDataSet(ds.uuid).flatMap {
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"ReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
@@ -582,8 +613,28 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         }
     }
 
-  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[String] =
     getDataSetMetaDataSet(ds.uuid).flatMap {
+      case Some(_) =>
+        val msg = s"GmapReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
+        logger.debug(msg)
+        Future(msg)
+      case None =>
+        db.run {
+          insertMetaData(ds).flatMap { id =>
+            // TODO(smcclellan): Here and below, remove use of forceInsert and allow ids to make use of autoinc
+            // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
+            dsGmapReference2 forceInsert GmapReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
+          }.map { _ =>
+            val m = s"imported GmapReferencecSet ${ds.uuid} from ${ds.path}"
+            logger.info(m)
+            m
+          }
+        }
+    }
+
+  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"SubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
@@ -603,7 +654,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 
   def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
-    getDataSetMetaDataSet(ds.uuid).flatMap {
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"HdfSubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
@@ -717,6 +768,35 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
+    }
+
+  def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
+    GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
+
+  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+      q.result.map(_.map(x => toGmapR(x._1, x._2)))
+    }
+
+  def getGmapReferenceDataSetById(id: Int): Future[Option[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeById(id) join dsGmapReference2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
+    }
+  private def gmapReferenceToDetails(ds: Future[Option[GmapReferenceServiceDataSet]]): Future[Option[String]] =
+    ds.map(_.map(x => DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(x.path)))))
+
+  def getGmapReferenceDataSetDetailsById(id: Int): Future[Option[String]] = gmapReferenceToDetails(getGmapReferenceDataSetById(id))
+
+  def getGmapReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
+    gmapReferenceToDetails(getGmapReferenceDataSetByUUID(uuid))
+
+  def getGmapReferenceDataSetByUUID(id: UUID): Future[Option[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeByUUID(id) join dsGmapReference2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
   def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[HdfSubreadServiceDataSet]] =
