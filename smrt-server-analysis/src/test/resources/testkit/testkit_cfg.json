@@ -1,0 +1,33 @@
+{
+  "_comment": "This config contains additional fields used in pbsmrtpipe standalone tests",
+  "jobName": "test_job",
+  "workflowXml": null,
+  "entryPoints": [{
+    "entryId": "eid_subread",
+    "path": "/path/to/subreadset.xml"
+  }, {
+    "entryId": "eid_ref_dataset",
+    "path": "/path/to/referenceset.xml"
+  }],
+  "description": "simple test config",
+  "jobType": "pbsmrtpipe",
+  "presetXml": "preset.xml",
+  "reportTests": [{
+    "reportId": "example_report",
+    "rules": [{
+      "attrId": "mapped_reads_n",
+      "op": "gt",
+      "value": 100
+    }, {
+      "attrId": "concordance",
+      "op": "ge",
+      "value": 0.85
+    }, {
+      "attrId": "instrument",
+      "value": "54006"
+    }]
+  }],
+  "pipelineId": "pbsmrtpipe.pipelines.sa3_sat",
+  "output_dir": "job_output",
+  "py_tests": []
+}

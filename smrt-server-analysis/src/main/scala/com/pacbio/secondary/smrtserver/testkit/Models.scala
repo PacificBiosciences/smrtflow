@@ -37,7 +37,6 @@ object TestkitModels {
     pipelineId: Option[String],
     workflowXml: Option[String],
     presetXml: Option[String],
-    outputDir: Option[String], // XXX unused here
     entryPoints: Seq[EntryPointPath],
     reportTests: Seq[ReportTestRules])
 
@@ -74,7 +73,7 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
   }
 
   implicit val reportRulesFormat = jsonFormat2(ReportTestRules)
-  implicit val testkitConfigFormat = jsonFormat9(TestkitConfig)
+  implicit val testkitConfigFormat = jsonFormat8(TestkitConfig)
 }
 
 //object TestkitJsonProtocol extends TestkitJsonProtocol
