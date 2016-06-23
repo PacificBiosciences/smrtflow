@@ -76,9 +76,6 @@ class Database(dbURI: String) {
     }
   }
 
-
-  var queryCount = 0
-
   /**
    * Runs DBIOAction instances on the underlying RDBMS
    *
@@ -111,7 +108,7 @@ class Database(dbURI: String) {
     Future[R] {
       try {
         // tally how many db.run() are being invoked
-        if (dbug) Future { listeners.foreach(_.start(code, stacktrace, queryCount)) }
+        if (dbug) Future { listeners.foreach(_.start(code, stacktrace)) }
         // track RMDS execution timing
         val startRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         // run the SQL and wait for it is execute
@@ -141,10 +138,8 @@ class Database(dbURI: String) {
         }
       }
       finally {
-        // decrement query count
-        queryCount -= 1
-        if (dbug) Future { listeners.foreach(_.end(code, stacktrace, queryCount)) }
-
+        if (dbug) Future { listeners.foreach(_.end(code, stacktrace)) }
+        if (dbug) Future { listeners.foreach(_.end(code, stacktrace)) }
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
         if (dbug) Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }

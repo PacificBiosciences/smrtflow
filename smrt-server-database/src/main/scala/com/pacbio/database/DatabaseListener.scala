@@ -5,9 +5,9 @@ package com.pacbio.database
  */
 trait DatabaseListener {
   // life cycle of the nested Future. useful for debugging nested db.run use
-  def create(code: String, stacktrace: Throwable): Unit
-  def start(code: String, stacktrace: Throwable, queryCount: Int): Unit
-  def end(code: String, stacktrace: Throwable, queryCount: Int): Unit
+  def create(code: String, stacktrace: Throwable): Unit = {}
+  def start(code: String, stacktrace: Throwable): Unit = {}
+  def end(code: String, stacktrace: Throwable): Unit = {}
   // summary and query status
   def timeout(code: String, stacktrace: Throwable, t: Throwable): Unit
   def error(code: String, stacktrace: Throwable, t: Throwable): Unit
