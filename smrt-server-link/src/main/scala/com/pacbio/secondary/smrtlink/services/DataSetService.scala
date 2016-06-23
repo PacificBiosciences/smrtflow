@@ -214,6 +214,14 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         GetReferenceDataSetByUUID,
         GetReferenceDataSetDetailsById,
         GetReferenceDataSetDetailsByUUID) ~
+      datasetRoutes[GmapReferenceServiceDataSet](
+        DataSetMetaTypes.GmapReference.shortName,
+        GetGmapReferenceDataSets,
+        SchemaLoader.gmapReferenceSchema.content,
+        GetGmapReferenceDataSetById,
+        GetGmapReferenceDataSetByUUID,
+        GetGmapReferenceDataSetDetailsById,
+        GetGmapReferenceDataSetDetailsByUUID) ~
       datasetRoutes[BarcodeServiceDataSet](
         DataSetMetaTypes.Barcode.shortName,
         GetBarcodeDataSets,
