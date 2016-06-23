@@ -60,7 +60,7 @@ trait LoggerConfig {
     }
     // ignore the default configurator
     LoggerOptions.configured = true
-    return this
+    this
   }
 
   /**

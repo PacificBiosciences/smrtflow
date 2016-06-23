@@ -2,16 +2,27 @@
 
 See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and [smrtflow](../README.md) for the base multi-project's README. 
 
-Simple logging for two common use cases in the PacBio tools. See [smrtflow#42](https://github.com/PacificBiosciences/smrtflow/pull/42) for history.
+Simple logging with params consistent with the PacBio tools. See [smrtflow#42](https://github.com/PacificBiosciences/smrtflow/pull/42) for history.
 
 ```bash
 $ ./smrt-server-tools/target/pack/bin/get-smrt-server-status -h
 ...
+Usage: ./app_with_logging [options]
+
+This is an app that supports PacBio logging flags. 
+  -h | --help
+        Show Options and exit
   --log2stdout
         If true, log output will be displayed to the console. Default is false.
-  --loglevel <value>
+  --log-level <value>
         Level for logging: "ERROR", "WARN", "DEBUG", or "INFO". Default is "ERROR"
-  --logfile <value>
+  --debug
+        Same as --log-level DEBUG
+  --quiet
+        Same as --log-level ERROR
+  --verbose
+        Same as --log-level INFO
+  --log-file <value>
         File for log output. Default is "."
   --logback <value>
         Override all logger config with the given logback.xml file.
@@ -63,20 +74,20 @@ object MyCode extends App {
 
 ## Command-Line Example
 
-There are a few practical use cases that are supported. By default, logging information is not displayed.
+There are a few practical use cases that are supported. By default, INFO level events are logged to STDOUT.
 
 ### Running a Production Server
 
-You'll likely want to capture everything above warnings in a production environment. Use the `--loglevel` and `--logfile` flags.
+You'll likely want to capture everything above warnings in a production environment. Use the `--log-level` and `--log-file` flags.
 
 ```bash
-./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --logfile /var/log/my_log.log --loglevel WARN
+./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --log-file /var/log/my_log.log --log-level WARN
 ```
 
 In this case, the normal params exist and only these two alter the logging.
 
-- `--logfile` =  Where the logger will save data.
-- `--loglevel` = Sets the logger handler to display all WARN level messages and worse.
+- `--log-file` =  Where the logger will save data.
+- `--log-level` = Sets the logger handler to display all WARN level messages and worse.
 
 Users will almost always have a custom log location. Allowing this to be specified via command-line is a simple way to
 support this versus requiring a custom log config file or property file.
@@ -84,16 +95,16 @@ support this versus requiring a custom log config file or property file.
 ### Dev Logging
 
 When working on the code you probably always want to see errors. If that is true, run with `--log2stdout` and
-`--loglevel ERROR`
+`--log-level ERROR`
 
 ```bash
-./smrt-server-tools/target/pack/bin/some_service --log2stdout --loglevel ERROR
+./smrt-server-tools/target/pack/bin/some_service --log2stdout --log-level ERROR
 ```
 
 Here is the more verbose, show me all log messages example.
 
 ```bash
-./smrt-server-tools/target/pack/bin/some_service --log2stdout --loglevel DEBUG
+./smrt-server-tools/target/pack/bin/some_service --log2stdout --log-level DEBUG
 ```
 
 ### Using a logback.xml config

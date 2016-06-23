@@ -48,7 +48,7 @@ object LoggerOptions {
    *
    * @param args Command line arguments
    */
-  def parse(args: Seq[String]): Unit = {
+  def parse(args: Seq[String], lc:LoggerConfig = new LoggerConfig(){}): Unit = {
     val parser = new OptionParser[LoggerConfig]("./app_with_logging") {
       // Don't complain about args such as -jar used via command-line server execution
       override def errorOnUnknownArgument = false
@@ -62,7 +62,7 @@ object LoggerOptions {
 
       LoggerOptions.add(this)
     }
-    parser.parse(args, new LoggerConfig(){})
+    parser.parse(args, lc)
   }
 
   def parseAddDebug(args: Seq[String]): Unit = {

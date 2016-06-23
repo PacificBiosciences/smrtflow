@@ -12,6 +12,13 @@ class.
 There are three main use cases supported here: production, testing and
 debugging/profiling.
 
+The main things to know:
+ 
+ 1. Flyway is used for migrations and migrations are automatically lazy-run the first time `Database.run()` is invoked
+ 2. All other DB access is assumed to be via Slick and `DBIOAction` instances
+ 3. You must use `Database.run(DBIOAction): Future[R]`, which enforces connection pooling and other restrictions needed for SQLite
+ 4. Don't use nested queries. It won't reliably work on SQLite.
+
 
 ### Production
 
@@ -73,15 +80,17 @@ it to a file.
 
 ```scala
 # add debugging log level to `make start-smrt-server-analysis`
-sbt "smrt-server-analysis/run --loglevel DEBUG" > debug_db.txt
+sbt "smrt-server-analysis/run --loglevel DEBUG" 2> server_error.txt > server_out.txt
 ```
 
+
+#### Queries performed and failed
 Pull the latest profiling summary to see invoked SQL, sorted by usage.
 Counts for successfully completed and failed queries is provided.
 
 ```bash
 # pull the profiling dump from the known header
-cat debug_db.txt | grep -A 21 "DB Use Summary" | tail -n 21
+cat server_out.txt | grep -A 21 "DB Use Summary" | tail -n 21
 
 [info] *** DB Use Summary ***
 [info] Code,Success, Failures
@@ -111,7 +120,7 @@ Summarize errors of interest by using `grep` to pull out all cases of
 the entry point that errored.
 
 ```bash
-cat debug_db.txt | grep -A 1 "PacBio:Database.*error.*updateJobStateByUUID(JobsDao.scala:298"
+cat server_out.txt | grep -A 1 "PacBio:Database.*error.*updateJobStateByUUID(JobsDao.scala:298"
 
 jfalkner-mac:smrtflow jfalkner$ cat debug_db.txt | grep -A 1 "PacBio:Database.*error.*updateJobStateByUUID(JobsDao.scala:282"
 [info] 2016-06-13  ERROR[ForkJoinPool-2-worker-11] c.p.d.LoggingListener - [PacBio:Database]  RDMS error for com.pacbio.secondary.smrtlink.actors.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:282)
@@ -123,20 +132,117 @@ jfalkner-mac:smrtflow jfalkner$ cat debug_db.txt | grep -A 1 "PacBio:Database.*e
 ... All are the same error
 ```
 
-Going to the offending line of code (`JobsDao.scala:298`) yields the
-method of interest.
+#### Detecting nested queries and SQLite
+
+SQLite has a restriction of one active connection and not enforcing this
+may yield occasional database lockups and timeouts or SQLITE_BUSY errors.
+The `Database` class has a guard in place that'll help identify if nested
+queries are being run. It is based on:
+
+- `Database.run()` enforces that `DBIOAction` (aka queries) are queued
+  and run synchronously by a single thread using a connection pool with one connection.
+- `Await.result(query, 12345 milliseconds)` is used to block for the query result
+- Timeouts are logged via `DatabaseListener.timeout()` before re-throw
+
+Unless queries take more than `12.345` seconds, triggering the timeout
+typically means that the query is blocked waiting on the result of
+another. You'll see an exception such as the following.
 
 ```
-override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = { 
-  val f = db.run(engineJobs 
-    .filter(_.uuid === uuid) 
-    .map(j => (j.state, j.updatedAt)) 
-    .update(state, JodaDateTime.now())) 
-    .map(_ => s"Successfully updated job $uuid to $state") 
-  f.onComplete { 
-    case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state") 
-    case Failure(_) => logger.error(s"Unable to update state of job id ${uuid.toString}") 
-  } 
-  f
+# Example `Nested db.run() calls?` exception including showing `JobsDao.scala:505` as the offending line.
+[PacBio:Database] RDMS timeout for c.p.s.s.a.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:505)
+[info] java.lang.Exception: Nested db.run() calls?
+[info]  at com.pacbio.database.Database$$anonfun$run$2$$anonfun$apply$3$$anonfun$apply$mcV$sp$6.apply(Database.scala:200)
+... 
+```
+
+The funny value of `12345` was chosen purposely because these sorts of 
+timeouts may impact message delivery in Akka. If you see any `Ask timeout`
+ and `Futures timed out after [12345 milliseconds]`, it helps indicate the
+nested query culprit.
+
+Verbose DEBUG logging exists of when new queries are created (aka
+added to queue via `db.run()`) and execution starts and ends. A query with nested
+queries will show the problematic behavior of `created` then `started` 
+followed by more `created` before the original query `finished`.
+
+```
+# Example nested queries
+[PacBio:Database] finished DBIOAction c.p.s.s.a.DataSetStore$class.getDataSetMetaDataSet(JobsDao.scala:554), queryCount = 0
+[PacBio:Database] started DBIOAction c.p.s.s.a.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:505), queryCount = 1
+[PacBio:Database] created DBIOAction c.p.s.s.a.DataSetStore$$anonfun$insertReferenceDataSet$1.apply(JobsDao.scala:572)
+[PacBio:Database] created DBIOAction c.p.s.s.a.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:299)
+[PacBio:Database] created DBIOAction c.p.s.s.a.JobDataStore$class.getJobById(JobsDao.scala:231)
+```
+Interestingly, in the above example the code `insertDataStoreByJob(JobsDao.scala:505)` is the entry point 
+of the entire logical DB update; however, the log line above it `getDataSetMetaDataSet(JobsDao.scala:554)`
+(usually) executes first because of the functional style the code is written in.
+
+The expected output is `created`, `started` then `finished` all in 
+series. It is fine to have all of these in a transaction -- it doesn't 
+matter that they are re-ordered.
+
+```
+# Needed sub-query (1 of 4) that can be done ahead of time.
+[PacBio:Database] created DBIOAction c.p.s.s.a.DataSetStore$class.getDataSetMetaDataSet(JobsDao.scala:554), queryCount = 0
+[PacBio:Database] started DBIOAction c.p.s.s.a.DataSetStore$class.getDataSetMetaDataSet(JobsDao.scala:554), queryCount = 0
+[PacBio:Database] finished DBIOAction c.p.s.s.a.DataSetStore$class.getDataSetMetaDataSet(JobsDao.scala:554), queryCount = 0
+
+# Needed sub-query (2 of 4) that can be done ahead of time.
+[PacBio:Database] created DBIOAction c.p.s.s.a.JobDataStore$class.getJobById(JobsDao.scala:231)
+[PacBio:Database] started DBIOAction c.p.s.s.a.JobDataStore$class.getJobById(JobsDao.scala:231)
+[PacBio:Database] finished DBIOAction c.p.s.s.a.JobDataStore$class.getJobById(JobsDao.scala:231)
+
+# Needed sub-query (3 of 4) that can be done ahead of time.
+[PacBio:Database] created DBIOAction c.p.s.s.a.DataSetStore$$anonfun$insertReferenceDataSet$1.apply(JobsDao.scala:572)
+[PacBio:Database] started DBIOAction c.p.s.s.a.DataSetStore$$anonfun$insertReferenceDataSet$1.apply(JobsDao.scala:572)
+[PacBio:Database] finished DBIOAction c.p.s.s.a.DataSetStore$$anonfun$insertReferenceDataSet$1.apply(JobsDao.scala:572)
+
+# Needed sub-query (4 of 4) that can be done ahead of time.
+[PacBio:Database] created DBIOAction c.p.s.s.a.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:299)
+[PacBio:Database] started DBIOAction c.p.s.s.a.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:299)
+[PacBio:Database] finished DBIOAction c.p.s.s.a.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:299)
+
+# After all sub-queries needed are done. Run the main insert.
+[PacBio:Database] created DBIOAction c.p.s.s.a.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:505), queryCount = 1
+[PacBio:Database] started DBIOAction c.p.s.s.a.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:505), queryCount = 1
+[PacBio:Database] finished DBIOAction c.p.s.s.a.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:505), queryCount = 1
+```
+
+If a database is used that supports multiple connections (i.e. almost
+anything other than SQLite), then nesting queries is likely fine. It'd
+be an extreme case that somehow saturates a connection pool with many
+connections. The pool would probably be unbounded, rendering this concern
+moot.
+
+One last tactic. By default Spray/Akka will have many threads working
+through actors message queues. If so, then the query logging may not be
+as simple to read as it could. Restrict the thread pool to one thread
+to help make the logs as straight-forward to follow as shown above.
+
+```
+# Example of restricting Akka workers to a single thread
+akka {
+    loglevel = DEBUG
+    loggers = ["akka.event.slf4j.Slf4jLogger"]
+    ...
+    actor {
+        ...
+        default-dispatcher {
+          throughput = 100000
+          # Force a single thread to handle the Akka system. Breaks
+          # default parralelism but clarifies annoying SQLite issues
+          # where embedded queries spawn on a diff thread.
+          executor = "thread-pool-executor"
+          thread-pool-executor {
+            # Min number of threads to cap factor-based parallelism number to
+            parallelism-min = 1
+            # Parallelism (threads) ... ceil(available processors * factor)
+            parallelism-factor = 1
+            # Max number of threads to cap factor-based parallelism number to
+            parallelism-max = 1
+          }
+        }
+    }
 }
 ```
