@@ -24,11 +24,13 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import slick.driver.SQLiteDriver.api._
+
+import scala.concurrent.duration._
 
 
 trait DalProvider {
@@ -498,32 +500,44 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     if (ds.isChunked) {
       Future(s"Skipping inserting of Chunked DataStoreFile $ds")
     } else {
-      // Extended details import if file type is a DataSet
-      DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-        case Some(typ) =>
-          val insert = DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
-          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
-            case Some(_) =>
-              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-              insert
-            case None =>
-              logger.info(s"importing datastore file into db $ds")
-              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              (datastoreServiceFiles += dss).flatMap(_ => insert)
+
+      /**
+       *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
+       */
+      def addOptionalInsert(existing: Option[Any]): Future[String] = {
+        // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
+        val addDataStoreServiceFile = existing match {
+          case Some(_) =>
+            DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
+          case None =>
+            logger.info(s"importing datastore file into db $ds")
+            val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
+            datastoreServiceFiles += dss
+        }
+        // 2 of 3: insert of the data set, if it is a known/supported file type
+        val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+          case Some(typ) => {
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
           }
-          db.run(action.transactionally)
-        case None =>
-          val unsupportedString =
-            s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"
-          val action = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption.flatMap {
-            case Some(_) =>
-              logger.info(s"Already imported. Skipping inserting of datastore file $ds")
-              DBIO.from(Future(unsupportedString))
-            case None =>
-              val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-              (datastoreServiceFiles += dss).map(_ => unsupportedString)
-          }
-          db.run(action.transactionally)
+          case None =>
+            existing match {
+              case Some(_) =>
+                DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
+              case None =>
+                DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
+            }
+        }
+        // 3 of 3: run the appropriate actions in a transaction
+        val fin = for {
+          _ <- addDataStoreServiceFile
+          oi <- optionalInsert
+        } yield (oi)
+        db.run(fin.transactionally)
+      }
+      
+      // This needed queries un-nested due to SQLite limitations -- see #197
+      db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption).flatMap{
+        addOptionalInsert
       }
     }
   }
@@ -562,6 +576,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
     db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
 
+  // removes a query that seemed like it was potentially nested based on race condition with executor
+  private def getDataSetMetaDataSetBlocking(uuid: UUID): Option[DataSetMetaDataSet] =
+    Await.result(getDataSetMetaDataSet(uuid), 23456 milliseconds)
+
   private def insertMetaData(ds: ServiceDataSetMetadata): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -572,7 +590,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   // TODO(smcclellan): Can these insertXXXDataSet methods by combined into one method?
   def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[String] =
-    getDataSetMetaDataSet(ds.uuid).flatMap {
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"ReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
@@ -592,7 +610,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 
   def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
-    getDataSetMetaDataSet(ds.uuid).flatMap {
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"SubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
@@ -612,7 +630,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 
   def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
-    getDataSetMetaDataSet(ds.uuid).flatMap {
+    getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
         val msg = s"HdfSubreadSet ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)

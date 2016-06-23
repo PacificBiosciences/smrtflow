@@ -195,7 +195,7 @@ class Database(dbURI: String) {
         toreturn
       }
       catch {
-        case t => {
+        case t : Throwable => {
           if (dbug) Future {
             listeners.foreach(_.timeout(code, stacktrace, new Exception("Nested db.run() calls?", t)))
           }
