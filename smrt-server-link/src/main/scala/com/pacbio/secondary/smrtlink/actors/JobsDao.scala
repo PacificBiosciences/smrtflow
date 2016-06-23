@@ -366,6 +366,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     db.run(updates.transactionally)
   }
 
+  def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
+    db.run(jobEvents += jobEvent).map(_ => jobEvent)
+
+  def addJobEvents(events: Seq[JobEvent]): Future[Seq[JobEvent]] =
+    db.run(jobEvents ++= events).map(_ => events)
+
+  def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
+
+
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
   override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = db.run(engineJobs.result)
 

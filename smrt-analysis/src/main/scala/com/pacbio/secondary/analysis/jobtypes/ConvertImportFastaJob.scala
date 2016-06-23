@@ -3,7 +3,7 @@ package com.pacbio.secondary.analysis.jobtypes
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import com.pacbio.secondary.analysis.converters.FastaConverter._
+//import com.pacbio.secondary.analysis.converters.FastaConverter._
 import com.pacbio.secondary.analysis.converters.{DatasetConvertError, FastaToReferenceConverter, PacBioFastaValidator}
 import com.pacbio.secondary.analysis.datasets.{DataSetMetaTypes, ReferenceDatasetFileIO, ReferenceSetIO}
 import com.pacbio.secondary.analysis.jobs._
