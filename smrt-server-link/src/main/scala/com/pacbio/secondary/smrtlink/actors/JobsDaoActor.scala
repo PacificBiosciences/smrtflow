@@ -41,20 +41,6 @@ object MessageTypes {
 object JobsDaoActor {
   import MessageTypes._
 
-  // Project
-  case object GetProjects extends ProjectMessage
-  case class GetProjectById(projId: Int) extends ProjectMessage
-  case class CreateProject(opts: ProjectRequest) extends ProjectMessage
-  case class UpdateProject(projId: Int, opts: ProjectRequest) extends ProjectMessage
-  case class GetProjectUsers(projId: Int) extends ProjectMessage
-  case class AddProjectUser(projId: Int, user: ProjectUserRequest) extends ProjectMessage
-  case class DeleteProjectUser(projId: Int, user: String) extends ProjectMessage
-  case class GetDatasetsByProject(projId: Int) extends ProjectMessage
-  case class GetUserProjects(login: String)
-  case class GetUserProjectsDatasets(user: String) extends ProjectMessage
-  case class SetProjectForDatasetId(dsId: Int, projId: Int) extends ProjectMessage
-  case class SetProjectForDatasetUuid(dsId: UUID, projId: Int) extends ProjectMessage
-
   // Job
   case object GetAllJobs extends JobMessage
 
@@ -366,32 +352,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       }
 
     // End of EngineDaoActor
-
-    case GetProjects => pipeWith(dao.getProjects(1000))
-    case GetProjectById(projId: Int) => pipeWith {
-      dao.getProjectById(projId).map(_.getOrElse(toE(s"Unable to find project $projId")))
-    }
-    case CreateProject(opts: ProjectRequest) => pipeWith(dao.createProject(opts))
-    case UpdateProject(projId: Int, opts: ProjectRequest) => pipeWith {
-      dao.updateProject(projId, opts).map(_.getOrElse(toE(s"Unable to find project $projId")))
-    }
-    case GetProjectUsers(projId: Int) =>
-      pipeWith(dao.getProjectUsers(projId))
-    case AddProjectUser(projId: Int, user: ProjectUserRequest) =>
-      pipeWith(dao.addProjectUser(projId, user))
-    case DeleteProjectUser(projId: Int, user: String) =>
-      pipeWith(dao.deleteProjectUser(projId, user))
-    case GetDatasetsByProject(projId: Int) =>
-      pipeWith(dao.getDatasetsByProject(projId))
-    case GetUserProjects(login: String) =>
-      pipeWith(dao.getUserProjects(login))
-    case GetUserProjectsDatasets(user: String) =>
-      pipeWith(dao.getUserProjectsDatasets(user))
-    case SetProjectForDatasetId(dsId: Int, projId: Int) =>
-      pipeWith(dao.setProjectForDatasetId(dsId, projId))
-    case SetProjectForDatasetUuid(dsId: UUID, projId: Int) =>
-      pipeWith(dao.setProjectForDatasetUuid(dsId, projId))
-
 
     case GetAllJobs => pipeWith(dao.getJobs(1000))
 
