@@ -470,6 +470,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         val dataset = DataSetLoader.loadReferenceSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
         insertReferenceDataSet(sds)
+      case DataSetMetaTypes.GmapReference =>
+        val dataset = DataSetLoader.loadGmapReferenceSet(path)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        insertGmapReferenceDataSet(sds)
       case DataSetMetaTypes.HdfSubread =>
         val dataset = DataSetLoader.loadHdfSubreadSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
@@ -603,6 +607,26 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
             dsReference2 forceInsert ReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
           }.map { _ =>
             val m = s"imported ReferencecSet ${ds.uuid} from ${ds.path}"
+            logger.info(m)
+            m
+          }
+        }
+    }
+
+  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[String] =
+    getDataSetMetaDataSet(ds.uuid).flatMap {
+      case Some(_) =>
+        val msg = s"GmapReferenceSet ${ds.uuid} already imported. Skipping importing of $ds"
+        logger.debug(msg)
+        Future(msg)
+      case None =>
+        db.run {
+          insertMetaData(ds).flatMap { id =>
+            // TODO(smcclellan): Here and below, remove use of forceInsert and allow ids to make use of autoinc
+            // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
+            dsGmapReference2 forceInsert GmapReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
+          }.map { _ =>
+            val m = s"imported GmapReferencecSet ${ds.uuid} from ${ds.path}"
             logger.info(m)
             m
           }
@@ -744,6 +768,35 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
+    }
+
+  def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
+    GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
+
+  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+      q.result.map(_.map(x => toGmapR(x._1, x._2)))
+    }
+
+  def getGmapReferenceDataSetById(id: Int): Future[Option[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeById(id) join dsGmapReference2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
+    }
+  private def gmapReferenceToDetails(ds: Future[Option[GmapReferenceServiceDataSet]]): Future[Option[String]] =
+    ds.map(_.map(x => DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(x.path)))))
+
+  def getGmapReferenceDataSetDetailsById(id: Int): Future[Option[String]] = gmapReferenceToDetails(getGmapReferenceDataSetById(id))
+
+  def getGmapReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
+    gmapReferenceToDetails(getGmapReferenceDataSetByUUID(uuid))
+
+  def getGmapReferenceDataSetByUUID(id: UUID): Future[Option[GmapReferenceServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeByUUID(id) join dsGmapReference2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
   def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[HdfSubreadServiceDataSet]] =

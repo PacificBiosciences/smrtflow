@@ -292,6 +292,15 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
   }
 
+  class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
+
+    def ploidy: Rep[String] = column[String]("ploidy")
+
+    def organism: Rep[String] = column[String]("organism")
+
+    def * = (id, uuid, ploidy, organism) <>(GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
+  }
+
   class AlignmentDataSetT(tag: Tag) extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
     def * = (id, uuid) <>(AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
   }
@@ -485,6 +494,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val dsAlignment2 = TableQuery[AlignmentDataSetT]
   lazy val dsBarcode2 = TableQuery[BarcodeDataSetT]
   lazy val dsCCSread2 = TableQuery[CCSreadDataSetT]
+  lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
@@ -529,6 +539,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsAlignment2,
     dsBarcode2,
     dsCCSread2,
+    dsGmapReference2,
     datastoreServiceFiles)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)
