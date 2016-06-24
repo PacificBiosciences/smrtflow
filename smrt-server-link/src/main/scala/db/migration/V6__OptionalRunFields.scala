@@ -5,7 +5,7 @@ import java.util.UUID
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 

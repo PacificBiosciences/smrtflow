@@ -2,7 +2,7 @@ package db.migration
 
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 
 import scala.concurrent.Future
