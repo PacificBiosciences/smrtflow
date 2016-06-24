@@ -345,7 +345,7 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
   val numSubreadSets = 10000
   val numAlignmentSets = 10000
 
-  def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+  def toURI(sx: String) = if (sx.startsWith("jdbc:h2:")) sx else throw new Exception(s"Bad JDBC URL? $sx")
 
   val db = new Database(toURI(conf.getString("pb-services.db-uri")))
   val dao = new JobsDao(db, engineConfig, resolver)
