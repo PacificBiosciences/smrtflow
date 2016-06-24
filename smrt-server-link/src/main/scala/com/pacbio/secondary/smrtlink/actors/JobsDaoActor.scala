@@ -19,7 +19,7 @@ import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest, ReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest, ReferenceServiceDataSet, GmapReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
@@ -114,6 +114,17 @@ object JobsDaoActor {
 
   case class GetReferenceDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
+  // GMAP reference
+  case class GetGmapReferenceDataSets(limit: Int) extends DataSetMessage
+
+  case class GetGmapReferenceDataSetById(i: Int) extends DataSetMessage
+
+  case class GetGmapReferenceDataSetByUUID(uuid: UUID) extends DataSetMessage
+
+  case class GetGmapReferenceDataSetDetailsById(i: Int) extends DataSetMessage
+
+  case class GetGmapReferenceDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
+
   // Alignment
   case class GetAlignmentDataSetById(i: Int) extends DataSetMessage
 
@@ -155,6 +166,11 @@ object JobsDaoActor {
   case class ImportReferenceDataSet(ds: ReferenceServiceDataSet) extends DataSetMessage
 
   case class ImportReferenceDataSetFromFile(path: String) extends DataSetMessage
+
+  // Import a GMAP reference
+  case class ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) extends DataSetMessage
+
+  case class ImportGmapReferenceDataSetFromFile(path: String) extends DataSetMessage
 
   // This should probably be a different actor
   // Convert a Reference to a Dataset and Import
@@ -460,6 +476,25 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       dao.getReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
     }
 
+    // Get GMAP References
+    case GetGmapReferenceDataSets(limit: Int) => pipeWith(dao.getGmapReferenceDataSets(limit))
+
+    case GetGmapReferenceDataSetById(id: Int) => pipeWith {
+      dao.getGmapReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
+    }
+
+    case GetGmapReferenceDataSetByUUID(uuid: UUID) => pipeWith {
+      dao.getGmapReferenceDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find reference dataset '$uuid")))
+    }
+
+    case GetGmapReferenceDataSetDetailsById(id: Int) => pipeWith {
+      dao.getGmapReferenceDataSetDetailsById(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
+    }
+
+    case GetGmapReferenceDataSetDetailsByUUID(id: UUID) => pipeWith {
+      dao.getGmapReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
+    }
+
     case ImportReferenceDataSet(ds: ReferenceServiceDataSet) => pipeWith {
       log.debug("creating reference dataset")
       dao.insertReferenceDataSet(ds)
@@ -489,6 +524,37 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         r.getDataSetMetadata.getOrganism)
 
       dao.insertReferenceDataSet(ds)
+    }
+
+    case ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) => pipeWith {
+      log.debug("creating reference dataset")
+      dao.insertGmapReferenceDataSet(ds)
+    }
+
+    case ImportGmapReferenceDataSetFromFile(path: String) => pipeWith {
+      // FIXME. This should be removed
+      val createdAt = JodaDateTime.now()
+      val r = DataSetLoader.loadGmapReferenceSet(Paths.get(path))
+      val uuid = UUID.fromString(r.getUniqueId)
+      val ds = GmapReferenceServiceDataSet(
+        -99,
+        uuid,
+        r.getName,
+        path,
+        createdAt, createdAt,
+        r.getDataSetMetadata.getNumRecords,
+        r.getDataSetMetadata.getTotalLength,
+        "0.5.0",
+        "reference comments",
+        "reference-tags",
+        toMd5(uuid.toString),
+        1,
+        1,
+        1,
+        r.getDataSetMetadata.getPloidy,
+        r.getDataSetMetadata.getOrganism)
+
+      dao.insertGmapReferenceDataSet(ds)
     }
 
     // get Alignments

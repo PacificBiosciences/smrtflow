@@ -71,7 +71,7 @@ object DataSetMetaTypes {
 
   case object GmapReference extends DataSetMetaType {
     final val fileType = FileTypes.DS_GMAP_REF
-    override def shortName = "gmap_references"
+    override def shortName = "gmapreferences"
   }
 
   // FIXME. The order is important. Will reuse this in the db

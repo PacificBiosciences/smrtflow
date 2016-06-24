@@ -78,11 +78,13 @@ class LogSpec
   val userDao: UserDao = TestProviders.userDao()
   val logDao: DatabaseLogDao = TestProviders.logDao().asInstanceOf[DatabaseLogDao]
 
-  userDao.createUser(readUserLogin, UserRecord("pass"))
-  userDao.createUser(writeUserLogin, UserRecord("pass"))
-  userDao.addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
-  userDao.createUser(adminUserLogin, UserRecord("pass"))
-  userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  Await.ready(for {
+    _ <- userDao.createUser(readUserLogin, UserRecord("pass"))
+    _ <- userDao.createUser(writeUserLogin, UserRecord("pass"))
+    _ <- userDao.addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
+    _ <- userDao.createUser(adminUserLogin, UserRecord("pass"))
+    _ <- userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  } yield (), 10.seconds)
 
   val routes = TestProviders.logService().prefixedRoutes
 

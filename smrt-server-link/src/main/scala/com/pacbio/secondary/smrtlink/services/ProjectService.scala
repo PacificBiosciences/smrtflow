@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.actors.{UserDaoProvider, UserDao}
 import com.pacbio.common.auth.{AuthenticatorProvider, ApiUser, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol, UserResponse}
@@ -29,12 +29,11 @@ import SprayJsonSupport._
  *
  * @param dbActor
  */
-class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
+class ProjectService(dbActor: ActorRef, userDao: UserDao, authenticator: Authenticator)
   extends JobsBaseMicroService
   with SmrtLinkConstants {
 
   // import message types
-  import UserServiceActor._
   import JobsDaoActor._
 
   // import serialzation protocols
@@ -104,21 +103,12 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
                 }
               } ~
               get {
-                val userResponses = for {
-                  users <- (dbActor ? GetProjectUsers(projId)).mapTo[Seq[ProjectUser]]
-
-                  apiUsers <- Future.sequence(users.map(u =>
-                    (userActor ? GetUser(u.login)).mapTo[ApiUser]))
-
-                  fullUsers <- Future {
-                    (users, apiUsers).zipped.map((u, au) =>
-                      ProjectUserResponse(au.toResponse, u.role))
-                  }
-                } yield fullUsers
-
                 complete {
                   ok {
-                    userResponses
+                    for {
+                      users <- (dbActor ? GetProjectUsers(projId)).mapTo[Seq[ProjectUser]]
+                      apiUsers <- Future.sequence(users.map(u => userDao.getUser(u.login)))
+                    } yield (users, apiUsers).zipped.map((u, au) => ProjectUserResponse(au.toResponse(), u.role))
                   }
                 }
               }
@@ -200,13 +190,13 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
 
 trait ProjectServiceProvider {
   this: JobsDaoActorProvider
-    with UserServiceActorRefProvider
+    with UserDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
     Singleton(() => new ProjectService(
-      jobsDaoActor(), userServiceActorRef(), authenticator()))
+      jobsDaoActor(), userDao(), authenticator()))
 
   addService(projectService)
 }

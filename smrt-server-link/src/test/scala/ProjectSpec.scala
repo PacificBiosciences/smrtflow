@@ -1,7 +1,7 @@
 import java.util.UUID
 
 import akka.actor.ActorRefFactory
-import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvider, UserServiceActorRefProvider}
+import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvider}
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models.UserRecord
@@ -23,6 +23,7 @@ import spray.json._
 import spray.routing.AuthenticationFailedRejection
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class ProjectSpec extends Specification
@@ -49,7 +50,7 @@ with SmrtLinkConstants {
 
   object TestProviders extends
       ServiceComposer with
-    ProjectServiceProvider with
+      ProjectServiceProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
@@ -59,12 +60,11 @@ with SmrtLinkConstants {
       JobsDaoProvider with
       TestDalProvider with
       InMemoryUserDaoProvider with
-      UserServiceActorRefProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with
       SetBindings with
-  ActorRefFactoryProvider {
+      ActorRefFactoryProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
@@ -75,9 +75,11 @@ with SmrtLinkConstants {
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
   }
 
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  } yield (), 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db

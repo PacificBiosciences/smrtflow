@@ -85,12 +85,13 @@ sbt "smrt-server-analysis/run --loglevel DEBUG" 2> server_error.txt > server_out
 
 
 #### Queries performed and failed
-Pull the latest profiling summary to see invoked SQL, sorted by usage.
-Counts for successfully completed and failed queries is provided.
+Upon JVM exit a profiling summary will be displayed in `System.out` 
+(logged as INFO to the logger) and, if `/tmp` exists, two CSV files will
+be made: `PACBIO_DATABASE_{usage|timing}.csv`.
 
 ```bash
-# pull the profiling dump from the known header
-cat server_out.txt | grep -A 21 "DB Use Summary" | tail -n 21
+# show the DB usage summary per line of scala code
+cat /tmp/PACBIO_DATABASE_usage.csv 
 
 [info] *** DB Use Summary ***
 [info] Code,Success, Failures
@@ -130,6 +131,39 @@ jfalkner-mac:smrtflow jfalkner$ cat debug_db.txt | grep -A 1 "PacBio:Database.*e
 [info] java.lang.RuntimeException: Can't have multiple sql connections open. An old connection may not have had close() invoked.
 --
 ... All are the same error
+```
+
+#### Query timing
+
+This tool does not replace SQL EXPLAIN use for specific slow queries. It
+is a wrapper that summarizes the line of code in the Scala codebase that
+ran `db.run()` and how long the entire `DBIOAction` took to execute. 
+Timing summarized is approximate RDBMS time and excludes queue time.
+
+```
+# example DB use timing for `stress.py` after first imoporting large amounts of mock data
+$ cat /tmp/PACBIO_DATABASE_timing.csv 
+
+Code,Sum,Avg,Min,Max,Usage
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getSubreadDataSets(JobsDao.scala:713), 2157, 134, 108, 188, 16
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.getJobsByTypeId(JobsDao.scala:382), 1350, 32, 0, 99, 42
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getAlignmentDataSets(JobsDao.scala:796), 1016, 101, 82, 131, 10
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.getJobs(JobsDao.scala:379), 385, 128, 92, 191, 3
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getReferenceDataSets(JobsDao.scala:724), 295, 16, 14, 21, 18
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.updateJobStateByUUID(JobsDao.scala:301), 202, 3, 2, 8, 60
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getHdfDataSets(JobsDao.scala:750), 106, 10, 9, 12, 10
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.createJob(JobsDao.scala:366), 98, 6, 4, 22, 15
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.addOptionalInsert$1(JobsDao.scala:535), 64, 1, 0, 3, 55
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.getJobByUUID(JobsDao.scala:230), 46, 0, 0, 1, 70
+com.pacbio.secondary.smrtlink.actors.JobDataStore$class.getJobById(JobsDao.scala:233), 42, 0, 0, 1, 74
+com.pacbio.secondary.smrtlink.database.DatabaseRunDao.updateOrCreate(DatabaseRunDao.scala:55), 39, 7, 5, 15, 5
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.insertDataStoreByJob(JobsDao.scala:539), 29, 0, 0, 2, 55
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.insertSubreadDataSet(JobsDao.scala:619), 26, 5, 3, 9, 5
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.insertReferenceDataSet(JobsDao.scala:599), 23, 4, 4, 5, 5
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getDataSetByUUID(JobsDao.scala:677), 18, 0, 0, 2, 26
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getDataStoreFiles(JobsDao.scala:854), 10, 3, 2, 5, 3
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getReferenceDataSetById(JobsDao.scala:730), 4, 0, 0, 1, 5
+com.pacbio.secondary.smrtlink.actors.DataSetStore$class.getDataSetMetaDataSet(JobsDao.scala:577), 4, 0, 0, 1, 10
 ```
 
 #### Detecting nested queries and SQLite

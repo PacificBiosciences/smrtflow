@@ -15,11 +15,19 @@ import spray.testkit.Specs2RouteTest
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class HealthSpec extends Specification with Directives with Specs2RouteTest with HttpService with BaseRolesInit with NoTimeConversions {
+// TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
+class HealthSpec
+  extends Specification
+  with Directives
+  with Specs2RouteTest
+  with HttpService
+  with NoTimeConversions
+  with BaseRolesInit  {
+
   sequential
 
-  import PacBioJsonProtocol._
   import BaseRoles._
+  import PacBioJsonProtocol._
 
   def actorRefFactory = system
 
@@ -102,11 +110,13 @@ class HealthSpec extends Specification with Directives with Specs2RouteTest with
   val authenticator = TestProviders.authenticator()
   val clock = TestProviders.clock().asInstanceOf[FakeClock]
 
-  TestProviders.userDao().createUser(readUserLogin, UserRecord("pass"))
-  TestProviders.userDao().createUser(writeUserLogin, UserRecord("pass"))
-  TestProviders.userDao().addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
-  TestProviders.userDao().createUser(adminUserLogin, UserRecord("pass"))
-  TestProviders.userDao().addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(readUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(writeUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
+    _ <- TestProviders.userDao().createUser(adminUserLogin, UserRecord("pass"))
+    _ <- TestProviders.userDao().addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
+  } yield (), 10.seconds)
 
   val routes = TestProviders.healthService().prefixedRoutes
 

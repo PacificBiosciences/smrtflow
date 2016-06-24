@@ -2,37 +2,32 @@ package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.Paths
 
-import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
-
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
-
-import com.pacbio.common.actors.{ActorSystemProvider, UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.actors.ActorSystemProvider
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes._
-
+import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import spray.routing.directives.FileAndResourceDirectives
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 
 class JobManagerService(
     dbActor: ActorRef,
     statusGenerator: StatusGenerator,
-    userActor: ActorRef,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -83,7 +78,7 @@ class JobManagerService(
         }
       } ~
       pathPrefix(JOB_ROOT_PREFIX) {
-        sharedJobRoutes(dbActor, userActor)
+        sharedJobRoutes(dbActor)
       }
     }
 
@@ -147,7 +142,6 @@ trait JobManagerServiceProvider {
     with SmrtLinkConfigProvider
     with JobsDaoActorProvider
     with StatusGeneratorProvider
-    with UserServiceActorRefProvider
     with ActorSystemProvider
     with ServiceComposer =>
 
@@ -157,7 +151,6 @@ trait JobManagerServiceProvider {
       new JobManagerService(
         jobsDaoActor(),
         statusGenerator(),
-        userServiceActorRef(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),

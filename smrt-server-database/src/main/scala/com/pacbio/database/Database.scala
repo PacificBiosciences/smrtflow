@@ -55,6 +55,8 @@ class Database(dbURI: String) {
   flyway.setDataSource(connectionPool)
   flyway.setBaselineOnMigrate(true)
   flyway.setBaselineVersionAsString("1")
+  // eagerly run migrations
+  migrate()
 
   // keep access to the real database restricted. we don't want atyptical use in the codebase
   // TODO: -1 queueSize means unlimited. This probably needs to be tuned
