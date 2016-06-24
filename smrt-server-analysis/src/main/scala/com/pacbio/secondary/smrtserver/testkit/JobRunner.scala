@@ -1,7 +1,7 @@
 
-package com.pacbio.secondary.smrtserver.tools
+package com.pacbio.secondary.smrtserver.testkit
 
-//import com.pacbio.secondary.analysis.pipelines._
+import com.pacbio.secondary.smrtserver.tools._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -21,7 +21,7 @@ import spray.httpx.SprayJsonSupport
 
 import scala.collection.JavaConversions.mapAsScalaMap
 import scala.collection.mutable._
-import scala.collection.immutable.Map
+import scala.collection.immutable.{Map, Seq}
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -86,9 +86,10 @@ object TestkitParser {
   }
 }
 
-class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
+class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
   import AnalysisClientJsonProtocol._
   import ReportModels._
+  import TestkitModels._
 
   protected val testCases = ArrayBuffer[scala.xml.Elem]()
   protected var nFailures = 0
@@ -121,29 +122,24 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
   private case object TestPassed extends TestResult {val mode="passed"}
 
   // TODO return JUnit test cases
-  private def testReportValues(jobId: Int, reportId: UUID, values: Map[String, JsValue]): Int = {
+  private def testReportValues(jobId: Int, reportId: UUID,
+                               rptTest: ReportTestRules): Int = {
     Try {
       Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
     } match {
       case Success(report) => {
-        (for ((k, v) <- values) yield {
-          val keyFields = k.split("__")
-          val attrId: String = keyFields(0)
-          var op: String = "eq"
-          if (keyFields.size == 2) op = keyFields(1)
-          val isSameId = (other: String) => ((other != "") && (other.split('.').toList.last == attrId))
+        (for (rule <- rptTest.rules) yield {
+          val isSameId = (other: String) => ((other != "") && (other.split('.').toList.last == rule.attrId))
           var testStatus: TestResult = TestSkipped
           // I'm writing this as an N^2 loop because it's much cleaner and
           // N will usually be single digits
           for (a <- report.attributes) {
             var testStatusAttr: TestResult = a match {
               case ReportDoubleAttribute(id,name,value) => if (isSameId(id)) {
-                val vExpected = v.asInstanceOf[JsNumber].value.toDouble
-                if (testReportValue[Double](value, vExpected, op)) TestPassed else TestFailed
+                if (testReportValue[Double](value, rule.value.asInstanceOf[Double], rule.op)) TestPassed else TestFailed
               } else TestSkipped
               case ReportLongAttribute(id,name, value) => if (isSameId(id)) {
-                val vExpected = v.asInstanceOf[JsNumber].value.toLong
-                if (testReportValue[Long](value, vExpected, op)) TestPassed else TestFailed
+                if (testReportValue[Long](value, rule.value.asInstanceOf[Long], rule.op)) TestPassed else TestFailed
               } else TestSkipped
               case ReportStrAttribute(id,name,value) => TestSkipped
             }
@@ -152,9 +148,9 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
               case x => x
             }
           }
-          val testStr = s"${attrId} .${op}. ${v}"
+          val testStr = s"${rule.attrId} .${rule.op}. ${rule.value}"
           val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
-          val testName = s"test_${attrId}"
+          val testName = s"test_${rule.attrId}"
           var testCase = testStatus match {
             case TestPassed => {
               nPassed += 1
@@ -162,7 +158,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
             }
             case TestFailed => {
               nFailures += 1
-              <testcase classname={testClass} name={testName} time="0"><failure message={s"FAILED: ${attrId}"}>{testStr}</failure></testcase>
+              <testcase classname={testClass} name={testName} time="0"><failure message={s"FAILED: ${rule.attrId}"}>{testStr}</failure></testcase>
             }
             case TestSkipped => {
               nSkips += 1
@@ -181,37 +177,20 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
     }
   }
 
-  def runTests(testValuesPath: String, jobId: Int): Int = {
-    val jsonSrc = Source.fromFile(testValuesPath).getLines.mkString
-    val jsonAst = jsonSrc.parseJson
-    jsonAst match {
-      case JsObject(x) => (for ((k,v) <- x) yield {
-        if (k == "reports") {
-          v match {
-            case JsObject(xx) => {
-              val reports = Try {
-                Await.result(sal.getAnalysisJobReports(jobId), TIMEOUT)
-              } match {
-                case Success(r) => r
-                case Failure(err) => Seq[DataStoreReportFile]()
-              }
-              val reportsMap = (for (r <- reports) yield (r.dataStoreFile.sourceId.split("-")(0), r.dataStoreFile.uuid)).toMap
-              (for ((rk,rv) <- xx) yield {
-                rv match {
-                  case JsObject(v) => {
-                    val reportId = reportsMap(rk)
-                    testReportValues(jobId, reportId, v)
-                  }
-                  case _ => errorExit(s"Can't unmarshal ${rv}")
-                }
-              }).toList.max
-            }
-            case _ => errorExit("Can't process this JSON file - 'reports' section must be a dict")
-          }
-        } else -1
-      }).toList.max
-      case _ => errorExit("Can't process this JSON file")
+  def runTests(reportTests: Seq[ReportTestRules], jobId: Int): Int = {
+    val reports = Try {
+      Await.result(sal.getAnalysisJobReports(jobId), TIMEOUT)
+    } match {
+      case Success(r) => r
+      case Failure(err) => Seq[DataStoreReportFile]()
     }
+    // FIXME use reportTypeId
+    //val reportsMap = (for (r <- reports) yield (r.reportTypeId, r.dataStoreFile.uuid)).toMap
+    val reportsMap = (for (r <- reports) yield (r.dataStoreFile.sourceId.split("-").head, r.dataStoreFile.uuid)).toMap
+    (for (test <- reportTests) yield {
+      val reportId = reportsMap(test.reportId)
+      testReportValues(jobId, reportId, test)
+     }).toList.max
   }
 
   def writeTestResults(xunitOut: String): Unit = {
@@ -220,30 +199,41 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
     try pw.write(testSuite.toString) finally pw.close()
   }
 
-  def runTestkitCfg(cfg: File, xunitOut: File, skipTests: Boolean = false,
+  protected def loadTestkitCfg(cfg: File): TestkitConfig = {
+    val jsonSrc = Source.fromFile(cfg).getLines.mkString
+    val jsonAst = jsonSrc.parseJson
+    jsonAst.convertTo[TestkitConfig]
+  }
+
+  def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
                     ignoreTestFailures: Boolean = false): Int = {
-    val ini = new Ini(cfg)
-    val title = ini.get("pbsmrtpipe:pipeline", "id")
-    val pipelineXml = ini.get("pbsmrtpipe:pipeline", "pipeline_xml")
-    val presetXml = ini.get("pbsmrtpipe:pipeline", "preset_xml")
+    val cfg = loadTestkitCfg(cfgFile)
     var xc = 0
-    println(title)
+    println(cfg.jobName)
     println("Importing entry points...")
     val entryPoints = new ArrayBuffer[BoundServiceEntryPoint]
-    for ((eid,xmlPath) <- ini.get("entry_points")) {
-      xc = max(xc, Try { importEntryPoint(eid, xmlPath) } match {
+    for (ept <- cfg.entryPoints) {
+      xc = max(xc, Try {
+        importEntryPoint(ept.entryId, ept.path.toString)
+      } match {
         case Success(ep) => {
           entryPoints.append(ep)
           println(ep)
           0
         }
-        case Failure(err) => errorExit(s"Could not load entry point ${eid}")
+        case Failure(err) => errorExit(s"Could not load entry point ${ept.entryId}")
       })
     }
     if (xc != 0) return errorExit("fatal error, exiting")
-    val pipelineId = getPipelineId(pipelineXml)
-    val presets = getPipelinePresets(new File(presetXml))
-    val pipelineOptions = getPipelineServiceOptions(title, pipelineId,
+    val pipelineId = cfg.pipelineId match {
+      case Some(id) => id
+      case _ => cfg.workflowXml match {
+        case Some(xmlFile) => getPipelineId(xmlFile)
+        case _ => throw new Exception("Either a pipeline ID or workflow XML must be defined")
+      }
+    }
+    val presets = getPipelinePresets(cfg.presetXml)
+    val pipelineOptions = getPipelineServiceOptions(cfg.jobName, pipelineId,
                                                     entryPoints, presets)
     var jobId = 0
     xc = Try {
@@ -258,25 +248,18 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) {
       case Failure(err) => errorExit(err.getMessage)
     }
     if ((xc == 0) && (! skipTests)) {
-      val testValues = Option(ini.get("pbsmrtpipe:pipeline", "test_values")).getOrElse("")
-      if (testValues != "") {
-        var testStatus = runTests(testValues, jobId)
-        writeTestResults(xunitOut.getAbsolutePath)
-        if (ignoreTestFailures) 0 else testStatus
-      } else {
-        println("No test_values JSON defined, skipping tests")
-        xc
-      }
+      var testStatus = runTests(cfg.reportTests, jobId)
+      writeTestResults(xunitOut.getAbsolutePath)
+      if (ignoreTestFailures) 0 else testStatus
     } else xc
   }
 
-  def runTestsOnly(cfg: File, testJobId: Int, xunitOut: File,
-                    ignoreTestFailures: Boolean = false): Int = {
+  def runTestsOnly(cfgFile: File, testJobId: Int, xunitOut: File,
+                   ignoreTestFailures: Boolean = false): Int = {
     if (runGetJobInfo(Left(testJobId)) != 0) return errorExit(s"Couldn't retrieve job ${testJobId}")
-    val ini = new Ini(cfg)
-    val testValues = Option(ini.get("pbsmrtpipe:pipeline", "test_values")).getOrElse("")
-    if (testValues != "") {
-      var testStatus = runTests(testValues, testJobId)
+    val cfg = loadTestkitCfg(cfgFile)
+    if (cfg.reportTests.size > 0) {
+      var testStatus = runTests(cfg.reportTests, testJobId)
       writeTestResults(xunitOut.getAbsolutePath)
       if (ignoreTestFailures) 0 else testStatus
     } else errorExit("No tests defined")
@@ -301,11 +284,11 @@ object TestkitRunner {
 
 object TestkitRunnerApp extends App {
   def run(args: Seq[String]) = {
-    val xc = TestkitParser.parser.parse(args.toSeq, TestkitParser.defaults) match {
+    val xc = TestkitParser.parser.parse(args, TestkitParser.defaults) match {
       case Some(config) => TestkitRunner(config)
       case _ => 1
     }
     sys.exit(xc)
   }
-  run(args)
+  run(args.to[scala.collection.immutable.Seq])
 }

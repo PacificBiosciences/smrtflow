@@ -24,5 +24,5 @@ packSettings
 
 packMain := Map(
   "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp",
-  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.tools.TestkitRunnerApp"
+  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.testkit.TestkitRunnerApp"
 )
