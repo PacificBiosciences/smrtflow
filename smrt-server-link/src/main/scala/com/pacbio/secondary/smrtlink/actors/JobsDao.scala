@@ -606,7 +606,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
             // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
             dsReference2 forceInsert ReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
           }.map { _ =>
-            val m = s"imported ReferencecSet ${ds.uuid} from ${ds.path}"
+            val m = s"imported ReferenceSet ${ds.uuid} from ${ds.path}"
             logger.info(m)
             m
           }
@@ -626,7 +626,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
             // TODO(smcclellan): Link datasets to metadata with foreign key, rather than forcing the id value
             dsGmapReference2 forceInsert GmapReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism)
           }.map { _ =>
-            val m = s"imported GmapReferencecSet ${ds.uuid} from ${ds.path}"
+            val m = s"imported GmapReferenceSet ${ds.uuid} from ${ds.path}"
             logger.info(m)
             m
           }
