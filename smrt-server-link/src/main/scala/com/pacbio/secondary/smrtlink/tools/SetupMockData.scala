@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
@@ -54,7 +54,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
 /**
  * clumsy way to setup the test db
  */
-trait MockUtils extends LazyLogging{
+trait   MockUtils extends LazyLogging{
 
   import com.pacbio.secondary.smrtlink.database.TableModels._
 

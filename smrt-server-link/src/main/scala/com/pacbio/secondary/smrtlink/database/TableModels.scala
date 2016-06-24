@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 
 

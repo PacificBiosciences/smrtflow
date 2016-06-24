@@ -28,7 +28,7 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 
 import scala.concurrent.duration._
 
