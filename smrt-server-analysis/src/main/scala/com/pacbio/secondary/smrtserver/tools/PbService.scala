@@ -100,7 +100,7 @@ object PbServiceParser {
       pipelineId: String = "",
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
-      presetXml: File = null,
+      presetXml: Option[String] = None,
       maxTime: Int = -1) extends LoggerConfig
 
 
@@ -208,7 +208,7 @@ object PbServiceParser {
         c.copy(entryPoints = c.entryPoints :+ e)
       } text "Entry point (must be valid PacBio DataSet)",
       opt[File]("preset-xml") action { (x, c) =>
-        c.copy(presetXml = x)
+        c.copy(presetXml = Some(x.getAbsolutePath.toString))
       } text "XML file specifying pbsmrtpipe options",
       opt[String]("job-title") action { (t, c) =>
         c.copy(jobTitle = t)
@@ -671,11 +671,11 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }
 
-  protected def getPipelinePresets(presetXml: File): PipelineTemplatePreset = {
-    if (presetXml != null) {
-      val presetPath = Paths.get(presetXml.getAbsolutePath)
-      PipelineTemplatePresetLoader.loadFrom(presetPath)
-    } else defaultPresets
+  protected def getPipelinePresets(presetXml: Option[String]): PipelineTemplatePreset = {
+    presetXml match {
+      case Some(path) => PipelineTemplatePresetLoader.loadFrom(Paths.get(path))
+      case _ => defaultPresets
+    }
   }
 
   protected object OptionTypes {
@@ -725,7 +725,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
-                  presetXml: File = null, block: Boolean = true, validate: Boolean = true): Int = {
+                  presetXml: Option[String] = None, block: Boolean = true,
+                  validate: Boolean = true): Int = {
     if (entryPoints.length == 0) return errorExit("At least one entry point is required")
     var pipelineIdFull: String = pipelineId
     val idFields = pipelineIdFull.split('.')

@@ -3,6 +3,8 @@ package com.pacbio.secondary.smrtserver.testkit
 
 import java.nio.file.Path
 
+import scala.collection.immutable.Seq
+
 import spray.json._
 
 import com.pacbio.secondary.smrtserver.models._
@@ -20,13 +22,17 @@ object TestkitModels {
 
   case class EntryPointPath(entryId: String, path: Path)
 
-  abstract class ReportAttributeRule
+  abstract class ReportAttributeRule {
+    val attrId: String
+    val value: Any
+    val op: String
+  }
 
-  case class ReportAttributeLongRule(attrId: String, op: String, value: Long) extends ReportAttributeRule
+  case class ReportAttributeLongRule(attrId: String, value: Long, op: String) extends ReportAttributeRule
 
-  case class ReportAttributeDoubleRule(attrId: String, op: String, value: Double) extends ReportAttributeRule
+  case class ReportAttributeDoubleRule(attrId: String, value: Double, op: String) extends ReportAttributeRule
 
-  case class ReportAttributeStringRule(attrId: String, value: String) extends ReportAttributeRule
+  case class ReportAttributeStringRule(attrId: String, value: String, op: String = "eq") extends ReportAttributeRule
 
   case class ReportTestRules(reportId: String, rules: Seq[ReportAttributeRule])
 
@@ -49,7 +55,7 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
   implicit val entryPointPathFormat = jsonFormat2(EntryPointPath)
   implicit val reportLongRuleFormat = jsonFormat3(ReportAttributeLongRule)
   implicit val reportDoubleRuleFormat = jsonFormat3(ReportAttributeDoubleRule)
-  implicit val reportStringRuleFormat = jsonFormat2(ReportAttributeStringRule)
+  implicit val reportStringRuleFormat = jsonFormat3(ReportAttributeStringRule)
 
   implicit object reportAttributeRuleFormat extends JsonFormat[ReportAttributeRule] {
     def write(rar: ReportAttributeRule) = rar match {
@@ -59,10 +65,10 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
     }
 
     def read(jsRule: JsValue): ReportAttributeRule = {
-      jsRule.asJsObject.getFields("attrId", "op", "value") match {
-        case Seq(JsString(id), JsString(op), JsNumber(value)) => {
-          if (value.isValidInt) ReportAttributeLongRule(id, op, value.toLong)
-          else ReportAttributeDoubleRule(id, op, value.toDouble)
+      jsRule.asJsObject.getFields("attrId", "value", "op") match {
+        case Seq(JsString(id), JsNumber(value), JsString(op)) => {
+          if (value.isValidInt) ReportAttributeLongRule(id, value.toLong, op)
+          else ReportAttributeDoubleRule(id, value.toDouble, op)
         }
         case _ => jsRule.asJsObject.getFields("attrId", "value") match {
           case Seq(JsString(id), JsString(value)) => ReportAttributeStringRule(id, value)

@@ -2,6 +2,7 @@
 import java.nio.file.Paths
 
 import scala.io.Source
+import scala.collection.immutable.Seq
 
 import org.specs2.mutable.Specification
 
@@ -22,8 +23,8 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       val reportTests = Seq(ReportTestRules(
         "example_report",
         Seq(
-          ReportAttributeLongRule("mapped_reads_n", "gt", 100),
-          ReportAttributeDoubleRule("concordance", "ge", 0.85),
+          ReportAttributeLongRule("mapped_reads_n", 100, "gt"),
+          ReportAttributeDoubleRule("concordance", 0.85, "ge"),
           ReportAttributeStringRule("instrument", "54006"))))
       val cfg = TestkitConfig(
         "test_job",
