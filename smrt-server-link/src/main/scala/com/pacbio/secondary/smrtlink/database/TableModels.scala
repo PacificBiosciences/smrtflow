@@ -313,6 +313,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <>(CCSreadServiceSet.tupled, CCSreadServiceSet.unapply)
   }
 
+  class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
+    def * = (id, uuid) <>(ConsensusAlignmentServiceSet.tupled, ConsensusAlignmentServiceSet.unapply)
+  }
+
+  class ContigDataSetT(tag: Tag) extends IdAbleTable[ContigServiceSet](tag, "datasets_contigs") {
+    def * = (id, uuid) <>(ContigServiceSet.tupled, ContigServiceSet.unapply)
+  }
+
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
@@ -495,6 +503,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val dsBarcode2 = TableQuery[BarcodeDataSetT]
   lazy val dsCCSread2 = TableQuery[CCSreadDataSetT]
   lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
+  lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
+  lazy val dsContig2 = TableQuery[ContigDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
@@ -540,6 +550,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsBarcode2,
     dsCCSread2,
     dsGmapReference2,
+    dsCCSAlignment2,
+    dsContig2,
     datastoreServiceFiles)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)

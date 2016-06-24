@@ -384,38 +384,6 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
 
-
-  def toCCSread(t1: DataSetMetaDataSet) =
-    CCSreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
-
-  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[CCSreadServiceDataSet]] = {
-    val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-    db.run(query.result.map(_.map(x => toCCSread(x._1))))
-  }
-
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
-      t1.id,
-      t1.uuid,
-      t1.name,
-      t1.path,
-      t1.createdAt,
-      t1.updatedAt,
-      t1.numRecords,
-      t1.totalLength,
-      t1.version,
-      t1.comments,
-      t1.tags,
-      t1.md5,
-      t1.userId,
-      t1.jobId,
-      t1.projectId)
-
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
-    val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-    db.run(query.result.map(_.map(x => toB(x._1))))
-  }
 }
 
 /**
@@ -486,6 +454,14 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         val dataset = DataSetLoader.loadBarcodeSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
         insertBarcodeDataSet(sds)
+      case DataSetMetaTypes.AlignmentCCS =>
+        val dataset = DataSetLoader.loadConsensusAlignmentSet(path)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        insertConsensusAlignmentDataSet(sds)
+      case DataSetMetaTypes.Contig =>
+        val dataset = DataSetLoader.loadContigSet(path)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        insertContigDataSet(sds)
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
         logger.warn(msg)
@@ -673,6 +649,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         }
     }
 
+
   def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[String] = {
     logger.debug(s"Inserting AlignmentSet $ds")
     db.run {
@@ -682,12 +659,30 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
   }
 
+  def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[String] = {
+    logger.debug(s"Inserting ConsensusAlignmentSet $ds")
+    db.run {
+      insertMetaData(ds).flatMap { id =>
+        dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
+      }.map(_ => s"Successfully entered Consensus Alignment dataset $ds")
+    }
+  }
+
   def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[String] = {
     logger.debug(s"Inserting BarcodeSet $ds")
     db.run {
       insertMetaData(ds).flatMap { id =>
         dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
       }.map(_ => s"Successfully entered Barcode dataset $ds")
+    }
+  }
+
+  def insertContigDataSet(ds: ContigServiceDataSet): Future[String] = {
+    logger.debug(s"Inserting ContigSet $ds")
+    db.run {
+      insertMetaData(ds).flatMap { id =>
+        dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
+      }.map(_ => s"Successfully entered Contig dataset $ds")
     }
   }
 
@@ -863,6 +858,16 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toA(x._1)))
     }
 
+  def toCCSread(t1: DataSetMetaDataSet) =
+    CCSreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+
+  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
+  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[CCSreadServiceDataSet]] = {
+    val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
+    db.run(query.result.map(_.map(x => toCCSread(x._1))))
+  }
+
   def getCCSDataSetById(id: Int): Future[Option[CCSreadServiceDataSet]] =
     db.run {
       val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
@@ -874,6 +879,63 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
+
+  def toCCSA(t1: DataSetMetaDataSet) = ConsensusAlignmentServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
+
+  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ConsensusAlignmentServiceDataSet]] =
+    db.run {
+      val q = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
+      q.result.map(_.map(x => toCCSA(x._1)))
+    }
+
+  def getConsensusAlignmentDataSetById(id: Int): Future[Option[ConsensusAlignmentServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeById(id) join dsCCSAlignment2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toCCSA(x._1)))
+    }
+
+  def getConsensusAlignmentDataSetByUUID(id: UUID): Future[Option[ConsensusAlignmentServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeByUUID(id) join dsCCSAlignment2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toCCSA(x._1)))
+    }
+
+  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
+
+  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
+    val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
+    db.run(query.result.map(_.map(x => toB(x._1))))
+  }
 
   def getBarcodeDataSetById(id: Int): Future[Option[BarcodeServiceDataSet]] =
     db.run {
@@ -894,6 +956,40 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetById(id))
 
   def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
+
+  def toCtg(t1: DataSetMetaDataSet) = ContigServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.userId,
+      t1.jobId,
+      t1.projectId)
+
+  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ContigServiceDataSet]] = {
+    val query = dsMetaData2 join dsContig2 on (_.id === _.id)
+    db.run(query.result.map(_.map(x => toCtg(x._1))))
+  }
+
+  def getContigDataSetById(id: Int): Future[Option[ContigServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeById(id) join dsContig2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toCtg(x._1)))
+    }
+
+  def getContigDataSetByUUID(id: UUID): Future[Option[ContigServiceDataSet]] =
+    db.run {
+      val q = datasetMetaTypeByUUID(id) join dsContig2 on (_.id === _.id)
+      q.result.headOption.map(_.map(x => toCtg(x._1)))
+    }
 
   def toDataStoreJobFile(x: DataStoreServiceFile) =
     // This is has the wrong job uuid
