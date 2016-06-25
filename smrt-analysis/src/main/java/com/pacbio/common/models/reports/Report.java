@@ -7,9 +7,13 @@ package com.pacbio.common.models.reports;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class Report extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Report\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Pbreports style id, must only have [A-z][0-9]_\"},{\"name\":\"attributes\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportAttribute\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"value\",\"type\":[\"string\",\"int\",\"float\"]}]}}},{\"name\":\"plotGroups\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PlotGroup\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\"},{\"name\":\"legend\",\"type\":[\"string\",\"null\"],\"desc\":\"Not clear what the usecase is of this\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"]},{\"name\":\"plots\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportPlot\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Plot Id\"},{\"name\":\"image\",\"type\":\"string\",\"desc\":\"Relative Path to Image\"},{\"name\":\"caption\",\"type\":[\"string\",\"null\"],\"desc\":\"Caption of the Plot\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"],\"desc\":\"Relative path to thumbnail of the Plot\"}]}}}]}}},{\"name\":\"tables\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTable\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\",\"desc\":\"Title of the Table\"},{\"name\":\"columns\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTableColumn\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"header\",\"type\":\"string\"},{\"name\":\"value\",\"type\":{\"type\":\"array\",\"items\":[\"int\",\"float\"]},\"desc\":\"Column values. Attention to mixed-types attempting to represent 'NA'\"}]}},\"desc\":\"List of Columns\"}]}}}]}");
+  private static final long serialVersionUID = -3153887227137974806L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Report\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Pbreports style id, must only have [A-z][0-9]_\"},{\"name\":\"version\",\"type\":\"string\",\"desc\":\"Version of the Report Schema Spec\"},{\"name\":\"uuid\",\"type\":\"string\",\"desc\":\"Report UUID\"},{\"name\":\"title\",\"type\":[\"string\",\"null\"],\"default\":null,\"desc\":\"Report Display name\"},{\"name\":\"attributes\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportAttribute\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"value\",\"type\":[\"string\",\"int\",\"float\"]}]}}},{\"name\":\"plotGroups\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PlotGroup\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\"},{\"name\":\"legend\",\"type\":[\"string\",\"null\"],\"desc\":\"Not clear what the usecase is of this\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"]},{\"name\":\"plots\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportPlot\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Plot Id\"},{\"name\":\"image\",\"type\":\"string\",\"desc\":\"Relative Path to Image\"},{\"name\":\"caption\",\"type\":[\"string\",\"null\"],\"desc\":\"Caption of the Plot\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"],\"desc\":\"Relative path to thumbnail of the Plot\"}]}}}]}}},{\"name\":\"tables\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTable\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\",\"desc\":\"Title of the Table\"},{\"name\":\"columns\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTableColumn\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"header\",\"type\":\"string\"},{\"name\":\"value\",\"type\":{\"type\":\"array\",\"items\":[\"int\",\"float\",\"string\",\"null\"]},\"desc\":\"Column values. Attention to mixed-types attempting to represent 'NA'\"}]}},\"desc\":\"List of Columns\"}]}}}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
+  @Deprecated public java.lang.CharSequence version;
+  @Deprecated public java.lang.CharSequence uuid;
+  @Deprecated public java.lang.CharSequence title;
   @Deprecated public java.util.List<com.pacbio.common.models.reports.ReportAttribute> attributes;
   @Deprecated public java.util.List<com.pacbio.common.models.reports.PlotGroup> plotGroups;
   @Deprecated public java.util.List<com.pacbio.common.models.reports.ReportTable> tables;
@@ -24,8 +28,11 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
   /**
    * All-args constructor.
    */
-  public Report(java.lang.CharSequence id, java.util.List<com.pacbio.common.models.reports.ReportAttribute> attributes, java.util.List<com.pacbio.common.models.reports.PlotGroup> plotGroups, java.util.List<com.pacbio.common.models.reports.ReportTable> tables) {
+  public Report(java.lang.CharSequence id, java.lang.CharSequence version, java.lang.CharSequence uuid, java.lang.CharSequence title, java.util.List<com.pacbio.common.models.reports.ReportAttribute> attributes, java.util.List<com.pacbio.common.models.reports.PlotGroup> plotGroups, java.util.List<com.pacbio.common.models.reports.ReportTable> tables) {
     this.id = id;
+    this.version = version;
+    this.uuid = uuid;
+    this.title = title;
     this.attributes = attributes;
     this.plotGroups = plotGroups;
     this.tables = tables;
@@ -36,9 +43,12 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
   public java.lang.Object get(int field$) {
     switch (field$) {
     case 0: return id;
-    case 1: return attributes;
-    case 2: return plotGroups;
-    case 3: return tables;
+    case 1: return version;
+    case 2: return uuid;
+    case 3: return title;
+    case 4: return attributes;
+    case 5: return plotGroups;
+    case 6: return tables;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -47,9 +57,12 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
     case 0: id = (java.lang.CharSequence)value$; break;
-    case 1: attributes = (java.util.List<com.pacbio.common.models.reports.ReportAttribute>)value$; break;
-    case 2: plotGroups = (java.util.List<com.pacbio.common.models.reports.PlotGroup>)value$; break;
-    case 3: tables = (java.util.List<com.pacbio.common.models.reports.ReportTable>)value$; break;
+    case 1: version = (java.lang.CharSequence)value$; break;
+    case 2: uuid = (java.lang.CharSequence)value$; break;
+    case 3: title = (java.lang.CharSequence)value$; break;
+    case 4: attributes = (java.util.List<com.pacbio.common.models.reports.ReportAttribute>)value$; break;
+    case 5: plotGroups = (java.util.List<com.pacbio.common.models.reports.PlotGroup>)value$; break;
+    case 6: tables = (java.util.List<com.pacbio.common.models.reports.ReportTable>)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -70,6 +83,51 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
   }
 
   /**
+   * Gets the value of the 'version' field.
+   */
+  public java.lang.CharSequence getVersion() {
+    return version;
+  }
+
+  /**
+   * Sets the value of the 'version' field.
+   * @param value the value to set.
+   */
+  public void setVersion(java.lang.CharSequence value) {
+    this.version = value;
+  }
+
+  /**
+   * Gets the value of the 'uuid' field.
+   */
+  public java.lang.CharSequence getUuid() {
+    return uuid;
+  }
+
+  /**
+   * Sets the value of the 'uuid' field.
+   * @param value the value to set.
+   */
+  public void setUuid(java.lang.CharSequence value) {
+    this.uuid = value;
+  }
+
+  /**
+   * Gets the value of the 'title' field.
+   */
+  public java.lang.CharSequence getTitle() {
+    return title;
+  }
+
+  /**
+   * Sets the value of the 'title' field.
+   * @param value the value to set.
+   */
+  public void setTitle(java.lang.CharSequence value) {
+    this.title = value;
+  }
+
+  /**
    * Gets the value of the 'attributes' field.
    */
   public java.util.List<com.pacbio.common.models.reports.ReportAttribute> getAttributes() {
@@ -78,7 +136,6 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
 
   /**
    * Sets the value of the 'attributes' field.
-   *
    * @param value the value to set.
    */
   public void setAttributes(java.util.List<com.pacbio.common.models.reports.ReportAttribute> value) {
@@ -115,17 +172,28 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
     this.tables = value;
   }
 
-  /** Creates a new Report RecordBuilder */
+  /**
+   * Creates a new Report RecordBuilder.
+   * @return A new Report RecordBuilder
+   */
   public static com.pacbio.common.models.reports.Report.Builder newBuilder() {
     return new com.pacbio.common.models.reports.Report.Builder();
   }
   
-  /** Creates a new Report RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new Report RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new Report RecordBuilder
+   */
   public static com.pacbio.common.models.reports.Report.Builder newBuilder(com.pacbio.common.models.reports.Report.Builder other) {
     return new com.pacbio.common.models.reports.Report.Builder(other);
   }
   
-  /** Creates a new Report RecordBuilder by copying an existing Report instance */
+  /**
+   * Creates a new Report RecordBuilder by copying an existing Report instance.
+   * @param other The existing instance to copy.
+   * @return A new Report RecordBuilder
+   */
   public static com.pacbio.common.models.reports.Report.Builder newBuilder(com.pacbio.common.models.reports.Report other) {
     return new com.pacbio.common.models.reports.Report.Builder(other);
   }
@@ -137,6 +205,9 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
     implements org.apache.avro.data.RecordBuilder<Report> {
 
     private java.lang.CharSequence id;
+    private java.lang.CharSequence version;
+    private java.lang.CharSequence uuid;
+    private java.lang.CharSequence title;
     private java.util.List<com.pacbio.common.models.reports.ReportAttribute> attributes;
     private java.util.List<com.pacbio.common.models.reports.PlotGroup> plotGroups;
     private java.util.List<com.pacbio.common.models.reports.ReportTable> tables;
@@ -146,145 +217,348 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
       super(com.pacbio.common.models.reports.Report.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.reports.Report.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
         this.id = data().deepCopy(fields()[0].schema(), other.id);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.attributes)) {
-        this.attributes = data().deepCopy(fields()[1].schema(), other.attributes);
+      if (isValidValue(fields()[1], other.version)) {
+        this.version = data().deepCopy(fields()[1].schema(), other.version);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.plotGroups)) {
-        this.plotGroups = data().deepCopy(fields()[2].schema(), other.plotGroups);
+      if (isValidValue(fields()[2], other.uuid)) {
+        this.uuid = data().deepCopy(fields()[2].schema(), other.uuid);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.tables)) {
-        this.tables = data().deepCopy(fields()[3].schema(), other.tables);
+      if (isValidValue(fields()[3], other.title)) {
+        this.title = data().deepCopy(fields()[3].schema(), other.title);
         fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.attributes)) {
+        this.attributes = data().deepCopy(fields()[4].schema(), other.attributes);
+        fieldSetFlags()[4] = true;
+      }
+      if (isValidValue(fields()[5], other.plotGroups)) {
+        this.plotGroups = data().deepCopy(fields()[5].schema(), other.plotGroups);
+        fieldSetFlags()[5] = true;
+      }
+      if (isValidValue(fields()[6], other.tables)) {
+        this.tables = data().deepCopy(fields()[6].schema(), other.tables);
+        fieldSetFlags()[6] = true;
       }
     }
     
-    /** Creates a Builder by copying an existing Report instance */
+    /**
+     * Creates a Builder by copying an existing Report instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.reports.Report other) {
             super(com.pacbio.common.models.reports.Report.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
         this.id = data().deepCopy(fields()[0].schema(), other.id);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.attributes)) {
-        this.attributes = data().deepCopy(fields()[1].schema(), other.attributes);
+      if (isValidValue(fields()[1], other.version)) {
+        this.version = data().deepCopy(fields()[1].schema(), other.version);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.plotGroups)) {
-        this.plotGroups = data().deepCopy(fields()[2].schema(), other.plotGroups);
+      if (isValidValue(fields()[2], other.uuid)) {
+        this.uuid = data().deepCopy(fields()[2].schema(), other.uuid);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.tables)) {
-        this.tables = data().deepCopy(fields()[3].schema(), other.tables);
+      if (isValidValue(fields()[3], other.title)) {
+        this.title = data().deepCopy(fields()[3].schema(), other.title);
         fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.attributes)) {
+        this.attributes = data().deepCopy(fields()[4].schema(), other.attributes);
+        fieldSetFlags()[4] = true;
+      }
+      if (isValidValue(fields()[5], other.plotGroups)) {
+        this.plotGroups = data().deepCopy(fields()[5].schema(), other.plotGroups);
+        fieldSetFlags()[5] = true;
+      }
+      if (isValidValue(fields()[6], other.tables)) {
+        this.tables = data().deepCopy(fields()[6].schema(), other.tables);
+        fieldSetFlags()[6] = true;
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.Report.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.Report.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'attributes' field */
-    public java.util.List<com.pacbio.common.models.reports.ReportAttribute> getAttributes() {
-      return attributes;
+    /**
+      * Gets the value of the 'version' field.
+      * @return The value.
+      */
+    public java.lang.CharSequence getVersion() {
+      return version;
     }
-    
-    /** Sets the value of the 'attributes' field */
-    public com.pacbio.common.models.reports.Report.Builder setAttributes(java.util.List<com.pacbio.common.models.reports.ReportAttribute> value) {
+
+    /**
+      * Sets the value of the 'version' field.
+      * @param value The value of 'version'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setVersion(java.lang.CharSequence value) {
       validate(fields()[1], value);
-      this.attributes = value;
+      this.version = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'attributes' field has been set */
-    public boolean hasAttributes() {
+
+    /**
+      * Checks whether the 'version' field has been set.
+      * @return True if the 'version' field has been set, false otherwise.
+      */
+    public boolean hasVersion() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'attributes' field */
-    public com.pacbio.common.models.reports.Report.Builder clearAttributes() {
-      attributes = null;
+
+
+    /**
+      * Clears the value of the 'version' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder clearVersion() {
+      version = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'plotGroups' field */
-    public java.util.List<com.pacbio.common.models.reports.PlotGroup> getPlotGroups() {
-      return plotGroups;
+    /**
+      * Gets the value of the 'uuid' field.
+      * @return The value.
+      */
+    public java.lang.CharSequence getUuid() {
+      return uuid;
     }
-    
-    /** Sets the value of the 'plotGroups' field */
-    public com.pacbio.common.models.reports.Report.Builder setPlotGroups(java.util.List<com.pacbio.common.models.reports.PlotGroup> value) {
+
+    /**
+      * Sets the value of the 'uuid' field.
+      * @param value The value of 'uuid'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setUuid(java.lang.CharSequence value) {
       validate(fields()[2], value);
-      this.plotGroups = value;
+      this.uuid = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'plotGroups' field has been set */
-    public boolean hasPlotGroups() {
+
+    /**
+      * Checks whether the 'uuid' field has been set.
+      * @return True if the 'uuid' field has been set, false otherwise.
+      */
+    public boolean hasUuid() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'plotGroups' field */
-    public com.pacbio.common.models.reports.Report.Builder clearPlotGroups() {
-      plotGroups = null;
+
+
+    /**
+      * Clears the value of the 'uuid' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder clearUuid() {
+      uuid = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'tables' field */
-    public java.util.List<com.pacbio.common.models.reports.ReportTable> getTables() {
-      return tables;
+    /**
+      * Gets the value of the 'title' field.
+      * @return The value.
+      */
+    public java.lang.CharSequence getTitle() {
+      return title;
     }
-    
-    /** Sets the value of the 'tables' field */
-    public com.pacbio.common.models.reports.Report.Builder setTables(java.util.List<com.pacbio.common.models.reports.ReportTable> value) {
+
+    /**
+      * Sets the value of the 'title' field.
+      * @param value The value of 'title'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setTitle(java.lang.CharSequence value) {
       validate(fields()[3], value);
-      this.tables = value;
+      this.title = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'tables' field has been set */
-    public boolean hasTables() {
+
+    /**
+      * Checks whether the 'title' field has been set.
+      * @return True if the 'title' field has been set, false otherwise.
+      */
+    public boolean hasTitle() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'tables' field */
+
+
+    /**
+      * Clears the value of the 'title' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder clearTitle() {
+      title = null;
+      fieldSetFlags()[3] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'attributes' field.
+      * @return The value.
+      */
+    public java.util.List<com.pacbio.common.models.reports.ReportAttribute> getAttributes() {
+      return attributes;
+    }
+
+    /**
+      * Sets the value of the 'attributes' field.
+      * @param value The value of 'attributes'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setAttributes(java.util.List<com.pacbio.common.models.reports.ReportAttribute> value) {
+      validate(fields()[4], value);
+      this.attributes = value;
+      fieldSetFlags()[4] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'attributes' field has been set.
+      * @return True if the 'attributes' field has been set, false otherwise.
+      */
+    public boolean hasAttributes() {
+      return fieldSetFlags()[4];
+    }
+
+
+    /**
+      * Clears the value of the 'attributes' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder clearAttributes() {
+      attributes = null;
+      fieldSetFlags()[4] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'plotGroups' field.
+      * @return The value.
+      */
+    public java.util.List<com.pacbio.common.models.reports.PlotGroup> getPlotGroups() {
+      return plotGroups;
+    }
+
+    /**
+      * Sets the value of the 'plotGroups' field.
+      * @param value The value of 'plotGroups'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setPlotGroups(java.util.List<com.pacbio.common.models.reports.PlotGroup> value) {
+      validate(fields()[5], value);
+      this.plotGroups = value;
+      fieldSetFlags()[5] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'plotGroups' field has been set.
+      * @return True if the 'plotGroups' field has been set, false otherwise.
+      */
+    public boolean hasPlotGroups() {
+      return fieldSetFlags()[5];
+    }
+
+
+    /**
+      * Clears the value of the 'plotGroups' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder clearPlotGroups() {
+      plotGroups = null;
+      fieldSetFlags()[5] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'tables' field.
+      * @return The value.
+      */
+    public java.util.List<com.pacbio.common.models.reports.ReportTable> getTables() {
+      return tables;
+    }
+
+    /**
+      * Sets the value of the 'tables' field.
+      * @param value The value of 'tables'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.reports.Report.Builder setTables(java.util.List<com.pacbio.common.models.reports.ReportTable> value) {
+      validate(fields()[6], value);
+      this.tables = value;
+      fieldSetFlags()[6] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'tables' field has been set.
+      * @return True if the 'tables' field has been set, false otherwise.
+      */
+    public boolean hasTables() {
+      return fieldSetFlags()[6];
+    }
+
+
+    /**
+      * Clears the value of the 'tables' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.Report.Builder clearTables() {
       tables = null;
-      fieldSetFlags()[3] = false;
+      fieldSetFlags()[6] = false;
       return this;
     }
 
@@ -293,13 +567,33 @@ public class Report extends org.apache.avro.specific.SpecificRecordBase implemen
       try {
         Report record = new Report();
         record.id = fieldSetFlags()[0] ? this.id : (java.lang.CharSequence) defaultValue(fields()[0]);
-        record.attributes = fieldSetFlags()[1] ? this.attributes : (java.util.List<com.pacbio.common.models.reports.ReportAttribute>) defaultValue(fields()[1]);
-        record.plotGroups = fieldSetFlags()[2] ? this.plotGroups : (java.util.List<com.pacbio.common.models.reports.PlotGroup>) defaultValue(fields()[2]);
-        record.tables = fieldSetFlags()[3] ? this.tables : (java.util.List<com.pacbio.common.models.reports.ReportTable>) defaultValue(fields()[3]);
+        record.version = fieldSetFlags()[1] ? this.version : (java.lang.CharSequence) defaultValue(fields()[1]);
+        record.uuid = fieldSetFlags()[2] ? this.uuid : (java.lang.CharSequence) defaultValue(fields()[2]);
+        record.title = fieldSetFlags()[3] ? this.title : (java.lang.CharSequence) defaultValue(fields()[3]);
+        record.attributes = fieldSetFlags()[4] ? this.attributes : (java.util.List<com.pacbio.common.models.reports.ReportAttribute>) defaultValue(fields()[4]);
+        record.plotGroups = fieldSetFlags()[5] ? this.plotGroups : (java.util.List<com.pacbio.common.models.reports.PlotGroup>) defaultValue(fields()[5]);
+        record.tables = fieldSetFlags()[6] ? this.tables : (java.util.List<com.pacbio.common.models.reports.ReportTable>) defaultValue(fields()[6]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

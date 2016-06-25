@@ -7,6 +7,7 @@ package com.pacbio.common.models.reports;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 5290243151025548413L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReportAttribute\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"value\",\"type\":[\"string\",\"int\",\"float\"]}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
@@ -95,17 +96,28 @@ public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase
     this.value = value;
   }
 
-  /** Creates a new ReportAttribute RecordBuilder */
+  /**
+   * Creates a new ReportAttribute RecordBuilder.
+   * @return A new ReportAttribute RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportAttribute.Builder newBuilder() {
     return new com.pacbio.common.models.reports.ReportAttribute.Builder();
   }
   
-  /** Creates a new ReportAttribute RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ReportAttribute RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ReportAttribute RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportAttribute.Builder newBuilder(com.pacbio.common.models.reports.ReportAttribute.Builder other) {
     return new com.pacbio.common.models.reports.ReportAttribute.Builder(other);
   }
   
-  /** Creates a new ReportAttribute RecordBuilder by copying an existing ReportAttribute instance */
+  /**
+   * Creates a new ReportAttribute RecordBuilder by copying an existing ReportAttribute instance.
+   * @param other The existing instance to copy.
+   * @return A new ReportAttribute RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportAttribute.Builder newBuilder(com.pacbio.common.models.reports.ReportAttribute other) {
     return new com.pacbio.common.models.reports.ReportAttribute.Builder(other);
   }
@@ -125,7 +137,10 @@ public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase
       super(com.pacbio.common.models.reports.ReportAttribute.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportAttribute.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
@@ -142,7 +157,10 @@ public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase
       }
     }
     
-    /** Creates a Builder by copying an existing ReportAttribute instance */
+    /**
+     * Creates a Builder by copying an existing ReportAttribute instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportAttribute other) {
             super(com.pacbio.common.models.reports.ReportAttribute.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
@@ -159,75 +177,117 @@ public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'name' field */
+    /**
+      * Gets the value of the 'name' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getName() {
       return name;
     }
-    
-    /** Sets the value of the 'name' field */
+
+    /**
+      * Sets the value of the 'name' field.
+      * @param value The value of 'name'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder setName(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.name = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'name' field has been set */
+
+    /**
+      * Checks whether the 'name' field has been set.
+      * @return True if the 'name' field has been set, false otherwise.
+      */
     public boolean hasName() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'name' field */
+
+
+    /**
+      * Clears the value of the 'name' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder clearName() {
       name = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'value' field */
+    /**
+      * Gets the value of the 'value' field.
+      * @return The value.
+      */
     public java.lang.Object getValue() {
       return value;
     }
-    
-    /** Sets the value of the 'value' field */
+
+    /**
+      * Sets the value of the 'value' field.
+      * @param value The value of 'value'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder setValue(java.lang.Object value) {
       validate(fields()[2], value);
       this.value = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'value' field has been set */
+
+    /**
+      * Checks whether the 'value' field has been set.
+      * @return True if the 'value' field has been set, false otherwise.
+      */
     public boolean hasValue() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'value' field */
+
+
+    /**
+      * Clears the value of the 'value' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportAttribute.Builder clearValue() {
       value = null;
       fieldSetFlags()[2] = false;
@@ -247,4 +307,21 @@ public class ReportAttribute extends org.apache.avro.specific.SpecificRecordBase
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

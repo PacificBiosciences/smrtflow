@@ -7,6 +7,7 @@ package com.pacbio.common.models.reports;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = -8135411924914908800L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PlotGroup\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\"},{\"name\":\"legend\",\"type\":[\"string\",\"null\"],\"desc\":\"Not clear what the usecase is of this\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"]},{\"name\":\"plots\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportPlot\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Plot Id\"},{\"name\":\"image\",\"type\":\"string\",\"desc\":\"Relative Path to Image\"},{\"name\":\"caption\",\"type\":[\"string\",\"null\"],\"desc\":\"Caption of the Plot\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"],\"desc\":\"Relative path to thumbnail of the Plot\"}]}}}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
@@ -133,17 +134,28 @@ public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase imple
     this.plots = value;
   }
 
-  /** Creates a new PlotGroup RecordBuilder */
+  /**
+   * Creates a new PlotGroup RecordBuilder.
+   * @return A new PlotGroup RecordBuilder
+   */
   public static com.pacbio.common.models.reports.PlotGroup.Builder newBuilder() {
     return new com.pacbio.common.models.reports.PlotGroup.Builder();
   }
   
-  /** Creates a new PlotGroup RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new PlotGroup RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new PlotGroup RecordBuilder
+   */
   public static com.pacbio.common.models.reports.PlotGroup.Builder newBuilder(com.pacbio.common.models.reports.PlotGroup.Builder other) {
     return new com.pacbio.common.models.reports.PlotGroup.Builder(other);
   }
   
-  /** Creates a new PlotGroup RecordBuilder by copying an existing PlotGroup instance */
+  /**
+   * Creates a new PlotGroup RecordBuilder by copying an existing PlotGroup instance.
+   * @param other The existing instance to copy.
+   * @return A new PlotGroup RecordBuilder
+   */
   public static com.pacbio.common.models.reports.PlotGroup.Builder newBuilder(com.pacbio.common.models.reports.PlotGroup other) {
     return new com.pacbio.common.models.reports.PlotGroup.Builder(other);
   }
@@ -165,7 +177,10 @@ public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase imple
       super(com.pacbio.common.models.reports.PlotGroup.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.reports.PlotGroup.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
@@ -190,7 +205,10 @@ public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
     
-    /** Creates a Builder by copying an existing PlotGroup instance */
+    /**
+     * Creates a Builder by copying an existing PlotGroup instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.reports.PlotGroup other) {
             super(com.pacbio.common.models.reports.PlotGroup.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
@@ -215,125 +233,195 @@ public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'title' field */
+    /**
+      * Gets the value of the 'title' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getTitle() {
       return title;
     }
-    
-    /** Sets the value of the 'title' field */
+
+    /**
+      * Sets the value of the 'title' field.
+      * @param value The value of 'title'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder setTitle(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.title = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'title' field has been set */
+
+    /**
+      * Checks whether the 'title' field has been set.
+      * @return True if the 'title' field has been set, false otherwise.
+      */
     public boolean hasTitle() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'title' field */
+
+
+    /**
+      * Clears the value of the 'title' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder clearTitle() {
       title = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'legend' field */
+    /**
+      * Gets the value of the 'legend' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getLegend() {
       return legend;
     }
-    
-    /** Sets the value of the 'legend' field */
+
+    /**
+      * Sets the value of the 'legend' field.
+      * @param value The value of 'legend'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder setLegend(java.lang.CharSequence value) {
       validate(fields()[2], value);
       this.legend = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'legend' field has been set */
+
+    /**
+      * Checks whether the 'legend' field has been set.
+      * @return True if the 'legend' field has been set, false otherwise.
+      */
     public boolean hasLegend() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'legend' field */
+
+
+    /**
+      * Clears the value of the 'legend' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder clearLegend() {
       legend = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'thumbnail' field */
+    /**
+      * Gets the value of the 'thumbnail' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getThumbnail() {
       return thumbnail;
     }
-    
-    /** Sets the value of the 'thumbnail' field */
+
+    /**
+      * Sets the value of the 'thumbnail' field.
+      * @param value The value of 'thumbnail'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder setThumbnail(java.lang.CharSequence value) {
       validate(fields()[3], value);
       this.thumbnail = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'thumbnail' field has been set */
+
+    /**
+      * Checks whether the 'thumbnail' field has been set.
+      * @return True if the 'thumbnail' field has been set, false otherwise.
+      */
     public boolean hasThumbnail() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'thumbnail' field */
+
+
+    /**
+      * Clears the value of the 'thumbnail' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder clearThumbnail() {
       thumbnail = null;
       fieldSetFlags()[3] = false;
       return this;
     }
 
-    /** Gets the value of the 'plots' field */
+    /**
+      * Gets the value of the 'plots' field.
+      * @return The value.
+      */
     public java.util.List<com.pacbio.common.models.reports.ReportPlot> getPlots() {
       return plots;
     }
-    
-    /** Sets the value of the 'plots' field */
+
+    /**
+      * Sets the value of the 'plots' field.
+      * @param value The value of 'plots'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder setPlots(java.util.List<com.pacbio.common.models.reports.ReportPlot> value) {
       validate(fields()[4], value);
       this.plots = value;
       fieldSetFlags()[4] = true;
       return this; 
     }
-    
-    /** Checks whether the 'plots' field has been set */
+
+    /**
+      * Checks whether the 'plots' field has been set.
+      * @return True if the 'plots' field has been set, false otherwise.
+      */
     public boolean hasPlots() {
       return fieldSetFlags()[4];
     }
-    
-    /** Clears the value of the 'plots' field */
+
+
+    /**
+      * Clears the value of the 'plots' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.PlotGroup.Builder clearPlots() {
       plots = null;
       fieldSetFlags()[4] = false;
@@ -355,4 +443,21 @@ public class PlotGroup extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

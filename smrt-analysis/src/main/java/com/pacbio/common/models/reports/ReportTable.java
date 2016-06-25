@@ -7,7 +7,8 @@ package com.pacbio.common.models.reports;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ReportTable extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReportTable\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\",\"desc\":\"Title of the Table\"},{\"name\":\"columns\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTableColumn\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"header\",\"type\":\"string\"},{\"name\":\"value\",\"type\":{\"type\":\"array\",\"items\":[\"int\",\"float\"]},\"desc\":\"Column values. Attention to mixed-types attempting to represent 'NA'\"}]}},\"desc\":\"List of Columns\"}]}");
+  private static final long serialVersionUID = -2143559524506772754L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReportTable\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\",\"desc\":\"Title of the Table\"},{\"name\":\"columns\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ReportTableColumn\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"header\",\"type\":\"string\"},{\"name\":\"value\",\"type\":{\"type\":\"array\",\"items\":[\"int\",\"float\",\"string\",\"null\"]},\"desc\":\"Column values. Attention to mixed-types attempting to represent 'NA'\"}]}},\"desc\":\"List of Columns\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
   @Deprecated public java.lang.CharSequence title;
@@ -95,17 +96,28 @@ public class ReportTable extends org.apache.avro.specific.SpecificRecordBase imp
     this.columns = value;
   }
 
-  /** Creates a new ReportTable RecordBuilder */
+  /**
+   * Creates a new ReportTable RecordBuilder.
+   * @return A new ReportTable RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportTable.Builder newBuilder() {
     return new com.pacbio.common.models.reports.ReportTable.Builder();
   }
   
-  /** Creates a new ReportTable RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ReportTable RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ReportTable RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportTable.Builder newBuilder(com.pacbio.common.models.reports.ReportTable.Builder other) {
     return new com.pacbio.common.models.reports.ReportTable.Builder(other);
   }
   
-  /** Creates a new ReportTable RecordBuilder by copying an existing ReportTable instance */
+  /**
+   * Creates a new ReportTable RecordBuilder by copying an existing ReportTable instance.
+   * @param other The existing instance to copy.
+   * @return A new ReportTable RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportTable.Builder newBuilder(com.pacbio.common.models.reports.ReportTable other) {
     return new com.pacbio.common.models.reports.ReportTable.Builder(other);
   }
@@ -125,7 +137,10 @@ public class ReportTable extends org.apache.avro.specific.SpecificRecordBase imp
       super(com.pacbio.common.models.reports.ReportTable.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportTable.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
@@ -142,7 +157,10 @@ public class ReportTable extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
     
-    /** Creates a Builder by copying an existing ReportTable instance */
+    /**
+     * Creates a Builder by copying an existing ReportTable instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportTable other) {
             super(com.pacbio.common.models.reports.ReportTable.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
@@ -159,75 +177,117 @@ public class ReportTable extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'title' field */
+    /**
+      * Gets the value of the 'title' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getTitle() {
       return title;
     }
-    
-    /** Sets the value of the 'title' field */
+
+    /**
+      * Sets the value of the 'title' field.
+      * @param value The value of 'title'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder setTitle(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.title = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'title' field has been set */
+
+    /**
+      * Checks whether the 'title' field has been set.
+      * @return True if the 'title' field has been set, false otherwise.
+      */
     public boolean hasTitle() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'title' field */
+
+
+    /**
+      * Clears the value of the 'title' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder clearTitle() {
       title = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'columns' field */
+    /**
+      * Gets the value of the 'columns' field.
+      * @return The value.
+      */
     public java.util.List<com.pacbio.common.models.reports.ReportTableColumn> getColumns() {
       return columns;
     }
-    
-    /** Sets the value of the 'columns' field */
+
+    /**
+      * Sets the value of the 'columns' field.
+      * @param value The value of 'columns'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder setColumns(java.util.List<com.pacbio.common.models.reports.ReportTableColumn> value) {
       validate(fields()[2], value);
       this.columns = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'columns' field has been set */
+
+    /**
+      * Checks whether the 'columns' field has been set.
+      * @return True if the 'columns' field has been set, false otherwise.
+      */
     public boolean hasColumns() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'columns' field */
+
+
+    /**
+      * Clears the value of the 'columns' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportTable.Builder clearColumns() {
       columns = null;
       fieldSetFlags()[2] = false;
@@ -247,4 +307,21 @@ public class ReportTable extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

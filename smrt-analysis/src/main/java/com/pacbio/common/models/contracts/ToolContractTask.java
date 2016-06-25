@@ -7,11 +7,16 @@ package com.pacbio.common.models.contracts;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ToolContractTask\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"input_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolInputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio File Type identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"output_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolOutputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio FileType identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"default_name\",\"type\":\"string\",\"doc\":\"Default file name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"schema_options\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PacBioOptions\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"pb_option\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}}},{\"name\":\"nproc\",\"type\":\"int\",\"doc\":\"Number of processors to use\"},{\"name\":\"tool_contract_id\",\"type\":\"string\",\"doc\":\"Globally unique Tool Contract identifier\"},{\"name\":\"task_type\",\"type\":\"string\",\"doc\":\"Task class type, Standard, Scatter, Gather\"},{\"name\":\"is_distributed\",\"type\":\"boolean\",\"doc\":\"Determine if the task will be submitted to the cluster resources\"},{\"name\":\"resource_types\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}");
+  private static final long serialVersionUID = -5699974332944499589L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ToolContractTask\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"input_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolInputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"doc\":\"Id of the task input\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio File Type identifier, PacBio.DataSet.SubreadSet\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"output_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolOutputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio FileType identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"default_name\",\"type\":\"string\",\"doc\":\"Default file name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"schema_options\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PacBioOptions\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"PacBioOption\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}}},{\"name\":\"description\",\"type\":\"string\",\"doc\":\"Description of Tool/Task\"},{\"name\":\"name\",\"type\":\"string\",\"doc\":\"Display Name of Tool/Task\"},{\"name\":\"nproc\",\"type\":\"int\",\"doc\":\"Number of processors to use\"},{\"name\":\"tool_contract_id\",\"type\":\"string\",\"doc\":\"Globally unique Tool Contract identifier\"},{\"name\":\"task_type\",\"type\":\"string\",\"doc\":\"Task class type, Standard, Scatter, Gather\",\"default\":\"pbsmrtpipe.task_types.standard\"},{\"name\":\"is_distributed\",\"type\":\"boolean\",\"doc\":\"Determine if the task will be submitted to the cluster resources\"},{\"name\":\"resource_types\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.util.List<com.pacbio.common.models.contracts.ToolInputFile> input_types;
   @Deprecated public java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> output_types;
   @Deprecated public java.util.List<com.pacbio.common.models.contracts.PacBioOptions> schema_options;
+  /** Description of Tool/Task */
+  @Deprecated public java.lang.CharSequence description;
+  /** Display Name of Tool/Task */
+  @Deprecated public java.lang.CharSequence name;
   /** Number of processors to use */
   @Deprecated public int nproc;
   /** Globally unique Tool Contract identifier */
@@ -31,11 +36,19 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
 
   /**
    * All-args constructor.
+   * @param description Description of Tool/Task
+   * @param name Display Name of Tool/Task
+   * @param nproc Number of processors to use
+   * @param tool_contract_id Globally unique Tool Contract identifier
+   * @param task_type Task class type, Standard, Scatter, Gather
+   * @param is_distributed Determine if the task will be submitted to the cluster resources
    */
-  public ToolContractTask(java.util.List<com.pacbio.common.models.contracts.ToolInputFile> input_types, java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> output_types, java.util.List<com.pacbio.common.models.contracts.PacBioOptions> schema_options, java.lang.Integer nproc, java.lang.CharSequence tool_contract_id, java.lang.CharSequence task_type, java.lang.Boolean is_distributed, java.util.List<java.lang.CharSequence> resource_types) {
+  public ToolContractTask(java.util.List<com.pacbio.common.models.contracts.ToolInputFile> input_types, java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> output_types, java.util.List<com.pacbio.common.models.contracts.PacBioOptions> schema_options, java.lang.CharSequence description, java.lang.CharSequence name, java.lang.Integer nproc, java.lang.CharSequence tool_contract_id, java.lang.CharSequence task_type, java.lang.Boolean is_distributed, java.util.List<java.lang.CharSequence> resource_types) {
     this.input_types = input_types;
     this.output_types = output_types;
     this.schema_options = schema_options;
+    this.description = description;
+    this.name = name;
     this.nproc = nproc;
     this.tool_contract_id = tool_contract_id;
     this.task_type = task_type;
@@ -50,11 +63,13 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
     case 0: return input_types;
     case 1: return output_types;
     case 2: return schema_options;
-    case 3: return nproc;
-    case 4: return tool_contract_id;
-    case 5: return task_type;
-    case 6: return is_distributed;
-    case 7: return resource_types;
+    case 3: return description;
+    case 4: return name;
+    case 5: return nproc;
+    case 6: return tool_contract_id;
+    case 7: return task_type;
+    case 8: return is_distributed;
+    case 9: return resource_types;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -65,11 +80,13 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
     case 0: input_types = (java.util.List<com.pacbio.common.models.contracts.ToolInputFile>)value$; break;
     case 1: output_types = (java.util.List<com.pacbio.common.models.contracts.ToolOutputFile>)value$; break;
     case 2: schema_options = (java.util.List<com.pacbio.common.models.contracts.PacBioOptions>)value$; break;
-    case 3: nproc = (java.lang.Integer)value$; break;
-    case 4: tool_contract_id = (java.lang.CharSequence)value$; break;
-    case 5: task_type = (java.lang.CharSequence)value$; break;
-    case 6: is_distributed = (java.lang.Boolean)value$; break;
-    case 7: resource_types = (java.util.List<java.lang.CharSequence>)value$; break;
+    case 3: description = (java.lang.CharSequence)value$; break;
+    case 4: name = (java.lang.CharSequence)value$; break;
+    case 5: nproc = (java.lang.Integer)value$; break;
+    case 6: tool_contract_id = (java.lang.CharSequence)value$; break;
+    case 7: task_type = (java.lang.CharSequence)value$; break;
+    case 8: is_distributed = (java.lang.Boolean)value$; break;
+    case 9: resource_types = (java.util.List<java.lang.CharSequence>)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -120,15 +137,51 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
   }
 
   /**
+   * Gets the value of the 'description' field.
+   * @return Description of Tool/Task
+   */
+  public java.lang.CharSequence getDescription() {
+    return description;
+  }
+
+  /**
+   * Sets the value of the 'description' field.
+   * Description of Tool/Task
+   * @param value the value to set.
+   */
+  public void setDescription(java.lang.CharSequence value) {
+    this.description = value;
+  }
+
+  /**
+   * Gets the value of the 'name' field.
+   * @return Display Name of Tool/Task
+   */
+  public java.lang.CharSequence getName() {
+    return name;
+  }
+
+  /**
+   * Sets the value of the 'name' field.
+   * Display Name of Tool/Task
+   * @param value the value to set.
+   */
+  public void setName(java.lang.CharSequence value) {
+    this.name = value;
+  }
+
+  /**
    * Gets the value of the 'nproc' field.
-   * Number of processors to use   */
+   * @return Number of processors to use
+   */
   public java.lang.Integer getNproc() {
     return nproc;
   }
 
   /**
    * Sets the value of the 'nproc' field.
-   * Number of processors to use   * @param value the value to set.
+   * Number of processors to use
+   * @param value the value to set.
    */
   public void setNproc(java.lang.Integer value) {
     this.nproc = value;
@@ -136,14 +189,16 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
 
   /**
    * Gets the value of the 'tool_contract_id' field.
-   * Globally unique Tool Contract identifier   */
+   * @return Globally unique Tool Contract identifier
+   */
   public java.lang.CharSequence getToolContractId() {
     return tool_contract_id;
   }
 
   /**
    * Sets the value of the 'tool_contract_id' field.
-   * Globally unique Tool Contract identifier   * @param value the value to set.
+   * Globally unique Tool Contract identifier
+   * @param value the value to set.
    */
   public void setToolContractId(java.lang.CharSequence value) {
     this.tool_contract_id = value;
@@ -151,14 +206,16 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
 
   /**
    * Gets the value of the 'task_type' field.
-   * Task class type, Standard, Scatter, Gather   */
+   * @return Task class type, Standard, Scatter, Gather
+   */
   public java.lang.CharSequence getTaskType() {
     return task_type;
   }
 
   /**
    * Sets the value of the 'task_type' field.
-   * Task class type, Standard, Scatter, Gather   * @param value the value to set.
+   * Task class type, Standard, Scatter, Gather
+   * @param value the value to set.
    */
   public void setTaskType(java.lang.CharSequence value) {
     this.task_type = value;
@@ -166,14 +223,16 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
 
   /**
    * Gets the value of the 'is_distributed' field.
-   * Determine if the task will be submitted to the cluster resources   */
+   * @return Determine if the task will be submitted to the cluster resources
+   */
   public java.lang.Boolean getIsDistributed() {
     return is_distributed;
   }
 
   /**
    * Sets the value of the 'is_distributed' field.
-   * Determine if the task will be submitted to the cluster resources   * @param value the value to set.
+   * Determine if the task will be submitted to the cluster resources
+   * @param value the value to set.
    */
   public void setIsDistributed(java.lang.Boolean value) {
     this.is_distributed = value;
@@ -194,17 +253,28 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
     this.resource_types = value;
   }
 
-  /** Creates a new ToolContractTask RecordBuilder */
+  /**
+   * Creates a new ToolContractTask RecordBuilder.
+   * @return A new ToolContractTask RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContractTask.Builder newBuilder() {
     return new com.pacbio.common.models.contracts.ToolContractTask.Builder();
   }
   
-  /** Creates a new ToolContractTask RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ToolContractTask RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ToolContractTask RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContractTask.Builder newBuilder(com.pacbio.common.models.contracts.ToolContractTask.Builder other) {
     return new com.pacbio.common.models.contracts.ToolContractTask.Builder(other);
   }
   
-  /** Creates a new ToolContractTask RecordBuilder by copying an existing ToolContractTask instance */
+  /**
+   * Creates a new ToolContractTask RecordBuilder by copying an existing ToolContractTask instance.
+   * @param other The existing instance to copy.
+   * @return A new ToolContractTask RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContractTask.Builder newBuilder(com.pacbio.common.models.contracts.ToolContractTask other) {
     return new com.pacbio.common.models.contracts.ToolContractTask.Builder(other);
   }
@@ -218,9 +288,17 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
     private java.util.List<com.pacbio.common.models.contracts.ToolInputFile> input_types;
     private java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> output_types;
     private java.util.List<com.pacbio.common.models.contracts.PacBioOptions> schema_options;
+    /** Description of Tool/Task */
+    private java.lang.CharSequence description;
+    /** Display Name of Tool/Task */
+    private java.lang.CharSequence name;
+    /** Number of processors to use */
     private int nproc;
+    /** Globally unique Tool Contract identifier */
     private java.lang.CharSequence tool_contract_id;
+    /** Task class type, Standard, Scatter, Gather */
     private java.lang.CharSequence task_type;
+    /** Determine if the task will be submitted to the cluster resources */
     private boolean is_distributed;
     private java.util.List<java.lang.CharSequence> resource_types;
 
@@ -229,7 +307,10 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
       super(com.pacbio.common.models.contracts.ToolContractTask.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolContractTask.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.input_types)) {
@@ -244,29 +325,40 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
         this.schema_options = data().deepCopy(fields()[2].schema(), other.schema_options);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.nproc)) {
-        this.nproc = data().deepCopy(fields()[3].schema(), other.nproc);
+      if (isValidValue(fields()[3], other.description)) {
+        this.description = data().deepCopy(fields()[3].schema(), other.description);
         fieldSetFlags()[3] = true;
       }
-      if (isValidValue(fields()[4], other.tool_contract_id)) {
-        this.tool_contract_id = data().deepCopy(fields()[4].schema(), other.tool_contract_id);
+      if (isValidValue(fields()[4], other.name)) {
+        this.name = data().deepCopy(fields()[4].schema(), other.name);
         fieldSetFlags()[4] = true;
       }
-      if (isValidValue(fields()[5], other.task_type)) {
-        this.task_type = data().deepCopy(fields()[5].schema(), other.task_type);
+      if (isValidValue(fields()[5], other.nproc)) {
+        this.nproc = data().deepCopy(fields()[5].schema(), other.nproc);
         fieldSetFlags()[5] = true;
       }
-      if (isValidValue(fields()[6], other.is_distributed)) {
-        this.is_distributed = data().deepCopy(fields()[6].schema(), other.is_distributed);
+      if (isValidValue(fields()[6], other.tool_contract_id)) {
+        this.tool_contract_id = data().deepCopy(fields()[6].schema(), other.tool_contract_id);
         fieldSetFlags()[6] = true;
       }
-      if (isValidValue(fields()[7], other.resource_types)) {
-        this.resource_types = data().deepCopy(fields()[7].schema(), other.resource_types);
+      if (isValidValue(fields()[7], other.task_type)) {
+        this.task_type = data().deepCopy(fields()[7].schema(), other.task_type);
         fieldSetFlags()[7] = true;
+      }
+      if (isValidValue(fields()[8], other.is_distributed)) {
+        this.is_distributed = data().deepCopy(fields()[8].schema(), other.is_distributed);
+        fieldSetFlags()[8] = true;
+      }
+      if (isValidValue(fields()[9], other.resource_types)) {
+        this.resource_types = data().deepCopy(fields()[9].schema(), other.resource_types);
+        fieldSetFlags()[9] = true;
       }
     }
     
-    /** Creates a Builder by copying an existing ToolContractTask instance */
+    /**
+     * Creates a Builder by copying an existing ToolContractTask instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolContractTask other) {
             super(com.pacbio.common.models.contracts.ToolContractTask.SCHEMA$);
       if (isValidValue(fields()[0], other.input_types)) {
@@ -281,223 +373,445 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
         this.schema_options = data().deepCopy(fields()[2].schema(), other.schema_options);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.nproc)) {
-        this.nproc = data().deepCopy(fields()[3].schema(), other.nproc);
+      if (isValidValue(fields()[3], other.description)) {
+        this.description = data().deepCopy(fields()[3].schema(), other.description);
         fieldSetFlags()[3] = true;
       }
-      if (isValidValue(fields()[4], other.tool_contract_id)) {
-        this.tool_contract_id = data().deepCopy(fields()[4].schema(), other.tool_contract_id);
+      if (isValidValue(fields()[4], other.name)) {
+        this.name = data().deepCopy(fields()[4].schema(), other.name);
         fieldSetFlags()[4] = true;
       }
-      if (isValidValue(fields()[5], other.task_type)) {
-        this.task_type = data().deepCopy(fields()[5].schema(), other.task_type);
+      if (isValidValue(fields()[5], other.nproc)) {
+        this.nproc = data().deepCopy(fields()[5].schema(), other.nproc);
         fieldSetFlags()[5] = true;
       }
-      if (isValidValue(fields()[6], other.is_distributed)) {
-        this.is_distributed = data().deepCopy(fields()[6].schema(), other.is_distributed);
+      if (isValidValue(fields()[6], other.tool_contract_id)) {
+        this.tool_contract_id = data().deepCopy(fields()[6].schema(), other.tool_contract_id);
         fieldSetFlags()[6] = true;
       }
-      if (isValidValue(fields()[7], other.resource_types)) {
-        this.resource_types = data().deepCopy(fields()[7].schema(), other.resource_types);
+      if (isValidValue(fields()[7], other.task_type)) {
+        this.task_type = data().deepCopy(fields()[7].schema(), other.task_type);
         fieldSetFlags()[7] = true;
+      }
+      if (isValidValue(fields()[8], other.is_distributed)) {
+        this.is_distributed = data().deepCopy(fields()[8].schema(), other.is_distributed);
+        fieldSetFlags()[8] = true;
+      }
+      if (isValidValue(fields()[9], other.resource_types)) {
+        this.resource_types = data().deepCopy(fields()[9].schema(), other.resource_types);
+        fieldSetFlags()[9] = true;
       }
     }
 
-    /** Gets the value of the 'input_types' field */
+    /**
+      * Gets the value of the 'input_types' field.
+      * @return The value.
+      */
     public java.util.List<com.pacbio.common.models.contracts.ToolInputFile> getInputTypes() {
       return input_types;
     }
-    
-    /** Sets the value of the 'input_types' field */
+
+    /**
+      * Sets the value of the 'input_types' field.
+      * @param value The value of 'input_types'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder setInputTypes(java.util.List<com.pacbio.common.models.contracts.ToolInputFile> value) {
       validate(fields()[0], value);
       this.input_types = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'input_types' field has been set */
+
+    /**
+      * Checks whether the 'input_types' field has been set.
+      * @return True if the 'input_types' field has been set, false otherwise.
+      */
     public boolean hasInputTypes() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'input_types' field */
+
+
+    /**
+      * Clears the value of the 'input_types' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder clearInputTypes() {
       input_types = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'output_types' field */
+    /**
+      * Gets the value of the 'output_types' field.
+      * @return The value.
+      */
     public java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> getOutputTypes() {
       return output_types;
     }
-    
-    /** Sets the value of the 'output_types' field */
+
+    /**
+      * Sets the value of the 'output_types' field.
+      * @param value The value of 'output_types'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder setOutputTypes(java.util.List<com.pacbio.common.models.contracts.ToolOutputFile> value) {
       validate(fields()[1], value);
       this.output_types = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'output_types' field has been set */
+
+    /**
+      * Checks whether the 'output_types' field has been set.
+      * @return True if the 'output_types' field has been set, false otherwise.
+      */
     public boolean hasOutputTypes() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'output_types' field */
+
+
+    /**
+      * Clears the value of the 'output_types' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder clearOutputTypes() {
       output_types = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'schema_options' field */
+    /**
+      * Gets the value of the 'schema_options' field.
+      * @return The value.
+      */
     public java.util.List<com.pacbio.common.models.contracts.PacBioOptions> getSchemaOptions() {
       return schema_options;
     }
-    
-    /** Sets the value of the 'schema_options' field */
+
+    /**
+      * Sets the value of the 'schema_options' field.
+      * @param value The value of 'schema_options'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder setSchemaOptions(java.util.List<com.pacbio.common.models.contracts.PacBioOptions> value) {
       validate(fields()[2], value);
       this.schema_options = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'schema_options' field has been set */
+
+    /**
+      * Checks whether the 'schema_options' field has been set.
+      * @return True if the 'schema_options' field has been set, false otherwise.
+      */
     public boolean hasSchemaOptions() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'schema_options' field */
+
+
+    /**
+      * Clears the value of the 'schema_options' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder clearSchemaOptions() {
       schema_options = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'nproc' field */
-    public java.lang.Integer getNproc() {
-      return nproc;
+    /**
+      * Gets the value of the 'description' field.
+      * Description of Tool/Task
+      * @return The value.
+      */
+    public java.lang.CharSequence getDescription() {
+      return description;
     }
-    
-    /** Sets the value of the 'nproc' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder setNproc(int value) {
+
+    /**
+      * Sets the value of the 'description' field.
+      * Description of Tool/Task
+      * @param value The value of 'description'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setDescription(java.lang.CharSequence value) {
       validate(fields()[3], value);
-      this.nproc = value;
+      this.description = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'nproc' field has been set */
-    public boolean hasNproc() {
+
+    /**
+      * Checks whether the 'description' field has been set.
+      * Description of Tool/Task
+      * @return True if the 'description' field has been set, false otherwise.
+      */
+    public boolean hasDescription() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'nproc' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearNproc() {
+
+
+    /**
+      * Clears the value of the 'description' field.
+      * Description of Tool/Task
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearDescription() {
+      description = null;
       fieldSetFlags()[3] = false;
       return this;
     }
 
-    /** Gets the value of the 'tool_contract_id' field */
-    public java.lang.CharSequence getToolContractId() {
-      return tool_contract_id;
+    /**
+      * Gets the value of the 'name' field.
+      * Display Name of Tool/Task
+      * @return The value.
+      */
+    public java.lang.CharSequence getName() {
+      return name;
     }
-    
-    /** Sets the value of the 'tool_contract_id' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder setToolContractId(java.lang.CharSequence value) {
+
+    /**
+      * Sets the value of the 'name' field.
+      * Display Name of Tool/Task
+      * @param value The value of 'name'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setName(java.lang.CharSequence value) {
       validate(fields()[4], value);
-      this.tool_contract_id = value;
+      this.name = value;
       fieldSetFlags()[4] = true;
       return this; 
     }
-    
-    /** Checks whether the 'tool_contract_id' field has been set */
-    public boolean hasToolContractId() {
+
+    /**
+      * Checks whether the 'name' field has been set.
+      * Display Name of Tool/Task
+      * @return True if the 'name' field has been set, false otherwise.
+      */
+    public boolean hasName() {
       return fieldSetFlags()[4];
     }
-    
-    /** Clears the value of the 'tool_contract_id' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearToolContractId() {
-      tool_contract_id = null;
+
+
+    /**
+      * Clears the value of the 'name' field.
+      * Display Name of Tool/Task
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearName() {
+      name = null;
       fieldSetFlags()[4] = false;
       return this;
     }
 
-    /** Gets the value of the 'task_type' field */
-    public java.lang.CharSequence getTaskType() {
-      return task_type;
+    /**
+      * Gets the value of the 'nproc' field.
+      * Number of processors to use
+      * @return The value.
+      */
+    public java.lang.Integer getNproc() {
+      return nproc;
     }
-    
-    /** Sets the value of the 'task_type' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder setTaskType(java.lang.CharSequence value) {
+
+    /**
+      * Sets the value of the 'nproc' field.
+      * Number of processors to use
+      * @param value The value of 'nproc'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setNproc(int value) {
       validate(fields()[5], value);
-      this.task_type = value;
+      this.nproc = value;
       fieldSetFlags()[5] = true;
       return this; 
     }
-    
-    /** Checks whether the 'task_type' field has been set */
-    public boolean hasTaskType() {
+
+    /**
+      * Checks whether the 'nproc' field has been set.
+      * Number of processors to use
+      * @return True if the 'nproc' field has been set, false otherwise.
+      */
+    public boolean hasNproc() {
       return fieldSetFlags()[5];
     }
-    
-    /** Clears the value of the 'task_type' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearTaskType() {
-      task_type = null;
+
+
+    /**
+      * Clears the value of the 'nproc' field.
+      * Number of processors to use
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearNproc() {
       fieldSetFlags()[5] = false;
       return this;
     }
 
-    /** Gets the value of the 'is_distributed' field */
-    public java.lang.Boolean getIsDistributed() {
-      return is_distributed;
+    /**
+      * Gets the value of the 'tool_contract_id' field.
+      * Globally unique Tool Contract identifier
+      * @return The value.
+      */
+    public java.lang.CharSequence getToolContractId() {
+      return tool_contract_id;
     }
-    
-    /** Sets the value of the 'is_distributed' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder setIsDistributed(boolean value) {
+
+    /**
+      * Sets the value of the 'tool_contract_id' field.
+      * Globally unique Tool Contract identifier
+      * @param value The value of 'tool_contract_id'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setToolContractId(java.lang.CharSequence value) {
       validate(fields()[6], value);
-      this.is_distributed = value;
+      this.tool_contract_id = value;
       fieldSetFlags()[6] = true;
       return this; 
     }
-    
-    /** Checks whether the 'is_distributed' field has been set */
-    public boolean hasIsDistributed() {
+
+    /**
+      * Checks whether the 'tool_contract_id' field has been set.
+      * Globally unique Tool Contract identifier
+      * @return True if the 'tool_contract_id' field has been set, false otherwise.
+      */
+    public boolean hasToolContractId() {
       return fieldSetFlags()[6];
     }
-    
-    /** Clears the value of the 'is_distributed' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearIsDistributed() {
+
+
+    /**
+      * Clears the value of the 'tool_contract_id' field.
+      * Globally unique Tool Contract identifier
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearToolContractId() {
+      tool_contract_id = null;
       fieldSetFlags()[6] = false;
       return this;
     }
 
-    /** Gets the value of the 'resource_types' field */
-    public java.util.List<java.lang.CharSequence> getResourceTypes() {
-      return resource_types;
+    /**
+      * Gets the value of the 'task_type' field.
+      * Task class type, Standard, Scatter, Gather
+      * @return The value.
+      */
+    public java.lang.CharSequence getTaskType() {
+      return task_type;
     }
-    
-    /** Sets the value of the 'resource_types' field */
-    public com.pacbio.common.models.contracts.ToolContractTask.Builder setResourceTypes(java.util.List<java.lang.CharSequence> value) {
+
+    /**
+      * Sets the value of the 'task_type' field.
+      * Task class type, Standard, Scatter, Gather
+      * @param value The value of 'task_type'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setTaskType(java.lang.CharSequence value) {
       validate(fields()[7], value);
-      this.resource_types = value;
+      this.task_type = value;
       fieldSetFlags()[7] = true;
       return this; 
     }
-    
-    /** Checks whether the 'resource_types' field has been set */
-    public boolean hasResourceTypes() {
+
+    /**
+      * Checks whether the 'task_type' field has been set.
+      * Task class type, Standard, Scatter, Gather
+      * @return True if the 'task_type' field has been set, false otherwise.
+      */
+    public boolean hasTaskType() {
       return fieldSetFlags()[7];
     }
-    
-    /** Clears the value of the 'resource_types' field */
+
+
+    /**
+      * Clears the value of the 'task_type' field.
+      * Task class type, Standard, Scatter, Gather
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearTaskType() {
+      task_type = null;
+      fieldSetFlags()[7] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'is_distributed' field.
+      * Determine if the task will be submitted to the cluster resources
+      * @return The value.
+      */
+    public java.lang.Boolean getIsDistributed() {
+      return is_distributed;
+    }
+
+    /**
+      * Sets the value of the 'is_distributed' field.
+      * Determine if the task will be submitted to the cluster resources
+      * @param value The value of 'is_distributed'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setIsDistributed(boolean value) {
+      validate(fields()[8], value);
+      this.is_distributed = value;
+      fieldSetFlags()[8] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'is_distributed' field has been set.
+      * Determine if the task will be submitted to the cluster resources
+      * @return True if the 'is_distributed' field has been set, false otherwise.
+      */
+    public boolean hasIsDistributed() {
+      return fieldSetFlags()[8];
+    }
+
+
+    /**
+      * Clears the value of the 'is_distributed' field.
+      * Determine if the task will be submitted to the cluster resources
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder clearIsDistributed() {
+      fieldSetFlags()[8] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'resource_types' field.
+      * @return The value.
+      */
+    public java.util.List<java.lang.CharSequence> getResourceTypes() {
+      return resource_types;
+    }
+
+    /**
+      * Sets the value of the 'resource_types' field.
+      * @param value The value of 'resource_types'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder setResourceTypes(java.util.List<java.lang.CharSequence> value) {
+      validate(fields()[9], value);
+      this.resource_types = value;
+      fieldSetFlags()[9] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'resource_types' field has been set.
+      * @return True if the 'resource_types' field has been set, false otherwise.
+      */
+    public boolean hasResourceTypes() {
+      return fieldSetFlags()[9];
+    }
+
+
+    /**
+      * Clears the value of the 'resource_types' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContractTask.Builder clearResourceTypes() {
       resource_types = null;
-      fieldSetFlags()[7] = false;
+      fieldSetFlags()[9] = false;
       return this;
     }
 
@@ -508,15 +822,34 @@ public class ToolContractTask extends org.apache.avro.specific.SpecificRecordBas
         record.input_types = fieldSetFlags()[0] ? this.input_types : (java.util.List<com.pacbio.common.models.contracts.ToolInputFile>) defaultValue(fields()[0]);
         record.output_types = fieldSetFlags()[1] ? this.output_types : (java.util.List<com.pacbio.common.models.contracts.ToolOutputFile>) defaultValue(fields()[1]);
         record.schema_options = fieldSetFlags()[2] ? this.schema_options : (java.util.List<com.pacbio.common.models.contracts.PacBioOptions>) defaultValue(fields()[2]);
-        record.nproc = fieldSetFlags()[3] ? this.nproc : (java.lang.Integer) defaultValue(fields()[3]);
-        record.tool_contract_id = fieldSetFlags()[4] ? this.tool_contract_id : (java.lang.CharSequence) defaultValue(fields()[4]);
-        record.task_type = fieldSetFlags()[5] ? this.task_type : (java.lang.CharSequence) defaultValue(fields()[5]);
-        record.is_distributed = fieldSetFlags()[6] ? this.is_distributed : (java.lang.Boolean) defaultValue(fields()[6]);
-        record.resource_types = fieldSetFlags()[7] ? this.resource_types : (java.util.List<java.lang.CharSequence>) defaultValue(fields()[7]);
+        record.description = fieldSetFlags()[3] ? this.description : (java.lang.CharSequence) defaultValue(fields()[3]);
+        record.name = fieldSetFlags()[4] ? this.name : (java.lang.CharSequence) defaultValue(fields()[4]);
+        record.nproc = fieldSetFlags()[5] ? this.nproc : (java.lang.Integer) defaultValue(fields()[5]);
+        record.tool_contract_id = fieldSetFlags()[6] ? this.tool_contract_id : (java.lang.CharSequence) defaultValue(fields()[6]);
+        record.task_type = fieldSetFlags()[7] ? this.task_type : (java.lang.CharSequence) defaultValue(fields()[7]);
+        record.is_distributed = fieldSetFlags()[8] ? this.is_distributed : (java.lang.Boolean) defaultValue(fields()[8]);
+        record.resource_types = fieldSetFlags()[9] ? this.resource_types : (java.util.List<java.lang.CharSequence>) defaultValue(fields()[9]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

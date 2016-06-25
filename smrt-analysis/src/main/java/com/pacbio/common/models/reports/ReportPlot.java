@@ -7,6 +7,7 @@ package com.pacbio.common.models.reports;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 7170338216349420804L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReportPlot\",\"namespace\":\"com.pacbio.common.models.reports\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"desc\":\"Plot Id\"},{\"name\":\"image\",\"type\":\"string\",\"desc\":\"Relative Path to Image\"},{\"name\":\"caption\",\"type\":[\"string\",\"null\"],\"desc\":\"Caption of the Plot\"},{\"name\":\"thumbnail\",\"type\":[\"string\",\"null\"],\"desc\":\"Relative path to thumbnail of the Plot\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
@@ -114,17 +115,28 @@ public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase impl
     this.thumbnail = value;
   }
 
-  /** Creates a new ReportPlot RecordBuilder */
+  /**
+   * Creates a new ReportPlot RecordBuilder.
+   * @return A new ReportPlot RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportPlot.Builder newBuilder() {
     return new com.pacbio.common.models.reports.ReportPlot.Builder();
   }
   
-  /** Creates a new ReportPlot RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ReportPlot RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ReportPlot RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportPlot.Builder newBuilder(com.pacbio.common.models.reports.ReportPlot.Builder other) {
     return new com.pacbio.common.models.reports.ReportPlot.Builder(other);
   }
   
-  /** Creates a new ReportPlot RecordBuilder by copying an existing ReportPlot instance */
+  /**
+   * Creates a new ReportPlot RecordBuilder by copying an existing ReportPlot instance.
+   * @param other The existing instance to copy.
+   * @return A new ReportPlot RecordBuilder
+   */
   public static com.pacbio.common.models.reports.ReportPlot.Builder newBuilder(com.pacbio.common.models.reports.ReportPlot other) {
     return new com.pacbio.common.models.reports.ReportPlot.Builder(other);
   }
@@ -145,7 +157,10 @@ public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase impl
       super(com.pacbio.common.models.reports.ReportPlot.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportPlot.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
@@ -166,7 +181,10 @@ public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase impl
       }
     }
     
-    /** Creates a Builder by copying an existing ReportPlot instance */
+    /**
+     * Creates a Builder by copying an existing ReportPlot instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.reports.ReportPlot other) {
             super(com.pacbio.common.models.reports.ReportPlot.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
@@ -187,100 +205,156 @@ public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase impl
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'image' field */
+    /**
+      * Gets the value of the 'image' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getImage() {
       return image;
     }
-    
-    /** Sets the value of the 'image' field */
+
+    /**
+      * Sets the value of the 'image' field.
+      * @param value The value of 'image'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder setImage(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.image = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'image' field has been set */
+
+    /**
+      * Checks whether the 'image' field has been set.
+      * @return True if the 'image' field has been set, false otherwise.
+      */
     public boolean hasImage() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'image' field */
+
+
+    /**
+      * Clears the value of the 'image' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder clearImage() {
       image = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'caption' field */
+    /**
+      * Gets the value of the 'caption' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getCaption() {
       return caption;
     }
-    
-    /** Sets the value of the 'caption' field */
+
+    /**
+      * Sets the value of the 'caption' field.
+      * @param value The value of 'caption'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder setCaption(java.lang.CharSequence value) {
       validate(fields()[2], value);
       this.caption = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'caption' field has been set */
+
+    /**
+      * Checks whether the 'caption' field has been set.
+      * @return True if the 'caption' field has been set, false otherwise.
+      */
     public boolean hasCaption() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'caption' field */
+
+
+    /**
+      * Clears the value of the 'caption' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder clearCaption() {
       caption = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'thumbnail' field */
+    /**
+      * Gets the value of the 'thumbnail' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getThumbnail() {
       return thumbnail;
     }
-    
-    /** Sets the value of the 'thumbnail' field */
+
+    /**
+      * Sets the value of the 'thumbnail' field.
+      * @param value The value of 'thumbnail'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder setThumbnail(java.lang.CharSequence value) {
       validate(fields()[3], value);
       this.thumbnail = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'thumbnail' field has been set */
+
+    /**
+      * Checks whether the 'thumbnail' field has been set.
+      * @return True if the 'thumbnail' field has been set, false otherwise.
+      */
     public boolean hasThumbnail() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'thumbnail' field */
+
+
+    /**
+      * Clears the value of the 'thumbnail' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.reports.ReportPlot.Builder clearThumbnail() {
       thumbnail = null;
       fieldSetFlags()[3] = false;
@@ -301,4 +375,21 @@ public class ReportPlot extends org.apache.avro.specific.SpecificRecordBase impl
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

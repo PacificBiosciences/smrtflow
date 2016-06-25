@@ -7,9 +7,10 @@ package com.pacbio.common.models.contracts;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PacBioOptions\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"pb_option\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}");
+  private static final long serialVersionUID = 562197857394655281L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PacBioOptions\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"PacBioOption\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
-  @Deprecated public com.pacbio.common.models.contracts.pb_option pb_option;
+  @Deprecated public com.pacbio.common.models.contracts.PacBioOption pb_option;
 
   /**
    * Default constructor.  Note that this does not initialize fields
@@ -21,7 +22,7 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
   /**
    * All-args constructor.
    */
-  public PacBioOptions(com.pacbio.common.models.contracts.pb_option pb_option) {
+  public PacBioOptions(com.pacbio.common.models.contracts.PacBioOption pb_option) {
     this.pb_option = pb_option;
   }
 
@@ -37,7 +38,7 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: pb_option = (com.pacbio.common.models.contracts.pb_option)value$; break;
+    case 0: pb_option = (com.pacbio.common.models.contracts.PacBioOption)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -45,7 +46,7 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
   /**
    * Gets the value of the 'pb_option' field.
    */
-  public com.pacbio.common.models.contracts.pb_option getPbOption() {
+  public com.pacbio.common.models.contracts.PacBioOption getPbOption() {
     return pb_option;
   }
 
@@ -53,21 +54,32 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
    * Sets the value of the 'pb_option' field.
    * @param value the value to set.
    */
-  public void setPbOption(com.pacbio.common.models.contracts.pb_option value) {
+  public void setPbOption(com.pacbio.common.models.contracts.PacBioOption value) {
     this.pb_option = value;
   }
 
-  /** Creates a new PacBioOptions RecordBuilder */
+  /**
+   * Creates a new PacBioOptions RecordBuilder.
+   * @return A new PacBioOptions RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.PacBioOptions.Builder newBuilder() {
     return new com.pacbio.common.models.contracts.PacBioOptions.Builder();
   }
   
-  /** Creates a new PacBioOptions RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new PacBioOptions RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new PacBioOptions RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.PacBioOptions.Builder newBuilder(com.pacbio.common.models.contracts.PacBioOptions.Builder other) {
     return new com.pacbio.common.models.contracts.PacBioOptions.Builder(other);
   }
   
-  /** Creates a new PacBioOptions RecordBuilder by copying an existing PacBioOptions instance */
+  /**
+   * Creates a new PacBioOptions RecordBuilder by copying an existing PacBioOptions instance.
+   * @param other The existing instance to copy.
+   * @return A new PacBioOptions RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.PacBioOptions.Builder newBuilder(com.pacbio.common.models.contracts.PacBioOptions other) {
     return new com.pacbio.common.models.contracts.PacBioOptions.Builder(other);
   }
@@ -78,52 +90,111 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<PacBioOptions>
     implements org.apache.avro.data.RecordBuilder<PacBioOptions> {
 
-    private com.pacbio.common.models.contracts.pb_option pb_option;
+    private com.pacbio.common.models.contracts.PacBioOption pb_option;
+    private com.pacbio.common.models.contracts.PacBioOption.Builder pb_optionBuilder;
 
     /** Creates a new Builder */
     private Builder() {
       super(com.pacbio.common.models.contracts.PacBioOptions.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.PacBioOptions.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.pb_option)) {
         this.pb_option = data().deepCopy(fields()[0].schema(), other.pb_option);
         fieldSetFlags()[0] = true;
       }
+      if (other.hasPbOptionBuilder()) {
+        this.pb_optionBuilder = com.pacbio.common.models.contracts.PacBioOption.newBuilder(other.getPbOptionBuilder());
+      }
     }
     
-    /** Creates a Builder by copying an existing PacBioOptions instance */
+    /**
+     * Creates a Builder by copying an existing PacBioOptions instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.PacBioOptions other) {
             super(com.pacbio.common.models.contracts.PacBioOptions.SCHEMA$);
       if (isValidValue(fields()[0], other.pb_option)) {
         this.pb_option = data().deepCopy(fields()[0].schema(), other.pb_option);
         fieldSetFlags()[0] = true;
       }
+      this.pb_optionBuilder = null;
     }
 
-    /** Gets the value of the 'pb_option' field */
-    public com.pacbio.common.models.contracts.pb_option getPbOption() {
+    /**
+      * Gets the value of the 'pb_option' field.
+      * @return The value.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption getPbOption() {
       return pb_option;
     }
-    
-    /** Sets the value of the 'pb_option' field */
-    public com.pacbio.common.models.contracts.PacBioOptions.Builder setPbOption(com.pacbio.common.models.contracts.pb_option value) {
+
+    /**
+      * Sets the value of the 'pb_option' field.
+      * @param value The value of 'pb_option'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOptions.Builder setPbOption(com.pacbio.common.models.contracts.PacBioOption value) {
       validate(fields()[0], value);
+      this.pb_optionBuilder = null;
       this.pb_option = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'pb_option' field has been set */
+
+    /**
+      * Checks whether the 'pb_option' field has been set.
+      * @return True if the 'pb_option' field has been set, false otherwise.
+      */
     public boolean hasPbOption() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'pb_option' field */
+
+    /**
+     * Gets the Builder instance for the 'pb_option' field and creates one if it doesn't exist yet.
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder getPbOptionBuilder() {
+      if (pb_optionBuilder == null) {
+        if (hasPbOption()) {
+          setPbOptionBuilder(com.pacbio.common.models.contracts.PacBioOption.newBuilder(pb_option));
+        } else {
+          setPbOptionBuilder(com.pacbio.common.models.contracts.PacBioOption.newBuilder());
+        }
+      }
+      return pb_optionBuilder;
+    }
+
+    /**
+     * Sets the Builder instance for the 'pb_option' field
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.PacBioOptions.Builder setPbOptionBuilder(com.pacbio.common.models.contracts.PacBioOption.Builder value) {
+      clearPbOption();
+      pb_optionBuilder = value;
+      return this;
+    }
+
+    /**
+     * Checks whether the 'pb_option' field has an active Builder instance
+     * @return True if the 'pb_option' field has an active Builder instance
+     */
+    public boolean hasPbOptionBuilder() {
+      return pb_optionBuilder != null;
+    }
+
+    /**
+      * Clears the value of the 'pb_option' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.PacBioOptions.Builder clearPbOption() {
       pb_option = null;
+      pb_optionBuilder = null;
       fieldSetFlags()[0] = false;
       return this;
     }
@@ -132,11 +203,32 @@ public class PacBioOptions extends org.apache.avro.specific.SpecificRecordBase i
     public PacBioOptions build() {
       try {
         PacBioOptions record = new PacBioOptions();
-        record.pb_option = fieldSetFlags()[0] ? this.pb_option : (com.pacbio.common.models.contracts.pb_option) defaultValue(fields()[0]);
+        if (pb_optionBuilder != null) {
+          record.pb_option = this.pb_optionBuilder.build();
+        } else {
+          record.pb_option = fieldSetFlags()[0] ? this.pb_option : (com.pacbio.common.models.contracts.PacBioOption) defaultValue(fields()[0]);
+        }
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }
