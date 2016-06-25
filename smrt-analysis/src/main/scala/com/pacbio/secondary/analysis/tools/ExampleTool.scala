@@ -32,7 +32,8 @@ object ExampleToolsConstants {
   case object EMIT_TC extends Mode {val name = "emit-tc"}
 
   final val TOOL_ID = "smrtflow.tasks.example_tool"
-  final val VERSION = "0.1.0"
+  final val TOOL_NAME = "Example Tool"
+  final val VERSION = "0.1.1"
   final val DESCRIPTION =
     """
       |Example Tool that generates a fasta file from a txt file
@@ -60,6 +61,9 @@ object ExampleToolsConstants {
   *
   */
 trait ExampleToolEmitToolContract {
+
+  import ExampleToolsConstants._
+
   def inputFileTypes: Seq[ToolInputFile] =
     Seq(new ToolInputFile("txt", FileTypes.TXT.fileTypeId, "Txt File", "Example Input Txt file description"))
 
@@ -75,10 +79,12 @@ trait ExampleToolEmitToolContract {
     ToolContractTask.newBuilder()
         .setIsDistributed(false)
         .setNproc(1)
-        .setToolContractId(ExampleToolsConstants.TOOL_ID)
+        .setToolContractId(TOOL_ID)
+        .setName(TOOL_NAME)
+        .setDescription(DESCRIPTION)
         .setInputTypes(inputFileTypes)
         .setOutputTypes(outputFileTypes)
-            .setTaskType("task-type")
+            .setTaskType("pbsmrtpipe.task_types.standard")
             .setResourceTypes(Seq.empty[String])
             .setSchemaOptions(Seq.empty[PacBioOptions])
         .build()
@@ -86,8 +92,10 @@ trait ExampleToolEmitToolContract {
 
   def toolContract: ToolContract = {
     ToolContract.newBuilder()
-        .setDriver(new ToolDriver("example-tool run-rtc "))
+        .setDriver(new ToolDriver("example-tool run-rtc ", "json"))
         .setToolContract(toolContractTask)
+        .setVersion(VERSION)
+        .setToolContractId(TOOL_ID) // This is duplicated for unclear reasons
         .build()
   }
 }
@@ -106,6 +114,7 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
       bw.write(s">record_$x\nACGT\n")
     }
     bw.close()
+    logger.info(s"wrote $numRecords to $outputFastaFile")
     0
   }
 
@@ -114,10 +123,10 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
 
     // Not using this because
     val inputTxt = Paths.get(rtc.getResolvedToolContract.getInputFiles.head.toString)
-    //
-    val outputFasta = Paths.get(rtc.getResolvedToolContract.getInputFiles.head.toString)
 
-    // Make this type safe?
+    val outputFasta = Paths.get(rtc.getResolvedToolContract.getOutputFiles.head.toString)
+
+    // FIXME
     val numRecordsOpt = rtc.getResolvedToolContract.getOptions.get(NUM_RECORDS_OPT_ID)
 
     run(outputFasta, 100)
@@ -125,14 +134,16 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
 
   // Utils from Parser+ Config
   def runRtcFrom(c: ExampleToolOptions): Int = {
+    println(s"Running RTC with $c")
+    logger.info(s"Loading resolved tool contract Avro file from ${c.rtc}")
     val rtc = ContractLoaders.loadResolvedToolContract(c.rtc)
+    logger.info(s"Resolved tool contract Id ${rtc.getResolvedToolContract.getToolContractId}")
     runRtc(rtc)
   }
 
   def runFrom(c: ExampleToolOptions): Unit = {
     println(s"Running from RUN $c")
     run(c.outputFastaFile, c.numRecords)
-    0
   }
 
   def runEmitTc(c: ExampleToolOptions) = {
@@ -153,6 +164,8 @@ trait ExampleToolParser {
     head("Example Tool")
     note(DESCRIPTION)
 
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+
     cmd(RUN.name) action { (_, c) =>
       c.copy(command = (c) => runFrom(c), mode = RUN)
     } children(
@@ -166,9 +179,6 @@ trait ExampleToolParser {
           c.copy(numRecords = s)
         } text "Number of Records to write"
         )
-
-
-    //LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(RUN_RTC.name) action { (_, c) =>
       c.copy(command = (c) => runRtcFrom(c), mode = RUN_RTC)

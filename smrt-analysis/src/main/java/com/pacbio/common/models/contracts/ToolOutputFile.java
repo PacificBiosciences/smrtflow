@@ -7,6 +7,7 @@ package com.pacbio.common.models.contracts;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 4922882049324702771L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ToolOutputFile\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio FileType identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"default_name\",\"type\":\"string\",\"doc\":\"Default file name\"},{\"name\":\"description\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence id;
@@ -27,6 +28,9 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
 
   /**
    * All-args constructor.
+   * @param file_type_id PacBio FileType identifier
+   * @param title Display Name
+   * @param default_name Default file name
    */
   public ToolOutputFile(java.lang.CharSequence id, java.lang.CharSequence file_type_id, java.lang.CharSequence title, java.lang.CharSequence default_name, java.lang.CharSequence description) {
     this.id = id;
@@ -78,14 +82,16 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
 
   /**
    * Gets the value of the 'file_type_id' field.
-   * PacBio FileType identifier   */
+   * @return PacBio FileType identifier
+   */
   public java.lang.CharSequence getFileTypeId() {
     return file_type_id;
   }
 
   /**
    * Sets the value of the 'file_type_id' field.
-   * PacBio FileType identifier   * @param value the value to set.
+   * PacBio FileType identifier
+   * @param value the value to set.
    */
   public void setFileTypeId(java.lang.CharSequence value) {
     this.file_type_id = value;
@@ -93,14 +99,16 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
 
   /**
    * Gets the value of the 'title' field.
-   * Display Name   */
+   * @return Display Name
+   */
   public java.lang.CharSequence getTitle() {
     return title;
   }
 
   /**
    * Sets the value of the 'title' field.
-   * Display Name   * @param value the value to set.
+   * Display Name
+   * @param value the value to set.
    */
   public void setTitle(java.lang.CharSequence value) {
     this.title = value;
@@ -108,14 +116,16 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
 
   /**
    * Gets the value of the 'default_name' field.
-   * Default file name   */
+   * @return Default file name
+   */
   public java.lang.CharSequence getDefaultName() {
     return default_name;
   }
 
   /**
    * Sets the value of the 'default_name' field.
-   * Default file name   * @param value the value to set.
+   * Default file name
+   * @param value the value to set.
    */
   public void setDefaultName(java.lang.CharSequence value) {
     this.default_name = value;
@@ -136,17 +146,28 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
     this.description = value;
   }
 
-  /** Creates a new ToolOutputFile RecordBuilder */
+  /**
+   * Creates a new ToolOutputFile RecordBuilder.
+   * @return A new ToolOutputFile RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolOutputFile.Builder newBuilder() {
     return new com.pacbio.common.models.contracts.ToolOutputFile.Builder();
   }
   
-  /** Creates a new ToolOutputFile RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ToolOutputFile RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ToolOutputFile RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolOutputFile.Builder newBuilder(com.pacbio.common.models.contracts.ToolOutputFile.Builder other) {
     return new com.pacbio.common.models.contracts.ToolOutputFile.Builder(other);
   }
   
-  /** Creates a new ToolOutputFile RecordBuilder by copying an existing ToolOutputFile instance */
+  /**
+   * Creates a new ToolOutputFile RecordBuilder by copying an existing ToolOutputFile instance.
+   * @param other The existing instance to copy.
+   * @return A new ToolOutputFile RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolOutputFile.Builder newBuilder(com.pacbio.common.models.contracts.ToolOutputFile other) {
     return new com.pacbio.common.models.contracts.ToolOutputFile.Builder(other);
   }
@@ -158,8 +179,11 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
     implements org.apache.avro.data.RecordBuilder<ToolOutputFile> {
 
     private java.lang.CharSequence id;
+    /** PacBio FileType identifier */
     private java.lang.CharSequence file_type_id;
+    /** Display Name */
     private java.lang.CharSequence title;
+    /** Default file name */
     private java.lang.CharSequence default_name;
     private java.lang.CharSequence description;
 
@@ -168,7 +192,10 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
       super(com.pacbio.common.models.contracts.ToolOutputFile.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolOutputFile.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.id)) {
@@ -193,7 +220,10 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
       }
     }
     
-    /** Creates a Builder by copying an existing ToolOutputFile instance */
+    /**
+     * Creates a Builder by copying an existing ToolOutputFile instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolOutputFile other) {
             super(com.pacbio.common.models.contracts.ToolOutputFile.SCHEMA$);
       if (isValidValue(fields()[0], other.id)) {
@@ -218,125 +248,207 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
       }
     }
 
-    /** Gets the value of the 'id' field */
+    /**
+      * Gets the value of the 'id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getId() {
       return id;
     }
-    
-    /** Sets the value of the 'id' field */
+
+    /**
+      * Sets the value of the 'id' field.
+      * @param value The value of 'id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder setId(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.id = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'id' field has been set */
+
+    /**
+      * Checks whether the 'id' field has been set.
+      * @return True if the 'id' field has been set, false otherwise.
+      */
     public boolean hasId() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'id' field */
+
+
+    /**
+      * Clears the value of the 'id' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder clearId() {
       id = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'file_type_id' field */
+    /**
+      * Gets the value of the 'file_type_id' field.
+      * PacBio FileType identifier
+      * @return The value.
+      */
     public java.lang.CharSequence getFileTypeId() {
       return file_type_id;
     }
-    
-    /** Sets the value of the 'file_type_id' field */
+
+    /**
+      * Sets the value of the 'file_type_id' field.
+      * PacBio FileType identifier
+      * @param value The value of 'file_type_id'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder setFileTypeId(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.file_type_id = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'file_type_id' field has been set */
+
+    /**
+      * Checks whether the 'file_type_id' field has been set.
+      * PacBio FileType identifier
+      * @return True if the 'file_type_id' field has been set, false otherwise.
+      */
     public boolean hasFileTypeId() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'file_type_id' field */
+
+
+    /**
+      * Clears the value of the 'file_type_id' field.
+      * PacBio FileType identifier
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder clearFileTypeId() {
       file_type_id = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'title' field */
+    /**
+      * Gets the value of the 'title' field.
+      * Display Name
+      * @return The value.
+      */
     public java.lang.CharSequence getTitle() {
       return title;
     }
-    
-    /** Sets the value of the 'title' field */
+
+    /**
+      * Sets the value of the 'title' field.
+      * Display Name
+      * @param value The value of 'title'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder setTitle(java.lang.CharSequence value) {
       validate(fields()[2], value);
       this.title = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'title' field has been set */
+
+    /**
+      * Checks whether the 'title' field has been set.
+      * Display Name
+      * @return True if the 'title' field has been set, false otherwise.
+      */
     public boolean hasTitle() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'title' field */
+
+
+    /**
+      * Clears the value of the 'title' field.
+      * Display Name
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder clearTitle() {
       title = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'default_name' field */
+    /**
+      * Gets the value of the 'default_name' field.
+      * Default file name
+      * @return The value.
+      */
     public java.lang.CharSequence getDefaultName() {
       return default_name;
     }
-    
-    /** Sets the value of the 'default_name' field */
+
+    /**
+      * Sets the value of the 'default_name' field.
+      * Default file name
+      * @param value The value of 'default_name'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder setDefaultName(java.lang.CharSequence value) {
       validate(fields()[3], value);
       this.default_name = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'default_name' field has been set */
+
+    /**
+      * Checks whether the 'default_name' field has been set.
+      * Default file name
+      * @return True if the 'default_name' field has been set, false otherwise.
+      */
     public boolean hasDefaultName() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'default_name' field */
+
+
+    /**
+      * Clears the value of the 'default_name' field.
+      * Default file name
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder clearDefaultName() {
       default_name = null;
       fieldSetFlags()[3] = false;
       return this;
     }
 
-    /** Gets the value of the 'description' field */
+    /**
+      * Gets the value of the 'description' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getDescription() {
       return description;
     }
-    
-    /** Sets the value of the 'description' field */
+
+    /**
+      * Sets the value of the 'description' field.
+      * @param value The value of 'description'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder setDescription(java.lang.CharSequence value) {
       validate(fields()[4], value);
       this.description = value;
       fieldSetFlags()[4] = true;
       return this; 
     }
-    
-    /** Checks whether the 'description' field has been set */
+
+    /**
+      * Checks whether the 'description' field has been set.
+      * @return True if the 'description' field has been set, false otherwise.
+      */
     public boolean hasDescription() {
       return fieldSetFlags()[4];
     }
-    
-    /** Clears the value of the 'description' field */
+
+
+    /**
+      * Clears the value of the 'description' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolOutputFile.Builder clearDescription() {
       description = null;
       fieldSetFlags()[4] = false;
@@ -358,4 +470,21 @@ public class ToolOutputFile extends org.apache.avro.specific.SpecificRecordBase 
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

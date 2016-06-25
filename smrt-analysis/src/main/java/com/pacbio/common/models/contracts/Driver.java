@@ -7,6 +7,7 @@ package com.pacbio.common.models.contracts;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class Driver extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 8101310800692950940L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Driver\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"exe\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence exe;
@@ -57,17 +58,28 @@ public class Driver extends org.apache.avro.specific.SpecificRecordBase implemen
     this.exe = value;
   }
 
-  /** Creates a new Driver RecordBuilder */
+  /**
+   * Creates a new Driver RecordBuilder.
+   * @return A new Driver RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.Driver.Builder newBuilder() {
     return new com.pacbio.common.models.contracts.Driver.Builder();
   }
   
-  /** Creates a new Driver RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new Driver RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new Driver RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.Driver.Builder newBuilder(com.pacbio.common.models.contracts.Driver.Builder other) {
     return new com.pacbio.common.models.contracts.Driver.Builder(other);
   }
   
-  /** Creates a new Driver RecordBuilder by copying an existing Driver instance */
+  /**
+   * Creates a new Driver RecordBuilder by copying an existing Driver instance.
+   * @param other The existing instance to copy.
+   * @return A new Driver RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.Driver.Builder newBuilder(com.pacbio.common.models.contracts.Driver other) {
     return new com.pacbio.common.models.contracts.Driver.Builder(other);
   }
@@ -85,7 +97,10 @@ public class Driver extends org.apache.avro.specific.SpecificRecordBase implemen
       super(com.pacbio.common.models.contracts.Driver.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.Driver.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.exe)) {
@@ -94,7 +109,10 @@ public class Driver extends org.apache.avro.specific.SpecificRecordBase implemen
       }
     }
     
-    /** Creates a Builder by copying an existing Driver instance */
+    /**
+     * Creates a Builder by copying an existing Driver instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.Driver other) {
             super(com.pacbio.common.models.contracts.Driver.SCHEMA$);
       if (isValidValue(fields()[0], other.exe)) {
@@ -103,25 +121,39 @@ public class Driver extends org.apache.avro.specific.SpecificRecordBase implemen
       }
     }
 
-    /** Gets the value of the 'exe' field */
+    /**
+      * Gets the value of the 'exe' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getExe() {
       return exe;
     }
-    
-    /** Sets the value of the 'exe' field */
+
+    /**
+      * Sets the value of the 'exe' field.
+      * @param value The value of 'exe'.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.Driver.Builder setExe(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.exe = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'exe' field has been set */
+
+    /**
+      * Checks whether the 'exe' field has been set.
+      * @return True if the 'exe' field has been set, false otherwise.
+      */
     public boolean hasExe() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'exe' field */
+
+
+    /**
+      * Clears the value of the 'exe' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.Driver.Builder clearExe() {
       exe = null;
       fieldSetFlags()[0] = false;
@@ -139,4 +171,21 @@ public class Driver extends org.apache.avro.specific.SpecificRecordBase implemen
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }
