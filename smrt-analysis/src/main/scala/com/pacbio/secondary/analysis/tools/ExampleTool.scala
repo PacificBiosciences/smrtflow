@@ -42,14 +42,20 @@ object ExampleToolsConstants {
   final val NUM_RECORDS_OPT_ID = "smrtflow.task_options.num_records"
   final val NUM_RECORDS_DEFAULT = 100
 
+  // The input file is a sentinel/dummy file
   case class ExampleToolOptions(inputTxtFile: Option[Path] = Some(Paths.get("input.txt")),
                                 outputFastaFile: Path,
+                                outputToolContract: Path,
                                 numRecords: Int = NUM_RECORDS_DEFAULT,
                                 mode: Mode = RUN,
                                 command: ExampleToolOptions => Unit = println,
                                 rtc: Path = null)
 
-  final val DEFAULTS = ExampleToolOptions(Some(Paths.get("input.txt")), null, NUM_RECORDS_DEFAULT)
+  final val DEFAULTS = ExampleToolOptions(
+    Some(Paths.get("input.txt")),
+    null,
+    Paths.get(s"${TOOL_ID}_tool_contract.json"),
+    NUM_RECORDS_DEFAULT)
 
 }
 
@@ -129,7 +135,7 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
     // FIXME
     val numRecordsOpt = rtc.getResolvedToolContract.getOptions.get(NUM_RECORDS_OPT_ID)
 
-    run(outputFasta, 100)
+    run(outputFasta, NUM_RECORDS_DEFAULT)
   }
 
   // Utils from Parser+ Config
@@ -147,8 +153,10 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
   }
 
   def runEmitTc(c: ExampleToolOptions) = {
-    // toString automatically converts it to JSON
-    println(toolContract.toString)
+    val bw = new BufferedWriter(new FileWriter(c.outputToolContract.toFile))
+    bw.write(toolContract.toString)
+    bw.close()
+    logger.info(s"wrote tool contract to ${c.outputToolContract}")
     0
   }
 
@@ -163,8 +171,6 @@ trait ExampleToolParser {
   val parser = new OptionParser[ExampleToolOptions]("example-tool") {
     head("Example Tool")
     note(DESCRIPTION)
-
-    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
     cmd(RUN.name) action { (_, c) =>
       c.copy(command = (c) => runFrom(c), mode = RUN)
@@ -182,7 +188,7 @@ trait ExampleToolParser {
 
     cmd(RUN_RTC.name) action { (_, c) =>
       c.copy(command = (c) => runRtcFrom(c), mode = RUN_RTC)
-    } children(
+    } children (
         arg[File]("resolved-tool-contract") action { (s, c) =>
           c.copy(rtc = s.toPath)
         } text "Path to Resolved Tool Contract"
@@ -190,8 +196,14 @@ trait ExampleToolParser {
 
     cmd(EMIT_TC.name) action { (_, c) =>
       c.copy(command = (c) => runEmitTc(c), mode = EMIT_TC)
-    } text "Emit Tool Contract to Stdout"
+    } children (
+        opt[File]('o', "output-tc") action { (s, c) =>
+          c.copy(outputToolContract = s.toPath)
+        } text "Output path to Tool Contract"
+        )
 
+    // Not sure this works
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
