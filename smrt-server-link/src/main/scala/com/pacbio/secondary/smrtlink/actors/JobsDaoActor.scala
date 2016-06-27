@@ -143,12 +143,19 @@ object JobsDaoActor {
 
   case class GetHdfSubreadDataSets(limit: Int) extends DataSetMessage
 
-  // CCS Subreads
-  case class GetCCSSubreadDataSetsById(i: Int) extends DataSetMessage
+  // CCS reads
+  case class GetConsensusReadDataSetsById(i: Int) extends DataSetMessage
 
-  case class GetCCSSubreadDataSetsByUUID(uuid: UUID) extends DataSetMessage
+  case class GetConsensusReadDataSetsByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetCCSSubreadDataSets(limit: Int) extends DataSetMessage
+  case class GetConsensusReadDataSets(limit: Int) extends DataSetMessage
+
+  // CCS alignments
+  case class GetConsensusAlignmentDataSetsById(i: Int) extends DataSetMessage
+
+  case class GetConsensusAlignmentDataSetsByUUID(uuid: UUID) extends DataSetMessage
+
+  case class GetConsensusAlignmentDataSets(limit: Int) extends DataSetMessage
 
   // Barcode DataSets
   case class GetBarcodeDataSets(limit: Int) extends DataSetMessage
@@ -161,6 +168,12 @@ object JobsDaoActor {
 
   case class GetBarcodeDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
+  // ContigSet
+  case class GetContigDataSets(limit: Int) extends DataSetMessage
+
+  case class GetContigDataSetsById(i: Int) extends DataSetMessage
+
+  case class GetContigDataSetsByUUID(uuid: UUID) extends DataSetMessage
 
   // Import a Reference Dataset
   case class ImportReferenceDataSet(ds: ReferenceServiceDataSet) extends DataSetMessage
@@ -588,14 +601,25 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get CCS Subreads
-    case GetCCSSubreadDataSets(limit: Int) => pipeWith(dao.getCCSDataSets(limit))
+    case GetConsensusReadDataSets(limit: Int) => pipeWith(dao.getCCSDataSets(limit))
 
-    case GetCCSSubreadDataSetsById(n: Int) => pipeWith {
+    case GetConsensusReadDataSetsById(n: Int) => pipeWith {
       dao.getCCSDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
     }
 
-    case GetCCSSubreadDataSetsByUUID(uuid: UUID) => pipeWith {
+    case GetConsensusReadDataSetsByUUID(uuid: UUID) => pipeWith {
       dao.getCCSDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
+    }
+
+    // Get CCS Subreads
+    case GetConsensusAlignmentDataSets(limit: Int) => pipeWith(dao.getConsensusAlignmentDataSets(limit))
+
+    case GetConsensusAlignmentDataSetsById(n: Int) => pipeWith {
+      dao.getConsensusAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$n")))
+    }
+
+    case GetConsensusAlignmentDataSetsByUUID(uuid: UUID) => pipeWith {
+      dao.getConsensusAlignmentDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$uuid")))
     }
 
     // Get Barcodes
@@ -616,6 +640,18 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetBarcodeDataSetDetailsById(i) => pipeWith {
       dao.getBarcodeDataSetById(i).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$i")))
     }
+
+    // Contigs
+    case GetContigDataSets(limit: Int) => pipeWith(dao.getContigDataSets(limit))
+
+    case GetContigDataSetsById(n: Int) => pipeWith {
+      dao.getContigDataSetById(n).map(_.getOrElse(toE(s"Unable to find Contig dataset '$n")))
+    }
+
+    case GetContigDataSetsByUUID(uuid: UUID) => pipeWith {
+      dao.getContigDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Contig dataset '$uuid")))
+    }
+
 
     case ConvertReferenceInfoToDataset(path: String, dsPath: Path) => respondWith {
       log.info(s"Converting reference.info.xml to dataset XML $path")
