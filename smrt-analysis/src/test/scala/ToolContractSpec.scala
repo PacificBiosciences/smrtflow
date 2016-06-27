@@ -6,6 +6,9 @@ import org.specs2.mutable._
 import spray.json._
 import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
 
+import collection.JavaConversions._
+import collection.JavaConverters._
+
 /**
  * Test for all pipeline related specs
  * Created by mkocher on 8/18/15.
@@ -14,7 +17,7 @@ class ToolContractSpec extends Specification with SecondaryJobJsonProtocol with 
 
   sequential
 
-  val name = "tool-contracts/dev_example_dev_txt_app_tool_contract.avro"
+  val name = "resolved-tool-contracts/smrtflow.tasks.example_tool_resolved_tool_contract.avro"
 
   "Loading avro tool contract" should {
     "Smoke test to load a pbocommand dev test Avro file" in {
@@ -24,13 +27,16 @@ class ToolContractSpec extends Specification with SecondaryJobJsonProtocol with 
     }
   }
   "Test resolving tool contract" should {
-    "Smoke test for loading pbcommand Tool Contract" in {
+    "Smoke test for loading Resolved Tool Contract" in {
+
       val path = getClass.getResource(name)
       val p = Paths.get(path.toURI)
 
-      val tc = ContractLoaders.loadToolContract(p)
-      logger.info(tc.toString)
-      tc.getToolContract.getIsDistributed must beEqualTo(false)
+      val rtc = ContractLoaders.loadResolvedToolContract(p)
+
+      //logger.info(tc.toString)
+      rtc.getResolvedToolContract.getIsDistributed must beEqualTo(false)
+      rtc.getResolvedToolContract.getInputFiles.length must beEqualTo(1)
     }
   }
 }

@@ -1,0 +1,23 @@
+{
+    "driver": {
+        "env": {},
+        "exe": "example-tool run-rtc ",
+        "serialization": "json"
+    },
+    "resolved_tool_contract": {
+        "_comment": "Created by pbcommand v0.4.2",
+        "input_files": [
+            "/Users/mkocher/gh_mk_projects/smrtflow/in.txt"
+        ],
+        "is_distributed": false,
+        "log_level": "INFO",
+        "nproc": 1,
+        "options": {},
+        "output_files": [
+            "/Users/mkocher/gh_mk_projects/smrtflow/junk/file.fasta"
+        ],
+        "resources": [],
+        "task_type": "pbsmrtpipe.task_types.standard",
+        "tool_contract_id": "smrtflow.tasks.example_tool"
+    }
+}
