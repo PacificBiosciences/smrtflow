@@ -79,6 +79,11 @@ object TestkitParser {
       c.copy(testJobId = i)
     } text "Just run tests on the specified (completed) job ID"
 
+    opt[Unit]("emit-json") action { (i, c) =>
+      MockConfig.showCfg
+      sys.exit(0)
+    } text "Display an example config and exit"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -185,6 +190,8 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       case Failure(err) => Seq[DataStoreReportFile]()
     }
     // FIXME use reportTypeId
+    // FIXME in the import-dataset job type, all of the reports have source
+    // ID "pbscala::import_dataset" - we can't use that
     //val reportsMap = (for (r <- reports) yield (r.reportTypeId, r.dataStoreFile.uuid)).toMap
     val reportsMap = (for (r <- reports) yield (r.dataStoreFile.sourceId.split("-").head, r.dataStoreFile.uuid)).toMap
     (for (test <- reportTests) yield {
@@ -205,26 +212,12 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     jsonAst.convertTo[TestkitConfig]
   }
 
-  def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
-                    ignoreTestFailures: Boolean = false): Int = {
-    val cfg = loadTestkitCfg(cfgFile)
-    var xc = 0
-    println(cfg.jobName)
+  protected def runAnalysisTestJob(cfg: TestkitConfig): EngineJob = {
     println("Importing entry points...")
     val entryPoints = new ArrayBuffer[BoundServiceEntryPoint]
     for (ept <- cfg.entryPoints) {
-      xc = max(xc, Try {
-        importEntryPoint(ept.entryId, ept.path.toString)
-      } match {
-        case Success(ep) => {
-          entryPoints.append(ep)
-          println(ep)
-          0
-        }
-        case Failure(err) => errorExit(s"Could not load entry point ${ept.entryId}")
-      })
+       entryPoints.append(importEntryPoint(ept.entryId, ept.path.toString))
     }
-    if (xc != 0) return errorExit("fatal error, exiting")
     val pipelineId = cfg.pipelineId match {
       case Some(id) => id
       case _ => cfg.workflowXml match {
@@ -236,8 +229,29 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     val pipelineOptions = getPipelineServiceOptions(cfg.jobName, pipelineId,
                                                     entryPoints, presets)
     var jobId = 0
-    xc = Try {
-      Await.result(sal.runAnalysisPipeline(pipelineOptions), TIMEOUT)
+    Await.result(sal.runAnalysisPipeline(pipelineOptions), TIMEOUT)
+  }
+
+  protected def runImportDataSetTestJob(cfg: TestkitConfig): EngineJob = {
+    if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
+    val dsPath = cfg.entryPoints(0).path.toString
+    val dsType = dsMetaTypeFromPath(dsPath)
+    // XXX should this automatically recover an existing job if present, or
+    // always import again?
+    Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+  }
+
+  def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
+                    ignoreTestFailures: Boolean = false): Int = {
+    val cfg = loadTestkitCfg(cfgFile)
+    println(cfg.jobName)
+    var jobId = -1
+    var xc = Try {
+      cfg.jobType match {
+        case "pbsmrtpipe" => runAnalysisTestJob(cfg)
+        case "import-dataset" => runImportDataSetTestJob(cfg)
+        case _ => throw new Exception(s"Don't know how to run job type ${cfg.jobType}")
+      }
     } match {
       case Success(jobInfo) => {
         println(s"Job ${jobInfo.uuid} started")
@@ -248,7 +262,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       case Failure(err) => errorExit(err.getMessage)
     }
     if ((xc == 0) && (! skipTests)) {
-      var testStatus = runTests(cfg.reportTests, jobId)
+      var testStatus = if (cfg.reportTests.size != 0) runTests(cfg.reportTests, jobId) else 0
       writeTestResults(xunitOut.getAbsolutePath)
       if (ignoreTestFailures) 0 else testStatus
     } else xc

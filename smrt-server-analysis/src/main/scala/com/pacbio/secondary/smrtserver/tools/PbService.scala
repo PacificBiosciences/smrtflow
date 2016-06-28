@@ -399,6 +399,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         case "hdfsubreads" => Await.result(sal.getHdfSubreadSets, TIMEOUT)
         case "barcodes" => Await.result(sal.getBarcodeSets, TIMEOUT)
         case "references" => Await.result(sal.getReferenceSets, TIMEOUT)
+        case "gmapreferences" => Await.result(sal.getGmapReferenceSets, TIMEOUT)
+        case "contigs" => Await.result(sal.getContigSets, TIMEOUT)
+        case "ccsalignments" => Await.result(sal.getConsensusAlignmentSets, TIMEOUT)
+        case "ccsreads" => Await.result(sal.getConsensusReadSets, TIMEOUT)
         //case _ => throw Exception("Not a valid dataset type")
       }
     } match {
@@ -414,6 +418,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
               case "hdfsubreads" => println(ds.asInstanceOf[HdfSubreadServiceDataSet].toJson.prettyPrint + sep)
               case "barcodes" => println(ds.asInstanceOf[BarcodeServiceDataSet].toJson.prettyPrint + sep)
               case "references" => println(ds.asInstanceOf[ReferenceServiceDataSet].toJson.prettyPrint + sep)
+              case "gmapreferences" => println(ds.asInstanceOf[GmapReferenceServiceDataSet].toJson.prettyPrint + sep)
+              case "ccsreads" => println(ds.asInstanceOf[CCSreadServiceDataSet].toJson.prettyPrint + sep)
+              case "ccsalignments" => println(ds.asInstanceOf[ConsensusAlignmentServiceDataSet].toJson.prettyPrint + sep)
+              case "contigs" => println(ds.asInstanceOf[ContigServiceDataSet].toJson.prettyPrint + sep)
             }
             k += 1
           }

@@ -1,7 +1,7 @@
 
 package com.pacbio.secondary.smrtserver.testkit
 
-import java.nio.file.Path
+import java.nio.file.{Path,Paths}
 
 import scala.collection.immutable.Seq
 
@@ -82,4 +82,30 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
   implicit val testkitConfigFormat = jsonFormat8(TestkitConfig)
 }
 
-//object TestkitJsonProtocol extends TestkitJsonProtocol
+object MockConfig extends TestkitJsonProtocol {
+
+  import TestkitModels._
+
+  def makeCfg: TestkitConfig = {
+    val entryPoints = Seq(
+        EntryPointPath("eid_subread", Paths.get("/path/to/subreadset.xml")),
+        EntryPointPath("eid_ref_dataset", Paths.get("/path/to/referenceset.xml")))
+      val reportTests = Seq(ReportTestRules(
+        "example_report",
+        Seq(
+          ReportAttributeLongRule("mapped_reads_n", 100, "gt"),
+          ReportAttributeDoubleRule("concordance", 0.85, "ge"),
+          ReportAttributeStringRule("instrument", "54006"))))
+      TestkitConfig(
+        "test_job",
+        "pbsmrtpipe",
+        "example test config",
+        Some("pbsmrtpipe.pipelines.sa3_sat"),
+        None,
+        Some("preset.xml"),
+        entryPoints,
+        reportTests)
+  }
+
+  def showCfg: Unit = println(makeCfg.toJson.prettyPrint)
+}
