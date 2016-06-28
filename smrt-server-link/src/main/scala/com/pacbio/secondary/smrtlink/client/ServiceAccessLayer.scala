@@ -50,8 +50,11 @@ trait DataSetTypesTrait {
   val HDFSUBREADS = "hdfsubreads"
   val REFERENCES = "references"
   val BARCODES = "barcodes"
+  val GMAPREFERENCES = "gmapreferences"
   val CCSREADS = "ccsreads"
   val ALIGNMENTS = "alignments"
+  val CONTIGS = "contigs"
+  val CCSALIGNMENTS = "ccsalignments"
 }
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
@@ -100,12 +103,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getHdfSubreadSetPipeline: HttpRequest => Future[HdfSubreadServiceDataSet] = sendReceive ~> unmarshal[HdfSubreadServiceDataSet]
   def getReferenceSetsPipeline: HttpRequest => Future[Seq[ReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[ReferenceServiceDataSet]]
   def getReferenceSetPipeline: HttpRequest => Future[ReferenceServiceDataSet] = sendReceive ~> unmarshal[ReferenceServiceDataSet]
+  def getGmapReferenceSetsPipeline: HttpRequest => Future[Seq[GmapReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[GmapReferenceServiceDataSet]]
+  def getGmapReferenceSetPipeline: HttpRequest => Future[GmapReferenceServiceDataSet] = sendReceive ~> unmarshal[GmapReferenceServiceDataSet]
   def getBarcodeSetsPipeline: HttpRequest => Future[Seq[BarcodeServiceDataSet]] = sendReceive ~> unmarshal[Seq[BarcodeServiceDataSet]]
   def getBarcodeSetPipeline: HttpRequest => Future[BarcodeServiceDataSet] = sendReceive ~> unmarshal[BarcodeServiceDataSet]
   def getAlignmentSetsPipeline: HttpRequest => Future[Seq[AlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[AlignmentServiceDataSet]]
   def getAlignmentSetPipeline: HttpRequest => Future[AlignmentServiceDataSet] = sendReceive ~> unmarshal[AlignmentServiceDataSet]
   def getConsensusReadSetsPipeline: HttpRequest => Future[Seq[CCSreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[CCSreadServiceDataSet]]
   def getConsensusReadSetPipeline: HttpRequest => Future[CCSreadServiceDataSet] = sendReceive ~> unmarshal[CCSreadServiceDataSet]
+  def getConsensusAlignmentSetsPipeline: HttpRequest => Future[Seq[ConsensusAlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[ConsensusAlignmentServiceDataSet]]
+  def getConsensusAlignmentSetPipeline: HttpRequest => Future[ConsensusAlignmentServiceDataSet] = sendReceive ~> unmarshal[ConsensusAlignmentServiceDataSet]
+  def getContigSetsPipeline: HttpRequest => Future[Seq[ContigServiceDataSet]] = sendReceive ~> unmarshal[Seq[ContigServiceDataSet]]
+  def getContigSetPipeline: HttpRequest => Future[ContigServiceDataSet] = sendReceive ~> unmarshal[ContigServiceDataSet]
   //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
@@ -159,6 +168,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
   }
 
+  def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.GMAPREFERENCES))
+  }
+
+  def getGmapReferenceSetById(dsId: Int): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.GMAPREFERENCES, dsId))
+  }
+
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
   }
@@ -175,6 +192,22 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
   }
 
+  def getConsensusAlignmentSets: Future[Seq[ConsensusAlignmentServiceDataSet]] = getConsensusAlignmentSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.CCSALIGNMENTS))
+  }
+
+  def getConsensusAlignmentSetById(dsId: Int): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.CCSALIGNMENTS, dsId))
+  }
+
+  def getContigSets: Future[Seq[ContigServiceDataSet]] = getContigSetsPipeline {
+    Get(toDataSetsUrl(DataSetTypes.CONTIGS))
+  }
+
+  def getContigSetById(dsId: Int): Future[ContigServiceDataSet] = getContigSetPipeline {
+    Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
+  }
+
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
   }
@@ -183,23 +216,16 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
-  def getAnalysisJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
-    getJobDataStore(JobTypes.PB_PIPE, jobId)
+  def getAnalysisJobDataStore(jobId: Int) = getJobDataStore(JobTypes.PB_PIPE, jobId)
+  def getImportDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
+  def getImportFastaJobDataStore(jobId: Int) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
+  def getMergeDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.MERGE_DS, jobId)
+
+  protected def getJobReports(jobId: Int, jobType: String): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
+    Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))
   }
 
-  def getImportDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
-    getJobDataStore(JobTypes.IMPORT_DS, jobId)
-  }
-
-  def getImportFastaJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
-    getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
-  }
-
-  def getMergeDatasetJobDataStore(jobId: Int): Future[Seq[DataStoreServiceFile]] = {
-    getJobDataStore(JobTypes.MERGE_DS, jobId)
-  }
-
-  def getAnalysisJobReports(jobId: Int): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
-    Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.REPORTS))
-  }
+  def getAnalysisJobReports(jobId: Int) = getJobReports(jobId, JobTypes.PB_PIPE)
+  def getImportJobReports(jobId: Int) = getJobReports(jobId, JobTypes.IMPORT_DS)
+  // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
 }
