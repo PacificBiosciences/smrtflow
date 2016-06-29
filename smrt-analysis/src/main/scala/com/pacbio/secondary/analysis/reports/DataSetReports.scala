@@ -3,6 +3,8 @@ package com.pacbio.secondary.analysis.reports
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import collection.JavaConversions._
+
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets.DataSetMetadataType
@@ -10,7 +12,7 @@ import com.pacbio.common.models.Constants
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReports}
+import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReports, PbReport}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.analysis.reports.ReportModels._
@@ -20,12 +22,12 @@ object DataSetReports {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
-  def toReportFile(path: Path, jobTypeId: JobTypeId): DataStoreFile = {
+  def toReportFile(path: Path, taskId: String): DataStoreFile = {
     val startedAt = JodaDateTime.now()
     val createdAt = JodaDateTime.now()
 
     //FIXME(mpkocher)(2016-4-21) These will probably have to have the specific report type id in the Display Name
-    DataStoreFile(UUID.randomUUID(), s"pbscala::${jobTypeId.id}",
+    DataStoreFile(UUID.randomUUID(), taskId,
       FileTypes.REPORT.fileTypeId.toString,
       path.toFile.length(),
       startedAt,
@@ -40,7 +42,6 @@ object DataSetReports {
       srcPath: Path,
       rpt: CallPbReport,
       parentDir: Path,
-      jobTypeId: JobTypeId,
       log: JobResultWriter): Option[DataStoreFile] = {
 
     val reportDir = parentDir.resolve(rpt.reportModule)
@@ -55,7 +56,7 @@ object DataSetReports {
         log.writeLineStdout(failure.msg)
         None
       }
-      case Right(reportPath) => Some(toReportFile(reportPath, jobTypeId))
+      case Right(report) => Some(toReportFile(report.outputJson, report.taskId))
     }
   }
 
@@ -69,9 +70,29 @@ object DataSetReports {
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile().mkdir()
 
+    // all of the current reports will only work if at least one sts.xml file
+    // is present as an ExternalResource of a SubreadSet BAM file
+    val hasStatsXml: Boolean = dst match {
+      case DataSetMetaTypes.Subread => {
+        val ds = DataSetLoader.loadSubreadSet(inPath)
+        val extRes = ds.getExternalResources
+        if (extRes == null) false else {
+          (extRes.getExternalResource.filter(_ != null).map { x =>
+            val extRes2 = x.getExternalResources
+            if (extRes2 == null) false else {
+              extRes2.getExternalResource.filter(_ != null).map { x2 =>
+                x2.getMetaType == FileTypes.STS_XML.fileTypeId
+              }.exists(_ == true)
+            }
+          }).toList.exists(_ == true)
+        }
+      }
+      case _ => false
+    }
+
     val reportFiles = if (PbReports.isAvailable()) {
-      PbReports.ALL.filter(_.canProcess(dst))
-        .map(run(inPath, _, rptParent, jobTypeId, log)).flatten
+      PbReports.ALL.filter(_.canProcess(dst, hasStatsXml))
+        .map(run(inPath, _, rptParent, log)).flatten
     } else {
       log.writeLineStdout("pbreports is unavailable")
       List()
@@ -121,6 +142,6 @@ object DataSetReports {
 
     val reportPath = jobPath.resolve(simple + ".json")
     MockReportUtils.writeReport(rpt, reportPath)
-    toReportFile(reportPath, jobTypeId)
+    toReportFile(reportPath, s"pbscala::${jobTypeId.id}")
   }
 }

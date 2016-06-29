@@ -122,6 +122,9 @@ object FileTypes {
   // fasta.contig.index index file used by SMRT View
   final val I_FCI = IndexFileBaseType("PacBio.Index.FastaContigIndex", "file", "fasta.contig.index", "text/plain")
 
+  // Other DataSet accessories
+  final val STS_XML = FileBaseType("PacBio.SubreadFile.ChipStatsFile", "file", "sts.xml", "application/xml")
+
   // Only Supported RS era Reference Index file types, which are used to
   // convert to ReferenceSet
   final val RS_I_SAM_INDEX = IndexFileBaseType("sam_idx", "file", "fasta.fai", "text/plain")
