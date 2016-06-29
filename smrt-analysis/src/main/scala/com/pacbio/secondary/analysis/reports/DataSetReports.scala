@@ -142,6 +142,6 @@ object DataSetReports {
 
     val reportPath = jobPath.resolve(simple + ".json")
     MockReportUtils.writeReport(rpt, reportPath)
-    toReportFile(reportPath, s"pbscala::${jobTypeId}")
+    toReportFile(reportPath, s"pbscala::${jobTypeId.id}")
   }
 }
