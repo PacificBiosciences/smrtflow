@@ -3,6 +3,8 @@ package com.pacbio.secondary.analysis.reports
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import collection.JavaConversions._
+
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets.DataSetMetadataType
@@ -68,8 +70,28 @@ object DataSetReports {
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile().mkdir()
 
+    // all of the current reports will only work if at least one sts.xml file
+    // is present as an ExternalResource of a SubreadSet BAM file
+    val hasStatsXml: Boolean = dst match {
+      case DataSetMetaTypes.Subread => {
+        val ds = DataSetLoader.loadSubreadSet(inPath)
+        val extRes = ds.getExternalResources
+        if (extRes == null) false else {
+          (extRes.getExternalResource.filter(_ != null).map { x =>
+            val extRes2 = x.getExternalResources
+            if (extRes2 == null) false else {
+              extRes2.getExternalResource.filter(_ != null).map { x2 =>
+                x2.getMetaType == FileTypes.STS_XML.fileTypeId
+              }.exists(_ == true)
+            }
+          }).toList.exists(_ == true)
+        }
+      }
+      case _ => false
+    }
+
     val reportFiles = if (PbReports.isAvailable()) {
-      PbReports.ALL.filter(_.canProcess(dst))
+      PbReports.ALL.filter(_.canProcess(dst, hasStatsXml))
         .map(run(inPath, _, rptParent, log)).flatten
     } else {
       log.writeLineStdout("pbreports is unavailable")

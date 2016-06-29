@@ -31,7 +31,7 @@ trait CallPbReport extends Python {
     }
   }
 
-  def canProcess(dst: DataSetMetaTypes.DataSetMetaType): Boolean
+  def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean = false): Boolean
 }
 
 object PbReports {
@@ -42,24 +42,24 @@ object PbReports {
   object FilterStatsXml extends CallPbReport {
     val reportModule = "filter_stats_xml"
     val reportTaskId = "pbreports.tasks.filter_stats_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType) = {
-      dst == DataSetMetaTypes.Subread
+    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
+      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
     }
   }
 
   object LoadingXml extends CallPbReport {
     val reportModule = "loading_xml"
     val reportTaskId = "pbreports.tasks.loading_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType) = {
-      dst == DataSetMetaTypes.Subread
+    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
+      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
     }
   }
 
   object AdapterXml extends CallPbReport {
     val reportModule = "adapter_xml"
     val reportTaskId = "pbreports.tasks.adapter_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType) = {
-      dst == DataSetMetaTypes.Subread
+    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
+      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
     }
   }
 
