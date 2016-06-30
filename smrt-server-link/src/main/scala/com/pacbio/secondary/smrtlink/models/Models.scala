@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.models
 
+import java.nio.file.Path
 import java.util.UUID
 
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
@@ -109,6 +110,7 @@ case class CollectionMetadata(
     name: String,
     summary: Option[String],
     context: Option[String],
+    collectionPathUri: Option[Path],
     status: SupportedAcquisitionStates,
     instrumentId: Option[String],
     instrumentName: Option[String],
@@ -149,7 +151,7 @@ case class JobTypeEndPoint(jobTypeId: String, description: String) {
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
-case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Int)
+case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Either[Int,UUID])
 
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
@@ -238,10 +240,22 @@ case class BarcodeServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
 
+// FIXME for consistency this should be ConsensusRead...
 case class CCSreadServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class CCSreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: CCSreadServiceSet)
 
+case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends IdAble
+
+case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
+
+case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends IdAble
+
+case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
+
+case class ContigServiceSet(id: Int, uuid: UUID) extends IdAble
+
+case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
 
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
@@ -403,6 +417,25 @@ case class CCSreadServiceDataSet(
     datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
+case class ConsensusAlignmentServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = AlignmentCCS.toString())
+    extends ServiceDataSetMetadata
+
 case class BarcodeServiceDataSet(
     id: Int,
     uuid: UUID,
@@ -441,6 +474,26 @@ case class ContigServiceDataSet(
     datasetType: String = Contig.toString())
   extends ServiceDataSetMetadata
 
+case class GmapReferenceServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    ploidy: String,
+    organism: String,
+    datasetType: String = GmapReference.toString())
+    extends ServiceDataSetMetadata
 
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)

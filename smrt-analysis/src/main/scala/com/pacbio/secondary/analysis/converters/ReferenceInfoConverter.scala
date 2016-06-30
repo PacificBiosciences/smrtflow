@@ -11,7 +11,7 @@ import org.joda.time.DateTime
 import collection.JavaConverters._
 import collection.JavaConversions._
 import com.pacbio.common.models.{Constants => CommonConstants}
-import com.pacbio.secondary.analysis.constants.{FileTypes, GlobalConstants}
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
 import com.pacbio.secondary.analysis.legacy.{ReferenceContig, ReferenceEntry, ReferenceEntryIO, ReferenceInfoType}
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
@@ -93,9 +93,6 @@ object ReferenceInfoConverter extends LazyLogging {
     val metatype = FileTypes.DS_REFERENCE.fileTypeId
     val fastaMetaType = FileTypes.FASTA_REF.fileTypeId
 
-    // Is this really not defined as a constant somewhere?
-    val version = "3.0.1"
-
     val tags = "converted, reference"
     val name = referenceInfoType.getId
     val description = s"Converted Reference $name"
@@ -160,7 +157,7 @@ object ReferenceInfoConverter extends LazyLogging {
     externalResources.getExternalResource.add(er)
 
     val rs = new ReferenceSet()
-    rs.setVersion(version)
+    rs.setVersion(CommonConstants.DATASET_VERSION)
     rs.setMetaType(metatype)
     rs.setCreatedAt(createdAt)
     rs.setModifiedAt(createdAt)
@@ -209,7 +206,7 @@ object ReferenceInfoConverter extends LazyLogging {
     val r = datasetIO.dataset
     val erUUID = UUID.randomUUID()
 
-    val author = s"pbscala ${GlobalConstants.PB_SCALA_VERSION} reference_info_dataset_" + REF_INFO_TO_DS_VERSION
+    val author = s"pbscala ${CommonConstants.SMRTFLOW_VERSION} reference_info_dataset_" + REF_INFO_TO_DS_VERSION
 
     val root =
       <pbds:ReferenceSet

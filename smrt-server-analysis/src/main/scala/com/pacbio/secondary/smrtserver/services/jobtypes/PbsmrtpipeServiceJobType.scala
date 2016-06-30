@@ -8,20 +8,19 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
 import com.pacbio.common.models.LogMessageRecord
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages.{CheckForRunnableJob, ImportDataStoreFile, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, ValidateImportDataSetUtils}
@@ -46,8 +45,6 @@ import spray.json._
 
 class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
-    userActor: ActorRef,
-    engineManagerActor: ActorRef,
     authenticator: Authenticator,
     loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
@@ -77,7 +74,7 @@ class PbsmrtpipeServiceJobType(
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -99,7 +96,7 @@ class PbsmrtpipeServiceJobType(
               val uuid = UUID.randomUUID()
               logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
-              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSet(x.fileTypeId, x.datasetId, dbActor))
+              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSetByAny(x.fileTypeId, x.datasetId, dbActor))
 
               val pathsFs = Future sequence fsx
               val rs = Await.result(pathsFs, 4.seconds)
@@ -139,8 +136,6 @@ class PbsmrtpipeServiceJobType(
                 authInfo.map(_.login)
               )).mapTo[EngineJob]
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -150,7 +145,7 @@ class PbsmrtpipeServiceJobType(
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     } ~
     path(endpoint / IntNumber / LOG_PREFIX) { id =>
       post {
@@ -190,16 +185,12 @@ class PbsmrtpipeServiceJobType(
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
   val pbsmrtpipeServiceJobType: Singleton[PbsmrtpipeServiceJobType] =
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
-      userServiceActorRef(),
-      engineManagerActor(),
       authenticator(),
       loggerFactory(),
       jobEngineConfig(),

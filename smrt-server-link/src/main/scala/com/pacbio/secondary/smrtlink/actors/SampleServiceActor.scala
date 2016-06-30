@@ -38,7 +38,7 @@ trait SampleServiceActorRefProvider {
   this: SampleDaoProvider with ActorRefFactoryProvider =>
 
   val sampleServiceActorRef: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[SampleServiceActor], sampleDao())))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[SampleServiceActor], sampleDao()), "SampleServiceActor"))
 }
 
 /**

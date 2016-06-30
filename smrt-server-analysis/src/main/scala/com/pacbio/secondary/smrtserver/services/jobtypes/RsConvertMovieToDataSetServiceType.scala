@@ -4,10 +4,8 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.MovieMetadataToHdfSubreadOptions
@@ -27,7 +25,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 
 
-class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
 
@@ -39,7 +37,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef,
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -66,17 +64,15 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef, userActor: ActorRef,
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait RsConvertMovieToDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val rsConvertMovieToDataSetServiceType: Singleton[RsConvertMovieToDataSetServiceType] =
-    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
 }

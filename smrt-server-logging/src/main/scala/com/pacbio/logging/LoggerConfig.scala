@@ -60,7 +60,7 @@ trait LoggerConfig {
     }
     // ignore the default configurator
     LoggerOptions.configured = true
-    return this
+    this
   }
 
   /**
@@ -106,7 +106,7 @@ trait LoggerConfig {
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
 
     // configure the rolling file appender
-    val appender = new RollingFileAppender[ILoggingEvent]();
+    val appender = new RollingFileAppender[ILoggingEvent]()
     appender.setContext(lc)
     appender.setName("FILE")
     val patternEncoder = new PatternLayoutEncoder()

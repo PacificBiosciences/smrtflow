@@ -119,26 +119,23 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
 
   implicit val timeout = Timeout(5.seconds)
 
-  private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[Either[FailedMessage, SuccessMessage]] = {
+  private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[String] = {
     if (ds.isChunked) {
-      Future {
-        Right(SuccessMessage(s"skipping import of intermediate chunked file $ds"))
-      }
+      Future.successful(s"skipping import of intermediate chunked file $ds")
     } else {
-      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[Either[FailedMessage, SuccessMessage]]
+      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[String]
     }
   }
 
-  private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Either[FailedMessage, SuccessMessage]] = {
+  private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Seq[String]] = {
     // Filter out non-chunked files. The are presumed to be intermediate files
-    val fxs = dataStore.files.filter(!_.isChunked).map(x => importDataStoreFile(x, jobUUID))
-    val fx = Future.sequence(fxs)
-    // FIXME. Need to propagate failures here
-    Future { Right(SuccessMessage(s"Successfully import $dataStore")) }
+    val nonChunked = dataStore.files.filter(!_.isChunked)
+    Future.sequence(nonChunked.map(x => importDataStoreFile(x, jobUUID)))
   }
-  private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Either[FailedMessage, SuccessMessage]] = {
+
+  private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Seq[String]] = {
     x match {
-      case x: DataStoreFile => importDataStoreFile(x, jobUUID)
+      case x: DataStoreFile => importDataStoreFile(x, jobUUID).map(List(_))
       case x: PacBioDataStore => importDataStore(x, jobUUID)
     }
   }
@@ -170,28 +167,18 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
             writer.writeLineStdout(s"attempting to import $x")
             val fx = importAbleFile(x, pbJob.jobId)
 
-            fx onSuccess  {
-              case Right(b) =>
-                logger.info(s"Successfully imported datastore files. $x")
-                Right(ResultSuccess(pbJob.jobId, job.jobTypeId.toString, toM(AnalysisJobStates.SUCCESSFUL), runTime, AnalysisJobStates.SUCCESSFUL, host))
-              case Left(ex) =>
-                Left(ResultFailed(pbJob.jobId, job.jobTypeId.toString, toM(AnalysisJobStates.FAILED), runTime, AnalysisJobStates.FAILED, host))
-            }
-
-            fx onFailure {
-              case e: Exception =>
-                val emsgx = toM(AnalysisJobStates.FAILED)
-                writer.writeLineStderr(emsgx)
-                Left(ResultFailed(pbJob.jobId, job.jobTypeId.toString, emsgx, runTime, AnalysisJobStates.FAILED, host))
-            }
-
             // Block
-            Await.result(fx, timeout.duration) match {
-              case Right(_) =>
-                writer.writeLineStdout("Successfully inserted datastore files.")
+            Try {
+              Await.result(fx, timeout.duration)
+            } match {
+              case Success(msgs) =>
+                logger.info(s"Successfully imported datastore files. $x")
+                writer.writeLineStdout("Successfully inserted datastore files:")
+                writer.writeLineStdout("  " + msgs.mkString("\n  "))
                 Right(ResultSuccess(pbJob.jobId, job.jobTypeId.toString, toM(AnalysisJobStates.SUCCESSFUL), runTime, AnalysisJobStates.SUCCESSFUL, host))
-              case Left(ex) =>
-                Left(ResultFailed(pbJob.jobId, job.jobTypeId.toString, s"Job $job FAILED to import datafiles ${ex.message}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
+              case Failure(ex) =>
+                writer.writeLineStderr("Failed to insert datastore files: ${ex.getMessage}")
+                Left(ResultFailed(pbJob.jobId, job.jobTypeId.toString, s"Job $job FAILED to import datafiles ${ex.getMessage}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
             }
           case Right(x) =>
             writer.writeLineStdout(s"Successfully completed job ${pbJob.jobId}")

@@ -12,11 +12,14 @@ import com.pacbio.secondary.smrtlink.services.SampleService
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import spray.httpx.SprayJsonSupport._
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
+import spray.httpx.SprayJsonSupport._
 import spray.routing.Directives
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class SampleSpec extends
     Specification with
@@ -24,6 +27,7 @@ class SampleSpec extends
     Specs2RouteTest with
     BaseRolesInit with
     LazyLogging with
+    NoTimeConversions with
     PacBioServiceErrors {
 
   // run sequentially because of shared InMemoryDAO state
@@ -79,12 +83,17 @@ class SampleSpec extends
 
   trait daoSetup extends Scope {
     TestProviders.sampleDao().asInstanceOf[InMemorySampleDao].clear()
-    TestProviders.sampleDao()
-      .createSample(WRITE_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One"))
-    TestProviders.sampleDao()
-      .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two"))
-    TestProviders.sampleDao()
-      .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
+    Await.ready(
+      Future.sequence(Seq(
+        TestProviders.sampleDao()
+          .createSample(WRITE_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One")),
+        TestProviders.sampleDao()
+          .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two")),
+        TestProviders.sampleDao()
+          .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
+      )),
+      10.seconds
+    )
   }
 
   "Sample Service" should {

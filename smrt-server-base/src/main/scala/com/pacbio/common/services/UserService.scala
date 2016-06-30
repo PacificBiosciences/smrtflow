@@ -1,49 +1,35 @@
 package com.pacbio.common.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
-import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
+import com.pacbio.common.actors.{UserDaoProvider, UserDao}
 import com.pacbio.common.auth.{AuthenticatorProvider, Role, ApiUser, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
-import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import spray.routing.Route
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.util.Try
 
 // TODO(smcclellan): Add documentation
 
-class UserService(userActor: ActorRef, authenticator: Authenticator)
+class UserService(userDao: UserDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
-  import UserServiceActor._
   import PacBioJsonProtocol._
-
-  implicit val timeout = Timeout(10.seconds)
-
-  val components = Seq(PacBioComponent(toServiceId("user"), "0.1.0"))
 
   val manifest = PacBioComponentManifest(
     toServiceId("user"),
     "Subsystem User Service",
-    "0.2.0", "Subsystem Health Service", components)
+    "0.2.0", "Subsystem Health Service")
 
   val userServiceName = "user"
 
   // Instead of transmitting instances of ApiUser, which contain hashed passwords, this allows us to implicitly convert
   // to UserResponse.
-  implicit class ActorRefWrapper(actorRef: ActorRef) {
-    def ??(message: Any): Future[UserResponse] =
-      (userActor ? message)
-        .mapTo[ApiUser]
-        .map(u => UserResponse(u.login, u.id, u.email, u.firstName, u.lastName, u.roles))
+  implicit class ApiUserWrapper(apiUser: Future[ApiUser]) {
+    def resp: Future[UserResponse] =
+      apiUser.map(u => UserResponse(u.login, u.id, u.email, u.firstName, u.lastName, u.roles))
   }
 
   val routes =
@@ -54,7 +40,7 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
             entity(as[UserRecord]) { userRecord =>
               complete {
                 created {
-                  userActor ?? CreateUser(login, userRecord)
+                  userDao.createUser(login, userRecord).resp
                 }
               }
             }
@@ -62,18 +48,16 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
           get {
             complete {
               ok {
-                userActor ?? GetUser(login)
+                userDao.getUser(login).resp
               }
             }
           } ~
           delete {
             authenticate(authenticator.jwtAuth) { authInfo =>
               authorize(authInfo.isUserOrRoot(login)) {
-                respondWithMediaType(MediaTypes.`application/json`) {
-                  complete {
-                    ok {
-                      (userActor ? DeleteUser(login)).mapTo[String]
-                    }
+                complete {
+                  ok {
+                    userDao.deleteUser(login)
                   }
                 }
               }
@@ -86,7 +70,7 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
               authorize(authInfo.isUserOrRoot(login)) {
                 complete {
                   ok {
-                    (userActor ? GetToken(login)).mapTo[String]
+                    userDao.getToken(login)
                   }
                 }
               }
@@ -102,7 +86,7 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
                   authorize(authInfo.hasPermission(role)) {
                     complete {
                       ok {
-                        userActor ?? AddRole(login, role)
+                        userDao.addRole(login, role).resp
                       }
                     }
                   }
@@ -116,7 +100,7 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
                   authorize(authInfo.hasPermission(role)) {
                     complete {
                       ok {
-                        userActor ?? RemoveRole(login, role)
+                        userDao.removeRole(login, role).resp
                       }
                     }
                   }
@@ -134,19 +118,19 @@ class UserService(userActor: ActorRef, authenticator: Authenticator)
  * {{{UserServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
  */
 trait UserServiceProvider {
-  this: UserServiceActorRefProvider with AuthenticatorProvider =>
+  this: UserDaoProvider with AuthenticatorProvider =>
 
   final val userService: Singleton[UserService] =
-    Singleton(() => new UserService(userServiceActorRef(), authenticator())).bindToSet(AllServices)
+    Singleton(() => new UserService(userDao(), authenticator())).bindToSet(AllServices)
 }
 
 trait UserServiceProviderx {
-  this: UserServiceActorRefProvider
+  this: UserDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   final val userService: Singleton[UserService] =
-    Singleton(() => new UserService(userServiceActorRef(), authenticator()))
+    Singleton(() => new UserService(userDao(), authenticator()))
 
   addService(userService)
 }

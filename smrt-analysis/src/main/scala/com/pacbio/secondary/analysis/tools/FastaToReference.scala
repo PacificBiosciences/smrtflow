@@ -68,6 +68,10 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
       sys.exit(0)
     } text "Show Options and exit"
 
+    opt[Unit]("debug") action { (_, c) =>
+      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[FastaToReferenceConfig]
+    } text "Display debugging log output"
+
     // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }

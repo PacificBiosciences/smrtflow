@@ -5,5 +5,10 @@
 // Generated on: 2016.04.06 at 11:45:18 AM PDT 
 //
 
-@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd",
+ xmlns = {@XmlNs(prefix = "pbmeta", namespaceURI = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd")},
+ elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED,
+  attributeFormDefault = javax.xml.bind.annotation.XmlNsForm.UNQUALIFIED
+)
 package com.pacificbiosciences.pacbiocollectionmetadata;
+import javax.xml.bind.annotation.XmlNs;

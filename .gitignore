@@ -7,7 +7,9 @@ smrt-server-link/jobs-root
 smrt-server-analysis/db/*
 smrt-server-analysis/jobs-root
 
-test-data/*
+test-data/smrtserver-testdata
+test-output/*
+profile.json
 
 # sbt specific
 .cache

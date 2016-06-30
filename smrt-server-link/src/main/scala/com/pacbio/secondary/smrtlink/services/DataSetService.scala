@@ -214,6 +214,14 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         GetReferenceDataSetByUUID,
         GetReferenceDataSetDetailsById,
         GetReferenceDataSetDetailsByUUID) ~
+      datasetRoutes[GmapReferenceServiceDataSet](
+        DataSetMetaTypes.GmapReference.shortName,
+        GetGmapReferenceDataSets,
+        SchemaLoader.gmapReferenceSchema.content,
+        GetGmapReferenceDataSetById,
+        GetGmapReferenceDataSetByUUID,
+        GetGmapReferenceDataSetDetailsById,
+        GetGmapReferenceDataSetDetailsByUUID) ~
       datasetRoutes[BarcodeServiceDataSet](
         DataSetMetaTypes.Barcode.shortName,
         GetBarcodeDataSets,
@@ -224,68 +232,28 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         GetBarcodeDataSetDetailsByUUID) ~
       datasetRoutes[CCSreadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
-        GetCCSSubreadDataSets,
+        GetConsensusReadDataSets,
         SchemaLoader.ccsReadSchema.content,
-        GetCCSSubreadDataSetsById,
-        GetCCSSubreadDataSetsByUUID,
+        GetConsensusReadDataSetsById,
+        GetConsensusReadDataSetsByUUID,
         _ => throw new ResourceNotFoundError("Details not supported for CCS DataSet"),
         _ => throw new ResourceNotFoundError("Details not supported for CCS DataSet")) ~
-      path(DataSetMetaTypes.AlignmentCCS.shortName / MixedId) { id =>
-        get {
-          complete {
-            throw new ResourceNotFoundError("Consensus AlignmentSet not supported")
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.AlignmentCCS.shortName / MixedId / DETAILS_PREFIX) { id =>
-        get {
-          complete {
-            throw new ResourceNotFoundError("Consensus AlignmentSet not supported")
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.AlignmentCCS.shortName / SCHEMA_PREFIX) {
-        get {
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              // This is wrong.
-              SchemaLoader.referenceSchema.content
-            }
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.Contig.shortName) {
-        get {
-          complete {
-            // The Contig Set is Not implemented, but I wanted this interface to support the 8 dataset types
-            Seq[ContigServiceDataSet]()
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.Contig.shortName / MixedId) { id =>
-        get {
-          complete {
-            throw new ResourceNotFoundError("ContigSet not supported")
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.Contig.shortName / MixedId / DETAILS_PREFIX) { id =>
-        get {
-          complete {
-            throw new ResourceNotFoundError("ContigSet not supported")
-          }
-        }
-      } ~
-      path(DataSetMetaTypes.Contig.shortName / SCHEMA_PREFIX) {
-        get {
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              // This is wrong.
-              SchemaLoader.referenceSchema.content
-            }
-          }
-        }
-      }
+      datasetRoutes[ConsensusAlignmentServiceDataSet](
+        DataSetMetaTypes.AlignmentCCS.shortName,
+        GetConsensusAlignmentDataSets,
+        SchemaLoader.ccsAlignmentSchema.content,
+        GetConsensusAlignmentDataSetsById,
+        GetConsensusAlignmentDataSetsByUUID,
+        _ => throw new ResourceNotFoundError("Details not supported for ConsensusAlignmentSet"),
+        _ => throw new ResourceNotFoundError("Details not supported for ConsensusAlignmentSet")) ~
+      datasetRoutes[ContigServiceDataSet](
+        DataSetMetaTypes.Contig.shortName,
+        GetContigDataSets,
+        SchemaLoader.contigSchema.content,
+        GetContigDataSetsById,
+        GetContigDataSetsByUUID,
+        _ => throw new ResourceNotFoundError("Details not supported for ContigSet"),
+        _ => throw new ResourceNotFoundError("Details not supported for ContigSet"))
     }
 }
 

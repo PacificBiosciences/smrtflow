@@ -19,7 +19,7 @@ import SprayJsonSupport._
 import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import com.pacbio.common.actors.{ActorSystemProvider, UserServiceActorRefProvider}
+import com.pacbio.common.actors.ActorSystemProvider
 import com.pacbio.common.auth.AuthenticatorProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.LoggerFactoryProvider
@@ -30,7 +30,7 @@ import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPoint, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
@@ -38,11 +38,11 @@ import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models._
-import com.pacbio.secondaryinternal.{BaseInternalMicroService, IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
+import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
 import com.typesafe.scalalogging.LazyLogging
 
 
-class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost: String, port: Int)(implicit val actorSystem: ActorSystem)
+class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(implicit val actorSystem: ActorSystem)
   extends JobTypeService with LazyLogging{
 
   // import SecondaryAnalysisJsonProtocols._
@@ -164,7 +164,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         }
       }
@@ -201,7 +201,7 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
       }
     }
 
-  val routes = helpRoute ~ sharedJobRoutes(dbActor, userActor) ~ validateConditionRunRoute ~ createJobRoute ~ getJobsRoute
+  val routes = helpRoute ~ sharedJobRoutes(dbActor) ~ validateConditionRunRoute ~ createJobRoute ~ getJobsRoute
 
 
 }
@@ -209,8 +209,6 @@ class ConditionJobType(dbActor: ActorRef, userActor: ActorRef, serviceStatusHost
 trait ConditionJobTypeServiceProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider
@@ -221,7 +219,6 @@ trait ConditionJobTypeServiceProvider {
       implicit val system = actorSystem()
       new ConditionJobType(
         jobsDaoActor(),
-        userServiceActorRef(),
         if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
         port()
       )

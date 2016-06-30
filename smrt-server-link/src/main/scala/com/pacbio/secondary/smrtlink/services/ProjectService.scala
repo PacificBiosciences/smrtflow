@@ -1,41 +1,26 @@
 package com.pacbio.secondary.smrtlink.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
-import com.pacbio.common.auth.{AuthenticatorProvider, ApiUser, Authenticator}
+import com.pacbio.common.actors.{UserDao, UserDaoProvider}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol, UserResponse}
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
+import com.pacbio.secondary.smrtlink.actors.{JobsDaoProvider, JobsDao}
 import com.pacbio.secondary.smrtlink.models._
-import spray.routing.Route
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import com.typesafe.scalalogging.LazyLogging
-
-import spray.http.MediaTypes
-import spray.json._
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
-
-
 /**
  * Accessing Projects
- *
- * @param dbActor
  */
-class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Authenticator)
+class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenticator)
   extends JobsBaseMicroService
   with SmrtLinkConstants {
-
-  // import message types
-  import UserServiceActor._
-  import JobsDaoActor._
 
   // import serialzation protocols
   import SmrtLinkJsonProtocols._
@@ -54,8 +39,8 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
             entity(as[ProjectRequest]) { sopts =>
               val owner = ProjectUserRequest(authInfo.login, "OWNER")
               val project = for {
-                proj <- (dbActor ? CreateProject(sopts)).mapTo[Project]
-                addUser <- (dbActor ? AddProjectUser(proj.id, owner)).mapTo[MessageResponse]
+                proj <- jobsDao.createProject(sopts)
+                addUser <- jobsDao.addProjectUser(proj.id, owner)
               } yield proj
 
               complete {
@@ -68,7 +53,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
           get {
             complete {
               ok {
-                (dbActor ? GetProjects).mapTo[Seq[Project]]
+                jobsDao.getProjects(1000)
               }
             }
           }
@@ -79,7 +64,8 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
-                    (dbActor ? UpdateProject(projId, sopts)).mapTo[Project]
+                    jobsDao.updateProject(projId, sopts)
+                      .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find project $projId")))
                   }
                 }
               }
@@ -87,7 +73,8 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
             get {
               complete {
                 ok {
-                  (dbActor ? GetProjectById(projId)).mapTo[Project]
+                  jobsDao.getProjectById(projId)
+                    .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find project $projId")))
                 }
               }
             }
@@ -98,27 +85,18 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
                 entity(as[ProjectUserRequest]) { newUser =>
                   complete {
                     created {
-                      (dbActor ? AddProjectUser(projId, newUser)).mapTo[MessageResponse]
+                      jobsDao.addProjectUser(projId, newUser)
                     }
                   }
                 }
               } ~
               get {
-                val userResponses = for {
-                  users <- (dbActor ? GetProjectUsers(projId)).mapTo[Seq[ProjectUser]]
-
-                  apiUsers <- Future.sequence(users.map(u =>
-                    (userActor ? GetUser(u.login)).mapTo[ApiUser]))
-
-                  fullUsers <- Future {
-                    (users, apiUsers).zipped.map((u, au) =>
-                      ProjectUserResponse(au.toResponse, u.role))
-                  }
-                } yield fullUsers
-
                 complete {
                   ok {
-                    userResponses
+                    for {
+                      users <- jobsDao.getProjectUsers(projId)
+                      apiUsers <- Future.sequence(users.map(u => userDao.getUser(u.login)))
+                    } yield (users, apiUsers).zipped.map((u, au) => ProjectUserResponse(au.toResponse(), u.role))
                   }
                 }
               }
@@ -127,7 +105,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
               delete {
                 complete {
                   ok {
-                    (dbActor ? DeleteProjectUser(projId, userName)).mapTo[MessageResponse]
+                    jobsDao.deleteProjectUser(projId, userName)
                   }
                 }
               }
@@ -137,7 +115,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
             get {
               complete {
                 ok {
-                  (dbActor ? GetDatasetsByProject(projId)).mapTo[Seq[DataSetMetaDataSet]]
+                  jobsDao.getDatasetsByProject(projId)
                 }
               }
             } ~
@@ -145,14 +123,14 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
               put {
                 complete {
                   ok {
-                    (dbActor ? SetProjectForDatasetId(dsId, projId)).mapTo[MessageResponse]
+                    jobsDao.setProjectForDatasetId(dsId, projId)
                   }
                 }
               } ~
               delete {
                 complete {
                   ok {
-                    (dbActor ? SetProjectForDatasetId(dsId, GENERAL_PROJECT_ID)).mapTo[MessageResponse]
+                    jobsDao.setProjectForDatasetId(dsId, GENERAL_PROJECT_ID)
                   }
                 }
               }
@@ -161,14 +139,14 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
               put {
                 complete {
                   ok {
-                    (dbActor ? SetProjectForDatasetUuid(dsId, projId)).mapTo[MessageResponse]
+                    jobsDao.setProjectForDatasetUuid(dsId, projId)
                   }
                 }
               } ~
               delete {
                 complete {
                   ok {
-                    (dbActor ? SetProjectForDatasetUuid(dsId, GENERAL_PROJECT_ID)).mapTo[MessageResponse]
+                    jobsDao.setProjectForDatasetUuid(dsId, GENERAL_PROJECT_ID)
                   }
                 }
               }
@@ -181,7 +159,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
       get {
         complete {
           ok {
-            (dbActor ? GetUserProjectsDatasets(login)).mapTo[Seq[ProjectDatasetResponse]]
+            jobsDao.getUserProjectsDatasets(login)
           }
         }
       }
@@ -190,7 +168,7 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
       get {
         complete {
           ok {
-            (dbActor ? GetUserProjects(login)).mapTo[Seq[UserProjectResponse]]
+            jobsDao.getUserProjects(login)
           }
         }
       }
@@ -199,14 +177,13 @@ class ProjectService(dbActor: ActorRef, userActor: ActorRef, authenticator: Auth
 
 
 trait ProjectServiceProvider {
-  this: JobsDaoActorProvider
-    with UserServiceActorRefProvider
+  this: JobsDaoProvider
+    with UserDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
-    Singleton(() => new ProjectService(
-      jobsDaoActor(), userServiceActorRef(), authenticator()))
+    Singleton(() => new ProjectService(jobsDao(), userDao(), authenticator()))
 
   addService(projectService)
 }

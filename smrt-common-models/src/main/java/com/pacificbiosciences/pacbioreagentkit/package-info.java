@@ -5,5 +5,11 @@
 // Generated on: 2016.04.06 at 11:45:18 AM PDT 
 //
 
-@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioReagentKit.xsd", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioReagentKit.xsd",
+xmlns = {@XmlNs(prefix = "pbrk", namespaceURI = "http://pacificbiosciences.com/PacBioReagentKit.xsd")},
+elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED,
+attributeFormDefault = javax.xml.bind.annotation.XmlNsForm.UNQUALIFIED
+)
+
 package com.pacificbiosciences.pacbioreagentkit;
+import javax.xml.bind.annotation.XmlNs;

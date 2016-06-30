@@ -2,37 +2,32 @@ package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.Paths
 
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
-
-import com.pacbio.common.actors.{ActorSystemProvider, StatusServiceActorRefProvider, UserServiceActorRefProvider, UserServiceActor}
-import UserServiceActor._
-import com.pacbio.common.actors.StatusServiceActor._
+import com.pacbio.common.actors.ActorSystemProvider
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes._
-
+import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import spray.routing.directives.FileAndResourceDirectives
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 
 class JobManagerService(
     dbActor: ActorRef,
-    statusActor: ActorRef,
-    userActor: ActorRef,
+    statusGenerator: StatusGenerator,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -76,14 +71,14 @@ class JobManagerService(
       path("status") {
         get {
           complete {
-            for {
-              up <- (statusActor ? GetUptime).mapTo[Long]
-            } yield SimpleStatus(manifest.id, s"${manifest.name} are up and running for ${up/1000} seconds.", up)
+            ok {
+              statusGenerator.getStatus
+            }
           }
         }
       } ~
       pathPrefix(JOB_ROOT_PREFIX) {
-        sharedJobRoutes(dbActor, userActor)
+        sharedJobRoutes(dbActor)
       }
     }
 
@@ -146,8 +141,7 @@ trait JobManagerServiceProvider {
   this: SetBindings
     with SmrtLinkConfigProvider
     with JobsDaoActorProvider
-    with StatusServiceActorRefProvider
-    with UserServiceActorRefProvider
+    with StatusGeneratorProvider
     with ActorSystemProvider
     with ServiceComposer =>
 
@@ -156,8 +150,7 @@ trait JobManagerServiceProvider {
       implicit val system = actorSystem()
       new JobManagerService(
         jobsDaoActor(),
-        statusServiceActorRef(),
-        userServiceActorRef(),
+        statusGenerator(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),

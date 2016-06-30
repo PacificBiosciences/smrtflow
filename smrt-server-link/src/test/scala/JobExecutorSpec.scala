@@ -2,9 +2,11 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.{UserRecord, UserResponse}
+import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -12,28 +14,31 @@ import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProv
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServiceProvider}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import spray.http.OAuth2BearerToken
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
+with NoTimeConversions
 with JobServiceConstants {
 
   sequential
 
   import SmrtLinkJsonProtocols._
 
-  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
+  implicit val routeTestTimeout = RouteTestTimeout(5.seconds)
 
   val READ_USER_LOGIN = "reader"
   val WRITE_USER_1_LOGIN = "root"
@@ -49,7 +54,7 @@ with JobServiceConstants {
   JobManagerServiceProvider with
   MockPbsmrtpipeJobTypeProvider with
   JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
   JobsDaoProvider with
@@ -59,10 +64,8 @@ with JobServiceConstants {
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
@@ -81,12 +84,14 @@ with JobServiceConstants {
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
   }
 
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  } yield (), 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -97,7 +102,7 @@ with JobServiceConstants {
   val mockOpts = PbSmrtPipeServiceOptions(
     "My-job-name",
     "pbsmrtpipe.pipelines.mock_dev01",
-    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
+    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
     Nil,
     Nil)
 
@@ -107,7 +112,7 @@ with JobServiceConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}.")
+    println(s"completed setting up database ${db.dbUri}.")
   }
 
   "Job Execution Service list" should {

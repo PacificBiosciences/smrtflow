@@ -5,10 +5,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, PipelineBaseOption, BoundEntryPoint, EngineJob}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
@@ -26,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -38,7 +36,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
       pathEndOrSingleSlash {
         get {
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -68,8 +66,6 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
                 authInfo.map(_.login)
               )).mapTo[EngineJob]
 
-              fx.foreach(_ => engineManagerActor ! CheckForRunnableJob)
-
               complete {
                 created {
                   fx
@@ -79,17 +75,15 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, userActor: ActorRef, engineManage
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
 }

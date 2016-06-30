@@ -1,3 +1,5 @@
+// FIXME this is mostly redundant
+
 package com.pacbio.secondary.analysis.converters
 
 import java.nio.file.{Files, Path}
@@ -22,98 +24,7 @@ import scala.collection.mutable
  * Converts a Fasta File to a Reference DataSet
  * Created by mkocher on 9/26/15.
  */
-object FastaConverter extends LazyLogging{
-
-
-  /**
-   * 1. Validate contigs
-   * 2. Copy Fasta file to directory
-   * 3. Create fasta index via samtools
-   * 4. Call sawriter index via sawriter
-   * 5. Write reference.dataset.xml
-   *
-   * @param fastaPath Fasta File
-   * @param outputDir Output of the directory of Reference Repo
-   * @return
-   */
-  def createReferenceFromFasta(
-      fastaPath: Path,
-      outputDir: Path,
-      name: Option[String],
-      organism: Option[String],
-      ploidy: Option[String]): Either[FastaConversionError, ReferenceDatasetIO] = {
-
-    val seqOutputDir = outputDir.resolve("sequence")
-
-    if (!Files.exists(outputDir)) {
-      Files.createDirectories(outputDir)
-    }
-
-    logger.debug(s"Loading fasta file from $fastaPath")
-
-    // FIXME. Hack to get this to compose
-    def toE(e: Either[ExternalCmdFailure, Path]): Either[InValidFastaFileError, Path] = {
-      e match {
-        case Right(p) => Right(p)
-        case Left(ex) => Left(InValidFastaFileError(ex.msg))
-      }
-    }
-    val fx = for {
-      contigs <- validateFastaFile(fastaPath).right
-      faiIndex <- toE(CallSamToolsIndex.run(fastaPath)).right
-      saIndex <- toE(CallSaWriterIndex.run(fastaPath)).right
-    } yield (contigs, faiIndex, saIndex)
-
-
-    fx match {
-      case Left(ex) =>
-        Left(ex)
-      case Right(xs) =>
-        val contigs = xs._1
-        val faiIndex = xs._2
-        val saIndex = xs._3
-
-        val nrecords = contigs.length
-        val totalLength = contigs.foldLeft(0)((m, n) => m + n.length)
-
-
-        val indexFiles = Seq(
-          DatasetIndexFile(FileTypes.I_SAW.fileTypeId, saIndex.toAbsolutePath.toString),
-          DatasetIndexFile(FileTypes.I_SAM.fileTypeId, faiIndex.toAbsolutePath.toString)
-        )
-
-        val dsUUID = UUID.randomUUID()
-        val unknown = "Unknown"
-
-        val createdAt = JodaDateTime.now().toString
-        // Version
-        val tags = Seq("converted-reference")
-        val refName = name getOrElse unknown
-        val comments = "Converted Fasta Reference Comment"
-        val organismName = organism getOrElse unknown
-        val ploidyName = ploidy getOrElse unknown
-
-        val metadata = DataSetMetaData(
-          dsUUID,
-          refName,
-            CommonConstants.DATASET_VERSION,
-          createdAt,
-          tags,
-          comments,
-          nrecords,
-          totalLength)
-
-        val ds = ReferenceDataset(organismName, ploidyName, contigs, metadata)
-        val rio = ReferenceDatasetIO(fastaPath.toAbsolutePath.toString, ds, indexFiles)
-
-        val dsXmlPath = outputDir.resolve("reference.dataset.xml")
-        val z = ReferenceDataset.writeFile(rio, dsXmlPath)
-
-        logger.info(s"Converted Fasta to ReferenceSet ${dsUUID.toString} to ${dsXmlPath.toString}")
-        Right(rio)
-    }
-  }
-
+trait FastaConverterBase extends LazyLogging{
   // The header is defined as the first space, ">my-header-value this is metadata"
   case class PacBioFastaRecord(header: String, metadata: Option[String], bases: Seq[Char], recordIndex: Int)
 
@@ -151,7 +62,6 @@ object FastaConverter extends LazyLogging{
    * @return
    */
   def validateFastaRecord(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
-
     for {
       r1 <- validateNoTab(fastaRecord).right
       r2 <- validateNoColon(r1).right
@@ -171,7 +81,7 @@ object FastaConverter extends LazyLogging{
    * @param path
    * @return
    */
-  def validateFastaFile(path: Path): Either[InValidFastaFileError, Seq[ReferenceContig]] = {
+ def validateFastaFile(path: Path): Either[InValidFastaFileError, Seq[ReferenceContig]] = {
     logger.info(s"Loading fasta file $path")
 
     // Probably want this to be false so manually parse the raw header
@@ -218,63 +128,11 @@ object FastaConverter extends LazyLogging{
     }
   }
 
-  /**
-   * This is the new model for writing a ReferenceSet using jaxb
-   * This should eventually replace the manual XML ReferenceSet creation
- *
-   * @param contigs
-   * @return
-   */
-  def contigsToReferenceSet(contigs: Seq[ReferenceContig]): ReferenceSet = {
-
-    // Containers
-    val externalResources = new ExternalResources()
-    val fileIndices = new FileIndices()
-
-    // FIXME FileIndex
-    // Sam Index .fai
-    val inputData = new InputOutputDataType()
-    inputData.setDescription("SamTools Index")
-    inputData.setResourceId("../path/to/sam.index.")
-    inputData.setMetaType(FileTypes.I_SAM.toString)
-    inputData.setUniqueId(UUID.randomUUID().toString)
-
-    fileIndices.getFileIndex.add(inputData)
-
-    //
-
-
-    val er = new ExternalResource()
-    er.setName("my-resource")
-    er.setFileIndices(fileIndices)
-
-    externalResources.getExternalResource.add(er)
-
-    val rs = new ReferenceSet()
-    rs.setUniqueId(UUID.randomUUID().toString)
-    rs.setDescription(s"Converted dataset")
-    rs.setExternalResources(externalResources)
-
-    val md = new ContigSetMetadataType()
-    md.setOrganism("Organism")
-    md.setPloidy("Haploid")
-    md.setNumRecords(-1)
-    md.setTotalLength(-1)
-    // Add contigs here
-    rs.setDataSetMetadata(md)
-    rs
-  }
-
-  def fastaToReferenceSet(path: Path): Either[InValidFastaFileError, ReferenceSet] = {
-
-    val rs = new ReferenceSet()
-    rs.setDescription(s"Converted dataset from $path")
-
-    val result = validateFastaFile(path)
-    result match {
-      case Right(contigs) => Right(contigsToReferenceSet(contigs))
-      case Left(ex) => Left(ex)
+    // FIXME. Hack to get this to compose
+  protected def handleCmdError(e: Either[ExternalCmdFailure, Path]): Either[InValidFastaFileError, Path] = {
+    e match {
+      case Right(p) => Right(p)
+      case Left(ex) => Left(InValidFastaFileError(ex.msg))
     }
   }
-  
 }

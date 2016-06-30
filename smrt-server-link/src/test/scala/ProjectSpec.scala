@@ -1,18 +1,19 @@
 import java.util.UUID
 
 import akka.actor.ActorRefFactory
-import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvider, UserServiceActorRefProvider}
+import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvider}
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.ProjectServiceProvider
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
@@ -22,6 +23,7 @@ import spray.json._
 import spray.routing.AuthenticationFailedRejection
 import spray.testkit.Specs2RouteTest
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class ProjectSpec extends Specification
@@ -47,21 +49,22 @@ with SmrtLinkConstants {
   val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
 
   object TestProviders extends
-  ServiceComposer with
-  ProjectServiceProvider with
-  JobsDaoActorProvider with
-  JobsDaoProvider with
-  TestDalProvider with
-  SmrtLinkConfigProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
-  AuthenticatorImplProvider with
-  JwtUtilsProvider with
-  FakeClockProvider with
-  SetBindings with
-  ActorRefFactoryProvider {
+      ServiceComposer with
+      ProjectServiceProvider with
+      SmrtLinkConfigProvider with
+      PbsmrtpipeConfigLoader with
+      EngineCoreConfigLoader with
+      JobRunnerProvider with
+      DataSetServiceProvider with
+      JobsDaoActorProvider with
+      JobsDaoProvider with
+      TestDalProvider with
+      InMemoryUserDaoProvider with
+      AuthenticatorImplProvider with
+      JwtUtilsProvider with
+      FakeClockProvider with
+      SetBindings with
+      ActorRefFactoryProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
@@ -72,12 +75,14 @@ with SmrtLinkConstants {
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
   }
 
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  Await.ready(for {
+    _ <- TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
+    _ <- TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
+  } yield (), 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -96,7 +101,7 @@ with SmrtLinkConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    println(s"completed setting up database ${db.dbUri}")
   }
 
   textFragment("creating database tables")

@@ -5,5 +5,9 @@
 // Generated on: 2016.04.06 at 11:45:18 AM PDT 
 //
 
-@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioDataModel.xsd", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+@javax.xml.bind.annotation.XmlSchema(namespace = "http://pacificbiosciences.com/PacBioDataModel.xsd",
+ xmlns = {@XmlNs(prefix = "pbdm", namespaceURI = "http://pacificbiosciences.com/PacBioDataModel.xsd")},
+ elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED,
+ attributeFormDefault = javax.xml.bind.annotation.XmlNsForm.UNQUALIFIED)
 package com.pacificbiosciences.pacbiodatamodel;
+import javax.xml.bind.annotation.XmlNs;

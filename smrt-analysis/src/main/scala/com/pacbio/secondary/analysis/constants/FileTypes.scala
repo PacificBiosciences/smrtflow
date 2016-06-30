@@ -68,18 +68,20 @@ object FileTypes {
   final val CSV = FileBaseType(toFT("Csv"), "file", "csv", "text/plain")
   final val XML = FileBaseType(toFT("Xml"), "file", "xml", "application/xml")
   final val JSON = FileBaseType(toFT("Json"), "file", "json", "application/json")
+  final val BIGWIG = FileBaseType(toFT("BigWig"), "file", "bw", "application/octet-stream")
 
   final val REPORT = FileBaseType(toFT("JsonReport"), "file", "report.json", "application/json")
 
   // FIXME This is duplicated in DataSetMetaTypes
-  final val DS_SUBREADS = DataSetBaseType(toDS("SubreadSet"), "file", "subreads.xml", "application/xml")
-  final val DS_HDF_SUBREADS = DataSetBaseType(toDS("HdfSubreadSet"), "file", "h5.subreads.xml", "application/xml")
-  final val DS_ALIGNMENTS = DataSetBaseType(toDS("AlignmentSet"), "file", "alignment.dataset.xml", "application/xml")
-  final val DS_CCS = DataSetBaseType(toDS("ConsensusReadSet"), "file", "ccsread.dataset.xml", "application/xml")
-  final val DS_REFERENCE = DataSetBaseType(toDS("ReferenceSet"), "file", "reference.dataset.xml", "application/xml")
-  final val DS_BARCODE = DataSetBaseType(toDS("BarcodeSet"), "file", "barcode.dataset.xml", "application/xml")
-  final val DS_CONTIG = DataSetBaseType(toDS("ContigSet"), "file", "contigset.dataset.xml", "application/xml")
-  final val DS_CCS_ALIGNMENTS = DataSetBaseType(toDS("ConsensusAlignmentSet"), "file", "barcode.dataset.xml", "application/xml")
+  final val DS_SUBREADS = DataSetBaseType(toDS("SubreadSet"), "file", "subreadset.xml", "application/xml")
+  final val DS_HDF_SUBREADS = DataSetBaseType(toDS("HdfSubreadSet"), "file", "hdfsubreadset.xml", "application/xml")
+  final val DS_ALIGNMENTS = DataSetBaseType(toDS("AlignmentSet"), "file", "alignmentset.xml", "application/xml")
+  final val DS_CCS = DataSetBaseType(toDS("ConsensusReadSet"), "file", "consensusreadset.xml", "application/xml")
+  final val DS_REFERENCE = DataSetBaseType(toDS("ReferenceSet"), "file", "referenceset.xml", "application/xml")
+  final val DS_BARCODE = DataSetBaseType(toDS("BarcodeSet"), "file", "barcodeset.xml", "application/xml")
+  final val DS_CONTIG = DataSetBaseType(toDS("ContigSet"), "file", "contigset.xml", "application/xml")
+  final val DS_CCS_ALIGNMENTS = DataSetBaseType(toDS("ConsensusAlignmentSet"), "file", "consensusalignmentset.xml", "application/xml")
+  final val DS_GMAP_REF = DataSetBaseType(toDS("GmapReferenceSet"), "file", "gmapreferenceset.xml", "application/xml")
 
 
   // 'File' types
@@ -120,10 +122,14 @@ object FileTypes {
   // fasta.contig.index index file used by SMRT View
   final val I_FCI = IndexFileBaseType("PacBio.Index.FastaContigIndex", "file", "fasta.contig.index", "text/plain")
 
+  // Other DataSet accessories
+  final val STS_XML = FileBaseType("PacBio.SubreadFile.ChipStatsFile", "file", "sts.xml", "application/xml")
+
   // Only Supported RS era Reference Index file types, which are used to
   // convert to ReferenceSet
   final val RS_I_SAM_INDEX = IndexFileBaseType("sam_idx", "file", "fasta.fai", "text/plain")
   final val RS_I_INDEXER = IndexFileBaseType("indexer", "file", "fasta.index", "text/plain")
   final val RS_I_FCI = IndexFileBaseType("fasta_contig_index", "file", "fasta.contig.index", "text/plain")
   final val RS_I_SAW = IndexFileBaseType("sawriter", "file", "fasta.sa", "text/plain")
+
 }

@@ -1,3 +1,4 @@
+import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
@@ -57,7 +58,7 @@ class RunSpec
   val INSTRUMENT_ID_1 = 54001.toString
   val MOVIE_MINUTES_1 = 60.0
   val STARTED_AT_1 = new JodaDateTime(2016, 4, 15, 2, 26, PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
-  val PATH_URI_1 = s"//pbi/collections/xfer-test/$CONTEXT_ID_1/1_A01/$RUN_ID/"
+  val PATH_URI_1 = Paths.get(s"/pbi/collections/xfer-test/$CONTEXT_ID_1/1_A01/$RUN_ID/")
 
   val SUBREAD_ID_2 = UUID.randomUUID()
   val NAME_2 = "WellSample2"
@@ -226,6 +227,7 @@ class RunSpec
         collect1.name === NAME_1
         collect1.summary === Some(SUMMARY_1)
         collect1.context === Some(CONTEXT_ID_1)
+        collect1.collectionPathUri === Some(PATH_URI_1)
         collect1.status === STATUS_1
         collect1.instrumentId === Some(INSTRUMENT_ID_1)
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
@@ -239,6 +241,7 @@ class RunSpec
         collect2.name === NAME_2
         collect2.summary === None
         collect2.context === None
+        collect2.collectionPathUri === None
         collect2.status === STATUS_2
         collect2.instrumentId === None
         collect2.instrumentName === None
@@ -258,6 +261,7 @@ class RunSpec
         collect1.name === NAME_1
         collect1.summary === Some(SUMMARY_1)
         collect1.context === Some(CONTEXT_ID_1)
+        collect1.collectionPathUri === Some(PATH_URI_1)
         collect1.status === STATUS_1
         collect1.instrumentId === Some(INSTRUMENT_ID_1)
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))

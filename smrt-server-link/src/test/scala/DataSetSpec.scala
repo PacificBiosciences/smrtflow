@@ -3,12 +3,14 @@ import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors.{Dal, JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.DataSetServiceProvider
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeExample
@@ -30,22 +32,23 @@ with JobServiceConstants {
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
   object TestProviders extends
-  ServiceComposer with
-  DataSetServiceProvider with
-  JobsDaoActorProvider with
-  JobsDaoProvider with
-  TestDalProvider with
-  SmrtLinkConfigProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  FakeClockProvider with
-  SetBindings with
+      ServiceComposer with
+      SmrtLinkConfigProvider with
+      PbsmrtpipeConfigLoader with
+      EngineCoreConfigLoader with
+      JobRunnerProvider with
+      DataSetServiceProvider with
+      JobsDaoActorProvider with
+      JobsDaoProvider with
+      TestDalProvider with
+      FakeClockProvider with
+      SetBindings with
   ActorRefFactoryProvider {
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -53,7 +56,7 @@ with JobServiceConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    println(s"completed setting up database ${db.dbUri}")
   }
 
   textFragment("creating database tables")

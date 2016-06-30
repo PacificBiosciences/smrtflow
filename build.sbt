@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.2-SNAPSHOT"
+version in ThisBuild := "0.1.3-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -54,7 +54,7 @@ def PacBioProject(name: String): Project = (
       "joda-time" % "joda-time" % "2.4",
       "org.joda" % "joda-convert" % "1.6",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-      "com.github.scopt" %% "scopt" % "3.3.0",
+      "com.github.scopt" %% "scopt" % "3.4.0",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
       "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
       "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
@@ -64,10 +64,10 @@ def PacBioProject(name: String): Project = (
       "commons-cli" % "commons-cli" % "1.2",
       "org.eclipse.persistence" % "eclipselink" % "2.6.0",
       "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
-      "org.apache.avro" % "avro" % "1.7.7",
+      "org.apache.avro" % "avro" % "1.8.0",
       "com.github.broadinstitute" % "picard" % "1.131",
       "com.typesafe.slick" %% "slick" % "3.1.0",
-      "org.xerial" % "sqlite-jdbc" % "3.8.6",
+      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
       "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
       // added from bss
       "io.spray" % "spray-io_2.11" % sprayV,
@@ -84,7 +84,6 @@ def PacBioProject(name: String): Project = (
       "com.typesafe.akka" %% "akka-slf4j" % akkaV,
       "com.github.nscala-time" %% "nscala-time" % "1.4.0",
       "com.github.fge" % "json-schema-validator" % "2.2.5",
-      "org.xerial" % "sqlite-jdbc" % "3.8.6",
       "com.novocode" % "junit-interface" % "0.10" % "test",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
@@ -98,7 +97,8 @@ def PacBioProject(name: String): Project = (
       "org.scalaj" %% "scalaj-http" % "1.1.5",
       "org.flywaydb" % "flyway-core" % "4.0",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full,
-      "org.ini4j" % "ini4j" % "0.5.4"
+      "org.ini4j" % "ini4j" % "0.5.4",
+      "org.apache.commons" % "commons-dbcp2" % "2.0.1"
     )
     )
   )
@@ -116,6 +116,11 @@ lazy val logging = (
   PacBioProject("smrt-server-logging")
   )
 
+lazy val database = (
+  PacBioProject("smrt-server-database")
+  dependsOn(logging))
+
+
 lazy val common = (
   PacBioProject("smrt-common-models")
     settings(
@@ -132,19 +137,19 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
   PacBioProject("smrt-analysis")
-    dependsOn(logging, common)
+    dependsOn(logging, database, common)
     settings()
   )
 
 lazy val smrtServerBase = (
   PacBioProject("smrt-server-base")
-    dependsOn(logging, common, smrtAnalysis)
+    dependsOn(logging, database, common, smrtAnalysis)
     settings()
   )
 
 lazy val smrtServerLink = (
   PacBioProject("smrt-server-link")
-    dependsOn(logging, common, smrtAnalysis, smrtServerBase)
+    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
     settings()
   )
 
@@ -158,12 +163,12 @@ lazy val smrtServerLims = (
 
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
-    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
     settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
   )
 
 lazy val smrtServerAnalysisInternal = (
   PacBioProject("smrt-server-analysis-internal")
-    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
+    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
     settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
   )

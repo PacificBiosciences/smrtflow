@@ -2,11 +2,11 @@ import com.pacbio.common.actors._
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.dependency.{StringConfigProvider, Singleton, SetBindings}
 import com.pacbio.common.models.ConfigCleanupJobCreate
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.specs2.mock._
-import org.specs2.mutable.Specification
+import org.specs2.mutable.{BeforeAfter, Specification}
 
 class CleanupSpec extends Specification with Mockito {
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
   val TEST_NAME = "TestCleanup"
@@ -48,12 +48,17 @@ class CleanupSpec extends Specification with Mockito {
     )
   }
 
+  trait SchedulerContext extends BeforeAfter {
+    override def before: Any = ()
+    override def after: Any = QuartzSchedulerExtension(TestProviders.actorSystem()).shutdown()
+  }
+
   "Cleanup Service" should {
     // TODO(smcclellan): Test service endpoints
 
     // TODO(smcclellan): Test DAO
 
-    "execute a configured job" in {
+    "execute a configured job" in new SchedulerContext {
       there was no(mockCleanupDao).runConfigJob(TEST_NAME)
 
       TestProviders.cleanupScheduler().scheduleAll()

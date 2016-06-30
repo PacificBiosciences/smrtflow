@@ -88,6 +88,7 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
     val validateBarcodeSet = vx[BarcodeSet](DataSetLoader.loadBarcodeSet, DataSetValidator.validate)
     val validateConsensusAlignmentSet = vx[ConsensusAlignmentSet](DataSetLoader.loadConsensusAlignmentSet, DataSetValidator.validate)
     val validateContigSet = vx[ContigSet](DataSetLoader.loadContigSet, DataSetValidator.validate)
+    val validateGmapReferenceSet = vx[GmapReferenceSet](DataSetLoader.loadAndResolveGmapReferenceSet, DataSetValidator.validate)
 
     dsType match {
       case Some(metatype) =>
@@ -101,6 +102,7 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
           case DataSetMetaTypes.AlignmentCCS => validateConsensusAlignmentSet(p)
           case DataSetMetaTypes.Barcode => validateBarcodeSet(p)
           case DataSetMetaTypes.Contig => validateContigSet(p)
+          case DataSetMetaTypes.GmapReference => validateGmapReferenceSet(p)
         }
       case _ => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), errorMesssage))
     }

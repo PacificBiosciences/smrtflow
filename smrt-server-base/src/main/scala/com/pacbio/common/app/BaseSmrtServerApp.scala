@@ -15,6 +15,7 @@ import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonRea
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
+import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
@@ -38,20 +39,17 @@ trait CoreProviders extends
   ServiceManifestsProvider with
   ManifestServiceProvider with
   HealthServiceProvider with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProvider with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProvider with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProvider with
   CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   MimeTypeDetectors with
@@ -88,20 +86,17 @@ trait AuthenticatedCoreProviders extends
   ServiceComposer with
   ManifestServiceProviderx with
   HealthServiceProviderx with
-  HealthServiceActorRefProvider with
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
-  LogServiceActorRefProvider with
   DatabaseLogDaoProvider with
   UserServiceProviderx with
-  UserServiceActorRefProvider with
   LdapUserDaoProvider with
   CleanupServiceProviderx with
   CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
   CleanupSchedulerProvider with
   StatusServiceProviderx with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   MimeTypeDetectors with
@@ -145,7 +140,7 @@ trait BaseApi extends BaseRolesInit {
 
   lazy val system = providers.actorSystem()
   lazy val routes = providers.routes()
-  lazy val rootService = system.actorOf(Props(new ServiceActor(routes)))
+  lazy val rootService = system.actorOf(Props(new ServiceActor(routes)), name = "ServiceActor")
 
     // This is needed with Mixin routes from traits that only extend HttpService
   def actorRefFactory: ActorRefFactory = system
@@ -163,11 +158,11 @@ trait BaseServer extends LazyLogging {
 
   def start = {
     logger.info("Starting App")
-    logger.info("Java Version: " + System.getProperty("java.version"));
-    logger.info("Java Home: " + System.getProperty("java.home"));
-    val runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-    val arguments = runtimeMxBean.getInputArguments();
-    logger.info("Java Args: " + arguments.mkString(" "));
+    logger.info("Java Version: " + System.getProperty("java.version"))
+    logger.info("Java Home: " + System.getProperty("java.home"))
+    val runtimeMxBean = ManagementFactory.getRuntimeMXBean
+    val arguments = runtimeMxBean.getInputArguments
+    logger.info("Java Args: " + arguments.mkString(" "))
 
     val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
       case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))

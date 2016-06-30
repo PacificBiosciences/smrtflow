@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.database
 
+import java.nio.file.{Paths, Path}
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
@@ -291,6 +292,15 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
   }
 
+  class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
+
+    def ploidy: Rep[String] = column[String]("ploidy")
+
+    def organism: Rep[String] = column[String]("organism")
+
+    def * = (id, uuid, ploidy, organism) <>(GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
+  }
+
   class AlignmentDataSetT(tag: Tag) extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
     def * = (id, uuid) <>(AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
   }
@@ -301,6 +311,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class CCSreadDataSetT(tag: Tag) extends IdAbleTable[CCSreadServiceSet](tag, "datasets_ccsreads") {
     def * = (id, uuid) <>(CCSreadServiceSet.tupled, CCSreadServiceSet.unapply)
+  }
+
+  class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
+    def * = (id, uuid) <>(ConsensusAlignmentServiceSet.tupled, ConsensusAlignmentServiceSet.unapply)
+  }
+
+  class ContigDataSetT(tag: Tag) extends IdAbleTable[ContigServiceSet](tag, "datasets_contigs") {
+    def * = (id, uuid) <>(ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
@@ -411,10 +429,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
-  implicit val collectionStatusType = MappedColumnType.base[SupportedAcquisitionStates, String](
-    {s => s.value()} ,
-    {s => SupportedAcquisitionStates.fromValue(s)}
-  )
+  implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
+  implicit val collectionStatusType =
+    MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
   class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
@@ -428,6 +445,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def summary: Rep[Option[String]] = column[Option[String]]("COLUMN")
 
     def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
+
+    def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("COLLECTION_PATH_URI")
 
     def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
 
@@ -450,6 +469,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         well,
         summary,
         context,
+        collectionPathUri,
         status,
         instrumentId,
         instrumentName,
@@ -482,6 +502,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val dsAlignment2 = TableQuery[AlignmentDataSetT]
   lazy val dsBarcode2 = TableQuery[BarcodeDataSetT]
   lazy val dsCCSread2 = TableQuery[CCSreadDataSetT]
+  lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
+  lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
+  lazy val dsContig2 = TableQuery[ContigDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
@@ -526,6 +549,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsAlignment2,
     dsBarcode2,
     dsCCSread2,
+    dsGmapReference2,
+    dsCCSAlignment2,
+    dsContig2,
     datastoreServiceFiles)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)

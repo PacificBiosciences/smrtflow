@@ -1,5 +1,7 @@
 package com.pacbio.secondary.smrtlink.models
 
+import java.nio.file.{Paths, Path}
+
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
@@ -9,6 +11,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, Supported
 import spray.json._
 import fommil.sjs.FamilyFormats
 import shapeless.cachedImplicit
+import java.util.UUID
 
 
 trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
@@ -71,12 +74,38 @@ trait SupportedAcquisitionStatesProtocols extends DefaultJsonProtocol {
   }
 }
 
+trait PathProtocols extends DefaultJsonProtocol {
+  implicit object PathFormat extends RootJsonFormat[Path] {
+    def write(p: Path): JsValue = JsString(p.toString)
+    def read(v: JsValue): Path = v match {
+      case JsString(s) => Paths.get(s)
+      case _ => deserializationError("Expected Path as JsString")
+    }
+  }
+}
+
+trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
+  implicit object EitherIntOrUUIDFormat extends RootJsonFormat[Either[Int,UUID]] {
+    def write(id: Either[Int, UUID]): JsValue = id match {
+      case Left(id) => JsNumber(id)
+      case Right(uuid) => uuid.toJson
+    }
+    def read(v: JsValue): Either[Int, UUID] = v match {
+      case JsNumber(x) => Left(x.toInt)
+      case JsString(s) => Right(UUID.fromString(s))
+      case _ => deserializationError("Expected datasetId as either JsString or JsNumber")
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
   with ServiceTaskOptionProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
+  with PathProtocols
+  with EntryPointProtocols
   with FamilyFormats {
 
   implicit val pbSampleFormat = jsonFormat5(Sample)
@@ -87,7 +116,7 @@ trait SmrtLinkJsonProtocols
   implicit val pbRunUpdateFormat = jsonFormat2(RunUpdate)
   implicit val pbRunFormat = jsonFormat19(Run)
   implicit val pbRunSummaryFormat = jsonFormat18(RunSummary)
-  implicit val pbCollectionMetadataFormat = jsonFormat13(CollectionMetadata)
+  implicit val pbCollectionMetadataFormat = jsonFormat14(CollectionMetadata)
 
   implicit val pbRegistryResourceFormat = jsonFormat6(RegistryResource)
   implicit val pbRegistryResourceCreateFormat = jsonFormat3(RegistryResourceCreate)
@@ -124,6 +153,8 @@ trait SmrtLinkJsonProtocols
   implicit val ccsreadDataSetFormat: RootJsonFormat[CCSreadServiceDataSet] = cachedImplicit
   implicit val barcodeDataSetFormat: RootJsonFormat[BarcodeServiceDataSet] = cachedImplicit
   implicit val contigServiceDataSetFormat: RootJsonFormat[ContigServiceDataSet] = cachedImplicit
+  implicit val gmapReferenceDataSetFormat: RootJsonFormat[GmapReferenceServiceDataSet] = cachedImplicit
+  implicit val consensusAlignmentDataSetFormat: RootJsonFormat[ConsensusAlignmentServiceDataSet] = cachedImplicit
 
   implicit val dataStoreJobFileFormat = jsonFormat2(DataStoreJobFile)
   implicit val dataStoreServiceFileFormat = jsonFormat12(DataStoreServiceFile)

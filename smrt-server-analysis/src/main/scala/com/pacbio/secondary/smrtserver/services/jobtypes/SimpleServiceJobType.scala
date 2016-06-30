@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.actors.{UserServiceActorRefProvider, UserServiceActor}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
@@ -26,7 +25,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.http._
 
 
-class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManagerActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
   import SecondaryAnalysisJsonProtocols._
 
   override val endpoint = "simple"
@@ -38,7 +37,7 @@ class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManager
         get {
           // Get All Job types of "Simple"
           complete {
-            jobList(dbActor, userActor, endpoint)
+            jobList(dbActor, endpoint)
           }
         } ~
         post {
@@ -69,17 +68,15 @@ class SimpleServiceJobType(dbActor: ActorRef, userActor: ActorRef, engineManager
           }
         }
       } ~
-      sharedJobRoutes(dbActor, userActor)
+      sharedJobRoutes(dbActor)
     }
 }
 
 trait SimpleServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with UserServiceActorRefProvider
-    with EngineManagerActorProvider
     with JobManagerServiceProvider =>
 
   val simpleServiceJobType: Singleton[SimpleServiceJobType] =
-    Singleton(() => new SimpleServiceJobType(jobsDaoActor(), userServiceActorRef(), engineManagerActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new SimpleServiceJobType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
 }

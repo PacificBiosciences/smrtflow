@@ -6,7 +6,7 @@ import java.util.UUID
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.constants.FileTypes.DataSetBaseType
 import com.pacbio.secondary.analysis.jobs.UUIDJsonProtocol
-import com.pacificbiosciences.pacbiodatasets.{SubreadSet, HdfSubreadSet, AlignmentSet, BarcodeSet, ConsensusReadSet, ConsensusAlignmentSet, ContigSet, ReferenceSet}
+import com.pacificbiosciences.pacbiodatasets.{SubreadSet, HdfSubreadSet, AlignmentSet, BarcodeSet, ConsensusReadSet, ConsensusAlignmentSet, ContigSet, ReferenceSet, GmapReferenceSet}
 import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType}
 
 
@@ -69,8 +69,13 @@ object DataSetMetaTypes {
     override def shortName = "references"
   }
 
+  case object GmapReference extends DataSetMetaType {
+    final val fileType = FileTypes.DS_GMAP_REF
+    override def shortName = "gmapreferences"
+  }
+
   // FIXME. The order is important. Will reuse this in the db
-  val ALL = Set(Subread, HdfSubread, Alignment, Barcode, CCS, Contig, Reference, AlignmentCCS)
+  val ALL = Set(Subread, HdfSubread, Alignment, Barcode, CCS, Contig, Reference, AlignmentCCS, GmapReference)
 
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString
@@ -150,3 +155,4 @@ case class BarcodeSetIO(dataset: BarcodeSet, path: Path) extends DataSetIO { typ
 case class ConsensusReadSetIO(dataset: ConsensusReadSet, path: Path) extends DataSetIO { type T = ConsensusReadSet }
 case class ConsensusAlignmentSetIO(dataset: ConsensusAlignmentSet, path: Path) extends DataSetIO { type T =ConsensusAlignmentSet }
 case class ContigSetIO(dataset: ContigSet, path: Path) extends DataSetIO { type T = ContigSet }
+case class GmapReferenceSetIO(dataset: GmapReferenceSet, path: Path) extends DataSetIO { type T = GmapReferenceSet }

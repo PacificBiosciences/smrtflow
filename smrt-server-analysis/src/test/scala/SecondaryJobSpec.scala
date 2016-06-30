@@ -1,14 +1,16 @@
-import akka.actor.{ActorSystem, ActorRefFactory}
+import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{JobRunnerProvider, JobManagerServiceProvider}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
@@ -35,7 +37,7 @@ with JobServiceConstants {
   JobManagerServiceProvider with
   MockPbsmrtpipeJobTypeProvider with
   JobsDaoActorProvider with
-  StatusServiceActorRefProvider with
+  StatusGeneratorProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
   JobsDaoProvider with
@@ -45,10 +47,8 @@ with JobServiceConstants {
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   InMemoryUserDaoProvider with
-  UserServiceActorRefProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  LogServiceActorRefProvider with
   InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
@@ -68,7 +68,7 @@ with JobServiceConstants {
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val dal: Dal = dao.dal
+  override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
   val dbURI = TestProviders.dbURI
 
@@ -76,7 +76,7 @@ with JobServiceConstants {
     println("Running db setup")
     logger.info(s"Running tests from db-uri ${dbURI()}")
     runSetup(dao)
-    println(s"completed setting up database ${dal.dbURI}")
+    println(s"completed setting up database ${db.dbUri}")
   }
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"

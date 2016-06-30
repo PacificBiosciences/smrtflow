@@ -159,14 +159,15 @@ object SimpleEngineApp extends App with LazyLogging {
   implicit val system = ActorSystem("engine-actor-system")
 
   val listeners = Seq[ActorRef]()
-  val engineDaoActor = system.actorOf(Props(new EngineDaoActor(dao, listeners)))
+
+  val engineDaoActor = system.actorOf(Props(new EngineDaoActor(dao, listeners)), "SimpleEngineApp$EngineDaoActor")
   //val jobRunner = new SimpleJobRunner
   val jobRunner = new SimpleAndImportJobRunner(engineDaoActor)
-  val engineManagerActor = system.actorOf(Props(new EngineManagerActor(engineDaoActor, engineConfig, resolver, jobRunner)))
+  val engineManagerActor = system.actorOf(Props(new EngineManagerActor(engineDaoActor, engineConfig, resolver, jobRunner)), "SimpleEngineApp$EngineManagerActor")
 
   val pipelineTemplates = Seq[PipelineTemplate]()
   val pipelineTemplateDao = new PipelineTemplateDao(pipelineTemplates)
-  val pipelineTemplateActor = system.actorOf(Props(new PipelineTemplateDaoActor(pipelineTemplateDao)))
+  val pipelineTemplateActor = system.actorOf(Props(new PipelineTemplateDaoActor(pipelineTemplateDao)), "SimpleEngineActor$PipelineTemplateDaoActor")
 
   val debug = true
   val c0 = system.scheduler.scheduleOnce(5.second, pipelineTemplateActor, GetAllPipelineTemplates)
