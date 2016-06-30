@@ -10,6 +10,7 @@ import scala.concurrent.duration._
 //import spray.http.StatusCode._
 import spray.http._
 import spray.httpx.SprayJsonSupport
+import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.json.DefaultJsonProtocol
 
 import scala.reflect.Manifest._
@@ -97,27 +98,30 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
 
   // Pipelines and serialization
-  def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
-  // TODO add type-parameterized getDataSetsPipeline
-  def getSubreadSetsPipeline: HttpRequest => Future[Seq[SubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[SubreadServiceDataSet]]
-  def getSubreadSetPipeline: HttpRequest => Future[SubreadServiceDataSet] = sendReceive ~> unmarshal[SubreadServiceDataSet]
-  def getHdfSubreadSetsPipeline: HttpRequest => Future[Seq[HdfSubreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[HdfSubreadServiceDataSet]]
-  def getHdfSubreadSetPipeline: HttpRequest => Future[HdfSubreadServiceDataSet] = sendReceive ~> unmarshal[HdfSubreadServiceDataSet]
-  def getReferenceSetsPipeline: HttpRequest => Future[Seq[ReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[ReferenceServiceDataSet]]
-  def getReferenceSetPipeline: HttpRequest => Future[ReferenceServiceDataSet] = sendReceive ~> unmarshal[ReferenceServiceDataSet]
-  def getGmapReferenceSetsPipeline: HttpRequest => Future[Seq[GmapReferenceServiceDataSet]] = sendReceive ~> unmarshal[Seq[GmapReferenceServiceDataSet]]
-  def getGmapReferenceSetPipeline: HttpRequest => Future[GmapReferenceServiceDataSet] = sendReceive ~> unmarshal[GmapReferenceServiceDataSet]
-  def getBarcodeSetsPipeline: HttpRequest => Future[Seq[BarcodeServiceDataSet]] = sendReceive ~> unmarshal[Seq[BarcodeServiceDataSet]]
-  def getBarcodeSetPipeline: HttpRequest => Future[BarcodeServiceDataSet] = sendReceive ~> unmarshal[BarcodeServiceDataSet]
-  def getAlignmentSetsPipeline: HttpRequest => Future[Seq[AlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[AlignmentServiceDataSet]]
-  def getAlignmentSetPipeline: HttpRequest => Future[AlignmentServiceDataSet] = sendReceive ~> unmarshal[AlignmentServiceDataSet]
-  def getConsensusReadSetsPipeline: HttpRequest => Future[Seq[CCSreadServiceDataSet]] = sendReceive ~> unmarshal[Seq[CCSreadServiceDataSet]]
-  def getConsensusReadSetPipeline: HttpRequest => Future[CCSreadServiceDataSet] = sendReceive ~> unmarshal[CCSreadServiceDataSet]
-  def getConsensusAlignmentSetsPipeline: HttpRequest => Future[Seq[ConsensusAlignmentServiceDataSet]] = sendReceive ~> unmarshal[Seq[ConsensusAlignmentServiceDataSet]]
-  def getConsensusAlignmentSetPipeline: HttpRequest => Future[ConsensusAlignmentServiceDataSet] = sendReceive ~> unmarshal[ConsensusAlignmentServiceDataSet]
-  def getContigSetsPipeline: HttpRequest => Future[Seq[ContigServiceDataSet]] = sendReceive ~> unmarshal[Seq[ContigServiceDataSet]]
-  def getContigSetPipeline: HttpRequest => Future[ContigServiceDataSet] = sendReceive ~> unmarshal[ContigServiceDataSet]
-  //def getDataSetPipeline[T: ClassManifest]: HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
+  protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
+
+  private def getDataSetPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
+  protected def getSubreadSetPipeline = getDataSetPipeline[SubreadServiceDataSet]
+  protected def getHdfSubreadSetPipeline = getDataSetPipeline[HdfSubreadServiceDataSet]
+  protected def getReferenceSetPipeline = getDataSetPipeline[ReferenceServiceDataSet]
+  protected def getGmapReferenceSetPipeline = getDataSetPipeline[GmapReferenceServiceDataSet]
+  protected def getBarcodeSetPipeline = getDataSetPipeline[BarcodeServiceDataSet]
+  protected def getAlignmentSetPipeline = getDataSetPipeline[AlignmentServiceDataSet]
+  protected def getConsensusReadSetPipeline = getDataSetPipeline[CCSreadServiceDataSet]
+  protected def getConsensusAlignmentSetPipeline = getDataSetPipeline[ConsensusAlignmentServiceDataSet]
+  protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
+
+  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = sendReceive ~> unmarshal[Seq[T]]
+  protected def getSubreadSetsPipeline = getDataSetsPipeline[SubreadServiceDataSet]
+  protected def getHdfSubreadSetsPipeline = getDataSetsPipeline[HdfSubreadServiceDataSet]
+  protected def getReferenceSetsPipeline = getDataSetsPipeline[ReferenceServiceDataSet]
+  protected def getGmapReferenceSetsPipeline = getDataSetsPipeline[GmapReferenceServiceDataSet]
+  protected def getBarcodeSetsPipeline = getDataSetsPipeline[BarcodeServiceDataSet]
+  protected def getAlignmentSetsPipeline = getDataSetsPipeline[AlignmentServiceDataSet]
+  protected def getConsensusReadSetsPipeline = getDataSetsPipeline[CCSreadServiceDataSet]
+  protected def getConsensusAlignmentSetsPipeline = getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
+  protected def getContigSetsPipeline = getDataSetsPipeline[ContigServiceDataSet]
+
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]

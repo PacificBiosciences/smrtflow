@@ -65,25 +65,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
 
-  def getAnalysisJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.PB_PIPE)
-  }
-
-  def getImportJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.IMPORT_DS)
-  }
-
-  def getMergeJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.MERGE_DS)
-  }
-
-  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.CONVERT_FASTA)
-  }
-
-  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.CONVERT_BARCODES)
-  }
+  def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.PB_PIPE)
+  def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.IMPORT_DS)
+  def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.MERGE_DS)
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_FASTA)
+  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_BARCODES)
 
   def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
     jobId match {
