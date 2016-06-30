@@ -112,8 +112,9 @@ object FastaBarcodesConverter extends LazyLogging with FastaConverterBase with E
   }
 
   def apply(name: String, fastaPath: Path, outputDir: Path,
-            inPlace: Boolean = false):
+            inPlace: Boolean = false, mkdir: Boolean = false):
             Either[DatasetConvertError, BarcodeSetIO] = {
+    if (mkdir && (! Files.exists(outputDir))) outputDir.toFile.mkdir()
     val sanitizedName = ReposUtils.nameToFileName(name)
     val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
     if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")

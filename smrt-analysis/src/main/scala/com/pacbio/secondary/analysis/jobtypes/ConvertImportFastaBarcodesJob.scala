@@ -16,7 +16,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 // Import & Convert Fasta -> Barcode Dataset
-case class ConvertImportFastaBarcodesOptions(path: String, name: String, ploidy: String, organism: String) extends BaseJobOptions {
+case class ConvertImportFastaBarcodesOptions(path: String, name: String) extends BaseJobOptions {
   def toJob = new ConvertImportFastaBarcodesJob(this)
 
   override def validate = {
@@ -71,7 +71,7 @@ with timeUtils {
     def validateAndRun(path: Path): Either[DatasetConvertError, BarcodeSetIO] = {
       PacBioFastaValidator(path) match {
         case Some(x) => Left(DatasetConvertError(x.msg))
-        case _ => FastaBarcodesConverter(opts.name, path, outputDir)
+        case _ => FastaBarcodesConverter(opts.name, path, outputDir, mkdir=true)
       }
     }
 
