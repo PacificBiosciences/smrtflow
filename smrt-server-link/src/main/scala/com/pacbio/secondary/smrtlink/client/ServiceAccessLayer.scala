@@ -42,6 +42,7 @@ trait JobTypesTrait {
   val PB_PIPE = "pbsmrtpipe"
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
   val CONVERT_FASTA = "convert-fasta-reference"
+  val CONVERT_BARCODES = "convert-fasta-barcodes"
 }
 
 // FIXME this for sure needs to be somewhere else
@@ -87,6 +88,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   override def serviceStatusEndpoints: Vector[String] = Vector(
       ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
       ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
+      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES,
       ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
@@ -220,6 +222,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getImportDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
   def getImportFastaJobDataStore(jobId: Int) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
   def getMergeDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.MERGE_DS, jobId)
+  def getImportBarcodesJobDataStore(jobId: Int) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
 
   protected def getJobReports(jobId: Int, jobType: String): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))

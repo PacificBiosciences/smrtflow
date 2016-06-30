@@ -43,6 +43,7 @@ object Modes {
   case object STATUS extends Mode {val name = "status"}
   case object IMPORT_DS extends Mode {val name = "import-dataset"}
   case object IMPORT_FASTA extends Mode {val name = "import-fasta"}
+  case object IMPORT_BARCODES extends Mode {val name = "import-barcodes"}
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
   case object PIPELINE extends Mode {val name = "run-pipeline"}
@@ -178,6 +179,17 @@ object PbServiceParser {
         c.copy(maxTime = t)
       } text "Maximum time to poll for running job status"
     ) text "Import Reference FASTA"
+
+    cmd(Modes.IMPORT_BARCODES.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.IMPORT_BARCODES)
+    } children(
+      arg[File]("fasta-path") required() action { (p, c) =>
+        c.copy(path = p)
+      } text "FASTA path",
+      arg[String]("name") required() action { (name, c) =>
+        c.copy(name = name)
+      } text "Name of BarcodeSet"
+    ) text "Import Barcodes FASTA"
 
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.ANALYSIS)
@@ -515,6 +527,39 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
+  // FIXME too much code duplication
+  def runImportBarcodes(path: String, name: String): Int = {
+    PacBioFastaValidator(Paths.get(path)) match {
+      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case _ => Try {
+        Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
+      } match {
+        case Success(job: EngineJob) => {
+          println(job)
+          waitForJob(job.uuid) match {
+            case 0 => {
+              Try {
+                Await.result(sal.getImportBarcodesJobDataStore(job.id), TIMEOUT)
+              } match {
+                case Success(dataStoreFiles) => {
+                  for (dsFile <- dataStoreFiles) {
+                    if (dsFile.fileTypeId == "PacBio.DataSet.BarcodeSet") {
+                      return runGetDataSetInfo(Right(dsFile.uuid))
+                    }
+                  }
+                  errorExit("Couldn't find BarcodeSet")
+                }
+                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
+              }
+            }
+            case x => x
+          }
+        }
+        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
+      }
+    }
+  }
+
   def runImportDataSetSafe(path: String): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
@@ -774,8 +819,8 @@ object PbService {
       c.mode match {
         case Modes.STATUS => ps.runStatus(c.asJson)
         case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal)
-        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath,
-                                                     c.name, c.organism, c.ploidy)
+        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath, c.name, c.organism, c.ploidy)
+        case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path.getAbsolutePath, c.name)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
                                                       c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
