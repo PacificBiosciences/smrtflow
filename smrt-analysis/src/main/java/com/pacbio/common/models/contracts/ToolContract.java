@@ -7,8 +7,13 @@ package com.pacbio.common.models.contracts;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ToolContract extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ToolContract\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"tool_contract\",\"type\":{\"type\":\"record\",\"name\":\"ToolContractTask\",\"fields\":[{\"name\":\"input_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolInputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio File Type identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"output_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolOutputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio FileType identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"default_name\",\"type\":\"string\",\"doc\":\"Default file name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"schema_options\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PacBioOptions\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"pb_option\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}}},{\"name\":\"nproc\",\"type\":\"int\",\"doc\":\"Number of processors to use\"},{\"name\":\"tool_contract_id\",\"type\":\"string\",\"doc\":\"Globally unique Tool Contract identifier\"},{\"name\":\"task_type\",\"type\":\"string\",\"doc\":\"Task class type, Standard, Scatter, Gather\"},{\"name\":\"is_distributed\",\"type\":\"boolean\",\"doc\":\"Determine if the task will be submitted to the cluster resources\"},{\"name\":\"resource_types\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}},{\"name\":\"driver\",\"type\":{\"type\":\"record\",\"name\":\"ToolDriver\",\"fields\":[{\"name\":\"exe\",\"type\":\"string\"}]}}]}");
+  private static final long serialVersionUID = -6106055842978070478L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ToolContract\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"version\",\"type\":\"string\",\"doc\":\"Version of the ToolContract\"},{\"name\":\"tool_contract_id\",\"type\":\"string\",\"doc\":\"ToolContract Id (this is duplicated in the Task?)\"},{\"name\":\"tool_contract\",\"type\":{\"type\":\"record\",\"name\":\"ToolContractTask\",\"fields\":[{\"name\":\"input_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolInputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\",\"doc\":\"Id of the task input\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio File Type identifier, PacBio.DataSet.SubreadSet\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"output_types\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ToolOutputFile\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"file_type_id\",\"type\":\"string\",\"doc\":\"PacBio FileType identifier\"},{\"name\":\"title\",\"type\":\"string\",\"doc\":\"Display Name\"},{\"name\":\"default_name\",\"type\":\"string\",\"doc\":\"Default file name\"},{\"name\":\"description\",\"type\":\"string\"}]}}},{\"name\":\"schema_options\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"PacBioOptions\",\"fields\":[{\"name\":\"pb_option\",\"type\":{\"type\":\"record\",\"name\":\"PacBioOption\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}}]}}},{\"name\":\"description\",\"type\":\"string\",\"doc\":\"Description of Tool/Task\"},{\"name\":\"name\",\"type\":\"string\",\"doc\":\"Display Name of Tool/Task\"},{\"name\":\"nproc\",\"type\":\"int\",\"doc\":\"Number of processors to use\"},{\"name\":\"tool_contract_id\",\"type\":\"string\",\"doc\":\"Globally unique Tool Contract identifier\"},{\"name\":\"task_type\",\"type\":\"string\",\"doc\":\"Task class type, Standard, Scatter, Gather\",\"default\":\"pbsmrtpipe.task_types.standard\"},{\"name\":\"is_distributed\",\"type\":\"boolean\",\"doc\":\"Determine if the task will be submitted to the cluster resources\"},{\"name\":\"resource_types\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}},{\"name\":\"driver\",\"type\":{\"type\":\"record\",\"name\":\"ToolDriver\",\"fields\":[{\"name\":\"exe\",\"type\":\"string\",\"doc\":\"path to exe. The first arg will the the resolved tool contract JSON\"},{\"name\":\"serialization\",\"type\":\"string\",\"doc\":\"Serialization type. Either 'json' or 'avro' binary format \"}]}}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
+  /** Version of the ToolContract */
+  @Deprecated public java.lang.CharSequence version;
+  /** ToolContract Id (this is duplicated in the Task?) */
+  @Deprecated public java.lang.CharSequence tool_contract_id;
   @Deprecated public com.pacbio.common.models.contracts.ToolContractTask tool_contract;
   @Deprecated public com.pacbio.common.models.contracts.ToolDriver driver;
 
@@ -21,8 +26,12 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
 
   /**
    * All-args constructor.
+   * @param version Version of the ToolContract
+   * @param tool_contract_id ToolContract Id (this is duplicated in the Task?)
    */
-  public ToolContract(com.pacbio.common.models.contracts.ToolContractTask tool_contract, com.pacbio.common.models.contracts.ToolDriver driver) {
+  public ToolContract(java.lang.CharSequence version, java.lang.CharSequence tool_contract_id, com.pacbio.common.models.contracts.ToolContractTask tool_contract, com.pacbio.common.models.contracts.ToolDriver driver) {
+    this.version = version;
+    this.tool_contract_id = tool_contract_id;
     this.tool_contract = tool_contract;
     this.driver = driver;
   }
@@ -31,8 +40,10 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
   // Used by DatumWriter.  Applications should not call. 
   public java.lang.Object get(int field$) {
     switch (field$) {
-    case 0: return tool_contract;
-    case 1: return driver;
+    case 0: return version;
+    case 1: return tool_contract_id;
+    case 2: return tool_contract;
+    case 3: return driver;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -40,10 +51,46 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: tool_contract = (com.pacbio.common.models.contracts.ToolContractTask)value$; break;
-    case 1: driver = (com.pacbio.common.models.contracts.ToolDriver)value$; break;
+    case 0: version = (java.lang.CharSequence)value$; break;
+    case 1: tool_contract_id = (java.lang.CharSequence)value$; break;
+    case 2: tool_contract = (com.pacbio.common.models.contracts.ToolContractTask)value$; break;
+    case 3: driver = (com.pacbio.common.models.contracts.ToolDriver)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
+  }
+
+  /**
+   * Gets the value of the 'version' field.
+   * @return Version of the ToolContract
+   */
+  public java.lang.CharSequence getVersion() {
+    return version;
+  }
+
+  /**
+   * Sets the value of the 'version' field.
+   * Version of the ToolContract
+   * @param value the value to set.
+   */
+  public void setVersion(java.lang.CharSequence value) {
+    this.version = value;
+  }
+
+  /**
+   * Gets the value of the 'tool_contract_id' field.
+   * @return ToolContract Id (this is duplicated in the Task?)
+   */
+  public java.lang.CharSequence getToolContractId() {
+    return tool_contract_id;
+  }
+
+  /**
+   * Sets the value of the 'tool_contract_id' field.
+   * ToolContract Id (this is duplicated in the Task?)
+   * @param value the value to set.
+   */
+  public void setToolContractId(java.lang.CharSequence value) {
+    this.tool_contract_id = value;
   }
 
   /**
@@ -76,17 +123,28 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
     this.driver = value;
   }
 
-  /** Creates a new ToolContract RecordBuilder */
+  /**
+   * Creates a new ToolContract RecordBuilder.
+   * @return A new ToolContract RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContract.Builder newBuilder() {
     return new com.pacbio.common.models.contracts.ToolContract.Builder();
   }
   
-  /** Creates a new ToolContract RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new ToolContract RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new ToolContract RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContract.Builder newBuilder(com.pacbio.common.models.contracts.ToolContract.Builder other) {
     return new com.pacbio.common.models.contracts.ToolContract.Builder(other);
   }
   
-  /** Creates a new ToolContract RecordBuilder by copying an existing ToolContract instance */
+  /**
+   * Creates a new ToolContract RecordBuilder by copying an existing ToolContract instance.
+   * @param other The existing instance to copy.
+   * @return A new ToolContract RecordBuilder
+   */
   public static com.pacbio.common.models.contracts.ToolContract.Builder newBuilder(com.pacbio.common.models.contracts.ToolContract other) {
     return new com.pacbio.common.models.contracts.ToolContract.Builder(other);
   }
@@ -97,87 +155,305 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<ToolContract>
     implements org.apache.avro.data.RecordBuilder<ToolContract> {
 
+    /** Version of the ToolContract */
+    private java.lang.CharSequence version;
+    /** ToolContract Id (this is duplicated in the Task?) */
+    private java.lang.CharSequence tool_contract_id;
     private com.pacbio.common.models.contracts.ToolContractTask tool_contract;
+    private com.pacbio.common.models.contracts.ToolContractTask.Builder tool_contractBuilder;
     private com.pacbio.common.models.contracts.ToolDriver driver;
+    private com.pacbio.common.models.contracts.ToolDriver.Builder driverBuilder;
 
     /** Creates a new Builder */
     private Builder() {
       super(com.pacbio.common.models.contracts.ToolContract.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolContract.Builder other) {
       super(other);
-      if (isValidValue(fields()[0], other.tool_contract)) {
-        this.tool_contract = data().deepCopy(fields()[0].schema(), other.tool_contract);
+      if (isValidValue(fields()[0], other.version)) {
+        this.version = data().deepCopy(fields()[0].schema(), other.version);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.driver)) {
-        this.driver = data().deepCopy(fields()[1].schema(), other.driver);
+      if (isValidValue(fields()[1], other.tool_contract_id)) {
+        this.tool_contract_id = data().deepCopy(fields()[1].schema(), other.tool_contract_id);
         fieldSetFlags()[1] = true;
+      }
+      if (isValidValue(fields()[2], other.tool_contract)) {
+        this.tool_contract = data().deepCopy(fields()[2].schema(), other.tool_contract);
+        fieldSetFlags()[2] = true;
+      }
+      if (other.hasToolContractBuilder()) {
+        this.tool_contractBuilder = com.pacbio.common.models.contracts.ToolContractTask.newBuilder(other.getToolContractBuilder());
+      }
+      if (isValidValue(fields()[3], other.driver)) {
+        this.driver = data().deepCopy(fields()[3].schema(), other.driver);
+        fieldSetFlags()[3] = true;
+      }
+      if (other.hasDriverBuilder()) {
+        this.driverBuilder = com.pacbio.common.models.contracts.ToolDriver.newBuilder(other.getDriverBuilder());
       }
     }
     
-    /** Creates a Builder by copying an existing ToolContract instance */
+    /**
+     * Creates a Builder by copying an existing ToolContract instance
+     * @param other The existing instance to copy.
+     */
     private Builder(com.pacbio.common.models.contracts.ToolContract other) {
             super(com.pacbio.common.models.contracts.ToolContract.SCHEMA$);
-      if (isValidValue(fields()[0], other.tool_contract)) {
-        this.tool_contract = data().deepCopy(fields()[0].schema(), other.tool_contract);
+      if (isValidValue(fields()[0], other.version)) {
+        this.version = data().deepCopy(fields()[0].schema(), other.version);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.driver)) {
-        this.driver = data().deepCopy(fields()[1].schema(), other.driver);
+      if (isValidValue(fields()[1], other.tool_contract_id)) {
+        this.tool_contract_id = data().deepCopy(fields()[1].schema(), other.tool_contract_id);
         fieldSetFlags()[1] = true;
       }
+      if (isValidValue(fields()[2], other.tool_contract)) {
+        this.tool_contract = data().deepCopy(fields()[2].schema(), other.tool_contract);
+        fieldSetFlags()[2] = true;
+      }
+      this.tool_contractBuilder = null;
+      if (isValidValue(fields()[3], other.driver)) {
+        this.driver = data().deepCopy(fields()[3].schema(), other.driver);
+        fieldSetFlags()[3] = true;
+      }
+      this.driverBuilder = null;
     }
 
-    /** Gets the value of the 'tool_contract' field */
-    public com.pacbio.common.models.contracts.ToolContractTask getToolContract() {
-      return tool_contract;
+    /**
+      * Gets the value of the 'version' field.
+      * Version of the ToolContract
+      * @return The value.
+      */
+    public java.lang.CharSequence getVersion() {
+      return version;
     }
-    
-    /** Sets the value of the 'tool_contract' field */
-    public com.pacbio.common.models.contracts.ToolContract.Builder setToolContract(com.pacbio.common.models.contracts.ToolContractTask value) {
+
+    /**
+      * Sets the value of the 'version' field.
+      * Version of the ToolContract
+      * @param value The value of 'version'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setVersion(java.lang.CharSequence value) {
       validate(fields()[0], value);
-      this.tool_contract = value;
+      this.version = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'tool_contract' field has been set */
-    public boolean hasToolContract() {
+
+    /**
+      * Checks whether the 'version' field has been set.
+      * Version of the ToolContract
+      * @return True if the 'version' field has been set, false otherwise.
+      */
+    public boolean hasVersion() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'tool_contract' field */
-    public com.pacbio.common.models.contracts.ToolContract.Builder clearToolContract() {
-      tool_contract = null;
+
+
+    /**
+      * Clears the value of the 'version' field.
+      * Version of the ToolContract
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder clearVersion() {
+      version = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'driver' field */
-    public com.pacbio.common.models.contracts.ToolDriver getDriver() {
-      return driver;
+    /**
+      * Gets the value of the 'tool_contract_id' field.
+      * ToolContract Id (this is duplicated in the Task?)
+      * @return The value.
+      */
+    public java.lang.CharSequence getToolContractId() {
+      return tool_contract_id;
     }
-    
-    /** Sets the value of the 'driver' field */
-    public com.pacbio.common.models.contracts.ToolContract.Builder setDriver(com.pacbio.common.models.contracts.ToolDriver value) {
+
+    /**
+      * Sets the value of the 'tool_contract_id' field.
+      * ToolContract Id (this is duplicated in the Task?)
+      * @param value The value of 'tool_contract_id'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setToolContractId(java.lang.CharSequence value) {
       validate(fields()[1], value);
-      this.driver = value;
+      this.tool_contract_id = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'driver' field has been set */
-    public boolean hasDriver() {
+
+    /**
+      * Checks whether the 'tool_contract_id' field has been set.
+      * ToolContract Id (this is duplicated in the Task?)
+      * @return True if the 'tool_contract_id' field has been set, false otherwise.
+      */
+    public boolean hasToolContractId() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'driver' field */
+
+
+    /**
+      * Clears the value of the 'tool_contract_id' field.
+      * ToolContract Id (this is duplicated in the Task?)
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder clearToolContractId() {
+      tool_contract_id = null;
+      fieldSetFlags()[1] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'tool_contract' field.
+      * @return The value.
+      */
+    public com.pacbio.common.models.contracts.ToolContractTask getToolContract() {
+      return tool_contract;
+    }
+
+    /**
+      * Sets the value of the 'tool_contract' field.
+      * @param value The value of 'tool_contract'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setToolContract(com.pacbio.common.models.contracts.ToolContractTask value) {
+      validate(fields()[2], value);
+      this.tool_contractBuilder = null;
+      this.tool_contract = value;
+      fieldSetFlags()[2] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'tool_contract' field has been set.
+      * @return True if the 'tool_contract' field has been set, false otherwise.
+      */
+    public boolean hasToolContract() {
+      return fieldSetFlags()[2];
+    }
+
+    /**
+     * Gets the Builder instance for the 'tool_contract' field and creates one if it doesn't exist yet.
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.ToolContractTask.Builder getToolContractBuilder() {
+      if (tool_contractBuilder == null) {
+        if (hasToolContract()) {
+          setToolContractBuilder(com.pacbio.common.models.contracts.ToolContractTask.newBuilder(tool_contract));
+        } else {
+          setToolContractBuilder(com.pacbio.common.models.contracts.ToolContractTask.newBuilder());
+        }
+      }
+      return tool_contractBuilder;
+    }
+
+    /**
+     * Sets the Builder instance for the 'tool_contract' field
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setToolContractBuilder(com.pacbio.common.models.contracts.ToolContractTask.Builder value) {
+      clearToolContract();
+      tool_contractBuilder = value;
+      return this;
+    }
+
+    /**
+     * Checks whether the 'tool_contract' field has an active Builder instance
+     * @return True if the 'tool_contract' field has an active Builder instance
+     */
+    public boolean hasToolContractBuilder() {
+      return tool_contractBuilder != null;
+    }
+
+    /**
+      * Clears the value of the 'tool_contract' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder clearToolContract() {
+      tool_contract = null;
+      tool_contractBuilder = null;
+      fieldSetFlags()[2] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'driver' field.
+      * @return The value.
+      */
+    public com.pacbio.common.models.contracts.ToolDriver getDriver() {
+      return driver;
+    }
+
+    /**
+      * Sets the value of the 'driver' field.
+      * @param value The value of 'driver'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setDriver(com.pacbio.common.models.contracts.ToolDriver value) {
+      validate(fields()[3], value);
+      this.driverBuilder = null;
+      this.driver = value;
+      fieldSetFlags()[3] = true;
+      return this; 
+    }
+
+    /**
+      * Checks whether the 'driver' field has been set.
+      * @return True if the 'driver' field has been set, false otherwise.
+      */
+    public boolean hasDriver() {
+      return fieldSetFlags()[3];
+    }
+
+    /**
+     * Gets the Builder instance for the 'driver' field and creates one if it doesn't exist yet.
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.ToolDriver.Builder getDriverBuilder() {
+      if (driverBuilder == null) {
+        if (hasDriver()) {
+          setDriverBuilder(com.pacbio.common.models.contracts.ToolDriver.newBuilder(driver));
+        } else {
+          setDriverBuilder(com.pacbio.common.models.contracts.ToolDriver.newBuilder());
+        }
+      }
+      return driverBuilder;
+    }
+
+    /**
+     * Sets the Builder instance for the 'driver' field
+     * @return This builder.
+     */
+    public com.pacbio.common.models.contracts.ToolContract.Builder setDriverBuilder(com.pacbio.common.models.contracts.ToolDriver.Builder value) {
+      clearDriver();
+      driverBuilder = value;
+      return this;
+    }
+
+    /**
+     * Checks whether the 'driver' field has an active Builder instance
+     * @return True if the 'driver' field has an active Builder instance
+     */
+    public boolean hasDriverBuilder() {
+      return driverBuilder != null;
+    }
+
+    /**
+      * Clears the value of the 'driver' field.
+      * @return This builder.
+      */
     public com.pacbio.common.models.contracts.ToolContract.Builder clearDriver() {
       driver = null;
-      fieldSetFlags()[1] = false;
+      driverBuilder = null;
+      fieldSetFlags()[3] = false;
       return this;
     }
 
@@ -185,12 +461,39 @@ public class ToolContract extends org.apache.avro.specific.SpecificRecordBase im
     public ToolContract build() {
       try {
         ToolContract record = new ToolContract();
-        record.tool_contract = fieldSetFlags()[0] ? this.tool_contract : (com.pacbio.common.models.contracts.ToolContractTask) defaultValue(fields()[0]);
-        record.driver = fieldSetFlags()[1] ? this.driver : (com.pacbio.common.models.contracts.ToolDriver) defaultValue(fields()[1]);
+        record.version = fieldSetFlags()[0] ? this.version : (java.lang.CharSequence) defaultValue(fields()[0]);
+        record.tool_contract_id = fieldSetFlags()[1] ? this.tool_contract_id : (java.lang.CharSequence) defaultValue(fields()[1]);
+        if (tool_contractBuilder != null) {
+          record.tool_contract = this.tool_contractBuilder.build();
+        } else {
+          record.tool_contract = fieldSetFlags()[2] ? this.tool_contract : (com.pacbio.common.models.contracts.ToolContractTask) defaultValue(fields()[2]);
+        }
+        if (driverBuilder != null) {
+          record.driver = this.driverBuilder.build();
+        } else {
+          record.driver = fieldSetFlags()[3] ? this.driver : (com.pacbio.common.models.contracts.ToolDriver) defaultValue(fields()[3]);
+        }
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

@@ -6,8 +6,9 @@
 package com.pacbio.common.models.contracts;  
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
-public class pb_option extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"pb_option\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}");
+public class PacBioOption extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = -1672176571586554554L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PacBioOption\",\"namespace\":\"com.pacbio.common.models.contracts\",\"fields\":[{\"name\":\"default\",\"type\":[\"int\",\"string\",\"boolean\",\"float\"]},{\"name\":\"option_id\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.Object default$;
   @Deprecated public java.lang.CharSequence option_id;
@@ -19,12 +20,12 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
    * to their default values from the schema.  If that is desired then
    * one should use <code>newBuilder()</code>. 
    */
-  public pb_option() {}
+  public PacBioOption() {}
 
   /**
    * All-args constructor.
    */
-  public pb_option(java.lang.Object default$, java.lang.CharSequence option_id, java.lang.CharSequence name, java.lang.CharSequence description) {
+  public PacBioOption(java.lang.Object default$, java.lang.CharSequence option_id, java.lang.CharSequence name, java.lang.CharSequence description) {
     this.default$ = default$;
     this.option_id = option_id;
     this.name = name;
@@ -114,26 +115,37 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
     this.description = value;
   }
 
-  /** Creates a new pb_option RecordBuilder */
-  public static com.pacbio.common.models.contracts.pb_option.Builder newBuilder() {
-    return new com.pacbio.common.models.contracts.pb_option.Builder();
-  }
-  
-  /** Creates a new pb_option RecordBuilder by copying an existing Builder */
-  public static com.pacbio.common.models.contracts.pb_option.Builder newBuilder(com.pacbio.common.models.contracts.pb_option.Builder other) {
-    return new com.pacbio.common.models.contracts.pb_option.Builder(other);
-  }
-  
-  /** Creates a new pb_option RecordBuilder by copying an existing pb_option instance */
-  public static com.pacbio.common.models.contracts.pb_option.Builder newBuilder(com.pacbio.common.models.contracts.pb_option other) {
-    return new com.pacbio.common.models.contracts.pb_option.Builder(other);
+  /**
+   * Creates a new PacBioOption RecordBuilder.
+   * @return A new PacBioOption RecordBuilder
+   */
+  public static com.pacbio.common.models.contracts.PacBioOption.Builder newBuilder() {
+    return new com.pacbio.common.models.contracts.PacBioOption.Builder();
   }
   
   /**
-   * RecordBuilder for pb_option instances.
+   * Creates a new PacBioOption RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new PacBioOption RecordBuilder
    */
-  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<pb_option>
-    implements org.apache.avro.data.RecordBuilder<pb_option> {
+  public static com.pacbio.common.models.contracts.PacBioOption.Builder newBuilder(com.pacbio.common.models.contracts.PacBioOption.Builder other) {
+    return new com.pacbio.common.models.contracts.PacBioOption.Builder(other);
+  }
+  
+  /**
+   * Creates a new PacBioOption RecordBuilder by copying an existing PacBioOption instance.
+   * @param other The existing instance to copy.
+   * @return A new PacBioOption RecordBuilder
+   */
+  public static com.pacbio.common.models.contracts.PacBioOption.Builder newBuilder(com.pacbio.common.models.contracts.PacBioOption other) {
+    return new com.pacbio.common.models.contracts.PacBioOption.Builder(other);
+  }
+  
+  /**
+   * RecordBuilder for PacBioOption instances.
+   */
+  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<PacBioOption>
+    implements org.apache.avro.data.RecordBuilder<PacBioOption> {
 
     private java.lang.Object default$;
     private java.lang.CharSequence option_id;
@@ -142,11 +154,14 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
 
     /** Creates a new Builder */
     private Builder() {
-      super(com.pacbio.common.models.contracts.pb_option.SCHEMA$);
+      super(com.pacbio.common.models.contracts.PacBioOption.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
-    private Builder(com.pacbio.common.models.contracts.pb_option.Builder other) {
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
+    private Builder(com.pacbio.common.models.contracts.PacBioOption.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.default$)) {
         this.default$ = data().deepCopy(fields()[0].schema(), other.default$);
@@ -166,9 +181,12 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
     
-    /** Creates a Builder by copying an existing pb_option instance */
-    private Builder(com.pacbio.common.models.contracts.pb_option other) {
-            super(com.pacbio.common.models.contracts.pb_option.SCHEMA$);
+    /**
+     * Creates a Builder by copying an existing PacBioOption instance
+     * @param other The existing instance to copy.
+     */
+    private Builder(com.pacbio.common.models.contracts.PacBioOption other) {
+            super(com.pacbio.common.models.contracts.PacBioOption.SCHEMA$);
       if (isValidValue(fields()[0], other.default$)) {
         this.default$ = data().deepCopy(fields()[0].schema(), other.default$);
         fieldSetFlags()[0] = true;
@@ -187,110 +205,166 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
 
-    /** Gets the value of the 'default$' field */
+    /**
+      * Gets the value of the 'default$' field.
+      * @return The value.
+      */
     public java.lang.Object getDefault$() {
       return default$;
     }
-    
-    /** Sets the value of the 'default$' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder setDefault$(java.lang.Object value) {
+
+    /**
+      * Sets the value of the 'default$' field.
+      * @param value The value of 'default$'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder setDefault$(java.lang.Object value) {
       validate(fields()[0], value);
       this.default$ = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'default$' field has been set */
+
+    /**
+      * Checks whether the 'default$' field has been set.
+      * @return True if the 'default$' field has been set, false otherwise.
+      */
     public boolean hasDefault$() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'default$' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder clearDefault$() {
+
+
+    /**
+      * Clears the value of the 'default$' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder clearDefault$() {
       default$ = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'option_id' field */
+    /**
+      * Gets the value of the 'option_id' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getOptionId() {
       return option_id;
     }
-    
-    /** Sets the value of the 'option_id' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder setOptionId(java.lang.CharSequence value) {
+
+    /**
+      * Sets the value of the 'option_id' field.
+      * @param value The value of 'option_id'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder setOptionId(java.lang.CharSequence value) {
       validate(fields()[1], value);
       this.option_id = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'option_id' field has been set */
+
+    /**
+      * Checks whether the 'option_id' field has been set.
+      * @return True if the 'option_id' field has been set, false otherwise.
+      */
     public boolean hasOptionId() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'option_id' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder clearOptionId() {
+
+
+    /**
+      * Clears the value of the 'option_id' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder clearOptionId() {
       option_id = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'name' field */
+    /**
+      * Gets the value of the 'name' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getName() {
       return name;
     }
-    
-    /** Sets the value of the 'name' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder setName(java.lang.CharSequence value) {
+
+    /**
+      * Sets the value of the 'name' field.
+      * @param value The value of 'name'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder setName(java.lang.CharSequence value) {
       validate(fields()[2], value);
       this.name = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'name' field has been set */
+
+    /**
+      * Checks whether the 'name' field has been set.
+      * @return True if the 'name' field has been set, false otherwise.
+      */
     public boolean hasName() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'name' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder clearName() {
+
+
+    /**
+      * Clears the value of the 'name' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder clearName() {
       name = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'description' field */
+    /**
+      * Gets the value of the 'description' field.
+      * @return The value.
+      */
     public java.lang.CharSequence getDescription() {
       return description;
     }
-    
-    /** Sets the value of the 'description' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder setDescription(java.lang.CharSequence value) {
+
+    /**
+      * Sets the value of the 'description' field.
+      * @param value The value of 'description'.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder setDescription(java.lang.CharSequence value) {
       validate(fields()[3], value);
       this.description = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'description' field has been set */
+
+    /**
+      * Checks whether the 'description' field has been set.
+      * @return True if the 'description' field has been set, false otherwise.
+      */
     public boolean hasDescription() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'description' field */
-    public com.pacbio.common.models.contracts.pb_option.Builder clearDescription() {
+
+
+    /**
+      * Clears the value of the 'description' field.
+      * @return This builder.
+      */
+    public com.pacbio.common.models.contracts.PacBioOption.Builder clearDescription() {
       description = null;
       fieldSetFlags()[3] = false;
       return this;
     }
 
     @Override
-    public pb_option build() {
+    public PacBioOption build() {
       try {
-        pb_option record = new pb_option();
+        PacBioOption record = new PacBioOption();
         record.default$ = fieldSetFlags()[0] ? this.default$ : (java.lang.Object) defaultValue(fields()[0]);
         record.option_id = fieldSetFlags()[1] ? this.option_id : (java.lang.CharSequence) defaultValue(fields()[1]);
         record.name = fieldSetFlags()[2] ? this.name : (java.lang.CharSequence) defaultValue(fields()[2]);
@@ -301,4 +375,21 @@ public class pb_option extends org.apache.avro.specific.SpecificRecordBase imple
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

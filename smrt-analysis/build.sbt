@@ -12,5 +12,6 @@ packMain := Map(
   "movie-metadata-to-dataset-rtc" -> "com.pacbio.secondary.analysis.tools.MovieMetaDataToDataSetRtcApp",
   "validate-dataset" -> "com.pacbio.secondary.analysis.tools.ValidateDataSetApp",
   "merge-datasets" -> "com.pacbio.secondary.analysis.tools.DataSetMergerApp",
-  "ds-tools" -> "com.pacbio.secondary.analysis.tools.PbDataSetToolsApp"
+  "ds-tools" -> "com.pacbio.secondary.analysis.tools.PbDataSetToolsApp",
+  "example-tool" -> "com.pacbio.secondary.analysis.tools.ExampleToolApp"
 )

@@ -22,6 +22,7 @@ trait SecondaryAnalysisProviders
   with ReportViewRulesServiceProvider
   with ImportDataStoreServiceTypeProvider
   with ImportFastaServiceTypeProvider
+  with ImportFastaBarcodesServiceTypeProvider
   with PbsmrtpipeServiceJobTypeProvider
   with RsConvertMovieToDataSetServiceTypeProvider
   with SimpleServiceJobTypeProvider

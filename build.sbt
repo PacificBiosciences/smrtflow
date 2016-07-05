@@ -64,7 +64,7 @@ def PacBioProject(name: String): Project = (
       "commons-cli" % "commons-cli" % "1.2",
       "org.eclipse.persistence" % "eclipselink" % "2.6.0",
       "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
-      "org.apache.avro" % "avro" % "1.7.7",
+      "org.apache.avro" % "avro" % "1.8.0",
       "com.github.broadinstitute" % "picard" % "1.131",
       "com.typesafe.slick" %% "slick" % "3.1.0",
       "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
