@@ -1,13 +1,13 @@
-package db.migration
+package db.migration.sqlite
 
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-
-import slick.driver.H2Driver.api._
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 
 import scala.concurrent.Future
 
-class V8__JobUser extends JdbcMigration with SlickMigration {
+class V1_8__JobUser extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
     // scalastyle:off
     SimpleDBIO {

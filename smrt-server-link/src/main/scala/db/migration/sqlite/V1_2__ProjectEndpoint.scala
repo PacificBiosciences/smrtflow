@@ -1,29 +1,26 @@
-package db.migration
-
-import org.joda.time.{DateTime => JodaDateTime}
-
-import com.typesafe.scalalogging.LazyLogging
-
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-
-import slick.driver.H2Driver.api._
-import slick.jdbc.JdbcBackend.DatabaseDef
-import slick.lifted.ProvenShape
+package db.migration.sqlite
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import com.typesafe.scalalogging.LazyLogging
+import db.migration.SlickMigration
+import org.flywaydb.core.api.migration.jdbc.JdbcMigration
+import org.joda.time.{DateTime => JodaDateTime}
+import slick.driver.SQLiteDriver.api._
+import slick.jdbc.JdbcBackend.DatabaseDef
+import slick.lifted.ProvenShape
 
 import scala.concurrent.Future
 
 
-class V2__ProjectEndpoint extends JdbcMigration with SlickMigration with LazyLogging {
+class V1_2__ProjectEndpoint extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
     (InitialSchema.projectsUsers.schema ++ InitialSchema.projects.schema).drop >>
-      (V2Schema.projectsUsers.schema ++ V2Schema.projects.schema).create >>
-      (V2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now(), JodaDateTime.now()))
+      (V1_2Schema.projectsUsers.schema ++ V1_2Schema.projects.schema).create >>
+      (V1_2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now(), JodaDateTime.now()))
   }
 }
 
-object V2Schema extends PacBioDateTimeDatabaseFormat {
+object V1_2Schema extends PacBioDateTimeDatabaseFormat {
   class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, JodaDateTime, JodaDateTime)](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)

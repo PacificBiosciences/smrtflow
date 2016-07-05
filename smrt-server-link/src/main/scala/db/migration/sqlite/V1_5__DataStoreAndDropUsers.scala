@@ -1,19 +1,20 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.H2Driver.api._
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with LazyLogging {
+class V1_5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     def addEmptyNameAndDescription(f: (UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID)): (UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String) =
@@ -22,8 +23,8 @@ class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with L
     db.run {
       val updateDatstoreFiles = InitialSchema.datastoreServiceFiles.result.flatMap { files =>
         InitialSchema.datastoreServiceFiles.schema.drop >>
-          V5Schema.datastoreServiceFiles.schema.create >>
-          (V5Schema.datastoreServiceFiles ++= files.map(addEmptyNameAndDescription))
+          V1_5Schema.datastoreServiceFiles.schema.create >>
+          (V1_5Schema.datastoreServiceFiles ++= files.map(addEmptyNameAndDescription))
       }
 
       val dropUsers = InitialSchema.users.schema.drop
@@ -32,7 +33,7 @@ class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with L
     }
   }
 }
-object V5Schema extends PacBioDateTimeDatabaseFormat {
+object V1_5Schema extends PacBioDateTimeDatabaseFormat {
   class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String)](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 

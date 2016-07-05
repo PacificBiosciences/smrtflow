@@ -99,8 +99,8 @@ def PacBioProject(name: String): Project = (
       "org.ini4j" % "ini4j" % "0.5.4",
       // database libraries
       "org.apache.commons" % "commons-dbcp2" % "2.0.1",
-      "com.h2database" % "h2" % "1.4.192"
-      //"org.xerial" % "sqlite-jdbc" % "3.8.11.2"
+      "com.h2database" % "h2" % "1.4.192",
+      "org.xerial" % "sqlite-jdbc" % "3.8.11.2"
 )
     )
   )

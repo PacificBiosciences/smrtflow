@@ -1,39 +1,40 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.H2Driver.api._
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-class V6__OptionalRunFields extends JdbcMigration with SlickMigration {
+class V1_6__OptionalRunFields extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    val oldRuns = V4Schema.runSummaries.result
+    val oldRuns = V1_4Schema.runSummaries.result
     val newRuns = oldRuns.map(_.map( o => (o._1, o._2, Some(o._3), o._4, o._5, o._6, o._7, o._8, o._9, o._10, o._11, Some(o._12), Some(o._13), Some(o._14), Some(o._15), Some(o._16), o._17, o._18)))
 
-    val data = V4Schema.dataModels.result
+    val data = V1_4Schema.dataModels.result
 
-    val oldCols = V4Schema.collectionMetadata.result
+    val oldCols = V1_4Schema.collectionMetadata.result
     val newCols = oldCols.map(_.map( o => (o._1, o._2, o._3, o._4, o._5, o._6, o._7, Some(o._8), Some(o._9), o._10, o._11, o._12, o._13)))
       
-    V4Schema.runTables.map(_.schema).reduce(_ ++ _).drop
-    V6Schema.runTables.map(_.schema).reduce(_ ++ _).create
+    V1_4Schema.runTables.map(_.schema).reduce(_ ++ _).drop
+    V1_6Schema.runTables.map(_.schema).reduce(_ ++ _).create
 
     db.run(DBIO.seq(
-      newRuns.flatMap(V6Schema.runSummaries ++= _),
-      data.flatMap(V6Schema.dataModels ++= _),
-      newCols.flatMap(V6Schema.collectionMetadata ++= _)
+      newRuns.flatMap(V1_6Schema.runSummaries ++= _),
+      data.flatMap(V1_6Schema.dataModels ++= _),
+      newCols.flatMap(V1_6Schema.collectionMetadata ++= _)
     ))
   }
 }
 
-object V6Schema extends PacBioDateTimeDatabaseFormat {
+object V1_6Schema extends PacBioDateTimeDatabaseFormat {
 
   class RunSummariesT(tag: Tag) extends Table[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)](tag, "RUN_SUMMARIES") {
 

@@ -12,10 +12,14 @@ trait SmrtLinkConfigProvider {
   this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
 
   private def toURI(sx: String) = if (sx.startsWith("jdbc:h2:")) sx else s"jdbc:h2:$sx"
+  private def toSqliteURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
 
   val configReader = TypesafeSingletonReader.fromConfig().in("pb-services")
 
   val dbURI: Singleton[String] = Singleton(() => toURI(configReader.getString("db-uri").required()))
+  val legacySqliteURI: Singleton[Option[String]] =
+    Singleton(() => configReader.getString("legacy-sqlite-uri").optional().map(toSqliteURI))
+
   val port: Singleton[Int] = configReader.getInt("port").orElse(8070)
   val host: Singleton[String] = configReader.getString("host").orElse("0.0.0.0")
 

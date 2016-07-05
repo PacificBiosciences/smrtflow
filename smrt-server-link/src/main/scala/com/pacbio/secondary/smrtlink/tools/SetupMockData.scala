@@ -26,7 +26,7 @@ import slick.driver.H2Driver.api._
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
-    createTables
+    createTables()
     println(s"Created database connection from URI ${dao.db.dbUri}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
@@ -40,7 +40,6 @@ trait SetupMockData extends MockUtils with InitializeTables {
         // Jobs
         insertMockJobs(),
         insertMockJobEvents(),
-        insertMockJobsTags(),
 
         // datastore
         insertMockDataStoreFiles()
@@ -83,15 +82,13 @@ trait   MockUtils extends LazyLogging{
     files
   }
 
-  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
-
-    val states = AnalysisJobStates.VALID_STATES
+  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Unit] = {
     val rnd = new Random
+    def random[T](s: Seq[T]): T = s(rnd.nextInt(s.size))
 
-    def getRandomState = states.toVector(rnd.nextInt(states.size))
+    val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
 
     def toJob = {
-
       val uuid = UUID.randomUUID()
       EngineJob(
         -1,
@@ -100,12 +97,18 @@ trait   MockUtils extends LazyLogging{
         s"Comment for job $uuid",
         JodaDateTime.now(),
         JodaDateTime.now(),
-        getRandomState,
+        random(AnalysisJobStates.VALID_STATES),
         jobType,
         "path",
         "{}",
-        Some("root"))}
-    dao.db.run(engineJobs ++= (0 until numJobs ).map(x => toJob))
+        Some("root"))
+    }
+
+    for {
+      jIds <- dao.db.run(engineJobs returning engineJobs.map(_.id) ++= (0 until numJobs).map(_ => toJob))
+      tIds <- dao.db.run(jobTags returning jobTags.map(_.id) ++= tags.map( (-1, _) ))
+      _    <- dao.db.run(jobsTags ++= jIds.toSeq.map( (_, random(tIds.toSeq)) ))
+    } yield ()
   }
 
   def insertDummySubreadSets(n: Int): Future[Seq[String]] = {
@@ -209,35 +212,17 @@ trait   MockUtils extends LazyLogging{
     dao.db.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
   }
 
-  def insertMockJobsTags(): Future[Unit] = {
-    def randomInt(x: List[Int]) = Random.shuffle(x).head
-
-    val jobIds = (1 until MOCK_NJOBS).toList
-    val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
-    val tagIds = tags.indices.toList
-
-    dao.db.run(
-      DBIO.seq(
-        jobTags ++= tagIds.map(i => (i, tags(i))),
-        jobsTags ++= jobIds.map( (_, randomInt(tagIds)) )
-      )
-    )
-  }
-
   def insertMockProject(): Future[Unit] = {
-    val projectId = 1
-    dao.db.run(
-      DBIO.seq(
-        projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
-        projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
-      )
-    )
+    val project =
+      Project(-1, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now())
+    for {
+      id <- dao.db.run(projects returning projects.map(_.id) += project)
+      _  <- dao.db.run(projectsUsers += ProjectUser(id, "mkocher", "OWNER"))
+    } yield ()
   }
 
   // Add Mock Events to all Mock Jobs
-  def insertMockJobEventsForMockJobs: Future[Unit] = {
-
-    val createdAt = JodaDateTime.now()
+  def insertMockJobEventsForMockJobs(): Future[Unit] = {
 
     def toJobEvents(jobId: Int): Seq[JobEvent] =
       Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING, AnalysisJobStates.SUCCESSFUL)
@@ -320,7 +305,7 @@ trait TmpDirJobResolver {
 trait InitializeTables extends MockUtils {
   val db: Database
 
-  def createTables: Unit = {
+  def createTables(): Unit = {
     logger.info("Applying migrations")
     db.migrate()
     logger.info("Completed applying migrations")
@@ -329,7 +314,7 @@ trait InitializeTables extends MockUtils {
   /**
    * Required data in db
    */
-  def loadBaseMock = {
+  def loadBaseMock() = {
     Await.result(insertMockProject(), 10.seconds)
     logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
   }
@@ -353,7 +338,7 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
   def runner(args: Array[String]): Int = {
     println(s"Loading DB ${dao.db.dbUri}")
 
-    createTables
+    createTables()
 
     val initialSummary = Await.result(getSystemSummary(maxJobs), 5.seconds)
     println(s"Initial System Summary\n$initialSummary")
@@ -364,7 +349,7 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
       _ <- insertMockAlignmentDataSets(numAlignmentSets)
       _ <- insertMockJobs(insertMaxAnalysisJobs, "pbsmrtpipe")
       _ <- insertMockJobs(insertMaxInsertJobs, "import-dataset")
-      _ <- insertMockJobEventsForMockJobs
+      _ <- insertMockJobEventsForMockJobs()
       sx <- getSystemSummary(maxJobs)
     } yield sx
 

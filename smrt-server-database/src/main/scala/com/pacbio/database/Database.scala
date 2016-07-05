@@ -27,7 +27,7 @@ import ExecutionContext.Implicits.global
  * </ul>
  *
  */
-class Database(dbURI: String) {
+class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
 
   def dbUri: String = dbURI
   // flag for indicating if migrations are complete
@@ -40,6 +40,21 @@ class Database(dbURI: String) {
     else
       List(new LoggingListener(), new ProfilingListener())
 
+  legacySqliteURI.foreach { uri =>
+    val connectionPool = new BasicDataSource()
+    connectionPool.setDriverClassName("org.sqlite.JDBC")
+    connectionPool.setUrl(uri)
+    connectionPool.setInitialSize(1)
+    connectionPool.setMaxTotal(1)
+    connectionPool.setPoolPreparedStatements(true)
+
+    val flyway = new Flyway()
+
+    flyway.setLocations("db/migration/sqlite")
+    flyway.setDataSource(connectionPool)
+    flyway.setBaselineOnMigrate(true)
+    flyway.migrate()
+  }
 
   // DBCP for connection pooling and caching prepared statements
   protected val connectionPool = new BasicDataSource()
@@ -51,10 +66,12 @@ class Database(dbURI: String) {
   connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
 
+
   private val flyway = new Flyway()
+  flyway.setLocations("db/migration/h2")
   flyway.setDataSource(connectionPool)
   flyway.setBaselineOnMigrate(true)
-  flyway.setBaselineVersionAsString("1")
+  flyway.setBaselineVersionAsString("2.1")
   // eagerly run migrations
   migrate()
 

@@ -1,22 +1,23 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.H2Driver.api._
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-class V10__DropJobStatesTable extends JdbcMigration with SlickMigration {
+class V1_10__DropJobStatesTable extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    val engineJobs = V8Schema.engineJobs.result
-    val jobEvents = V8Schema.jobEvents.result
+    val engineJobs = V1_8Schema.engineJobs.result
+    val jobEvents = V1_8Schema.jobEvents.result
 
     def engineJobV8toV10(j: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String, Option[String])): (Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String]) =
       j.copy(_7 = AnalysisJobStates.intToState(j._7).getOrElse(AnalysisJobStates.UNKNOWN).toString)
@@ -26,13 +27,13 @@ class V10__DropJobStatesTable extends JdbcMigration with SlickMigration {
 
     db.run(engineJobs.zip(jobEvents).flatMap { data =>
       (InitialSchema.engineJobs.schema ++ InitialSchema.jobEvents.schema ++ InitialSchema.jobStates.schema).drop >>
-        (V10Schema.engineJobs.schema ++ V10Schema.jobEvents.schema).create >>
-        DBIO.seq(V10Schema.engineJobs ++= data._1.map(engineJobV8toV10), V10Schema.jobEvents ++= data._2.map(jobEventV8toV10))
+        (V1_10Schema.engineJobs.schema ++ V1_10Schema.jobEvents.schema).create >>
+        DBIO.seq(V1_10Schema.engineJobs ++= data._1.map(engineJobV8toV10), V1_10Schema.jobEvents ++= data._2.map(jobEventV8toV10))
     })
   }
 }
 
-object V8Schema extends PacBioDateTimeDatabaseFormat {
+object V1_8Schema extends PacBioDateTimeDatabaseFormat {
   class JobStatesT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "job_states") {
 
     def id: Rep[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
@@ -106,7 +107,7 @@ object V8Schema extends PacBioDateTimeDatabaseFormat {
 
 }
 
-object V10Schema extends PacBioDateTimeDatabaseFormat {
+object V1_10Schema extends PacBioDateTimeDatabaseFormat {
 
   class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String])](tag, "engine_jobs") {
 

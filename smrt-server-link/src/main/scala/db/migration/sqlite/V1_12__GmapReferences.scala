@@ -1,22 +1,23 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.H2Driver.api._
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
 
 import scala.concurrent.Future
 
 
-class V12__GmapReferences extends JdbcMigration with SlickMigration with LazyLogging {
+class V1_12__GmapReferences extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run {
-      V12Schema.gmapReference.schema.create >> _populateGmapDataSetType
+      V1_12Schema.gmapReference.schema.create >> _populateGmapDataSetType
     }
   }
 
@@ -29,7 +30,7 @@ class V12__GmapReferences extends JdbcMigration with SlickMigration with LazyLog
 }
 
 
-object V12Schema extends PacBioDateTimeDatabaseFormat {
+object V1_12Schema extends PacBioDateTimeDatabaseFormat {
 
   // XXX copied from initial schema...
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {

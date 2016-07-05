@@ -1,26 +1,24 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
-import org.joda.time.{DateTime => JodaDateTime}
-
+import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
-
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import slick.driver.H2Driver.api._
+import org.joda.time.{DateTime => JodaDateTime}
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
-
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 
 import scala.concurrent.Future
 
 
-class V3__CollectionMetadata extends JdbcMigration with SlickMigration with LazyLogging {
-  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V3Schema.collectionMetadata.schema.create)
+class V1_3__CollectionMetadata extends JdbcMigration with SlickMigration with LazyLogging {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V1_3Schema.collectionMetadata.schema.create)
 }
 
-object V3Schema extends PacBioDateTimeDatabaseFormat {
+object V1_3Schema extends PacBioDateTimeDatabaseFormat {
 
   class CollectionMetadataT(tag: Tag) extends Table[(Long, UUID, String, Option[String], Option[String], String, String, String, String, Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])](tag, "COLLECTION_METADATA") {
     def runId: Rep[Long] = column[Long]("RUN_ID")

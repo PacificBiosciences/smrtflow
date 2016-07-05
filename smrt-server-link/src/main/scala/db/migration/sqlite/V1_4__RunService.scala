@@ -1,28 +1,26 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
-import org.joda.time.{DateTime => JodaDateTime}
-
+import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
-
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import slick.driver.H2Driver.api._
+import org.joda.time.{DateTime => JodaDateTime}
+import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
-
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 
 import scala.concurrent.Future
 
 
-class V4__RunService extends JdbcMigration with SlickMigration with LazyLogging {
+class V1_4__RunService extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
-    V3Schema.collectionMetadata.schema.drop >> V4Schema.runTables.map(_.schema).reduce(_ ++ _).create
+    V1_3Schema.collectionMetadata.schema.drop >> V1_4Schema.runTables.map(_.schema).reduce(_ ++ _).create
   }
 }
 
-object V4Schema extends PacBioDateTimeDatabaseFormat {
+object V1_4Schema extends PacBioDateTimeDatabaseFormat {
 
   class RunSummariesT(tag: Tag) extends Table[(UUID, String, String, Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, String, String, String, String, String, Option[String], Boolean)](tag, "RUN_SUMMARIES") {
 
