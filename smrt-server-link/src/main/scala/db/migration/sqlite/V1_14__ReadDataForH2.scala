@@ -14,45 +14,45 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 
-class V1_13__ReadDataForH2 extends JdbcMigration with SlickMigration {
+class V1_14__ReadDataForH2 extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val action = for {
-      je   <- V1_13Schema.jobEvents.result
-      jt   <- V1_13Schema.jobTags.result
-      jst  <- V1_13Schema.jobsTags.result
-      ej   <- V1_13Schema.engineJobs.result
-      jr   <- V1_13Schema.jobResults.result
-      u    <- V1_13Schema.users.result
-      p    <- V1_13Schema.projects.result
-      pu   <- V1_13Schema.projectsUsers.result
-      dst  <- V1_13Schema.datasetTypes.result
-      ejds <- V1_13Schema.engineJobsDataSets.result
-      dsm  <- V1_13Schema.dsMetaData2.result
-      sds  <- V1_13Schema.dsSubread2.result
-      hds  <- V1_13Schema.dsHdfSubread2.result
-      rds  <- V1_13Schema.dsReference2.result
-      gds  <- V1_13Schema.dsGmapReference2.result
-      ads  <- V1_13Schema.dsAlignment2.result
-      bds  <- V1_13Schema.dsBarcode2.result
-      cds  <- V1_13Schema.dsCCSread2.result
-      cads <- V1_13Schema.dsCCSAlignment2.result
-      cods <- V1_13Schema.dsContig2.result
-      dsf  <- V1_13Schema.datastoreServiceFiles.result
-      rs   <- V1_13Schema.runSummaries.result
-      dm   <- V1_13Schema.dataModels.result
-      cm   <- V1_13Schema.collectionMetadata.result
-      s    <- V1_13Schema.samples.result
-    } yield new V1_13Data(je, jt, jst, ej, jr, u, p, pu, dst, ejds, dsm, sds, hds, rds, gds, ads, bds, cds, cads, cods, dsf, rs, dm, cm, s)
+      je   <- V1_14Schema.jobEvents.result
+      jt   <- V1_14Schema.jobTags.result
+      jst  <- V1_14Schema.jobsTags.result
+      ej   <- V1_14Schema.engineJobs.result
+      jr   <- V1_14Schema.jobResults.result
+      u    <- V1_14Schema.users.result
+      p    <- V1_14Schema.projects.result
+      pu   <- V1_14Schema.projectsUsers.result
+      dst  <- V1_14Schema.datasetTypes.result
+      ejds <- V1_14Schema.engineJobsDataSets.result
+      dsm  <- V1_14Schema.dsMetaData2.result
+      sds  <- V1_14Schema.dsSubread2.result
+      hds  <- V1_14Schema.dsHdfSubread2.result
+      rds  <- V1_14Schema.dsReference2.result
+      gds  <- V1_14Schema.dsGmapReference2.result
+      ads  <- V1_14Schema.dsAlignment2.result
+      bds  <- V1_14Schema.dsBarcode2.result
+      cds  <- V1_14Schema.dsCCSread2.result
+      cads <- V1_14Schema.dsCCSAlignment2.result
+      cods <- V1_14Schema.dsContig2.result
+      dsf  <- V1_14Schema.datastoreServiceFiles.result
+      rs   <- V1_14Schema.runSummaries.result
+      dm   <- V1_14Schema.dataModels.result
+      cm   <- V1_14Schema.collectionMetadata.result
+      s    <- V1_14Schema.samples.result
+    } yield new V1_14Data(je, jt, jst, ej, jr, u, p, pu, dst, ejds, dsm, sds, hds, rds, gds, ads, bds, cds, cads, cods, dsf, rs, dm, cm, s)
 
-    db.run(action).map(d => V1_13Data.data = Some(d))
+    db.run(action).map(d => V1_14Data.data = Some(d))
   }
 }
 
-object V1_13Data {
-  var data: Option[V1_13Data] = None
+object V1_14Data {
+  var data: Option[V1_14Data] = None
 }
 
-case class V1_13Data(
+case class V1_14Data(
   jobEvents: Seq[(UUID, Int, String, String, JodaDateTime)],
   jobTags: Seq[(Int, String)],
   jobsTags: Seq[(Int, Int)],
@@ -79,7 +79,7 @@ case class V1_13Data(
   collectionMetadata: Seq[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])],
   samples: Seq[(String, UUID, String, String, JodaDateTime)])
 
-object V1_13Schema extends PacBioDateTimeDatabaseFormat {
+object V1_14Schema extends PacBioDateTimeDatabaseFormat {
   class JobEventsT(tag: Tag) extends Table[(UUID, Int, String, String, JodaDateTime)](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
     def state: Rep[String] = column[String]("state")

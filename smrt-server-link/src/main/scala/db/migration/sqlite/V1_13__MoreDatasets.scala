@@ -1,13 +1,11 @@
-
-package db.migration
-
+package db.migration.sqlite
 
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
@@ -15,7 +13,7 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V13__MoreDatasets extends JdbcMigration with SlickMigration with LazyLogging {
+class V1_13__MoreDatasets extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run {
@@ -43,5 +41,4 @@ object V13Schema extends PacBioDateTimeDatabaseFormat {
 
   lazy val contigs = TableQuery[ContigDataSetT]
   lazy val ccsalignments = TableQuery[ConsensusAlignmentDataSetT]
-
 }

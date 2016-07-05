@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import db.migration.SlickMigration
-import db.migration.sqlite.V1_13Data
+import db.migration.sqlite.V1_14Data
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
 import slick.jdbc.JdbcBackend.DatabaseDef
@@ -18,7 +18,7 @@ class V2_1__WriteDataToH2 extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     var action: DBIOAction[_, NoStream, Effect.All] = V2_1Schema.allTables.map(_.schema).reduce(_ ++ _).create
 
-    V1_13Data.data.foreach { data =>
+    V1_14Data.data.foreach { data =>
       action = action >>
         (V2_1Schema.engineJobs ++= data.engineJobs) >>
         (V2_1Schema.jobTags ++= data.jobTags) >>
