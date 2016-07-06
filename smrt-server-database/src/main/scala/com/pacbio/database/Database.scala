@@ -73,7 +73,6 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
     this.synchronized {
       if (!migrationsComplete) {
         legacySqliteURI.foreach { uri =>
-          println(s"DEBUG --- found legacy uri $uri")
           val connectionPool = new BasicDataSource() {
             // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
             var cachedConnection: Connection = null
@@ -125,10 +124,7 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
           flyway.setBaselineOnMigrate(true)
           flyway.setBaselineVersionAsString("1")
           flyway.migrate()
-          println(s"DEBUG --- completed legacy migration")
         }
-
-        println(s"DEBUG --- found db uri $dbUri")
 
         val flyway = new Flyway()
         flyway.setLocations("db/migration/h2")
@@ -137,8 +133,6 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
         flyway.setBaselineVersionAsString("15")
         flyway.migrate()
         migrationsComplete = true
-        println(s"DEBUG --- completed migration")
-
       }
     }
   }
