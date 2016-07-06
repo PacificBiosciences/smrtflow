@@ -1,8 +1,6 @@
 package com.pacbio.secondary.smrtserver.services.jobtypes
 
-import java.io.File
 import java.net.{URI, URL}
-import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -12,8 +10,6 @@ import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
 import com.pacbio.common.models.LogMessageRecord
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -28,16 +24,14 @@ import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtserver.SmrtServerConstants
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.control.NonFatal
+
 
 // For serialization magic. This is required for any serialization in spray to work.
-
 import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
@@ -69,6 +63,17 @@ class PbsmrtpipeServiceJobType(
     new URI(s"${baseURL.getProtocol}://${baseURL.getHost}:${baseURL.getPort}${baseURL.getPath}/${uuid.toString}")
   }
 
+  /**
+    * Util for resolving Entry Points into create an Engine Job
+    * @param e BoundServiceEntryPoint
+    * @return
+    */
+  def resolveEntry(e: BoundServiceEntryPoint): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
+    ValidateImportDataSetUtils.resolveDataSetByAny(e.fileTypeId, e.datasetId, dbActor).map { d =>
+      (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
+    }
+  }
+
   val routes =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
@@ -80,61 +85,21 @@ class PbsmrtpipeServiceJobType(
         post {
           optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
             entity(as[PbSmrtPipeServiceOptions]) { ropts =>
-              // 0. Validate Pipeline template and entry points are consistent.
-              // 1. Resolve Service Entry Points
-              //   {
-              //     "entryId" : "e_01",
-              //     "entryType" : "Pacbio.DataSets.Subreads",
-              //     "id" : 1234
-              //   } -> {"entryId" : "e_01", "path" : "/path/to/file"}
-              // 2. Create a new job in db
-              // 3. Create a new CoreJob instance
-              // 4. Submit CoreJob to manager
-              // FIXME. This should be POST/PUT/GET-able via /jobs/{JOB_TYPE_ID}/settings
-              // val envPath = "/Users/mkocher/.virtualenvs/dev_pbsmrtpipe_test/bin/activate"
 
               val uuid = UUID.randomUUID()
+              val serviceUri = toURL(rootUpdateURL, uuid)
               logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
-              val fsx = ropts.entryPoints.map(x => ValidateImportDataSetUtils.resolveDataSetByAny(x.fileTypeId, x.datasetId, dbActor))
-
-              val pathsFs = Future sequence fsx
-              val rs = Await.result(pathsFs, 4.seconds)
-
-              val boundEntryPoints = ropts.entryPoints.zip(rs).map(x => BoundEntryPoint(x._1.entryId, x._2.path))
-              val engineEntryPts = ropts.entryPoints.zip(rs).map(x => EngineJobEntryPointRecord(x._2.uuid, x._1.fileTypeId))
-
-              logger.info(s"Task options ${ropts.taskOptions}")
-              // FIXME This casting issues. Currently it's pushed down to pbsmrtpipe level
-              val taskOptions = ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}"))
-              val workflowOptions = pbsmrtpipeEngineOptions.toPipelineOptions
-
-              val serviceUri = toURL(rootUpdateURL, uuid)
-              val opts = PbSmrtPipeJobOptions(
-                ropts.pipelineId,
-                boundEntryPoints,
-                taskOptions,
-                workflowOptions,
-                engineConfig.pbToolsEnv,
-                Some(serviceUri),
-                commandTemplate)
-              val coreJob = CoreJob(uuid, opts)
-              val jopts = ropts.toJson
-
-              logger.info("Pbsmrtpipe Service Opts:")
-              logger.info(jopts.prettyPrint)
-              logger.info(s"Resolved options to $opts")
-
-              val fx = (dbActor ? CreateJobType(
-                uuid,
-                ropts.name,
-                s"pbsmrtpipe ${opts.pipelineId}",
-                endpoint,
-                coreJob,
-                Some(engineEntryPts),
-                jopts.toString(),
-                authInfo.map(_.login)
-              )).mapTo[EngineJob]
+              val fx = for {
+                taskOptions <- Future { ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}")) }
+                xs <- Future.sequence(ropts.entryPoints.map(resolveEntry))
+                boundEntryPoints <- Future { xs.map(_._2) }
+                engineJobPoints <- Future { xs.map(_._1) }
+                workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions }
+                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
+                coreJob <- Future { CoreJob(uuid, opts)}
+                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), authInfo.map(_.login))).mapTo[EngineJob]
+              } yield engineJob
 
               complete {
                 created {
