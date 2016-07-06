@@ -29,10 +29,6 @@ class UnmanagedDatabase(conn: Connection)
   override def createSession() = new UnmanagedSession(this)
 }
 
-object SlickMigration {
-  var n = 0
-}
-
 /**
  * By including this trait in your Flyway JdbcMigration, you only
  * need to provide an implementation for this the slick_migrate
@@ -48,8 +44,6 @@ trait SlickMigration { self: JdbcMigration =>
   def slickMigrate(db: DatabaseDef): Future[Any]
 
   override final def migrate(conn: Connection): Unit = {
-    SlickMigration.n += 1
-    println(s"DEBUG ---- Migration ${SlickMigration.n}")
     val db = new UnmanagedDatabase(conn)
     try {
       Await.ready(slickMigrate(db), Duration.Inf)

@@ -1,5 +1,8 @@
 package com.pacbio.database
 
+import java.nio.file.Paths
+import java.sql.Connection
+
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
 import slick.dbio.{DBIOAction, NoStream}
@@ -32,6 +35,8 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
   def dbUri: String = dbURI
   // flag for indicating if migrations are complete
   protected var migrationsComplete: Boolean = false
+  // flag for use when Flyway migrations running on SQLite
+  protected var shareConnection: Boolean = false
   // flag for tracking debugging and timing info
   var debug: Boolean = true
   val listeners: List[DatabaseListener] =
@@ -39,22 +44,6 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
       List()
     else
       List(new LoggingListener(), new ProfilingListener())
-
-  legacySqliteURI.foreach { uri =>
-    val connectionPool = new BasicDataSource()
-    connectionPool.setDriverClassName("org.sqlite.JDBC")
-    connectionPool.setUrl(uri)
-    connectionPool.setInitialSize(1)
-    connectionPool.setMaxTotal(1)
-    connectionPool.setPoolPreparedStatements(true)
-
-    val flyway = new Flyway()
-
-    flyway.setLocations("db/migration/sqlite")
-    flyway.setDataSource(connectionPool)
-    flyway.setBaselineOnMigrate(true)
-    flyway.migrate()
-  }
 
   // DBCP for connection pooling and caching prepared statements
   protected val connectionPool = new BasicDataSource()
@@ -66,14 +55,8 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
   connectionPool.setPoolPreparedStatements(true)
   // TODO: how many cursors can be left open? i.e. what to set for maxOpenPreparedStatements
 
-
-  private val flyway = new Flyway()
-  flyway.setLocations("db/migration/h2")
-  flyway.setDataSource(connectionPool)
-  flyway.setBaselineOnMigrate(true)
-  flyway.setBaselineVersionAsString("2.1")
   // eagerly run migrations
-  migrate()
+  Await.ready(Future(migrate()), 1.minute)
 
   // keep access to the real database restricted. we don't want atyptical use in the codebase
   // TODO: -1 queueSize means unlimited. This probably needs to be tuned
@@ -89,8 +72,73 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
   def migrate(): Unit = {
     this.synchronized {
       if (!migrationsComplete) {
+        legacySqliteURI.foreach { uri =>
+          println(s"DEBUG --- found legacy uri $uri")
+          val connectionPool = new BasicDataSource() {
+            // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
+            var cachedConnection: Connection = null
+
+            override def getConnection: Connection = {
+              // recycle the connection only for the special use case of Flyway database migrations
+              if (shareConnection && cachedConnection != null && cachedConnection.isValid(3000)) {
+                return cachedConnection
+              }
+              else {
+                // guard for SQLite use. also applicable in any case where only 1 connection is allowed
+                if (cachedConnection != null && !cachedConnection.isClosed) {
+                  throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
+                }
+                cachedConnection = super.getConnection
+              }
+              cachedConnection
+            }
+          }
+          connectionPool.setDriverClassName("org.sqlite.JDBC")
+          connectionPool.setUrl(uri)
+          connectionPool.setInitialSize(1)
+          connectionPool.setMaxTotal(1)
+          connectionPool.setPoolPreparedStatements(true)
+
+          val flyway = new Flyway() {
+            override def migrate(): Int = {
+              try {
+                shareConnection = true
+                // lazy make directories as needed for sqlite
+                if (dbUri.startsWith("jdbc:sqlite:") && dbUri != "jdbc:sqlite:") {
+                  val file = Paths.get(dbUri.stripPrefix("jdbc:sqlite:"))
+                  if (file.getParent != null) {
+                    val dir = file.getParent.toFile
+                    if (!dir.exists()) dir.mkdirs()
+                  }
+                }
+
+                super.migrate()
+              }
+              finally {
+                shareConnection = false
+              }
+            }
+          }
+
+          flyway.setLocations("db/migration/sqlite")
+          flyway.setDataSource(connectionPool)
+          flyway.setBaselineOnMigrate(true)
+          flyway.setBaselineVersionAsString("1")
+          flyway.migrate()
+          println(s"DEBUG --- completed legacy migration")
+        }
+
+        println(s"DEBUG --- found db uri $dbUri")
+
+        val flyway = new Flyway()
+        flyway.setLocations("db/migration/h2")
+        flyway.setDataSource(connectionPool)
+        flyway.setBaselineOnMigrate(true)
+        flyway.setBaselineVersionAsString("15")
         flyway.migrate()
         migrationsComplete = true
+        println(s"DEBUG --- completed migration")
+
       }
     }
   }
