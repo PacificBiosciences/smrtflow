@@ -14,10 +14,10 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V1_12__GmapReferences extends JdbcMigration with SlickMigration with LazyLogging {
+class V12__GmapReferences extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run {
-      V1_12Schema.gmapReference.schema.create >> _populateGmapDataSetType
+      V12Schema.gmapReference.schema.create >> _populateGmapDataSetType
     }
   }
 
