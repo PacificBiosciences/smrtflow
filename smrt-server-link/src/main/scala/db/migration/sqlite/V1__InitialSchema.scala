@@ -14,7 +14,7 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 // scalastyle:off
-class V1_1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
+class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val rdDdl = InitialSchema.runDesignTables.map(_.schema).reduce(_ ++ _)

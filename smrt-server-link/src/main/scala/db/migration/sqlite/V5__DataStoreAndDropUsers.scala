@@ -14,7 +14,7 @@ import slick.lifted.ProvenShape
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-class V1_5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with LazyLogging {
+class V5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     def addEmptyNameAndDescription(f: (UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID)): (UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String) =
@@ -23,8 +23,8 @@ class V1_5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with
     db.run {
       val updateDatstoreFiles = InitialSchema.datastoreServiceFiles.result.flatMap { files =>
         InitialSchema.datastoreServiceFiles.schema.drop >>
-          V1_5Schema.datastoreServiceFiles.schema.create >>
-          (V1_5Schema.datastoreServiceFiles ++= files.map(addEmptyNameAndDescription))
+          V5Schema.datastoreServiceFiles.schema.create >>
+          (V5Schema.datastoreServiceFiles ++= files.map(addEmptyNameAndDescription))
       }
 
       val dropUsers = InitialSchema.users.schema.drop
@@ -33,7 +33,7 @@ class V1_5__DataStoreAndDropUsers extends JdbcMigration with SlickMigration with
     }
   }
 }
-object V1_5Schema extends PacBioDateTimeDatabaseFormat {
+object V5Schema extends PacBioDateTimeDatabaseFormat {
   class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String)](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 

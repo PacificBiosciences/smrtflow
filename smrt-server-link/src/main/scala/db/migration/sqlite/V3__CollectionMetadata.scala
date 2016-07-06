@@ -14,11 +14,11 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V1_3__CollectionMetadata extends JdbcMigration with SlickMigration with LazyLogging {
-  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V1_3Schema.collectionMetadata.schema.create)
+class V3__CollectionMetadata extends JdbcMigration with SlickMigration with LazyLogging {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V3Schema.collectionMetadata.schema.create)
 }
 
-object V1_3Schema extends PacBioDateTimeDatabaseFormat {
+object V3Schema extends PacBioDateTimeDatabaseFormat {
 
   class CollectionMetadataT(tag: Tag) extends Table[(Long, UUID, String, Option[String], Option[String], String, String, String, String, Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])](tag, "COLLECTION_METADATA") {
     def runId: Rep[Long] = column[Long]("RUN_ID")

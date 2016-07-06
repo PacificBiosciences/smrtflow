@@ -7,7 +7,7 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 
 import scala.concurrent.Future
 
-class V1_8__JobUser extends JdbcMigration with SlickMigration {
+class V8__JobUser extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
     // scalastyle:off
     SimpleDBIO {

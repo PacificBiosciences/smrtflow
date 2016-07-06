@@ -12,11 +12,11 @@ import slick.lifted.ProvenShape
 
 import scala.concurrent.Future
 
-class V1_7__Sample extends JdbcMigration with SlickMigration {
-  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V1_7Schema.samples.schema.create)
+class V7__Sample extends JdbcMigration with SlickMigration {
+  override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(V7Schema.samples.schema.create)
 }
 
-object V1_7Schema extends PacBioDateTimeDatabaseFormat {
+object V7Schema extends PacBioDateTimeDatabaseFormat {
 
   class SampleT(tag: Tag) extends Table[(String, UUID, String, String, JodaDateTime)](tag, "SAMPLE") {
 

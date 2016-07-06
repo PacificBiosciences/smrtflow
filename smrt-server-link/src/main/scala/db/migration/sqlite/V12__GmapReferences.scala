@@ -30,7 +30,7 @@ class V1_12__GmapReferences extends JdbcMigration with SlickMigration with LazyL
 }
 
 
-object V1_12Schema extends PacBioDateTimeDatabaseFormat {
+object V12Schema extends PacBioDateTimeDatabaseFormat {
 
   // XXX copied from initial schema...
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {

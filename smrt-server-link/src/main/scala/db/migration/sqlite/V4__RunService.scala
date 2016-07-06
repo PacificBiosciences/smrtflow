@@ -14,13 +14,13 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V1_4__RunService extends JdbcMigration with SlickMigration with LazyLogging {
+class V4__RunService extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
-    V1_3Schema.collectionMetadata.schema.drop >> V1_4Schema.runTables.map(_.schema).reduce(_ ++ _).create
+    V3Schema.collectionMetadata.schema.drop >> V4Schema.runTables.map(_.schema).reduce(_ ++ _).create
   }
 }
 
-object V1_4Schema extends PacBioDateTimeDatabaseFormat {
+object V4Schema extends PacBioDateTimeDatabaseFormat {
 
   class RunSummariesT(tag: Tag) extends Table[(UUID, String, String, Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, String, String, String, String, String, Option[String], Boolean)](tag, "RUN_SUMMARIES") {
 

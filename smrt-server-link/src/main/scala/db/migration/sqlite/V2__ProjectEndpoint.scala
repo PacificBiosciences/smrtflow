@@ -12,15 +12,15 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V1_2__ProjectEndpoint extends JdbcMigration with SlickMigration with LazyLogging {
+class V2__ProjectEndpoint extends JdbcMigration with SlickMigration with LazyLogging {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
     (InitialSchema.projectsUsers.schema ++ InitialSchema.projects.schema).drop >>
-      (V1_2Schema.projectsUsers.schema ++ V1_2Schema.projects.schema).create >>
-      (V1_2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now(), JodaDateTime.now()))
+      (V2Schema.projectsUsers.schema ++ V2Schema.projects.schema).create >>
+      (V2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now(), JodaDateTime.now()))
   }
 }
 
-object V1_2Schema extends PacBioDateTimeDatabaseFormat {
+object V2Schema extends PacBioDateTimeDatabaseFormat {
   class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, JodaDateTime, JodaDateTime)](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)

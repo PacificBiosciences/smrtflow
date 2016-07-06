@@ -13,7 +13,7 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V1_13__MoreDatasets extends JdbcMigration with SlickMigration with LazyLogging {
+class V13__MoreDatasets extends JdbcMigration with SlickMigration with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run {

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import db.migration.SlickMigration
-import db.migration.sqlite.V1_14Data
+import db.migration.sqlite.V14Data
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
 import slick.jdbc.JdbcBackend.DatabaseDef
@@ -14,43 +14,43 @@ import slick.lifted.ProvenShape
 import scala.concurrent.Future
 
 
-class V2_1__WriteDataToH2 extends JdbcMigration with SlickMigration {
+class V15__WriteDataToH2 extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    var action: DBIOAction[_, NoStream, Effect.All] = V2_1Schema.allTables.map(_.schema).reduce(_ ++ _).create
+    var action: DBIOAction[_, NoStream, Effect.All] = V15Schema.allTables.map(_.schema).reduce(_ ++ _).create
 
-    V1_14Data.data.foreach { data =>
+    V14Data.data.foreach { data =>
       action = action >>
-        (V2_1Schema.engineJobs ++= data.engineJobs) >>
-        (V2_1Schema.jobTags ++= data.jobTags) >>
-        (V2_1Schema.projects ++= data.projects) >>
-        (V2_1Schema.jobEvents ++= data.jobEvents) >>
-        (V2_1Schema.jobsTags ++= data.jobsTags) >>
-        (V2_1Schema.users ++= data.users) >>
-        (V2_1Schema.projectsUsers ++= data.projectsUsers) >>
-        (V2_1Schema.datasetTypes ++= data.datasetTypes) >>
-        (V2_1Schema.engineJobsDataSets ++= data.engineJobsDataSets) >>
-        (V2_1Schema.dsMetaData2 ++= data.dsMetaData2) >>
-        (V2_1Schema.dsSubread2 ++= data.dsSubread2) >>
-        (V2_1Schema.dsHdfSubread2 ++= data.dsHdfSubread2) >>
-        (V2_1Schema.dsReference2 ++= data.dsReference2) >>
-        (V2_1Schema.dsGmapReference2 ++= data.dsGmapReference2) >>
-        (V2_1Schema.dsAlignment2 ++= data.dsAlignment2) >>
-        (V2_1Schema.dsBarcode2 ++= data.dsBarcode2) >>
-        (V2_1Schema.dsCCSread2 ++= data.dsCCSread2) >>
-        (V2_1Schema.dsCCSAlignment2 ++= data.dsCCSAlignment2) >>
-        (V2_1Schema.dsContig2 ++= data.dsContig2) >>
-        (V2_1Schema.datastoreServiceFiles ++= data.datastoreServiceFiles) >>
-        (V2_1Schema.runSummaries ++= data.runSummaries) >>
-        (V2_1Schema.dataModels ++= data.dataModels) >>
-        (V2_1Schema.collectionMetadata ++= data.collectionMetadata) >>
-        (V2_1Schema.samples ++= data.samples)
+        (V15Schema.engineJobs ++= data.engineJobs) >>
+        (V15Schema.jobTags ++= data.jobTags) >>
+        (V15Schema.projects ++= data.projects) >>
+        (V15Schema.jobEvents ++= data.jobEvents) >>
+        (V15Schema.jobsTags ++= data.jobsTags) >>
+        (V15Schema.users ++= data.users) >>
+        (V15Schema.projectsUsers ++= data.projectsUsers) >>
+        (V15Schema.datasetTypes ++= data.datasetTypes) >>
+        (V15Schema.engineJobsDataSets ++= data.engineJobsDataSets) >>
+        (V15Schema.dsMetaData2 ++= data.dsMetaData2) >>
+        (V15Schema.dsSubread2 ++= data.dsSubread2) >>
+        (V15Schema.dsHdfSubread2 ++= data.dsHdfSubread2) >>
+        (V15Schema.dsReference2 ++= data.dsReference2) >>
+        (V15Schema.dsGmapReference2 ++= data.dsGmapReference2) >>
+        (V15Schema.dsAlignment2 ++= data.dsAlignment2) >>
+        (V15Schema.dsBarcode2 ++= data.dsBarcode2) >>
+        (V15Schema.dsCCSread2 ++= data.dsCCSread2) >>
+        (V15Schema.dsCCSAlignment2 ++= data.dsCCSAlignment2) >>
+        (V15Schema.dsContig2 ++= data.dsContig2) >>
+        (V15Schema.datastoreServiceFiles ++= data.datastoreServiceFiles) >>
+        (V15Schema.runSummaries ++= data.runSummaries) >>
+        (V15Schema.dataModels ++= data.dataModels) >>
+        (V15Schema.collectionMetadata ++= data.collectionMetadata) >>
+        (V15Schema.samples ++= data.samples)
     }
 
     db.run(action)
   }
 }
 
-object V2_1Schema extends PacBioDateTimeDatabaseFormat {
+object V15Schema extends PacBioDateTimeDatabaseFormat {
   class JobEventsT(tag: Tag) extends Table[(UUID, Int, String, String, JodaDateTime)](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id")
     def state: Rep[String] = column[String]("state")
