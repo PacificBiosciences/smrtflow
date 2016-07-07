@@ -15,7 +15,7 @@ object H2DatabaseService {
 /**
  * H2 implementation of the backend
  */
-class H2DatabaseService() extends DatabaseService {
+class H2DatabaseService(jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3") extends DatabaseService {
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
@@ -23,7 +23,7 @@ class H2DatabaseService() extends DatabaseService {
   this.createTables
 
   def getConnection(): Connection = {
-    DriverManager.getConnection("jdbc:h2:./lims;DB_CLOSE_DELAY=3")
+    DriverManager.getConnection(jdbcUrl)
   }
 
   /**

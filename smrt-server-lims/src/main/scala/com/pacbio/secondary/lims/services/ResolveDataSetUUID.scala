@@ -48,7 +48,7 @@ trait ResolveDataSetUUID extends HttpService {
     // attempt to use the in-memory cache
 
 
-    val db = Database.databaseService
+    val db = Database.get()
     // attempt exact match to leverage DB indexing
     Try (db.getByUUID(q)) match {
       case Success(uuid) => uuid

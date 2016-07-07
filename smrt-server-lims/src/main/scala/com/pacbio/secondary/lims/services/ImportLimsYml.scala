@@ -57,7 +57,7 @@ trait ImportLimsYml extends HttpService {
   }
 
   def loadData(m: mutable.HashMap[String, String]) : String = {
-    val db = Database.databaseService
+    val db = Database.get()
     db.setLimsYml(
       LimsYml(
         expcode = m.get("expcode").get.toInt,
