@@ -2,10 +2,8 @@ package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import org.joda.time.{DateTime => JodaDateTime}
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.driver.SQLiteDriver.api._
 import slick.lifted.ProvenShape
@@ -53,17 +51,17 @@ object V14Data {
 }
 
 case class V14Data(
-  jobEvents: Seq[(UUID, Int, String, String, JodaDateTime)],
+  jobEvents: Seq[(UUID, Int, String, String, Long)],
   jobTags: Seq[(Int, String)],
   jobsTags: Seq[(Int, Int)],
-  engineJobs: Seq[(Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String])],
+  engineJobs: Seq[(Int, UUID, String, String, Long, Long, String, String, String, String, Option[String])],
   jobResults: Seq[(Int, String)],
-  users: Seq[(Int, String, String, JodaDateTime, JodaDateTime)],
-  projects: Seq[(Int, String, String, String, JodaDateTime, JodaDateTime)],
+  users: Seq[(Int, String, String, Long, Long)],
+  projects: Seq[(Int, String, String, String, Long, Long)],
   projectsUsers: Seq[(Int, String, String)],
-  datasetTypes: Seq[(String, String, String, JodaDateTime, JodaDateTime, String)],
+  datasetTypes: Seq[(String, String, String, Long, Long, String)],
   engineJobsDataSets: Seq[(Int, UUID, String)],
-  dsMetaData2: Seq[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Long, Long, String, String, String, String, Int, Int, Int, Boolean)],
+  dsMetaData2: Seq[(Int, UUID, String, String, Long, Long, Long, Long, String, String, String, String, Int, Int, Int, Boolean)],
   dsSubread2: Seq[(Int, UUID, String, String, String, String, String, Int, String, String, String, String)],
   dsHdfSubread2: Seq[(Int, UUID, String, String, String, String, String, Int, String, String, String, String)],
   dsReference2: Seq[(Int, UUID, String, String)],
@@ -73,21 +71,21 @@ case class V14Data(
   dsCCSread2: Seq[(Int, UUID)],
   dsCCSAlignment2: Seq[(Int, UUID)],
   dsContig2: Seq[(Int, UUID)],
-  datastoreServiceFiles: Seq[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String)],
-  runSummaries: Seq[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)],
+  datastoreServiceFiles: Seq[(UUID, String, String, Long, Long, Long, Long, String, Int, UUID, String, String)],
+  runSummaries: Seq[(UUID, String, Option[String], Option[String], Option[Long], Option[Long], Option[Long], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)],
   dataModels: Seq[(String, UUID)],
-  collectionMetadata: Seq[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])],
-  samples: Seq[(String, UUID, String, String, JodaDateTime)])
+  collectionMetadata: Seq[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])],
+  samples: Seq[(String, UUID, String, String, Long)])
 
-object V14Schema extends PacBioDateTimeDatabaseFormat {
-  class JobEventsT(tag: Tag) extends Table[(UUID, Int, String, String, JodaDateTime)](tag, "job_events") {
+object V14Schema {
+  class JobEventsT(tag: Tag) extends Table[(UUID, Int, String, String, Long)](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
     def state: Rep[String] = column[String]("state")
     def jobId: Rep[Int] = column[Int]("job_id")
     def message: Rep[String] = column[String]("message")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-    def * : ProvenShape[(UUID, Int, String, String, JodaDateTime)] = (id, jobId, state, message, createdAt)
+    def * : ProvenShape[(UUID, Int, String, String, Long)] = (id, jobId, state, message, createdAt)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -104,19 +102,19 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
   }
 
-  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String])](tag, "engine_jobs") {
+  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, Long, Long, String, String, String, String, Option[String])](tag, "engine_jobs") {
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
     def uuid: Rep[UUID] = column[UUID]("uuid")
     def pipelineId: Rep[String] = column[String]("pipeline_id")
     def name: Rep[String] = column[String]("name")
     def state: Rep[String] = column[String]("state")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
     def jobTypeId: Rep[String] = column[String]("job_type_id")
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
     def jsonSettings: Rep[String] = column[String]("json_settings")
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
-    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String])] = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy)
+    def * : ProvenShape[(Int, UUID, String, String, Long, Long, String, String, String, String, Option[String])] = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -127,23 +125,23 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, String)] = (id, host)
   }
 
-  class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
+  class UsersT(tag: Tag) extends Table[(Int, String, String, Long, Long)](tag, "users") {
     def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
     def name: Rep[String] = column[String]("name")
     def token: Rep[String] = column[String]("token")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
+    def * : ProvenShape[(Int, String, String, Long, Long)] = (id, name, token, createdAt, updatedAt)
   }
 
-  class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, JodaDateTime, JodaDateTime)](tag, "projects") {
+  class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, Long, Long)](tag, "projects") {
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
     def name: Rep[String] = column[String]("name")
     def description: Rep[String] = column[String]("description")
     def state: Rep[String] = column[String]("state")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-    def * : ProvenShape[(Int, String, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, state, createdAt, updatedAt)
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
+    def * : ProvenShape[(Int, String, String, String, Long, Long)] = (id, name, description, state, createdAt, updatedAt)
   }
 
   class ProjectsUsersT(tag: Tag) extends Table[(Int, String, String)](tag, "projects_users") {
@@ -159,15 +157,15 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag) extends Table[(String, String, String, JodaDateTime, JodaDateTime, String)](tag, "dataset_types") {
+  class DataSetTypesT(tag: Tag) extends Table[(String, String, String, Long, Long, String)](tag, "dataset_types") {
     def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
     def idx = index("index_id", id, unique = true)
     def name: Rep[String] = column[String]("name")
     def description: Rep[String] = column[String]("description")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
     def shortName: Rep[String] = column[String]("short_name")
-    def * : ProvenShape[(String, String, String, JodaDateTime, JodaDateTime, String)] = (id, name, description, createdAt, updatedAt, shortName)
+    def * : ProvenShape[(String, String, String, Long, Long, String)] = (id, name, description, createdAt, updatedAt, shortName)
   }
 
   class EngineJobDataSetT(tag: Tag) extends Table[(Int, UUID, String)](tag, "engine_jobs_datasets") {
@@ -177,11 +175,11 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, UUID, String)] = (jobId, datasetUUID, datasetType)
   }
 
-  class DataSetMetaT(tag: Tag) extends IdAbleTable[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Long, Long, String, String, String, String, Int, Int, Int, Boolean)](tag, "dataset_metadata") {
+  class DataSetMetaT(tag: Tag) extends IdAbleTable[(Int, UUID, String, String, Long, Long, Long, Long, String, String, String, String, Int, Int, Int, Boolean)](tag, "dataset_metadata") {
     def name: Rep[String] = column[String]("name")
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
     def numRecords: Rep[Long] = column[Long]("num_records")
     def totalLength: Rep[Long] = column[Long]("total_length")
     def tags: Rep[String] = column[String]("tags")
@@ -192,7 +190,7 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def jobId: Rep[Int] = column[Int]("job_id")
     def projectId: Rep[Int] = column[Int]("project_id")
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Long, Long, String, String, String, String, Int, Int, Int, Boolean)] = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive)
+    def * : ProvenShape[(Int, UUID, String, String, Long, Long, Long, Long, String, String, String, String, Int, Int, Int, Boolean)] = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive)
   }
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[(Int, UUID, String, String, String, String, String, Int, String, String, String, String)](tag, "dataset_subreads") {
@@ -255,30 +253,30 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, UUID)] = (id, uuid)
   }
 
-  class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String)](tag, "datastore_files") {
+  class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, Long, Long, Long, String, Int, UUID, String, String)](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
     def fileTypeId: Rep[String] = column[String]("file_type_id")
     def sourceId: Rep[String] = column[String]("source_id")
     def fileSize: Rep[Long] = column[Long]("file_size")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-    def modifiedAt: Rep[JodaDateTime] = column[JodaDateTime]("modified_at")
-    def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
+    def modifiedAt: Rep[Long] = column[Long]("modified_at")
+    def importedAt: Rep[Long] = column[Long]("imported_at")
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
     def jobId: Rep[Int] = column[Int]("job_id")
     def jobUUID: Rep[UUID] = column[UUID]("job_uuid")
     def name: Rep[String] = column[String]("name")
     def description: Rep[String] = column[String]("description")
-    def * : ProvenShape[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID, String, String)] = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description)
+    def * : ProvenShape[(UUID, String, String, Long, Long, Long, Long, String, Int, UUID, String, String)] = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description)
   }
 
-  class RunSummariesT(tag: Tag) extends Table[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)](tag, "RUN_SUMMARIES") {
+  class RunSummariesT(tag: Tag) extends Table[(UUID, String, Option[String], Option[String], Option[Long], Option[Long], Option[Long], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)](tag, "RUN_SUMMARIES") {
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
     def name: Rep[String] = column[String]("NAME")
     def summary: Rep[Option[String]] = column[Option[String]]("SUMMARY")
     def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
-    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def createdAt: Rep[Option[Long]] = column[Option[Long]]("CREATED_AT")
+    def startedAt: Rep[Option[Long]] = column[Option[Long]]("STARTED_AT")
+    def completedAt: Rep[Option[Long]] = column[Option[Long]]("COMPLETED_AT")
     def status: Rep[String] = column[String]("STATUS")
     def totalCells: Rep[Int] = column[Int]("TOTAL_CELLS")
     def numCellsCompleted: Rep[Int] = column[Int]("NUM_CELLS_COMPLETED")
@@ -290,7 +288,7 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
     def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
-    def * : ProvenShape[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)] = (
+    def * : ProvenShape[(UUID, String, Option[String], Option[String], Option[Long], Option[Long], Option[Long], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)] = (
       uniqueId,
       name,
       summary,
@@ -318,7 +316,7 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
-  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])](tag, "COLLECTION_METADATA") {
+  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
@@ -331,10 +329,10 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
     def instrumentId: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_ID")
     def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
     def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def startedAt: Rep[Option[Long]] = column[Option[Long]]("STARTED_AT")
+    def completedAt: Rep[Option[Long]] = column[Option[Long]]("COMPLETED_AT")
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
-    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])] = (
+    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])] = (
       runId,
       uniqueId,
       name,
@@ -351,13 +349,13 @@ object V14Schema extends PacBioDateTimeDatabaseFormat {
       terminationInfo)
   }
 
-  class SampleT(tag: Tag) extends Table[(String, UUID, String, String, JodaDateTime)](tag, "SAMPLE") {
+  class SampleT(tag: Tag) extends Table[(String, UUID, String, String, Long)](tag, "SAMPLE") {
     def details: Rep[String] = column[String]("DETAILS")
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
     def name: Rep[String] = column[String]("NAME")
     def createdBy: Rep[String] = column[String]("CREATED_BY")
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
-    def * : ProvenShape[(String, UUID, String, String, JodaDateTime)] = (details, uniqueId, name, createdBy, createdAt)
+    def createdAt: Rep[Long] = column[Long]("CREATED_AT")
+    def * : ProvenShape[(String, UUID, String, String, Long)] = (details, uniqueId, name, createdBy, createdAt)
   }
 
   lazy val dsMetaData2 = TableQuery[DataSetMetaT]

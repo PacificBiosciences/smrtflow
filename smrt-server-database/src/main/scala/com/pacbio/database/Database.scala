@@ -3,8 +3,16 @@ package com.pacbio.database
 import java.nio.file.Paths
 import java.sql.Connection
 
+import db.migration.h2.V15__WriteDataToH2
+import db.migration.sqlite._
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.migration.jdbc.JdbcMigration
+import org.flywaydb.core.api.{MigrationType, MigrationVersion}
+import org.flywaydb.core.api.resolver.{ResolvedMigration, MigrationResolver}
+import org.flywaydb.core.internal.resolver.ResolvedMigrationImpl
+import org.flywaydb.core.internal.resolver.jdbc.JdbcMigrationExecutor
+import org.flywaydb.core.internal.util.ClassUtils
 import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.H2Driver.api.{Database => H2Database}
 
@@ -119,7 +127,27 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
             }
           }
 
+          val sqliteResolver = new PredefMigrationResolver(
+            flyway.getClassLoader,
+            classOf[V1__InitialSchema],
+            classOf[V2__ProjectEndpoint],
+            classOf[V3__CollectionMetadata],
+            classOf[V4__RunService],
+            classOf[V5__DataStoreAndDropUsers],
+            classOf[V6__OptionalRunFields],
+            classOf[V7__Sample],
+            classOf[V8__JobUser],
+            classOf[V9__CollectionPathUri],
+            classOf[V10__DropJobStatesTable],
+            classOf[V11__AddIndexes],
+            classOf[V12__GmapReferences],
+            classOf[V13__MoreDatasets],
+            classOf[V14__ReadDataForH2]
+          )
+
           flyway.setLocations("db/migration/sqlite")
+          flyway.setResolvers(sqliteResolver)
+          flyway.setSkipDefaultResolvers(true)
           flyway.setDataSource(connectionPool)
           flyway.setBaselineOnMigrate(true)
           flyway.setBaselineVersionAsString("1")
@@ -127,7 +155,10 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
         }
 
         val flyway = new Flyway()
+        val h2Resolver = new PredefMigrationResolver(flyway.getClassLoader, classOf[V15__WriteDataToH2])
         flyway.setLocations("db/migration/h2")
+        flyway.setResolvers(h2Resolver)
+        flyway.setSkipDefaultResolvers(true)
         flyway.setDataSource(connectionPool)
         flyway.setBaselineOnMigrate(true)
         flyway.setBaselineVersionAsString("15")
@@ -205,6 +236,32 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
         // track timing for queue and RDMS execution
         if (dbug) Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }
       }
+    }
+  }
+}
+
+class PredefMigrationResolver(classLoader: ClassLoader, migrations: Class[_]*) extends MigrationResolver {
+  import scala.collection.JavaConversions._
+
+  override def resolveMigrations(): java.util.Collection[ResolvedMigration] = {
+    migrations.map { m =>
+      val j = m.asSubclass(classOf[JdbcMigration])
+      val r = new ResolvedMigrationImpl
+
+      // Assume class is named V123__Foo
+      val name = j.getSimpleName
+      val verAndDesc = name.split("__")
+      val ver = MigrationVersion.fromVersion(verAndDesc(0).substring(1))
+      val desc = verAndDesc(1)
+
+      r.setVersion(ver)
+      r.setDescription(desc)
+      r.setScript(j.getName)
+      r.setChecksum(null)
+      r.setType(MigrationType.JDBC)
+      r.setPhysicalLocation(ClassUtils.getLocationOnDisk(j))
+      r.setExecutor(new JdbcMigrationExecutor(ClassUtils.instantiate(j.getName, classLoader)))
+      r
     }
   }
 }

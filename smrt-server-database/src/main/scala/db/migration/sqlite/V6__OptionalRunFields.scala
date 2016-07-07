@@ -2,10 +2,8 @@ package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
@@ -34,9 +32,9 @@ class V6__OptionalRunFields extends JdbcMigration with SlickMigration {
   }
 }
 
-object V6Schema extends PacBioDateTimeDatabaseFormat {
+object V6Schema {
 
-  class RunSummariesT(tag: Tag) extends Table[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)](tag, "RUN_SUMMARIES") {
+  class RunSummariesT(tag: Tag) extends Table[(UUID, String, Option[String], Option[String], Option[Long], Option[Long], Option[Long], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)](tag, "RUN_SUMMARIES") {
 
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
@@ -46,11 +44,11 @@ object V6Schema extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
 
-    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
+    def createdAt: Rep[Option[Long]] = column[Option[Long]]("CREATED_AT")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[Long]] = column[Option[Long]]("STARTED_AT")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[Long]] = column[Option[Long]]("COMPLETED_AT")
 
     def status: Rep[String] = column[String]("STATUS")
 
@@ -74,7 +72,7 @@ object V6Schema extends PacBioDateTimeDatabaseFormat {
 
     def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
 
-    def * : ProvenShape[(UUID, String, Option[String], Option[String], Option[JodaDateTime], Option[JodaDateTime], Option[JodaDateTime], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)] = (uniqueId, name, summary, createdBy, createdAt, startedAt, completedAt, status, totalCells, numCellsCompleted, numCellsFailed, instrumentName, instrumentSerialNumber, instrumentSwVersion, primaryAnalysisSwVersion, context, terminationInfo, reserved)
+    def * : ProvenShape[(UUID, String, Option[String], Option[String], Option[Long], Option[Long], Option[Long], String, Int, Int, Int, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Boolean)] = (uniqueId, name, summary, createdBy, createdAt, startedAt, completedAt, status, totalCells, numCellsCompleted, numCellsFailed, instrumentName, instrumentSerialNumber, instrumentSwVersion, primaryAnalysisSwVersion, context, terminationInfo, reserved)
   }
 
   class DataModelsT(tag: Tag) extends Table[(String, UUID)](tag, "DATA_MODELS") {
@@ -91,7 +89,7 @@ object V6Schema extends PacBioDateTimeDatabaseFormat {
     def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
-  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])](tag, "COLLECTION_METADATA") {
+  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
 
@@ -113,13 +111,13 @@ object V6Schema extends PacBioDateTimeDatabaseFormat {
 
     def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[Long]] = column[Option[Long]]("STARTED_AT")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[Long]] = column[Option[Long]]("COMPLETED_AT")
 
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
 
-    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])] = (runId, uniqueId, name, well, summary, context, status, instrumentId, instrumentName, movieMinutes, startedAt, completedAt, terminationInfo)
+    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])] = (runId, uniqueId, name, well, summary, context, status, instrumentId, instrumentName, movieMinutes, startedAt, completedAt, terminationInfo)
   }
 
   lazy val runSummaries = TableQuery[RunSummariesT]

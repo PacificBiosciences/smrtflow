@@ -2,7 +2,6 @@ package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
 import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
@@ -23,14 +22,14 @@ class V12__GmapReferences extends JdbcMigration with SlickMigration with LazyLog
 
   def _populateGmapDataSetType: DBIOAction[Any, NoStream, _ <: Effect] = {
     val dsTypeRows = List(
-      ("PacBio.DataSet.GmapReferenceSet", "Display name for PacBio.DataSet.GmapReferenceSet", "Description for PacBio.DataSet.GmapReferenceSet", JodaDateTime.now(), JodaDateTime.now(), "gmapreferences")
+      ("PacBio.DataSet.GmapReferenceSet", "Display name for PacBio.DataSet.GmapReferenceSet", "Description for PacBio.DataSet.GmapReferenceSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "gmapreferences")
     )
     InitialSchema.datasetTypes ++= dsTypeRows
   }
 }
 
 
-object V12Schema extends PacBioDateTimeDatabaseFormat {
+object V12Schema {
 
   // XXX copied from initial schema...
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {

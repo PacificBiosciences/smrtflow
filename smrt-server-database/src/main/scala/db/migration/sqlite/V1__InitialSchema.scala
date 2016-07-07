@@ -2,7 +2,6 @@ package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
 import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
@@ -30,14 +29,14 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
    */
   def _populateDataSetTypes: DBIOAction[Any, NoStream, _ <: Effect] = {
     val initRows = List(
-      ("PacBio.DataSet.ReferenceSet", "Display name for PacBio.DataSet.ReferenceSet", "Description for PacBio.DataSet.ReferenceSet", JodaDateTime.now(), JodaDateTime.now(), "references"),
-      ("PacBio.DataSet.ConsensusReadSet", "Display name for PacBio.DataSet.ConsensusReadSet", "Description for PacBio.DataSet.ConsensusReadSet", JodaDateTime.now(), JodaDateTime.now(), "ccsreads"),
-      ("PacBio.DataSet.ContigSet", "Display name for PacBio.DataSet.ContigSet", "Description for PacBio.DataSet.ContigSet", JodaDateTime.now(), JodaDateTime.now(), "contigs"),
-      ("PacBio.DataSet.SubreadSet", "Display name for PacBio.DataSet.SubreadSet", "Description for PacBio.DataSet.SubreadSet", JodaDateTime.now(), JodaDateTime.now(), "subreads"),
-      ("PacBio.DataSet.BarcodeSet", "Display name for PacBio.DataSet.BarcodeSet", "Description for PacBio.DataSet.BarcodeSet", JodaDateTime.now(), JodaDateTime.now(), "barcodes"),
-      ("PacBio.DataSet.ConsensusAlignmentSet", "Display name for PacBio.DataSet.ConsensusAlignmentSet", "Description for PacBio.DataSet.ConsensusAlignmentSet", JodaDateTime.now(), JodaDateTime.now(), "ccsalignments"),
-      ("PacBio.DataSet.HdfSubreadSet", "Display name for PacBio.DataSet.HdfSubreadSet", "Description for PacBio.DataSet.HdfSubreadSet", JodaDateTime.now(), JodaDateTime.now(), "hdfsubreads"),
-      ("PacBio.DataSet.AlignmentSet", "Display name for PacBio.DataSet.AlignmentSet", "Description for PacBio.DataSet.AlignmentSet", JodaDateTime.now(), JodaDateTime.now(), "alignments")
+      ("PacBio.DataSet.ReferenceSet", "Display name for PacBio.DataSet.ReferenceSet", "Description for PacBio.DataSet.ReferenceSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "references"),
+      ("PacBio.DataSet.ConsensusReadSet", "Display name for PacBio.DataSet.ConsensusReadSet", "Description for PacBio.DataSet.ConsensusReadSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "ccsreads"),
+      ("PacBio.DataSet.ContigSet", "Display name for PacBio.DataSet.ContigSet", "Description for PacBio.DataSet.ContigSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "contigs"),
+      ("PacBio.DataSet.SubreadSet", "Display name for PacBio.DataSet.SubreadSet", "Description for PacBio.DataSet.SubreadSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "subreads"),
+      ("PacBio.DataSet.BarcodeSet", "Display name for PacBio.DataSet.BarcodeSet", "Description for PacBio.DataSet.BarcodeSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "barcodes"),
+      ("PacBio.DataSet.ConsensusAlignmentSet", "Display name for PacBio.DataSet.ConsensusAlignmentSet", "Description for PacBio.DataSet.ConsensusAlignmentSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "ccsalignments"),
+      ("PacBio.DataSet.HdfSubreadSet", "Display name for PacBio.DataSet.HdfSubreadSet", "Description for PacBio.DataSet.HdfSubreadSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "hdfsubreads"),
+      ("PacBio.DataSet.AlignmentSet", "Display name for PacBio.DataSet.AlignmentSet", "Description for PacBio.DataSet.AlignmentSet", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis, "alignments")
     )
     InitialSchema.datasetTypes ++= initRows
   }
@@ -47,13 +46,13 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
    */
   def _populateJobStates: DBIOAction[Any, NoStream, _ <: Effect] = {
     val initRows = List(
-      (1, "CREATED", "State CREATED description", JodaDateTime.now(), JodaDateTime.now()),
-      (2, "SUBMITTED", "State SUBMITTED description", JodaDateTime.now(), JodaDateTime.now()),
-      (3, "RUNNING", "State RUNNING description", JodaDateTime.now(), JodaDateTime.now()),
-      (4, "TERMINATED", "State TERMINATED description", JodaDateTime.now(), JodaDateTime.now()),
-      (5, "SUCCESSFUL", "State SUCCESSFUL description", JodaDateTime.now(), JodaDateTime.now()),
-      (6, "FAILED", "State FAILED description", JodaDateTime.now(), JodaDateTime.now()),
-      (7, "UNKNOWN", "State UNKNOWN description", JodaDateTime.now(), JodaDateTime.now())
+      (1, "CREATED", "State CREATED description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (2, "SUBMITTED", "State SUBMITTED description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (3, "RUNNING", "State RUNNING description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (4, "TERMINATED", "State TERMINATED description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (5, "SUCCESSFUL", "State SUCCESSFUL description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (6, "FAILED", "State FAILED description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      (7, "UNKNOWN", "State UNKNOWN description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis)
     )
     InitialSchema.jobStates ++= initRows
   }
@@ -62,21 +61,21 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
    * Create a single user and a project
    */
   def _createSuperUserProject: DBIOAction[Any, NoStream, _ <: Effect] = {
-    // projects += Project(1, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now())
-    // users += (1, "admin", "usertoken", JodaDateTime.now(), JodaDateTime.now())
+    // projects += Project(1, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis)
+    // users += (1, "admin", "usertoken", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis)
     // projectsUsers += ProjectUser(1, "admin", "OWNER")
     DBIO.seq(
-      InitialSchema.projects += (1, "Project 1", 1, "Project 1 description", JodaDateTime.now(), JodaDateTime.now()),
-      InitialSchema.users += (1, "admin", "usertoken", JodaDateTime.now(), JodaDateTime.now()),
+      InitialSchema.projects += (1, "Project 1", 1, "Project 1 description", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
+      InitialSchema.users += (1, "admin", "usertoken", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis),
       InitialSchema.projectsUsers += (1, 1)
     )
   }
 }
 // scalastyle:on
 
-object InitialSchema extends PacBioDateTimeDatabaseFormat {
+object InitialSchema {
 
-  class JobStatesT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "job_states") {
+  class JobStatesT(tag: Tag) extends Table[(Int, String, String, Long, Long)](tag, "job_states") {
 
     def id: Rep[Int] = column[Int]("job_state_id", O.PrimaryKey, O.AutoInc)
 
@@ -84,15 +83,15 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, createdAt, updatedAt)
+    def * : ProvenShape[(Int, String, String, Long, Long)] = (id, name, description, createdAt, updatedAt)
 
   }
 
-  class JobEventsT(tag: Tag) extends Table[(UUID, Int, Int, String, JodaDateTime)](tag, "job_events") {
+  class JobEventsT(tag: Tag) extends Table[(UUID, Int, Int, String, Long)](tag, "job_events") {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
@@ -102,13 +101,13 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def message: Rep[String] = column[String]("message")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
     def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
-    def * : ProvenShape[(UUID, Int, Int, String, JodaDateTime)] = (id, jobId, stateId, message, createdAt)
+    def * : ProvenShape[(UUID, Int, Int, String, Long)] = (id, jobId, stateId, message, createdAt)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -136,7 +135,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
   }
 
 
-  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String)](tag, "engine_jobs") {
+  class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, Long, Long, Int, String, String, String)](tag, "engine_jobs") {
 
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
 
@@ -150,9 +149,9 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def stateId: Rep[Int] = column[Int]("state_id")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
     def stateFK = foreignKey("state_fk", stateId, jobStates)(_.id)
 
@@ -165,7 +164,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def jsonSettings: Rep[String] = column[String]("json_settings")
 
-    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String)] = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId, path, jsonSettings)
+    def * : ProvenShape[(Int, UUID, String, String, Long, Long, Int, String, String, String)] = (id, uuid, name, pipelineId, createdAt, updatedAt, stateId, jobTypeId, path, jsonSettings)
 
   }
 
@@ -183,7 +182,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
   }
 
-  class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
+  class UsersT(tag: Tag) extends Table[(Int, String, String, Long, Long)](tag, "users") {
 
     def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
 
@@ -191,14 +190,14 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def token: Rep[String] = column[String]("token")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
+    def * : ProvenShape[(Int, String, String, Long, Long)] = (id, name, token, createdAt, updatedAt)
   }
 
-  class ProjectsT(tag: Tag) extends Table[(Int, String, Int, String, JodaDateTime, JodaDateTime)](tag, "projects") {
+  class ProjectsT(tag: Tag) extends Table[(Int, String, Int, String, Long, Long)](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
 
@@ -208,13 +207,13 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
     def userFK = foreignKey("user_fk", userId, users)(_.id)
 
-    def * : ProvenShape[(Int, String, Int, String, JodaDateTime, JodaDateTime)] = (id, name, userId, description, createdAt, updatedAt)
+    def * : ProvenShape[(Int, String, Int, String, Long, Long)] = (id, name, userId, description, createdAt, updatedAt)
   }
 
   class ProjectsUsersT(tag: Tag) extends Table[(Int, Int)](tag, "projects_users") {
@@ -236,7 +235,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag) extends Table[(String, String, String, JodaDateTime, JodaDateTime, String)](tag, "dataset_types") {
+  class DataSetTypesT(tag: Tag) extends Table[(String, String, String, Long, Long, String)](tag, "dataset_types") {
 
     def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
 
@@ -246,13 +245,13 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
     def shortName: Rep[String] = column[String]("short_name")
 
-    def * : ProvenShape[(String, String, String, JodaDateTime, JodaDateTime, String)] = (id, name, description, createdAt, updatedAt, shortName)
+    def * : ProvenShape[(String, String, String, Long, Long, String)] = (id, name, description, createdAt, updatedAt, shortName)
 
   }
 
@@ -264,7 +263,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, UUID, String)] = (jobId, datasetUUID, datasetType)
   }
 
-  class DataSetMetaT(tag: Tag) extends IdAbleTable[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Long, Long, String, String, String, String, Int, Int, Int, Boolean)](tag, "dataset_metadata") {
+  class DataSetMetaT(tag: Tag) extends IdAbleTable[(Int, UUID, String, String, Long, Long, Long, Long, String, String, String, String, Int, Int, Int, Boolean)](tag, "dataset_metadata") {
 
     //def indexUUID = index("index_uuid", uuid, unique = true)
 
@@ -272,9 +271,9 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
     def numRecords: Rep[Long] = column[Long]("num_records")
 
@@ -296,7 +295,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * : ProvenShape[(Int, UUID, String, String, JodaDateTime, JodaDateTime, Long, Long, String, String, String, String, Int, Int, Int, Boolean)] = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive)
+    def * : ProvenShape[(Int, UUID, String, String, Long, Long, Long, Long, String, String, String, String, Int, Int, Int, Boolean)] = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive)
 
   }
 
@@ -380,7 +379,7 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
   }
 
-  class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID)](tag, "datastore_files") {
+  class PacBioDataStoreFileT(tag: Tag) extends Table[(UUID, String, String, Long, Long, Long, Long, String, Int, UUID)](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
     def fileTypeId: Rep[String] = column[String]("file_type_id")
@@ -389,11 +388,11 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def fileSize: Rep[Long] = column[Long]("file_size")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def modifiedAt: Rep[JodaDateTime] = column[JodaDateTime]("modified_at")
+    def modifiedAt: Rep[Long] = column[Long]("modified_at")
 
-    def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
+    def importedAt: Rep[Long] = column[Long]("imported_at")
 
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
@@ -401,10 +400,10 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def jobUUID: Rep[UUID] = column[UUID]("job_uuid")
 
-    def * : ProvenShape[(UUID, String, String, Long, JodaDateTime, JodaDateTime, JodaDateTime, String, Int, UUID)] = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID)
+    def * : ProvenShape[(UUID, String, String, Long, Long, Long, Long, String, Int, UUID)] = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID)
   }
 
-  class RunDesignSummariesT(tag: Tag) extends Table[(String, String, String, Long, JodaDateTime, Boolean)](tag, "RUN_DESIGN_SUMMARIES") {
+  class RunDesignSummariesT(tag: Tag) extends Table[(String, String, String, Long, Long, Boolean)](tag, "RUN_DESIGN_SUMMARIES") {
     def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
 
     def name: Rep[String] = column[String]("NAME")
@@ -413,11 +412,11 @@ object InitialSchema extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[String] = column[String]("CREATED_BY")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
+    def createdAt: Rep[Long] = column[Long]("CREATED_AT")
 
     def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
 
-    def * : ProvenShape[(String, String, String, Long, JodaDateTime, Boolean)] = (name, summary, createdBy, id, createdAt, reserved)
+    def * : ProvenShape[(String, String, String, Long, Long, Boolean)] = (name, summary, createdBy, id, createdAt, reserved)
   }
 
   case class RunDataModelAndId(runDataModel: String, id: Long)

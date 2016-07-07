@@ -2,7 +2,6 @@ package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.typesafe.scalalogging.LazyLogging
 import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
@@ -22,7 +21,7 @@ class V13__MoreDatasets extends JdbcMigration with SlickMigration with LazyLoggi
   }
 }
 
-object V13Schema extends PacBioDateTimeDatabaseFormat {
+object V13Schema {
 
   // XXX copied from initial schema...
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
