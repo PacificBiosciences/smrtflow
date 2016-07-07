@@ -37,6 +37,8 @@ object AnalysisServicesModels {
       name: String,
       organism: String,
       ploidy: String)
+
+  case class CreateBarcodeSet(path: String, name: String)
 }
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
@@ -63,21 +65,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
 
-  def getAnalysisJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.PB_PIPE)
-  }
-
-  def getImportJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.IMPORT_DS)
-  }
-
-  def getMergeJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.MERGE_DS)
-  }
-
-  def getFastaConvertJobs: Future[Seq[EngineJob]] = {
-    getJobsByType(JobTypes.CONVERT_FASTA)
-  }
+  def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.PB_PIPE)
+  def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.IMPORT_DS)
+  def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.MERGE_DS)
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_FASTA)
+  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_BARCODES)
 
   def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
     jobId match {
@@ -118,6 +110,12 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
       CreateReferenceSet(path, name, organism, ploidy))
+  }
+
+  def importFastaBarcodes(path: String, name: String): Future[EngineJob] = runJobPipeline {
+    Post(
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
+      CreateBarcodeSet(path, name))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {

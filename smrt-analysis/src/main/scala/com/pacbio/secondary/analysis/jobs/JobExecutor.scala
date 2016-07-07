@@ -11,7 +11,6 @@ import akka.actor.ActorRef
 import akka.util.Timeout
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, FailedMessage, SuccessMessage}
 import com.pacbio.secondary.analysis.jobs._
-import com.pacbio.secondary.analysis.reports.MockReportUtils
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils

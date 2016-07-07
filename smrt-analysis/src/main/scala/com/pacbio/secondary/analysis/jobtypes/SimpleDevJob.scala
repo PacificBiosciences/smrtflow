@@ -2,7 +2,7 @@ package com.pacbio.secondary.analysis.jobtypes
 
 import com.pacbio.secondary.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJobOptions}
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobTypeId, JobResourceBase, ResultFailed}
-import com.pacbio.secondary.analysis.reports.MockReportUtils
+import com.pacbio.secondary.analysis.reports.ReportUtils
 
 // Simple Dev Job for testing
 case class SimpleDevJobOptions(a: Int, b: Int) extends BaseJobOptions {
@@ -23,8 +23,8 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
     val dsFiles = toMockDataStoreFiles(job.path)
     val ds = toDatastore(resources, dsFiles)
     writeDataStore(ds, resources.datastoreJson)
-    val report = MockReportUtils.toMockTaskReport("pbscala.reports.dev_simple")
-    MockReportUtils.writeReport(report, resources.jobReportJson)
+    val report = ReportUtils.toMockTaskReport("smrtflow_dev_simple", "smrtflow Report")
+    ReportUtils.writeReport(report, resources.jobReportJson)
     val total = opts.a + opts.b
     resultsWriter.writeStdout(s"Simple job ${opts.a} + ${opts.b} = $total ")
     Thread.sleep(1000)

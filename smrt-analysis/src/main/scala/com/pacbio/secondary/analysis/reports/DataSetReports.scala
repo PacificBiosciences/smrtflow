@@ -138,10 +138,10 @@ object DataSetReports {
         attribs(DataSetLoader.loadBarcodeSet(inPath).getDataSetMetadata())
     }
     val rpt = Report(
-      simple, Constants.SMRTFLOW_VERSION, reportAttrs, List(), List())
+      simple, "Import DataSet Report", Constants.SMRTFLOW_VERSION, reportAttrs, List(), List(), UUID.randomUUID())
 
     val reportPath = jobPath.resolve(simple + ".json")
-    MockReportUtils.writeReport(rpt, reportPath)
+    ReportUtils.writeReport(rpt, reportPath)
     toReportFile(reportPath, s"pbscala::${jobTypeId.id}")
   }
 }

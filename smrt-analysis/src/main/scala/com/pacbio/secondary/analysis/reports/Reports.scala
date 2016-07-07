@@ -2,22 +2,20 @@ package com.pacbio.secondary.analysis.reports
 
 import com.pacbio.common.models.UUIDJsonProtocol
 
-import java.io.{FileWriter, BufferedWriter, File}
-import java.nio.file.{Path, Files}
+import java.util.UUID
+import java.nio.file.Path
+import scala.io.Source
 
 import org.apache.commons.io.FileUtils
+
 import spray.json._
-import java.util.UUID
 import DefaultJsonProtocol._
 
 
-/**
- * Need to figure out how to handle different Types
- */
 object ReportModels {
 
-  val REPORT_MODEL_VERSION = "0.3.0"
-  val DEFAULT_VERSION = "UNKNOWN"
+  // This is the version of the report data model schema
+  final val REPORT_SCHEMA_VERSION = "1.0.0"
 
   abstract class ReportAttribute
 
@@ -39,18 +37,37 @@ object ReportModels {
       legend: Option[String] = None,
       plots: List[ReportPlot])
 
+  // Tools outside of pbreports are generating reports, so tools should use a report id scheme
+  // of {tool}_{report_base_id} such as smrtflow_examplereport as the base id
+
+  /**
+    * PacBio Report data model
+    *
+    * @param id           Report Id use smrtflow_{my_report} format. [a-z0-9_] must begin with a-z
+    * @param title        Display name of the report
+    * @param version      Report Schema version
+    * @param attributes   Report Attributes
+    * @param plotGroups   Report PlotGroups
+    * @param tables       Report Tables
+    * @param uuid         Report UUID If `uuid` is not present in the JSON, a random value will be generated
+    * @param datasetUuids Dataset UUIDs used to generate the reports
+    */
   case class Report(
       id: String,
-      version: String = DEFAULT_VERSION,
+      title: String,
+      version: String = REPORT_SCHEMA_VERSION,
       attributes: List[ReportAttribute],
       plotGroups: List[ReportPlotGroup],
       tables: List[ReportTable],
-      uuid: Option[UUID] = None,
-      datasetUuids: List[UUID] = List[UUID]())
+      uuid: UUID,
+      datasetUuids: Set[UUID] = Set.empty[UUID])
 
 }
 
 
+/**
+  * Report Serialization Utils
+  */
 trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
 
   import ReportModels._
@@ -110,19 +127,23 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           }).toList
           ReportTableColumn(id, header, values)
         }
-        case x => deserializationError(s"Expected Column, got ${x}")
+        case x => deserializationError(s"Expected Column, got $x")
       }
     }
   }
   implicit val reportTableFormat = jsonFormat3(ReportTable)
-  //implicit val reportFormat = jsonFormat5(Report)
-  // FIXME(nechols)(2016-06-06) this is basically a giant hack to allow the
-  // 'version' field to be optional, but we should probably fix this on the
-  // pbcommand side as well
+
+  /**
+    * This is manually rolled value to allow different schema versions
+    * However, the code as of 7/6/2016 should generate reports that are
+    * compliant with the 1.0.0 schema spec
+    *
+    **/
   implicit object reportFormat extends RootJsonFormat[Report] {
     def write(r: Report): JsObject = {
       JsObject(
         "id" -> JsString(r.id),
+        "title" -> JsString(r.title),
         "version" -> JsString(r.version),
         "attributes" -> r.attributes.toJson,
         "plotGroups" -> r.plotGroups.toJson,
@@ -134,40 +155,50 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
       val jsObj = value.asJsObject
       jsObj.getFields("id", "attributes", "plotGroups", "tables") match {
         case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables)) => {
+
           val version = jsObj.getFields("version") match {
             case Seq(JsString(v)) => v
             // fallback to support pbcommand model
             case _ => jsObj.getFields("_version") match {
               case Seq(JsString(v)) => v
-              case _ => DEFAULT_VERSION
+              case _ => REPORT_SCHEMA_VERSION
             }
           }
+
+          // If the UUID is not preset in the report JSON,
+          // a random value will be generated
           val uuid = jsObj.getFields("uuid") match {
-            case Seq(JsString(u)) => Some(UUID.fromString(u))
-            case _ => None
+            case Seq(JsString(u)) => UUID.fromString(u)
+            case _ => UUID.randomUUID()
           }
           val datasetUuids = jsObj.getFields("dataset_uuids") match {
-            case Seq(JsArray(uuids)) => uuids.map(_.convertTo[UUID]).toList
-            case _ => List[UUID]()
+            case Seq(JsArray(uuids)) => uuids.map(_.convertTo[UUID]).toSet
+            case _ => Set.empty[UUID]
           }
+
+          // Generate a title from the Report Id
+          val title = jsObj.getFields("title") match {
+            case Seq(JsString(t)) => t
+            case _ => s"Report $id"
+          }
+
           val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
           val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
           val tables = jsTables.map(_.convertTo[ReportTable]).toList
-          Report(id, version, attributes, plotGroups, tables, uuid,
-                 datasetUuids)
+          Report(id, title, version, attributes, plotGroups, tables, uuid, datasetUuids)
         }
-        case x => deserializationError(s"Expected Report, got ${x}")
+        case x => deserializationError(s"Expected Report, got $x")
       }
     }
   }
 
 }
 
-object MockReportUtils extends ReportJsonProtocol {
+object ReportUtils extends ReportJsonProtocol {
 
   import ReportModels._
 
-  def toReportTable: ReportTable = {
+  private def toReportTable: ReportTable = {
 
     def toC(id: String, nvalues: Int) = JsObject(Map(
         "id" -> JsString(id),
@@ -183,9 +214,15 @@ object MockReportUtils extends ReportJsonProtocol {
   }
 
   /**
-   * Generate a pbreport-eseque task/jobOptions report of the execution
-   */
-  def toMockTaskReport(reportId: String): Report = {
+    * Generates a pbsmrtpipe-eseque Task Report of host, runtime, etc...
+    * This needs to be refactored into a concrete model and pbsmrtpipe should emit this
+    * same model.
+    *
+    * @param reportId PacBio Report Id
+    * @param title    Display name of Report
+    * @return
+    */
+  def toMockTaskReport(reportId: String, title: String): Report = {
     def toI(x: String) = s"$reportId.$x"
     def toRa(i: String, n: String, v: Int) = ReportLongAttribute(i, n, v)
     val xs = Seq(("host", "Host ", 1234),
@@ -196,46 +233,57 @@ object MockReportUtils extends ReportJsonProtocol {
     val attrs = xs.map(x => toRa(toI(x._1), x._2, x._3)).toList
     val plots = List[ReportPlotGroup]()
     val tables = List[ReportTable]()
-    Report("workflow_task", REPORT_MODEL_VERSION, attrs, plots, tables)
+    Report("workflow_task", title, REPORT_SCHEMA_VERSION, attrs, plots, tables, UUID.randomUUID())
   }
 
   /**
-   * Generate an example Report with a Few Attributes and PlotReports
-   *
-   * @param baseId pbreport style report id
-   * @return Report
-   */
-  def mockReport(baseId: String): Report = {
+    * Generate an example Report with a Few Attributes and PlotReports
+    *
+    * @param baseId pbreport style report id
+    * @return Report
+    */
+  def mockReport(baseId: String, title: String): Report = {
 
     def toI(n: String) = s"$baseId.$n"
     def toA(n: Int, id: String) = ReportLongAttribute(toI(id), s"name $id", n)
     def toP(n: Int, id: String) = ReportPlot(toI(id), s"$id.png", Some(s"Caption $id"))
     def toPg(id: String, plots: List[ReportPlot]) = ReportPlotGroup(toI(id), Some(s"title $id"), Some(s"legend $id"), plots)
 
-    val rid = s"pbsmrtpipe.reports.$baseId"
-    val rversion = "0.2.1"
-    val nattrs = 10
+    // Now that reports are generated outside of pbreports, the id format needs to be expanded.
+    // the format should evolve to have the base id of {tool}.reports.{base-id}
+    //val rid = s"pbsmrtpipe.reports.$baseId"
 
+    val nattrs = 10
     val nplots = 3
+
     val plots = (1 until nplots).map(x => toP(x, toI(s"plot_$x")))
     val plotGroup = toPg(toI("plotgroups"), plots.toList)
+
     val attrs = (1 until nattrs).map(n => toA(n, s"attr$n"))
-    Report(rid, rversion, attrs.toList, List(plotGroup), List(toReportTable),
-           Some(UUID.randomUUID), List[UUID](UUID.randomUUID))
+
+    Report(baseId, title, REPORT_SCHEMA_VERSION, attrs.toList, List(plotGroup), List(toReportTable), UUID.randomUUID)
   }
 
+  /**
+    * Write a Report to a JSON file
+    *
+    * @param report PacBio Report
+    * @param path   output path to JSON report
+    * @return
+    */
   def writeReport(report: Report, path: Path): Report = {
     FileUtils.writeStringToFile(path.toFile, report.toJson.toString)
     report
   }
 
-  def example: Boolean = {
-    val r = mockReport("filter_stats")
-    val s = r.toJson
-    println(r)
-    println("Report JSON")
-    println(s.prettyPrint)
-    true
-  }
+  /**
+    * Load a Report from Path
+    *
+    * @param path Path to Report JSON file
+    * @return
+    */
+  def loadReport(path: Path): Report =
+    Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[Report]
+
 
 }
