@@ -32,13 +32,13 @@ class PipelineUtilsSpec extends Specification{
     "Simple load/merge Pipeline Presets" in {
 
       val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset1))
-      println("Processed Pipeline")
-      println(pipelineTemplate)
-      println("Preset")
-      println(pipelineTemplate.presets)
+//      println("Processed Pipeline")
+//      println(pipelineTemplate)
+//      println("Preset")
+//      println(pipelineTemplate.presets)
 
       val px = pipelineTemplate.presets.headOption.map(x => x.taskOptions.filter(_.id == "id-a"))
-      println(px)
+//      println(px)
       px must beSome[Seq[PipelineBaseOption]]
     }
   }

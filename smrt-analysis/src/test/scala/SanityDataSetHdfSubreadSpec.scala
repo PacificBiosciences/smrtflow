@@ -25,7 +25,7 @@ class SanityDataSetHdfSubreadSpec extends Specification with LazyLogging {
         logger.info(s"successfully loaded hdfsubread dataset $ds")
         DataSetValidator.validate(ds, path.getParent)
         val jstring = DataSetJsonUtils.hdfSubreadSetToJson(ds)
-        println(s"HdfSubread json $jstring")
+        //println(s"HdfSubread json $jstring")
         ds
       }
 
