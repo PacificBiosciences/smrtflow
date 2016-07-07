@@ -98,7 +98,10 @@ def PacBioProject(name: String): Project = (
       "org.flywaydb" % "flyway-core" % "4.0",
       "com.lihaoyi" % "ammonite-repl" % "0.5.7" % "test" cross CrossVersion.full,
       "org.ini4j" % "ini4j" % "0.5.4",
-      "org.apache.commons" % "commons-dbcp2" % "2.0.1"
+      "org.apache.commons" % "commons-dbcp2" % "2.0.1",
+      // kamon for logging HTTP
+      "io.kamon" %% "kamon-core" % "0.6.0",
+      "com.h2database" % "h2" % "1.4.192"
     )
     )
   )
@@ -157,7 +160,7 @@ lazy val smrtServerLims = (
   PacBioProject("smrt-server-lims")
     dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
     settings (
-      mainClass in assembly := Some("com.pacbio.secondary.lims.Main")
+      mainClass in assembly := Some("com.pacbio.secondary.lims.MainSimple")
     )
   )
 
