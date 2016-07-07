@@ -63,9 +63,6 @@ class EngineManagerActor(val daoActor: ActorRef,
 
   val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
-  // Log the job summary. This should probably be in a health agent
-  val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
-
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
 
@@ -90,7 +87,6 @@ class EngineManagerActor(val daoActor: ActorRef,
   }
 
   override def postStop(): Unit = {
-    tick.cancel()
     checkForWorkTick.cancel()
   }
 
