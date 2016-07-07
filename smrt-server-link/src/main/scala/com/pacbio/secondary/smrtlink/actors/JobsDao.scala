@@ -227,10 +227,16 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   }
 
   override def getJobByUUID(jobId: UUID): Future[Option[EngineJob]] =
-    db.run(engineJobs.filter(_.uuid === jobId).result.headOption)
+    db.run(jobByUUID(jobId))
+
+  protected def jobByUUID(jobId: UUID) =
+    engineJobs.filter(_.uuid === jobId).result.headOption
 
   override def getJobById(jobId: Int): Future[Option[EngineJob]] =
-    db.run(engineJobs.filter(_.id === jobId).result.headOption)
+    db.run(jobById(jobId))
+
+  protected def jobById(jobId: Int) =
+    engineJobs.filter(_.id === jobId).result.headOption
 
   def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
@@ -375,7 +381,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
 
 
-  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
+  // TODO(smcclellan): limit is never used. add `.take(limit)`?
   override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = db.run(engineJobs.result)
 
   def getJobsByTypeId(jobTypeId: String): Future[Seq[EngineJob]] =
@@ -401,128 +407,124 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   /**
    * Importing of DataStore File by Job Int Id
    */
-  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[String] = getJobById(jobId).flatMap {
-    case Some(job) => insertDataStoreByJob(job, ds)
+  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[String] =
+    db.run(jobById(jobId).flatMap[String,slick.dbio.NoStream,slick.dbio.Effect.All] {
+      case Some(job) => insertDataStoreByJob(job, ds)
 
-    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
-  }
+      case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
+    })
 
-  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[String] = getJobByUUID(jobId).flatMap {
-    case Some(job) => insertDataStoreByJob(job, ds)
-    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
-  }
+  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[String] =
+    db.run(jobByUUID(jobId).flatMap[String,slick.dbio.NoStream,slick.dbio.Effect.All] {
+      case Some(job) => insertDataStoreByJob(job, ds)
+      case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
+    })
 
   override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
     logger.info(s"adding datastore file for $ds")
-    getJobByUUID(ds.jobId).flatMap {
-      case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
-        .map(m => Right(CommonMessages.SuccessMessage(m)))
-        .recover {
-          case NonFatal(e) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
-        }
-      case None => Future(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
-    }
+    db.run(jobByUUID(ds.jobId).flatMap[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage],slick.dbio.NoStream,slick.dbio.Effect.All] {
+      case Some(engineJob) =>
+        insertDataStoreByJob(engineJob, ds.dataStoreFile)
+          .asTry.map({
+            case Success(m) => Right(CommonMessages.SuccessMessage(m))
+            case Failure(NonFatal(e)) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
+          })
+      case None => DBIO.successful(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
+    })
   }
 
   /**
    * Generic Importing of DataSet by type and Path to dataset file
    */
-  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): Future[String] = {
+  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): DBIO[String] = {
     val path = Paths.get(spath)
     dataSetMetaType match {
       case DataSetMetaTypes.Subread =>
         val dataset = DataSetLoader.loadSubreadSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertSubreadDataSet(sds)
+        dbInsertSubreadDataSet(sds)
       case DataSetMetaTypes.Reference =>
         val dataset = DataSetLoader.loadReferenceSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertReferenceDataSet(sds)
+        dbInsertReferenceDataSet(sds)
       case DataSetMetaTypes.GmapReference =>
         val dataset = DataSetLoader.loadGmapReferenceSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertGmapReferenceDataSet(sds)
+        dbInsertGmapReferenceDataSet(sds)
       case DataSetMetaTypes.HdfSubread =>
         val dataset = DataSetLoader.loadHdfSubreadSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertHdfSubreadDataSet(sds)
+        dbInsertHdfSubreadDataSet(sds)
       case DataSetMetaTypes.Alignment =>
         val dataset = DataSetLoader.loadAlignmentSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertAlignmentDataSet(sds)
+        dbInsertAlignmentDataSet(sds)
       case DataSetMetaTypes.Barcode =>
         val dataset = DataSetLoader.loadBarcodeSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertBarcodeDataSet(sds)
+        dbInsertBarcodeDataSet(sds)
       case DataSetMetaTypes.CCS =>
         val dataset = DataSetLoader.loadConsensusReadSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertConsensusReadDataSet(sds)
+        dbInsertConsensusReadDataSet(sds)
       case DataSetMetaTypes.AlignmentCCS =>
         val dataset = DataSetLoader.loadConsensusAlignmentSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertConsensusAlignmentDataSet(sds)
+        dbInsertConsensusAlignmentDataSet(sds)
       case DataSetMetaTypes.Contig =>
         val dataset = DataSetLoader.loadContigSet(path)
         val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
-        insertContigDataSet(sds)
+        dbInsertContigDataSet(sds)
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
         logger.warn(msg)
-        Future(msg)
+        DBIO.successful(msg)
     }
   }
 
-  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): Future[String] = {
-    logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
-
+  // insert datastore file if it hasn't already been imported
+  private def datastoreFileImport(engineJob: EngineJob, ds: DataStoreFile): DBIO[String] = {
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
     val importedAt = createdAt
 
-    if (ds.isChunked) {
-      Future(s"Skipping inserting of Chunked DataStoreFile $ds")
-    } else {
+    // NB: if multiple threads try to do run these DB queries, they
+    // will race to be the first to do the insert; the loser will encounter
+    // a unique constraint violation.
+    val dssfAction = datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption
 
-      /**
-       *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
-       */
-      def addOptionalInsert(existing: Option[Any]): Future[String] = {
-        // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
-        val addDataStoreServiceFile = existing match {
-          case Some(_) =>
-            DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
-          case None =>
-            logger.info(s"importing datastore file into db $ds")
-            val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
-            datastoreServiceFiles += dss
-        }
-        // 2 of 3: insert of the data set, if it is a known/supported file type
-        val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-          case Some(typ) => {
-            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
-          }
-          case None =>
-            existing match {
-              case Some(_) =>
-                DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
-              case None =>
-                DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
-            }
-        }
-        // 3 of 3: run the appropriate actions in a transaction
-        val fin = for {
-          _ <- addDataStoreServiceFile
-          oi <- optionalInsert
-        } yield (oi)
-        db.run(fin.transactionally)
+    dssfAction.flatMap {
+      case Some(_) =>
+        DBIO.successful(s"Already imported. Skipping inserting of datastore file $ds")
+      case None =>
+        logger.info(s"importing datastore file into db $ds")
+        val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
+        (datastoreServiceFiles += dss).map(_ => s"imported datastore file ${ds.uniqueId}")
+    }
+  }
+
+  // If the datastore file is a dataset, also insert dataset-related
+  // metadata into dataset tables.  If not, skip dataset inserts.
+  private def extendedDatastoreFileImport(engineJob: EngineJob, ds: DataStoreFile): DBIO[String] = {
+    DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+      case Some(typ) => {
+        insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID)
       }
-      
-      // This needed queries un-nested due to SQLite limitations -- see #197
-      db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption).flatMap{
-        addOptionalInsert
-      }
+      case None =>
+        DBIO.successful(s"Skipping extended/detailed importing for datastore file ${ds.fileTypeId} ${ds.uniqueId}.")
+    }
+  }
+
+  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): DBIO[String] = {
+    logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
+
+    if (ds.isChunked) {
+      DBIO.successful(s"Skipping inserting of Chunked DataStoreFile $ds")
+    } else {
+      datastoreFileImport(engineJob, ds).andThen(
+        extendedDatastoreFileImport(engineJob, ds)
+      ).transactionally
     }
   }
 
@@ -557,12 +559,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(action)
   }
 
-  private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
-    db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
-
-  // removes a query that seemed like it was potentially nested based on race condition with executor
-  private def getDataSetMetaDataSetBlocking(uuid: UUID): Option[DataSetMetaDataSet] =
-    Await.result(getDataSetMetaDataSet(uuid), 23456 milliseconds)
+  private def getDataSetMetaDataSet(uuid: UUID): DBIO[Option[DataSetMetaDataSet]] =
+    dsMetaData2.filter(_.uuid === uuid).result.headOption
 
   private def insertMetaData(ds: ServiceDataSetMetadata): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
     val createdAt = JodaDateTime.now()
@@ -574,41 +572,66 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   type U = slick.profile.FixedSqlAction[Int,slick.dbio.NoStream,slick.dbio.Effect.Write]
 
-  def insertDataSetSafe[T <: ServiceDataSetMetadata](ds: T, dsTypeStr: String,
-                         insertFxn: (Int) => U): Future[String] = {
-    getDataSetMetaDataSetBlocking(ds.uuid) match {
+  private def insertDataSetSafe[T <: ServiceDataSetMetadata](ds: T, dsTypeStr: String,
+                                                            insertFxn: (Int) => U): DBIO[String] = {
+    getDataSetMetaDataSet(ds.uuid).flatMap {
       case Some(_) =>
         val msg = s"${dsTypeStr} ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
-        Future(msg)
-      case None => db.run {
-        insertMetaData(ds).flatMap {
-          id => insertFxn(id)
-        }.map(_ => {
+        DBIO.successful(msg)
+      case None => 
+        insertMetaData(ds).flatMap(insertFxn).map {_ =>
           val m = s"Successfully entered ${dsTypeStr} $ds"
           logger.info(m)
           m
-        })
-      }
+        }
     }
   }
 
   def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[String] =
+    db.run(dbInsertReferenceDataSet(ds))
+
+  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[String] =
+    db.run(dbInsertGmapReferenceDataSet(ds))
+
+  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+    db.run(dbInsertSubreadDataSet(ds))
+
+  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
+    db.run(dbInsertHdfSubreadDataSet(ds))
+
+  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[String] =
+    db.run(dbInsertAlignmentDataSet(ds))
+
+  def insertConsensusReadDataSet(ds: CCSreadServiceDataSet): Future[String] =
+    db.run(dbInsertConsensusReadDataSet(ds))
+
+  def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[String] =
+    db.run(dbInsertConsensusAlignmentDataSet(ds))
+
+  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[String] =
+    db.run(dbInsertBarcodeDataSet(ds))
+
+  def insertContigDataSet(ds: ContigServiceDataSet): Future[String] =
+    db.run(dbInsertContigDataSet(ds))
+
+
+  private def dbInsertReferenceDataSet(ds: ReferenceServiceDataSet): DBIO[String] =
     insertDataSetSafe[ReferenceServiceDataSet](ds, "ReferenceSet",
       (id) => { dsReference2 forceInsert ReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism) })
 
-  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[String] = 
+  private def dbInsertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): DBIO[String] = 
     insertDataSetSafe[GmapReferenceServiceDataSet](ds, "GmapReferenceSet",
       (id) => { dsGmapReference2 forceInsert GmapReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism) })
 
-  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+  private def dbInsertSubreadDataSet(ds: SubreadServiceDataSet): DBIO[String] =
     insertDataSetSafe[SubreadServiceDataSet](ds, "SubreadSet",
       (id) => { dsSubread2 forceInsert SubreadServiceSet(id, ds.uuid,
           "cell-id", ds.metadataContextId, ds.wellSampleName, ds.wellName,
           ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
           ds.runName, "instrument-ctr-version") })
 
-  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
+  private def dbInsertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): DBIO[String] =
     insertDataSetSafe[HdfSubreadServiceDataSet](ds, "HdfSubreadSet",
       (id) => {
         dsHdfSubread2 forceInsert HdfSubreadServiceSet(id, ds.uuid,
@@ -616,25 +639,26 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
           ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
           ds.runName, "instrument-ctr-version") })
 
-  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[String] =
+  private def dbInsertAlignmentDataSet(ds: AlignmentServiceDataSet): DBIO[String] =
     insertDataSetSafe[AlignmentServiceDataSet](ds, "AlignmentSet",
       (id) => { dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid) })
 
-  def insertConsensusReadDataSet(ds: CCSreadServiceDataSet): Future[String] =
+  private def dbInsertConsensusReadDataSet(ds: CCSreadServiceDataSet): DBIO[String] =
     insertDataSetSafe[CCSreadServiceDataSet](ds, "ConsensusReadSet",
       (id) => { dsCCSread2 forceInsert CCSreadServiceSet(id, ds.uuid) })
 
-  def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[String] =
+  private def dbInsertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): DBIO[String] =
     insertDataSetSafe[ConsensusAlignmentServiceDataSet](ds, "ConsensusAlignmentSet",
       (id) => { dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid) })
 
-  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[String] =
+  private def dbInsertBarcodeDataSet(ds: BarcodeServiceDataSet): DBIO[String] =
     insertDataSetSafe[BarcodeServiceDataSet](ds, "BarcodeSet",
       (id) => { dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid) })
 
-  def insertContigDataSet(ds: ContigServiceDataSet): Future[String] =
+  private def dbInsertContigDataSet(ds: ContigServiceDataSet): DBIO[String] =
     insertDataSetSafe[ContigServiceDataSet](ds, "ContigSet",
       (id) => { dsContig2 forceInsert ContigServiceSet(id, ds.uuid) })
+
 
   def getDataSetTypeById(typeId: String): Future[Option[ServiceDataSetMetaType]] =
     db.run(datasetTypes.filter(_.id === typeId).result.headOption)
