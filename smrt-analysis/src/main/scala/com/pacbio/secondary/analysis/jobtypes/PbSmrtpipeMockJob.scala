@@ -9,7 +9,7 @@ import com.pacbio.secondary.analysis.bio.FastaMockUtils
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.reports.MockReportUtils
+import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
@@ -111,6 +111,7 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
 
   /**
    * This will a real fasta file that can be used
+ *
    * @return
    */
   def toMockFastaDataStoreFile(rootDir: Path): DataStoreFile = {
@@ -153,15 +154,16 @@ with MockJobUtils {
     val resources = setupJobResourcesAndCreateDirs(job.path)
     val dsFiles = toMockDataStoreFiles(job.path)
 
-    val prefix = "mock-pbsmrtpipe-report"
-    // Add A report file
-    val taskReport = MockReportUtils.mockReport(prefix)
-    val reportPath = job.path.resolve(prefix + ".json")
-    MockReportUtils.writeReport(taskReport, reportPath)
+    // This must follow the pbreport id format
+    val reportId = "smrtflow_mock_job_report"
+
+    val taskReport = ReportUtils.mockReport(reportId, "Mock smrtflow Report")
+    val reportPath = job.path.resolve(reportId + ".json")
+    ReportUtils.writeReport(taskReport, reportPath)
     val createdAt = JodaDateTime.now()
 
     val reportDataStoreFile = DataStoreFile(
-      UUID.randomUUID(),
+      taskReport.uuid,
       "mock-pbsmrtpipe::mock-report",
       FileTypes.REPORT.fileTypeId.toString,
       reportPath.toFile.length(),
@@ -176,8 +178,8 @@ with MockJobUtils {
 
     val ds = toDatastore(resources, dsFiles2)
     writeDataStore(ds, resources.datastoreJson)
-    val report = MockReportUtils.toMockTaskReport("pbscala.reports.mock_pbsmrtpipe_job")
-    MockReportUtils.writeReport(report, resources.jobReportJson)
+    val report = ReportUtils.toMockTaskReport("smrtflow_mock_pbsmrtpipe_job", "smrtflow Mock Pbsmrtpipe Job")
+    ReportUtils.writeReport(report, resources.jobReportJson)
     writeEntryPoints(opts.entryPoints, resources.entryPointsJson)
 
     logger.info(s"Completed running mock jobOptions in ${job.path.toString}")
