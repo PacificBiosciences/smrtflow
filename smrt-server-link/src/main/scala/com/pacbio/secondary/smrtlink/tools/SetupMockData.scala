@@ -369,7 +369,7 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
     } yield sx
 
 
-    val result = Await.result(fx, 480.seconds)
+    val result = Await.result(fx, Duration.Inf)
     println(s"System Summary \n$result")
 
     println("Exiting main")
