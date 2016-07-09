@@ -14,15 +14,14 @@ dependencies:
     - wget -q https://dl.bintray.com/sbt/debian/sbt-0.13.11.deb
     - sudo dpkg -i sbt-0.13.11.deb
   cache_directories:
-      - "~/.ivy2"
-      - "~/.sbt"
-      - "target/resolution-cache"
-      - "target/streams"
-      - "project/target/resolution-cache"
-      - "project/target/streams"
-    # Compile all sources
-    override:
-      - sbt test:compile
+    - "~/.ivy2"
+    - "~/.sbt"
+    - "target/resolution-cache"
+    - "target/streams"
+    - "project/target/resolution-cache
+    - "project/target/streams"
+  override:
+    - sbt test:compile
 
 test:
   override:
