@@ -1,6 +1,5 @@
 package com.pacbio.secondary.lims.database.h2
 
-import java.io.{InputStreamReader, StringReader}
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.pacbio.secondary.lims.LimsYml
@@ -8,7 +7,6 @@ import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
-import scala.util.Try
 
 
 /**
