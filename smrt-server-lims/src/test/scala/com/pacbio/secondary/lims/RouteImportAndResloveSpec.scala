@@ -81,5 +81,14 @@ class RouteImportAndResloveSpec
         expcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.expcode
       }
     }
+    "Full runcode resolvable via API" in {
+      runcode mustEqual getLimsYml(getByRunCode(runcode).head).runcode
+    }
+    "Full runcode resolvable via GET" in {
+      Get(s"/resolve?q=$runcode") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual true
+        runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
+      }
+    }
   }
 }

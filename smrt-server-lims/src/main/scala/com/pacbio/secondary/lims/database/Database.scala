@@ -16,7 +16,10 @@ trait Database {
 
   def setLimsYml(v: LimsYml): String
 
-  def getByUUID(uuid: String): Seq[Int]
+  /**
+   * Converts from an arbitrary alias to the matching lims.yml files
+   */
+  def getByAlias(alias: String): Seq[Int]
 
   def getByExperiment(uuid: Int): Seq[Int]
 

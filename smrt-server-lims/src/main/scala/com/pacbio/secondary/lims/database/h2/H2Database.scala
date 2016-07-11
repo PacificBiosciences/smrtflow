@@ -146,7 +146,7 @@ trait H2Database extends Database {
   override def getByExperiment(q: Int): Seq[Int] =
     safeGet[Seq[Int]](s"SELECT id FROM $limsYml WHERE expcode = '$q'", ids)
 
-  override def getByUUID(q: String): Seq[Int] = List[Int]()
+  override def getByAlias(q: String): Seq[Int] = List[Int]()
 
   override def getLimsYml(q: Seq[Int]): Seq[LimsYml] =
     for (id <- q) yield getLimsYml(id)

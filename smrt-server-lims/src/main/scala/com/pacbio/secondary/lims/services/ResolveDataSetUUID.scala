@@ -44,9 +44,18 @@ trait ResolveDataSetUUID extends HttpService {
    * Resolves a dataset identifier to matching subreadsets
    */
   def resolve(q: String): Seq[LimsYml] = {
+    // TODO: do these in parallel
     Try(getByExperiment(q.toInt)) match {
       case Success(ids) => getLimsYml(ids)
-      case Failure(t) => throw t
+      case Failure(t) =>
+        Try(getByRunCode(q)) match {
+          case Success(ids) => getLimsYml(ids)
+          case Failure(t) =>
+            Try(getByAlias(q)) match {
+            case Success(ids) => getLimsYml(ids)
+            case Failure(t) => throw t
+          }
+        }
     }
   }
 }
