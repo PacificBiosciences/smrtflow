@@ -93,7 +93,7 @@ with JobServiceConstants {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
+  val dbURI = TestProviders.dbURI()
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"
@@ -110,9 +110,9 @@ with JobServiceConstants {
 
   trait daoSetup extends Scope {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
+    logger.info(s"Running tests from db-uri ${dbURI}")
     runSetup(dao)
-    println(s"completed setting up database ${db.dbUri}.")
+    println(s"completed setting up database ${dbURI}.")
   }
 
   "Job Execution Service list" should {
