@@ -3,9 +3,7 @@ package com.pacbio.secondary.lims.database.h2
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.pacbio.secondary.lims.LimsYml
-import com.pacbio.secondary.lims.database.DatabaseService
-
-import scala.util.{Failure, Success, Try}
+import com.pacbio.secondary.lims.database.{DatabaseService, JdbcDatabaseService}
 
 
 object H2DatabaseService {
@@ -15,14 +13,16 @@ object H2DatabaseService {
 /**
  * H2 implementation of the backend
  */
-class H2DatabaseService(jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3") extends DatabaseService {
+trait H2DatabaseService extends DatabaseService {
+  this: JdbcDatabaseService => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
   // create/migration hook
-  this.createTables
 
   def getConnection(): Connection = {
+    lazyCreateTables
+    println("Returning Connection: "+jdbcUrl)
     DriverManager.getConnection(jdbcUrl)
   }
 
@@ -166,38 +166,43 @@ class H2DatabaseService(jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3") ext
    *
    * Need to move to use migrations or similar. This is here just for the first iteration.
    */
-  def createTables: Unit = {
-    val c = getConnection()
-    try {
-      c.setAutoCommit(false)
-      val sql = s"""CREATE TABLE IF NOT EXISTS ${H2DatabaseService.limsYmlTable} (
-                    |  expcode INT,
-                    |  runcode VARCHAR,
-                    |  path VARCHAR,
-                    |  user VARCHAR,
-                    |  uid VARCHAR PRIMARY KEY,
-                    |  tracefile VARCHAR,
-                    |  description VARCHAR,
-                    |  wellname VARCHAR,
-                    |  cellbarcode VARCHAR,
-                    |  seqkitbarcode VARCHAR,
-                    |  cellindex VARCHAR,
-                    |  colnum VARCHAR,
-                    |  samplename VARCHAR,
-                    |  instid INT
-                    |);
-          """.stripMargin
-      val s = c.prepareStatement(sql)
+  var createdTables: Boolean = false
+  def lazyCreateTables: Unit = {
+    if (!createdTables) {
+      createdTables = true
+      val c = getConnection()
       try {
-        s.executeUpdate()
+        c.setAutoCommit(false)
+        val sql =
+          s"""CREATE TABLE IF NOT EXISTS ${H2DatabaseService.limsYmlTable} (
+              |  expcode INT,
+              |  runcode VARCHAR,
+              |  path VARCHAR,
+              |  user VARCHAR,
+              |  uid VARCHAR PRIMARY KEY,
+              |  tracefile VARCHAR,
+              |  description VARCHAR,
+              |  wellname VARCHAR,
+              |  cellbarcode VARCHAR,
+              |  seqkitbarcode VARCHAR,
+              |  cellindex VARCHAR,
+              |  colnum VARCHAR,
+              |  samplename VARCHAR,
+              |  instid INT
+              |);
+          """.stripMargin
+        val s = c.prepareStatement(sql)
+        try {
+          s.executeUpdate()
+        }
+        finally {
+          s.close()
+        }
       }
       finally {
-        s.close()
+        c.commit()
+        c.close()
       }
-    }
-    finally {
-      c.commit()
-      c.close()
     }
   }
 }

@@ -1,15 +1,10 @@
 package com.pacbio.secondary.lims.services
 
-import java.io.{BufferedReader, StringReader}
-
-import com.pacbio.secondary.lims.LimsYml
-import com.pacbio.secondary.lims.database.Database
-import spray.http.MultipartFormData
+import com.pacbio.secondary.lims.database.DatabaseService
 import spray.routing.HttpService
 
-import scala.collection.mutable
 import scala.concurrent.Future
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 object ResolveDataSetUUID {
   val uuidPrefixTree = null
@@ -20,6 +15,7 @@ object ResolveDataSetUUID {
  * Created by jfalkner on 6/30/16.
  */
 trait ResolveDataSetUUID extends HttpService {
+  this: DatabaseService =>
 
   val resolveRoutes =
   // lims.yml files must be posted to the server
@@ -27,7 +23,6 @@ trait ResolveDataSetUUID extends HttpService {
       get {
         parameters('q) {
           q => {
-            // we use the enclosing ActorContext's or ActorSystem's dispatcher for our Futures and Scheduler
             implicit def executionContext = actorRefFactory.dispatcher
             complete(Future(resolve(q)))
           }
@@ -44,17 +39,12 @@ trait ResolveDataSetUUID extends HttpService {
    *
    */
   def resolve(q: String): String = {
-
-    // attempt to use the in-memory cache
-
-
-    val db = Database.get()
     // attempt exact match to leverage DB indexing
-    Try (db.getByUUID(q)) match {
+    Try (getByUUID(q)) match {
       case Success(uuid) => uuid
       case Failure(t) => {
         // attempt LIKE for a prefix match. slower due to table scan
-        Try(db.getByUUIDPrefix(q)) match {
+        Try(getByUUIDPrefix(q)) match {
           case Success(uuid) => uuid
           case Failure (t) => throw t // try the job ID lookup?
         }

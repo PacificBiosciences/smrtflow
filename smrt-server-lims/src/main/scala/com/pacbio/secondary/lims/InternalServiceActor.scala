@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims
 
 import akka.actor.Actor
+import com.pacbio.secondary.lims.database.{DefaultDatabaseService, JdbcDatabaseService}
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
 
 /**
@@ -8,8 +9,13 @@ import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
  */
 class InternalServiceActor
     extends Actor
+    with JdbcDatabaseService
+    with DefaultDatabaseService
     with ImportLimsYml
     with ResolveDataSetUUID {
+
+  // required for JdbcDatabaseService
+  def jdbcUrl : String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3"
 
   // the HttpService trait defines only one abstract member, which
   // connects the services environment to the enclosing actor or test

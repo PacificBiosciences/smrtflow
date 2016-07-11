@@ -3,20 +3,19 @@ package com.pacbio.secondary.lims.services
 import java.io.{BufferedReader, StringReader}
 
 import com.pacbio.secondary.lims.LimsYml
-import com.pacbio.secondary.lims.database.Database
+import com.pacbio.secondary.lims.database.DatabaseService
 import spray.http.MultipartFormData
 import spray.routing.HttpService
+import kamon.spray.KamonTraceDirectives.traceName
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.io.Source
-import scala.reflect.internal.util.StringOps
-import scala.util.{Failure, Success}
 
 /**
  * Created by jfalkner on 6/30/16.
  */
 trait ImportLimsYml extends HttpService {
+  this: DatabaseService =>
 
   // we use the enclosing ActorContext's or ActorSystem's dispatcher for our Futures and Scheduler
   implicit def executionContext = actorRefFactory.dispatcher
@@ -26,11 +25,13 @@ trait ImportLimsYml extends HttpService {
     // lims.yml files must be posted to the server
     pathPrefix("import") {
       post {
-        entity(as[MultipartFormData]) {
-          formData => {
-            val uploadedFile = formData.fields.head.entity.data.toByteArray
-            complete(
-              Future(loadData(uploadedFile)))
+        traceName("ImportLimsYml") {
+          entity(as[MultipartFormData]) {
+            formData => {
+              val uploadedFile = formData.fields.head.entity.data.toByteArray
+              complete(
+                Future(loadData(uploadedFile)))
+            }
           }
         }
       }
@@ -57,8 +58,7 @@ trait ImportLimsYml extends HttpService {
   }
 
   def loadData(m: mutable.HashMap[String, String]) : String = {
-    val db = Database.get()
-    db.setLimsYml(
+    setLimsYml(
       LimsYml(
         expcode = m.get("expcode").get.toInt,
         runcode = m.get("runcode").get,
