@@ -47,7 +47,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
       ))
     }.andThen { case _ => println("Completed inserting mock data.") }
 
-    Await.result(f, 1.minute)
+    Await.result(f, 2.minute)
   }
 }
 

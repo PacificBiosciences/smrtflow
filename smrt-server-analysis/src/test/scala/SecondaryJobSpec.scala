@@ -74,9 +74,9 @@ with JobServiceConstants {
 
   trait daoSetup extends Scope {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
+    logger.info(s"Running tests from db-uri '${dbURI()}'")
     runSetup(dao)
-    println(s"completed setting up database ${db.dbUri}")
+    println(s"completed setting up database '${db.dbUri}'")
   }
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
