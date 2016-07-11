@@ -1,11 +1,13 @@
 package com.pacbio.secondary.lims.database.h2
 
+import java.io.{InputStreamReader, StringReader}
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.io.Source
 import scala.util.Try
 
 
@@ -14,8 +16,6 @@ import scala.util.Try
  */
 trait H2Database extends Database {
   this: JdbcDatabase => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
-
-  val limsYml = "LIMS_YML"
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
@@ -37,7 +37,7 @@ trait H2Database extends Database {
       val s = c.createStatement()
       try {
         val sql = s"""
-          |MERGE INTO $limsYml
+          |MERGE INTO LIMS_YML
           | (id,
           |  expcode,
           |  runcode,
@@ -86,6 +86,26 @@ trait H2Database extends Database {
     }
   }
 
+  override def setAlias(a: String, id: Int): Unit = {
+    val c = getConnection()
+    try {
+      val s = c.createStatement()
+      try {
+        val sql = s"MERGE INTO ALIAS (alias, lims_yml_id) VALUES ('$a', $id)"
+        val result = s.executeUpdate(sql)
+        if (result != 1) {
+          throw new Exception("Couldn't merge: $a, $id")
+        }
+      }
+      finally {
+        s.close()
+      }
+    }
+    finally {
+      c.close()
+    }
+  }
+
   /**
    * Helper for the common task of going from result set to LimsYml
    *
@@ -114,7 +134,7 @@ trait H2Database extends Database {
 
   def ids(rs: ResultSet): Seq[Int] = {
     // weird, same issue? -- http://stackoverflow.com/questions/4380831/why-does-filter-have-to-be-defined-for-pattern-matching-in-a-for-loop-in-scala
-    //val all = for {id <- rs.getInt("id") if rs.next()} yield id
+    //val all = for {id <- rs.getInt(1) if rs.next()} yield id
     val buf = ArrayBuffer[Int]()
     while (rs.next()) {
       buf.append(rs.getInt(1))
@@ -141,19 +161,18 @@ trait H2Database extends Database {
   }
 
   override def getByRunCode(q: String): Seq[Int] =
-    safeGet[Seq[Int]](s"SELECT id FROM $limsYml WHERE runcode = '$q'", ids)
+    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE runcode = '$q'", ids)
 
   override def getByExperiment(q: Int): Seq[Int] =
-    safeGet[Seq[Int]](s"SELECT id FROM $limsYml WHERE expcode = '$q'", ids)
+    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE expcode = '$q'", ids)
 
-  override def getByAlias(q: String): Seq[Int] = List[Int]()
+  override def getByAlias(q: String): Int =
+    safeGet[Seq[Int]](s"SELECT lims_yml_id FROM ALIAS WHERE alias = '$q'", ids).head
 
-  override def getLimsYml(q: Seq[Int]): Seq[LimsYml] =
-    for (id <- q) yield getLimsYml(id)
+  override def getLimsYml(q: Seq[Int]): Seq[LimsYml] = for (id <- q) yield getLimsYml(id)
 
   override def getLimsYml(q: Int): LimsYml =
-    safeGet[LimsYml](s"SELECT * FROM $limsYml WHERE id = '$q'", ly)
-
+    safeGet[LimsYml](s"SELECT * FROM LIMS_YML WHERE id = $q", ly)
 
   /**
    * Throwaway lazy table creation method
@@ -167,40 +186,20 @@ trait H2Database extends Database {
       val c = getConnection()
       try {
         c.setAutoCommit(false)
-
-        val createLimsYml =
-          s"""CREATE TABLE IF NOT EXISTS $limsYml (
-              |  id IDENTITY PRIMARY KEY, -- arbitrary primary ket ID
-              |  expcode INT,
-              |  runcode VARCHAR,
-              |  path VARCHAR,
-              |  user VARCHAR,
-              |  uid VARCHAR,
-              |  tracefile VARCHAR,
-              |  description VARCHAR,
-              |  wellname VARCHAR,
-              |  cellbarcode VARCHAR,
-              |  seqkitbarcode VARCHAR,
-              |  cellindex VARCHAR,
-              |  colnum VARCHAR,
-              |  samplename VARCHAR,
-              |  instid INT
-              |);
-          """.stripMargin
-        // table for arbitrary aliases
-        val createAlias =
-          s"""CREATE TABLE IF NOT EXISTS ALIAS (
-              |  alias VARCHAR PRIMARY KEY,
-              |  lims_yml_id INT
-              |);
-          """.stripMargin
+        val file = "/com/pacbio/secondary/lims/database/h2/create_tables.sql"
+        val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
         val s = c.createStatement()
         try {
-          s.execute(createLimsYml)
-          s.execute(createAlias)
+          s.execute(sql)
         }
         finally {
           s.close()
+        }
+      }
+      catch {
+        case t => {
+          println("*** lazy-load error ***")
+          println(t)
         }
       }
       finally {

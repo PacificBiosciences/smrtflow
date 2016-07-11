@@ -16,10 +16,12 @@ trait Database {
 
   def setLimsYml(v: LimsYml): String
 
+  def setAlias(alias: String, id: Int): Unit
+
   /**
    * Converts from an arbitrary alias to the matching lims.yml files
    */
-  def getByAlias(alias: String): Seq[Int]
+  def getByAlias(alias: String): Int
 
   def getByExperiment(uuid: Int): Seq[Int]
 

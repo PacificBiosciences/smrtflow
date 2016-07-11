@@ -36,6 +36,9 @@ class RouteImportAndResloveSpec
 
   val expcode = 3220001
   val runcode = "3220001-0006"
+  val alias = "Foo"
+
+  lazyCreateTables
 
   "Internal LIMS service" should {
     "Pre-import expcode is not resolvable via GET" in {
@@ -86,6 +89,17 @@ class RouteImportAndResloveSpec
     }
     "Full runcode resolvable via GET" in {
       Get(s"/resolve?q=$runcode") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual true
+        runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
+      }
+    }
+    "Alias resolvable via API" in {
+      val id = getByExperiment(expcode).head
+      setAlias(alias, id)
+      id mustEqual getByAlias(alias)
+    }
+    "Alias resolvable via GET" in {
+      Get(s"/resolve?q=$alias") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
       }

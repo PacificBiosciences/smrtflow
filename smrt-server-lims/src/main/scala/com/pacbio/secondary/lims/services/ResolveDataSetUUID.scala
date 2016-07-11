@@ -28,11 +28,9 @@ trait ResolveDataSetUUID extends HttpService {
       get {
         parameters('q) {
           q => {
-            // serialize the tuples to JSON
             resolve(q).map(m => m) match {
-              case lys: Seq[LimsYml] => complete(
-                if (lys.nonEmpty) 200 else 400,
-                lys.toJson.prettyPrint)
+              case lys: Seq[LimsYml] =>
+                complete(if (lys.nonEmpty) 200 else 400, lys.toJson.prettyPrint)
               case t: Throwable => throw t
             }
           }
@@ -44,16 +42,15 @@ trait ResolveDataSetUUID extends HttpService {
    * Resolves a dataset identifier to matching subreadsets
    */
   def resolve(q: String): Seq[LimsYml] = {
-    // TODO: do these in parallel
     Try(getByExperiment(q.toInt)) match {
-      case Success(ids) => getLimsYml(ids)
-      case Failure(t) =>
+      case Success(id :: ids) => getLimsYml(id :: ids)
+      case _ =>
         Try(getByRunCode(q)) match {
-          case Success(ids) => getLimsYml(ids)
-          case Failure(t) =>
+          case Success(id :: ids) => getLimsYml(id :: ids)
+          case _ =>
             Try(getByAlias(q)) match {
-            case Success(ids) => getLimsYml(ids)
-            case Failure(t) => throw t
+            case Success(id) => Seq(getLimsYml(id))
+            case _ => Seq()
           }
         }
     }
