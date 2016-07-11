@@ -6,6 +6,10 @@ import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
 
+import com.pacbio.secondary.lims.JsonProtocol._
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 
 /**
  * Tests using POST to import data and GET to resolve the respective UUID
@@ -17,35 +21,36 @@ import spray.testkit.Specs2RouteTest
  * - Full UUID and short UUID resolution works
  */
 class RouteImportAndResloveSpec
-    extends Specification
-    with Specs2RouteTest
-    // test database config
-    with TestDatabase
-    // routes that will use the test database
-    with ImportLimsYml
-    with ResolveDataSetUUID {
+  extends Specification
+  with Specs2RouteTest
+  // test database config
+  with TestDatabase
+  // routes that will use the test database
+  with ImportLimsYml
+  with ResolveDataSetUUID {
 
   def actorRefFactory = system
 
   // force these tests to run sequentially since they can lock up the database
   sequential
 
-  val uuid = "1695780a2e7a0bb7cb1e186a3ee01deb"
+  val expcode = 3220001
+  val runcode = "3220001-0006"
 
   "Internal LIMS service" should {
-    "Pre-import UUID is not resolvable via GET" in {
-      Get(s"/resolve?q=$uuid") ~> sealRoute(resolveRoutes) ~> check {
+    "Pre-import expcode is not resolvable via GET" in {
+      Get(s"/resolve?q=$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
       }
     }
     "Import data from POST" in {
       // in-mem version of `cat /net/pbi/collections/322/3220001/r54003_20160212_165105/1_A01/lims.yml`
       val content =
-        s"""expcode: 3220001
-            |runcode: '3220001-0006'
+        s"""expcode: $expcode
+            |runcode: '$runcode'
             |path: 'file:///pbi/collections/322/3220001/r54003_20160212_165105/1_A01'
             |user: 'MilhouseUser'
-            |uid: '$uuid'
+            |uid: '1695780a2e7a0bb7cb1e186a3ee01deb'
             |tracefile: 'm54003_160212_165114.trc.h5'
             |description: 'TestSample'
             |wellname: 'A01'
@@ -60,26 +65,20 @@ class RouteImportAndResloveSpec
       val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
+
+      this.loadData(content.getBytes)
+
       Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
     }
-    "Full UUID resolvable via API" in {
-      uuid mustEqual getByUUID(uuid)
+    "Full expcode resolvable via API" in {
+      expcode mustEqual getLimsYml(getByExperiment(expcode).head).expcode
     }
-    "Partial UUID resolvable via API" in {
-      uuid mustEqual getByUUIDPrefix(uuid.substring(0, 6))
-    }
-    "Full UUID resolvable via GET" in {
-      Get(s"/resolve?q=$uuid") ~> sealRoute(resolveRoutes) ~> check {
+    "Full expcode resolvable via GET" in {
+      Get(s"/resolve?q=$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
-        uuid mustEqual response.entity.data.asString
-      }
-    }
-    "Partial UUID resolvable via GET" in {
-      Get(s"/resolve?q=${uuid.substring(0, 6)}") ~> sealRoute(resolveRoutes) ~> check {
-        response.status.isSuccess mustEqual true
-        uuid mustEqual response.entity.data.asString
+        expcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.expcode
       }
     }
   }

@@ -1,10 +1,15 @@
 package com.pacbio.secondary.lims.services
 
+import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.Database
 import spray.routing.HttpService
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
+import spray.json._
+import DefaultJsonProtocol._
+import com.pacbio.secondary.lims.JsonProtocol._
+
 
 object ResolveDataSetUUID {
   val uuidPrefixTree = null
@@ -18,37 +23,30 @@ trait ResolveDataSetUUID extends HttpService {
   this: Database =>
 
   val resolveRoutes =
-  // lims.yml files must be posted to the server
+    // lims.yml files must be posted to the server
     pathPrefix("resolve") {
       get {
         parameters('q) {
           q => {
-            implicit def executionContext = actorRefFactory.dispatcher
-            complete(Future(resolve(q)))
+            // serialize the tuples to JSON
+            resolve(q).map(m => m) match {
+              case lys: Seq[LimsYml] => complete(
+                if (lys.nonEmpty) 200 else 400,
+                lys.toJson.prettyPrint)
+              case t: Throwable => throw t
+            }
           }
         }
       }
     }
 
   /**
-   * Resolves a dataset UUID
-   *
-   * 1. Attempt exact match
-   * 2. Attempt exact prefix match (LIKE prefix%)
-   * 3. Translated Job ID -> DataSet UUID
-   *
+   * Resolves a dataset identifier to matching subreadsets
    */
-  def resolve(q: String): String = {
-    // attempt exact match to leverage DB indexing
-    Try (getByUUID(q)) match {
-      case Success(uuid) => uuid
-      case Failure(t) => {
-        // attempt LIKE for a prefix match. slower due to table scan
-        Try(getByUUIDPrefix(q)) match {
-          case Success(uuid) => uuid
-          case Failure (t) => throw t // try the job ID lookup?
-        }
-      }
+  def resolve(q: String): Seq[LimsYml] = {
+    Try(getByExperiment(q.toInt)) match {
+      case Success(ids) => getLimsYml(ids)
+      case Failure(t) => throw t
     }
   }
 }

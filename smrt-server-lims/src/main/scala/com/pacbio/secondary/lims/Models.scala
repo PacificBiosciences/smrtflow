@@ -1,5 +1,8 @@
 package com.pacbio.secondary.lims
 
+import spray.json._
+import DefaultJsonProtocol._ // if you don't supply your own Protocol (see below)
+
 
 /**
  * Superset of a SubreadDataSet file that represents lims.yml
@@ -24,3 +27,8 @@ case class LimsYml( // TODO: rename to LimsSubreadDataSet?
     samplename: String,
     instid: Int
 )
+
+object JsonProtocol {
+  implicit val limsYmlFormat = jsonFormat14(LimsYml.apply)
+
+}

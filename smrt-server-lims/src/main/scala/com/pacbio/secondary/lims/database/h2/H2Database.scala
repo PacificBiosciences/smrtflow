@@ -5,16 +5,17 @@ import java.sql.{Connection, DriverManager, ResultSet}
 import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Try
 
-object H2Database {
-  val limsYmlTable = "LIMS_YML"
-}
 
 /**
  * H2 implementation of the backend
  */
 trait H2Database extends Database {
   this: JdbcDatabase => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
+
+  val limsYml = "LIMS_YML"
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
@@ -36,8 +37,9 @@ trait H2Database extends Database {
       val s = c.createStatement()
       try {
         val sql = s"""
-          |MERGE INTO ${H2Database.limsYmlTable}
-          | (expcode,
+          |MERGE INTO $limsYml
+          | (id,
+          |  expcode,
           |  runcode,
           |  path,
           |  user,
@@ -51,7 +53,7 @@ trait H2Database extends Database {
           |  colnum,
           |  samplename,
           |  instid)
-          | VALUES (
+          | VALUES ( 0,
           |  ${v.expcode},
           |  ${v.runcode},
           |  ${v.path},
@@ -90,7 +92,8 @@ trait H2Database extends Database {
    * @param rs
    * @return
    */
-  def limsYmlFromResultSet(rs: ResultSet) : LimsYml = {
+  def ly(rs: ResultSet) : LimsYml = {
+    rs.next
     LimsYml(
       expcode = rs.getInt("expcode"),
       runcode = rs.getString("runcode"),
@@ -109,37 +112,24 @@ trait H2Database extends Database {
     )
   }
 
-  def uuid(rs: ResultSet): String = {
-    rs.getString("uid")
+  def ids(rs: ResultSet): Seq[Int] = {
+    // weird, same issue? -- http://stackoverflow.com/questions/4380831/why-does-filter-have-to-be-defined-for-pattern-matching-in-a-for-loop-in-scala
+    //val all = for {id <- rs.getInt("id") if rs.next()} yield id
+    val buf = ArrayBuffer[Int]()
+    while (rs.next()) {
+      buf.append(rs.getInt(1))
+    }
+    rs.close()
+    buf.toList
   }
 
-
-  /**
-   * Safely executes a query expecting one LimsYml
-   *
-   * @param q
-   * @return
-   */
   private def safeGet[T](sql: String, f: ResultSet => T): T = {
     val c = getConnection()
     try {
       val s = c.createStatement()
       try {
         val rs = s.executeQuery(sql)
-        // return just the first match
-        if (rs.next()) {
-          val toreturn = f(rs)
-          if (!rs.next()) {
-            toreturn
-          }
-          else {
-            // if multiple matches, error. expected just one
-            throw new Exception("Too many results")
-          }
-        }
-        else {
-          throw new Exception("No results")
-        }
+        f(rs)
       }
       finally {
         s.close()
@@ -150,14 +140,20 @@ trait H2Database extends Database {
     }
   }
 
-  // starts with or exact match
-  override def getByUUID(q: String): String = {
-    safeGet[String](s"SELECT uid FROM ${H2Database.limsYmlTable} WHERE uid = '$q'", uuid)
-  }
+  override def getByRunCode(q: String): Seq[Int] =
+    safeGet[Seq[Int]](s"SELECT id FROM $limsYml WHERE runcode = '$q'", ids)
 
-  override def getByUUIDPrefix(q: String): String = {
-    safeGet[String](s"SELECT uid FROM ${H2Database.limsYmlTable} WHERE uid LIKE '$q%'", uuid)
-  }
+  override def getByExperiment(q: Int): Seq[Int] =
+    safeGet[Seq[Int]](s"SELECT id FROM $limsYml WHERE expcode = '$q'", ids)
+
+  override def getByUUID(q: String): Seq[Int] = List[Int]()
+
+  override def getLimsYml(q: Seq[Int]): Seq[LimsYml] =
+    for (id <- q) yield getLimsYml(id)
+
+  override def getLimsYml(q: Int): LimsYml =
+    safeGet[LimsYml](s"SELECT * FROM $limsYml WHERE id = '$q'", ly)
+
 
   /**
    * Throwaway lazy table creation method
@@ -171,13 +167,15 @@ trait H2Database extends Database {
       val c = getConnection()
       try {
         c.setAutoCommit(false)
-        val sql =
-          s"""CREATE TABLE IF NOT EXISTS ${H2Database.limsYmlTable} (
+
+        val createLimsYml =
+          s"""CREATE TABLE IF NOT EXISTS $limsYml (
+              |  id IDENTITY PRIMARY KEY, -- arbitrary primary ket ID
               |  expcode INT,
               |  runcode VARCHAR,
               |  path VARCHAR,
               |  user VARCHAR,
-              |  uid VARCHAR PRIMARY KEY,
+              |  uid VARCHAR,
               |  tracefile VARCHAR,
               |  description VARCHAR,
               |  wellname VARCHAR,
@@ -189,9 +187,17 @@ trait H2Database extends Database {
               |  instid INT
               |);
           """.stripMargin
-        val s = c.prepareStatement(sql)
+        // table for arbitrary aliases
+        val createAlias =
+          s"""CREATE TABLE IF NOT EXISTS ALIAS (
+              |  alias VARCHAR PRIMARY KEY,
+              |  lims_yml_id INT
+              |);
+          """.stripMargin
+        val s = c.createStatement()
         try {
-          s.executeUpdate()
+          s.execute(createLimsYml)
+          s.execute(createAlias)
         }
         finally {
           s.close()
@@ -203,4 +209,5 @@ trait H2Database extends Database {
       }
     }
   }
+
 }

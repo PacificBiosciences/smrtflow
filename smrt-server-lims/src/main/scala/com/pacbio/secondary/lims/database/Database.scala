@@ -9,39 +9,24 @@ import com.pacbio.secondary.lims.LimsYml
  * This trait is the main DB-agnostic interface that the rest of the codebase relies on. The Cake
  * patter is used to build up the desired DB implementation at runtime.
  *
- * ## Typical Production Use
- *
- * class MyClass extends DefaultDatabaseService {
- *   //.. do stuff that uses the db -- don't care about backend, use current
- *   getByUUID(...)
- *
- *
- * ## Production Example (Assuming H2 a JDBC-based RDBMS)
- *
- * class MyClass
- *     extends JdbcDatabaseService // specify JDBC URL
- *     extends H2DatabaseService { // use the H2 backend
- *   jdbcUrl = "jdbc:h2:./lims;DB_CLOSE_DELAY=3"
- *
- *   //.. do stuff that uses the db
- *   getByUUID(...)
- *
- *
- * ## Test Use
- *
- * class MySpec extends TestDatabaseService { // makes a new in-memory instance for just this test
- *   //.. do stuff that uses the db
- *   getByUUID(...)
- *
+ * See DESIGN.md#Database for example production and test use
  *
  */
 trait Database {
 
   def setLimsYml(v: LimsYml): String
 
-  def getByUUID(uuid: String): String
+  def getByUUID(uuid: String): Seq[Int]
 
-  def getByUUIDPrefix(uuid: String): String
+  def getByExperiment(uuid: Int): Seq[Int]
+
+  def getByRunCode(uuid: String): Seq[Int]
+
+  def getLimsYml(q: Seq[Int]): Seq[LimsYml]
+
+  def getLimsYml(q: Int): LimsYml
+
+
 }
 
 
