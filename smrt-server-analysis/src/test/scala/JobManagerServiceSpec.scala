@@ -76,9 +76,9 @@ with JobServiceConstants {
 
   def dbSetup() = {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
+    logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
-    println(s"completed setting up database ${dbURI")
+    println(s"completed setting up database $dbURI")
   }
 
   textFragment("creating database tables")
