@@ -35,7 +35,7 @@ import com.pacbio.secondary.lims.LimsYml
  *
  *
  */
-trait DatabaseService {
+trait Database {
 
   def setLimsYml(v: LimsYml): String
 

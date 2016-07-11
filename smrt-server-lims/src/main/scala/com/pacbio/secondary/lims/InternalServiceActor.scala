@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims
 
 import akka.actor.Actor
-import com.pacbio.secondary.lims.database.{DefaultDatabaseService, JdbcDatabaseService}
+import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
 
 /**
@@ -9,8 +9,8 @@ import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
  */
 class InternalServiceActor
     extends Actor
-    with JdbcDatabaseService
-    with DefaultDatabaseService
+    with JdbcDatabase
+    with DefaultDatabase
     with ImportLimsYml
     with ResolveDataSetUUID {
 

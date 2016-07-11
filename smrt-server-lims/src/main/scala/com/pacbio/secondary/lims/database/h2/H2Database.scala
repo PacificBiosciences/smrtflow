@@ -3,26 +3,24 @@ package com.pacbio.secondary.lims.database.h2
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.pacbio.secondary.lims.LimsYml
-import com.pacbio.secondary.lims.database.{DatabaseService, JdbcDatabaseService}
+import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
 
-object H2DatabaseService {
+object H2Database {
   val limsYmlTable = "LIMS_YML"
 }
 
 /**
  * H2 implementation of the backend
  */
-trait H2DatabaseService extends DatabaseService {
-  this: JdbcDatabaseService => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
+trait H2Database extends Database {
+  this: JdbcDatabase => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
-  // create/migration hook
 
   def getConnection(): Connection = {
     lazyCreateTables
-    println("Returning Connection: "+jdbcUrl)
     DriverManager.getConnection(jdbcUrl)
   }
 
@@ -38,7 +36,7 @@ trait H2DatabaseService extends DatabaseService {
       val s = c.createStatement()
       try {
         val sql = s"""
-          |MERGE INTO ${H2DatabaseService.limsYmlTable}
+          |MERGE INTO ${H2Database.limsYmlTable}
           | (expcode,
           |  runcode,
           |  path,
@@ -154,15 +152,15 @@ trait H2DatabaseService extends DatabaseService {
 
   // starts with or exact match
   override def getByUUID(q: String): String = {
-    safeGet[String](s"SELECT uid FROM ${H2DatabaseService.limsYmlTable} WHERE uid = '$q'", uuid)
+    safeGet[String](s"SELECT uid FROM ${H2Database.limsYmlTable} WHERE uid = '$q'", uuid)
   }
 
   override def getByUUIDPrefix(q: String): String = {
-    safeGet[String](s"SELECT uid FROM ${H2DatabaseService.limsYmlTable} WHERE uid LIKE '$q%'", uuid)
+    safeGet[String](s"SELECT uid FROM ${H2Database.limsYmlTable} WHERE uid LIKE '$q%'", uuid)
   }
 
   /**
-   * Throwaway table creation method
+   * Throwaway lazy table creation method
    *
    * Need to move to use migrations or similar. This is here just for the first iteration.
    */
@@ -174,7 +172,7 @@ trait H2DatabaseService extends DatabaseService {
       try {
         c.setAutoCommit(false)
         val sql =
-          s"""CREATE TABLE IF NOT EXISTS ${H2DatabaseService.limsYmlTable} (
+          s"""CREATE TABLE IF NOT EXISTS ${H2Database.limsYmlTable} (
               |  expcode INT,
               |  runcode VARCHAR,
               |  path VARCHAR,

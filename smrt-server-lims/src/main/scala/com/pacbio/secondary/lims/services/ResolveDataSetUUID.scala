@@ -1,6 +1,6 @@
 package com.pacbio.secondary.lims.services
 
-import com.pacbio.secondary.lims.database.DatabaseService
+import com.pacbio.secondary.lims.database.Database
 import spray.routing.HttpService
 
 import scala.concurrent.Future
@@ -15,7 +15,7 @@ object ResolveDataSetUUID {
  * Created by jfalkner on 6/30/16.
  */
 trait ResolveDataSetUUID extends HttpService {
-  this: DatabaseService =>
+  this: Database =>
 
   val resolveRoutes =
   // lims.yml files must be posted to the server

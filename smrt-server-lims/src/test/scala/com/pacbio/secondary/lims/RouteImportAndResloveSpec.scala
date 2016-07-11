@@ -1,5 +1,6 @@
 package com.pacbio.secondary.lims
 
+import com.pacbio.secondary.lims.database.TestDatabase
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
 import org.specs2.mutable.Specification
 import spray.http._
@@ -19,7 +20,7 @@ class RouteImportAndResloveSpec
     extends Specification
     with Specs2RouteTest
     // test database config
-    with TestDatabaseService
+    with TestDatabase
     // routes that will use the test database
     with ImportLimsYml
     with ResolveDataSetUUID {
