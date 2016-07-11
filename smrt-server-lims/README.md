@@ -10,7 +10,7 @@ See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and
 
 ## LIMS and Resolution Service
 
-Lab Information Managment System (LIMS) tracking and resolution service for common name or shorthand identifiers. See [smrtflow#89](https://github.com/PacificBiosciences/smrtflow/issues/89) for history.
+Lab Information Managment System (LIMS) is based on [this spec](specification.md) and provides tracking and resolution service for common name or shorthand identifiers. See [smrtflow#89](https://github.com/PacificBiosciences/smrtflow/issues/89) for history.
 
 Run the service via sbt.
 
@@ -30,21 +30,3 @@ Some integration tests exist. The main functionality tests is that
 # run the integration tests
 sbt smrt-server-lims/test
 ```
-
-Configuring exclusive use of a fresh test database for using `Post` and
- `Get` style code is done as follows.
- 
-```scala
-class MyTestSpec extends Specification ... {
-  ...
-  // ensure just this test uses the test DB
-  Database.synchronized {
-    // toggle on fresh in-memory DB
-    val db = Database.nextTest()
-    ... // your tests
-  }
-```
-
-Above is a simple way to ensure this test is the only one using the
-database, no old data is in the database and that all of the normal 
-db-using code correctly uses the test database, not the production.
