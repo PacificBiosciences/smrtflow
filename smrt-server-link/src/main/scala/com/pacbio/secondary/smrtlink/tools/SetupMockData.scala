@@ -15,7 +15,7 @@ import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResol
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-import org.joda.time.{DateTime => JodaDateTime}
+import org.joda.time.{Duration => JodaDuration, DateTime => JodaDateTime}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
@@ -47,7 +47,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
       ))
     }.andThen { case _ => println("Completed inserting mock data.") }
 
-    Await.result(f, 1.minute)
+    Await.result(f, 2.minute)
   }
 }
 
@@ -234,17 +234,18 @@ trait MockUtils extends LazyLogging{
     )
   }
 
-  // Add Mock Events to all Mock Jobs
-  def insertMockJobEventsForMockJobs: Future[Unit] = {
-
-    val createdAt = JodaDateTime.now()
+  /**
+    * Insert a minimal set of Job States for each Job
+    *
+    *
+    * @param nchunks Number of batches to import
+    * @return
+    */
+  def insertMockJobEventsForMockJobs(nchunks: Int = 100): Future[Unit] = {
 
     def toJobEvents(jobId: Int): Seq[JobEvent] =
       Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING, AnalysisJobStates.SUCCESSFUL)
           .map(s => JobEvent(UUID.randomUUID, jobId, s, "Update status", JodaDateTime.now()))
-
-    // Batch up the inserts so it's not absurdly slow
-    val nchunks = 20
 
     val fx = for {
       engineJobs <- dao.getJobs()
@@ -252,6 +253,36 @@ trait MockUtils extends LazyLogging{
       events <- Future {jobIds.map(toJobEvents).flatMap(identity)}
       batchedEvents <- Future {events.grouped(scala.math.min(nchunks, events.length))}
       _ <- Future.sequence(batchedEvents.map(events => dao.addJobEvents(events)))
+    } yield ()
+
+    fx
+  }
+  def toMockDataStoreFile(jobId: Int, jobUUID: UUID, name: String = "mock-file") = DataStoreServiceFile(
+    UUID.randomUUID(),
+    FileTypes.REPORT.fileTypeId.toString,
+    name,
+    0,
+    JodaDateTime.now(),
+    JodaDateTime.now(),
+    JodaDateTime.now(),
+    "/fake",
+    jobId,
+    jobUUID,
+    "fake name",
+    "fake description"
+  )
+
+  def insertMockDataStoreFilesForMockJobs(numFiles: Int = 10, nchunks: Int = 100): Future[Unit] = {
+
+    def toDataStoreFile(job: EngineJob): Seq[DataStoreServiceFile] = {
+      (0 until numFiles).map(i => toMockDataStoreFile(job.id, job.uuid, s"mock-$i"))
+    }
+
+    val fx = for {
+      engineJobs <- dao.getJobs()
+      files <- Future { engineJobs.map(toDataStoreFile).flatMap(identity)}
+      batchedFiles <- Future { files.grouped(scala.math.min(nchunks, files.length)) }
+      _ <- Future.sequence(batchedFiles.map(xs => dao.db.run(datastoreServiceFiles ++= xs)))
     } yield ()
 
     fx
@@ -295,8 +326,9 @@ trait MockUtils extends LazyLogging{
     Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
   }
 
-  def getSystemSummary(maxJobs: Int = 20000): Future[String] = {
+  def getSystemSummary(maxJobs: Int = 20000, header: String = "System Summary"): Future[String] = {
 
+    // FIXME(mpkocher)(2016-7-12) Update this to use count
     for {
       ssets <- dao.getSubreadDataSets()
       rsets <- dao.getReferenceDataSets()
@@ -305,7 +337,26 @@ trait MockUtils extends LazyLogging{
       jobEvents <- dao.getJobEvents
       ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
       ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
-    } yield s" nsubreads:${ssets.length}\n references:${rsets.length}\n alignmentsets: ${asets.length} \nTotal Jobs:${jobSummary(jobs)} \nTotal JobEvents:${jobEvents.length} \nImportDataset:${jobSummary(ijobs)} \nAnalysisJobs ${jobSummary(ajobs)}"
+      dsFiles <- dao.getDataStoreFiles
+    } yield
+      s"""
+         |$header
+         |--------
+         |DataSets
+         |--------
+         |nsubreads            : ${ssets.length}
+         |alignments           : ${asets.length}
+         |references           : ${rsets.length}
+         |--------
+         |Total ${jobSummary(jobs)}
+         |--------
+         |Total JobEvents      : ${jobEvents.length}
+         |Total DataStoreFiles : ${dsFiles.length}
+         |--------
+         |Import ${jobSummary(ijobs)}
+         |--------
+         |Analysis ${jobSummary(ajobs)}
+       """.stripMargin
 
   }
 
@@ -336,14 +387,26 @@ trait InitializeTables extends MockUtils {
 }
 
 
-object InsertMockData extends App with TmpDirJobResolver with InitializeTables with EngineCoreConfigLoader with SetupMockData{
+object InsertMockData extends App
+    with TmpDirJobResolver
+    with InitializeTables
+    with EngineCoreConfigLoader
+    with SetupMockData{
 
+  // Max number of jobs to query
   val maxJobs = 20000
 
-  val insertMaxAnalysisJobs = 5000
-  val insertMaxInsertJobs = 10000
-  val numSubreadSets = 10000
-  val numAlignmentSets = 10000
+  // Number of chunks to batch up commits for events and datastore files
+  val numChunks = conf.getInt("mock.nchunks")
+
+  // Jobs
+  val maxPbsmrtpipeJobs = conf.getInt("mock.pbsmrtpipe-jobs")
+  val maxImportDataSetJobs = conf.getInt("mock.import-dataset-jobs")
+
+  // DataSets
+  val numSubreadSets = conf.getInt("mock.subreadsets")
+  val numAlignmentSets = conf.getInt("mock.alignmentsets")
+  val numReferenceSets = conf.getInt("mock.referencesets")
 
   def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
 
@@ -353,29 +416,40 @@ object InsertMockData extends App with TmpDirJobResolver with InitializeTables w
   def runner(args: Array[String]): Int = {
     println(s"Loading DB ${dao.db.dbUri}")
 
+    val startedAt = JodaDateTime.now()
+
     createTables
 
-    val initialSummary = Await.result(getSystemSummary(maxJobs), 5.seconds)
-    println(s"Initial System Summary\n$initialSummary")
+    println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
+    println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")
+
+    val fsummary = getSystemSummary(maxJobs, "Initial System Summary")
+
+    fsummary onSuccess { case summary => println(summary) }
 
     val fx = for {
+      _ <- fsummary
       _ <- insertMockProject()
       _ <- insertDummySubreadSets(numSubreadSets)
       _ <- insertMockAlignmentDataSets(numAlignmentSets)
-      _ <- insertMockJobs(insertMaxAnalysisJobs, "pbsmrtpipe")
-      _ <- insertMockJobs(insertMaxInsertJobs, "import-dataset")
-      _ <- insertMockJobEventsForMockJobs
-      sx <- getSystemSummary(maxJobs)
+      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe")
+      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset")
+      _ <- insertMockJobEventsForMockJobs(numChunks)
+      _ <- insertMockDataStoreFilesForMockJobs(5, numChunks)
+      sx <- getSystemSummary(maxJobs, "Final System Summary")
     } yield sx
 
 
-    val result = Await.result(fx, 480.seconds)
-    println(s"System Summary \n$result")
+    val result = Await.result(fx, Duration.Inf)
+    println(result)
 
-    println("Exiting main")
+    val exitCode = 0
+    val runtime = new JodaDuration(startedAt, JodaDateTime.now())
+
+    println(s"Exiting main with exit code $exitCode in ${runtime.getStandardSeconds} seconds")
     // Not sure why this is necessary, but it is. Otherwise it will hang
-    System.exit(0)
-    0
+    System.exit(exitCode)
+    exitCode
   }
 
   runner(args)

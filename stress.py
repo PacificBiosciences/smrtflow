@@ -25,7 +25,7 @@ from pbcore.io.dataset import openDataSet
 
 log = logging.getLogger(__name__)
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 
 def _process_original_dataset(path, output_dir_prefix):
@@ -203,6 +203,7 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
     results = p.map(runner, xs, chunksize=chunksize)
 
     failed = [r for r in results if r.exit_code != 0]
+    was_successful = len(failed) == 0
     for f in failed:
         log.error(f)
 
@@ -214,7 +215,7 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
 
     profile_d['nresults'] = len(results)
     profile_d['nfailed'] = len(failed)
-    profile_d['was_successful'] = len(failed) == 0
+    profile_d['was_successful'] = was_successful
 
     profile_d["final_nsubreads"] = len(sal.get_subreadsets())
     profile_d['final_nreferences'] = len(sal.get_referencesets())
@@ -222,7 +223,7 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
     profile_d['run_time_sec'] = run_time_sec
 
     write_profile(profile_d, profile_csv)
-    return 0
+    return 0 if was_successful else 1
 
 
 def args_runner(args):

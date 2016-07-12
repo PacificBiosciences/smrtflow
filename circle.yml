@@ -1,4 +1,7 @@
 machine:
+  timezone: UTC
+  java:
+    version: oraclejdk8
   python:
     version: 2.7.6
 
@@ -13,8 +16,16 @@ dependencies:
   cache_directories:
     - "~/.ivy2"
     - "~/.sbt"
+    - "target/resolution-cache"
+    - "target/streams"
+    - "project/target/resolution-cache"
+    - "project/target/streams"
+  override:
+    - sbt test:compile
 
 test:
+  override:
+    - sbt test
   # Copy test reports to Circle test reports dir
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/

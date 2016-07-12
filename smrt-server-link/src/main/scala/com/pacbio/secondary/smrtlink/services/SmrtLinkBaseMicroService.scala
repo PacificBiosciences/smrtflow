@@ -15,7 +15,7 @@ trait SmrtLinkBaseMicroService extends
 PacBioService with
 SmrtLinkConstants with
 LazyLogging {
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(20.seconds)
 
   override def prefixedRoutes = pathPrefix(BASE_PREFIX) { super.prefixedRoutes }
 }

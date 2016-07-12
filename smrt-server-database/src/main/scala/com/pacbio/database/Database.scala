@@ -217,7 +217,6 @@ class Database(dbURI: String) {
           val conn = connectionPool.cachedConnection
           if (!conn.isClosed)
             try {
-              conn.commit()
               conn.close()
             } catch {
               case ex: Throwable => println("Ignoring commit()/close() fail: " + ex)
