@@ -2,7 +2,7 @@ package com.pacbio.secondary.lims
 
 import akka.actor.Actor
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
+import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
 
 /**
  * Parent Actor for all internal related web services work
@@ -12,7 +12,7 @@ class InternalServiceActor
     with JdbcDatabase
     with DefaultDatabase
     with ImportLimsYml
-    with ResolveDataSetUUID {
+    with ResolveDataSet {
 
   // required for JdbcDatabaseService
   def jdbcUrl : String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3"

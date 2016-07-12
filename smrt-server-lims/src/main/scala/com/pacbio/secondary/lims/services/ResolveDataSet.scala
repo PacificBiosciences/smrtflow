@@ -11,15 +11,7 @@ import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.JsonProtocol._
 
 
-object ResolveDataSetUUID {
-  val uuidPrefixTree = null
-  val jobToUUIDBucket = null
-}
-
-/**
- * Created by jfalkner on 6/30/16.
- */
-trait ResolveDataSetUUID extends HttpService {
+trait ResolveDataSet extends HttpService {
   this: Database =>
 
   val resolveRoutes =

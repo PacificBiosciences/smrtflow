@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims
 
 import com.pacbio.secondary.lims.database.TestDatabase
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSetUUID}
+import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
 import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
@@ -27,7 +27,7 @@ class RouteImportAndResloveSpec
   with TestDatabase
   // routes that will use the test database
   with ImportLimsYml
-  with ResolveDataSetUUID {
+  with ResolveDataSet {
 
   def actorRefFactory = system
 
