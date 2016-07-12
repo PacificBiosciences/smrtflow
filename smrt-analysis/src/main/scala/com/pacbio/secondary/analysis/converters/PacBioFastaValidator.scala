@@ -10,9 +10,11 @@ import scala.io.Source
 import scala.util.Try
 
 case class InvalidPacBioFastaError(msg: String) extends Exception(msg)
+case class ReferenceMetaData(nrecords: Int, totalLength: Int)
 
 object PacBioFastaValidator extends LazyLogging{
 
+  type RefOrE = Either[InvalidPacBioFastaError, ReferenceMetaData]
   type OptionE = Option[InvalidPacBioFastaError]
   type RE = ReferenceSequence => OptionE
 
@@ -95,7 +97,7 @@ object PacBioFastaValidator extends LazyLogging{
    * @param path to Fasta File
    * @return
    */
-  def validateFastaFile(path: Path): OptionE = {
+  def validateFastaFile(path: Path): RefOrE = {
 
     val headerIds = mutable.Set[String]()
 
@@ -112,10 +114,14 @@ object PacBioFastaValidator extends LazyLogging{
     val f = new FastaSequenceFile(path.toFile, truncateNamesAtWhitespace)
 
     var error: Option[InvalidPacBioFastaError] = None
+    var nrecords: Int = 0
+    var totalLength: Int = 0
 
     var toBreak = false
     while (!toBreak) {
       val xseq = f.nextSequence()
+      nrecords += 1
+      totalLength += xseq.length()
       xseq match {
         case xs: ReferenceSequence =>
           logger.info(s"Attempting to validate Record $xs")
@@ -134,7 +140,10 @@ object PacBioFastaValidator extends LazyLogging{
           toBreak = true
       }
     }
-    error
+    error match {
+      case Some(err) => Left(err)
+      case None => Right(ReferenceMetaData(nrecords, totalLength))
+    }
   }
 
   /**
@@ -145,9 +154,9 @@ object PacBioFastaValidator extends LazyLogging{
    * @param path to Fasta file
    * @return
    */
-  def apply(path: Path): OptionE = {
+  def apply(path: Path): RefOrE = {
     preValidation(path) match {
-      case Some(x) => Some(x)
+      case Some(x) => Left(x)
       case _ => validateFastaFile(path)
     }
   }

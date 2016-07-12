@@ -18,11 +18,9 @@ import scala.util.{Failure, Success, Try}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
 import com.pacbio.secondary.analysis.externaltools.{CallGmapBuild, CallSamToolsIndex, ExternalCmdFailure, ExternalToolsUtils}
-//import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
-import com.pacbio.secondary.analysis.legacy.ReferenceContig
 import com.pacbio.secondary.analysis.referenceUploader.ReposUtils
 import com.pacificbiosciences.pacbiodatasets.Contigs.Contig
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
@@ -37,7 +35,7 @@ trait GmapDbProtocol extends DefaultJsonProtocol {
 
 }
 
-object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with FastaConverterBase with ExternalToolsUtils {
+object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with ExternalToolsUtils {
 
   def generateGmapDb(fastaPath: Path, name: String, outputDir: Path): Either[ExternalCmdFailure, GmapDbInfo] = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
@@ -48,13 +46,13 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   }
 
   def createGmapReferenceSet(fastaPath: Path,
-                             contigs: Seq[ReferenceContig],
+                             refMetaData: ReferenceMetaData,
                              dbInfo: GmapDbInfo,
                              name: String,
                              organism: Option[String],
                              ploidy: Option[String],
                              outputDir: Path): GmapReferenceSet = {
-    val faiIndex = handleCmdError(CallSamToolsIndex.run(fastaPath)) match {
+    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
       case Right(f) => f.toAbsolutePath
       case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
     }
@@ -65,9 +63,6 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     dbOut.write(dbInfo.toJson.toString)
     dbOut.close
 
-    val nrecords = contigs.length
-    val totalLength = contigs.foldLeft(0)((m, n) => m + n.length)
-    
     // This is so clumsy
     val uuid = UUID.randomUUID()
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
@@ -83,15 +78,9 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
     val description = s"Converted Reference $name"
     
     val metadata = new ContigSetMetadataType()
-   /*val contigItems = Seq[Contig]()
     
-    val contigs = new Contigs()
-    contigs.getContig.addAll(contigItems)
-    
-    metadata.setContigs(contigs)*/
-    
-    metadata.setNumRecords(nrecords)
-    metadata.setTotalLength(totalLength)
+    metadata.setNumRecords(refMetaData.nrecords)
+    metadata.setTotalLength(refMetaData.totalLength)
     
     // These can both be null
     organism match {
@@ -160,11 +149,11 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Fasta
   def createDataset(name: String, fastaPath: Path, outputDir: Path,
             organism: Option[String], ploidy: Option[String]):
             Either[DatasetConvertError, GmapReferenceSet] = {
-    validateFastaFile(fastaPath) match {
+    PacBioFastaValidator(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
-      case Right(contigs) => generateGmapDb(fastaPath, name, outputDir) match {
+      case Right(refMetaData) => generateGmapDb(fastaPath, name, outputDir) match {
         case Right(dbInfo) => {
-          val rs = createGmapReferenceSet(fastaPath, contigs, dbInfo, name,
+          val rs = createGmapReferenceSet(fastaPath, refMetaData, dbInfo, name,
                                           organism, ploidy, outputDir)
           Right(rs)
         }

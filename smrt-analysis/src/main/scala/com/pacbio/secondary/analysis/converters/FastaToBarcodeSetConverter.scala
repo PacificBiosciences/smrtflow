@@ -29,22 +29,19 @@ import com.pacificbiosciences.pacbiodatasets.{BarcodeSetMetadataType, Contigs, B
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
 
 
-object FastaBarcodesConverter extends LazyLogging with FastaConverterBase with ExternalToolsUtils {
+object FastaBarcodesConverter extends LazyLogging with ExternalToolsUtils {
 
   def createBarcodeSet(fastaPath: Path,
-                       contigs: Seq[ReferenceContig],
+                       refMetaData: ReferenceMetaData,
                        name: String,
                        outputDir: Path): BarcodeSet = {
-    val faiIndex = handleCmdError(CallSamToolsIndex.run(fastaPath)) match {
+    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
       case Right(f) => f.toAbsolutePath
       case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
     }
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
 
-    val nrecords = contigs.length
-    val totalLength = contigs.foldLeft(0)((m, n) => m + n.length)
-    
     // This is so clumsy
     val uuid = UUID.randomUUID()
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
@@ -60,8 +57,8 @@ object FastaBarcodesConverter extends LazyLogging with FastaConverterBase with E
     val description = s"Converted Reference $name"
     
     val metadata = new BarcodeSetMetadataType()
-    metadata.setNumRecords(nrecords)
-    metadata.setTotalLength(totalLength)
+    metadata.setNumRecords(refMetaData.nrecords)
+    metadata.setTotalLength(refMetaData.totalLength)
 
     val er = new ExternalResource()
     er.setCreatedAt(createdAt)
@@ -104,9 +101,9 @@ object FastaBarcodesConverter extends LazyLogging with FastaConverterBase with E
 
   def createDataset(name: String, fastaPath: Path, outputDir: Path):
                    Either[DatasetConvertError, BarcodeSet] = {
-    validateFastaFile(fastaPath) match {
+    PacBioFastaValidator(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
-      case Right(contigs) => Right(createBarcodeSet(fastaPath, contigs, name,
+      case Right(refMetaData) => Right(createBarcodeSet(fastaPath, refMetaData, name,
                                                     outputDir))
     }
   }

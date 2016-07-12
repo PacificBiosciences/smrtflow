@@ -1,108 +1,157 @@
+
 package com.pacbio.secondary.analysis.converters
 
-import java.nio.file.{Path, Files}
+import java.nio.file.{Files, Path, Paths}
+import java.io.{File,FileInputStream,FileOutputStream}
+import java.io.PrintWriter
+import java.text.SimpleDateFormat
+import java.util.{UUID, Calendar}
+import javax.xml.datatype.DatatypeFactory
 
-import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter._
-import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
-import com.pacbio.secondary.analysis.datasets.{ReferenceDatasetFileIO, ReferenceDatasetIO, ReferenceSetIO}
-import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
-import com.pacbio.secondary.analysis.legacy.{ReferenceEntry, ReferenceInfoUtils}
-import com.pacbio.secondary.analysis.referenceUploader.{CmdCreate, ProcessHelper, ReposUtils}
-import com.pacificbiosciences.pacbiodatasets.ReferenceSet
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
+import spray.json._
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
-/**
- * This leverages the RS-era `referenceUploader` to generate both the
- * 'strict' reference.info. XML and the reference DataSet XML.
- *
- *
- * Created by mkocher on 10/7/15.
- */
+import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets._
+import com.pacbio.secondary.analysis.externaltools.{CallSamToolsIndex, CallSaWriterIndex, ExternalCmdFailure, ExternalToolsUtils}
+import com.pacbio.common.models.{Constants => CommonConstants}
+import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
+
+import com.pacbio.secondary.analysis.referenceUploader.ReposUtils
+import com.pacificbiosciences.pacbiodatasets.Contigs.Contig
+import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
+import com.pacificbiosciences.pacbiodatasets.{ContigSetMetadataType, Contigs, ReferenceSet}
+import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
+
+
 object FastaToReferenceConverter extends LazyLogging with ExternalToolsUtils {
 
-  val VERSION = "0.4.0"
-  val DEFAULT_PLOIDY = "unknown"
-  val DEFAULT_ORGANISM = ""
+  def createReferenceSet(fastaPath: Path,
+                         refMetaData: ReferenceMetaData,
+                         name: String,
+                         organism: Option[String],
+                         ploidy: Option[String],
+                         outputDir: Path): ReferenceSet = {
+    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
+      case Right(f) => f.toAbsolutePath
+      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
+    }
+    val saIndex = CallSaWriterIndex.run(fastaPath) match {
+      case Right(f) => f.toAbsolutePath
+      case Left(err) => throw new Exception(s"sawriter failed: ${err.getMessage}")
+    }
+    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
+    def toTimeStampName(n: String) = s"${n}_$timeStamp"
 
-  case class FastaConvertOptions(name: String, organism: Option[String], ploidy: Option[String], fastaPath: Path, outputDir: Path)
+    // This is so clumsy
+    val uuid = UUID.randomUUID()
+    val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
+    val timeStampName = toTimeStampName("referenceset")
+    val fastaTimeStampName = toTimeStampName("fasta")
+    
+    val metatype = FileTypes.DS_BARCODE.fileTypeId
+    val fastaMetaType = FileTypes.FASTA_REF.fileTypeId
+    
+    // Is this really not defined as a constant somewhere?
+    
+    val tags = "converted, reference"
+    val description = s"Converted Reference $name"
+    
+    val metadata = new ContigSetMetadataType()
+    organism match {
+      case Some(o) => metadata.setOrganism(o)
+      case _ => metadata.setOrganism("Unknown")
+    }
+    ploidy match {
+      case Some(p) => metadata.setPloidy(p)
+      case _ => metadata.setPloidy("Haploid")
+    }
+    metadata.setNumRecords(refMetaData.nrecords)
+    metadata.setTotalLength(refMetaData.totalLength)
 
-  private def toCmd(opts: FastaConvertOptions): CmdCreate = {
+    val er = new ExternalResource()
+    er.setCreatedAt(createdAt)
+    er.setModifiedAt(createdAt)
+    er.setMetaType(fastaMetaType)
+    er.setName(s"Fasta $name")
+    er.setUniqueId(UUID.randomUUID().toString)
+    er.setTags(tags)
+    er.setDescription("Converted with fasta-to-reference")
+    er.setTimeStampedName(fastaTimeStampName)
+    er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
 
-    // The old referenceUploader code will copy the file into a /{my-ref-name}/sequence/{file-name}.fasta
-    val fastaFiles = Seq(opts.fastaPath.toAbsolutePath.toString)
-    val rc = new CmdCreate()
+    val fai = new InputOutputDataType()
+    fai.setUniqueId(UUID.randomUUID().toString)
+    fai.setTimeStampedName(toTimeStampName("index"))
+    fai.setResourceId(outputDir.relativize(faiIndex).toString)
+    fai.setMetaType(FileTypes.I_SAM.fileTypeId)
 
-    val baseSamToolsExe = which("samtools") getOrElse "samtools"
-    val baseSawriterExe = which("sawriter") getOrElse "sawriter"
+    val sa = new InputOutputDataType()
+    sa.setUniqueId(UUID.randomUUID().toString)
+    sa.setTimeStampedName(toTimeStampName("index"))
+    sa.setResourceId(outputDir.relativize(saIndex).toString)
+    sa.setMetaType(FileTypes.I_SAW.fileTypeId)
 
-    logger.debug(s"found samtools exe -> $baseSamToolsExe")
-    logger.debug(s"found sawriter exe -> $baseSawriterExe")
+    val fileIndices = new FileIndices()
+    fileIndices.getFileIndex.add(fai)
+    fileIndices.getFileIndex.add(sa)
+    er.setFileIndices(fileIndices)
 
-    val samToolExe = s"$baseSamToolsExe faidx"
-    val saWriterExe = s"$baseSawriterExe -blt 8 -welter"
+    val externalResources = new ExternalResources()
+    externalResources.getExternalResource.add(er)
 
-    rc.addPostCreationExecutable(ProcessHelper.Executable.SAW, saWriterExe)
-    rc.addPostCreationExecutable(ProcessHelper.Executable.SamIdx, samToolExe)
-
-    //rc.setRefType("sample")
-    // Don't update the reference repo index.xml
-    rc.skipUpdateIndexXml(true)
-    rc.setDescription(s"Fasta converter v$VERSION to PacBio Reference.info.xml and ReferenceSet XML")
-    rc.setFastaFiles(fastaFiles.toArray)
-    rc.setName(opts.name)
-    rc.setOrganism(opts.organism.getOrElse(DEFAULT_ORGANISM))
-    rc.setPloidy(opts.ploidy.getOrElse(DEFAULT_PLOIDY))
-    // This sets the root output directory. The referenceSet will be written to junk-output/{my-reference-name}
-    rc.setReferenceRepos(opts.outputDir.toAbsolutePath.toString)
-    rc
+    val rs = new ReferenceSet()
+    rs.setVersion(CommonConstants.DATASET_VERSION)
+    rs.setMetaType(metatype)
+    rs.setCreatedAt(createdAt)
+    rs.setModifiedAt(createdAt)
+    rs.setTimeStampedName(timeStampName)
+    rs.setUniqueId(uuid.toString)
+    rs.setName(name)
+    rs.setDescription(description)
+    rs.setTags(tags)
+    rs.setDataSetMetadata(metadata)
+    rs.setExternalResources(externalResources)
+    rs
   }
 
-  def apply(opts: FastaConvertOptions): Either[DatasetConvertError, ReferenceSetIO] = {
-
-    PacBioFastaValidator(opts.fastaPath) match {
-      case Some(x) => Left(DatasetConvertError(x.msg))
-      case _ =>
-        logger.info(s"passed PacBio Fasta pre-Validation ${opts.fastaPath.toAbsolutePath}")
-
-        // The legacy code converts the name to 'id' ?
-        val sanitizedName = ReposUtils.nameToFileName(opts.name)
-        var referenceDir = opts.outputDir.resolve(sanitizedName)
-        if (Files.exists(referenceDir)) return Left(DatasetConvertError(s"The directory ${referenceDir} already exists - please remove it or specify an alternate output directory or reference name."))
-
-        val rc = toCmd(opts)
-        println(s"Running Conversion '$rc'")
-        rc.run()
-
-        // The relative path to the reference.info.xml file (./my-ref/reference.info.xml)
-        val xs = ReposUtils.getReferenceInfoXmlPath(sanitizedName)
-        val referenceInfoXml = opts.outputDir.resolve(xs)
-
-        // The reference will be written
-        logger.debug(s"Loading from $referenceInfoXml and converting to ReferenceSet XML")
-        val referenceInfo = ReferenceInfoUtils.loadFrom(referenceInfoXml)
-        logger.info("Successfully Loaded ReferenceInfoXML")
-
-        //val referenceSet = converter(referenceInfo, opts.name, Seq("converted", "fasta", "reference"))
-        val referenceSet = convertReferenceInfoToDataSet(referenceInfo)
-
-        val outputPath = opts.outputDir.resolve(s"$sanitizedName/referenceset.xml")
-
-        logger.info(s"Writing Reference dataset xml to ${outputPath.toAbsolutePath} using v$VERSION")
-
-        DataSetWriter.writeReferenceSet(referenceSet, outputPath)
-        Right(ReferenceSetIO(referenceSet, outputPath))
+  def createDataset(name: String, organism: Option[String],
+                    ploidy: Option[String], fastaPath: Path, outputDir: Path):
+                    Either[DatasetConvertError, ReferenceSet] = {
+    PacBioFastaValidator(fastaPath) match {
+      case Left(x) => Left(DatasetConvertError(s"${x}"))
+      case Right(refMetaData) => Right(createReferenceSet(fastaPath, refMetaData,
+                                                        name, organism, ploidy, outputDir))
     }
   }
 
-  def apply(name: String, organism: Option[String], ploidy: Option[String], fastaPath: Path, outputDir: Path): Either[DatasetConvertError, ReferenceSetIO] = {
-    val opts = FastaConvertOptions(name, organism, ploidy, fastaPath, outputDir)
-
-    Try { apply(opts) } match {
-      case Success(x) => x
-      case Failure(ex) => Left(DatasetConvertError(ex.toString))
+  def apply(name: String, organism: Option[String], ploidy: Option[String],
+            fastaPath: Path, outputDir: Path,
+            inPlace: Boolean = false, mkdir: Boolean = false):
+            Either[DatasetConvertError, ReferenceSetIO] = {
+    if (mkdir && (! Files.exists(outputDir))) outputDir.toFile.mkdir()
+    val sanitizedName = ReposUtils.nameToFileName(name)
+    val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
+    if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
+    targetDir.toFile.mkdir()
+    var fastaFinal = fastaPath
+    if (! inPlace) {
+      targetDir.resolve("sequence").toFile().mkdir
+      fastaFinal = targetDir.resolve(s"sequence/${sanitizedName}.fasta")
+      new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
+        new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
+    }
+    val ofn = outputDir.resolve(s"${sanitizedName}/referenceset.xml")
+    createDataset(sanitizedName, organism, ploidy, fastaFinal, targetDir) match {
+      case Right(rs) => {
+        DataSetWriter.writeReferenceSet(rs, ofn)
+        Right(ReferenceSetIO(rs, ofn))
+      }
+      case Left(err) => Left(err)
     }
   }
 }

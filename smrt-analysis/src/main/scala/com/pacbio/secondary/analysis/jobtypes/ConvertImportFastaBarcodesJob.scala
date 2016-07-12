@@ -70,8 +70,8 @@ with timeUtils {
 
     def validateAndRun(path: Path): Either[DatasetConvertError, BarcodeSetIO] = {
       PacBioFastaValidator(path) match {
-        case Some(x) => Left(DatasetConvertError(x.msg))
-        case _ => FastaBarcodesConverter(opts.name, path, outputDir, mkdir=true)
+        case Left(x) => Left(DatasetConvertError(x.msg))
+        case Right(refMetaData) => FastaBarcodesConverter(opts.name, path, outputDir, mkdir=true)
       }
     }
 

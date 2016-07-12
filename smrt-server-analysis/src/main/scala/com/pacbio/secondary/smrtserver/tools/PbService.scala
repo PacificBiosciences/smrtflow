@@ -497,8 +497,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     var nameFinal = name
     if (name == "") nameFinal = "unknown" // this really shouldn't be optional
     PacBioFastaValidator(Paths.get(path)) match {
-      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
-      case _ => Try {
+      case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case Right(md) => Try {
         Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
       } match {
         case Success(job: EngineJob) => {
@@ -530,8 +530,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   // FIXME too much code duplication
   def runImportBarcodes(path: String, name: String): Int = {
     PacBioFastaValidator(Paths.get(path)) match {
-      case Some(x) => errorExit(s"Fasta validation failed: ${x.msg}")
-      case _ => Try {
+      case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
+      case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
       } match {
         case Success(job: EngineJob) => {
