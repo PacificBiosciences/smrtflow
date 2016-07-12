@@ -23,16 +23,14 @@ trait ResolveDataSetUUID extends HttpService {
   this: Database =>
 
   val resolveRoutes =
-    // lims.yml files must be posted to the server
-    pathPrefix("resolve") {
-      get {
-        parameters('q) {
-          q => {
-            resolve(q).map(m => m) match {
-              case lys: Seq[LimsYml] =>
-                complete(if (lys.nonEmpty) 200 else 400, lys.toJson.prettyPrint)
-              case t: Throwable => throw t
-            }
+    // LimsSubreadSet query and resolver for alias, experiment id and run code
+    path("subreadset" / Segment) {
+      q => {
+        get {
+          resolve(q).map(m => m) match {
+            case lys: Seq[LimsYml] =>
+              complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
+            case t: Throwable => throw t // TODO: better error message for HTTP 500?
           }
         }
       }

@@ -42,7 +42,7 @@ class RouteImportAndResloveSpec
 
   "Internal LIMS service" should {
     "Pre-import expcode is not resolvable via GET" in {
-      Get(s"/resolve?q=$expcode") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
       }
     }
@@ -79,7 +79,7 @@ class RouteImportAndResloveSpec
       expcode mustEqual getLimsYml(getByExperiment(expcode).head).expcode
     }
     "Full expcode resolvable via GET" in {
-      Get(s"/resolve?q=$expcode") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         expcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.expcode
       }
@@ -88,7 +88,7 @@ class RouteImportAndResloveSpec
       runcode mustEqual getLimsYml(getByRunCode(runcode).head).runcode
     }
     "Full runcode resolvable via GET" in {
-      Get(s"/resolve?q=$runcode") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/subreadset/$runcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
       }
@@ -99,7 +99,7 @@ class RouteImportAndResloveSpec
       id mustEqual getByAlias(alias)
     }
     "Alias resolvable via GET" in {
-      Get(s"/resolve?q=$alias") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
       }
