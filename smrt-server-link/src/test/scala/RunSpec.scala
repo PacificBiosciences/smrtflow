@@ -67,6 +67,10 @@ class RunSpec
   val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
   val MOVIE_MINUTES_2 = 120.0
 
+  val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(1)
+  val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
+  val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
+
   val FAKE_RUN_DATA_MODEL = XmlTemplateReader
     .fromStream(getClass.getResourceAsStream("/fake_run_data_model.xml"))
     .globally().substituteAll(
@@ -93,7 +97,11 @@ class RunSpec
       "{WELL_NAME_2}"            -> (() => WELL_NAME_2),
       "{EXTERNAL_RESOURCE_ID_2}" -> (() => EXTERNAL_RESOURCE_ID_2),
       "{STATUS_2}"               -> (() => STATUS_2.value()),
-      "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2)
+      "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2),
+
+      "{ACQ_1_COMPLETED_AT}"     -> (() => ACQ_1_COMPLETED_AT),
+      "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
+      "{RUN_COMPLETED_AT}"       -> (() => RUN_COMPLETED_AT)
     ).result().mkString
 
   val READ_USER_LOGIN = "reader"
@@ -213,6 +221,8 @@ class RunSpec
         run.totalCells === 2
         run.numCellsCompleted === 0
         run.numCellsFailed === 0
+        run.completedAt === Some(RUN_COMPLETED_AT)
+        run.transfersCompletedAt === Some(RUN_TRANS_COMPLETED_AT)
       }
     }
 
@@ -233,7 +243,7 @@ class RunSpec
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
         collect1.movieMinutes === MOVIE_MINUTES_1
         collect1.startedAt === Some(STARTED_AT_1)
-        collect1.completedAt === None
+        collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
 
         val collect2 = collections.filter(_.uniqueId == SUBREAD_ID_2).head
@@ -267,7 +277,7 @@ class RunSpec
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
         collect1.movieMinutes === MOVIE_MINUTES_1
         collect1.startedAt === Some(STARTED_AT_1)
-        collect1.completedAt === None
+        collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
       }
     }
