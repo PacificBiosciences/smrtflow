@@ -172,6 +172,9 @@ trait H2Database extends Database {
   override def getLimsYml(q: Int): LimsYml =
     safeGet[LimsYml](s"SELECT * FROM LIMS_YML WHERE id = $q", ly)
 
+  override def delAlias(q: String): Unit =
+    safeGet[Unit](s"DELETE FROM ALIAS WHERE alias = '$q'", (rs) => Unit)
+
   /**
    * Throwaway lazy table creation method
    *

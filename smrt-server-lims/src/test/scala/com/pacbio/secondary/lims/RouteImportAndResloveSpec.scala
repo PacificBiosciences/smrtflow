@@ -31,17 +31,18 @@ class RouteImportAndResloveSpec
 
   def actorRefFactory = system
 
-  // force these tests to run sequentially since they can lock up the database
+  // force these tests to run sequentially since later tests rely on logic in earlier tests
   sequential
 
   val expcode = 3220001
   val runcode = "3220001-0006"
   val alias = "Foo"
+  val alias2 = "Bar"
 
   lazyCreateTables
 
-  "Internal LIMS service" should {
-    "Pre-import expcode is not resolvable via GET" in {
+  "Internal LimsSubreadDataSet services" should {
+    "Pre-import, expcode is not resolvable via GET" in {
       Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
       }
@@ -78,7 +79,7 @@ class RouteImportAndResloveSpec
     "Full expcode resolvable via API" in {
       expcode mustEqual getLimsYml(getByExperiment(expcode).head).expcode
     }
-    "Full expcode resolvable via GET" in {
+    "Full expcode resolvable via GET /subreadset/<expcode>" in {
       Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         expcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.expcode
@@ -98,10 +99,30 @@ class RouteImportAndResloveSpec
       setAlias(alias, id)
       id mustEqual getByAlias(alias)
     }
-    "Alias resolvable via GET" in {
+    "Alias resolvable via GET /subreadset/<alias>" in {
       Get(s"/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]].head.runcode
+      }
+    }
+    // tests the /resolve prefixed URIs. TODO: add in other dataset types
+    "Alias resolvable via GET /resolver/<dataset-type>/<alias>" in {
+      Get(s"/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual true
+        runcode mustEqual response.entity.data.asString.parseJson.convertTo[LimsYml].runcode
+      }
+    }
+    "Alias creation via POST /resolver/<dataset-type>/<alias>" in {
+      // assume this works based on previous test. TODO: better way to share this ID?
+      val id = getByExperiment(expcode).head
+      Post(s"/resolver/subreadset/$id?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual true
+        id mustEqual getByAlias(alias2)
+      }
+    }
+    "Alias delete via DELETE /resolver/<dataset-type>/<alias>" in {
+      Delete(s"/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.intValue mustEqual 404
       }
     }
   }

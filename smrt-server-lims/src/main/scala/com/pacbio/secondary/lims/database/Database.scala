@@ -16,7 +16,9 @@ trait Database {
 
   def setLimsYml(v: LimsYml): String
 
-  def setAlias(alias: String, id: Int): Unit
+  def setAlias(alias: String, id: Int): Unit // TODO: spec says this should be a UUID. Swap when an example is available.
+
+  def delAlias(alias: String): Unit
 
   /**
    * Converts from an arbitrary alias to the matching lims.yml files
