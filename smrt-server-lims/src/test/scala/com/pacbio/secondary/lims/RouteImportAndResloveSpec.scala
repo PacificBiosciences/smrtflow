@@ -49,29 +49,13 @@ class RouteImportAndResloveSpec
     }
     "Import data from POST" in {
       // in-mem version of `cat /net/pbi/collections/322/3220001/r54003_20160212_165105/1_A01/lims.yml`
-      val content =
-        s"""expcode: $expcode
-            |runcode: '$runcode'
-            |path: 'file:///pbi/collections/322/3220001/r54003_20160212_165105/1_A01'
-            |user: 'MilhouseUser'
-            |uid: '1695780a2e7a0bb7cb1e186a3ee01deb'
-            |tracefile: 'm54003_160212_165114.trc.h5'
-            |description: 'TestSample'
-            |wellname: 'A01'
-            |cellbarcode: '00000133635908926745416610'
-            |seqkitbarcode: '002222100620000123119'
-            |cellindex: 0
-            |colnum: 0
-            |samplename: 'TestSample'
-            |instid: 90""".stripMargin
+      val content = StressTest.mockLimsYmlContent(expcode, runcode)
 
       // post the data from the file
       val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
-
       this.loadData(content.getBytes)
-
       Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
