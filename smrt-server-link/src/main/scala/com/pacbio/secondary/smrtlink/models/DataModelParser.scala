@@ -53,6 +53,16 @@ object DataModelParserImpl extends DataModelParser {
 
       val runModel = runModels.head
 
+      val events = runModel.getRecordedEvents.getRecordedEvent
+      val completedAt = events
+        .find(_.getName == "RunCompletion")
+        .map(_.getCreatedAt)
+        .map(toDateTime)
+      val transfersCompletedAt = events
+        .find(_.getName == "RunTransfersCompletion")
+        .map(_.getCreatedAt)
+        .map(toDateTime)
+
       val subreadModels = runModel
         .getOutputs
         .getSubreadSets
@@ -94,6 +104,12 @@ object DataModelParserImpl extends DataModelParser {
           pa <- Option(Paths.get(ur))
         } yield pa
 
+        val acqCompletedAt = events
+          .filter(_.getContext == s.getUniqueId)
+          .find(_.getName == "AcquisitionCompletion")
+          .map(_.getCreatedAt)
+          .map(toDateTime)
+
         CollectionMetadata(
           UUID.fromString(runModel.getUniqueId),
           UUID.fromString(s.getUniqueId),
@@ -107,7 +123,7 @@ object DataModelParserImpl extends DataModelParser {
           Option(collectionMetadataModel.getInstrumentName),
           movieMinutes,
           Option(collectionMetadataModel.getRunDetails.getWhenStarted).map(toDateTime),
-          completedAt = None,     // TODO(smcclellan): Populate completedAt field when upstream data is available
+          acqCompletedAt,
           terminationInfo = None) // TODO(smcclellan): Populate terminationInfo field when upstream data is available
       }
 
@@ -128,7 +144,8 @@ object DataModelParserImpl extends DataModelParser {
         Option(runModel.getCreatedBy),
         Option(runModel.getCreatedAt).map(toDateTime),
         Option(runModel.getWhenStarted).map(toDateTime),
-        completedAt = None, // TODO(smcclellan): Populate completedAt field when upstream data is available
+        transfersCompletedAt,
+        completedAt,
         runModel.getStatus,
         collections.size,
         collections.count(c => c.status == SupportedAcquisitionStates.COMPLETE),
