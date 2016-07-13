@@ -27,7 +27,9 @@ class RouteImportAndResloveSpec
   with TestDatabase
   // routes that will use the test database
   with ImportLimsYml
-  with ResolveDataSet {
+  with ResolveDataSet
+  // helper tools to mock up data
+  with StressUtil {
 
   def actorRefFactory = system
 
@@ -49,13 +51,13 @@ class RouteImportAndResloveSpec
     }
     "Import data from POST" in {
       // in-mem version of `cat /net/pbi/collections/322/3220001/r54003_20160212_165105/1_A01/lims.yml`
-      val content = StressTest.mockLimsYmlContent(expcode, runcode)
+      val content = mockLimsYml(expcode, runcode)
 
       // post the data from the file
       val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
-      this.loadData(content.getBytes)
+      loadData(content.getBytes)
       Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
