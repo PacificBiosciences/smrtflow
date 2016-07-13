@@ -50,7 +50,6 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
       c.copy(outputDir = x)
     } text "Path to output Pacbio Reference Dataset XML"
 
-    // This is required because of how the legacy ReferenceInfoXML works
     arg[String]("name") action { (x, c) =>
       c.copy(name = x)
     } text "ReferenceSet Name"

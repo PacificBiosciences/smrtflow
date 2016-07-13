@@ -10,21 +10,20 @@ import scala.io.Source
 import scala.util.Try
 
 case class InvalidPacBioFastaError(msg: String) extends Exception(msg)
-case class ReferenceMetaData(nrecords: Int, totalLength: Int)
+case class ContigsMetaData(nrecords: Int, totalLength: Int)
 
 object PacBioFastaValidator extends LazyLogging{
 
-  type RefOrE = Either[InvalidPacBioFastaError, ReferenceMetaData]
+  type RefOrE = Either[InvalidPacBioFastaError, ContigsMetaData]
   type OptionE = Option[InvalidPacBioFastaError]
   type RE = ReferenceSequence => OptionE
 
   val VALID_SEQUENCE_VALUES = "gatcuryswkmbdhvnGATCURYSWKMBDHVN-.".toSet
   val VALID_SEQ_IUPAC_BTYPES = VALID_SEQUENCE_VALUES.map(_.toByte)
 
-  // Adding the '>' is for pbcore to not Fail
-  // The old reference uploader code will also fail on '>'
   val INVALID_CONTIG_ID_CHARS = HashSet(',', ':', '"')
-  // The old referenceUploader will currently fail on this
+  // Adding the '>' is for pbcore to not fail; we no longer have this
+  // limitation on the Scala (or Java) side
   val INVALID_RAW_HEADER_CHARS = HashSet('>')
 
   // The raw header can be converted to a "id"
@@ -142,7 +141,7 @@ object PacBioFastaValidator extends LazyLogging{
     }
     error match {
       case Some(err) => Left(err)
-      case None => Right(ReferenceMetaData(nrecords, totalLength))
+      case None => Right(ContigsMetaData(nrecords, totalLength))
     }
   }
 

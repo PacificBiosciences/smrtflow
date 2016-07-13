@@ -1,11 +1,12 @@
+
 import java.nio.file.{Paths, Files}
-import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-//import com.pacbio.secondary.analysis.legacy.{ReferenceInfoUtils, ReferenceEntry}
-//import com.pacbio.secondary.analysis.tools.{ReferenceInfoToDataSetTool, ReferenceConverterConfig}
+
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
 import com.pacificbiosciences.pacbiodatasets.GmapReferenceSet
+
+import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetLoader._
 import com.pacbio.secondary.analysis.datasets.validators.ImplicitDataSetValidators._
 

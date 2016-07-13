@@ -1,138 +1,147 @@
-// FIXME this is mostly redundant
 
 package com.pacbio.secondary.analysis.converters
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
+import java.io.{File,FileInputStream,FileOutputStream}
 import java.security.MessageDigest
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.{UUID, Calendar}
+import javax.xml.datatype.DatatypeFactory
 
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.{ReferenceDataset, DataSetMetaData, DatasetIndexFile, ReferenceDatasetIO}
+import com.pacbio.secondary.analysis.datasets.{DataSetMetaData, DatasetIndexFile}
 import com.pacbio.secondary.analysis.externaltools.{ExternalCmdFailure, CallSaWriterIndex, CallSamToolsIndex}
-import com.pacbio.secondary.analysis.legacy.ReferenceContig
+
+// auto-generated Java modules
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
-import com.pacificbiosciences.pacbiodatasets.{ContigSetMetadataType, ReferenceSet}
+import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, ContigSetMetadataType, DataSetType, ContigSet}
+
 import com.typesafe.scalalogging.LazyLogging
-import htsjdk.samtools.reference.{FastaSequenceFile, ReferenceSequence}
 import org.joda.time.{DateTime=> JodaDateTime}
 
 import scala.collection.mutable
+import scala.reflect._
 
 /**
- * Converts a Fasta File to a Reference DataSet
- * Created by mkocher on 9/26/15.
+ * Base functions for converting a FASTA file to a DataSet
  */
-trait FastaConverterBase extends LazyLogging{
-  // The header is defined as the first space, ">my-header-value this is metadata"
-  case class PacBioFastaRecord(header: String, metadata: Option[String], bases: Seq[Char], recordIndex: Int)
+trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends LazyLogging {
 
+  protected val baseName: String // reference
+  protected val dsName: String // ReferenceSet
+  protected val programName: String // fasta-to-reference
+  protected val metatype: String // PacBio.DataSet.ReferenceSet
 
-  def validateCharNotInHeader(char: Char): PacBioFastaRecord => Either[InValidFastaFileError, PacBioFastaRecord] = {
+  protected def nameToFileName(name: String): String = name.replaceAll("[^A-Za-z0-9_]", "_")
 
-    def validateC(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
-      if (fastaRecord.header contains char) {
-        Left(InValidFastaFileError(s"Header contains '$char'"))
-      } else {
-        Right(fastaRecord)
-      }
+  protected def createIndexFiles(fastaPath: Path): Seq[DatasetIndexFile] = {
+    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
+      case Right(f) => f.toAbsolutePath
+      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
     }
-    validateC
+    Seq(DatasetIndexFile(FileTypes.I_SAM.fileTypeId, faiIndex.toAbsolutePath.toString))
   }
 
-  val validateNoDoubleQuote = validateCharNotInHeader('\"')
-  val validateNoColon = validateCharNotInHeader(':')
-  val validateNoTab = validateCharNotInHeader('\t')
-
-  /**
-   * Validate a PacBio Fasta Record
-   * Specific Validation of header
-   * \t is not allowed
-   * '"' is not allowed
-   * ':' is not allowed
-   * 'id's are unique in the entire file
-   * non-empty file
-   * At least one fasta record
-   * Using Either to propagate up Error messages
-   *
-   * Bases must only contain IUPAC (or lowercase versions)
- *
-   * @param fastaRecord
-   * @return
-   */
-  def validateFastaRecord(fastaRecord: PacBioFastaRecord): Either[InValidFastaFileError, PacBioFastaRecord] = {
-    for {
-      r1 <- validateNoTab(fastaRecord).right
-      r2 <- validateNoColon(r1).right
-      r3 <- validateNoDoubleQuote(r2).right
-    } yield r3
+  protected def composeMetaData(refMetaData: ContigsMetaData)
+                               (implicit man: Manifest[U]): U = {
+    val metadata = man.runtimeClass.newInstance.asInstanceOf[U]
+    metadata.setNumRecords(refMetaData.nrecords)
+    metadata.setTotalLength(refMetaData.totalLength)
+    metadata
   }
 
-  def seqRecordToPacBioFastaRecord(referenceSequence: ReferenceSequence): PacBioFastaRecord = {
-    //FIXME. Add validation to bases (only IUPAC?)
-    val bases = referenceSequence.getBases.toList.map(_.toChar)
-    PacBioFastaRecord(referenceSequence.getName, None, bases, referenceSequence.getContigIndex)
-  }
+  // FIXME workaround for lack of DataSetType.setDataSetMetaData
+  // this is a little hacky - there is probably a cleaner way to do it with
+  // implicits and/or type classes
+  protected def setMetadata(ds: T, metadata: U): Unit
 
-  /**
-   * Validate that Fasta file is compliant with PacBio Spec
- *
-   * @param path
-   * @return
-   */
- def validateFastaFile(path: Path): Either[InValidFastaFileError, Seq[ReferenceContig]] = {
-    logger.info(s"Loading fasta file $path")
+  protected def composeDataSet(fastaPath: Path,
+                               name: String,
+                               outputDir: Path,
+                               metadata: U)
+                              (implicit man: Manifest[T]): T = {
+    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
+    def toTimeStampName(n: String) = s"${n}_$timeStamp"
 
-    // Probably want this to be false so manually parse the raw header
-    val truncateNamesAtWhitespace = true
-    val f = new FastaSequenceFile(path.toFile, truncateNamesAtWhitespace)
+    // This is so clumsy
+    val uuid = UUID.randomUUID()
+    val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
+    val timeStampName = toTimeStampName(dsName.toLowerCase)
+    val fastaTimeStampName = toTimeStampName("fasta")
+    val tags = s"converted, $baseName"
+    val description = s"Converted $dsName $name"
 
-    var toBreak = false
+    val er = new ExternalResource()
+    er.setCreatedAt(createdAt)
+    er.setModifiedAt(createdAt)
+    er.setMetaType(FileTypes.FASTA_REF.fileTypeId)
+    er.setName(s"Fasta $name")
+    er.setUniqueId(UUID.randomUUID().toString)
+    er.setTags(tags)
+    er.setDescription(s"Converted with $programName")
+    er.setTimeStampedName(fastaTimeStampName)
+    er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
 
-    val headerIds = mutable.Set[String]()
-    val errors = mutable.MutableList[String]()
-
-    val contigs = mutable.MutableList[ReferenceContig]()
-    val digest = MessageDigest.getInstance("MD5")
-
-    while (!toBreak) {
-      val xseq = f.nextSequence()
-      xseq match {
-        case xs: ReferenceSequence =>
-          val results = validateFastaRecord(seqRecordToPacBioFastaRecord(xs))
-          results match {
-            case Right(x) =>
-              // Check if the header is already in another record
-              headerIds.add(xs.getName)
-              // FIXME Is this what the original pbcore version using?
-              val md5 = digest.digest(xs.getName.getBytes).map("%02x".format(_)).mkString
-              val contig = ReferenceContig(xs.getName, s"Description ${xs.getName}-${xs.getContigIndex}", xs.getBases.length, md5)
-              contigs += contig
-            // write contig details to ReferenceSet.xml
-            case Left(er) =>
-              println(s"Failed to valid ${er.msg}")
-              errors += er.msg
-              toBreak = true
-
-          }
-        case _ => toBreak = true
-      }
+    val fileIndices = new FileIndices()
+    for (indexFile <- createIndexFiles(fastaPath)) {
+      val idx = new InputOutputDataType()
+      idx.setUniqueId(UUID.randomUUID().toString)
+      idx.setTimeStampedName(toTimeStampName("index"))
+      idx.setResourceId(outputDir.relativize(Paths.get(indexFile.url)).toString)
+      idx.setMetaType(indexFile.indexType)
+      fileIndices.getFileIndex.add(idx)
     }
-    f.close()
+    er.setFileIndices(fileIndices)
 
-    if (errors.isEmpty) {
-      Right(contigs)
-    } else {
-      Left(InValidFastaFileError(errors.toString()))
-    }
+    val externalResources = new ExternalResources()
+    externalResources.getExternalResource.add(er)
+
+    val ds = man.runtimeClass.newInstance.asInstanceOf[T]
+    ds.setVersion(CommonConstants.DATASET_VERSION)
+    ds.setMetaType(metatype)
+    ds.setCreatedAt(createdAt)
+    ds.setModifiedAt(createdAt)
+    ds.setTimeStampedName(timeStampName)
+    ds.setUniqueId(uuid.toString)
+    ds.setName(name)
+    ds.setDescription(description)
+    ds.setTags(tags)
+    setMetadata(ds, metadata) // XXX HACK
+    ds.setExternalResources(externalResources)
+    ds
   }
 
-    // FIXME. Hack to get this to compose
-  protected def handleCmdError(e: Either[ExternalCmdFailure, Path]): Either[InValidFastaFileError, Path] = {
-    e match {
-      case Right(p) => Right(p)
-      case Left(ex) => Left(InValidFastaFileError(ex.msg))
+  case class TargetInfo(name: String, dataDir: Path, fastaPath: Path, dsFile: Path)
+
+  protected def setupTargetDir(name: String, fastaPath: Path, outputDir: Path,
+                               inPlace: Boolean = false,
+                               mkdir: Boolean = false): TargetInfo = {
+    if (mkdir && (! Files.exists(outputDir))) outputDir.toFile.mkdir()
+    val sanitizedName = nameToFileName(name)
+    val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
+    if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
+    targetDir.toFile.mkdir()
+    var fastaFinal = fastaPath
+    if (! inPlace) {
+      targetDir.resolve("sequence").toFile().mkdir
+      fastaFinal = targetDir.resolve(s"sequence/${sanitizedName}.fasta")
+      new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
+        new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
     }
+    val ofn = outputDir.resolve(s"${sanitizedName}/${dsName.toLowerCase}.xml")
+    TargetInfo(sanitizedName, targetDir, fastaFinal, ofn)
   }
+
+}
+
+// XXX This is just a stub right now.
+object FastaContigsConverter extends FastaConverterBase[ContigSet, ContigSetMetadataType] {
+  protected val baseName: String = "contigs"
+  protected val dsName: String = "ContigSet"
+  protected val programName: String = "unknown"
+  protected val metatype: String = FileTypes.DS_CONTIG.fileTypeId
+
+  override protected def setMetadata(ds: ContigSet, metadata: ContigSetMetadataType): Unit = ds.setDataSetMetadata(metadata)
 }

@@ -12,6 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
 import spray.json._
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -21,8 +22,6 @@ import com.pacbio.secondary.analysis.externaltools.{CallGmapBuild, CallSamToolsI
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
-import com.pacbio.secondary.analysis.referenceUploader.ReposUtils
-import com.pacificbiosciences.pacbiodatasets.Contigs.Contig
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
 import com.pacificbiosciences.pacbiodatasets.{ContigSetMetadataType, Contigs, GmapReferenceSet}
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
@@ -35,7 +34,12 @@ trait GmapDbProtocol extends DefaultJsonProtocol {
 
 }
 
-object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with ExternalToolsUtils {
+object GmapReferenceConverter extends FastaConverterBase[GmapReferenceSet, ContigSetMetadataType] with LazyLogging with GmapDbProtocol {
+
+  protected val baseName: String = "gmap reference"
+  protected val dsName: String = "GmapReferenceSet"
+  protected val programName: String = "fasta-to-gmap-reference"
+  protected val metatype: String = FileTypes.DS_GMAP_REF.fileTypeId
 
   def generateGmapDb(fastaPath: Path, name: String, outputDir: Path): Either[ExternalCmdFailure, GmapDbInfo] = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
@@ -45,17 +49,15 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Exter
     }
   }
 
+  override protected def setMetadata(ds: GmapReferenceSet, metadata: ContigSetMetadataType): Unit = ds.setDataSetMetadata(metadata)
+
   def createGmapReferenceSet(fastaPath: Path,
-                             refMetaData: ReferenceMetaData,
+                             refMetaData: ContigsMetaData,
                              dbInfo: GmapDbInfo,
                              name: String,
                              organism: Option[String],
                              ploidy: Option[String],
                              outputDir: Path): GmapReferenceSet = {
-    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
-      case Right(f) => f.toAbsolutePath
-      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
-    }
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
     val dbFile = Paths.get(dbInfo.dbPath).resolve("gmap_build.json").toAbsolutePath.toString
@@ -63,26 +65,7 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Exter
     dbOut.write(dbInfo.toJson.toString)
     dbOut.close
 
-    // This is so clumsy
-    val uuid = UUID.randomUUID()
-    val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
-    val timeStampName = toTimeStampName("gmapreferenceset")
-    val fastaTimeStampName = toTimeStampName("fasta")
-    
-    val metatype = FileTypes.DS_GMAP_REF.fileTypeId
-    val fastaMetaType = FileTypes.FASTA_REF.fileTypeId
-    
-    // Is this really not defined as a constant somewhere?
-    
-    val tags = "converted, reference"
-    val description = s"Converted Reference $name"
-    
-    val metadata = new ContigSetMetadataType()
-    
-    metadata.setNumRecords(refMetaData.nrecords)
-    metadata.setTotalLength(refMetaData.totalLength)
-    
-    // These can both be null
+    val metadata = composeMetaData(refMetaData)
     organism match {
       case Some(o) => metadata.setOrganism(o)
       case _ => null
@@ -91,64 +74,30 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Exter
       case Some(p) => metadata.setPloidy(p)
       case _ => null
     }    
-
-    val er = new ExternalResource()
-    er.setCreatedAt(createdAt)
-    er.setModifiedAt(createdAt)
-    er.setMetaType(fastaMetaType)
-    er.setName(s"Fasta $name")
-    er.setUniqueId(UUID.randomUUID().toString)
-    er.setTags(tags)
-    er.setDescription("Converted with fasta-to-gmap-reference")
-    er.setTimeStampedName(fastaTimeStampName)
-    er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
-
-    val fai = new InputOutputDataType()
-    fai.setUniqueId(UUID.randomUUID().toString)
-    fai.setTimeStampedName(toTimeStampName("index"))
-    fai.setResourceId(outputDir.relativize(faiIndex).toString)
-    fai.setMetaType(FileTypes.I_SAM.fileTypeId)
-
-    val fileIndices = new FileIndices()
-    fileIndices.getFileIndex.add(fai)
-    er.setFileIndices(fileIndices)
+    val ds = composeDataSet(fastaPath, name, outputDir, metadata)
+    val er = ds.getExternalResources.getExternalResource.get(0)
 
     val db = new ExternalResource()
-    db.setCreatedAt(createdAt)
-    db.setModifiedAt(createdAt)
+    db.setCreatedAt(er.getCreatedAt)
+    db.setModifiedAt(er.getCreatedAt)
     db.setMetaType(FileTypes.JSON.fileTypeId)
     db.setName("GMAP DB")
     db.setName(s"Fasta $name")
     db.setUniqueId(UUID.randomUUID().toString)
-    db.setTags(tags)
-    db.setDescription("Created by fasta-to-gmap-reference")
+    db.setTags("gmap")
+    db.setDescription(s"Created by $programName")
     db.setResourceId(outputDir.relativize(Paths.get(dbFile)).toString)
     
     val fastaResources = new ExternalResources()
     fastaResources.getExternalResource.add(db)
     er.setExternalResources(fastaResources)
 
-    val externalResources = new ExternalResources()
-    externalResources.getExternalResource.add(er)
-
-    val rs = new GmapReferenceSet()
-    rs.setVersion(CommonConstants.DATASET_VERSION)
-    rs.setMetaType(metatype)
-    rs.setCreatedAt(createdAt)
-    rs.setModifiedAt(createdAt)
-    rs.setTimeStampedName(timeStampName)
-    rs.setUniqueId(uuid.toString)
-    rs.setName(name)
-    rs.setDescription(description)
-    rs.setTags(tags)
-    rs.setDataSetMetadata(metadata)
-    rs.setExternalResources(externalResources)
-    rs
+    ds
   }
 
-  def createDataset(name: String, fastaPath: Path, outputDir: Path,
-            organism: Option[String], ploidy: Option[String]):
-            Either[DatasetConvertError, GmapReferenceSet] = {
+  def createDataset(name: String, organism: Option[String],
+                    ploidy: Option[String], fastaPath: Path, outputDir: Path):
+                    Either[DatasetConvertError, GmapReferenceSet] = {
     PacBioFastaValidator(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(refMetaData) => generateGmapDb(fastaPath, name, outputDir) match {
@@ -165,23 +114,13 @@ object GmapReferenceConverter extends LazyLogging with GmapDbProtocol with Exter
   def apply(name: String, fastaPath: Path, outputDir: Path,
             organism: Option[String], ploidy: Option[String],
             inPlace: Boolean = false):
-            Either[DatasetConvertError, Path] = {
-    val sanitizedName = ReposUtils.nameToFileName(name)
-    val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
-    if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
-    targetDir.toFile.mkdir()
-    var fastaFinal = fastaPath
-    if (! inPlace) {
-      targetDir.resolve("sequence").toFile().mkdir
-      fastaFinal = targetDir.resolve(s"sequence/${sanitizedName}.fasta")
-      new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
-        new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
-    }
-    val ofn = outputDir.resolve(s"${sanitizedName}/gmapreferenceset.xml")
-    createDataset(sanitizedName, fastaFinal, targetDir, organism, ploidy) match {
+            Either[DatasetConvertError, GmapReferenceSetIO] = {
+    val target = setupTargetDir(name, fastaPath, outputDir, inPlace)
+    createDataset(target.name, organism, ploidy, target.fastaPath,
+                  target.dataDir) match {
       case Right(rs) => {
-        DataSetWriter.writeGmapReferenceSet(rs, ofn)
-        Right(ofn)
+        DataSetWriter.writeGmapReferenceSet(rs, target.dsFile)
+        Right(GmapReferenceSetIO(rs, target.dsFile))
       }
       case Left(err) => Left(err)
     }
