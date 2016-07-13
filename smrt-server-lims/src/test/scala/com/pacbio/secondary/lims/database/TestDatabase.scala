@@ -12,5 +12,5 @@ trait TestDatabase extends H2Database with JdbcDatabase {
   // make the UUID once so that the test has a unique DB but multiple threads/connections can use it
   private val uuid = java.util.UUID.randomUUID()
   // recycle the same UUID as long as this instance is in use
-  def jdbcUrl = "jdbc:h2:mem:" + uuid + ";DB_CLOSE_DELAY=3"
+  lazy val jdbcUrl = "jdbc:h2:mem:" + uuid + ";DB_CLOSE_DELAY=3"
 }
