@@ -36,10 +36,37 @@ class StressTestSpec extends Specification
 
   "Multiple lims.yml files" should {
     "Import and be resolvable in a minimal stress test" in {
-      val sr = stressTest(StressConfig(numLimsYml = 3, numReplicats = 3))
+      val c = StressConfig(numLimsYml = 3, numReplicates = 3)
+      val sr = stressTest(c)
+      printResults(c, sr)
       sr.noImportFailures() must beTrue
       sr.noLookupFailures() must beTrue
     }
+  }
+
+  /**
+   * Helper method to dump out config and perf metrics in CSV
+   * @param c
+   * @param sr
+   */
+  def printResults(c: StressConfig, sr: StressResults): Unit = {
+    // convert timing info to milliseconds
+    def calc(t: Seq[Long]) : List[Long] =
+      List(t.sum, t.sum / t.size, t.reduceLeft(_ min _), t.reduceLeft(_ max _)).map(_ / 1000)
+
+    println(
+      s"""# Stress Test Results
+         |
+         |## Config:
+         |- # Imports: ${c.numLimsYml}
+         |- Replicate Queries: ${c.numReplicates}
+         |
+         |## CSV Approximate Timing Export (ms)
+         |,sum,avg,min,max
+         |POST /import,${calc(sr.importTiming) mkString(",")}
+         |GET /subreadset/<expid>,${calc(sr.expTiming) mkString(",")}
+         |GET /subreadset/<runcode>,${calc(sr.runcodeTiming) mkString(",")}
+       """.stripMargin)
   }
 }
 

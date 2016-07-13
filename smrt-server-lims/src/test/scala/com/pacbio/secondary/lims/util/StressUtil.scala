@@ -115,7 +115,7 @@ trait StressUtil {
   }
 }
 
-case class StressConfig (numLimsYml: Int, numReplicats: Int)
+case class StressConfig (numLimsYml: Int, numReplicates: Int)
 
 class StressResults(
     val postImports: Seq[(Boolean, Long)],
@@ -126,4 +126,9 @@ class StressResults(
 
   def noLookupFailures(): Boolean =
     !List(getExp, getRuncode).flatten.map(v => v._1._1).exists(_ == false)
+
+  def timing(v: Seq[(Any, Long)]): Seq[Long] = v.map(v => v._2)
+  def importTiming: Seq[Long] = timing(postImports)
+  def expTiming: Seq[Long] = timing(getExp)
+  def runcodeTiming: Seq[Long] = timing(getRuncode)
 }
