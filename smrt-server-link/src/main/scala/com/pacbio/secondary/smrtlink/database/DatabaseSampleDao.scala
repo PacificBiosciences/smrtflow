@@ -2,10 +2,11 @@ package com.pacbio.secondary.smrtlink.database
 
 import java.util.UUID
 
+import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
-import com.pacbio.common.time.Clock
+import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.database.Database
-import com.pacbio.secondary.smrtlink.actors.SampleDao
+import com.pacbio.secondary.smrtlink.actors.{DalProvider, SampleDao, SampleDaoProvider}
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 
@@ -90,4 +91,18 @@ class DatabaseSampleDao(db: Database, clock: Clock) extends SampleDao {
 
     db.run(action)
   }
+}
+
+/**
+  * Provides a DatabaseRunDao.
+  */
+trait DatabaseSampleDaoProvider extends SampleDaoProvider
+  with ClockProvider {
+  this: DalProvider with DataModelParserProvider =>
+
+  //
+  //this: DalProvider with DataModelParserProvider =>
+
+  override final val sampleDao: Singleton[SampleDao] =
+    Singleton(() => new DatabaseSampleDao(db(), clock()))
 }

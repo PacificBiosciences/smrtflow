@@ -2,14 +2,14 @@ package com.pacbio.secondary.smrtlink.app
 
 import java.nio.file.{Files, Paths}
 
-import com.pacbio.common.app.{BaseApi, BaseServer, AuthenticatedCoreProviders}
+import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
-import com.pacbio.secondary.smrtlink.database.DatabaseRunDaoProvider
+import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
-import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider, MergeDataSetServiceJobTypeProvider, ImportDataSetServiceTypeProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.{ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider}
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
@@ -37,7 +37,7 @@ trait SmrtLinkProviders extends
   SampleServiceActorRefProvider with
   RegistryServiceActorRefProvider with
   DatabaseRunDaoProvider with
-  InMemorySampleDaoProvider with
+  DatabaseSampleDaoProvider with
   ImportDataSetServiceTypeProvider with
   MergeDataSetServiceJobTypeProvider with
   MockPbsmrtpipeJobTypeProvider with
