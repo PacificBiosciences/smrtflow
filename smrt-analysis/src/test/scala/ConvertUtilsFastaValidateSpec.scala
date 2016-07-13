@@ -22,10 +22,7 @@ class ConvertUtilsFastaValidateSpec extends Specification with LazyLogging{
     val uri = getClass.getResource(s"$ROOT_DIR/$name")
     logger.debug(s"validating fasta file ${uri.toString}")
     val path = Paths.get(uri.toURI)
-    validateFastaFile(path) match {
-      case Left(err) => false
-      case Right(_) => true
-    }
+    validateFastaFile(path).isRight
   }
 
   "Validate a Fasta file" should {
