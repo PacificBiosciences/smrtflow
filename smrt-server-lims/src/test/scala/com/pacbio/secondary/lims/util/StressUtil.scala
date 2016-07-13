@@ -1,14 +1,16 @@
-package com.pacbio.secondary.lims
+package com.pacbio.secondary.lims.util
 
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
-import spray.http.{BodyPart, _}
-import spray.testkit.Specs2RouteTest
-import org.specs2.mutable.Specification
+import java.lang.System.nanoTime
 
 import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.secondary.lims.LimsYml
+import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import org.specs2.mutable.Specification
+import spray.http.{BodyPart, _}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
-import System.nanoTime
+import spray.testkit.Specs2RouteTest
+
 
 /**
  * Shared methods for creating and loading mock data
@@ -21,6 +23,11 @@ import System.nanoTime
 trait StressUtil {
   this: Specification with Specs2RouteTest with ImportLimsYml with ResolveDataSet =>
 
+  def stressTest(c: StressConfig) : StressResults = new StressResults(
+      for (i <- 1 to c.numLimsYml) yield time(postLimsYml(mockLimsYml(i, s"$i-0001"))),
+      for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(i)),
+      for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(s"$i-0001"))
+    )
 
   /**
    * Helper method to returnt the time in nanoseconds of the wrapped block

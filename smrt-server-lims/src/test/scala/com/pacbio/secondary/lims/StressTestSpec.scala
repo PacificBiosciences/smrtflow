@@ -2,6 +2,7 @@ package com.pacbio.secondary.lims
 
 import com.pacbio.secondary.lims.database.TestDatabase
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import com.pacbio.secondary.lims.util.{StressConfig, StressResults, StressUtil}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 
@@ -35,12 +36,7 @@ class StressTestSpec extends Specification
 
   "Multiple lims.yml files" should {
     "Import and be resolvalbe in a minimal stress test" in {
-      val c = StressConfig(numLimsYml = 3, numReplicats = 3)
-      val sr = new StressResults(
-        for (i <- 1 to c.numLimsYml) yield time(postLimsYml(mockLimsYml(i, s"$i-0001"))),
-        for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(i)),
-        for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(s"$i-0001"))
-      )
+      val sr = stressTest(StressConfig(numLimsYml = 3, numReplicats = 3))
       sr.noImportFailures() must beTrue
       sr.noLookupFailures() must beTrue
     }
