@@ -4,7 +4,7 @@
 import java.nio.file.{Paths, Files}
 
 import com.pacbio.secondary.analysis.converters.PacBioFastaValidator._
-import com.pacbio.secondary.analysis.legacy.ReferenceContig
+
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
