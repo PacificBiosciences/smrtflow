@@ -120,10 +120,10 @@ object PacBioFastaValidator extends LazyLogging{
     var toBreak = false
     while (!toBreak) {
       val xseq = f.nextSequence()
-      nrecords += 1
-      totalLength += xseq.length()
       xseq match {
         case xs: ReferenceSequence =>
+          nrecords += 1
+          totalLength += xseq.length()
           logger.info(s"Attempting to validate Record $xs")
           validatePacBioRecord(xs) match {
             case Some(ex) =>
