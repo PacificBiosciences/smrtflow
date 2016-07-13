@@ -1,5 +1,11 @@
 package com.pacbio.secondary.lims
 
+import com.pacbio.secondary.lims.database.TestDatabase
+import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import org.specs2.mutable.Specification
+import spray.http.{BodyPart, HttpData, HttpEntity, _}
+import spray.testkit.Specs2RouteTest
+
 /**
  * Performs a stress test of the LIMS import and alias services
  *
@@ -13,9 +19,49 @@ package com.pacbio.secondary.lims
  *   - avg/min/max per query for all queries (aka are SELECTS and JOINS fast enough?)
  * - Comparing different database backends
  */
-object StressTest extends App {
-  println("Stress test done!")
+class StressTestSpec extends Specification
+    // Probably should bind a server and make RESTful calls
+    with Specs2RouteTest
+    // swap the DB here. TestDatabase is in-memory
+    with TestDatabase
+    // routes that will use the test database
+    with ImportLimsYml
+    with ResolveDataSet {
 
+  def actorRefFactory = system
+
+  /**
+   * Creates all the mock data and times queries
+   */
+//  def main(args: Array[String]): Unit = {
+  "Multiple lims.yml files should import correctly" {
+    val numLimsYml = 3
+    val numReplicats = 3
+    // insert all of the mock data in the database
+    val successfulImports = for (i <- 1 to numLimsYml) yield {
+      println("Running: " + i)
+      postLimsYml(mockLimsYmlContent(i, s"$i-0001"))
+    }
+
+    println("Successful Imports: " + successfulImports.length)
+  }
+
+
+  /**
+   * POST request with lims.yml content to make a database entry
+   *
+   * @param content
+   * @return
+   */
+  def postLimsYml(content: String): Boolean = {
+    val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
+    val formFile = FormFile("file", httpEntity)
+    val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
+    loadData(content.getBytes)
+    Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
+      response.status.isSuccess
+    }
+  }
 
   /**
    * Creates a mock lims.yml file, allowing override of all values

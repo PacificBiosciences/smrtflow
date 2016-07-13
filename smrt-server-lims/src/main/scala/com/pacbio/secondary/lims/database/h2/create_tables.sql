@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS LIMS_YML (
-  id IDENTITY PRIMARY KEY, -- arbitrary primary ket ID
+  id INT AUTO_INCREMENT, -- arbitrary primary ket ID
   expcode INT,
   runcode VARCHAR,
   path VARCHAR,
@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS LIMS_YML (
   cellindex VARCHAR,
   colnum VARCHAR,
   samplename VARCHAR,
-  instid INT
+  instid INT,
+  PRIMARY KEY (expcode, runcode)
 );
 -- this exists only in this service. arbitrary aliases or short codes
 CREATE TABLE IF NOT EXISTS ALIAS (

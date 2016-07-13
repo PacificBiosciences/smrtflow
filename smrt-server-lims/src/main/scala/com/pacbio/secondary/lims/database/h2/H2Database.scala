@@ -36,8 +36,7 @@ trait H2Database extends Database {
       try {
         val sql = s"""
           |MERGE INTO LIMS_YML
-          | (id,
-          |  expcode,
+          | (expcode,
           |  runcode,
           |  path,
           |  user,
@@ -51,7 +50,7 @@ trait H2Database extends Database {
           |  colnum,
           |  samplename,
           |  instid)
-          | VALUES ( 0,
+          | VALUES (
           |  ${v.expcode},
           |  ${v.runcode},
           |  ${v.path},
@@ -162,7 +161,7 @@ trait H2Database extends Database {
     safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE runcode = '$q'", ids)
 
   override def getByExperiment(q: Int): Seq[Int] =
-    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE expcode = '$q'", ids)
+    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE expcode = $q", ids)
 
   override def getByAlias(q: String): Int =
     safeGet[Seq[Int]](s"SELECT lims_yml_id FROM ALIAS WHERE alias = '$q'", ids).head
