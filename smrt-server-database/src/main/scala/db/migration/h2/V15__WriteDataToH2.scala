@@ -14,16 +14,16 @@ import scala.concurrent.Future
 
 class V15__WriteDataToH2 extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    var action: DBIOAction[_, NoStream, Effect.All] = V15Schema.allTables.map(_.schema).reduce(_ ++ _).create
+    require(V14Data.data.isDefined, "V14__ReadDataForH2 did not run successfully")
 
-    V14Data.data.foreach { data =>
-      action = action >>
+    val data = V14Data.data.get
+    db.run {
+      V15Schema.allTables.map(_.schema).reduce(_ ++ _).create >>
         (V15Schema.engineJobs ++= data.engineJobs) >>
         (V15Schema.jobTags ++= data.jobTags) >>
         (V15Schema.projects ++= data.projects) >>
         (V15Schema.jobEvents ++= data.jobEvents) >>
         (V15Schema.jobsTags ++= data.jobsTags) >>
-        (V15Schema.users ++= data.users) >>
         (V15Schema.projectsUsers ++= data.projectsUsers) >>
         (V15Schema.datasetTypes ++= data.datasetTypes) >>
         (V15Schema.engineJobsDataSets ++= data.engineJobsDataSets) >>
@@ -43,8 +43,6 @@ class V15__WriteDataToH2 extends JdbcMigration with SlickMigration {
         (V15Schema.collectionMetadata ++= data.collectionMetadata) >>
         (V15Schema.samples ++= data.samples)
     }
-
-    db.run(action)
   }
 }
 
@@ -96,15 +94,6 @@ object V15Schema {
     def jobId: Rep[Int] = column[Int]("job_id")
     def * : ProvenShape[(Int, String)] = (id, host)
     def jobFK = foreignKey("job_results_to_engine_jobs_fk", jobId, engineJobs)(_.id)
-  }
-
-  class UsersT(tag: Tag) extends Table[(Int, String, String, Long, Long)](tag, "users") {
-    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
-    def name: Rep[String] = column[String]("name")
-    def token: Rep[String] = column[String]("token")
-    def createdAt: Rep[Long] = column[Long]("created_at")
-    def updatedAt: Rep[Long] = column[Long]("updated_at")
-    def * : ProvenShape[(Int, String, String, Long, Long)] = (id, name, token, createdAt, updatedAt)
   }
 
   class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, Long, Long)](tag, "projects") {
@@ -313,7 +302,6 @@ object V15Schema {
   lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
   lazy val dsContig2 = TableQuery[ContigDataSetT]
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
-  lazy val users = TableQuery[UsersT]
   lazy val projects = TableQuery[ProjectsT]
   lazy val projectsUsers = TableQuery[ProjectsUsersT]
   lazy val engineJobs = TableQuery[EngineJobsT]
@@ -339,7 +327,6 @@ object V15Schema {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    users,
     projects,
     projectsUsers,
     engineJobs,

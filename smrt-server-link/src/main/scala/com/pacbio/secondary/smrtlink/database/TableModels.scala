@@ -116,21 +116,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def jobFK = foreignKey("job_results_to_engine_jobs_fk", jobId, engineJobs)(_.id)
   }
 
-  class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
-
-    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
-
-    def name: Rep[String] = column[String]("name")
-
-    def token: Rep[String] = column[String]("token")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
-  }
-
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
@@ -163,7 +148,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def pk = primaryKey("projects_users_pk", (projectId, login, role))
   }
 
-  // TODO(smcclellan): Note in documentation that accessing an IdAbleTable is faster using id than uuid due to p.k. indexing
+  // TODO(smcclellan): Documentation that accessing an IdAbleTable is faster using id than uuid due to primary key indexing.
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
     def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
 
@@ -365,7 +350,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
   class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
 
-    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int.
+    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int?
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
     def name: Rep[String] = column[String]("NAME")
@@ -425,7 +410,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
   class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
-    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int.
+    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int?
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
     def dataModel: Rep[String] = column[String]("DATA_MODEL", O.SqlType("CLOB"))
@@ -518,7 +503,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
   // Users and Projects
-  lazy val users = TableQuery[UsersT]
   lazy val projects = TableQuery[ProjectsT]
   lazy val projectsUsers = TableQuery[ProjectsUsersT]
 
@@ -548,7 +532,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     jobEvents,
     jobTags,
     jobsTags,
-    users,
     projectsUsers,
     projects,
     dsMetaData2,

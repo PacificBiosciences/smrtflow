@@ -19,8 +19,6 @@ class V14__ReadDataForH2 extends JdbcMigration with SlickMigration {
       jt   <- V14Schema.jobTags.result
       jst  <- V14Schema.jobsTags.result
       ej   <- V14Schema.engineJobs.result
-      jr   <- V14Schema.jobResults.result
-      u    <- V14Schema.users.result
       p    <- V14Schema.projects.result
       pu   <- V14Schema.projectsUsers.result
       dst  <- V14Schema.datasetTypes.result
@@ -40,7 +38,7 @@ class V14__ReadDataForH2 extends JdbcMigration with SlickMigration {
       dm   <- V14Schema.dataModels.result
       cm   <- V14Schema.collectionMetadata.result
       s    <- V14Schema.samples.result
-    } yield new V14Data(je, jt, jst, ej, jr, u, p, pu, dst, ejds, dsm, sds, hds, rds, gds, ads, bds, cds, cads, cods, dsf, rs, dm, cm, s)
+    } yield new V14Data(je, jt, jst, ej, p, pu, dst, ejds, dsm, sds, hds, rds, gds, ads, bds, cds, cads, cods, dsf, rs, dm, cm, s)
 
     db.run(action).map(d => V14Data.data = Some(d))
   }
@@ -55,8 +53,6 @@ case class V14Data(
   jobTags: Seq[(Int, String)],
   jobsTags: Seq[(Int, Int)],
   engineJobs: Seq[(Int, UUID, String, String, Long, Long, String, String, String, String, Option[String])],
-  jobResults: Seq[(Int, String)],
-  users: Seq[(Int, String, String, Long, Long)],
   projects: Seq[(Int, String, String, String, Long, Long)],
   projectsUsers: Seq[(Int, String, String)],
   datasetTypes: Seq[(String, String, String, Long, Long, String)],
@@ -123,15 +119,6 @@ object V14Schema {
     def jobId: Rep[Int] = column[Int]("job_id")
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
     def * : ProvenShape[(Int, String)] = (id, host)
-  }
-
-  class UsersT(tag: Tag) extends Table[(Int, String, String, Long, Long)](tag, "users") {
-    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
-    def name: Rep[String] = column[String]("name")
-    def token: Rep[String] = column[String]("token")
-    def createdAt: Rep[Long] = column[Long]("created_at")
-    def updatedAt: Rep[Long] = column[Long]("updated_at")
-    def * : ProvenShape[(Int, String, String, Long, Long)] = (id, name, token, createdAt, updatedAt)
   }
 
   class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, Long, Long)](tag, "projects") {
@@ -369,7 +356,6 @@ object V14Schema {
   lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
   lazy val dsContig2 = TableQuery[ContigDataSetT]
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
-  lazy val users = TableQuery[UsersT]
   lazy val projects = TableQuery[ProjectsT]
   lazy val projectsUsers = TableQuery[ProjectsUsersT]
   lazy val engineJobs = TableQuery[EngineJobsT]
