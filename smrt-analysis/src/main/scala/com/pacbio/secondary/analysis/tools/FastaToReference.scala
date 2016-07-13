@@ -3,8 +3,7 @@ package com.pacbio.secondary.analysis.tools
 import java.nio.file.Paths
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.converters.{FastaToReferenceConverter, ReferenceInfoConverter}
-import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter._
+import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
@@ -24,7 +23,7 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
   val toolId = "pbscala.tools.fasta_to_reference"
   // Reuse this version for the commandline tool. This verison will be written to the description
   // in the dataset XML
-  val VERSION = ReferenceInfoConverter.REF_INFO_TO_DS_VERSION
+  val VERSION = "0.6.0"
   val defaults = FastaToReferenceConfig("", "", "", "", "")
   val DESCRIPTION =
     """
