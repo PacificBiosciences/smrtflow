@@ -35,7 +35,7 @@ class StressTestSpec extends Specification
   def actorRefFactory = system
 
   "Multiple lims.yml files" should {
-    "Import and be resolvalbe in a minimal stress test" in {
+    "Import and be resolvable in a minimal stress test" in {
       val sr = stressTest(StressConfig(numLimsYml = 3, numReplicats = 3))
       sr.noImportFailures() must beTrue
       sr.noLookupFailures() must beTrue
