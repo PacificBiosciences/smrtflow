@@ -78,7 +78,7 @@ with timeUtils {
     def validateAndRun(path: Path): Either[DatasetConvertError, ReferenceSetIO] = {
       PacBioFastaValidator(path) match {
         case Left(x) => Left(DatasetConvertError(x.msg))
-        case Right(refMetaData) => FastaToReferenceConverter(opts.name, Option(opts.organism), Option(opts.ploidy), path, outputDir)
+        case Right(refMetaData) => FastaToReferenceConverter(opts.name, Option(opts.organism), Option(opts.ploidy), path, outputDir, mkdir=true)
       }
     }
 
