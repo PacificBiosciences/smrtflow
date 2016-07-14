@@ -964,55 +964,38 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.map(_.map(toDataStoreJobFile))
     }
 
-  /**
-    * Simple Summary of Job list
-    *
-    * @param engineJobs List of Engine Jobs
-    * @return Summary
-    */
-  private def jobSummary(engineJobs: Seq[EngineJob]): String = {
+  def getSystemSummary(header: String = "System Summary"): Future[String] = {
 
-    val states = engineJobs.map(_.state).toSet
-
-    val summary = states.map(sx => s" $sx => ${engineJobs.count(_.state == sx)}")
-        .reduceOption(_ + "\n" + _)
-        .getOrElse("")
-
-    Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
-  }
-
-  def getSystemSummary(maxJobs: Int = 20000, header: String = "System Summary"): Future[String] = {
-
-    // FIXME(mpkocher)(2016-7-12) Update this to use count
     for {
-      ssets <- getSubreadDataSets()
-      rsets <- getReferenceDataSets()
-      asets <- getAlignmentDataSets(maxJobs)
-      jobs <- getJobs(maxJobs)
-      jobEvents <- getJobEvents
-      ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
-      ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
-      dsFiles <- getDataStoreFiles
+      ssets <- db.run((dsMetaData2 join dsSubread2 on (_.id === _.id)).length.result)
+      rsets <- db.run((dsMetaData2 join dsReference2 on (_.id === _.id)).length.result)
+      asets <- db.run((dsMetaData2 join dsAlignment2 on (_.id === _.id)).length.result)
+      jobCounts <- db.run(engineJobs.groupBy(x => (x.jobTypeId, x.state)).map({
+        case ((jobType, state), list) => {
+          (jobType, state, list.length)
+        }
+      }).result)
+      jobEvents <- db.run(jobEvents.length.result)
+      dsFiles <- db.run(datastoreServiceFiles.length.result)
+      entryPoints <- db.run(engineJobsDataSets.length.result)
     } yield
       s"""
          |$header
          |--------
          |DataSets
          |--------
-         |nsubreads            : ${ssets.length}
-         |alignments           : ${asets.length}
-         |references           : ${rsets.length}
+         |nsubreads            : ${ssets}
+         |alignments           : ${asets}
+         |references           : ${rsets}
          |--------
-         |Total ${jobSummary(jobs)}
+         |Jobs
          |--------
-         |Total JobEvents      : ${jobEvents.length}
-         |Total DataStoreFiles : ${dsFiles.length}
+         | ${jobCounts.map(x => f"${x._1}%15s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
          |--------
-         |Import ${jobSummary(ijobs)}
-         |--------
-         |Analysis ${jobSummary(ajobs)}
+         |Total JobEvents      : ${jobEvents}
+         |Total entryPoints    : ${entryPoints}
+         |Total DataStoreFiles : ${dsFiles}
        """.stripMargin
-
   }
 }
 
