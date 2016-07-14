@@ -3,7 +3,6 @@ package com.pacbio.secondary.analysis.jobtypes
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-//import com.pacbio.secondary.analysis.converters.FastaConverter._
 import com.pacbio.secondary.analysis.converters.{DatasetConvertError, FastaToReferenceConverter, PacBioFastaValidator}
 import com.pacbio.secondary.analysis.datasets.{DataSetMetaTypes, ReferenceDatasetFileIO, ReferenceSetIO}
 import com.pacbio.secondary.analysis.jobs._
@@ -78,8 +77,8 @@ with timeUtils {
 
     def validateAndRun(path: Path): Either[DatasetConvertError, ReferenceSetIO] = {
       PacBioFastaValidator(path) match {
-        case Some(x) => Left(DatasetConvertError(x.msg))
-        case _ => FastaToReferenceConverter(opts.name, Option(opts.organism), Option(opts.ploidy), path, outputDir)
+        case Left(x) => Left(DatasetConvertError(x.msg))
+        case Right(refMetaData) => FastaToReferenceConverter(opts.name, Option(opts.organism), Option(opts.ploidy), path, outputDir, mkdir=true)
       }
     }
 

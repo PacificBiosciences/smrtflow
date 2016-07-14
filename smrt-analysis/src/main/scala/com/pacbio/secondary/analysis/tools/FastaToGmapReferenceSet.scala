@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.GmapReferenceConverter
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
-import com.pacbio.secondary.analysis.legacy.ReferenceEntry
+
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
