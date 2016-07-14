@@ -45,7 +45,7 @@ trait ImportLimsYml extends HttpService {
     val m = mutable.HashMap[String, String]()
     while (l != null) {
       val all = l.split(":[ ]+")
-      val (k, v) = (all(0), all(1))
+      val (k, v) = (all(0), all(1).stripPrefix("'").stripSuffix("'"))
       m.put(k, v)
       l = br.readLine()
     }
