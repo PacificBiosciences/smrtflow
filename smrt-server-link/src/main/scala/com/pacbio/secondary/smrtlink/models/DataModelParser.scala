@@ -53,7 +53,11 @@ object DataModelParserImpl extends DataModelParser {
 
       val runModel = runModels.head
 
-      val events = runModel.getRecordedEvents.getRecordedEvent
+      val events = Option(runModel.getRecordedEvents)
+        .flatMap(e => Option(e.getRecordedEvent))
+        .map(asScalaBuffer)
+        .getOrElse(Nil)
+
       val completedAt = events
         .find(_.getName == "RunCompletion")
         .map(_.getCreatedAt)
