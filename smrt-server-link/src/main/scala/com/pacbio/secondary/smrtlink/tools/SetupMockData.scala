@@ -309,58 +309,6 @@ trait MockUtils extends LazyLogging{
     )
   }
 
-  /**
-    * Simple Summary of Job list
- *
-    * @param engineJobs List of Engine Jobs
-    * @return Summary
-    */
-  def jobSummary(engineJobs: Seq[EngineJob]): String = {
-
-    val states = engineJobs.map(_.state).toSet
-
-    val summary = states.map(sx => s" $sx => ${engineJobs.count(_.state == sx)}")
-        .reduceOption(_ + "\n" + _)
-        .getOrElse("")
-
-    Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
-  }
-
-  def getSystemSummary(maxJobs: Int = 20000, header: String = "System Summary"): Future[String] = {
-
-    // FIXME(mpkocher)(2016-7-12) Update this to use count
-    for {
-      ssets <- dao.getSubreadDataSets()
-      rsets <- dao.getReferenceDataSets()
-      asets <- dao.getAlignmentDataSets(maxJobs)
-      jobs <- dao.getJobs(maxJobs)
-      jobEvents <- dao.getJobEvents
-      ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
-      ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
-      dsFiles <- dao.getDataStoreFiles
-    } yield
-      s"""
-         |$header
-         |--------
-         |DataSets
-         |--------
-         |nsubreads            : ${ssets.length}
-         |alignments           : ${asets.length}
-         |references           : ${rsets.length}
-         |--------
-         |Total ${jobSummary(jobs)}
-         |--------
-         |Total JobEvents      : ${jobEvents.length}
-         |Total DataStoreFiles : ${dsFiles.length}
-         |--------
-         |Import ${jobSummary(ijobs)}
-         |--------
-         |Analysis ${jobSummary(ajobs)}
-       """.stripMargin
-
-  }
-
-
 }
 
 trait TmpDirJobResolver {
@@ -423,7 +371,7 @@ object InsertMockData extends App
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")
 
-    val fsummary = getSystemSummary(maxJobs, "Initial System Summary")
+    val fsummary = dao.getSystemSummary(maxJobs, "Initial System Summary")
 
     fsummary onSuccess { case summary => println(summary) }
 
@@ -436,7 +384,7 @@ object InsertMockData extends App
       _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset")
       _ <- insertMockJobEventsForMockJobs(numChunks)
       _ <- insertMockDataStoreFilesForMockJobs(5, numChunks)
-      sx <- getSystemSummary(maxJobs, "Final System Summary")
+      sx <- dao.getSystemSummary(maxJobs, "Final System Summary")
     } yield sx
 
 
