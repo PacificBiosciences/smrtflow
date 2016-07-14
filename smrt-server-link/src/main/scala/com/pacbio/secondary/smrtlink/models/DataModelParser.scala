@@ -9,7 +9,7 @@ import javax.xml.datatype.XMLGregorianCalendar
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.common.time.PacBioDateTimeFormat
-import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
+import com.pacificbiosciences.pacbiobasedatamodel.{RecordedEventType, SupportedAcquisitionStates}
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -53,7 +53,11 @@ object DataModelParserImpl extends DataModelParser {
 
       val runModel = runModels.head
 
-      val events = runModel.getRecordedEvents.getRecordedEvent
+      val events = Option(runModel.getRecordedEvents)
+        .flatMap(e => Option(e.getRecordedEvent))
+        .map(asScalaBuffer)
+        .getOrElse(Nil)
+
       val completedAt = events
         .find(_.getName == "RunCompletion")
         .map(_.getCreatedAt)
