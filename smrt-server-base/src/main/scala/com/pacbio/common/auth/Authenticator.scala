@@ -25,7 +25,7 @@ final class AuthInfo(user: ApiUser) {
   /**
    * Determines whether the authenticated user is the given user.
    */
-  def isUserOrRoot(login: String): Boolean = user.login == login || hasPermission(ROOT)
+  def isUserOrRoot(l: String): Boolean = login.compareToIgnoreCase(l) == 0 || hasPermission(ROOT)
 
   /**
    * Determines whether the authenticated user can act as the given role.
