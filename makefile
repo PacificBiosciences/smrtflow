@@ -12,8 +12,14 @@ dataclean:
 build: 
 	sbt compile
 
+smrt-server-analysis-tools:
+	sbt smrt-server-analysis/pack
+
 insert-mock-data:
 	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
+
+insert-mock-data-summary: smrt-server-analysis-tools
+	./smrt-server-analysis/target/pack/bin/smrt-db-tool --db-uri smrt-server-link/db/analysis_services.db --quiet
 
 start-smrt-server-analysis:
 	sbt "smrt-server-analysis/run"

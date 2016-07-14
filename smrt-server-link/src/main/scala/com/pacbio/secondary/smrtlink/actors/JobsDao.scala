@@ -963,6 +963,57 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       } yield dsFiles
       q.result.map(_.map(toDataStoreJobFile))
     }
+
+  /**
+    * Simple Summary of Job list
+    *
+    * @param engineJobs List of Engine Jobs
+    * @return Summary
+    */
+  private def jobSummary(engineJobs: Seq[EngineJob]): String = {
+
+    val states = engineJobs.map(_.state).toSet
+
+    val summary = states.map(sx => s" $sx => ${engineJobs.count(_.state == sx)}")
+        .reduceOption(_ + "\n" + _)
+        .getOrElse("")
+
+    Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
+  }
+
+  def getSystemSummary(maxJobs: Int = 20000, header: String = "System Summary"): Future[String] = {
+
+    // FIXME(mpkocher)(2016-7-12) Update this to use count
+    for {
+      ssets <- getSubreadDataSets()
+      rsets <- getReferenceDataSets()
+      asets <- getAlignmentDataSets(maxJobs)
+      jobs <- getJobs(maxJobs)
+      jobEvents <- getJobEvents
+      ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
+      ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
+      dsFiles <- getDataStoreFiles
+    } yield
+      s"""
+         |$header
+         |--------
+         |DataSets
+         |--------
+         |nsubreads            : ${ssets.length}
+         |alignments           : ${asets.length}
+         |references           : ${rsets.length}
+         |--------
+         |Total ${jobSummary(jobs)}
+         |--------
+         |Total JobEvents      : ${jobEvents.length}
+         |Total DataStoreFiles : ${dsFiles.length}
+         |--------
+         |Import ${jobSummary(ijobs)}
+         |--------
+         |Analysis ${jobSummary(ajobs)}
+       """.stripMargin
+
+  }
 }
 
 class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore
