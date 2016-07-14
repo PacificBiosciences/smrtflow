@@ -6,6 +6,10 @@ import java.util.UUID
 import collection.JavaConversions._
 
 import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
+
+import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 import com.pacificbiosciences.pacbiodatasets.DataSetMetadataType
 import com.pacbio.common.models.Constants
@@ -18,16 +22,24 @@ import com.pacbio.secondary.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.analysis.reports.ReportModels._
 
 
-object DataSetReports {
+object DataSetReports extends ReportJsonProtocol {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
   def toReportFile(path: Path, taskId: String): DataStoreFile = {
     val startedAt = JodaDateTime.now()
     val createdAt = JodaDateTime.now()
+    val uuid = Try {
+      val jsonSrc = Source.fromFile(path.toFile).getLines.mkString
+      val jsonAst = jsonSrc.parseJson
+      jsonAst.convertTo[Report].uuid
+    } match {
+      case Success(u) => u
+      case Failure(ex) => UUID.randomUUID() // XXX this is not ideal
+    }
 
     //FIXME(mpkocher)(2016-4-21) These will probably have to have the specific report type id in the Display Name
-    DataStoreFile(UUID.randomUUID(), taskId,
+    DataStoreFile(uuid, taskId,
       FileTypes.REPORT.fileTypeId.toString,
       path.toFile.length(),
       startedAt,
