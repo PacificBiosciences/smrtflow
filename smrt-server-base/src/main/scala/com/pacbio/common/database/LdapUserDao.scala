@@ -20,6 +20,7 @@ class LdapUserDao(
     jwtUtils: JwtUtils) extends UserDao {
 
   import PacBioServiceErrors._
+  import UserDao._
 
   // Used by Cache class to determine what keys should be deleted when the cache is full. The first key to be removed is
   // the key that was touched least recently.
@@ -79,33 +80,34 @@ class LdapUserDao(
   // Maps (login, password) -> user
   private val authCache = new Cache[(String, String), ApiUser](ldapUsersConfig.cacheSize)
 
-  private def getUserEntry(login: String): ReadOnlyEntry = {
+  private def getUserEntry(reg: String): ReadOnlyEntry = {
     val connection = managed(new LDAPConnection(ldapConfig.host, ldapConfig.port))
     val entry = connection.acquireAndGet(
       _.searchForEntry(
         ldapUsersConfig.usersDN,
         SearchScope.SUB,
-        s"(${ldapUsersConfig.usernameAttr}=$login)",
+        s"(${ldapUsersConfig.usernameAttr}=$reg)",
         ldapUsersConfig.attributes: _*))
 
-    if (entry == null) throw new ResourceNotFoundError(s"Unable to find user $login")
+    if (entry == null) throw new ResourceNotFoundError(s"Unable to find user $reg")
 
-    entryCache.cache(login, entry)
+    entryCache.cache(reg, entry)
   }
 
   override def getUser(login: String): Future[ApiUser] =
-    Future(ldapUsersConfig.getApiUser(getUserEntry(login)).withRoles(defaultRoles))
+    Future(ldapUsersConfig.getApiUser(getUserEntry(regularize(login))).withRoles(defaultRoles))
 
   override def authenticate(login: String, password: String): Future[ApiUser] = Future {
     import ResultCode.SUCCESS
 
-    val entry = getUserEntry(login)
+    val reg = regularize(login)
+    val entry = getUserEntry(reg)
     val connection = managed(new LDAPConnection(ldapConfig.host, ldapConfig.port))
     val result = connection.acquireAndGet(_.bind(entry.getAttribute(ldapUsersConfig.CN_ATTR).getValue, password))
 
     result.getResultCode match {
-      case SUCCESS => authCache.cache((login, password), ldapUsersConfig.getApiUser(entry))
-      case e       => authCache.check((login, password), new LDAPException(e, s"LDAP Error: ${e.getName}"))
+      case SUCCESS => authCache.cache((reg, password), ldapUsersConfig.getApiUser(entry))
+      case e       => authCache.check((reg, password), new LDAPException(e, s"LDAP Error: ${e.getName}"))
     }
   }
 
