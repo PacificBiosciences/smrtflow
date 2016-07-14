@@ -26,12 +26,15 @@ trait ResolveDataSet extends HttpService {
     path("subreadset" / Segment) {
       q => {
         get {
-          // serialize as JSON with correct HTTP status code
-          resolveLimsSubreadSet (q) match {
-            case lys: Seq[LimsYml] =>
-              complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
-            case t: Throwable => throw t // TODO: better error message for HTTP 500?
-          }
+          ctx =>
+            Future {
+              // serialize as JSON with correct HTTP status code
+              resolveLimsSubreadSet(q) match {
+                case lys: Seq[LimsYml] =>
+                  ctx.complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
+                case t: Throwable => throw t // TODO: better error message for HTTP 500?
+              }
+            }
         }
       }
     }
