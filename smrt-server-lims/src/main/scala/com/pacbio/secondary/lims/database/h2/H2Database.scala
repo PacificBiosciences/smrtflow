@@ -19,7 +19,6 @@ trait H2Database extends Database {
   Class.forName("org.h2.Driver")
 
   def getConnection(): Connection = {
-    lazyCreateTables
     DriverManager.getConnection(jdbcUrl)
   }
 
@@ -179,34 +178,29 @@ trait H2Database extends Database {
    *
    * Need to move to use migrations or similar. This is here just for the first iteration.
    */
-  var createdTables: Boolean = false
-  def lazyCreateTables: Unit = {
-    if (!createdTables) {
-      createdTables = true
-      val c = getConnection()
+  def createTables: Unit = {
+    val c = getConnection()
+    try {
+      c.setAutoCommit(false)
+      val file = "/com/pacbio/secondary/lims/database/h2/create_tables.sql"
+      val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
+      val s = c.createStatement()
       try {
-        c.setAutoCommit(false)
-        val file = "/com/pacbio/secondary/lims/database/h2/create_tables.sql"
-        val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
-        val s = c.createStatement()
-        try {
-          s.execute(sql)
-        }
-        finally {
-          s.close()
-        }
-      }
-      catch {
-        case t => {
-          println("*** lazy-load error ***")
-          println(t)
-        }
+        s.execute(sql)
       }
       finally {
-        c.commit()
-        c.close()
+        s.close()
       }
     }
+    catch {
+      case t => {
+        println("*** lazy-load error ***")
+        println(t)
+      }
+    }
+    finally {
+      c.commit()
+      c.close()
+    }
   }
-
 }

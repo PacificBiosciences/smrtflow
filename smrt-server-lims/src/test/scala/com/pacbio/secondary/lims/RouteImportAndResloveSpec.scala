@@ -41,7 +41,7 @@ class RouteImportAndResloveSpec
   val alias = "Foo"
   val alias2 = "Bar"
 
-  lazyCreateTables
+  createTables
 
   "Internal LimsSubreadDataSet services" should {
     "Pre-import, expcode is not resolvable via GET" in {
