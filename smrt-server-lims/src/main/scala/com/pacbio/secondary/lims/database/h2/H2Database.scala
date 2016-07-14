@@ -1,19 +1,45 @@
 package com.pacbio.secondary.lims.database.h2
 
-import java.sql.{Connection, DriverManager, ResultSet}
+import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 
 import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
 
 /**
- * H2 implementation of the backend
+ * H2 implementation of the backend using plain old JDBC
  */
 trait H2Database extends Database {
   this: JdbcDatabase => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
+
+  // some common queries
+  private val limsFields = Seq[String](
+    "expcode",
+    "runcode",
+    "path",
+    "user",
+    "uid",
+    "tracefile",
+    "description",
+    "wellname",
+    "cellbarcode",
+    "seqkitbarcode",
+    "cellindex",
+    "colnum",
+    "samplename",
+    "instid")
+  // serves as PreparedStatement template and lock for dedicated connection
+  private val importTemplate = s"MERGE INTO LIMS_YML (${limsFields.mkString(",")}) VALUES (${limsFields.map(_ => "?").mkString(",")});"
+  private val expTemplate = "SELECT id FROM LIMS_YML WHERE expcode = ?;"
+  private val runCodeTemplate = "SELECT id FROM LIMS_YML WHERE runcode = ?;"
+  private val aliasTemplate = "SELECT lims_yml_id FROM ALIAS WHERE alias = ?;"
+  private val delAliasTemplate = "DELETE FROM ALIAS WHERE alias = ?;"
+  private val lyTemplate = "SELECT * FROM LIMS_YML WHERE id = ?;"
+  private val lockMap = new mutable.HashMap[String, PreparedStatement]()
 
   // init the H2 connection
   Class.forName("org.h2.Driver")
@@ -25,60 +51,26 @@ trait H2Database extends Database {
   /**
    * Creates the lims.yml record, if it doesn't already exist
    *
-   * @param v
    * @return
    */
+  var slyLock = new Object()
+  var slyps: PreparedStatement = null
   override def setLimsYml(v: LimsYml): String = {
-    val c = getConnection()
-    try {
-      val s = c.createStatement()
-      try {
-        val sql = s"""
-          |MERGE INTO LIMS_YML
-          | (expcode,
-          |  runcode,
-          |  path,
-          |  user,
-          |  uid,
-          |  tracefile,
-          |  description,
-          |  wellname,
-          |  cellbarcode,
-          |  seqkitbarcode,
-          |  cellindex,
-          |  colnum,
-          |  samplename,
-          |  instid)
-          | VALUES (
-          |  ${v.expcode},
-          |  ${v.runcode},
-          |  ${v.path},
-          |  ${v.user},
-          |  ${v.uid},
-          |  ${v.tracefile},
-          |  ${v.description},
-          |  ${v.wellname},
-          |  ${v.cellbarcode},
-          |  ${v.seqkitbarcode},
-          |  ${v.cellindex},
-          |  ${v.colnum},
-          |  ${v.samplename},
-          |  ${v.instid});
-        """.stripMargin
-        val result = s.executeUpdate(sql)
-        if (result == 1) {
-          "Merged: " + v
+    slyLock.synchronized {
+      // dedicated connection and prepared statement
+      if (slyps == null) slyps = getConnection().prepareStatement(importTemplate)
+      for ((x, i) <- LimsYml.unapply(v).get.productIterator.toList.view.zipWithIndex)
+        x match {
+          case x: String => slyps.setString(i+1, x)
+          case x: Int => slyps.setInt(i+1, x)
         }
-        else {
-          throw new Exception("Couldn't merge: " + v)
-        }
+      val result = slyps.executeUpdate()
+      if (result == 1) {
+        "Merged: " + v
       }
-      finally {
-        s.close()
+      else {
+        throw new Exception("Couldn't merge: " + v)
       }
-    }
-    finally {
-      c.close()
     }
   }
 
@@ -104,9 +96,6 @@ trait H2Database extends Database {
 
   /**
    * Helper for the common task of going from result set to LimsYml
-   *
-   * @param rs
-   * @return
    */
   def ly(rs: ResultSet) : LimsYml = {
     rs.next
@@ -139,39 +128,65 @@ trait H2Database extends Database {
     buf.toList
   }
 
-  private def safeGet[T](sql: String, f: ResultSet => T): T = {
-    val c = getConnection()
-    try {
-      val s = c.createStatement()
-      try {
-        val rs = s.executeQuery(sql)
-        f(rs)
+  private def usePreparedStatement[T](template: String, f: PreparedStatement => T): T = {
+    template.synchronized {
+      // get prepared statement, make sure it is not closed and use cache
+      val lm = lockMap.get(template) match {
+        case Some(x) => if (x.getConnection.isClosed) getConnection().prepareStatement(template) else x
+        case _ => {
+          val ps = getConnection().prepareStatement(template)
+          lockMap.put(template, ps)
+          ps
+        }
       }
-      finally {
-        s.close()
-      }
-    }
-    finally {
-      c.close()
+      // run the query and return the results
+      f(lm)
     }
   }
 
+  def doRunCode(v: String)(ps: PreparedStatement) : Seq[Int] = {
+    // return the query
+    ps.setString(1, v)
+    ids(ps.executeQuery())
+  }
+
   override def getByRunCode(q: String): Seq[Int] =
-    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE runcode = '$q'", ids)
+    usePreparedStatement[Seq[Int]](runCodeTemplate, doRunCode(q))
+
+  def doExperiment(v: Int)(ps: PreparedStatement) : Seq[Int] = {
+    ps.setInt(1, v)
+    ids(ps.executeQuery())
+  }
 
   override def getByExperiment(q: Int): Seq[Int] =
-    safeGet[Seq[Int]](s"SELECT id FROM LIMS_YML WHERE expcode = $q", ids)
+    usePreparedStatement[Seq[Int]](expTemplate, doExperiment(q))
+
+  def doAlias(v: String)(ps: PreparedStatement) : Int = {
+    ps.setString(1, v)
+    ids(ps.executeQuery()).head
+  }
 
   override def getByAlias(q: String): Int =
-    safeGet[Seq[Int]](s"SELECT lims_yml_id FROM ALIAS WHERE alias = '$q'", ids).head
+    usePreparedStatement[Int](aliasTemplate, doAlias(q))
+
+
+  def doLimsYml(id: Int)(ps: PreparedStatement): LimsYml = {
+    ps.setInt(1, id)
+    ly(ps.executeQuery())
+  }
+
+  override def getLimsYml(q: Int): LimsYml =
+    usePreparedStatement[LimsYml](lyTemplate, doLimsYml(q))
 
   override def getLimsYml(q: Seq[Int]): Seq[LimsYml] = for (id <- q) yield getLimsYml(id)
 
-  override def getLimsYml(q: Int): LimsYml =
-    safeGet[LimsYml](s"SELECT * FROM LIMS_YML WHERE id = $q", ly)
+  def doDelAlias(v: String)(ps: PreparedStatement) : Unit = {
+    ps.setString(1, v)
+    ps.executeQuery()
+  }
 
   override def delAlias(q: String): Unit =
-    safeGet[Unit](s"DELETE FROM ALIAS WHERE alias = '$q'", (rs) => Unit)
+    usePreparedStatement[Unit](delAliasTemplate, doDelAlias(q))
 
   /**
    * Throwaway lazy table creation method

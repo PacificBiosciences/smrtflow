@@ -30,7 +30,7 @@ class StressTestSpec extends Specification
     with ResolveDataSet
     // adds the stress testing utilty methods
     with StressUtil {
-  override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;DB_CLOSE_DELAY=3"
+  override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;CACHE_SIZE=100000"
 
   def actorRefFactory = system
 
