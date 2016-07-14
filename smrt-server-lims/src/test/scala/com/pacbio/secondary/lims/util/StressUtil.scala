@@ -30,13 +30,13 @@ trait StressUtil {
 
   def stressTest(c: StressConfig, ec : ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))) : StressResults = {
     // wait for all the imports to finish
-    val postImportsF = for (i <- 1 to c.numLimsYml) yield time(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
+    val postImportsF = for (i <- 1 to c.imports) yield time(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
     val postImports: Seq[(Boolean, Long)] = for (f <- postImportsF) yield Await.result(f, Duration(60, "seconds"))
     // wait for all the queries to finish
-    val getExpF = for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(i))(ec)
-    val getRuncodeF = for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(s"$i-0001"))(ec)
-    val getExp: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getExpF) yield Await.result(f, Duration(60, "seconds"))
-    val getRuncode: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getRuncodeF) yield Await.result(f, Duration(60, "seconds"))
+    val getExpF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield time(getExperimentOrRunCode(i))(ec))
+    val getRuncodeF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield time(getExperimentOrRunCode(s"$i-0001"))(ec))
+    val getExp: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getExpF.flatten) yield Await.result(f, Duration(60, "seconds"))
+    val getRuncode: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getRuncodeF.flatten) yield Await.result(f, Duration(60, "seconds"))
     // return the results
     new StressResults(postImports, getExp, getRuncode)
   }
@@ -132,7 +132,7 @@ trait StressUtil {
   }
 }
 
-case class StressConfig (numLimsYml: Int, numReplicates: Int)
+case class StressConfig (imports: Int, queryReps: Int)
 
 class StressResults(
     val postImports: Seq[(Boolean, Long)],

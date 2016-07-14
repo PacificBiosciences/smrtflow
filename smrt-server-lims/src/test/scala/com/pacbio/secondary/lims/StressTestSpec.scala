@@ -38,7 +38,7 @@ class StressTestSpec extends Specification
 
   "Multiple lims.yml files" should {
     "Import and be resolvable in a minimal stress test" in {
-      val c = StressConfig(numLimsYml = 100, numReplicates = 100)
+      val c = StressConfig(imports = 10000, queryReps = 3)
       val sr = stressTest(c)
       printResults(c, sr)
       sr.noImportFailures() must beTrue
@@ -60,8 +60,8 @@ class StressTestSpec extends Specification
       s"""# Stress Test Results
          |
          |## Config:
-         |- # Imports: ${c.numLimsYml}
-         |- Replicate Queries: ${c.numReplicates}
+         |- # Imports: ${c.imports}
+         |- Replicate Queries: ${c.queryReps}
          |
          |## CSV Approximate Timing Export (ms)
          |,sum,avg,min,max
