@@ -7,7 +7,6 @@ import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 
 
-
 /**
  * Performs a stress test of the LIMS import and alias services
  *
@@ -31,12 +30,15 @@ class StressTestSpec extends Specification
     with ResolveDataSet
     // adds the stress testing utilty methods
     with StressUtil {
+  override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;DB_CLOSE_DELAY=3"
 
   def actorRefFactory = system
 
+  createTables
+
   "Multiple lims.yml files" should {
     "Import and be resolvable in a minimal stress test" in {
-      val c = StressConfig(numLimsYml = 3, numReplicates = 3)
+      val c = StressConfig(numLimsYml = 100, numReplicates = 100)
       val sr = stressTest(c)
       printResults(c, sr)
       sr.noImportFailures() must beTrue

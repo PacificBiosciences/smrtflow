@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims.util
 
 import java.lang.System.nanoTime
+import java.util.concurrent.Executors
 
 import com.pacbio.secondary.lims.JsonProtocol._
 import com.pacbio.secondary.lims.LimsYml
@@ -10,6 +11,10 @@ import spray.http.{BodyPart, _}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 import spray.testkit.Specs2RouteTest
+
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -23,21 +28,33 @@ import spray.testkit.Specs2RouteTest
 trait StressUtil {
   this: Specification with Specs2RouteTest with ImportLimsYml with ResolveDataSet =>
 
-  def stressTest(c: StressConfig) : StressResults = new StressResults(
-      for (i <- 1 to c.numLimsYml) yield time(postLimsYml(mockLimsYml(i, s"$i-0001"))),
-      for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(i)),
-      for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(s"$i-0001"))
-    )
+  def stressTest(c: StressConfig, ec : ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))) : StressResults = {
+    // wait for all the imports to finish
+    val postImportsF = for (i <- 1 to c.numLimsYml) yield time(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
+    val postImports: Seq[(Boolean, Long)] = for (f <- postImportsF) yield Await.result(f, Duration(60, "seconds"))
+    // wait for all the queries to finish
+    val getExpF = for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(i))(ec)
+    val getRuncodeF = for (i <- 1 to c.numLimsYml) yield time(getExperimentOrRunCode(s"$i-0001"))(ec)
+    val getExp: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getExpF) yield Await.result(f, Duration(60, "seconds"))
+    val getRuncode: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getRuncodeF) yield Await.result(f, Duration(60, "seconds"))
+    // return the results
+    new StressResults(postImports, getExp, getRuncode)
+  }
 
   /**
    * Helper method to returnt the time in nanoseconds of the wrapped block
    */
-  def time[R](code: => R, t: Long = nanoTime) = (code, nanoTime - t)
+  def time[R](code: => R)(implicit ec: ExecutionContext) = Future{
+    val t = nanoTime // don't start this until the future starts
+    (code, nanoTime - t)
+  }(ec)
 
   /**
    * GET request to lookup existing data by Experiment or Run Code
    */
   def getExperimentOrRunCode(expOrRunCode: String) : (Boolean, Seq[LimsYml]) = {
+    implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
+
     Get(s"/subreadset/$expOrRunCode") ~> sealRoute(resolveRoutes) ~> check {
       (response.status.isSuccess, response.entity.data.asString.parseJson.convertTo[Seq[LimsYml]])
     }
