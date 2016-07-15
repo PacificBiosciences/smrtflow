@@ -3,6 +3,8 @@ test in assembly := {}
 
 mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer")
 
+//initialCommands in (Test, console) := """ammonite.repl.Main().run()"""
+
 //parallelExecution in Test := false
 
 // Necessary for sqlite to not have class loading JNI problem

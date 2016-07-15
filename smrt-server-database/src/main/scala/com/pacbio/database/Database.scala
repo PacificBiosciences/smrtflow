@@ -14,6 +14,8 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 
+import scala.language.postfixOps
+
 /**
  * Abstraction for the Data Access Layer (DAL)
  *
@@ -162,7 +164,7 @@ class Database(dbURI: String) {
     // lazy migrate via Flyway
     if (!migrationsComplete) migrate()
 
-    val dbug = !listeners.isEmpty
+    val dbug = listeners.nonEmpty
 
     // track timing for queue wait and RBMS execution
     val start: Long = if (dbug) System.currentTimeMillis() else 0

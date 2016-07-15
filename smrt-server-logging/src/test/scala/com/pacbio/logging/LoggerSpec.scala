@@ -55,7 +55,7 @@ class LoggerSpec  extends Specification with LazyLogging {
 
       override def addFilter(newFilter: Filter[ILoggingEvent]): Unit = Unit
 
-      override def clearAllFilters(): Unit = null
+      override def clearAllFilters(): Unit = {}
 
       override def addInfo(msg: String): Unit = log("INFO", msg)
 

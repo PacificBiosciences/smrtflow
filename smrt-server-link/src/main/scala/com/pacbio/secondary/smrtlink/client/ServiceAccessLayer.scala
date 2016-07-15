@@ -2,21 +2,17 @@ package com.pacbio.secondary.smrtlink.client
 
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
-import com.pacbio.common.models._
 
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import scala.concurrent.duration._
-//import spray.http.StatusCode._
+
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.json.DefaultJsonProtocol
 
-import scala.reflect.Manifest._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
-import scala.xml.XML
+import scala.concurrent.Future
 
 import java.net.URL
 import java.util.UUID
