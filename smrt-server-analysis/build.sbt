@@ -3,6 +3,8 @@ test in assembly := {}
 
 mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer")
 
+//initialCommands in (Test, console) := """ammonite.repl.Main().run()"""
+
 //parallelExecution in Test := false
 
 // Necessary for sqlite to not have class loading JNI problem
@@ -24,5 +26,7 @@ packSettings
 
 packMain := Map(
   "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp",
-  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.testkit.TestkitRunnerApp"
+  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.testkit.TestkitRunnerApp",
+  "smrt-db-tool" -> "com.pacbio.secondary.smrtserver.tools.DatabaseToolApp"
+
 )

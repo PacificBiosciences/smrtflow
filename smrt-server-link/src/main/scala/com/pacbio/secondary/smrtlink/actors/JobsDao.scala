@@ -963,6 +963,40 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       } yield dsFiles
       q.result.map(_.map(toDataStoreJobFile))
     }
+
+  def getSystemSummary(header: String = "System Summary"): Future[String] = {
+
+    for {
+      ssets <- db.run((dsMetaData2 join dsSubread2 on (_.id === _.id)).length.result)
+      rsets <- db.run((dsMetaData2 join dsReference2 on (_.id === _.id)).length.result)
+      asets <- db.run((dsMetaData2 join dsAlignment2 on (_.id === _.id)).length.result)
+      jobCounts <- db.run(engineJobs.groupBy(x => (x.jobTypeId, x.state)).map({
+        case ((jobType, state), list) => {
+          (jobType, state, list.length)
+        }
+      }).result)
+      jobEvents <- db.run(jobEvents.length.result)
+      dsFiles <- db.run(datastoreServiceFiles.length.result)
+      entryPoints <- db.run(engineJobsDataSets.length.result)
+    } yield
+      s"""
+         |$header
+         |--------
+         |DataSets
+         |--------
+         |nsubreads            : ${ssets}
+         |alignments           : ${asets}
+         |references           : ${rsets}
+         |--------
+         |Jobs
+         |--------
+         | ${jobCounts.map(x => f"${x._1}%15s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
+         |--------
+         |Total JobEvents      : ${jobEvents}
+         |Total entryPoints    : ${entryPoints}
+         |Total DataStoreFiles : ${dsFiles}
+       """.stripMargin
+  }
 }
 
 class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore

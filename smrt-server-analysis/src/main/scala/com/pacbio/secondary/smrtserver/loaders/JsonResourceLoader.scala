@@ -22,22 +22,11 @@ import scala.util.control.NonFatal
  *
  * All of the JSON protocols are loaded, so 
  */
-trait JsonResourceLoader[T] extends SecondaryAnalysisJsonProtocols with LazyLogging{
+trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysisJsonProtocols with LazyLogging{
 
-  // Root Directory in Resources
-  var RPT_PREFIX: String
-
-  /**
-   * Default message for loading
-   * @param xs
-   * @return
-   */
-  def loadMessage(xs: T): String = {
-    s"Loaded ${xs.toString}"
-  }
-
-  // Serialization/Type system issues
-  def stringTo(xs: String): T
+  // Root Directory of the resources within the CLASSPATH
+  // example, "resolved-pipeline-templates"
+  val ROOT_DIR_PREFIX: String
 
   /**
    * Loads Resources for sbt model
@@ -45,23 +34,24 @@ trait JsonResourceLoader[T] extends SecondaryAnalysisJsonProtocols with LazyLogg
   def loadResourcesForSbt: Seq[T] = {
     // This does work
     // The leading '/' is required for sbt, but not for loading from assembly
-    val xs = this.getClass.getClassLoader.getResourceAsStream(s"$RPT_PREFIX/")
+    val xs = this.getClass.getClassLoader.getResourceAsStream(s"$ROOT_DIR_PREFIX/")
     logger.info(s"sbt Resources Loader. Resolved xs $xs")
     val files = IOUtils.readLines(xs, Charsets.UTF_8)
     logger.info(s"Files files ${files.length} $files")
-    val pts = files.map(x => loadItemFromResourceDir(s"$RPT_PREFIX/$x"))
+    val pts = files.map(x => loadItemFromResourceDir(s"$ROOT_DIR_PREFIX/$x"))
     logger.info(s"Resource Loader (for sbt) loaded ${pts.length} pipelines")
     pts
   }
 
   /**
    * Loads Resources from a single jar (i.e., built from assembly)
+ *
    * @return
    */
   def loadResourceFromJar: Seq[String] = {
     val px = Pattern.compile(".*")
-    val rs = ResourceList.getResources(px).filter(x => x.startsWith(RPT_PREFIX) && x.endsWith(".json")).toList
-    logger.info(s"Resources from jar found ${rs.length} from $RPT_PREFIX $px")
+    val rs = ResourceList.getResources(px).filter(x => x.startsWith(ROOT_DIR_PREFIX) && x.endsWith(".json")).toList
+    logger.info(s"Resources from jar found ${rs.length} from $ROOT_DIR_PREFIX $px")
     rs
   }
 
@@ -74,7 +64,7 @@ trait JsonResourceLoader[T] extends SecondaryAnalysisJsonProtocols with LazyLogg
     //println(theString)
     //val jx = theString.parseJson
     //val pt = jx.convertTo[T]
-    val pt = stringTo(theString)
+    val pt = loadFromString(theString)
     logger.debug(s"${loadMessage(pt)} from $xs")
     pt
   }

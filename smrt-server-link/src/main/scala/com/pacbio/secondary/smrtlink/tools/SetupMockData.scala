@@ -8,6 +8,7 @@ import java.util.UUID
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.smrtlink.actors._
@@ -83,7 +84,7 @@ trait MockUtils extends LazyLogging{
     files
   }
 
-  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
+  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe", nchunks: Int = 100): Future[Iterator[Option[Int]]] = {
 
     val states = AnalysisJobStates.VALID_STATES
     val rnd = new Random
@@ -105,7 +106,8 @@ trait MockUtils extends LazyLogging{
         "path",
         "{}",
         Some("root"))}
-    dao.db.run(engineJobs ++= (0 until numJobs ).map(x => toJob))
+    val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
+    Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
 
   def insertDummySubreadSets(n: Int): Future[Seq[String]] = {
@@ -209,6 +211,23 @@ trait MockUtils extends LazyLogging{
     dao.db.run(jobEvents ++= jobIds.flatMap(toEs(_, randomElement(maxEvents))))
   }
 
+  def insertMockJobDatasets(nchunks: Int = 100, datasetsPerJob: Double = 0.7): Future[Unit] = {
+    for {
+      jobs <- dao.db.run(engineJobs.result)
+      //not perfectly realistic; just using subreads because
+      //dataset_metadata doesn't have a dataset type column
+      //and it's a bit awkward to get the types by joining
+      subreadSets <- dao.db.run(dsSubread2.result)
+      nRows = (jobs.length * datasetsPerJob).toInt
+      randomJobs = Stream.continually(Random.shuffle(jobs)).flatten.take(nRows)
+      randomDatasets = Stream.continually(Random.shuffle(subreadSets)).flatten.take(nRows)
+      jobDatasets = randomJobs.zip(randomDatasets)
+      entryPoints = jobDatasets.map(x => EngineJobEntryPoint(x._1.id, x._2.uuid, DataSetMetaTypes.Subread.toString))
+      batches = entryPoints.grouped(scala.math.min(nchunks, entryPoints.length))
+      _ <- Future.sequence(batches.map(batch => dao.db.run(engineJobsDataSets ++= batch)))
+    } yield ()
+  }
+
   def insertMockJobsTags(): Future[Unit] = {
     def randomInt(x: List[Int]) = Random.shuffle(x).head
 
@@ -308,59 +327,6 @@ trait MockUtils extends LazyLogging{
       }
     )
   }
-
-  /**
-    * Simple Summary of Job list
- *
-    * @param engineJobs List of Engine Jobs
-    * @return Summary
-    */
-  def jobSummary(engineJobs: Seq[EngineJob]): String = {
-
-    val states = engineJobs.map(_.state).toSet
-
-    val summary = states.map(sx => s" $sx => ${engineJobs.count(_.state == sx)}")
-        .reduceOption(_ + "\n" + _)
-        .getOrElse("")
-
-    Seq(s"Summary ${engineJobs.size} Jobs", summary).reduce(_ + "\n" + _)
-  }
-
-  def getSystemSummary(maxJobs: Int = 20000, header: String = "System Summary"): Future[String] = {
-
-    // FIXME(mpkocher)(2016-7-12) Update this to use count
-    for {
-      ssets <- dao.getSubreadDataSets()
-      rsets <- dao.getReferenceDataSets()
-      asets <- dao.getAlignmentDataSets(maxJobs)
-      jobs <- dao.getJobs(maxJobs)
-      jobEvents <- dao.getJobEvents
-      ijobs <- Future { jobs.filter(_.jobTypeId == "import-dataset")}
-      ajobs <- Future { jobs.filter(_.jobTypeId == "pbsmrtpipe") }
-      dsFiles <- dao.getDataStoreFiles
-    } yield
-      s"""
-         |$header
-         |--------
-         |DataSets
-         |--------
-         |nsubreads            : ${ssets.length}
-         |alignments           : ${asets.length}
-         |references           : ${rsets.length}
-         |--------
-         |Total ${jobSummary(jobs)}
-         |--------
-         |Total JobEvents      : ${jobEvents.length}
-         |Total DataStoreFiles : ${dsFiles.length}
-         |--------
-         |Import ${jobSummary(ijobs)}
-         |--------
-         |Analysis ${jobSummary(ajobs)}
-       """.stripMargin
-
-  }
-
-
 }
 
 trait TmpDirJobResolver {
@@ -423,7 +389,7 @@ object InsertMockData extends App
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")
 
-    val fsummary = getSystemSummary(maxJobs, "Initial System Summary")
+    val fsummary = dao.getSystemSummary("Initial System Summary")
 
     fsummary onSuccess { case summary => println(summary) }
 
@@ -432,11 +398,12 @@ object InsertMockData extends App
       _ <- insertMockProject()
       _ <- insertDummySubreadSets(numSubreadSets)
       _ <- insertMockAlignmentDataSets(numAlignmentSets)
-      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe")
-      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset")
+      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe", numChunks)
+      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset", numChunks)
       _ <- insertMockJobEventsForMockJobs(numChunks)
       _ <- insertMockDataStoreFilesForMockJobs(5, numChunks)
-      sx <- getSystemSummary(maxJobs, "Final System Summary")
+      _ <- insertMockJobDatasets(numChunks)
+      sx <- dao.getSystemSummary("Final System Summary")
     } yield sx
 
 

@@ -70,7 +70,7 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBase
 
 trait PipelineTemplateProvider {
   val pipelineTemplates: Singleton[Seq[PipelineTemplate]] =
-    Singleton(() => PipelineTemplateResourceLoader.loadResources)
+    Singleton(() => PipelineTemplateResourceLoader.resources)
 }
 
 trait ResolvedPipelineTemplateServiceProvider {

@@ -166,9 +166,11 @@
 			  </pbds:SubreadSet>
           </pbdm:SubreadSets>
         </pbdm:Outputs>
-        <pbdm:RecordedEvents>
-          <pbdm:RecordedEvent SimpleValue="Starting" Name="RunStateChange"/>
-        </pbdm:RecordedEvents>
+		  <pbdm:RecordedEvents>
+			<pbdm:RecordedEvent Name="AcquisitionCompletion" CreatedAt="{ACQ_1_COMPLETED_AT}" SimpleValue="Complete" Context="{SUBREAD_ID_1}" />
+			<pbdm:RecordedEvent Name="RunTransfersCompletion" CreatedAt="{RUN_TRANS_COMPLETED_AT}" SimpleValue="AllSucceeded" Context="{RUN_ID}" />
+			<pbdm:RecordedEvent Name="RunCompletion" CreatedAt="{RUN_COMPLETED_AT}" SimpleValue="Complete" Context="{RUN_ID}" />
+		  </pbdm:RecordedEvents>
       </pbdm:Run>
     </pbdm:Runs>
   </pbdm:ExperimentContainer>

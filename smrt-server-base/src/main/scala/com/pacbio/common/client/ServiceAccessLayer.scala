@@ -5,18 +5,17 @@ import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import scala.concurrent.duration._
-//import spray.http.StatusCode._
+
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
-import scala.reflect.Manifest._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
-import scala.xml.XML
 
 import java.net.URL
-import java.util.UUID
+
+import scala.language.postfixOps
 
 
 class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {

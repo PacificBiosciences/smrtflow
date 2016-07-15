@@ -11,9 +11,13 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 object UserDao {
+  def regularize(login: String): String = login.trim.toLowerCase
+
+  val ROOT_LOGIN = regularize("root")
+
   val ROOT_USER = ApiUser(
-    login = "root",
-    id = "root",
+    login = ROOT_LOGIN,
+    id = ROOT_LOGIN,
     email = None,
     firstName = None,
     lastName = None,
@@ -45,77 +49,85 @@ trait UserDao {
  */
 class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserDao {
   import PacBioServiceErrors._
+  import UserDao._
 
   val usersByLogin: mutable.HashMap[String, ApiUser] = new mutable.HashMap()
 
   override def createUser(login: String, userRecord: UserRecord): Future[ApiUser] = Future {
-    if (usersByLogin contains login)
-      throw new UnprocessableEntityError(s"A user with login $login already exists")
+    val reg = regularize(login)
+    if (usersByLogin contains reg)
+      throw new UnprocessableEntityError(s"A user with login $reg already exists")
     else {
       val user = ApiUser(
-        login,
-        login, // Use login as id
+        reg,
+        reg, // Use login as id
         userRecord.email,
         userRecord.firstName,
         userRecord.lastName)
         .withPassword(userRecord.password)
         .withRoles(defaultRoles)
-      usersByLogin.put(login, user)
+      usersByLogin.put(reg, user)
       user
     }
   }
 
   override def authenticate(login: String, password: String): Future[ApiUser] = Future {
-    if (usersByLogin contains login) {
-      val user = usersByLogin(login)
+    val reg = regularize(login)
+    if (usersByLogin contains reg) {
+      val user = usersByLogin(reg)
       if (user.passwordMatches(password))
         user
       else
         throw new UnprocessableEntityError("Invalid credentials")
     }
     else
-      throw new ResourceNotFoundError(s"Unable to find user $login")
+      throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
 
   override def getUser(login: String): Future[ApiUser] = Future {
-    if (usersByLogin contains login)
-      usersByLogin(login)
+    val reg = regularize(login)
+    if (usersByLogin contains reg)
+      usersByLogin(reg)
     else
-      throw new ResourceNotFoundError(s"Unable to find user $login")
+      throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
 
   override def addRole(login: String, role: Role): Future[ApiUser] = Future {
-    if (usersByLogin contains login) {
-      val user = usersByLogin(login).withRole(role)
-      usersByLogin.put(login, user)
+    val reg = regularize(login)
+    if (usersByLogin contains reg) {
+      val user = usersByLogin(reg).withRole(role)
+      usersByLogin.put(reg, user)
       user
     } else
-      throw new ResourceNotFoundError(s"Unable to find user $login")
+      throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
 
   override def removeRole(login: String, role: Role): Future[ApiUser] = Future {
-    if (usersByLogin contains login) {
-      val user = usersByLogin(login).withoutRole(role)
-      usersByLogin.put(login, user)
+    val reg = regularize(login)
+    if (usersByLogin contains reg) {
+      val user = usersByLogin(reg).withoutRole(role)
+      usersByLogin.put(reg, user)
       user
     } else
-      throw new ResourceNotFoundError(s"Unable to find usr $login")
+      throw new ResourceNotFoundError(s"Unable to find usr $reg")
   }
 
 
   override def deleteUser(login: String): Future[String] = Future {
-    if (usersByLogin contains login) {
-      usersByLogin.remove(login)
-      s"Successfully deleted user $login"
+    val reg = regularize(login)
+    if (usersByLogin contains reg) {
+      usersByLogin.remove(reg)
+      s"Successfully deleted user $reg"
     } else
-      throw new ResourceNotFoundError(s"Unable to find user $login")
+      throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
 
   override def getToken(login: String): Future[String] = Future {
-    if (usersByLogin contains login)
-      jwtUtils.getJwt(usersByLogin(login))
+    val reg = regularize(login)
+    if (usersByLogin contains reg)
+      jwtUtils.getJwt(usersByLogin(reg))
     else
-      throw new ResourceNotFoundError(s"Unable to find user $login")
+      throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
 
   def clear(): Unit = usersByLogin.clear()
@@ -125,8 +137,8 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
  * A read-only user DAO that contains one user: root. This is used when auth is disabled.
  */
 class RootOnlyUserDao(jwtUtils: JwtUtils) extends UserDao {
-  import UserDao.ROOT_USER
   import PacBioServiceErrors._
+  import UserDao._
 
   override def createUser(login: String, userRecord: UserRecord): Future[ApiUser] =
     Future.failed(new MethodNotImplementedError("Cannot create users. Authentication is disabled."))
@@ -135,9 +147,10 @@ class RootOnlyUserDao(jwtUtils: JwtUtils) extends UserDao {
   def authenticate(login: String, password: String): Future[ApiUser] = Future.successful(ROOT_USER)
 
   def getUser(login: String): Future[ApiUser] = Future {
-    login match {
-      case ROOT_USER.login => ROOT_USER
-      case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+    val reg = regularize(login)
+    reg match {
+      case ROOT_LOGIN => ROOT_USER
+      case _ => throw new ResourceNotFoundError(s"Only user is '$ROOT_LOGIN'. Authentication disabled.")
     }
   }
 
@@ -151,9 +164,10 @@ class RootOnlyUserDao(jwtUtils: JwtUtils) extends UserDao {
     Future.failed(new MethodNotImplementedError("Cannot delete users. Authentication is disabled."))
 
   def getToken(login: String): Future[String] = Future {
-    login match {
-      case ROOT_USER.login => jwtUtils.getJwt(ROOT_USER)
-      case _ => throw new ResourceNotFoundError("Only user is 'root'. Authentication disabled.")
+    val reg = regularize(login)
+    reg match {
+      case ROOT_LOGIN => jwtUtils.getJwt(ROOT_USER)
+      case _ => throw new ResourceNotFoundError(s"Only user is '$ROOT_LOGIN'. Authentication disabled.")
     }
   }
 }

@@ -27,7 +27,7 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
 
     require(update || parseResults.isDefined, "Cannot create a run without ParseResults")
 
-    var action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
+    val action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
       if (prev.isEmpty && update)
         throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
       if (prev.isDefined && !update)
@@ -39,14 +39,13 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
 
       val summaryUpdate = Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
-      val dataModelAndCollectionsUpdate = parseResults.map { res =>
+      val dataModelAndCollectionsUpdate = parseResults.map { res: ParseResults =>
         if (res.run.uniqueId != uniqueId)
           throw new UnprocessableEntityError(s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
 
-        Seq(
-          dataModels.insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId)),
-          collectionMetadata ++= res.collections
-        )
+        val collectionsUpdate = res.collections.map(c => collectionMetadata.insertOrUpdate(c))
+        val dataModelUpdate = dataModels.insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId))
+        collectionsUpdate :+ dataModelUpdate
       }.getOrElse(Nil)
 
       DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
