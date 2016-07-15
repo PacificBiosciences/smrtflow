@@ -13,21 +13,21 @@ import slick.lifted.ProvenShape
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-class V10__DropJobStatesTable extends JdbcMigration with SlickMigration {
+class V11_1__DropJobStatesTable extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     val engineJobs = V8Schema.engineJobs.result
     val jobEvents = V8Schema.jobEvents.result
 
-    def engineJobV8toV10(j: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String, Option[String])): (Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String]) =
+    def engineJobV8toV11_1(j: (Int, UUID, String, String, JodaDateTime, JodaDateTime, Int, String, String, String, Option[String])): (Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String]) =
       j.copy(_7 = AnalysisJobStates.intToState(j._7).getOrElse(AnalysisJobStates.UNKNOWN).toString)
 
-    def jobEventV8toV10(e: (UUID, Int, Int, String, JodaDateTime)): (UUID, Int, String, String, JodaDateTime) =
+    def jobEventV8toV11_1(e: (UUID, Int, Int, String, JodaDateTime)): (UUID, Int, String, String, JodaDateTime) =
       e.copy(_3 = AnalysisJobStates.intToState(e._3).getOrElse(AnalysisJobStates.UNKNOWN).toString)
 
     db.run(engineJobs.zip(jobEvents).flatMap { data =>
       (InitialSchema.engineJobs.schema ++ InitialSchema.jobEvents.schema ++ InitialSchema.jobStates.schema).drop >>
-        (V10Schema.engineJobs.schema ++ V10Schema.jobEvents.schema).create >>
-        DBIO.seq(V10Schema.engineJobs ++= data._1.map(engineJobV8toV10), V10Schema.jobEvents ++= data._2.map(jobEventV8toV10))
+        (V11_1Schema.engineJobs.schema ++ V11_1Schema.jobEvents.schema).create >>
+        DBIO.seq(V11_1Schema.engineJobs ++= data._1.map(engineJobV8toV11_1), V11_1Schema.jobEvents ++= data._2.map(jobEventV8toV11_1))
     })
   }
 }
@@ -106,7 +106,7 @@ object V8Schema extends PacBioDateTimeDatabaseFormat {
 
 }
 
-object V10Schema extends PacBioDateTimeDatabaseFormat {
+object V11_1Schema extends PacBioDateTimeDatabaseFormat {
 
   class EngineJobsT(tag: Tag) extends Table[(Int, UUID, String, String, JodaDateTime, JodaDateTime, String, String, String, String, Option[String])](tag, "engine_jobs") {
 
