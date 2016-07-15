@@ -55,7 +55,7 @@ class Database(dbURI: String) {
       List()
     else
       List(new LoggingListener(), new ProfilingListener())
-
+  protected var nMigrationsApplied: Int = 0
 
   // DBCP for connection pooling and caching prepared statements for use in SQLite
   protected val connectionPool = new BasicDataSource() {
@@ -133,11 +133,13 @@ class Database(dbURI: String) {
   def migrate(): Unit = {
     this.synchronized {
       if (!migrationsComplete) {
-        flyway.migrate()
+        nMigrationsApplied = flyway.migrate()
         migrationsComplete = true
       }
     }
   }
+
+  def migrationsApplied(): Int = nMigrationsApplied
 
 
   var queryCount = 0
