@@ -14,10 +14,8 @@ import scala.concurrent.Future
 trait ImportLimsYml extends HttpService {
   this: Database =>
 
-  // we use the enclosing ActorContext's or ActorSystem's dispatcher for our Futures and Scheduler
   implicit def executionContext = actorRefFactory.dispatcher
 
-  // TODO: lots of code below to simply map PUT to an import...simplify this?
   val importLimsYmlRoutes =
     // lims.yml files must be posted to the server
     pathPrefix("import") {
@@ -34,9 +32,6 @@ trait ImportLimsYml extends HttpService {
 
   /**
    * Converts the YML to a Map.
-   *
-   * @param bytes
-   * @return
    */
   def loadData(bytes: Array[Byte]): String = {
     val sr = new StringReader(new String(bytes))

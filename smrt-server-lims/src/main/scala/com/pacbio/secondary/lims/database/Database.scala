@@ -7,10 +7,7 @@ import com.pacbio.secondary.lims.LimsYml
  * All of the public DAO methods
  *
  * This trait is the main DB-agnostic interface that the rest of the codebase relies on. The Cake
- * patter is used to build up the desired DB implementation at runtime.
- *
- * See DESIGN.md#Database for example production and test use
- *
+ * pattern is used to build up the desired DB implementation at runtime.
  */
 trait Database {
 
@@ -32,11 +29,4 @@ trait Database {
   def getLimsYml(pks: Seq[(Int, String)]): Seq[LimsYml]
 
   def getLimsYml(pk: (Int, String)): LimsYml
-
-
 }
-
-
-
-
-
