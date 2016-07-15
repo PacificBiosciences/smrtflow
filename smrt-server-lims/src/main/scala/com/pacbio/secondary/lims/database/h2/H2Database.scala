@@ -14,7 +14,7 @@ import scala.io.Source
  * H2 implementation of the backend using plain old JDBC
  */
 trait H2Database extends Database {
-  this: JdbcDatabase => // (jdbcUrl: String = "jdbc:h2:./lims;DB_CLOSE_DELAY=3")
+  this: JdbcDatabase =>
 
   // some common queries
   private val limsFields = Seq[String](
@@ -34,6 +34,7 @@ trait H2Database extends Database {
     "instid")
   // serves as PreparedStatement template and lock for dedicated connection
   private val importTemplate = s"MERGE INTO LIMS_YML (${limsFields.mkString(",")}) VALUES (${limsFields.map(_ => "?").mkString(",")});"
+  private val mergeAliasTemplate = "MERGE INTO ALIAS (alias, lims_yml_id) VALUES (?, ?)"
   private val expTemplate = "SELECT id FROM LIMS_YML WHERE expcode = ?;"
   private val runCodeTemplate = "SELECT id FROM LIMS_YML WHERE runcode = ?;"
   private val aliasTemplate = "SELECT lims_yml_id FROM ALIAS WHERE alias = ?;"
@@ -41,58 +42,29 @@ trait H2Database extends Database {
   private val lyTemplate = "SELECT * FROM LIMS_YML WHERE id = ?;"
   private val lockMap = new mutable.HashMap[String, PreparedStatement]()
 
-  // init the H2 connection
+  // JDBC driver has to be loaded before DriveManager.getConnection is used
   Class.forName("org.h2.Driver")
 
-  def getConnection(): Connection = {
-    DriverManager.getConnection(jdbcUrl)
+  def getConnection(): Connection = DriverManager.getConnection(jdbcUrl)
+
+  def doSetLimsYml(v: LimsYml)(ps: PreparedStatement) : String = {
+    for ((x, i) <- LimsYml.unapply(v).get.productIterator.toList.view.zipWithIndex)
+      x match {
+        case x: String => ps.setString(i+1, x)
+        case x: Int => ps.setInt(i+1, x)
+      }
+    if (ps.executeUpdate() == 1) "Merged: $v" else throw new Exception("Couldn't merge: $v")
   }
 
-  /**
-   * Creates the lims.yml record, if it doesn't already exist
-   *
-   * @return
-   */
-  var slyLock = new Object()
-  var slyps: PreparedStatement = null
-  override def setLimsYml(v: LimsYml): String = {
-    slyLock.synchronized {
-      // dedicated connection and prepared statement
-      if (slyps == null) slyps = getConnection().prepareStatement(importTemplate)
-      for ((x, i) <- LimsYml.unapply(v).get.productIterator.toList.view.zipWithIndex)
-        x match {
-          case x: String => slyps.setString(i+1, x)
-          case x: Int => slyps.setInt(i+1, x)
-        }
-      val result = slyps.executeUpdate()
-      if (result == 1) {
-        "Merged: " + v
-      }
-      else {
-        throw new Exception("Couldn't merge: " + v)
-      }
-    }
+  override def setLimsYml(v: LimsYml): String = use[String](importTemplate, doSetLimsYml(v))
+
+  def doMergeAlias(a: String, id: Int)(ps: PreparedStatement) : String = {
+    ps.setString(1, a)
+    ps.setInt(2, id)
+    if (ps.executeUpdate() == 1) "Merged: $a" else throw new Exception(s"Couldn't merge: $a, $id")
   }
 
-  override def setAlias(a: String, id: Int): Unit = {
-    val c = getConnection()
-    try {
-      val s = c.createStatement()
-      try {
-        val sql = s"MERGE INTO ALIAS (alias, lims_yml_id) VALUES ('$a', $id)"
-        val result = s.executeUpdate(sql)
-        if (result != 1) {
-          throw new Exception("Couldn't merge: $a, $id")
-        }
-      }
-      finally {
-        s.close()
-      }
-    }
-    finally {
-      c.close()
-    }
-  }
+  override def setAlias(a: String, id: Int): Unit = use[String](mergeAliasTemplate, doMergeAlias(a, id))
 
   /**
    * Helper for the common task of going from result set to LimsYml
@@ -121,14 +93,13 @@ trait H2Database extends Database {
     // weird, same issue? -- http://stackoverflow.com/questions/4380831/why-does-filter-have-to-be-defined-for-pattern-matching-in-a-for-loop-in-scala
     //val all = for {id <- rs.getInt(1) if rs.next()} yield id
     val buf = ArrayBuffer[Int]()
-    while (rs.next()) {
-      buf.append(rs.getInt(1))
-    }
+    while (rs.next()) buf.append(rs.getInt(1))
     rs.close()
     buf.toList
   }
 
-  private def usePreparedStatement[T](template: String, f: PreparedStatement => T): T = {
+  // helper method to lazy make, recover and use the cached PreparedStatements
+  private def use[T](template: String, f: PreparedStatement => T): T = {
     template.synchronized {
       // get prepared statement, make sure it is not closed and use cache
       val lm = lockMap.get(template) match {
@@ -150,24 +121,21 @@ trait H2Database extends Database {
     ids(ps.executeQuery())
   }
 
-  override def getByRunCode(q: String): Seq[Int] =
-    usePreparedStatement[Seq[Int]](runCodeTemplate, doRunCode(q))
+  override def getByRunCode(q: String): Seq[Int] = use[Seq[Int]](runCodeTemplate, doRunCode(q))
 
   def doExperiment(v: Int)(ps: PreparedStatement) : Seq[Int] = {
     ps.setInt(1, v)
     ids(ps.executeQuery())
   }
 
-  override def getByExperiment(q: Int): Seq[Int] =
-    usePreparedStatement[Seq[Int]](expTemplate, doExperiment(q))
+  override def getByExperiment(q: Int): Seq[Int] = use[Seq[Int]](expTemplate, doExperiment(q))
 
   def doAlias(v: String)(ps: PreparedStatement) : Int = {
     ps.setString(1, v)
     ids(ps.executeQuery()).head
   }
 
-  override def getByAlias(q: String): Int =
-    usePreparedStatement[Int](aliasTemplate, doAlias(q))
+  override def getByAlias(q: String): Int = use[Int](aliasTemplate, doAlias(q))
 
 
   def doLimsYml(id: Int)(ps: PreparedStatement): LimsYml = {
@@ -175,8 +143,7 @@ trait H2Database extends Database {
     ly(ps.executeQuery())
   }
 
-  override def getLimsYml(q: Int): LimsYml =
-    usePreparedStatement[LimsYml](lyTemplate, doLimsYml(q))
+  override def getLimsYml(q: Int): LimsYml = use[LimsYml](lyTemplate, doLimsYml(q))
 
   override def getLimsYml(q: Seq[Int]): Seq[LimsYml] = for (id <- q) yield getLimsYml(id)
 
@@ -185,13 +152,13 @@ trait H2Database extends Database {
     ps.executeQuery()
   }
 
-  override def delAlias(q: String): Unit =
-    usePreparedStatement[Unit](delAliasTemplate, doDelAlias(q))
+  override def delAlias(q: String): Unit = use[Unit](delAliasTemplate, doDelAlias(q))
 
   /**
-   * Throwaway lazy table creation method
+   * Creates the needed tables
    *
-   * Need to move to use migrations or similar. This is here just for the first iteration.
+   * This is in place of using a migration service for the first iteration. This is an internal
+   * service. Can move to a migration-based strategy later, as needed.
    */
   def createTables: Unit = {
     val c = getConnection()
@@ -200,22 +167,8 @@ trait H2Database extends Database {
       val file = "/com/pacbio/secondary/lims/database/h2/create_tables.sql"
       val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
       val s = c.createStatement()
-      try {
-        s.execute(sql)
-      }
-      finally {
-        s.close()
-      }
+      try s.execute(sql) finally s.close()
     }
-    catch {
-      case t => {
-        println("*** lazy-load error ***")
-        println(t)
-      }
-    }
-    finally {
-      c.commit()
-      c.close()
-    }
+    finally { c.commit(); c.close() }
   }
 }
