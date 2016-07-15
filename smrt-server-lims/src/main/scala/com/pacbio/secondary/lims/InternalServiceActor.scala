@@ -14,9 +14,8 @@ class InternalServiceActor extends Actor
     with ImportLimsYml
     with ResolveDataSet {
 
-  // required for JdbcDatabaseService
   lazy val config = TypesafeSingletonReader.fromConfig().in("smrt-server-lims")
-  lazy val jdbcUrl : String = config.getString("jdbcUrl").required()
+  lazy val jdbcUrl : String = config.getString("jdbcUrl").required() // required for JdbcDatabaseService
 
   // the HttpService trait defines only one abstract member, which
   // connects the services environment to the enclosing actor or test
