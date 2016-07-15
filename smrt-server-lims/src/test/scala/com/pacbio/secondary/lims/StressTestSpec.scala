@@ -12,6 +12,9 @@ import spray.testkit.Specs2RouteTest
  *
  * Spec that verifies importing multiple lims.yml and making multiple aliases. This is also helpful
  * if profiling to see threading, memory, CPU and DB performance.
+ *
+ * Increase the `StressConfig` params for a better profiling example. 100,000 entries at 3x replicate
+ * queries should take on the order of 25s on a Mac laptop  using a disk-backed H2 JDBC URL.
  */
 class StressTestSpec extends Specification
     // Probably should bind a server and make RESTful calls

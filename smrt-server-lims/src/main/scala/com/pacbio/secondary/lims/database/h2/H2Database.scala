@@ -12,6 +12,18 @@ import scala.io.Source
 
 /**
  * H2 implementation of the backend using plain old JDBC
+ *
+ * The design here is that a dedicated `Connection` and `PreparedStatement` are made for each of the
+ * main API endpoints. It both keeps the H2 database open and provides efficient SQL queries. See
+ * the `use` helper method for the core of the logic.
+ *
+ * `create_tables.sql` will create needed tables and extra indexes for good performance. It is safe
+ * to re-run since all statements use `IF NOT EXISTS`.
+ *
+ * All of the xxxT named String instances are SQL templates for the `PreparedStatement` instances, and
+ * they are also used as a simply way to synchronized access. `aliasSelectT` is the only template
+ * with a sub-query. It is done this way to efficiently lookup aliases and avoid multiple calls to
+ * the DB.
  */
 trait H2Database extends Database {
   this: JdbcDatabase =>
@@ -141,16 +153,6 @@ trait H2Database extends Database {
       samplename = rs.getString("samplename"),
       instid = rs.getInt("instid")
     ))
-    rs.close()
-    buf.toList
-  }
-
-  // helper to convert ResultSet to Int list
-  def ids(rs: ResultSet): Seq[Int] = {
-    // weird, same issue? -- http://stackoverflow.com/questions/4380831/why-does-filter-have-to-be-defined-for-pattern-matching-in-a-for-loop-in-scala
-    //val all = for {id <- rs.getInt(1) if rs.next()} yield id
-    val buf = ArrayBuffer[Int]()
-    while (rs.next()) buf.append(rs.getInt(1))
     rs.close()
     buf.toList
   }
