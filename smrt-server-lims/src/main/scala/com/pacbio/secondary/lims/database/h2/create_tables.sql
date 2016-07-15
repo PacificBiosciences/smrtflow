@@ -21,3 +21,6 @@ CREATE TABLE IF NOT EXISTS ALIAS (
   alias VARCHAR PRIMARY KEY,
   lims_yml_id INT
 );
+-- two indexes to support the queries that PK indexes don't cover
+CREATE INDEX IF NOT EXISTS index_limsyml_index ON LIMS_YML(ID);
+CREATE INDEX IF NOT EXISTS index_limsyml_runcode ON LIMS_YML(RUNCODE);
