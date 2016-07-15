@@ -1,14 +1,10 @@
 package com.pacbio.secondary.lims
 
-import java.net.BindException
-
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import com.pacbio.logging.LoggerOptions
 import spray.can.Http
 
-import scala.concurrent.{Await, Future}
-import scala.util.control.ControlThrowable
 
 /**
  * Entry point for the LIMS service
@@ -22,13 +18,8 @@ object MainSimple extends App {
 
   implicit val system = ActorSystem("internal-smrt-link-system")
 
-  /* Use Akka to create our Spray Service */
+  // use Akka to create our Spray Service
   val service = system.actorOf(Props[InternalServiceActor], "internal-smrt-link-service")
 
-  /* and bind to Akka's I/O interface */
   IO(Http) ! Http.Bind(service, "127.0.0.1", 8070)
 }
-
-
-
-
