@@ -1,14 +1,4 @@
-# SMRT Link Internal Analysis
-
-Server for the internal PacBio analysis work. Historically, this code was in p4 and powered "Milhouse". The conversion
-to Scala is part of a revamp to clean up the codebase and make it more maintainable.
-
-- Slack Channel: [internalanalysis](https://pacbio.slack.com/messages/internalanalysis/details/)
-- Bugzilla Tickets: "Internal" prefix under Secondary -> Internal SMRT Analysis. [Slack discussion link](https://pacbio.slack.com/archives/internalanalysis/p1467217687000317).
-
-See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and [smrtflow](../README.md) for the base multi-project's README. 
-
-## LIMS and Resolution Service
+# LIMS and Resolution Service
 
 Lab Information Managment System (LIMS) is based on [this spec](specification.md) and provides tracking and resolution service for common name or shorthand identifiers. See [smrtflow#89](https://github.com/PacificBiosciences/smrtflow/issues/89) for history.
 
@@ -23,10 +13,38 @@ You'll now have the service bound to port `8070`.
 
 ### Tests
 
-Some integration tests exist. The main functionality tests is that 
-`lims.yml` files can be imported via POST and resolve ids by GET.
+`RouteImportAndResolveSpec` is the main test that exercises the API. It
+confirms that `lims.yml` files can be imported via POST and resolved 
+via GET for known use cases.
 
 ```
 # run the integration tests
 sbt smrt-server-lims/test
+```
+
+`StressTestSpec.scala` provides a test that populates an arbitrary number
+of replicates then accesses the data using the exposed RESTful API. By
+default it relies on an in-memory data base and small number of replicates.
+
+Change the number of `lims.yml` imported and number of times they data
+read by editing the config.
+
+```scala
+// val c = StressConfig(imports = 10, queryReps = 3) // default
+
+// 100,000 imports at 3x read per import should take ~25s on a Mac laptop
+ val c = StressConfig(imports = 100000, queryReps = 3)
+```
+
+File locations can also be used by changing the test to use
+`DefaultDatabase` with `JdbcDatabase` and a file-backed `jdbcUrl`.
+
+```scala
+class StressTestSpec extends Specification
+    // swap the DB here. TestDatabase is in-memory
+    //with TestDatabase
+    with DefaultDatabase with JdbcDatabase
+    ...
+  // example file-backed DB override
+  override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;CACHE_SIZE=100000"
 ```
