@@ -30,24 +30,16 @@ trait StressUtil {
 
   def stressTest(c: StressConfig, ec : ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))) : StressResults = {
     // wait for all the imports to finish
-    val postImportsF = for (i <- 1 to c.imports) yield time(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
-    val postImports: Seq[(Boolean, Long)] = for (f <- postImportsF) yield Await.result(f, Duration(60, "seconds"))
+    val postImportsF = for (i <- 1 to c.imports) yield Future(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
+    val postImports: Seq[Boolean] = for (f <- postImportsF) yield Await.result(f, Duration(60, "seconds"))
     // wait for all the queries to finish
-    val getExpF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield time(getExperimentOrRunCode(i))(ec))
-    val getRuncodeF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield time(getExperimentOrRunCode(s"$i-0001"))(ec))
-    val getExp: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getExpF.flatten) yield Await.result(f, Duration(60, "seconds"))
-    val getRuncode: Seq[((Boolean, Seq[LimsYml]), Long)] = for (f <- getRuncodeF.flatten) yield Await.result(f, Duration(60, "seconds"))
+    val getExpF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getExperimentOrRunCode(i))(ec))
+    val getRuncodeF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getExperimentOrRunCode(s"$i-0001"))(ec))
+    val getExp: Seq[(Boolean, Seq[LimsYml])] = for (f <- getExpF.flatten) yield Await.result(f, Duration(60, "seconds"))
+    val getRuncode: Seq[(Boolean, Seq[LimsYml])] = for (f <- getRuncodeF.flatten) yield Await.result(f, Duration(60, "seconds"))
     // return the results
     new StressResults(postImports, getExp, getRuncode)
   }
-
-  /**
-   * Helper method to returnt the time in nanoseconds of the wrapped block
-   */
-  def time[R](code: => R)(implicit ec: ExecutionContext) = Future{
-    val t = nanoTime // don't start this until the future starts
-    (code, nanoTime - t)
-  }(ec)
 
   /**
    * GET request to lookup existing data by Experiment or Run Code
@@ -135,17 +127,12 @@ trait StressUtil {
 case class StressConfig (imports: Int, queryReps: Int)
 
 class StressResults(
-    val postImports: Seq[(Boolean, Long)],
-    val getExp: Seq[((Boolean, Seq[LimsYml]), Long)],
-    val getRuncode: Seq[((Boolean, Seq[LimsYml]), Long)]) {
+    val postImports: Seq[Boolean],
+    val getExp: Seq[(Boolean, Seq[LimsYml])],
+    val getRuncode: Seq[(Boolean, Seq[LimsYml])]) {
 
-  def noImportFailures(): Boolean = !postImports.map(v => v._1).exists(_ == false)
+  def noImportFailures(): Boolean = !postImports.exists(_ == false)
 
   def noLookupFailures(): Boolean =
-    !List(getExp, getRuncode).flatten.map(v => v._1._1).exists(_ == false)
-
-  def timing(v: Seq[(Any, Long)]): Seq[Long] = v.map(v => v._2)
-  def importTiming: Seq[Long] = timing(postImports)
-  def expTiming: Seq[Long] = timing(getExp)
-  def runcodeTiming: Seq[Long] = timing(getRuncode)
+    !List(getExp, getRuncode).flatten.map(v => v._1).exists(_ == false)
 }

@@ -10,5 +10,4 @@ import com.pacbio.secondary.lims.database.h2.H2Database
  */
 trait DefaultDatabase extends H2Database {
   this: JdbcDatabase =>
-
 }
