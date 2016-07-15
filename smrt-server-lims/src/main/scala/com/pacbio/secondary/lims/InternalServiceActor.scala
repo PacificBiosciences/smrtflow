@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims
 
 import akka.actor.Actor
-import com.pacbio.common.dependency.TypesafeSingletonReader
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
 
@@ -9,13 +9,13 @@ import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
  * Parent Actor for all internal related web services work
  */
 class InternalServiceActor extends Actor
+    with ConfigLoader
     with JdbcDatabase
     with DefaultDatabase
     with ImportLimsYml
     with ResolveDataSet {
 
-  lazy val config = TypesafeSingletonReader.fromConfig().in("smrt-server-lims")
-  lazy val jdbcUrl : String = config.getString("jdbcUrl").required() // required for JdbcDatabaseService
+  lazy val jdbcUrl : String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
 
   // the HttpService trait defines only one abstract member, which
   // connects the services environment to the enclosing actor or test
