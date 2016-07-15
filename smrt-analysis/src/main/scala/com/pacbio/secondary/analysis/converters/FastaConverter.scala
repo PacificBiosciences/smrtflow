@@ -2,16 +2,15 @@
 package com.pacbio.secondary.analysis.converters
 
 import java.nio.file.{Files, Path, Paths}
-import java.io.{File,FileInputStream,FileOutputStream}
-import java.security.MessageDigest
+import java.io.{FileInputStream,FileOutputStream}
 import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
 import javax.xml.datatype.DatatypeFactory
 
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.{DataSetMetaData, DatasetIndexFile}
-import com.pacbio.secondary.analysis.externaltools.{ExternalCmdFailure, CallSaWriterIndex, CallSamToolsIndex}
+import com.pacbio.secondary.analysis.datasets.DatasetIndexFile
+import com.pacbio.secondary.analysis.externaltools.CallSamToolsIndex
 
 // auto-generated Java modules
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
@@ -21,8 +20,7 @@ import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, ContigSetMeta
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime=> JodaDateTime}
 
-import scala.collection.mutable
-import scala.reflect._
+import scala.language.postfixOps
 
 /**
  * Base functions for converting a FASTA file to a DataSet
