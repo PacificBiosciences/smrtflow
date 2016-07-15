@@ -34,12 +34,12 @@ trait H2Database extends Database {
     "instid")
   // serves as PreparedStatement template and lock for dedicated connection
   private val lyMergeT = s"MERGE INTO LIMS_YML (${limsFields.mkString(",")}) VALUES (${limsFields.map(_ => "?").mkString(",")});"
-  private val lySelectT = "SELECT * FROM LIMS_YML WHERE id = ?;"
-  private val aliasMergeT = "MERGE INTO ALIAS (alias, lims_yml_id) VALUES (?, ?)"
-  private val aliasSelectT = "SELECT lims_yml_id FROM ALIAS WHERE alias = ?;"
+  private val lySelectT = "SELECT * FROM LIMS_YML WHERE expcode = ? AND runcode = ?;"
+  private val aliasMergeT = "MERGE INTO ALIAS (alias, lims_yml_uuid) VALUES (?, ?)"
+  private val aliasSelectT = "SELECT * FROM LIMS_YML WHERE runcode = (SELECT LIMS_YML_UUID FROM ALIAS WHERE ALIAS = ?);"
   private val aliasDeleteT = "DELETE FROM ALIAS WHERE alias = ?;"
-  private val expSelectT = "SELECT id FROM LIMS_YML WHERE expcode = ?;"
-  private val rcSelectT = "SELECT id FROM LIMS_YML WHERE runcode = ?;"
+  private val expSelectT = "SELECT * FROM LIMS_YML WHERE expcode = ?;"
+  private val rcSelectT = "SELECT * FROM LIMS_YML WHERE runcode = ?;"
   private val psCache = new mutable.HashMap[String, PreparedStatement]()
 
   // JDBC driver has to be loaded before DriveManager.getConnection is used
@@ -75,43 +75,44 @@ trait H2Database extends Database {
 
   override def setLimsYml(v: LimsYml): String = use[String](lyMergeT, doSetLimsYml(v))
 
-  def doAliasMerge(a: String, id: Int)(ps: PreparedStatement) : String = {
+  def doAliasMerge(a: String, pk: String)(ps: PreparedStatement) : String = {
     ps.setString(1, a)
-    ps.setInt(2, id)
-    if (ps.executeUpdate() == 1) "Merged: $a" else throw new Exception(s"Couldn't merge: $a, $id")
+    ps.setString(2, pk)
+    if (ps.executeUpdate() == 1) "Merged: $a" else throw new Exception(s"Couldn't merge: $a, $pk")
   }
 
-  override def setAlias(a: String, id: Int): Unit = use[String](aliasMergeT, doAliasMerge(a, id))
+  override def setAlias(a: String, pk: String): Unit = use[String](aliasMergeT, doAliasMerge(a, pk))
 
-  private def doRunCode(v: String)(ps: PreparedStatement) : Seq[Int] = {
+  private def doRunCode(v: String)(ps: PreparedStatement) : Seq[LimsYml] = {
     ps.setString(1, v)
-    ids(ps.executeQuery())
-  }
-
-  override def getByRunCode(q: String): Seq[Int] = use[Seq[Int]](rcSelectT, doRunCode(q))
-
-  private def doExperiment(v: Int)(ps: PreparedStatement) : Seq[Int] = {
-    ps.setInt(1, v)
-    ids(ps.executeQuery())
-  }
-
-  override def getByExperiment(q: Int): Seq[Int] = use[Seq[Int]](expSelectT, doExperiment(q))
-
-  private def doAlias(v: String)(ps: PreparedStatement): Int = {
-    ps.setString(1, v)
-    ids(ps.executeQuery()).head
-  }
-
-  override def getByAlias(q: String): Int = use[Int](aliasSelectT, doAlias(q))
-
-  private def doLimsYml(id: Int)(ps: PreparedStatement): LimsYml = {
-    ps.setInt(1, id)
     ly(ps.executeQuery())
   }
 
-  override def getLimsYml(q: Int): LimsYml = use[LimsYml](lySelectT, doLimsYml(q))
+  override def getByRunCode(rc: String): Seq[LimsYml] = use[Seq[LimsYml]](rcSelectT, doRunCode(rc))
 
-  override def getLimsYml(q: Seq[Int]): Seq[LimsYml] = for (id <- q) yield getLimsYml(id)
+  private def doExperiment(v: Int)(ps: PreparedStatement) : Seq[LimsYml] = {
+    ps.setInt(1, v)
+    ly(ps.executeQuery())
+  }
+
+  override def getByExperiment(q: Int): Seq[LimsYml] = use[Seq[LimsYml]](expSelectT, doExperiment(q))
+
+  private def doAlias(v: String)(ps: PreparedStatement): LimsYml = {
+    ps.setString(1, v)
+    ly(ps.executeQuery()).head
+  }
+
+  override def getByAlias(q: String): LimsYml = use[LimsYml](aliasSelectT, doAlias(q))
+
+  private def doLimsYml(pk: (Int, String))(ps: PreparedStatement): LimsYml = {
+    ps.setInt(1, pk._1)
+    ps.setString(2, pk._2)
+    ly(ps.executeQuery()).head
+  }
+
+  override def getLimsYml(pk: (Int, String)): LimsYml = use[LimsYml](lySelectT, doLimsYml(pk))
+
+  override def getLimsYml(pks: Seq[(Int, String)]): Seq[LimsYml] = for (pk <- pks) yield getLimsYml(pk)
 
   private def doAliasDel(v: String)(ps: PreparedStatement) : Unit = {
     ps.setString(1, v)
@@ -121,8 +122,9 @@ trait H2Database extends Database {
   override def delAlias(q: String): Unit = use[Unit](aliasDeleteT, doAliasDel(q))
 
   // helper to convert ResultSet rows to LimsYml
-  private def ly(rs: ResultSet) : LimsYml = {
-    rs.next
+  private def ly(rs: ResultSet) : Seq[LimsYml] = {
+    val buf = ArrayBuffer[LimsYml]()
+    while (rs.next()) buf.append(
     LimsYml(
       expcode = rs.getInt("expcode"),
       runcode = rs.getString("runcode"),
@@ -138,7 +140,9 @@ trait H2Database extends Database {
       colnum = rs.getInt("colnum"),
       samplename = rs.getString("samplename"),
       instid = rs.getInt("instid")
-    )
+    ))
+    rs.close()
+    buf.toList
   }
 
   // helper to convert ResultSet to Int list

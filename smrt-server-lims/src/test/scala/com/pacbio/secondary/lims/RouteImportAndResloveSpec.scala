@@ -63,7 +63,7 @@ class RouteImportAndResloveSpec
       }
     }
     "Full expcode resolvable via API" in {
-      expcode mustEqual getLimsYml(getByExperiment(expcode).head).expcode
+      expcode mustEqual getByExperiment(expcode).head.expcode
     }
     "Full expcode resolvable via GET /subreadset/<expcode>" in {
       Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
@@ -72,7 +72,7 @@ class RouteImportAndResloveSpec
       }
     }
     "Full runcode resolvable via API" in {
-      runcode mustEqual getLimsYml(getByRunCode(runcode).head).runcode
+      runcode mustEqual getByRunCode(runcode).head.runcode
     }
     "Full runcode resolvable via GET" in {
       Get(s"/subreadset/$runcode") ~> sealRoute(resolveRoutes) ~> check {
@@ -81,9 +81,9 @@ class RouteImportAndResloveSpec
       }
     }
     "Alias resolvable via API" in {
-      val id = getByExperiment(expcode).head
-      setAlias(alias, id)
-      id mustEqual getByAlias(alias)
+      setAlias(alias, runcode) // TODO: this should be UUID but need an example for the test
+      val ly = getByAlias(alias)
+      (expcode, runcode) mustEqual (ly.expcode, ly.runcode)
     }
     "Alias resolvable via GET /subreadset/<alias>" in {
       Get(s"/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
@@ -100,10 +100,9 @@ class RouteImportAndResloveSpec
     }
     "Alias creation via POST /resolver/<dataset-type>/<alias>" in {
       // assume this works based on previous test. TODO: better way to share this ID?
-      val id = getByExperiment(expcode).head
-      Post(s"/resolver/subreadset/$id?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
+      Post(s"/resolver/subreadset/$runcode?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
-        id mustEqual getByAlias(alias2)
+        runcode mustEqual getByAlias(alias2).runcode
       }
     }
     "Alias delete via DELETE /resolver/<dataset-type>/<alias>" in {

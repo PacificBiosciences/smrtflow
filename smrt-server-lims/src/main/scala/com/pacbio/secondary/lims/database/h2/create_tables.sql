@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS LIMS_YML (
-  id INT AUTO_INCREMENT, -- arbitrary primary ket ID
   expcode INT,
   runcode VARCHAR,
   path VARCHAR,
@@ -19,8 +18,7 @@ CREATE TABLE IF NOT EXISTS LIMS_YML (
 -- this exists only in this service. arbitrary aliases or short codes
 CREATE TABLE IF NOT EXISTS ALIAS (
   alias VARCHAR PRIMARY KEY,
-  lims_yml_id INT
+  lims_yml_uuid VARCHAR
 );
 -- two indexes to support the queries that PK indexes don't cover
-CREATE INDEX IF NOT EXISTS index_limsyml_index ON LIMS_YML(ID);
 CREATE INDEX IF NOT EXISTS index_limsyml_runcode ON LIMS_YML(RUNCODE);

@@ -16,22 +16,22 @@ trait Database {
 
   def setLimsYml(v: LimsYml): String
 
-  def setAlias(alias: String, id: Int): Unit // TODO: spec says this should be a UUID. Swap when an example is available.
+  def setAlias(alias: String, pk: String): Unit // TODO: spec says this should be a UUID. Swap when an example is available.
 
   def delAlias(alias: String): Unit
 
   /**
    * Converts from an arbitrary alias to the matching lims.yml files
    */
-  def getByAlias(alias: String): Int
+  def getByAlias(alias: String): LimsYml
 
-  def getByExperiment(uuid: Int): Seq[Int]
+  def getByExperiment(e: Int): Seq[LimsYml]
 
-  def getByRunCode(uuid: String): Seq[Int]
+  def getByRunCode(rc: String): Seq[LimsYml]
 
-  def getLimsYml(q: Seq[Int]): Seq[LimsYml]
+  def getLimsYml(pks: Seq[(Int, String)]): Seq[LimsYml]
 
-  def getLimsYml(q: Int): LimsYml
+  def getLimsYml(pk: (Int, String)): LimsYml
 
 
 }

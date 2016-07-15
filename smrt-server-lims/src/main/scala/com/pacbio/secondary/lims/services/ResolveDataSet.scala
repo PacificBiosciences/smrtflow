@@ -32,7 +32,6 @@ trait ResolveDataSet extends HttpService {
               resolveLimsSubreadSet(q) match {
                 case lys: Seq[LimsYml] =>
                   ctx.complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
-                case t: Throwable => throw t // TODO: better error message for HTTP 500?
               }
             }
         }
@@ -43,13 +42,13 @@ trait ResolveDataSet extends HttpService {
   def resolveLimsSubreadSet(q: String): Seq[LimsYml] = {
     // attempt looking up the various ids
     Try(getByExperiment(q.toInt)) match {
-      case Success(id :: ids) => getLimsYml(id :: ids)
+      case Success(ly :: lys) => ly :: lys
       case _ =>
         Try(getByRunCode(q)) match {
-          case Success(id :: ids) => getLimsYml(id :: ids)
+          case Success(ly :: lys) => ly :: lys
           case _ =>
             Try(getByAlias(q)) match {
-              case Success(id) => Seq(getLimsYml(id))
+              case Success(ly) => Seq[LimsYml](ly)
               case _ => Seq[LimsYml]()
             }
         }
@@ -64,16 +63,16 @@ trait ResolveDataSet extends HttpService {
    * DELETE /smrt-lims/resolver/{datasetyp-type-short-name}/{name-id} # "Unregister `name-id` to specific SubreadSet"
    */
   val resolveDataSetRoutes =
-    path("resolver" / Segment / Segment) { // TODO: can specify dataset-type-short-name as regex
-      (dt, id) => {
+    path("resolver" / Segment / Segment ) { // TODO: can specify dataset-type-short-name as regex
+      (dt, q) => {
         // GET = resolve the alias to the dataset type
         get {
-          complete(getLimsYml(getByAlias(id)).toJson.prettyPrint) // TODO: match `dt` and do dataset-type-short-name specific alias
+          complete(getByAlias(q).toJson.prettyPrint) // TODO: match `dt` and do dataset-type-short-name specific alias
         } ~
         // PUT = set the alias for the dataset type
         post {
           parameters('name) { name =>
-            Try(setAlias(name, id.toInt)) match {
+            Try(setAlias(name, q)) match {
               case Success(_) => complete("Set $dt as alias for $id") // TODO: match `dt` and do dataset-type-short-name specific alias
               case Failure(t) => complete(500, "Couldn't set alias '$id' for $dt")
             }

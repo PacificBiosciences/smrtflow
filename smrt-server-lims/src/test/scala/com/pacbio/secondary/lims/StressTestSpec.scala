@@ -1,6 +1,6 @@
 package com.pacbio.secondary.lims
 
-import com.pacbio.secondary.lims.database.TestDatabase
+import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase, TestDatabase}
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
 import com.pacbio.secondary.lims.util.{StressConfig, StressUtil}
 import org.specs2.mutable.Specification
@@ -17,6 +17,7 @@ class StressTestSpec extends Specification
     // Probably should bind a server and make RESTful calls
     with Specs2RouteTest
     // swap the DB here. TestDatabase is in-memory
+    //with DefaultDatabase with JdbcDatabase
     with TestDatabase
     // routes that will use the test database
     with ImportLimsYml
