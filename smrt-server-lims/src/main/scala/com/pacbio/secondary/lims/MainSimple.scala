@@ -2,6 +2,7 @@ package com.pacbio.secondary.lims
 
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
+import com.pacbio.common.dependency.TypesafeSingletonReader
 import com.pacbio.logging.LoggerOptions
 import spray.can.Http
 
@@ -21,5 +22,6 @@ object MainSimple extends App {
   // use Akka to create our Spray Service
   val service = system.actorOf(Props[InternalServiceActor], "internal-smrt-link-service")
 
-  IO(Http) ! Http.Bind(service, "127.0.0.1", 8070)
+  lazy val c = TypesafeSingletonReader.fromConfig().in("smrt-server-lims")
+  IO(Http) ! Http.Bind(service, c.getString("host").required(), c.getInt("port").required())
 }

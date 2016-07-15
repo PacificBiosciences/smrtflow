@@ -9,7 +9,16 @@ Run the service via sbt.
 sbt clean compile smrt-server-lims/run
 ```
 
-You'll now have the service bound to port `8070`.
+You'll now have the service bound to port `8070`. The host, port and 
+location of the database can all be configured in `application.conf`.
+
+```
+smrt-server-lims {
+  jdbcUrl = "jdbc:h2:/tmp/stress_test;CACHE_SIZE=100000"
+  host = "0.0.0.0"
+  port = 8070
+}
+```
 
 ### Tests
 
