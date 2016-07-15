@@ -84,7 +84,7 @@ trait MockUtils extends LazyLogging{
     files
   }
 
-  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe"): Future[Option[Int]] = {
+  def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe", nchunks: Int = 100): Future[Iterator[Option[Int]]] = {
 
     val states = AnalysisJobStates.VALID_STATES
     val rnd = new Random
@@ -106,7 +106,8 @@ trait MockUtils extends LazyLogging{
         "path",
         "{}",
         Some("root"))}
-    dao.db.run(engineJobs ++= (0 until numJobs ).map(x => toJob))
+    val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
+    Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
 
   def insertDummySubreadSets(n: Int): Future[Seq[String]] = {
@@ -397,8 +398,8 @@ object InsertMockData extends App
       _ <- insertMockProject()
       _ <- insertDummySubreadSets(numSubreadSets)
       _ <- insertMockAlignmentDataSets(numAlignmentSets)
-      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe")
-      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset")
+      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe", numChunks)
+      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset", numChunks)
       _ <- insertMockJobEventsForMockJobs(numChunks)
       _ <- insertMockDataStoreFilesForMockJobs(5, numChunks)
       _ <- insertMockJobDatasets(numChunks)
