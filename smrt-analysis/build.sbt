@@ -13,5 +13,5 @@ packMain := Map(
   "validate-dataset" -> "com.pacbio.secondary.analysis.tools.ValidateDataSetApp",
   "merge-datasets" -> "com.pacbio.secondary.analysis.tools.DataSetMergerApp",
   "ds-tools" -> "com.pacbio.secondary.analysis.tools.PbDataSetToolsApp",
-  "example-tool" -> "com.pacbio.secondary.analysis.tools.ExampleToolApp"
+  "smrtflow-example-tool" -> "com.pacbio.secondary.analysis.tools.ExampleToolApp"
 )
