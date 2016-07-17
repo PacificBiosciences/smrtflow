@@ -33,7 +33,7 @@ object ExampleToolsConstants {
 
   final val TOOL_ID = "smrtflow.tasks.example_tool"
   final val TOOL_NAME = "Example Tool"
-  final val VERSION = "0.1.1"
+  final val VERSION = "0.2.0"
   final val DESCRIPTION =
     """
       |Example Tool that generates a fasta file from a txt file
@@ -77,9 +77,20 @@ trait ExampleToolEmitToolContract {
   def outputFileTypes: Seq[ToolOutputFile] =
     Seq(new ToolOutputFile("fasta", FileTypes.FASTA.fileTypeId, "Fasta", "file", "Random Fasta File Output"))
 
-  // This is clearly not correct
-  //def taskOptions: Seq[PacBioOptions] =
-  //  Seq(PacBioOptions.newBuilder().setPbOption()
+  val pbInt: PacBioOptionType = PacBioOptionType.integer
+
+  def taskOptionNumRecords = PacBioOption.newBuilder()
+    .setName("NumRecords")
+    .setDescription("Number of Fasta Record to generate")
+    .setOptionId(NUM_RECORDS_OPT_ID)
+    .setDefault$(50)
+    .setType(PacBioOptionType.integer)
+    .build()
+
+  def taskOptions: PacBioOptions =
+    PacBioOptions.newBuilder()
+      .setPbOption(taskOptionNumRecords)
+      .build()
 
   def toolContractTask: ToolContractTask = {
     ToolContractTask.newBuilder()
@@ -92,13 +103,13 @@ trait ExampleToolEmitToolContract {
         .setOutputTypes(outputFileTypes)
             .setTaskType("pbsmrtpipe.task_types.standard")
             .setResourceTypes(Seq.empty[String])
-            .setSchemaOptions(Seq.empty[PacBioOptions])
+            .setSchemaOptions(Seq(taskOptions))
         .build()
   }
 
   def toolContract: ToolContract = {
     ToolContract.newBuilder()
-        .setDriver(new ToolDriver("example-tool run-rtc ", "json"))
+        .setDriver(new ToolDriver("smrtflow-example-tool run-rtc ", "avro"))
         .setToolContract(toolContractTask)
         .setVersion(VERSION)
         .setToolContractId(TOOL_ID) // This is duplicated for unclear reasons
@@ -115,6 +126,9 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
 
   // This is the Main function. This should be imported from library code
   def run(outputFastaFile: Path, numRecords: Int): Int = {
+    println(s"Running $TOOL_ID v$VERSION")
+    println(s"Writing $numRecords Fasta records to $outputFastaFile")
+
     val bw = new BufferedWriter(new FileWriter(outputFastaFile.toFile))
     (0 until numRecords).foreach { x =>
       bw.write(s">record_$x\nACGT\n")
@@ -132,10 +146,15 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
 
     val outputFasta = Paths.get(rtc.getResolvedToolContract.getOutputFiles.head.toString)
 
-    // FIXME
-    val numRecordsOpt = rtc.getResolvedToolContract.getOptions.get(NUM_RECORDS_OPT_ID)
+    // Is there a better way to do this in a type safe manner?
+    // In local tests, this will just cast to 0 which is wrong.
+    // FIXME(mpkocher)(2016-7-16) Fix this casting issue
+     val numRecords = rtc
+      .getResolvedToolContract
+      .getOptions
+      .get(NUM_RECORDS_OPT_ID).asInstanceOf[Int]
 
-    run(outputFasta, NUM_RECORDS_DEFAULT)
+    run(outputFasta, numRecords)
   }
 
   // Utils from Parser+ Config

@@ -6,6 +6,7 @@ smrt-server-link/db/*
 smrt-server-link/jobs-root
 smrt-server-analysis/db/*
 smrt-server-analysis/jobs-root
+test-data-smrt-server
 
 test-data/smrtserver-testdata
 test-output/*
