@@ -15,6 +15,11 @@ build:
 tools:
 	sbt clean pack
 
+
+tools-smrt-analysis:
+	sbt smrt-analysis/{compile,pack}
+
+
 repl:
 	sbt smrt-analysis/test:console
 
