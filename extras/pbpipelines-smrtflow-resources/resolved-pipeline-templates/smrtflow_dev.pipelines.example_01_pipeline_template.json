@@ -1,0 +1,36 @@
+{
+    "_comment": "Created pipeline smrtflow_dev.pipelines.example_01 with pbsmrtpipe v0.42.0", 
+    "bindings": [], 
+    "description": "Custom Pipeline Registry for dev hello world tasks", 
+    "entryPoints": [
+        {
+            "entryId": "e_01", 
+            "fileTypeId": "PacBio.FileTypes.txt", 
+            "name": "Entry Name: PacBio.FileTypes.txt", 
+            "tasks": [
+                {
+                    "index": 0, 
+                    "instanceId": 0, 
+                    "taskTypeId": "smrtflow.tasks.example_tool"
+                }
+            ]
+        }
+    ], 
+    "id": "smrtflow_dev.pipelines.example_01", 
+    "name": "Custom Example 01", 
+    "options": [], 
+    "tags": [
+        "smrtflow", 
+        "dev"
+    ], 
+    "taskOptions": [
+        {
+            "default": 60, 
+            "description": "Number of Fasta Record to generate", 
+            "id": "smrtflow.task_options.num_records", 
+            "name": "NumRecords", 
+            "optionTypeId": "pbsmrtpipe.option_types.integer"
+        }
+    ], 
+    "version": "0.1.0"
+}

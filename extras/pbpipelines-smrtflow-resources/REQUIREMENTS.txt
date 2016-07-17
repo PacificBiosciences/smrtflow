@@ -1,0 +1,5 @@
+pbcore >= 1.2.10
+pbcommand >= 0.3.24
+pbsmrtpipe >= 0.41.0
+#pbinternal2
+nose

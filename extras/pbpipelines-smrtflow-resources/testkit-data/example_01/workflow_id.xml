@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline-template>
+
+    <!-- Reference a workflow template defined in -->
+    <import-template id="smrtflow_dev.pipelines.example_01" />
+
+    <options>
+    <!-- workflow level options  -->
+        <option id="pbsmrtpipe.options.max_nchunks" >
+            <value>7</value>
+        </option>
+        <option id="pbsmrtpipe.options.max_nproc" >
+            <value>13</value>
+        </option>
+    </options>
+
+    <!-- task level options here -->
+    <task-options>
+        <option id="smrtflow.task_options.num_records">
+            <value>67</value>
+        </option>
+    </task-options>
+
+</pipeline-template>
