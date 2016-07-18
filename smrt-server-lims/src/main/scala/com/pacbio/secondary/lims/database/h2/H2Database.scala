@@ -83,7 +83,7 @@ trait H2Database extends Database {
         case x: String => ps.setString(i+1, x)
         case x: Int => ps.setInt(i+1, x)
       }
-    if (ps.executeUpdate() == 1) "Merged: $v" else throw new Exception("Couldn't merge: $v")
+    if (ps.executeUpdate() == 1) s"Merged: $v" else throw new Exception(s"Couldn't merge: $v")
   }
 
   override def setLimsYml(v: LimsYml): String = use[String](lyMergeT, doSetLimsYml(v))
@@ -91,7 +91,7 @@ trait H2Database extends Database {
   def doAliasMerge(a: String, pk: String)(ps: PreparedStatement) : String = {
     ps.setString(1, a)
     ps.setString(2, pk)
-    if (ps.executeUpdate() == 1) "Merged: $a" else throw new Exception(s"Couldn't merge: $a, $pk")
+    if (ps.executeUpdate() == 1) s"Merged: $a" else throw new Exception(s"Couldn't merge: $a, $pk")
   }
 
   override def setAlias(a: String, pk: String): Unit = use[String](aliasMergeT, doAliasMerge(a, pk))
