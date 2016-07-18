@@ -1,10 +1,12 @@
 package com.pacbio.secondary.lims
 
+import java.util.UUID
+
 import akka.actor.Actor
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.utils.StatusGeneratorProvider
-import com.pacbio.common.services.StatusServiceProvider
-import com.pacbio.common.time.{ClockProvider, SystemClockProvider}
+import com.pacbio.common.models.Constants
+import com.pacbio.common.services.utils.StatusGenerator
+import com.pacbio.common.services.StatusService
+import com.pacbio.common.time.SystemClock
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
 import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
@@ -17,16 +19,12 @@ class InternalServiceActor extends Actor
     with JdbcDatabase
     with DefaultDatabase
     with ImportLimsYml
-    with ResolveDataSet
-    // rest are to add the status service
-    with StatusServiceProvider
-    with StatusGeneratorProvider
-    with SystemClockProvider {
-  // required for StatusGeneratorProvider
-  lazy override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
-  lazy override val baseServiceId: Singleton[String] = Singleton("smrt-server-lims")
+    with ResolveDataSet {
 
-  lazy val jdbcUrl : String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
+  lazy val jdbcUrl: String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
+
+  // needed as part of the smrtlink web services
+  val statusService = new StatusService(new StatusGenerator(new SystemClock, "smrt-server-lims", UUID.randomUUID(), Constants.SMRTFLOW_VERSION))
 
   // the HttpService trait defines only one abstract member, which
   // connects the services environment to the enclosing actor or test
@@ -35,5 +33,5 @@ class InternalServiceActor extends Actor
   // this actor only runs our route, but you could add
   // other things here, like request stream processing
   // or timeout handling
-  def receive = runRoute(importLimsYmlRoutes ~ resolveRoutes ~ statusService().routes)
+  def receive = runRoute(importLimsYmlRoutes ~ resolveRoutes ~ statusService.routes)
 }
