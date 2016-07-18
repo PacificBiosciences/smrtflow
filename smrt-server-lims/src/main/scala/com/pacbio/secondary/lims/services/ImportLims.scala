@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims.services
 
 import java.io.{BufferedReader, StringReader}
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.lims.LimsYml
@@ -11,6 +11,7 @@ import spray.routing.HttpService
 
 import scala.collection.mutable
 import scala.concurrent.Future
+import scala.collection.JavaConverters._
 
 
 /**
@@ -91,7 +92,14 @@ trait LookupSubreadsetUuid {
 
 trait FileLookupSubreadsetUuid {
   def lookupUuid(path: String): String = {
-    val p = Paths.get(path)
-    DataSetLoader.loadSubreadSet(p).getUniqueId
+    val p = Paths.get(path.stripPrefix("file://"))
+    val matches  =
+      for (v <- Files.newDirectoryStream(p).asScala
+           if v.toString.endsWith("subreadset.xml"))
+        yield DataSetLoader.loadSubreadSet(v).getUniqueId
+    matches.headOption match {
+      case Some(s) => s
+      case t => ""
+    }
   }
 }

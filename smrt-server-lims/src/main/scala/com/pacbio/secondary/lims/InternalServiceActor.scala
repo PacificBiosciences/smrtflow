@@ -24,6 +24,8 @@ class InternalServiceActor extends Actor
 
   lazy val jdbcUrl: String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
 
+  createTables
+
   // needed as part of the smrtlink web services
   val statusService = new StatusService(new StatusGenerator(new SystemClock, "smrt-server-lims", UUID.randomUUID(), Constants.SMRTFLOW_VERSION))
 
