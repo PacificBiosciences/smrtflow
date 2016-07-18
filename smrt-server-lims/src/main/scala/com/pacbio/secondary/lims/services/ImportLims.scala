@@ -55,9 +55,12 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
     }
 
     // need the path in order to parse the UUID from .subreadset.xml
-    lookupUuid(m.get("path").get) match {
-      case Some(uuid) => loadData(uuid, m)
-      case _ => "No .subreadset.xml found. Skipping loading due to lack of UUID"
+    m.get("path") match {
+      case Some(p) => lookupUuid(p) match {
+        case Some(uuid) => loadData(uuid, m)
+        case None => s"No .subreadset.xml found. Skipping loading of $p"
+      }
+      case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
   }
 
