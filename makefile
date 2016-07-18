@@ -4,6 +4,7 @@ STRESS_RUNS=1
 clean:
 	rm -f secondary-smrt-server*.log
 	rm -rf smrt-server-analysis/{db,jobs-root}
+	rm -rf smrt-server-link/{db,jobs-root}
 	sbt clean
 
 dataclean:
