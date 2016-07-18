@@ -363,6 +363,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
 
+    def transfersCompletedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("TRANSFERS_COMPLETED_AT")
+
     def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
 
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("STATUS")
@@ -394,6 +396,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         createdBy,
         createdAt,
         startedAt,
+        transfersCompletedAt,
         completedAt,
         status,
         totalCells,

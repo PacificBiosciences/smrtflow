@@ -84,7 +84,7 @@ with SmrtLinkConstants {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
-  val dbURI = TestProviders.dbURI
+  val dbURI = TestProviders.dbURI()
 
   val newProject = ProjectRequest("TestProject", "CREATED", "Test Description")
   val newProject2 = ProjectRequest("TestProject2", "CREATED", "Test Description")
@@ -99,9 +99,9 @@ with SmrtLinkConstants {
 
   def dbSetup() = {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI()}")
+    logger.info(s"Running tests from db-uri ${dbURI}")
     runSetup(dao)
-    println(s"completed setting up database ${db.dbUri}")
+    println(s"completed setting up database ${dbURI}")
   }
 
   textFragment("creating database tables")

@@ -4,6 +4,7 @@ STRESS_RUNS=1
 clean:
 	rm -f secondary-smrt-server*.log
 	rm -rf smrt-server-analysis/{db,jobs-root}
+	rm -rf smrt-server-link/{db,jobs-root}
 	sbt clean
 
 dataclean:
@@ -12,8 +13,32 @@ dataclean:
 build: 
 	sbt compile
 
+tools:
+	sbt clean pack
+
+
+tools-smrt-analysis:
+	sbt smrt-analysis/{compile,pack}
+
+
+repl:
+	sbt smrt-analysis/test:console
+
+smrt-server-analysis-tools:
+	sbt smrt-server-analysis/pack
+
+insert-mock-data:
+	sbt "smrt-server-analysis/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
+
+insert-mock-data-summary: smrt-server-analysis-tools
+	./smrt-server-analysis/target/pack/bin/smrt-db-tool --db-uri smrt-server-analysis/db/analysis_services.db --quiet
+
 start-smrt-server-analysis:
 	sbt "smrt-server-analysis/run"
+
+start-smrt-server-analysis-jar:
+	sbt "smrt-server-analysis/assembly"
+	java -jar smrt-server-analysis/target/scala-2.11/smrt-server-analysis-assembly-*-SNAPSHOT.jar
 
 test:
 	sbt -batch "test-only -- junitxml html console"

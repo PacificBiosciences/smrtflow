@@ -39,7 +39,7 @@ class JobManagerService(
   import JobsDaoActor._
   import SmrtLinkJsonProtocols._
 
-  override implicit val timeout = Timeout(10.seconds)
+  override implicit val timeout = Timeout(20.seconds)
 
   implicit val routing = RoutingSettings.default
 

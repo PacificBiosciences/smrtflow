@@ -3,7 +3,7 @@ package com.pacbio.secondary.analysis.jobtypes
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.reports.MockReportUtils
+import com.pacbio.secondary.analysis.reports.ReportUtils
 import spray.json._
 
 import org.joda.time.{DateTime => JodaDateTime}
@@ -40,14 +40,15 @@ with SecondaryJobJsonProtocol {
 
     logger.info(s"Trying to load datastore from ${opts.path}")
 
-    val prefix = "mock-import-datastore-report"
-    val taskReport = MockReportUtils.mockReport(prefix)
-    val reportPath = job.path.resolve(prefix + ".json")
-    MockReportUtils.writeReport(taskReport, reportPath)
+    val reportId = "smrtflow_import_datastore_report"
+
+    val taskReport = ReportUtils.mockReport(reportId, "Import DataStore Report")
+    val reportPath = job.path.resolve(reportId + ".json")
+    ReportUtils.writeReport(taskReport, reportPath)
 
     val reportDataStoreFile = DataStoreFile(
-      UUID.randomUUID(),
-      s"pbscala::$prefix",
+      taskReport.uuid,
+      s"pbscala::$reportId",
       FileTypes.REPORT.fileTypeId.toString,
       reportPath.toFile.length(),
       startedAt,

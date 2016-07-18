@@ -57,7 +57,7 @@ object FileTypes {
   case class DataSetBaseType(fileTypeId: String, baseFileName: String, fileExt: String, mimeType: String) extends FileType with PacBioDataSetType
 
   // The most generic file type
-  final val TXT = FileBaseType(toFT("Txt"), "file", "txt", "text/plain")
+  final val TXT = FileBaseType(toFT("txt"), "file", "txt", "text/plain")
 
   final val LOG = FileBaseType(toFT("log"), "file", "log", "text/plain")
 

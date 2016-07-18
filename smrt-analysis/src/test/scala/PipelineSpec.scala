@@ -35,7 +35,7 @@ class PipelineSpec extends Specification with SecondaryJobJsonProtocol with Lazy
       val s = p.get.toJson
       logger.info("Pipeline serialization")
       logger.info(s.prettyPrint)
-      println(s.prettyPrint)
+      //println(s.prettyPrint)
 
       // load PT back in, but need to translate the JSONSchema task Options back to PipelineOption format
       // This can't do the round-trip because read->write API is stupid
@@ -50,7 +50,7 @@ class PipelineSpec extends Specification with SecondaryJobJsonProtocol with Lazy
       val name = "pbsmrtpipe.pipelines.sa3_ds_align_pipeline_template.json"
       val resource = s"$ROOT_PIPELINE_TEMPLATES/$name"
       val n = getClass.getResource(resource)
-      println(s"Resource $n")
+      //println(s"Resource $n")
       val xs = scala.io.Source.fromURI(n.toURI).mkString
       val jx = xs.parseJson
       val px = jx.convertTo[PipelineTemplate]

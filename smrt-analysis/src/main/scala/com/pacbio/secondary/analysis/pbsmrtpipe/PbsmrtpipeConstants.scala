@@ -8,6 +8,15 @@ import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineStrOption, Pipeline
  */
 object PbsmrtpipeConstants {
 
+  // pbsmrtpipe ENV vars
+  final val ENV_TOOL_CONTACT_DIR = "PB_TOOL_CONTRACT_DIR"
+  final val ENV_PIPELINE_TEMPLATE_DIR = "PB_PIPELINE_TEMPLATE_DIR"
+
+  // This aren't really pbsmrtpipe specific related, but keeping them here in a central location
+  final val ENV_PB_RULES_REPORT_VIEW_DIR = "PB_RULES_REPORT_VIEW_DIR"
+  final val ENV_PB_RULES_PIPELINE_VIEW_DIR = "PB_RULES_PIPELINE_VIEW_DIR"
+
+  // base pbsmrtpipe options
   sealed trait PbsmrtpipeEngineOption {
     def toI(n: String) = s"pbsmrtpipe.options.$n"
 

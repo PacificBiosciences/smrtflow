@@ -4,38 +4,41 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import collection.JavaConversions._
-
 import org.joda.time.{DateTime => JodaDateTime}
 
-import com.pacificbiosciences.pacbiodatasets.DataSetMetadataType
+import scala.util.Try
+import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, SubreadSet, DataSetType}
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReports, PbReport}
+import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReport, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.analysis.reports.ReportModels._
 
 
-object DataSetReports {
+object DataSetReports extends ReportJsonProtocol {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
-  def toReportFile(path: Path, taskId: String): DataStoreFile = {
-    val startedAt = JodaDateTime.now()
-    val createdAt = JodaDateTime.now()
+  def toDataStoreFile(path: Path, taskId: String): DataStoreFile = {
+    val now = JodaDateTime.now()
 
-    //FIXME(mpkocher)(2016-4-21) These will probably have to have the specific report type id in the Display Name
-    DataStoreFile(UUID.randomUUID(), taskId,
+    val (reportId, uuid) = Try { ReportUtils.loadReport(path) }
+        .map(r => (r.id, r.uuid))
+        .getOrElse(("unknown", UUID.randomUUID())) // XXX this is not ideal
+
+    //FIXME(mpkocher)(2016-4-21) Need to store the report type id in the db
+    DataStoreFile(uuid, taskId,
       FileTypes.REPORT.fileTypeId.toString,
       path.toFile.length(),
-      startedAt,
-      createdAt,
+      now,
+      now,
       path.toAbsolutePath.toString,
       isChunked = false,
-      "PacBio Report",
-      "PacBio DataSet Report")
+      s"PacBio Report $reportId",
+      s"PacBio DataSet Report for $reportId")
   }
 
   def run(
@@ -45,7 +48,7 @@ object DataSetReports {
       log: JobResultWriter): Option[DataStoreFile] = {
 
     val reportDir = parentDir.resolve(rpt.reportModule)
-    reportDir.toFile().mkdir()
+    reportDir.toFile.mkdir()
     val reportFile = reportDir.resolve(s"${rpt.reportModule}.json")
 
     log.writeLineStdout(s"running report ${rpt.reportModule}")
@@ -56,7 +59,7 @@ object DataSetReports {
         log.writeLineStdout(failure.msg)
         None
       }
-      case Right(report) => Some(toReportFile(report.outputJson, report.taskId))
+      case Right(report) => Some(toDataStoreFile(report.outputJson, report.taskId))
     }
   }
 
@@ -68,7 +71,7 @@ object DataSetReports {
       log: JobResultWriter): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
-    rptParent.toFile().mkdir()
+    rptParent.toFile.mkdir()
 
     // all of the current reports will only work if at least one sts.xml file
     // is present as an ExternalResource of a SubreadSet BAM file
@@ -76,7 +79,8 @@ object DataSetReports {
       case DataSetMetaTypes.Subread => {
         val ds = DataSetLoader.loadSubreadSet(inPath)
         val extRes = ds.getExternalResources
-        if (extRes == null) false else {
+        if (extRes == null) false
+        else {
           (extRes.getExternalResource.filter(_ != null).map { x =>
             val extRes2 = x.getExternalResources
             if (extRes2 == null) false else {
@@ -91,14 +95,15 @@ object DataSetReports {
     }
 
     val reportFiles = if (PbReports.isAvailable()) {
-      PbReports.ALL.filter(_.canProcess(dst, hasStatsXml))
-        .map(run(inPath, _, rptParent, log)).flatten
+      PbReports.ALL
+          .filter(_.canProcess(dst, hasStatsXml))
+          .flatMap(run(inPath, _, rptParent, log))
     } else {
       log.writeLineStdout("pbreports is unavailable")
       List()
     }
 
-    if (reportFiles.length > 0) {
+    if (reportFiles.nonEmpty) {
       reportFiles
     } else {
       List(simpleReport(inPath, dst, rptParent, jobTypeId))
@@ -111,6 +116,7 @@ object DataSetReports {
       jobPath: Path,
       jobTypeId: JobTypeId): DataStoreFile = {
 
+
     def attribs(md: DataSetMetadataType) =
       List(
         ReportLongAttribute(
@@ -119,29 +125,37 @@ object DataSetReports {
           "num_records", "Num Records", md.getNumRecords)
       )
 
+    // This doesn't work. See comments below
+    //def toSimpleAttributes[T <: DataSetType](ds: T): Seq[ReportLongAttribute] = attribs(ds.getDataSetMetadata())
+
+    // The base DataSetType doesn't have a base metadatatype, therefore this
+    // has to be explicitly encoded here.
     val reportAttrs: List[ReportAttribute] = dst match {
       case DataSetMetaTypes.Subread =>
-        attribs(DataSetLoader.loadSubreadSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadSubreadSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.HdfSubread =>
-        attribs(DataSetLoader.loadHdfSubreadSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadHdfSubreadSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Reference =>
-        attribs(DataSetLoader.loadReferenceSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadReferenceSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Alignment =>
-        attribs(DataSetLoader.loadAlignmentSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadAlignmentSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.CCS =>
-        attribs(DataSetLoader.loadConsensusReadSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadConsensusReadSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.AlignmentCCS =>
-        attribs(DataSetLoader.loadConsensusAlignmentSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadConsensusAlignmentSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Contig =>
-        attribs(DataSetLoader.loadContigSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadContigSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Barcode =>
-        attribs(DataSetLoader.loadBarcodeSet(inPath).getDataSetMetadata())
+        attribs(DataSetLoader.loadBarcodeSet(inPath).getDataSetMetadata)
+      case DataSetMetaTypes.GmapReference =>
+        attribs(DataSetLoader.loadGmapReferenceSet(inPath).getDataSetMetadata)
     }
+
     val rpt = Report(
-      simple, Constants.SMRTFLOW_VERSION, reportAttrs, List(), List())
+      simple, "Import DataSet Report", Constants.SMRTFLOW_VERSION, reportAttrs, Nil, Nil, UUID.randomUUID())
 
     val reportPath = jobPath.resolve(simple + ".json")
-    MockReportUtils.writeReport(rpt, reportPath)
-    toReportFile(reportPath, s"pbscala::${jobTypeId.id}")
+    ReportUtils.writeReport(rpt, reportPath)
+    toDataStoreFile(reportPath, s"pbscala::${jobTypeId.id}")
   }
 }

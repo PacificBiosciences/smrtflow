@@ -97,7 +97,8 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
           case Success(r) =>
             r match {
               case Right(x) =>
-                println(s"Successfully completed running $toolId v$VERSION in ${x.runTimeSec} sec.")
+                println(s"Successfully completed (exit code 0) running $toolId v$VERSION in ${x.runTimeSec} sec.")
+                sys.exit(0)
               case Left(e) =>
                 val msg = s"Failed (exit code 1) running $toolId v$VERSION in ${e.runTimeSec} sec. ${e.message}"
                 //logger.error(msg)

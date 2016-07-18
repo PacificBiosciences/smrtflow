@@ -3,7 +3,7 @@ package com.pacbio.database
 import java.nio.file.Paths
 import java.sql.Connection
 
-import db.migration.h2.V15__WriteDataToH2
+import db.migration.h2.V16__WriteDataToH2
 import db.migration.sqlite._
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
@@ -19,6 +19,8 @@ import slick.driver.H2Driver.api.{Database => H2Database}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import ExecutionContext.Implicits.global
+
+import scala.language.postfixOps
 
 /**
  * Abstraction for the Data Access Layer (DAL)
@@ -53,8 +55,28 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
     else
       List(new LoggingListener(), new ProfilingListener())
 
-  // DBCP for connection pooling and caching prepared statements
-  protected val connectionPool = new BasicDataSource()
+  protected var nMigrationsApplied: Int = 0
+
+  // DBCP for connection pooling and caching prepared statements for use in SQLite
+  protected val connectionPool = new BasicDataSource() {
+    // work-around for Flyway DB migrations needing 2 connections and SQLite supporting 1
+    var cachedConnection: Connection = null
+
+    override def getConnection(): Connection = {
+      // recycle the connection only for the special use case of Flyway database migrations
+      if (shareConnection && cachedConnection != null && cachedConnection.isValid(3000)) {
+        return cachedConnection
+      }
+      else {
+        // guard for SQLite use. also applicable in any case where only 1 connection is allowed
+        if (cachedConnection != null && !cachedConnection.isClosed) {
+          throw new RuntimeException("Can't have multiple sql connections open. An old connection may not have had close() invoked.")
+        }
+        cachedConnection = super.getConnection()
+      }
+      cachedConnection
+    }
+  }
   connectionPool.setDriverClassName("org.h2.Driver")
   connectionPool.setUrl(dbUri)
   connectionPool.setInitialSize(4)
@@ -127,6 +149,7 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
             }
           }
 
+          // TODO(smcclellan): Is there a way to automatically, separately resolve sqlite and h2 migrations?
           val sqliteResolver = new PredefMigrationResolver(
             flyway.getClassLoader,
             classOf[V1__InitialSchema],
@@ -138,11 +161,12 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
             classOf[V7__Sample],
             classOf[V8__JobUser],
             classOf[V9__CollectionPathUri],
-            classOf[V10__DropJobStatesTable],
             classOf[V11__AddIndexes],
+            classOf[V11_1__DropJobStatesTable],
             classOf[V12__GmapReferences],
             classOf[V13__MoreDatasets],
-            classOf[V14__ReadDataForH2]
+            classOf[V14__TransfersCompletedAt],
+            classOf[V15__ReadDataForH2]
           )
 
           flyway.setLocations("db/migration/sqlite")
@@ -151,11 +175,11 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
           flyway.setDataSource(connectionPool)
           flyway.setBaselineOnMigrate(true)
           flyway.setBaselineVersionAsString("1")
-          flyway.migrate()
+          nMigrationsApplied = flyway.migrate()
         }
 
         val flyway = new Flyway()
-        val h2Resolver = new PredefMigrationResolver(flyway.getClassLoader, classOf[V15__WriteDataToH2])
+        val h2Resolver = new PredefMigrationResolver(flyway.getClassLoader, classOf[V16__WriteDataToH2])
         flyway.setLocations("db/migration/h2")
         flyway.setResolvers(h2Resolver)
         flyway.setSkipDefaultResolvers(true)
@@ -163,10 +187,16 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
         flyway.setBaselineOnMigrate(true)
         flyway.setBaselineVersionAsString("15")
         flyway.migrate()
+
+        nMigrationsApplied += flyway.migrate()
         migrationsComplete = true
       }
     }
   }
+
+  def migrationsApplied(): Int = nMigrationsApplied
+
+  var queryCount = 0
 
   /**
    * Runs DBIOAction instances on the underlying RDBMS
@@ -188,7 +218,7 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
     // lazy migrate via Flyway
     if (!migrationsComplete) migrate()
 
-    val dbug = !listeners.isEmpty
+    val dbug = listeners.nonEmpty
 
     // track timing for queue wait and RBMS execution
     val start: Long = if (dbug) System.currentTimeMillis() else 0
@@ -235,6 +265,17 @@ class Database(dbURI: String, legacySqliteURI: Option[String] = None) {
         val end: Long = if (dbug) System.currentTimeMillis() else 0
         // track timing for queue and RDMS execution
         if (dbug) Future { listeners.foreach(_.allDone(start, end, code, stacktrace)) }
+
+        // only force close if all (sub-)queries are done
+        if (queryCount == 0) {
+          val conn = connectionPool.cachedConnection
+          if (!conn.isClosed)
+            try {
+              conn.close()
+            } catch {
+              case ex: Throwable => println("Ignoring commit()/close() fail: " + ex)
+            }
+        }
       }
     }
   }
@@ -248,7 +289,7 @@ class PredefMigrationResolver(classLoader: ClassLoader, migrations: Class[_]*) e
       val j = m.asSubclass(classOf[JdbcMigration])
       val r = new ResolvedMigrationImpl
 
-      // Assume class is named V123__Foo
+      // Assume class is named V123_1_2_3__Foo
       val name = j.getSimpleName
       val verAndDesc = name.split("__")
       val ver = MigrationVersion.fromVersion(verAndDesc(0).substring(1))

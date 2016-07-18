@@ -56,7 +56,7 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends JobsBaseMicroSe
 }
 
 trait ReportViewRulesResourceProvider {
-  val reportViewRules = ReportViewRulesResourceLoader.loadResources
+  val reportViewRules = ReportViewRulesResourceLoader.resources
 }
 
 

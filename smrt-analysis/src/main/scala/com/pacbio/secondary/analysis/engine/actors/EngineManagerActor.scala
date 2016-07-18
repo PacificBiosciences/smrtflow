@@ -54,17 +54,14 @@ class EngineManagerActor(val daoActor: ActorRef,
 
   final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
 
-  implicit val timeout = Timeout(5.second)
+  implicit val timeout = Timeout(16.seconds)
 
   val logStatusInterval = if (engineConfig.debugMode) 1.minute else 10.minutes
 
   //MK Probably want to have better model for this
-  val checkForWorkInterval = 2.seconds
+  val checkForWorkInterval = 8.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
-
-  // Log the job summary. This should probably be in a health agent
-  val tick = context.system.scheduler.schedule(10.seconds, logStatusInterval, daoActor, GetSystemJobSummary)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -90,7 +87,6 @@ class EngineManagerActor(val daoActor: ActorRef,
   }
 
   override def postStop(): Unit = {
-    tick.cancel()
     checkForWorkTick.cancel()
   }
 
@@ -100,12 +96,7 @@ class EngineManagerActor(val daoActor: ActorRef,
       log.debug(s"Checking for work. Number of available Workers ${workerQueue.size}")
       log.debug(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
-      // This should be extended to support a list of Status Updates, to avoid another ask call
-      // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-      val fx = for {
-        f1 <- daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
-        f2 <- daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING)
-      } yield f2
+      val fx = daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
 
       fx onComplete {
         case Success(_) =>

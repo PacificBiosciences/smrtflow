@@ -1,7 +1,10 @@
+
+// FIXME redundant with BioFastaSpec
+
 import java.nio.file.{Paths, Files}
 
 import com.pacbio.secondary.analysis.converters.PacBioFastaValidator._
-import com.pacbio.secondary.analysis.legacy.ReferenceContig
+
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
@@ -19,10 +22,7 @@ class ConvertUtilsFastaValidateSpec extends Specification with LazyLogging{
     val uri = getClass.getResource(s"$ROOT_DIR/$name")
     logger.debug(s"validating fasta file ${uri.toString}")
     val path = Paths.get(uri.toURI)
-    validateFastaFile(path) match {
-      case Some(err) => false
-      case _ => true
-    }
+    validateFastaFile(path).isRight
   }
 
   "Validate a Fasta file" should {
