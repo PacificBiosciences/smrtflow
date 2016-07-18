@@ -58,7 +58,7 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
     m.get("path") match {
       case Some(p) => lookupUuid(p) match {
         case Some(uuid) => loadData(uuid, m)
-        case None => s"No .subreadset.xml found. Skipping loading of $p"
+        case None => loadData(null, m)
       }
       case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
@@ -67,21 +67,30 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
   def loadData(uuid: String, m: mutable.HashMap[String, String]) : String = {
     setLimsYml(
       LimsYml(
-        uuid = uuid,
+        uuid = if (uuid != null) uuid else "",
         expcode = m.get("expcode").get.toInt,
         runcode = m.get("runcode").get,
-        path = m.getOrElse("path", null),
-        user = m.getOrElse("user", null),
-        uid = m.getOrElse("uid", null),
-        tracefile = m.getOrElse("tracefile", null),
-        description = m.getOrElse("description", null),
-        wellname = m.getOrElse("wellname", null),
-        cellbarcode = m.getOrElse("cellbarcode", null),
-        cellindex = m.get("cellindex").get.toInt,
-        seqkitbarcode = m.getOrElse("seqkitbarcode", null),
-        colnum = m.get("colnum").get.toInt,
-        samplename = m.getOrElse("samplename", null),
-        instid = m.get("instid").get.toInt)
+        path = m.get("path").get,
+        user = m.getOrElse("user", ""),
+        uid = m.getOrElse("uid", ""),
+        tracefile = m.getOrElse("tracefile", ""),
+        description = m.getOrElse("description", ""),
+        wellname = m.getOrElse("wellname", ""),
+        cellbarcode = m.getOrElse("cellbarcode", ""),
+        cellindex = m.get("cellindex") match {
+          case Some(v) => v.toInt
+          case None => -1
+        },
+        seqkitbarcode = m.getOrElse("seqkitbarcode", ""),
+        colnum = m.get("colnum") match {
+          case Some(v) => v.toInt
+          case None => -1
+        },
+        samplename = m.getOrElse("samplename", ""),
+        instid = m.get("instid") match {
+          case Some(v) => v.toInt
+          case None => -1
+        })
     )
   }
 }
