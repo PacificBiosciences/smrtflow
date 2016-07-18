@@ -62,6 +62,14 @@ object ReportModels {
       uuid: UUID,
       datasetUuids: Set[UUID] = Set.empty[UUID])
 
+  /**
+    * Report and corresponding Path to the Json file
+    *
+    * @param report PacBio Report
+    * @param path JSON file
+    */
+  case class ReportIO(report: Report, path: Path)
+
 }
 
 
