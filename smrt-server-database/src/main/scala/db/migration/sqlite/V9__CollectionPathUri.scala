@@ -1,10 +1,9 @@
-package db.migration
+package db.migration.sqlite
 
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
@@ -25,9 +24,9 @@ class V9__CollectionPathUri extends JdbcMigration with SlickMigration {
   }
 }
 
-object V9Schema extends PacBioDateTimeDatabaseFormat {
+object V9Schema {
 
-  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])](tag, "COLLECTION_METADATA") {
+  class CollectionMetadataT(tag: Tag) extends Table[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, V6Schema.runSummaries)(_.uniqueId)
 
@@ -51,13 +50,13 @@ object V9Schema extends PacBioDateTimeDatabaseFormat {
 
     def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[Long]] = column[Option[Long]]("STARTED_AT")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[Long]] = column[Option[Long]]("COMPLETED_AT")
 
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
 
-    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[JodaDateTime], Option[JodaDateTime], Option[String])] = (runId, uniqueId, name, well, summary, context, collectionPathUri, status, instrumentId, instrumentName, movieMinutes, startedAt, completedAt, terminationInfo)
+    def * : ProvenShape[(UUID, UUID, String, String, Option[String], Option[String], Option[String], String, Option[String], Option[String], Double, Option[Long], Option[Long], Option[String])] = (runId, uniqueId, name, well, summary, context, collectionPathUri, status, instrumentId, instrumentName, movieMinutes, startedAt, completedAt, terminationInfo)
   }
 
   lazy val collectionMetadata = TableQuery[CollectionMetadataT]

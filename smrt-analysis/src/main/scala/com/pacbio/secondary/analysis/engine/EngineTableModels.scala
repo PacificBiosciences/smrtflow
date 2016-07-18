@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import com.github.tototoshi.slick.SQLiteJodaSupport._
 import slick.jdbc.JdbcBackend
 import slick.lifted.{ProvenShape, ForeignKeyQuery}

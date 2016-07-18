@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 
 
@@ -22,8 +22,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
-
-    def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
+    def id: Rep[UUID] = column[UUID]("job_event_id")
 
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
 
@@ -33,11 +32,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
+    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+
+    def jobFK = foreignKey("job_events_to_engine_jobs_fk", jobId, engineJobs)(_.id)
+
+    def pk = primaryKey("job_events_pk", (jobId, id))
 
     def jobJoin = engineJobs.filter(_.id === jobId)
-
-    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -59,16 +60,17 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def * : ProvenShape[(Int, Int)] = (jobId, tagId)
 
+    def jobTagFK = foreignKey("jobs_tags_to_job_tags_fk", tagId, jobTags)(a => a.id)
+
+    def jobFK = foreignKey("jobs_tags_to_engine_jobs_fk", jobId, engineJobs)(b => b.id)
+
+    def pk = primaryKey("jobs_tags_pk", (jobId, tagId))
+
     def jobJoin = engineJobs.filter(_.id === jobId)
-
-    def jobTagFK = foreignKey("job_tag_fk", tagId, jobTags)(a => a.id)
-
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
   }
 
 
   class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
-
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
 
     // FIXME. The process engine only uses UUID
@@ -94,11 +96,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy) <> (EngineJob.tupled, EngineJob.unapply)
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
-
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy) <> (EngineJob.tupled, EngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -109,24 +111,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-
     def * : ProvenShape[(Int, String)] = (id, host)
-  }
 
-  class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
-
-    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
-
-    def name: Rep[String] = column[String]("name")
-
-    def token: Rep[String] = column[String]("token")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
+    def jobFK = foreignKey("job_results_to_engine_jobs_fk", jobId, engineJobs)(_.id)
   }
 
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
@@ -154,11 +141,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def role: Rep[String] = column[String]("role")
 
-    def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
-
     def * = (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
+
+    def projectFK = foreignKey("projects_users_to_projects_fk", projectId, projects)(_.id)
+
+    def pk = primaryKey("projects_users_pk", (projectId, login, role))
   }
 
+  // TODO(smcclellan): Documentation that accessing an IdAbleTable is faster using id than uuid due to primary key indexing.
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
     def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
 
@@ -196,6 +186,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
     def datasetType: Rep[String] = column[String]("dataset_type")
     def * = (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
+    def pk = primaryKey("engine_job_datasets_pk", (jobId, datasetUUID))
   }
 
   class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
@@ -322,7 +313,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
-    def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
+    def uuid: Rep[UUID] = column[UUID]("uuid")
 
     def fileTypeId: Rep[String] = column[String]("file_type_id")
 
@@ -349,6 +340,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def description: Rep[String] = column[String]("description")
 
     def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+
+    def pk = primaryKey("datastore_files_pk", (jobId, uuid))
   }
 
   implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
@@ -357,6 +350,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
   class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
 
+    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int?
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
     def name: Rep[String] = column[String]("NAME")
@@ -419,17 +413,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
   class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
+    // TODO(smcclellan): Randomized data is expensive to index. Switch to AutoInc Int?
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
-    // SQLite treats all String columns as TEXT. The size limit on such columns is given by
-    // SQLITE_MAX_LENGTH, which defaults to one billion bytes. This should be enough to store
-    // a run design model, but if necessary, this value can be raised or lowered at runtime with
-    // -DSQLITE_MAX_LENGTH=123456789
-    def dataModel: Rep[String] = column[String]("DATA_MODEL")
+    def dataModel: Rep[String] = column[String]("DATA_MODEL", O.SqlType("CLOB"))
 
     def * = (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
 
-    def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
+    def runSummariesFK = foreignKey("DATA_MODELS_TO_RUN_SUMMARIES_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
   implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
@@ -437,9 +428,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
   class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
-    def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
 
-    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID")
 
     def well: Rep[String] = column[String]("WELL")
 
@@ -480,6 +470,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         startedAt,
         completedAt,
         terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
+
+    def runSummariesFK = foreignKey("COLLECTION_METADATA_TO_RUN_SUMMARIES_FK", runId, runSummaries)(_.uniqueId)
+
+    def pk = primaryKey("COLLECTION_METADATA_PK", (runId, uniqueId))
   }
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
@@ -512,7 +506,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
   // Users and Projects
-  lazy val users = TableQuery[UsersT]
   lazy val projects = TableQuery[ProjectsT]
   lazy val projectsUsers = TableQuery[ProjectsUsersT]
 
@@ -542,7 +535,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     jobEvents,
     jobTags,
     jobsTags,
-    users,
     projectsUsers,
     projects,
     dsMetaData2,

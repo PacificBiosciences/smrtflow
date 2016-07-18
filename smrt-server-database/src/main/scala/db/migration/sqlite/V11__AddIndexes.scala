@@ -1,11 +1,11 @@
-package db.migration
+package db.migration.sqlite
 
-import scala.concurrent.Future
-
+import db.migration.SlickMigration
+import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration
+import scala.concurrent.Future
 
 class V11__AddIndexes extends JdbcMigration with SlickMigration {
 

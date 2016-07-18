@@ -28,7 +28,7 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 
 import scala.concurrent.duration._
 
@@ -40,14 +40,16 @@ trait DalProvider {
 trait SmrtLinkDalProvider extends DalProvider {
   this: SmrtLinkConfigProvider =>
 
-  override val db: Singleton[Database] = Singleton(() => new Database(dbURI()))
+  override val db: Singleton[Database] = Singleton(() => new Database(dbURI(), legacySqliteURI()))
 }
 
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
-    // in-memory DB for tests
-    new Database(dbURI = "jdbc:sqlite:")
+    // see http://h2database.com/html/features.html#in_memory_databases
+    val dbid = UUID.randomUUID()
+    println("JDBC Test JDBC URI: "+s"jdbc:h2:mem:$dbid;DB_CLOSE_DELAY=3")
+    new Database(dbURI = s"jdbc:h2:mem:$dbid;DB_CLOSE_DELAY=3")
   })
 }
 

@@ -8,7 +8,7 @@ import com.pacbio.common.models._
 import com.pacbio.common.time.{ClockProvider, Clock}
 import com.typesafe.scalalogging.LazyLogging
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 import slick.jdbc.meta.MTable
 
 import scala.concurrent.ExecutionContext.Implicits._

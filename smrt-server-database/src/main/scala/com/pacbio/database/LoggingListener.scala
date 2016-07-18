@@ -13,10 +13,10 @@ class LoggingListener extends DatabaseListener with LazyLogging {
   // life cycle of the nested Future. useful for debugging nested db.run use
   override def create(code: String, stacktrace: Throwable): Unit =
     logger.error(s"$Prefix created DBIOAction $code")
-  override def start(code: String, stacktrace: Throwable, qc: Int): Unit =
-    logger.error(s"$Prefix started DBIOAction $code, queryCount = $qc")
-  override def end(code: String, stacktrace: Throwable, qc: Int): Unit =
-    logger.error(s"$Prefix finished DBIOAction $code, queryCount = $qc")
+  override def start(code: String, stacktrace: Throwable): Unit =
+    logger.error(s"$Prefix started DBIOAction $code")
+  override def end(code: String, stacktrace: Throwable): Unit =
+    logger.error(s"$Prefix finished DBIOAction $code")
 
   override def timeout(
       code: String,

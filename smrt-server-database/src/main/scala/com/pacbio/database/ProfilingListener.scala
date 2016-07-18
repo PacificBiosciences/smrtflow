@@ -20,11 +20,6 @@ class ProfilingListener extends DatabaseListener {
   var allDoneLog = Map[String, ArrayBuffer[Long]]()
   var dbDoneLog = Map[String, ArrayBuffer[Long]]()
 
-  // life cycle of the nested Future. useful for debugging nested db.run use
-  override def create(code: String, stacktrace: Throwable): Unit = {}
-  override def start(code: String, stacktrace: Throwable, qc: Int): Unit = {}
-  override def end(code: String, stacktrace: Throwable, qc: Int): Unit = {}
-
   override def timeout(
       code: String,
       stacktrace: Throwable,

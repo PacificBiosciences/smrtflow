@@ -1,7 +1,7 @@
-package db.migration
+package db.migration.sqlite
 
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 

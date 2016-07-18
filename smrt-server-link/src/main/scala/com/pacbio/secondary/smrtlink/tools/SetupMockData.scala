@@ -22,12 +22,12 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
-    createTables
+    createTables()
     println(s"Created database connection from URI ${dao.db.dbUri}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
@@ -41,7 +41,6 @@ trait SetupMockData extends MockUtils with InitializeTables {
         // Jobs
         insertMockJobs(),
         insertMockJobEvents(),
-        insertMockJobsTags(),
 
         // datastore
         insertMockDataStoreFiles()
@@ -55,7 +54,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
 /**
  * clumsy way to setup the test db
  */
-trait MockUtils extends LazyLogging{
+trait   MockUtils extends LazyLogging{
 
   import com.pacbio.secondary.smrtlink.database.TableModels._
 
@@ -86,13 +85,13 @@ trait MockUtils extends LazyLogging{
 
   def insertMockJobs(numJobs: Int = MOCK_NJOBS, jobType: String = "mock-pbsmrtpipe", nchunks: Int = 100): Future[Iterator[Option[Int]]] = {
 
-    val states = AnalysisJobStates.VALID_STATES
     val rnd = new Random
+    def random[T](s: Seq[T]): T = s(rnd.nextInt(s.size))
 
-    def getRandomState = states.toVector(rnd.nextInt(states.size))
+    // TODO(smcclellan): Add tags to mock jobs?
+    val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
 
     def toJob = {
-
       val uuid = UUID.randomUUID()
       EngineJob(
         -1,
@@ -101,7 +100,7 @@ trait MockUtils extends LazyLogging{
         s"Comment for job $uuid",
         JodaDateTime.now(),
         JodaDateTime.now(),
-        getRandomState,
+        random(AnalysisJobStates.VALID_STATES),
         jobType,
         "path",
         "{}",
@@ -244,13 +243,12 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockProject(): Future[Unit] = {
-    val projectId = 1
-    dao.db.run(
-      DBIO.seq(
-        projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
-        projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
-      )
-    )
+    val project =
+      Project(-1, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now())
+    for {
+      id <- dao.db.run(projects returning projects.map(_.id) += project)
+      _  <- dao.db.run(projectsUsers += ProjectUser(id, "mkocher", "OWNER"))
+    } yield ()
   }
 
   /**
@@ -337,7 +335,7 @@ trait TmpDirJobResolver {
 trait InitializeTables extends MockUtils {
   val db: Database
 
-  def createTables: Unit = {
+  def createTables(): Unit = {
     logger.info("Applying migrations")
     db.migrate()
     logger.info("Completed applying migrations")
@@ -346,7 +344,7 @@ trait InitializeTables extends MockUtils {
   /**
    * Required data in db
    */
-  def loadBaseMock = {
+  def loadBaseMock() = {
     Await.result(insertMockProject(), 10.seconds)
     logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
   }
@@ -374,7 +372,7 @@ object InsertMockData extends App
   val numAlignmentSets = conf.getInt("mock.alignmentsets")
   val numReferenceSets = conf.getInt("mock.referencesets")
 
-  def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+  def toURI(sx: String) = if (sx.startsWith("jdbc:h2:")) sx else throw new Exception(s"Bad JDBC URL? $sx")
 
   val db = new Database(toURI(conf.getString("pb-services.db-uri")))
   val dao = new JobsDao(db, engineConfig, resolver)
@@ -384,7 +382,7 @@ object InsertMockData extends App
 
     val startedAt = JodaDateTime.now()
 
-    createTables
+    createTables()
 
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")

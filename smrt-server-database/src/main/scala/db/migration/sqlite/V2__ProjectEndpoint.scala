@@ -1,16 +1,12 @@
-package db.migration
-
-import org.joda.time.{DateTime => JodaDateTime}
+package db.migration.sqlite
 
 import com.typesafe.scalalogging.LazyLogging
-
+import db.migration.SlickMigration
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-
+import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.SQLiteDriver.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.lifted.ProvenShape
-
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 
 import scala.concurrent.Future
 
@@ -19,12 +15,12 @@ class V2__ProjectEndpoint extends JdbcMigration with SlickMigration with LazyLog
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run {
     (InitialSchema.projectsUsers.schema ++ InitialSchema.projects.schema).drop >>
       (V2Schema.projectsUsers.schema ++ V2Schema.projects.schema).create >>
-      (V2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now(), JodaDateTime.now()))
+      (V2Schema.projects +=(1, "General Project", "General Project", "CREATED", JodaDateTime.now().getMillis, JodaDateTime.now().getMillis))
   }
 }
 
-object V2Schema extends PacBioDateTimeDatabaseFormat {
-  class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, JodaDateTime, JodaDateTime)](tag, "projects") {
+object V2Schema {
+  class ProjectsT(tag: Tag) extends Table[(Int, String, String, String, Long, Long)](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
 
@@ -34,11 +30,11 @@ object V2Schema extends PacBioDateTimeDatabaseFormat {
 
     def state: Rep[String] = column[String]("state")
 
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+    def createdAt: Rep[Long] = column[Long]("created_at")
 
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+    def updatedAt: Rep[Long] = column[Long]("updated_at")
 
-    def * : ProvenShape[(Int, String, String, String, JodaDateTime, JodaDateTime)] = (id, name, description, state, createdAt, updatedAt)
+    def * : ProvenShape[(Int, String, String, String, Long, Long)] = (id, name, description, state, createdAt, updatedAt)
   }
 
   class ProjectsUsersT(tag: Tag) extends Table[(Int, String, String)](tag, "projects_users") {

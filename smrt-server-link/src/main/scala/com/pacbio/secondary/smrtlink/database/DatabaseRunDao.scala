@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import slick.driver.SQLiteDriver.api._
+import slick.driver.H2Driver.api._
 
 
 /**
