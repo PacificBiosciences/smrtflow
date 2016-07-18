@@ -55,10 +55,10 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
     }
 
     // need the path in order to parse the UUID from .subreadset.xml
-    val uuid: String = lookupUuid(m.get("path").get)
-
-    // now set the tuple related to the experiment
-    loadData(uuid, m)
+    lookupUuid(m.get("path").get) match {
+      case Some(uuid) => loadData(uuid, m)
+      case _ => "No .subreadset.xml found. Skipping loading due to lack of UUID"
+    }
   }
 
   def loadData(uuid: String, m: mutable.HashMap[String, String]) : String = {
@@ -87,19 +87,16 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
  * Trait required for abstracting the UUID file lookup for prod vs testing
  */
 trait LookupSubreadsetUuid {
-  def lookupUuid(path: String): String
+  def lookupUuid(path: String): Option[String]
 }
 
 trait FileLookupSubreadsetUuid {
-  def lookupUuid(path: String): String = {
+  def lookupUuid(path: String): Option[String] = {
     val p = Paths.get(path.stripPrefix("file://"))
     val matches  =
       for (v <- Files.newDirectoryStream(p).asScala
            if v.toString.endsWith("subreadset.xml"))
         yield DataSetLoader.loadSubreadSet(v).getUniqueId
-    matches.headOption match {
-      case Some(s) => s
-      case t => ""
-    }
+    matches.headOption
   }
 }
