@@ -67,18 +67,18 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
         uuid = uuid,
         expcode = m.get("expcode").get.toInt,
         runcode = m.get("runcode").get,
-        path = m.get("path").get,
-        user = m.get("user").get,
-        uid = m.get("uid").get,
-        tracefile = m.get("tracefile").get,
-        description = m.get("description").get,
-        wellname = m.get("wellname").get,
-        cellbarcode = m.get("cellbarcode").get,
+        path = m.getOrElse("path", null),
+        user = m.getOrElse("user", null),
+        uid = m.getOrElse("uid", null),
+        tracefile = m.getOrElse("tracefile", null),
+        description = m.getOrElse("description", null),
+        wellname = m.getOrElse("wellname", null),
+        cellbarcode = m.getOrElse("cellbarcode", null),
         cellindex = m.get("cellindex").get.toInt,
-        seqkitbarcode = m.get("seqkitbarcode").get,
+        seqkitbarcode = m.getOrElse("seqkitbarcode", null),
         colnum = m.get("colnum").get.toInt,
-        samplename = m.get("samplename").get,
-        instid = m.getOrElse("instid", null).toInt)
+        samplename = m.getOrElse("samplename", null),
+        instid = m.get("instid").get.toInt)
     )
   }
 }
