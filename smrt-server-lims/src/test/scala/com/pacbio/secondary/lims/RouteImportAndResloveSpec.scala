@@ -1,12 +1,12 @@
 package com.pacbio.secondary.lims
 
 import com.pacbio.secondary.lims.database.TestDatabase
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import com.pacbio.secondary.lims.services.{ImportLims, LookupSubreadsetUuid, ResolveDataSet}
 import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
 import com.pacbio.secondary.lims.JsonProtocol._
-import com.pacbio.secondary.lims.util.StressUtil
+import com.pacbio.secondary.lims.util.{StressUtil, TestLookupSubreadsetUuid}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -26,7 +26,8 @@ class RouteImportAndResloveSpec
   // test database config
   with TestDatabase
   // routes that will use the test database
-  with ImportLimsYml
+  with ImportLims
+  with TestLookupSubreadsetUuid
   with ResolveDataSet
   // helper tools to mock up data
   with StressUtil {
@@ -58,7 +59,7 @@ class RouteImportAndResloveSpec
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
       loadData(content.getBytes)
-      Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
+      Post("/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
     }

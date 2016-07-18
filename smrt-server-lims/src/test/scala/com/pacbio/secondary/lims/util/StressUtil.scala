@@ -5,7 +5,7 @@ import java.util.concurrent.Executors
 
 import com.pacbio.secondary.lims.JsonProtocol._
 import com.pacbio.secondary.lims.LimsYml
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification
 import spray.http.{BodyPart, _}
 import spray.json.DefaultJsonProtocol._
@@ -26,7 +26,7 @@ import scala.concurrent.duration.Duration
  * See README.md#Tests testing for examples.
  */
 trait StressUtil {
-  this: Specification with Specs2RouteTest with ImportLimsYml with ResolveDataSet =>
+  this: Specification with Specs2RouteTest with ImportLims with ResolveDataSet =>
 
   def stressTest(c: StressConfig, ec : ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))) : StressResults = {
     // wait for all the imports to finish
@@ -64,7 +64,7 @@ trait StressUtil {
     val formFile = FormFile("file", httpEntity)
     val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
     loadData(content.getBytes)
-    Post("/import", mfd) ~> sealRoute(importLimsYmlRoutes) ~> check {
+    Post("/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
       response.status.isSuccess
     }
   }

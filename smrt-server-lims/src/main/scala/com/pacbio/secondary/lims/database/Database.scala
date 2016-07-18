@@ -13,7 +13,7 @@ trait Database {
 
   def setLimsYml(v: LimsYml): String
 
-  def setAlias(alias: String, pk: String): Unit // TODO: spec says this should be a UUID. Swap when an example is available.
+  def setAlias(alias: String, uuid: String): Unit
 
   def delAlias(alias: String): Unit
 

@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS LIMS_YML (
+  uuid VARCHAR,
   expcode INT,
   runcode VARCHAR,
   path VARCHAR,
@@ -22,3 +23,4 @@ CREATE TABLE IF NOT EXISTS ALIAS (
 );
 -- two indexes to support the queries that PK indexes don't cover
 CREATE INDEX IF NOT EXISTS index_limsyml_runcode ON LIMS_YML(RUNCODE);
+CREATE INDEX IF NOT EXISTS index_limsyml_uuid ON LIMS_YML(UUID);

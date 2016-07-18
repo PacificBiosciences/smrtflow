@@ -12,6 +12,7 @@ import DefaultJsonProtocol._
  * recast to a more formal abstraction. As-is, this data duplicates other
  */
 case class LimsYml( // TODO: rename to LimsSubreadDataSet?
+    uuid: String,
     expcode: Int,
     runcode: String,
     path: String,
@@ -29,5 +30,5 @@ case class LimsYml( // TODO: rename to LimsSubreadDataSet?
 )
 
 object JsonProtocol {
-  implicit val limsYmlFormat = jsonFormat14(LimsYml.apply)
+  implicit val limsYmlFormat = jsonFormat15(LimsYml.apply)
 }

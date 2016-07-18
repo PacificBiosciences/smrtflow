@@ -1,7 +1,9 @@
 package com.pacbio.secondary.lims.services
 
 import java.io.{BufferedReader, StringReader}
+import java.nio.file.Paths
 
+import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.Database
 import spray.http.MultipartFormData
@@ -11,12 +13,18 @@ import scala.collection.mutable
 import scala.concurrent.Future
 
 
-trait ImportLimsYml extends HttpService {
-  this: Database =>
+/**
+ * Imports all needed LIMS information for doing lookups and a resolution service
+ *
+ * This information currently comes from lims.yml and the related .subreaddata.xml file in found in
+ * the same directory.
+ */
+trait ImportLims extends HttpService with LookupSubreadsetUuid {
+  this: Database  =>
 
   implicit def executionContext = actorRefFactory.dispatcher
 
-  val importLimsYmlRoutes =
+  val importLimsRoutes =
     // lims.yml files must be posted to the server
     pathPrefix("import") {
       post {
@@ -44,12 +52,18 @@ trait ImportLimsYml extends HttpService {
       m.put(k, v)
       l = br.readLine()
     }
-    loadData(m)
+
+    // need the path in order to parse the UUID from .subreadset.xml
+    val uuid: String = lookupUuid(m.get("path").get)
+
+    // now set the tuple related to the experiment
+    loadData(uuid, m)
   }
 
-  def loadData(m: mutable.HashMap[String, String]) : String = {
+  def loadData(uuid: String, m: mutable.HashMap[String, String]) : String = {
     setLimsYml(
       LimsYml(
+        uuid = uuid,
         expcode = m.get("expcode").get.toInt,
         runcode = m.get("runcode").get,
         path = m.get("path").get,
@@ -65,5 +79,19 @@ trait ImportLimsYml extends HttpService {
         samplename = m.get("samplename").get,
         instid = m.getOrElse("instid", null).toInt)
     )
+  }
+}
+
+/**
+ * Trait required for abstracting the UUID file lookup for prod vs testing
+ */
+trait LookupSubreadsetUuid {
+  def lookupUuid(path: String): String
+}
+
+trait FileLookupSubreadsetUuid {
+  def lookupUuid(path: String): String = {
+    val p = Paths.get(path)
+    DataSetLoader.loadSubreadSet(p).getUniqueId
   }
 }

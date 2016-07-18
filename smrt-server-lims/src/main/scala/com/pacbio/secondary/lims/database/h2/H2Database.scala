@@ -30,6 +30,7 @@ trait H2Database extends Database {
 
   // some common queries
   private val limsFields = Seq[String](
+    "uuid",
     "expcode",
     "runcode",
     "path",
@@ -138,6 +139,7 @@ trait H2Database extends Database {
     val buf = ArrayBuffer[LimsYml]()
     while (rs.next()) buf.append(
     LimsYml(
+      uuid = rs.getString("uuid"),
       expcode = rs.getInt("expcode"),
       runcode = rs.getString("runcode"),
       path = rs.getString("path"),

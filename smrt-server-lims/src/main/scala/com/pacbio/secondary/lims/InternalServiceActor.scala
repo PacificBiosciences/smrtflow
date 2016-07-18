@@ -9,7 +9,7 @@ import com.pacbio.common.services.StatusService
 import com.pacbio.common.time.SystemClock
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
-import com.pacbio.secondary.lims.services.{ImportLimsYml, ResolveDataSet}
+import com.pacbio.secondary.lims.services.{FileLookupSubreadsetUuid, ImportLims, ResolveDataSet}
 
 /**
  * Parent Actor for all internal related web services work
@@ -18,7 +18,8 @@ class InternalServiceActor extends Actor
     with ConfigLoader
     with JdbcDatabase
     with DefaultDatabase
-    with ImportLimsYml
+    with FileLookupSubreadsetUuid
+    with ImportLims
     with ResolveDataSet {
 
   lazy val jdbcUrl: String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
@@ -33,5 +34,5 @@ class InternalServiceActor extends Actor
   // this actor only runs our route, but you could add
   // other things here, like request stream processing
   // or timeout handling
-  def receive = runRoute(importLimsYmlRoutes ~ resolveRoutes ~ statusService.routes)
+  def receive = runRoute(importLimsRoutes ~ resolveRoutes ~ statusService.routes)
 }
