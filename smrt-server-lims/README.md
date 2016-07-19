@@ -1,6 +1,8 @@
 # LIMS and Resolution Service
 
-Lab Information Managment System (LIMS) is based on [this spec](specification.md) and provides tracking and resolution service for common name or shorthand identifiers. See [smrtflow#89](https://github.com/PacificBiosciences/smrtflow/issues/89) for history.
+Lab Information Managment System (LIMS) is based on [this spec](specification.md)
+and provides tracking and resolution service for common name or
+shorthand identifiers. See [smrtflow#89](https://github.com/PacificBiosciences/smrtflow/issues/89) for history.
 
 Run the service via sbt.
 
@@ -19,6 +21,10 @@ smrt-server-lims {
   port = 8070
 }
 ```
+
+The main production version of this code runs on `smrt-lims`. E-mail
+`hpcsupport@pacificbiosciences.com` regarding any issues, such as needing
+a hard reboot.
 
 ### Tests
 
@@ -57,3 +63,36 @@ class StressTestSpec extends Specification
   // example file-backed DB override
   override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;CACHE_SIZE=100000"
 ```
+
+
+### Supported Use Cases
+
+This service is new and the only known use case is to test it by bulk
+loading existing `lims.yml` files.
+
+#### Scan and Import `lims.yml` files from PacBio's filer
+
+All internal experiments are currently saved under `/pbi/collections`.
+Using `find` then loading them via the `/import` RESTful endpoint
+ (`ImportLims.scala`).
+ 
+```bash
+# scripts are all in the same-named dir
+cd scripts
+
+# find all lims.yml and send the list to batch import
+find_lims_yml.sh | batch_import_lims_yml.sh
+```
+
+See the script files for more docs and params. If you need to more 
+frequently batch load data, say for dev or testing, then save the `find`
+results to a file and pipe it as needed.
+
+```bash
+# save the slow to execute find results
+./find_lims_yml.sh > dump_lims_yml.txt
+# repeat as needed, fast load all the lims.yml files
+cat dump_lims_yml.txt | batch_import_lims_yml.sh
+```
+  
+Eventually, the plan is to replace these with the Scala client API.
