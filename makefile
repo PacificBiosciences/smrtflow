@@ -4,6 +4,7 @@ STRESS_RUNS=1
 clean:
 	rm -f secondary-smrt-server*.log
 	rm -rf smrt-server-analysis/{db,jobs-root}
+	rm -rf smrt-server-link/{db,jobs-root}
 	sbt clean
 
 dataclean:
@@ -14,6 +15,11 @@ build:
 
 tools:
 	sbt clean pack
+
+
+tools-smrt-analysis:
+	sbt smrt-analysis/{compile,pack}
+
 
 repl:
 	sbt smrt-analysis/test:console
