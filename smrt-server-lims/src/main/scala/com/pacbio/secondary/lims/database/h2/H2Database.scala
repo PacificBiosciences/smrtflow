@@ -169,7 +169,7 @@ trait H2Database extends Database {
     val c = getConnection()
     try {
       c.setAutoCommit(false)
-      val file = "/com/pacbio/secondary/lims/database/h2/create_tables.sql"
+      val file = "/create_tables.sql"
       val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
       val s = c.createStatement()
       try s.execute(sql) finally s.close()
