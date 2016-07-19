@@ -17,7 +17,7 @@ import scala.io.Source
  * main API endpoints. It both keeps the H2 database open and provides efficient SQL queries. See
  * the `use` helper method for the core of the logic.
  *
- * `create_tables.sql` will create needed tables and extra indexes for good performance. It is safe
+ * `H2CreateTables.sql` will create needed tables and extra indexes for good performance. It is safe
  * to re-run since all statements use `IF NOT EXISTS`.
  *
  * All of the xxxT named String instances are SQL templates for the `PreparedStatement` instances, and
@@ -169,11 +169,41 @@ trait H2Database extends Database {
     val c = getConnection()
     try {
       c.setAutoCommit(false)
-      val file = "/create_tables.sql"
-      val sql = new String(Source.fromInputStream(getClass.getResourceAsStream(file)).toArray)
       val s = c.createStatement()
-      try s.execute(sql) finally s.close()
+      try s.execute(H2TableCreate.sql) finally s.close()
     }
     finally { c.commit(); c.close() }
   }
+}
+
+object H2TableCreate {
+  val sql =
+    """-- embedded as a var b/c build is choking on external script.
+      |CREATE TABLE IF NOT EXISTS LIMS_YML (
+      |  uuid VARCHAR,
+      |  expcode INT,
+      |  runcode VARCHAR,
+      |  path VARCHAR,
+      |  user VARCHAR,
+      |  uid VARCHAR,
+      |  tracefile VARCHAR,
+      |  description VARCHAR,
+      |  wellname VARCHAR,
+      |  cellbarcode VARCHAR,
+      |  seqkitbarcode VARCHAR,
+      |  cellindex VARCHAR,
+      |  colnum VARCHAR,
+      |  samplename VARCHAR,
+      |  instid INT,
+      |  PRIMARY KEY (expcode, runcode)
+      |);
+      |-- this exists only in this service. arbitrary aliases or short codes
+      |CREATE TABLE IF NOT EXISTS ALIAS (
+      |  alias VARCHAR PRIMARY KEY,
+      |  lims_yml_uuid VARCHAR
+      |);
+      |-- two indexes to support the queries that PK indexes don't cover
+      |CREATE INDEX IF NOT EXISTS index_limsyml_runcode ON LIMS_YML(RUNCODE);
+      |CREATE INDEX IF NOT EXISTS index_limsyml_uuid ON LIMS_YML(UUID);
+    """.stripMargin
 }
