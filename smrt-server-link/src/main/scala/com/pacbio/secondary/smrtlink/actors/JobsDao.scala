@@ -1004,9 +1004,13 @@ with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
 with JobDataStore
-with DataSetStore {
+with DataSetStore
+with LazyLogging {
 
   import JobModels._
+
+  // Check that the database connection is working and log a summary of the contents
+  logger.info(Await.result(getSystemSummary(), Duration.Inf))
 
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
 }
