@@ -28,7 +28,7 @@ fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
 
-javaOptions in ThisBuild += "-Xmx2g"
+javaOptions in ThisBuild += "-Xmx4g"
 
 // Custom keys for this build.
 
@@ -150,9 +150,7 @@ lazy val smrtServerLink = (
 lazy val smrtServerLims = (
   PacBioProject("smrt-server-lims")
     dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    settings (
-      mainClass in assembly := Some("com.pacbio.secondary.lims.MainSimple")
-    )
+    settings (mainClass in assembly := Some("com.pacbio.secondary.lims.MainSimple"))
   )
 
 lazy val smrtServerAnalysis = (
