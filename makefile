@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 STRESS_RUNS=1
+SOURCE_DB=test-data/smrtserver-testdata/database/latest
 
 clean:
 	rm -f secondary-smrt-server*.log
@@ -52,8 +53,8 @@ test-int-install-pytools:
 	@echo "successfully installed integration testing tools"
 
 test-data/smrtserver-testdata:
-	mkdir -p $@
-	scp -r login14-biofx01:/mnt/secondary/Share/smrtserver-testdata/ test-data
+	mkdir -p test-data
+	rsync -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
 
 test-int-import-references:
 	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-references/
@@ -79,8 +80,8 @@ validate-pipeline-view-rules:
 
 validate-resources: validate-report-view-rules validate-pipeline-view-rules
 
-# e.g., make full-stress-run STRESS_RUNS=2
-full-stress-run: test-data/smrtserver-testdata
+# e.g., make full-stress-run STRESS_RUNS=2 SOURCE_DB=~/analysis_services_beta_3.1.1.db
+full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	@for i in `seq 1 $(STRESS_RUNS)`; do \
 	    RUN=run-$$(date +%s) && \
 	    RUNDIR=test-output/stress-runs && \
@@ -88,11 +89,11 @@ full-stress-run: test-data/smrtserver-testdata
 	    mkdir -p $$OUTDIR && \
 	    rm -f $$RUNDIR/latest && \
 	    ln -s $$RUN $$RUNDIR/latest && \
-	    rm -f smrt-server-analysis/db/analysis_services.db; \
+	    cp $(SOURCE_DB) smrt-server-analysis/db/analysis_services.db && \
 	    rm -rf smrt-server-analysis/jobs-root/*; \
 	    sbt smrt-server-analysis/compile && \
 	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-analysis/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & echo \$$!") && \
-	    sleep 20 && \
+	    sleep 30 && \
 	    ./stress.py --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
 	    sleep 2 ; \
 	    pkill -g $$SERVERPID ; \
