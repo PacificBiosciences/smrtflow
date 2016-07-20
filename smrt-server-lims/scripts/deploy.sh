@@ -3,7 +3,7 @@ set -e
 
 # load the needed binaries
 source /mnt/software/Modules/current/init/bash
-module load jdk/1.8.0_20
+module load jdk/1.8.0_71
 module load sbt
 module load git
 
