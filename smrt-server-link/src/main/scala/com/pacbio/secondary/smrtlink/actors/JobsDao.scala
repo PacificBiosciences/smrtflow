@@ -4,6 +4,7 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
+import com.pacbio.common.app.StartupFailedException
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.database.Database
@@ -1010,13 +1011,17 @@ with LazyLogging {
   import JobModels._
 
   // Check that the database connection is working and log a summary of the contents
-  logger.info(Await.result(getSystemSummary(), Duration.Inf))
+  private val f = getSystemSummary()
+  f.onFailure {
+    case NonFatal(e) => throw new StartupFailedException(e)
+  }
+  logger.info(Await.result(f, Duration.Inf))
 
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider  =>
+  this: DalProvider with SmrtLinkConfigProvider =>
 
   val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver()))
 }

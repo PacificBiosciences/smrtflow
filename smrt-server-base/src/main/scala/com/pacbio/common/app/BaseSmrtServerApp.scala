@@ -31,6 +31,10 @@ import scala.util.control.ControlThrowable
 
 object BaseSmrtServerApp
 
+class StartupFailedException(cause: Throwable)
+  extends RuntimeException("Startup failed", cause)
+  with ControlThrowable
+
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
 trait CoreProviders extends
   SetBindings with
@@ -168,10 +172,6 @@ trait BaseServer extends LazyLogging {
       case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))
       case r => None
     }
-
-    class StartupFailedException(cause: Throwable)
-      extends RuntimeException("Startup failed", cause)
-      with ControlThrowable
 
     Await.result(f, 10.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll
