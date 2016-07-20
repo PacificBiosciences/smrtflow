@@ -24,7 +24,7 @@ smrt-server-lims {
 
 The main production version of this code runs on `smrt-lims`. E-mail
 `hpcsupport@pacificbiosciences.com` regarding any issues, such as needing
-a hard reboot.
+a hard reboot. A copy of the deployment script can be found in [`scripts/deploy.sh`](scripts/deploy.sh).
 
 ### Tests
 
