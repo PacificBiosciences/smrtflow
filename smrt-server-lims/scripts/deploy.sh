@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-# set the location of needed binaries
-export PATH="/mnt/software/s/sbt/0.13.8/bin:/mnt/software/j/jdk/1.8.0_20/bin:/mnt/software/g/git/2.8.3/ubuntu-1404/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# load the needed binaries
+source /mnt/software/Modules/current/init/bash
+module load jdk/1.8.0_20
+module load sbt
+module load git
 
 # create repo if needed
 WORK_DIR="/home/jfalkner/smrt-lims"
