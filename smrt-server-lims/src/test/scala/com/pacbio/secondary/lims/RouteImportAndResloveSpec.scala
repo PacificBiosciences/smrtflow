@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims
 
 import com.pacbio.secondary.lims.database.TestDatabase
-import com.pacbio.secondary.lims.services.{ImportLims, LookupSubreadsetUuid, ResolveDataSet}
+import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
@@ -42,9 +42,11 @@ class RouteImportAndResloveSpec
   val alias = "Foo"
   val alias2 = "Bar"
 
-  createTables()
-
   "Internal LimsSubreadDataSet services" should {
+    "Successfully create needed RDMS tables" in {
+      createTables()
+      1 mustEqual 1 // temp test for createTable execution ordering
+    }
     "Pre-import, expcode is not resolvable via GET" in {
       Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false

@@ -32,9 +32,11 @@ class StressTestSpec extends Specification
 
   def actorRefFactory = system
 
-  createTables
-
   "Multiple lims.yml files" should {
+    "Successfully create needed RDMS tables" in {
+      createTables()
+      1 mustEqual 1 // temp test for createTable execution ordering
+    }
     "Import and be resolvable in a minimal stress test" in {
       val c = StressConfig(imports = 10, queryReps = 3)
       val sr = stressTest(c)
