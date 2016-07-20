@@ -4,6 +4,7 @@ import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase, TestDa
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import com.pacbio.secondary.lims.util.{StressConfig, StressUtil, TestLookupSubreadsetUuid}
 import org.specs2.mutable.Specification
+import org.specs2.specification.{Fragments, Step}
 import spray.testkit.Specs2RouteTest
 
 
@@ -30,13 +31,13 @@ class StressTestSpec extends Specification
     with StressUtil {
   //override lazy val jdbcUrl = "jdbc:h2:/tmp/stress_test;CACHE_SIZE=100000" // example file-backed DB override
 
+  // TODO: can remove this when specs2 API is upgraded
+  override def map(fragments: =>Fragments) = Step(beforeAll) ^ fragments
+
+  def beforeAll = createTables()
   def actorRefFactory = system
 
   "Multiple lims.yml files" should {
-    "Successfully create needed RDMS tables" in {
-      createTables()
-      1 mustEqual 1 // temp test for createTable execution ordering
-    }
     "Import and be resolvable in a minimal stress test" in {
       val c = StressConfig(imports = 10, queryReps = 3)
       val sr = stressTest(c)

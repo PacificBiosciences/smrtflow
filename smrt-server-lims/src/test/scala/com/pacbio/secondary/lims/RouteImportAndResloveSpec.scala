@@ -7,6 +7,7 @@ import spray.http._
 import spray.testkit.Specs2RouteTest
 import com.pacbio.secondary.lims.JsonProtocol._
 import com.pacbio.secondary.lims.util.{StressUtil, TestLookupSubreadsetUuid}
+import org.specs2.specification.{Fragments, Step}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -32,6 +33,11 @@ class RouteImportAndResloveSpec
   // helper tools to mock up data
   with StressUtil {
 
+  // TODO: can remove this when specs2 API is upgraded
+  override def map(fragments: =>Fragments) = Step(beforeAll) ^ fragments
+
+  def beforeAll = createTables()
+
   def actorRefFactory = system
 
   // force these tests to run sequentially since later tests rely on logic in earlier tests
@@ -43,10 +49,6 @@ class RouteImportAndResloveSpec
   val alias2 = "Bar"
 
   "Internal LimsSubreadDataSet services" should {
-    "Successfully create needed RDMS tables" in {
-      createTables()
-      1 mustEqual 1 // temp test for createTable execution ordering
-    }
     "Pre-import, expcode is not resolvable via GET" in {
       Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
