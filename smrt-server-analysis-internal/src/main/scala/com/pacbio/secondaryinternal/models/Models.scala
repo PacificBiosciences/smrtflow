@@ -62,4 +62,5 @@ case class ResolvedConditionPipeline(pipelineId: String, conditions: Seq[Resolve
 
 // New model. This should be moved to smrt-common-models
 case class ReseqCondition(condId: String, subreadset: Path, alignmentset: Path, referenceset: Path)
+// Not sure if pipelineId is really necessary
 case class ReseqConditions(pipelineId: String, conditions: Seq[ReseqCondition])
