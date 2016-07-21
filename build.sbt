@@ -48,7 +48,7 @@ def PacBioProject(name: String): Project = (
         libraryDependencies ++= Seq(
           "ch.qos.logback" % "logback-classic" % "1.1.7",
           "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
-          "com.github.broadinstitute" % "picard" % "1.131",
+          "com.github.samtools" % "htsjdk" % "1.129",
           "com.github.fge" % "json-schema-validator" % "2.2.5",
           "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
           "com.github.nscala-time" %% "nscala-time" % "1.4.0",
@@ -91,7 +91,9 @@ def PacBioProject(name: String): Project = (
           "org.scalaj" %% "scalaj-http" % "1.1.5",
           "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
           "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
-          "org.xerial" % "sqlite-jdbc" % "3.8.11.2"
+          "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+          "org.utgenome.thirdparty" % "picard" % "1.86.0",
+          "log4j" % "log4j" % "1.2.17"
         )
         )
     )

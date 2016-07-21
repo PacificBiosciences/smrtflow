@@ -17,7 +17,6 @@ import scala.util.{Failure, Success, Try}
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.externaltools.{CallSamToolsIndex, ExternalCmdFailure, ExternalToolsUtils}
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
