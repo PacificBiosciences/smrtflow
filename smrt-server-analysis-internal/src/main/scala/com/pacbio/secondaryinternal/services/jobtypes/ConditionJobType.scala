@@ -37,12 +37,13 @@ import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.JobTypeService
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
+import com.pacbio.secondaryinternal.client.InternalAnalysisServiceClient
 import com.pacbio.secondaryinternal.models._
-import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
+import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, JobResolvers, SmrtLinkAnalysisInternalConfigProvider}
 import com.typesafe.scalalogging.LazyLogging
 
 
-class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(implicit val actorSystem: ActorSystem)
+class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int, reseqConditionsDir: Path)(implicit val actorSystem: ActorSystem)
   extends JobTypeService with LazyLogging{
 
   // import SecondaryAnalysisJsonProtocols._
@@ -60,6 +61,10 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
   // There's some common code that needs to be pulled out
   val rootUpdateURL = new URL(s"http://$serviceStatusHost:$port/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX/jobs/pbsmrtpipe")
 
+  def toUrl(host: String, port: Int) = new URL(s"http://$host:$port")
+
+  val client = new InternalAnalysisServiceClient(toUrl(serviceStatusHost, port))
+
   def toURI(baseURL: URL, uuid: UUID): URI = {
     // there has to be a cleaner way to do this
     new URI(s"${baseURL.getProtocol}://${baseURL.getHost}:${baseURL.getPort}${baseURL.getPath}/${uuid.toString}")
@@ -75,76 +80,12 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
 
   }
 
-  /**
-   * Converts the raw CSV and resolves AlignmentSets paths from job ids
-   *
-   * @param record
-   * @return
-   */
-  def resolveConditionRecord(record: ServiceConditionCsvPipeline): Future[ReseqConditions] = {
-
-    logger.info(s"Converting $record")
-
-    val sx = scala.io.Source.fromString(record.csvContents)
-    //println(sx)
-    logger.debug(s"Loading raw CSV content ${record.csvContents}")
-
-    val cs = IOUtils.parseConditionCsv(sx)
-    logger.debug(s"Parsed conditions $cs")
-
-    def toUrl(host: String, port: Int) = new URL(s"http://$host:$port")
-
-    def failJobIfNotSuccessful(job: EngineJob): Future[EngineJob] =
-      if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
-      else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
-
-    def getEntryPointBy(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
-      eps.find(_.datasetType == datasetMetaType.dsId) match {
-        case Some(x) => Future { x.datasetUUID }
-        case _ => Future.failed(throw new Exception(s"Failed resolve Entry Point type $datasetMetaType"))
-      }
-    }
-
-
-    /**
-     * This needs to have a more robust implementation
-     *
-     * - Resolve Entry points looks for a SubreadSet and ReferenceSet
-     * - Does not valid resolved paths
-     *
-     * @param sc Service Condition
-     * @return
-     */
-    def resolve(sc: ServiceCondition): Future[ReseqCondition] = {
-      for {
-        sal <- Future { new AnalysisServiceAccessLayer(toUrl(sc.host, sc.port))(actorSystem)}
-        job <- sal.getJobById(sc.jobId)
-        sjob <- failJobIfNotSuccessful(job)
-        alignmentSetPath <- JobResolvers.resolveAlignmentSet(sal, sc.jobId)
-        entryPoints <- sal.getAnalysisJobEntryPoints(sc.jobId)
-        subreadSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Subread)
-        referenceSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Reference)
-        subreadSetMetadata <- sal.getDataSetByUuid(subreadSetUUID)
-        referenceSetMetadata <- sal.getDataSetByUuid(referenceSetUUID)
-      } yield ReseqCondition(sc.id, Paths.get(subreadSetMetadata.path), alignmentSetPath, Paths.get(referenceSetMetadata.path))
-    }
-
-    // Do them in parallel
-    val fxs = Future.sequence(cs.map(resolve))
-
-    val fx = for {
-      resolvedConditions <- fxs
-    } yield ReseqConditions(record.pipelineId, resolvedConditions)
-
-    fx
-  }
-
   val validateConditionRunRoute =
     path(PREFIX / "validate") {
       post {
         entity(as[ServiceConditionCsvPipeline]) { record =>
           complete {
-            resolveConditionRecord(record)
+            client.resolveConditionRecord(record)
           }
         }
       }
@@ -189,8 +130,8 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int)(
             complete {
               for {
                 uuid <- Future { UUID.randomUUID() }
-                conditionPath <- Future { Paths.get(s"reseq-conditions-${uuid.toString}.json") }
-                reseqConditions <- resolveConditionRecord(record)
+                conditionPath <- Future { reseqConditionsDir.resolve(Paths.get(s"reseq-conditions-${uuid.toString}.json")) }
+                reseqConditions <- client.resolveConditionRecord(record)
                 _ <- Future { IOUtils.writeReseqConditions(reseqConditions, conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
                 engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None)).mapTo[EngineJob]
@@ -212,7 +153,8 @@ trait ConditionJobTypeServiceProvider {
     with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider
-    with ActorSystemProvider =>
+    with ActorSystemProvider
+    with SmrtLinkAnalysisInternalConfigProvider =>
 
   val conditionJobTypeService: Singleton[ConditionJobType] =
     Singleton {() =>
@@ -220,7 +162,7 @@ trait ConditionJobTypeServiceProvider {
       new ConditionJobType(
         jobsDaoActor(),
         if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
-        port()
+        port(), reseqConditions()
       )
     }.bindToSet(JobTypes)
 
