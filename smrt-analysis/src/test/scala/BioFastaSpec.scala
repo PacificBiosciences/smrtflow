@@ -1,6 +1,6 @@
-import java.nio.file.Paths
+import java.nio.file.{Paths, Files}
 import com.pacbio.secondary.analysis.bio.Fasta
-import com.pacbio.secondary.analysis.converters.{InvalidPacBioFastaError, PacBioFastaValidator}
+import com.pacbio.secondary.analysis.converters.{InvalidPacBioFastaError, PacBioFastaValidator, FastaIndexWriter}
 import org.specs2.mutable._
 
 import com.pacbio.secondary.analysis.bio.Fasta
@@ -33,6 +33,8 @@ class BioFastaSpec extends Specification{
       val uri = getClass.getResource("small.fasta")
       val records = Fasta.loadFrom(uri)
       records.length must beEqualTo(5)
+      val faidx = new FastaIndexWriter{}.createFaidx(Paths.get(uri.getPath()))
+      Files.exists(Paths.get(faidx)) must beTrue
     }
     "Example file" in {
       val uri = getClass.getResource("example_01.fasta")
