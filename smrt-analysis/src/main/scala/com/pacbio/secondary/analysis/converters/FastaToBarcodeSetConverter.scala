@@ -45,7 +45,7 @@ object FastaBarcodesConverter extends FastaConverterBase[BarcodeSet, BarcodeSetM
 
   def createDataset(name: String, fastaPath: Path, outputDir: Path):
                    Either[DatasetConvertError, BarcodeSet] = {
-    PacBioFastaValidator(fastaPath) match {
+    PacBioFastaValidator(fastaPath, barcodeMode=true) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(refMetaData) => Right(createBarcodeSet(fastaPath, refMetaData, name,
                                                     outputDir))

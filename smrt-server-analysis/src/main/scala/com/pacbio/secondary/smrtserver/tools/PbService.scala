@@ -529,7 +529,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   // FIXME too much code duplication
   def runImportBarcodes(path: String, name: String): Int = {
-    PacBioFastaValidator(Paths.get(path)) match {
+    PacBioFastaValidator(Paths.get(path), barcodeMode=true) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
