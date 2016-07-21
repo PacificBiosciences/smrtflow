@@ -4,7 +4,6 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
-import com.pacbio.common.app.StartupFailedException
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.database.Database
@@ -1005,17 +1004,9 @@ with DalComponent
 with SmrtLinkConstants
 with ProjectDataStore
 with JobDataStore
-with DataSetStore
-with LazyLogging {
+with DataSetStore {
 
   import JobModels._
-
-  // Check that the database connection is working and log a summary of the contents
-  private val f = getSystemSummary()
-  f.onFailure {
-    case NonFatal(e) => throw new StartupFailedException(e)
-  }
-  logger.info(Await.result(f, Duration.Inf))
 
   var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
 }
