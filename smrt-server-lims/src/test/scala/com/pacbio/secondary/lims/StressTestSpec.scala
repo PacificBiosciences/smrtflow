@@ -1,11 +1,15 @@
 package com.pacbio.secondary.lims
 
+import java.util.concurrent.TimeUnit
+
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase, TestDatabase}
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import com.pacbio.secondary.lims.util.{StressConfig, StressUtil, TestLookupSubreadsetUuid}
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
 import spray.testkit.Specs2RouteTest
+
+import scala.concurrent.duration.FiniteDuration
 
 
 /**
@@ -36,6 +40,8 @@ class StressTestSpec extends Specification
 
   def beforeAll = createTables()
   def actorRefFactory = system
+
+  private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
 
   "Multiple lims.yml files" should {
     "Import and be resolvable in a minimal stress test" in {

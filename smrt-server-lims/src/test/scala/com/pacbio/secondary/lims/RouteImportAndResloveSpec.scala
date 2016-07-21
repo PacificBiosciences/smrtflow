@@ -1,5 +1,7 @@
 package com.pacbio.secondary.lims
 
+import java.util.concurrent.TimeUnit
+
 import com.pacbio.secondary.lims.database.TestDatabase
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification
@@ -10,6 +12,8 @@ import com.pacbio.secondary.lims.util.{StressUtil, TestLookupSubreadsetUuid}
 import org.specs2.specification.{Fragments, Step}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+
+import scala.concurrent.duration.FiniteDuration
 
 
 /**
@@ -39,6 +43,8 @@ class RouteImportAndResloveSpec
   def beforeAll = createTables()
 
   def actorRefFactory = system
+
+  private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
 
   // force these tests to run sequentially since later tests rely on logic in earlier tests
   sequential
