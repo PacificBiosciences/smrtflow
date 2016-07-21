@@ -28,7 +28,7 @@ fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
 
-javaOptions in ThisBuild += "-Xmx2g"
+javaOptions in ThisBuild += "-Xmx4g"
 
 // Custom keys for this build.
 
@@ -43,9 +43,9 @@ val sprayV = "1.3.3"
 // Common settings/definitions for the build
 
 def PacBioProject(name: String): Project = (
-  Project(name, file(name))
-    settings (
-    libraryDependencies ++= Seq(
+    Project(name, file(name))
+        settings (
+        libraryDependencies ++= Seq(
           "ch.qos.logback" % "logback-classic" % "1.1.7",
           "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
           "com.github.broadinstitute" % "picard" % "1.131",
@@ -55,6 +55,7 @@ def PacBioProject(name: String): Project = (
           "com.github.scopt" %% "scopt" % "3.4.0",
           "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
           "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
+          "com.h2database" % "h2" % "1.4.192",
           "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
           "com.jsuereth" %% "scala-arm" % "1.4",
           "com.lihaoyi" % "ammonite-repl" % "0.6.2" % "test" cross CrossVersion.full,
@@ -91,10 +92,10 @@ def PacBioProject(name: String): Project = (
           "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
           "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
           "org.xerial" % "sqlite-jdbc" % "3.8.11.2"
+        )
+        )
     )
-    )
-  )
-    .disablePlugins (plugins.JUnitXmlReportPlugin)
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(
       testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
 
@@ -143,6 +144,12 @@ lazy val smrtServerLink = (
   PacBioProject("smrt-server-link")
     dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
     settings()
+  )
+
+lazy val smrtServerLims = (
+  PacBioProject("smrt-server-lims")
+    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+    settings ()
   )
 
 lazy val smrtServerAnalysis = (
