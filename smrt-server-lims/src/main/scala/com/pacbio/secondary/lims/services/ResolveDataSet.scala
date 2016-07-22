@@ -9,11 +9,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.lims.CORSDirectives.CORSDirectives
 import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.common.services.utils.CORSSupport.cors
 
 
-trait ResolveDataSet extends HttpService with CORSDirectives {
+trait ResolveDataSet extends HttpService {
   this: Database =>
 
   /**
@@ -23,10 +23,9 @@ trait ResolveDataSet extends HttpService with CORSDirectives {
    * GET /smrt-lims/lims-subreadset/{RUN-CODE}        # Returns LimsSubreadSet Resource
    * GET /smrt-lims/lims-subreadset/{experiment-id}   # Return List of LimsSubreadSet Resource or empty List if exp id isn't found
    */
-  val resolveLimsSubreadSetRoutes =
-  path("subreadset" / Segment) {
-    q => {
-      respondWithCORSHeaders() {
+  val resolveLimsSubreadSetRoutes = cors {
+    path("subreadset" / Segment) {
+      q => {
         get {
           ctx =>
             Future {
@@ -36,9 +35,6 @@ trait ResolveDataSet extends HttpService with CORSDirectives {
                   ctx.complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
               }
             }
-        }
-        options {
-          complete("It is all OK!")
         }
       }
     }

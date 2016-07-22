@@ -12,6 +12,7 @@ import spray.routing.HttpService
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -49,7 +50,7 @@ trait ImportLims extends HttpService with LookupSubreadsetUuid {
     val m = mutable.HashMap[String, String]()
     while (l != null) {
       val all = l.split(":[ ]+")
-      val (k, v) = (all(0), all(1).stripPrefix("'").stripSuffix("'"))
+      val (k, v) = (all(0), all(1).stripPrefix("'").stripSuffix("'").trim)
       m.put(k, v)
       l = br.readLine()
     }
@@ -104,11 +105,14 @@ trait LookupSubreadsetUuid {
 
 trait FileLookupSubreadsetUuid {
   def lookupUuid(path: String): Option[String] = {
-    val p = Paths.get(path.stripPrefix("file://"))
-    val matches  =
-      for (v <- Files.newDirectoryStream(p).asScala
-           if v.toString.endsWith("subreadset.xml"))
-        yield DataSetLoader.loadSubreadSet(v).getUniqueId
-    matches.headOption
+    Try {
+      val p = Paths.get(path.stripPrefix("file://"))
+      (for (v <- Files.newDirectoryStream(p).asScala
+            if v.toString.endsWith("subreadset.xml"))
+        yield DataSetLoader.loadSubreadSet(v).getUniqueId).head
+    } match {
+      case Success(v) => Some(v)
+      case Failure(t) => None
+    }
   }
 }
