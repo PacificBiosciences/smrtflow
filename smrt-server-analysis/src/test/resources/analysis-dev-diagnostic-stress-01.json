@@ -1,0 +1,21 @@
+{
+  "entryPoints": [
+    {
+      "_comment": "datasetId can be provided as the DataSet UUID or Int. The entryId can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'",
+      "_details": "this dataset is from /mnt/secondary/Share/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml",
+      "datasetId": "8b4db227-5a21-4658-8c1a-cf0f190d38e9",
+      "entryId": "eid_ref_dataset",
+      "fileTypeId": "PacBio.DataSet.ReferenceSet"
+    }
+  ],
+  "name": "Job name",
+  "pipelineId": "pbsmrtpipe.pipelines.dev_diagnostic_stress",
+  "taskOptions": [
+    {
+      "optionId": "pbsmrtpipe.task_options.dev_sleep_time_sec",
+      "value": 5,
+      "optionTypeId":"pbsmrtpipe.option_types.integer"
+    }
+  ],
+  "workflowOptions": []
+}

@@ -1,12 +1,19 @@
 {
-    "_comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic with pbsmrtpipe v0.36.3", 
+    "_comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic with pbsmrtpipe v0.42.1", 
     "bindings": [], 
     "description": "Generate a simple report and plot from Reference DataSet", 
     "entryPoints": [
         {
             "entryId": "eid_ref_dataset", 
             "fileTypeId": "PacBio.DataSet.ReferenceSet", 
-            "name": "Entry Name: PacBio.DataSet.ReferenceSet"
+            "name": "Entry Name: PacBio.DataSet.ReferenceSet", 
+            "tasks": [
+                {
+                    "index": 0, 
+                    "instanceId": 0, 
+                    "taskTypeId": "pbsmrtpipe.tasks.dev_reference_ds_report"
+                }
+            ]
         }
     ], 
     "id": "pbsmrtpipe.pipelines.dev_diagnostic", 

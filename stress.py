@@ -184,7 +184,7 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
     run_design_path = to_p("smrt-server-link/src/test/resources/runCreate2.xml")
 
     # Dev Diagnostic
-    analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json")
+    analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json")
 
     output_dir_prefix = to_p("test-output")
     if not os.path.exists(output_dir_prefix):
