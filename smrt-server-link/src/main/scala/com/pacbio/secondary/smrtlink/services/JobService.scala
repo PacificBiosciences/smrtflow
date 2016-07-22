@@ -125,9 +125,11 @@ trait JobService
     } ~
     path(IntNumber / JOB_REPORT_PREFIX / JavaUUID) { (jobId, reportUUID) =>
       get {
-        complete {
-          ok {
-            (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[MessageResponse]
+        respondWithMediaType(MediaTypes.`application/json`) {
+          complete {
+            ok {
+              (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[String]
+            }
           }
         }
       }

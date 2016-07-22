@@ -113,9 +113,11 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
       pathPrefix(MixedId) { id =>
         pathEnd {
           get {
-            complete {
-              ok {
-                (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+            respondWithMediaType(MediaTypes.`application/json`) {
+              complete {
+                ok {
+                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                }
               }
             }
           }
