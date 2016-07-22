@@ -569,8 +569,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
-        println(s"Could not retrieve existing dataset record: ${err}")
-        //println(ex.getMessage)
+        println(s"No existing dataset record found")
         val dsType = dsMetaTypeFromPath(path)
         val rc = runImportDataSet(path, dsType)
         if (rc == 0) runGetDataSetInfo(Right(dsUuid)) else rc
@@ -582,7 +581,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
-        println(jobInfo)
         waitForJob(jobInfo.uuid)
       }
       case Failure(err) => {
