@@ -39,7 +39,7 @@ trait UserDao {
 
   def removeRole(login: String, role: Role): Future[ApiUser]
 
-  def deleteUser(login: String): Future[String]
+  def deleteUser(login: String): Future[MessageResponse]
 
   def getToken(login: String): Future[String]
 }
@@ -113,11 +113,11 @@ class InMemoryUserDao(defaultRoles: Set[Role], jwtUtils: JwtUtils) extends UserD
   }
 
 
-  override def deleteUser(login: String): Future[String] = Future {
+  override def deleteUser(login: String): Future[MessageResponse] = Future {
     val reg = regularize(login)
     if (usersByLogin contains reg) {
       usersByLogin.remove(reg)
-      s"Successfully deleted user $reg"
+      MessageResponse(s"Successfully deleted user $reg")
     } else
       throw new ResourceNotFoundError(s"Unable to find user $reg")
   }
@@ -160,7 +160,7 @@ class RootOnlyUserDao(jwtUtils: JwtUtils) extends UserDao {
   def removeRole(login: String, role: Role): Future[ApiUser] =
     Future.failed(new MethodNotImplementedError("Cannot remove roles. Authentication is disabled."))
 
-  def deleteUser(login: String): Future[String] =
+  def deleteUser(login: String): Future[MessageResponse] =
     Future.failed(new MethodNotImplementedError("Cannot delete users. Authentication is disabled."))
 
   def getToken(login: String): Future[String] = Future {

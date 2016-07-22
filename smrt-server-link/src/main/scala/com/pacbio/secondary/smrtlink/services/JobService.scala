@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path, Paths}
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
@@ -124,11 +125,9 @@ trait JobService
     } ~
     path(IntNumber / JOB_REPORT_PREFIX / JavaUUID) { (jobId, reportUUID) =>
       get {
-        respondWithMediaType(MediaTypes.`application/json`) {
-          complete {
-            ok {
-              (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[String]
-            }
+        complete {
+          ok {
+            (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[MessageResponse]
           }
         }
       }
@@ -151,11 +150,9 @@ trait JobService
     } ~
     path(IntNumber / JOB_OPTIONS) { id =>
       get {
-        respondWithMediaType(MediaTypes.`application/json`) {
-          complete {
-            ok {
-              (dbActor ? GetJobById(id)).mapTo[EngineJob].map(_.jsonSettings)
-            }
+        complete {
+          ok {
+            (dbActor ? GetJobById(id)).mapTo[EngineJob].map(_.jsonSettings)
           }
         }
       }
@@ -172,14 +169,9 @@ trait JobService
       jobId =>
       post {
         entity(as[DataStoreFile]) { dsf =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                // this is a hacky way to emit an OK message
-                for {
-                  msg <- (dbActor ? ImportDataStoreFileByJobId(dsf, jobId)).mapTo[String]
-                } yield Map("message" -> msg)
-              }
+          complete {
+            created {
+              (dbActor ? ImportDataStoreFileByJobId(dsf, jobId)).mapTo[MessageResponse]
             }
           }
         }
@@ -207,13 +199,9 @@ trait JobService
       jobId =>
       post {
         entity(as[DataStoreFile]) { dsf =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                for {
-                  msg <-(dbActor ? ImportDataStoreFile(dsf, jobId)).mapTo[String]
-                } yield Map("message" -> msg)
-              }
+          complete {
+            created {
+              (dbActor ? ImportDataStoreFile(dsf, jobId)).mapTo[MessageResponse]
             }
           }
         }

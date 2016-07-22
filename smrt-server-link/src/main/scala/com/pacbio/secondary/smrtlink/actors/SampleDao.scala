@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.secondary.smrtlink.models._
@@ -21,7 +22,7 @@ trait SampleDao {
 
   def updateSample(uniqueId: UUID, update: SampleUpdate): Future[Sample]
 
-  def deleteSample(uniqueId: UUID): Future[String]
+  def deleteSample(uniqueId: UUID): Future[MessageResponse]
 }
 
 trait SampleDaoProvider {
@@ -69,10 +70,10 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
     sample
   }
 
-  override final def deleteSample(uniqueId: UUID): Future[String] = Future {
+  override final def deleteSample(uniqueId: UUID): Future[MessageResponse] = Future {
     if (samples contains uniqueId) {
       samples -= uniqueId
-      s"Successfully deleted sample $uniqueId"
+      MessageResponse(s"Successfully deleted sample $uniqueId")
     }
     else throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
   }

@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.database.Database
 import com.pacbio.secondary.smrtlink.actors._
@@ -98,12 +99,12 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
     updateOrCreate(id, update = true, parseResults, update.reserved)
   }
 
-  override def deleteRun(id: UUID): Future[String] = {
+  override def deleteRun(id: UUID): Future[MessageResponse] = {
     val action = DBIO.seq(
       collectionMetadata.filter(_.runId === id).delete,
       dataModels.filter(_.uniqueId === id).delete,
       runSummaries.filter(_.uniqueId === id).delete
-    ).map(_ => s"Successfully deleted run design $id")
+    ).map(_ => MessageResponse(s"Successfully deleted run design $id"))
     db.run(action.transactionally)
   }
 

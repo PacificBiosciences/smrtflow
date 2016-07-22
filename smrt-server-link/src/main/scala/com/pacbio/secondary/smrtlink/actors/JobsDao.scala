@@ -5,6 +5,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -269,7 +270,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def updateJobState(
       jobId: Int,
       state: AnalysisJobStates.JobStates,
-      message: String): Future[String] = {
+      message: String): Future[MessageResponse] = {
     logger.info(s"Updating job state of job-id $jobId to $state")
     val now = JodaDateTime.now()
     db.run {
@@ -277,7 +278,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
         engineJobs.filter(_.id === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
         jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, now)
       ).transactionally
-    }.map(_ => s"Successfully updated job $jobId to $state")
+    }.map(_ => MessageResponse(s"Successfully updated job $jobId to $state"))
   }
 
   override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
@@ -297,7 +298,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def updateJobStateByUUID(
       jobId: UUID,
       state: AnalysisJobStates.JobStates,
-      message: String): Future[String] =
+      message: String): Future[MessageResponse] =
     db.run {
       val now = JodaDateTime.now()
       engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
@@ -311,7 +312,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       }.transactionally
     }.map { _ =>
       logger.info(s"Updated job ${jobId.toString} state to $state")
-      s"Successfully updated job $jobId to $state"
+      MessageResponse(s"Successfully updated job $jobId to $state")
     }
 
   /**
@@ -401,13 +402,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   /**
    * Importing of DataStore File by Job Int Id
    */
-  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[String] = getJobById(jobId).flatMap {
+  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[MessageResponse] = getJobById(jobId).flatMap {
     case Some(job) => insertDataStoreByJob(job, ds)
 
     case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
   }
 
-  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[String] = getJobByUUID(jobId).flatMap {
+  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[MessageResponse] = getJobByUUID(jobId).flatMap {
     case Some(job) => insertDataStoreByJob(job, ds)
     case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
   }
@@ -416,7 +417,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     logger.info(s"adding datastore file for $ds")
     getJobByUUID(ds.jobId).flatMap {
       case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
-        .map(m => Right(CommonMessages.SuccessMessage(m)))
+        .map(m => Right(CommonMessages.SuccessMessage(m.message)))
         .recover {
           case NonFatal(e) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
         }
@@ -427,7 +428,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   /**
    * Generic Importing of DataSet by type and Path to dataset file
    */
-  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): Future[String] = {
+  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): Future[MessageResponse] = {
     val path = Paths.get(spath)
     dataSetMetaType match {
       case DataSetMetaTypes.Subread =>
@@ -469,11 +470,11 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
         logger.warn(msg)
-        Future(msg)
+        Future(MessageResponse(msg))
     }
   }
 
-  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): Future[String] = {
+  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): Future[MessageResponse] = {
     logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
 
     // TODO(smcclellan): Use dependency-injected Clock instance
@@ -482,13 +483,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     val importedAt = createdAt
 
     if (ds.isChunked) {
-      Future(s"Skipping inserting of Chunked DataStoreFile $ds")
+      Future(MessageResponse(s"Skipping inserting of Chunked DataStoreFile $ds"))
     } else {
 
       /**
        *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
        */
-      def addOptionalInsert(existing: Option[Any]): Future[String] = {
+      def addOptionalInsert(existing: Option[Any]): Future[MessageResponse] = {
         // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
         val addDataStoreServiceFile = existing match {
           case Some(_) =>
@@ -500,22 +501,21 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
         }
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-          case Some(typ) => {
+          case Some(typ) =>
             DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
-          }
           case None =>
             existing match {
               case Some(_) =>
-                DBIO.from(Future(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}."))
+                DBIO.from(Future(MessageResponse(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}.")))
               case None =>
-                DBIO.from(Future(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing"))
+                DBIO.from(Future(MessageResponse(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
             }
         }
         // 3 of 3: run the appropriate actions in a transaction
         val fin = for {
           _ <- addDataStoreServiceFile
           oi <- optionalInsert
-        } yield (oi)
+        } yield oi
         db.run(fin.transactionally)
       }
       
@@ -575,40 +575,40 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   type U = slick.profile.FixedSqlAction[Int,slick.dbio.NoStream,slick.dbio.Effect.Write]
 
   def insertDataSetSafe[T <: ServiceDataSetMetadata](ds: T, dsTypeStr: String,
-                         insertFxn: (Int) => U): Future[String] = {
+                         insertFxn: (Int) => U): Future[MessageResponse] = {
     getDataSetMetaDataSetBlocking(ds.uuid) match {
       case Some(_) =>
-        val msg = s"${dsTypeStr} ${ds.uuid} already imported. Skipping importing of $ds"
+        val msg = s"$dsTypeStr ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
-        Future(msg)
+        Future(MessageResponse(msg))
       case None => db.run {
         insertMetaData(ds).flatMap {
           id => insertFxn(id)
         }.map(_ => {
-          val m = s"Successfully entered ${dsTypeStr} $ds"
+          val m = s"Successfully entered $dsTypeStr $ds"
           logger.info(m)
-          m
+          MessageResponse(m)
         })
       }
     }
   }
 
-  def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[String] =
+  def insertReferenceDataSet(ds: ReferenceServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[ReferenceServiceDataSet](ds, "ReferenceSet",
       (id) => { dsReference2 forceInsert ReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism) })
 
-  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[String] = 
+  def insertGmapReferenceDataSet(ds: GmapReferenceServiceDataSet): Future[MessageResponse] = 
     insertDataSetSafe[GmapReferenceServiceDataSet](ds, "GmapReferenceSet",
       (id) => { dsGmapReference2 forceInsert GmapReferenceServiceSet(id, ds.uuid, ds.ploidy, ds.organism) })
 
-  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[String] =
+  def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[SubreadServiceDataSet](ds, "SubreadSet",
       (id) => { dsSubread2 forceInsert SubreadServiceSet(id, ds.uuid,
           "cell-id", ds.metadataContextId, ds.wellSampleName, ds.wellName,
           ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
           ds.runName, "instrument-ctr-version") })
 
-  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[String] =
+  def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[HdfSubreadServiceDataSet](ds, "HdfSubreadSet",
       (id) => {
         dsHdfSubread2 forceInsert HdfSubreadServiceSet(id, ds.uuid,
@@ -616,23 +616,23 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
           ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
           ds.runName, "instrument-ctr-version") })
 
-  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[String] =
+  def insertAlignmentDataSet(ds: AlignmentServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[AlignmentServiceDataSet](ds, "AlignmentSet",
       (id) => { dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid) })
 
-  def insertConsensusReadDataSet(ds: CCSreadServiceDataSet): Future[String] =
+  def insertConsensusReadDataSet(ds: CCSreadServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[CCSreadServiceDataSet](ds, "ConsensusReadSet",
       (id) => { dsCCSread2 forceInsert CCSreadServiceSet(id, ds.uuid) })
 
-  def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[String] =
+  def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[ConsensusAlignmentServiceDataSet](ds, "ConsensusAlignmentSet",
       (id) => { dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid) })
 
-  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[String] =
+  def insertBarcodeDataSet(ds: BarcodeServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[BarcodeServiceDataSet](ds, "BarcodeSet",
       (id) => { dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid) })
 
-  def insertContigDataSet(ds: ContigServiceDataSet): Future[String] =
+  def insertContigDataSet(ds: ContigServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[ContigServiceDataSet](ds, "ContigSet",
       (id) => { dsContig2 forceInsert ContigServiceSet(id, ds.uuid) })
 
@@ -964,38 +964,35 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.map(_.map(toDataStoreJobFile))
     }
 
-  def getSystemSummary(header: String = "System Summary"): Future[String] = {
-
+  def getSystemSummary(header: String = "System Summary"): Future[MessageResponse] = {
     for {
       ssets <- db.run((dsMetaData2 join dsSubread2 on (_.id === _.id)).length.result)
       rsets <- db.run((dsMetaData2 join dsReference2 on (_.id === _.id)).length.result)
       asets <- db.run((dsMetaData2 join dsAlignment2 on (_.id === _.id)).length.result)
       jobCounts <- db.run(engineJobs.groupBy(x => (x.jobTypeId, x.state)).map({
-        case ((jobType, state), list) => {
-          (jobType, state, list.length)
-        }
+        case ((jobType, state), list) => (jobType, state, list.length)
       }).result)
       jobEvents <- db.run(jobEvents.length.result)
       dsFiles <- db.run(datastoreServiceFiles.length.result)
       entryPoints <- db.run(engineJobsDataSets.length.result)
-    } yield
+    } yield MessageResponse(
       s"""
          |$header
          |--------
          |DataSets
          |--------
-         |nsubreads            : ${ssets}
-         |alignments           : ${asets}
-         |references           : ${rsets}
+         |nsubreads            : $ssets
+         |alignments           : $asets
+         |references           : $rsets
          |--------
          |Jobs
          |--------
          | ${jobCounts.map(x => f"${x._1}%15s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
          |--------
-         |Total JobEvents      : ${jobEvents}
-         |Total entryPoints    : ${entryPoints}
-         |Total DataStoreFiles : ${dsFiles}
-       """.stripMargin
+         |Total JobEvents      : $jobEvents
+         |Total entryPoints    : $entryPoints
+         |Total DataStoreFiles : $dsFiles
+       """.stripMargin)
   }
 }
 

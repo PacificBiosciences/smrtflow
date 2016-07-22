@@ -76,7 +76,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
               //authorize(authInfo.hasPermission(RUN_DESIGN_WRITE)) {
                 complete {
                   ok {
-                    (runActor ? DeleteRun(id)).mapTo[String]
+                    (runActor ? DeleteRun(id)).mapTo[MessageResponse]
                   }
                 }
               //}

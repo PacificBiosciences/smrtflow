@@ -39,7 +39,7 @@ trait LogDao {
   /**
    * Creates a new log resource.
    */
-  def createLogResource(m: LogResourceRecord): Future[String]
+  def createLogResource(m: LogResourceRecord): Future[MessageResponse]
 
   /**
    * Gets a specific log resource by id.
@@ -201,7 +201,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
 
   override final def getAllLogResources: Future[Seq[LogResource]] = Future(resources.values.toSeq)
 
-  override final def createLogResource(m: LogResourceRecord): Future[String] = Future {
+  override final def createLogResource(m: LogResourceRecord): Future[MessageResponse] = Future {
     resources.synchronized {
       val id = m.id
       if (resources contains id)
@@ -212,7 +212,7 @@ abstract class AbstractLogDao(clock: Clock, bufferSize: Int) extends LogDao {
         val newResource = LogResource(clock.dateNow(), m.description, m.id, m.name)
         resources(id) = newResource
         buffers(id) = newBuffer(id)
-        s"Successfully created resource $id"
+        MessageResponse(s"Successfully created resource $id")
       }
     }
   }

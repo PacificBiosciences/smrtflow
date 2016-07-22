@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.database.Database
@@ -78,10 +79,10 @@ class DatabaseSampleDao(db: Database, clock: Clock) extends SampleDao {
    * Deletes an existing sample in the database
    * Throws if the resource was not found or if more than one was found
    */
-  def deleteSample(uniqueId: UUID): Future[String] = {
+  def deleteSample(uniqueId: UUID): Future[MessageResponse] = {
     val action = samples.filter(_.uniqueId === uniqueId).delete.map { count =>
       if (count == 1) {
-        s"Successfully deleted sample $uniqueId"
+        MessageResponse(s"Successfully deleted sample $uniqueId")
       } else if (count == 0) {
         throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
       } else {
