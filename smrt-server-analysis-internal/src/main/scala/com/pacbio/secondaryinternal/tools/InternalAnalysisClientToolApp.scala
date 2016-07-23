@@ -17,7 +17,7 @@ import scopt.OptionParser
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
 
@@ -41,20 +41,80 @@ case class CustomConfig(mode: Modes.Mode = Modes.UNKNOWN,
                         command: CustomConfig => Unit,
                         host: String = "smrtlink-internal",
                         port: Int = 8081,
-                        pipelineId: String = "pbsmrtpipe.pipelines.reseq_cond",
+                        pipelineId: String = "pbsmrtpipe.pipelines.internal_cond_dev_r",
                         jobName: String = "Condition Job",
                         pathToCSV: Path,
                         pathToReseqConditions: Path,
                         outputPathToReseqConditions: Path = Paths.get("reseq-conditions.json")) extends LoggerConfig
 
 
+/**
+  * This should be refactored into a common layer.
+  */
+trait InternalAnalysisClientToolRunner extends LazyLogging{
+
+  // Add this as an implicit to the fun calls
+  implicit val TIMEOUT: Duration
+
+  def nullSummary[T](x: T): Unit = {}
+  def simpleSummary[T](x: T): Unit = println(s"-> Summary $x")
+  def statusSummary(x: ServiceStatus): String = s"System ${x.id} ${x.version} ${x.message}"
+
+  def runAwait[T](f: () => Future[T]) : T = {
+    //val fx = Future.fromTry(Try { f()} )
+    Await.result(f(), TIMEOUT)
+  }
+
+  def runAwaitWithActorSystem[T](summary: (T => Unit))(f: (ActorSystem => Future[T])): Int = {
+    implicit val actorSystem = ActorSystem("slia")
+    val exitCode = Try { Await.result(f(actorSystem), TIMEOUT) }.map(summary) match {
+      case Success(result) => 0
+      case Failure(err) =>
+        System.err.println(s"Failed to run $err")
+        1
+    }
+    logger.info("Shutting down actor system")
+    actorSystem.shutdown()
+    exitCode
+  }
+
+  def convertToURL(host: String, port: Int) =  {
+    val h = host.replaceFirst("http://", "")
+    new URL(s"http://$h:$port")
+  }
+
+  def runStatus(host: String, port: Int): Int =
+    runAwaitWithActorSystem[ServiceStatus](simpleSummary[ServiceStatus]){ (system: ActorSystem) =>
+      val url = convertToURL(host, port)
+      val client = new InternalAnalysisServiceClient(url)(system)
+      client.getStatus
+    }
+
+  // Write ReseqCondition JSON file
+  def runConvert(host: String, port: Int, pathToCsvPath: Path, outputPath: Path, jobName: String, pipelineId: String): Int =
+    runAwaitWithActorSystem[ReseqConditions](nullSummary) { (system: ActorSystem) =>
+      val client = new InternalAnalysisServiceClient(convertToURL(host, port))(system)
+
+      for {
+        _ <- client.getStatus
+        csvContents <- Future { scala.io.Source.fromFile(pathToCsvPath.toFile).mkString }
+        sx <- Future {ServiceConditionCsvPipeline(pipelineId, csvContents, jobName, s"Job $jobName")}
+        reseqConditions <- client.resolveConditionRecord(sx)
+        _ <- Future { IOUtils.writeReseqConditions(reseqConditions, outputPath) }
+      } yield reseqConditions
+    }
+}
+
+
+
 trait InternalAnalysisClientToolParser {
 
   def printDefaults(c: CustomConfig) = println(s"Config $c")
+  def showVersion: Unit = { println(VERSION) }
 
   lazy val TOOL_ID = "slia"
   lazy val NAME = "SLIA"
-  lazy val VERSION = "0.1.0"
+  lazy val VERSION = "0.1.4"
   lazy val DESCRIPTION =
     """
       |SMRT Link Client Internal Analysis Tool
@@ -67,110 +127,48 @@ trait InternalAnalysisClientToolParser {
     head(NAME, VERSION)
     note(DESCRIPTION)
 
-    opt[String]("host") action { (x, c) =>
-      c.copy(host = x)
-    } text "Hostname of smrtlink server"
-
-    opt[Int]("port") action { (x, c) =>
-      c.copy(port = x)
-    } text "Services port on smrtlink server"
-
-
-    opt[Unit]("debug") action { (_, c) =>
-      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, debug = true, c.logLevel).asInstanceOf[CustomConfig]
-    } text "Display debugging log output"
-
-    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
-
     cmd(Modes.STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)
-    }
+    } children(
+        opt[String]("host") action { (x, c) => c.copy(host = x) } text "Hostname of smrtlink server",
+        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text "Services port on smrtlink server"
+        ) text "Status Summary"
 
     // Convert
-    arg[File]("csv") action { (x, c) => c.copy(pathToCSV = x.toPath)} text "Path to Reseq Conditions CSV"
-    opt[File]("reseq-json") action { (x, c ) => c.copy(outputPathToReseqConditions = x.toPath)} text "Path to Output Reseq Conditions JSON"
     cmd(Modes.CONVERT.name) action { (_, c) =>
       c.copy(command = (c) => println(s"with $c"), mode = Modes.CONVERT)
-    }
+    } children(
+        arg[File]("csv") action { (x, c) => c.copy(pathToCSV = x.toPath) } text "Path to Reseq Conditions CSV",
+        opt[File]("reseq-json") action { (x, c) => c.copy(outputPathToReseqConditions = x.toPath) } text "Path to Output Reseq Conditions JSON"
+        ) text "Convert CSV Summary"
 
-    // Submit Reseq Conditions JSON
-    arg[File]("reseq-json") action { (x, c) => c.copy(pathToReseqConditions = x.toPath)} text "Path to Reseq Condition JSON"
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
 
-    opt[String]("name") action { (x, c) => c.copy(jobName = x)} text "Job Name"
+    opt[Unit]('v', "version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show Version and Exit"
 
-    opt[String]("host") action { (x, c) => c.copy(host = x)} text "Service Host"
-
-    opt[Int]("port") action { (x, c) => c.copy(port = x)} text "Service Port"
-
-    cmd(Modes.SUBMIT.name) action { (_, c) =>
-      c.copy(command = (c) => println(s"with $c"), mode = Modes.SUBMIT)
-    }
-
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
 
 object InternalAnalysisClientToolApp extends App
     with InternalAnalysisClientToolParser
+    with InternalAnalysisClientToolRunner
     with LazyLogging{
 
-  val TIMEOUT = 10 seconds
-
-  def runAwait[T](f: () => Future[T]) : Int = {
-    val fx = Future.fromTry(Try { f()} ).map(_ => 0)
-    Await.result(fx, TIMEOUT)
-  }
-
-  def runAwaitWithActorSystem[T](f: (ActorSystem => Future[T])): Int = {
-    implicit val actorSystem = ActorSystem("pbservice")
-    val result = runAwait[T](() => { f(actorSystem) })
-    actorSystem.shutdown()
-    result
-  }
-
-  def convertToURL(host: String, port: Int) =  {
-    val h = host.replaceFirst("http://", "")
-    new URL(s"http://$h:$port")
-  }
-
-  def runStatus(host: String, port: Int): Int =
-    runAwaitWithActorSystem[ServiceStatus] { (system: ActorSystem) =>
-      val client = new InternalAnalysisServiceClient(convertToURL(host, port))(system)
-      client.getStatus
-    }
-
-  // Write ReseqCondition JSON file
-  def runConvert(host: String, port: Int, pathToCsvPath: Path, outputPath: Path, jobName: String, pipelineId: String): Int =
-    runAwaitWithActorSystem[ReseqConditions] { (system: ActorSystem) =>
-      val client = new InternalAnalysisServiceClient(convertToURL(host, port))(system)
-
-      for {
-        _ <- client.getStatus
-        csvContents <- Future { scala.io.Source.fromFile(pathToCsvPath.toFile).mkString }
-        sx <- Future {ServiceConditionCsvPipeline(pipelineId, csvContents, jobName, s"Job $jobName")}
-        reseqConditions <- client.resolveConditionRecord(sx)
-        _ <- Future { IOUtils.writeReseqConditions(reseqConditions, outputPath) }
-      } yield reseqConditions
-  }
-
-  // Submit ReseqCondition JSON Job
-  def runSubmit(host: String, port: Int, reseqConditionJsonPath: Path): Int = {
-    runAwaitWithActorSystem[EngineJob] { (system: ActorSystem) =>
-      val client = new InternalAnalysisServiceClient(convertToURL(host, port))(system)
-      for {
-        _ <- client.getStatus
-        reseqConditions <- Future { IOUtils.loadReseqConditions(reseqConditionJsonPath) }
-        engineJob <- client.submitReseqConditions(reseqConditions)
-      } yield engineJob
-    }
-  }
-
+  implicit val TIMEOUT = 10 seconds
 
   def runCustomConfig(c: CustomConfig): Int = {
+    println(s"Running with config $c")
     c.mode match {
       case Modes.STATUS => runStatus(c.host, c.port)
       case Modes.CONVERT => runConvert(c.host, c.port, c.pathToCSV, c.pathToCSV, "Job Name", c.pipelineId)
-      case Modes.SUBMIT => runSubmit(c.host, c.port, c.pathToReseqConditions)
       case unknown =>
         System.err.println(s"Unknown mode '$unknown'")
         1
@@ -181,7 +179,8 @@ object InternalAnalysisClientToolApp extends App
     val exitCode = parser.parse(args, DEFAULT)
         .map(runCustomConfig)
         .getOrElse(1)
-    logger.info(s"Exiting $NAME $VERSION with $exitCode")
+    println(s"Exiting $NAME $VERSION with exitCode $exitCode")
+    // This is the ONLY place System.exit should be called
     System.exit(exitCode)
   }
 
