@@ -16,6 +16,8 @@ assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
 
 packSettings
 
+packGenerateWindowsBatFile := false
+
 // Alias. Need to have a consistent naming model smrt-client-X to mirror the smrt-server-X naming convention
 packMain := Map(
   "smrt-client-internal-analysis" -> "com.pacbio.secondaryinternal.tools.InternalAnalysisClientToolApp",
