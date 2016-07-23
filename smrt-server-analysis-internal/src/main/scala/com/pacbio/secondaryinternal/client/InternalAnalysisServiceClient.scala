@@ -1,12 +1,14 @@
 package com.pacbio.secondaryinternal.client
 
+import java.io.IOError
 import java.net.URL
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
 
 import akka.actor.ActorSystem
+
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -20,6 +22,9 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 
+import spray.http._
+import spray.client.pipelining._
+
 
 class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     extends AnalysisServiceAccessLayer(baseUrl)(actorSystem) with LazyLogging {
@@ -28,6 +33,23 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
 
   val conditionJobURL = toUrl(s"${ServiceEndpoints.ROOT_JOBS}/$conditionJobTypeId")
 
+  def failJobIfNotSuccessful(job: EngineJob): Future[EngineJob] =
+    if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
+    else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
+
+  def getEntryPointBy(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
+    eps.find(_.datasetType == datasetMetaType.dsId) match {
+      case Some(x) => Future {
+        x.datasetUUID
+      }
+      case _ => Future.failed(throw new Exception(s"Failed resolve Entry Point type $datasetMetaType"))
+    }
+  }
+
+  def validatePath(path: Path, message: String): Future[Path] = {
+    if (Files.exists(path)) Future {path}
+    else Future.failed(throw new Exception(s"$message Unable to find $path"))
+  }
 
   /**
     * Converts the raw CSV and resolves AlignmentSets paths from job ids
@@ -45,27 +67,11 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
     val cs = IOUtils.parseConditionCsv(sx)
     logger.debug(s"Parsed conditions $cs")
 
-    def toUrl(host: String, port: Int) = new URL(s"http://$host:$port")
-
-    def failJobIfNotSuccessful(job: EngineJob): Future[EngineJob] =
-      if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
-      else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
-
-    def getEntryPointBy(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
-      eps.find(_.datasetType == datasetMetaType.dsId) match {
-        case Some(x) => Future {
-          x.datasetUUID
-        }
-        case _ => Future.failed(throw new Exception(s"Failed resolve Entry Point type $datasetMetaType"))
-      }
-    }
-
-
     /**
-      * This needs to have a more robust implementation
+      * This needs to have a more robust implementation to get the AlignmentSet
       *
-      * - Resolve Entry points looks for a SubreadSet and ReferenceSet
-      * - Does not valid resolved paths
+      * Resolve Entry points looks for a SubreadSet and ReferenceSet
+      * And will validate paths of resolved files.
       *
       * @param sc Service Condition
       * @return
@@ -74,13 +80,15 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
       for {
         job <- getJobById(sc.jobId)
         sjob <- failJobIfNotSuccessful(job)
-        alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId)
+        alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId) // FIXME
         entryPoints <- getAnalysisJobEntryPoints(sc.jobId)
         subreadSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Subread)
         referenceSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Reference)
         subreadSetMetadata <- getDataSetByUuid(subreadSetUUID)
         referenceSetMetadata <- getDataSetByUuid(referenceSetUUID)
-      } yield ReseqCondition(sc.id, Paths.get(subreadSetMetadata.path), alignmentSetPath, Paths.get(referenceSetMetadata.path))
+        ssetPath <- validatePath(Paths.get(subreadSetMetadata.path), s"SubreadSet path for Job ${job.id}")
+        rsetPath <- validatePath(Paths.get(referenceSetMetadata.path), s"ReferenceSet path for job ${job.id}")
+      } yield ReseqCondition(sc.id, ssetPath, alignmentSetPath, rsetPath)
     }
 
     // Do them in parallel
@@ -89,7 +97,7 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
     // A few sanity tests for making sure the system is up and pipeline id is valid
     val fx = for {
       _ <- getStatus
-      pipeline <- getPipelineTemplate(record.pipelineId)
+      //pipeline <- getPipelineTemplate(record.pipelineId) // This doesn't work
       resolvedConditions <- fxs
     } yield ReseqConditions(record.pipelineId, resolvedConditions)
 
@@ -97,14 +105,8 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
   }
 
   def resolvedJobConditionsTo(p: ResolvedConditionPipeline): ResolvedConditions = {
-    ResolvedConditions(p.pipelineId, p.conditions.map(x => ResolvedCondition(x.id, FileTypes.DS_ALIGNMENTS.fileTypeId, Seq(x.path))))
-  }
-
-  // FIXME
-  def submitReseqConditions(r: ReseqConditions): Future[EngineJob] = {
-    Future {
-      EngineJob(-1, UUID.randomUUID(), "Job Name", "", JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.UNKNOWN, "conditions", "", "{}", None)
-    }
+    val cs = p.conditions.map(x => ResolvedCondition(x.id, FileTypes.DS_ALIGNMENTS.fileTypeId, Seq(x.path)))
+    ResolvedConditions(p.pipelineId, cs)
   }
 
 
