@@ -52,7 +52,7 @@ trait ImportLims extends HttpService with LookupSubreadset {
     val sr = new StringReader(new String(bytes))
     val br = new BufferedReader(sr)
     var l = br.readLine()
-    val m = mutable.HashMap[String, Any]()
+    val m = mutable.HashMap[String, String]()
     while (l != null) {
       val all = l.split(":[ ]+")
       val (k, v) = (all(0), all(1).stripPrefix("'").stripSuffix("'").trim)
@@ -62,47 +62,32 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
     // need the path in order to parse the UUID from .subreadset.xml
     m.get("path") match {
-      case Some(p) => loadData(subreadset(p.asInstanceOf[String]), m)
+      case Some(p) => loadData(subreadset(p), m)
       case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
   }
 
-  def loadData(s: Option[SubreadSet], ly: mutable.HashMap[String, Any]) : String = {
+  def loadData(s: Option[SubreadSet], ly: mutable.HashMap[String, String]) : String = {
     // collection info
     val (uuid, json) = s match {
       case Some(subread) => {
         val c = subread.getDataSetMetadata.getCollections.getCollectionMetadata.get(0)
         (subread.getUniqueId,
          Map[String, Any](
-           "UUID" -> c.getUniqueId,
-           "Foo" -> "Bar").toJson)
+           "path" -> ly("path"),
+           "pa_version" -> c.getSigProcVer,
+           "ics_version" -> c.getInstCtrlVer,
+           "well" -> c.getWellSample.getWellName,
+           "context" -> c.getContext,
+           "created_at" -> subread.getCreatedAt.toString
+         ).toJson)
       }
       case None => (null, "{}".toJson)
     }
-    val expid = ly.get("expcode").get.asInstanceOf[String].toInt
-    val runcode = ly.get("runcode").get.asInstanceOf[String]
+    val expid = ly("expcode").toInt
+    val runcode = ly("runcode")
 
     setSubread(if (uuid != null) uuid else runcode, expid, runcode, json)
-
-//        path = ly.get("path").get,
-//        user = ly.getOrElse("user", ""),
-//        uid = ly.getOrElse("uid", ""),
-//        tracefile = ly.getOrElse("tracefile", ""),
-//        description = ly.getOrElse("description", ""),
-//        wellname = ly.getOrElse("wellname", ""),
-//        cellbarcode = ly.getOrElse("cellbarcode", ""),
-//        cellindex = ly.get("cellindex") match {
-//          case Some(v) => v.toInt
-//          case None => -1
-//        },
-//        seqkitbarcode = ly.getOrElse("seqkitbarcode", ""),
-//        colnum = ly.get("colnum") match {
-//          case Some(v) => v.toInt
-//          case None => -1
-//        },
-//        samplename = ly.getOrElse("samplename", ""),
-//        instid = c.getInstrumentId.toInt)
-//    )
   }
 }
 
