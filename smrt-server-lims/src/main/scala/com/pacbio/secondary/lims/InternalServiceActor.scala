@@ -9,7 +9,7 @@ import com.pacbio.common.services.StatusService
 import com.pacbio.common.time.SystemClock
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase}
-import com.pacbio.secondary.lims.services.{FileLookupSubreadsetUuid, ImportLims, ResolveDataSet}
+import com.pacbio.secondary.lims.services.{FileLookupSubreadset, ImportLims, ResolveDataSet}
 
 /**
  * Parent Actor for all internal related web services work
@@ -18,7 +18,7 @@ class InternalServiceActor extends Actor
     with ConfigLoader
     with JdbcDatabase
     with DefaultDatabase
-    with FileLookupSubreadsetUuid
+    with FileLookupSubreadset
     with ImportLims
     with ResolveDataSet {
 

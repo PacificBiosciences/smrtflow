@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase, TestDatabase}
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
-import com.pacbio.secondary.lims.util.{StressConfig, StressUtil, TestLookupSubreadsetUuid}
+import com.pacbio.secondary.lims.util.{StressConfig, StressUtil, TestLookupSubreadset}
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
 import spray.testkit.Specs2RouteTest
@@ -29,7 +29,7 @@ class StressTestSpec extends Specification
     with TestDatabase
     // routes that will use the test database
     with ImportLims
-    with TestLookupSubreadsetUuid
+    with TestLookupSubreadset
     with ResolveDataSet
     // adds the stress testing utilty methods
     with StressUtil {

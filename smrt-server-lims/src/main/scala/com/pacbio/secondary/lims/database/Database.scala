@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims.database
 
-import com.pacbio.secondary.lims.LimsYml
+import com.pacbio.secondary.lims.LimsSubreadSet
+import spray.json.JsValue
 
 
 /**
@@ -11,22 +12,28 @@ import com.pacbio.secondary.lims.LimsYml
  */
 trait Database {
 
-  def setLimsYml(v: LimsYml): String
-
-  def setAlias(alias: String, uuid: String): Unit
+  /**
+   * General alias support
+   * @param alias
+   * @param uuid
+   * @param typ
+   */
+  def setAlias(alias: String, uuid: String, typ: String): Unit
 
   def delAlias(alias: String): Unit
 
   /**
-   * Converts from an arbitrary alias to the matching lims.yml files
+   * Store, retrieve and manipulate LIMS versions of SubreadSet
    */
-  def getByAlias(alias: String): LimsYml
+  def setSubread(uuid: String, expid: Int, runcode: String, json: JsValue): String
 
-  def getByExperiment(e: Int): Seq[LimsYml]
+  def subreadByAlias(alias: String): LimsSubreadSet
 
-  def getByRunCode(rc: String): Seq[LimsYml]
+  def subreadsByExperiment(e: Int): Seq[LimsSubreadSet]
 
-  def getLimsYml(pks: Seq[(Int, String)]): Seq[LimsYml]
+  def subreadsByRunCode(rc: String): Seq[LimsSubreadSet]
 
-  def getLimsYml(pk: (Int, String)): LimsYml
+  def subreads(pks: Seq[String]): Seq[LimsSubreadSet]
+
+  def subread(pk: String): LimsSubreadSet
 }
