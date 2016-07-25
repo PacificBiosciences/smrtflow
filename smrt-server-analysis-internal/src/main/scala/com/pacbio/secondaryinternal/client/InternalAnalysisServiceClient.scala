@@ -1,14 +1,12 @@
 package com.pacbio.secondaryinternal.client
 
-import java.io.IOError
 import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
-
 import akka.actor.ActorSystem
-
+import com.pacbio.common.client.UrlUtils
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -16,22 +14,34 @@ import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.models.EngineJobEntryPoint
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondaryinternal.{IOUtils, JobResolvers}
-import com.pacbio.secondaryinternal.models.{ResolvedCondition, ResolvedConditions, _}
+import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, JobResolvers}
+import com.pacbio.secondaryinternal.models.{ResolvedCondition, ResolvedConditions, ServiceConditionCsvPipeline, _}
+import com.pacbio.secondary.smrtlink.client.ServicesClientJsonProtocol
+
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
-
 import spray.http._
 import spray.client.pipelining._
+import spray.json.DefaultJsonProtocol
+import DefaultJsonProtocol._
+import spray.httpx.SprayJsonSupport
 
 
 class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     extends AnalysisServiceAccessLayer(baseUrl)(actorSystem) with LazyLogging {
 
+  import InternalAnalysisJsonProcotols._
+  import ServicesClientJsonProtocol._
+  import SprayJsonSupport._
+
   val conditionJobTypeId = "conditions"
 
   val conditionJobURL = toUrl(s"${ServiceEndpoints.ROOT_JOBS}/$conditionJobTypeId")
+
+  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  }
 
   def failJobIfNotSuccessful(job: EngineJob): Future[EngineJob] =
     if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
@@ -80,7 +90,7 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
       for {
         job <- getJobById(sc.jobId)
         sjob <- failJobIfNotSuccessful(job)
-        alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId) // FIXME
+        alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId) // FIXME. Make this core trait more well defined
         entryPoints <- getAnalysisJobEntryPoints(sc.jobId)
         subreadSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Subread)
         referenceSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Reference)
@@ -109,5 +119,7 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
     ResolvedConditions(p.pipelineId, cs)
   }
 
+  def submitReseqCondition(sx: ServiceConditionCsvPipeline): Future[EngineJob] =
+    runJobPipeline { Post(conditionJobURL, sx) }
 
 }
