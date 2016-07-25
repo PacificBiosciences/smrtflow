@@ -79,7 +79,9 @@ trait ImportLims extends HttpService with LookupSubreadset {
            "ics_version" -> c.getInstCtrlVer,
            "well" -> c.getWellSample.getWellName,
            "context" -> c.getContext,
-           "created_at" -> subread.getCreatedAt.toString
+           "created_at" -> subread.getCreatedAt.toString,
+           "inst_name" -> c.getInstrumentName,
+           "instid" -> c.getInstrumentId
          ).toJson)
       }
       case None => (null, "{}".toJson)
