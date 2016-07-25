@@ -4,9 +4,10 @@
 # the tarball in perforce, not git.
 
 sbt smrt-analysis/clean smrt-analysis/compile smrt-analysis/pack
-# TODO maybe later
+sbt smrt-server-base/clean smrt-server-base/compile smrt-server-base/pack
 sbt smrt-server-analysis/clean smrt-server-analysis/compile smrt-server-analysis/pack
 
+cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
 cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
 
 cd smrt-analysis
