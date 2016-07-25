@@ -17,6 +17,16 @@ import java.net.URL
 
 import scala.language.postfixOps
 
+// Move this to a central location
+trait UrlUtils {
+  def convertToUrl(host: String, port: Int) = {
+    val h = host.replaceFirst("http://", "")
+    new URL(s"http://$h:$port")
+  }
+}
+
+object UrlUtils extends UrlUtils
+
 
 class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
@@ -24,6 +34,10 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   import SprayJsonSupport._
 
   implicit val executionContext = actorSystem.dispatcher
+
+  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  }
 
   protected def toUrl(segment: String): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment).toString
