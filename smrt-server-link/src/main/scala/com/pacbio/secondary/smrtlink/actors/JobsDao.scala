@@ -1012,7 +1012,7 @@ with DataSetStore {
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider  =>
+  this: DalProvider with SmrtLinkConfigProvider =>
 
   val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver()))
 }

@@ -15,8 +15,10 @@ import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
 import spray.servlet.WebBoot
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NonFatal
 
 object SmrtLinkApp
 
@@ -52,11 +54,21 @@ trait SmrtLinkApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
   override val providers = new SmrtLinkProviders {}
 
   override def startup(): Unit = {
+    super.startup()
+
     val p = Paths.get(providers.engineConfig.pbRootJobDir)
     if (!Files.exists(p)) {
       logger.info(s"Creating root job dir $p")
       Files.createDirectories(p)
     }
+
+    val dbTest = providers.jobsDao().getSystemSummary("Database Test")
+    dbTest.onFailure {
+      case NonFatal(e) =>
+        logger.error("Database connection broken", e)
+        System.exit(1)
+    }
+    logger.info(Await.result(dbTest, Duration.Inf))
   }
 
   sys.addShutdownHook(system.shutdown())

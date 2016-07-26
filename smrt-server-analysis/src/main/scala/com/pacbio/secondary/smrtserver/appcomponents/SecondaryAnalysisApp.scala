@@ -7,7 +7,7 @@ import com.pacbio.common.dependency.{TypesafeSingletonReader, Singleton}
 import com.pacbio.common.logging.{LoggerFactoryProvider, LogResources}
 import com.pacbio.common.models.LogResourceRecord
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.smrtlink.app.SmrtLinkProviders
+import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
 import com.pacbio.secondary.smrtserver.services._
 import com.pacbio.secondary.smrtserver.services.jobtypes._
@@ -43,16 +43,8 @@ trait SecondaryAnalysisProviders
   Singleton(LogResourceRecord("SMRT Link UI", "smrtlink", "SMRTLink UI")).bindToSet(LogResources)
 }
 
-trait SecondaryApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
+trait SecondaryApi extends SmrtLinkApi with SmrtLinkRolesInit with LazyLogging {
   override val providers = new SecondaryAnalysisProviders {}
-
-  override def startup(): Unit = {
-    val p = Paths.get(providers.engineConfig.pbRootJobDir)
-    if (!Files.exists(p)) {
-      logger.info(s"Creating root job dir $p")
-      Files.createDirectories(p)
-    }
-  }
 
   sys.addShutdownHook(system.shutdown())
 }
