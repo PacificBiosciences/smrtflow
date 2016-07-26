@@ -176,6 +176,8 @@ package object services {
   trait PacBioService extends StatusCodeJoiners with Directives with ServiceIdUtils {
     import CORSSupport._
 
+    def pageParams = parameters('limit.as[Int] ? 100, 'offset.as[Int] ? 0)
+
     val manifest: PacBioComponentManifest
     def routes: Route
 

@@ -87,8 +87,10 @@ class JobManagerService(
     pathPrefix(DATASTORE_FILES_PREFIX) {
       pathEnd {
         get {
-          complete {
-            (dbActor ? GetDataStoreFiles(1000)).mapTo[Seq[DataStoreServiceFile]]
+          pageParams { (limit, offset) =>
+            complete {
+              (dbActor ? GetDataStoreFiles(limit, offset)).mapTo[Seq[DataStoreServiceFile]]
+            }
           }
         }
       } ~

@@ -11,7 +11,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, Supported
 import org.joda.time.{DateTime => JodaDateTime}
 
 import slick.driver.SQLiteDriver.api._
-import slick.lifted.ProvenShape
+import slick.lifted.{Ordered, ProvenShape}
 
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
@@ -20,6 +20,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => s.toString},
     {s => AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
   )
+
+  implicit class PageableQuery[T, X](query: Query[T, X, Seq]) {
+    def page[P](on: T => P, limit: Int = 100, offset: Int = 0)(implicit ev: P => Ordered) =
+      query.sortBy(on).drop(offset).take(limit)
+  }
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 

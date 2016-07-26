@@ -51,9 +51,11 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
             }
           } ~
           get {
-            complete {
-              ok {
-                jobsDao.getProjects(1000)
+            pageParams { (limit, offset) =>
+              complete {
+                ok {
+                  jobsDao.getProjects(limit, offset)
+                }
               }
             }
           }

@@ -27,11 +27,11 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
   def receive: Receive = {
 
     // FIXME Need to remove all this boiler plate
-    case GetAllJobs(limit) =>
-      sender ! dao.getJobs(limit)
+    case GetAllJobs(limit, offset) =>
+      sender ! dao.getJobs(limit, offset)
 
     case GetSystemJobSummary =>
-      dao.getJobs(1000).map { rs =>
+      dao.getJobs(limit = 1000, offset = 0).map { rs =>
         val states = rs.map(_.state).toSet
         // Summary of job states by type
         val results = states.toList.map(x => (x, rs.count(e => e.state == x)))

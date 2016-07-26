@@ -35,7 +35,7 @@ object CommonMessages {
 
   case class UpdateJobStatus(uuid: UUID, state: AnalysisJobStates.JobStates)
 
-  case class GetAllJobs(limit: Int)
+  case class GetAllJobs(limit: Int, offset: Int)
 
   case object GetSystemJobSummary
 

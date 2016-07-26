@@ -27,7 +27,7 @@ import slick.driver.SQLiteDriver.api._
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
-    createTables
+    createTables()
     println(s"Created database connection from URI ${dao.db.dbUri}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
@@ -267,7 +267,7 @@ trait MockUtils extends LazyLogging{
           .map(s => JobEvent(UUID.randomUUID, jobId, s, "Update status", JodaDateTime.now()))
 
     val fx = for {
-      engineJobs <- dao.getJobs()
+      engineJobs <- dao.getJobs(Int.MaxValue, 0)
       jobIds <- Future { engineJobs.filter(_.name.startsWith(MOCK_JOB_NAME_PREFIX)).map(_.id)}
       events <- Future {jobIds.map(toJobEvents).flatMap(identity)}
       batchedEvents <- Future {events.grouped(scala.math.min(nchunks, events.length))}
@@ -298,7 +298,7 @@ trait MockUtils extends LazyLogging{
     }
 
     val fx = for {
-      engineJobs <- dao.getJobs()
+      engineJobs <- dao.getJobs(Int.MaxValue, 0)
       files <- Future { engineJobs.map(toDataStoreFile).flatMap(identity)}
       batchedFiles <- Future { files.grouped(scala.math.min(nchunks, files.length)) }
       _ <- Future.sequence(batchedFiles.map(xs => dao.db.run(datastoreServiceFiles ++= xs)))
@@ -337,7 +337,7 @@ trait TmpDirJobResolver {
 trait InitializeTables extends MockUtils {
   val db: Database
 
-  def createTables: Unit = {
+  def createTables(): Unit = {
     logger.info("Applying migrations")
     db.migrate()
     logger.info("Completed applying migrations")
@@ -346,7 +346,7 @@ trait InitializeTables extends MockUtils {
   /**
    * Required data in db
    */
-  def loadBaseMock = {
+  def loadBaseMock() = {
     Await.result(insertMockProject(), 10.seconds)
     logger.info("Completed loading base database resources (User, Project, DataSet Types, JobStates)")
   }
@@ -384,7 +384,7 @@ object InsertMockData extends App
 
     val startedAt = JodaDateTime.now()
 
-    createTables
+    createTables()
 
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")

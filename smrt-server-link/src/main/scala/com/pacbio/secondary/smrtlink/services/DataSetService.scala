@@ -55,9 +55,6 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
   val SCHEMA_PREFIX = "_schema"
   val DETAILS_PREFIX = "details"
 
-  // Default MAX number of records to return
-  val DS_LIMIT = 2000
-
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL.map(_.shortName + "$").reduceLeft((a, c) => s"$a|$c")
     ("(" + xs + ")").r
@@ -82,7 +79,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
 
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: Int => Any,
+      GetDataSets: (Int, Int) => Any,
       schema: String,
       GetDataSetById: Int => Any,
       GetDataSetByUUID: UUID => Any,
@@ -94,9 +91,11 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     pathPrefix(shortName) {
       pathEnd {
         get {
-          complete {
-            ok {
-              (dbActor ? GetDataSets(DS_LIMIT)).mapTo[Seq[R]]
+          pageParams { (limit, offset) =>
+            complete {
+              ok {
+                (dbActor ? GetDataSets(limit, offset)).mapTo[Seq[R]]
+              }
             }
           }
         }

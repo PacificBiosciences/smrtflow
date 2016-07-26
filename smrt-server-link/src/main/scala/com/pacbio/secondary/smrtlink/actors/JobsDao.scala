@@ -61,7 +61,8 @@ trait DalComponent {
 trait ProjectDataStore extends LazyLogging {
   this: DalComponent with SmrtLinkConstants =>
 
-  def getProjects(limit: Int = 100): Future[Seq[Project]] = db.run(projects.take(limit).result)
+  def getProjects(limit: Int, offset: Int): Future[Seq[Project]] =
+    db.run(projects.page(_.createdAt.desc, limit, offset).result)
 
   def getProjectById(projId: Int): Future[Option[Project]] =
     db.run(projects.filter(_.id === projId).result.headOption)
@@ -372,11 +373,12 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def addJobEvents(events: Seq[JobEvent]): Future[Seq[JobEvent]] =
     db.run(jobEvents ++= events).map(_ => events)
 
-  def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
+  def getJobEvents(limit: Int, offset: Int): Future[Seq[JobEvent]] =
+    db.run(jobEvents.page(_.createdAt.desc, limit, offset).result)
 
 
-  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = db.run(engineJobs.result)
+  override def getJobs(limit: Int, offset: Int): Future[Seq[EngineJob]] =
+    db.run(engineJobs.page(_.createdAt.desc, limit, offset).result)
 
   def getJobsByTypeId(jobTypeId: String): Future[Seq[EngineJob]] =
     db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
@@ -526,7 +528,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
   }
 
-  def getDataStoreFiles2: Future[Seq[DataStoreServiceFile]] = db.run(datastoreServiceFiles.result)
+  def getDataStoreFiles2(limit: Int, offset: Int): Future[Seq[DataStoreServiceFile]] =
+    db.run(datastoreServiceFiles.page(_.createdAt.desc, limit, offset).result)
 
   def getDataStoreFileByUUID2(uuid: UUID): Future[Option[DataStoreServiceFile]] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
@@ -678,10 +681,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
 
-  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[SubreadServiceDataSet]] =
+  def getSubreadDataSets(limit: Int, offset: Int): Future[Seq[SubreadServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsSubread2 on (_.id === _.id)
-      q.result.map(_.map(x => toSds(x._1, x._2)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toSds(x._1, x._2)))
     }
 
   // conversion util for keeping the old interface
@@ -689,10 +692,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ReferenceServiceDataSet]] =
+  def getReferenceDataSets(limit: Int, offset: Int): Future[Seq[ReferenceServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsReference2 on (_.id === _.id)
-      q.result.map(_.map(x => toR(x._1, x._2)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toR(x._1, x._2)))
     }
 
   def getReferenceDataSetById(id: Int): Future[Option[ReferenceServiceDataSet]] =
@@ -719,10 +722,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceDataSets(limit: Int, offset: Int): Future[Seq[GmapReferenceServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
-      q.result.map(_.map(x => toGmapR(x._1, x._2)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
   def getGmapReferenceDataSetById(id: Int): Future[Option[GmapReferenceServiceDataSet]] =
@@ -744,10 +747,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
-  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[HdfSubreadServiceDataSet]] =
+  def getHdfDataSets(limit: Int, offset: Int): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
-      q.result.map(_.map(x => toHds(x._1, x._2)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toHds(x._1, x._2)))
     }
 
   def toHds(t1: DataSetMetaDataSet, t2: HdfSubreadServiceSet): HdfSubreadServiceDataSet =
@@ -790,10 +793,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[AlignmentServiceDataSet]] =
+  def getAlignmentDataSets(limit: Int, offset: Int): Future[Seq[AlignmentServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsAlignment2 on (_.id === _.id)
-      q.result.map(_.map(x => toA(x._1)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toA(x._1)))
     }
 
   def getAlignmentDataSetById(id: Int): Future[Option[AlignmentServiceDataSet]] =
@@ -813,9 +816,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[CCSreadServiceDataSet]] = {
+  def getCCSDataSets(limit: Int, offset: Int): Future[Seq[CCSreadServiceDataSet]] = {
     val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-    db.run(query.result.map(_.map(x => toCCSread(x._1))))
+    db.run(query.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toCCSread(x._1))))
   }
 
   def getCCSDataSetById(id: Int): Future[Option[CCSreadServiceDataSet]] =
@@ -847,10 +850,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ConsensusAlignmentServiceDataSet]] =
+  def getConsensusAlignmentDataSets(limit: Int, offset: Int): Future[Seq[ConsensusAlignmentServiceDataSet]] =
     db.run {
       val q = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
-      q.result.map(_.map(x => toCCSA(x._1)))
+      q.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toCCSA(x._1)))
     }
 
   def getConsensusAlignmentDataSetById(id: Int): Future[Option[ConsensusAlignmentServiceDataSet]] =
@@ -882,9 +885,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
+  def getBarcodeDataSets(limit: Int, offset: Int): Future[Seq[BarcodeServiceDataSet]] = {
     val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-    db.run(query.result.map(_.map(x => toB(x._1))))
+    db.run(query.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toB(x._1))))
   }
 
   def getBarcodeDataSetById(id: Int): Future[Option[BarcodeServiceDataSet]] =
@@ -924,9 +927,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ContigServiceDataSet]] = {
+  def getContigDataSets(limit: Int, offset: Int): Future[Seq[ContigServiceDataSet]] = {
     val query = dsMetaData2 join dsContig2 on (_.id === _.id)
-    db.run(query.result.map(_.map(x => toCtg(x._1))))
+    db.run(query.page(_._1.createdAt.desc, limit, offset).result.map(_.map(x => toCtg(x._1))))
   }
 
   def getContigDataSetById(id: Int): Future[Option[ContigServiceDataSet]] =

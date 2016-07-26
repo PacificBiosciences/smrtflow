@@ -36,9 +36,8 @@ object EngineDao {
 
     /**
      * Get the last N jobs
-     * @param limit Max number of jobs to return
      */
-    def getJobs(limit: Int = 1000): Future[Seq[EngineJob]]
+    def getJobs(limit: Int, offset: Int): Future[Seq[EngineJob]]
 
     /**
      * Get Job by Int (primary key)
@@ -140,7 +139,9 @@ object EngineDao {
       }
     }
 
-    override def getJobs(limit: Int = 1000): Future[Seq[EngineJob]] = Future(_engineJobs.values.toSeq)
+    override def getJobs(limit: Int = 1000, offset: Int = 0): Future[Seq[EngineJob]] = Future {
+      _engineJobs.values.toSeq.sortWith { (a, b) => a.createdAt.isAfter(b.createdAt) }.slice(offset, offset + limit)
+    }
 
     override def getJobById(i: Int): Future[Option[EngineJob]] = Future(_engineJobs.values.find(_.id == i))
 
