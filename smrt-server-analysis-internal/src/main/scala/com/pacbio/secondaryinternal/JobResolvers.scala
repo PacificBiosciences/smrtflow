@@ -12,8 +12,8 @@ import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobReso
 trait JobResolvers {
 
   /**
-   * FIXME. This is basically terrible. The lack of exit points from the pipeline template
-   * Maybe this should just get the datastore files. That would be slightly less hacky
+   * FIXME. This is basically terrible. The lack of exit points from the pipeline template make this interface unclear
+   * Maybe this should just get the datastore files. That might be slightly less hacky
    *
    * @param path Root Dir of the Job
    * @return

@@ -8,6 +8,9 @@ clean:
 	rm -rf smrt-server-link/{db,jobs-root}
 	sbt clean
 
+clean-db:
+	find . -name "*.db" -delete
+
 dataclean:
 	rm -rf test-data
 
@@ -20,6 +23,9 @@ tools:
 
 tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
+
+tools-smrt-analysis-internal:
+	sbt smrt-server-analysis-internal/{compile,pack}
 
 
 repl:
