@@ -82,7 +82,7 @@ trait H2Database extends Database {
     if (ps.executeUpdate() == 1) s"Merged: $a" else throw new Exception(s"Couldn't merge: $a, $uuid")
   }
 
-  override def setAlias(a: String, uuid: String, typ: String = LimsTypes.limsSubreadSet): Unit = use[String](aliasMergeT, doAliasMerge(a, uuid, typ))
+  override def setAlias(a: String, uuid: String, typ: String): Unit = use[String](aliasMergeT, doAliasMerge(a, uuid, typ))
 
   private def doRunCode(v: String)(ps: PreparedStatement) : Seq[LimsSubreadSet] = {
     ps.setString(1, v)

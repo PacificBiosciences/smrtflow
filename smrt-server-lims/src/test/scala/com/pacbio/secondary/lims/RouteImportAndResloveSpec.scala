@@ -1,7 +1,9 @@
 package com.pacbio.secondary.lims
 
+import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 
+import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.lims.database.TestDatabase
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification
@@ -9,11 +11,13 @@ import spray.http._
 import spray.testkit.Specs2RouteTest
 import com.pacbio.secondary.lims.JsonProtocol._
 import com.pacbio.secondary.lims.util.{StressUtil, TestLookupSubreadset}
+import com.pacificbiosciences.pacbiodatasets.SubreadSet
 import org.specs2.specification.{Fragments, Step}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -32,7 +36,6 @@ class RouteImportAndResloveSpec
   with TestDatabase
   // routes that will use the test database
   with ImportLims
-  with TestLookupSubreadset
   with ResolveDataSet
   // helper tools to mock up data
   with StressUtil {
@@ -46,9 +49,17 @@ class RouteImportAndResloveSpec
 
   private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
 
+  override def subreadset(path: String): Option[SubreadSet] = {
+    Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset().getBytes()))) match {
+      case Success(ds) => Some(ds)
+      case Failure(t) => None
+    }
+  }
+
   // force these tests to run sequentially since later tests rely on logic in earlier tests
   sequential
 
+  val uuid = "5fe01e82-c694-4575-9173-c23c458dd0e1"
   val expcode = 3220001
   val runcode = "3220001-0006"
   val alias = "Foo"
@@ -91,8 +102,13 @@ class RouteImportAndResloveSpec
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.runcode
       }
     }
+    // TODO: enable this test -- punted in favor of getting a code review going
+    //    "Shortcode alias automatically exists" in {
+    //      val l = subreadByAlias(makeShortcode(uuid))
+    //      uuid mustEqual l.uuid
+    //    }
     "Alias resolvable via API" in {
-      setAlias(alias, runcode) // TODO: this should be UUID but need an example for the test
+      setAlias(alias, runcode, LimsTypes.limsSubreadSet)
       val ly = subreadByAlias(alias)
       (expcode, runcode) mustEqual (ly.expid, ly.runcode)
     }

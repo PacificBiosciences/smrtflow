@@ -16,7 +16,6 @@ import scala.util.{Failure, Success, Try}
 import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.JsonProtocol._
-import com.pacbio.secondary.lims.LimsSubreadSet
 
 
 /**
@@ -89,8 +88,12 @@ trait ImportLims extends HttpService with LookupSubreadset {
     val expid = ly("expcode").toInt
     val runcode = ly("runcode")
 
+    // TODO: should be smarter about error handling here and not making alias if setSubread() fails
+    Try(if (uuid != null) setAlias(makeShortcode(uuid), uuid, LimsTypes.limsSubreadSet))
     setSubread(if (uuid != null) uuid else runcode, expid, runcode, json)
   }
+
+  def makeShortcode(uuid: String): String = uuid.substring(0, 6)
 }
 
 /**

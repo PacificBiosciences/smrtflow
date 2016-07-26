@@ -129,10 +129,12 @@ trait StressUtil {
    * This is based originally on /pbi/collections/312/3120145/r54009_20160426_164705/1_A01/m54009_160426_165001.subreadset.xml
    * @return
    */
-  def mockSubreadset(): String = {
+  def mockSubreadset(
+      uuid: String = "5fe01e82-c694-4575-9173-c23c458dd0e1"
+  ): String = {
     // yay, XML!
-    """<?xml version="1.0" encoding="UTF-8"?>
-      |<pbds:SubreadSet UniqueId="5fe01e82-c694-4575-9173-c23c458dd0e1" MetaType="PacBio.DataSet.SubreadSet" TimeStampedName="SubreadSetCollection_160426_18460621" CreatedAt="2016-04-26T18:46:06Z" Name="54009_MBControlRun2_250pM_LambdaNEB" Tags="subreadset" Version="3.0.1" xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbdm="http://pacificbiosciences.com/PacBioDataModel.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+    s"""<?xml version="1.0" encoding="UTF-8"?>
+      |<pbds:SubreadSet UniqueId="$uuid" MetaType="PacBio.DataSet.SubreadSet" TimeStampedName="SubreadSetCollection_160426_18460621" CreatedAt="2016-04-26T18:46:06Z" Name="54009_MBControlRun2_250pM_LambdaNEB" Tags="subreadset" Version="3.0.1" xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbdm="http://pacificbiosciences.com/PacBioDataModel.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
       |<pbbase:ExternalResources>
       |<pbbase:ExternalResource Description="Points to the subreads bam file." MetaType="PacBio.SubreadFile.SubreadBamFile" Name="subreads bam" ResourceId="m54009_160426_165001.subreads.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-160426_184606114" UniqueId="9dd817f5-b4c6-47d5-a867-25fca1f74ab7" Version="3.0.1">
       |	<pbbase:FileIndices>
