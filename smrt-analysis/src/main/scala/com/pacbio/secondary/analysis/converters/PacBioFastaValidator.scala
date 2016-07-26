@@ -96,7 +96,7 @@ object PacBioFastaValidator extends LazyLogging{
    * @param path to Fasta File
    * @return
    */
-  def validateFastaFile(path: Path): RefOrE = {
+  def validateFastaFile(path: Path, barcodeMode: Boolean = false): RefOrE = {
 
     val headerIds = mutable.Set[String]()
 
@@ -115,6 +115,7 @@ object PacBioFastaValidator extends LazyLogging{
     var error: Option[InvalidPacBioFastaError] = None
     var nrecords: Int = 0
     var totalLength: Int = 0
+    var allLengths: Set[Int] = Set[Int]()
 
     var toBreak = false
     while (!toBreak) {
@@ -122,7 +123,9 @@ object PacBioFastaValidator extends LazyLogging{
       xseq match {
         case xs: ReferenceSequence =>
           nrecords += 1
-          totalLength += xseq.length()
+          val seqLen = xseq.length()
+          totalLength += seqLen
+          allLengths += seqLen
           logger.info(s"Attempting to validate Record $xs")
           validatePacBioRecord(xs) match {
             case Some(ex) =>
@@ -141,7 +144,10 @@ object PacBioFastaValidator extends LazyLogging{
     }
     error match {
       case Some(err) => Left(err)
-      case None => Right(ContigsMetaData(nrecords, totalLength))
+      case None =>
+        if ((barcodeMode) && (allLengths.size > 1)) {
+          Left(InvalidPacBioFastaError(s"All sequences in barcode FASTA files must be the same length; this file contains sequences of lengths $allLengths"))
+        } else Right(ContigsMetaData(nrecords, totalLength))
     }
   }
 
@@ -153,10 +159,10 @@ object PacBioFastaValidator extends LazyLogging{
    * @param path to Fasta file
    * @return
    */
-  def apply(path: Path): RefOrE = {
+  def apply(path: Path, barcodeMode: Boolean = false): RefOrE = {
     preValidation(path) match {
       case Some(x) => Left(x)
-      case _ => validateFastaFile(path)
+      case _ => validateFastaFile(path, barcodeMode)
     }
   }
 
