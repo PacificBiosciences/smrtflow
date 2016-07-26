@@ -192,7 +192,7 @@ object InternalAnalysisClientToolApp extends App
     println(s"Running with config $c")
     c.mode match {
       case Modes.STATUS => runStatus(c.host, c.port)
-      case Modes.CONVERT => runConvert(c.host, c.port, c.pathToCSV, c.pathToCSV, c.jobName, c.pipelineId)
+      case Modes.CONVERT => runConvert(c.host, c.port, c.pathToCSV, c.outputPathToReseqConditions, c.jobName, c.pipelineId)
       case Modes.SUBMIT => runSumbit(c.host, c.port, c.pathToCSV, c.pipelineId, c.jobName, s"Job Description ${c.jobName}")
       case unknown =>
         System.err.println(s"Unknown mode '$unknown'")
