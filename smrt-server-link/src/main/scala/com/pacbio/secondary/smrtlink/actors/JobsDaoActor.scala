@@ -221,20 +221,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   val jobRunner = new SimpleAndImportJobRunner(self)
 
 
-  def dbTest(): Unit = {
-    // Check that the database connection is working and log a summary of the contents
-    val f = dao.getSystemSummary()
-    f.onFailure {
-      case NonFatal(e) =>
-        log.error(e, "Database connection broken")
-        System.exit(1)
-    }
-    log.info(Await.result(f, Duration.Inf))
-  }
-
   override def preStart(): Unit = {
-    dbTest()
-
     log.info(s"Starting engine manager actor $self with $engineConfig")
 
     (0 until engineConfig.maxWorkers).foreach { x =>
@@ -254,8 +241,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     super.preRestart(reason, message)
     log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
-
-  override def postStop(): Unit = dbTest()
 
   // This should return a Future
   def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
