@@ -7,10 +7,12 @@ import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
 import javax.xml.datatype.DatatypeFactory
 
+// this is included in smrt-analysis
+import org.broad.igv.feature.genome.FastaUtils
+
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DatasetIndexFile
-import com.pacbio.secondary.analysis.externaltools.CallSamToolsIndex
 
 // auto-generated Java modules
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
@@ -22,10 +24,21 @@ import org.joda.time.{DateTime=> JodaDateTime}
 
 import scala.language.postfixOps
 
+
+trait FastaIndexWriter {
+  def createFaidx(fastaPath: Path): String = {
+    val fastaPathStr = fastaPath.toAbsolutePath.toString
+    val outputPath = fastaPathStr + ".fai"
+    FastaUtils.createIndexFile(fastaPathStr, outputPath)
+    if (! Files.exists(Paths.get(outputPath))) throw new Exception(s".fai file not written: $outputPath")
+    outputPath
+  }
+}
+
 /**
  * Base functions for converting a FASTA file to a DataSet
  */
-trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends LazyLogging {
+trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends LazyLogging with FastaIndexWriter{
 
   protected val baseName: String // reference
   protected val dsName: String // ReferenceSet
@@ -35,11 +48,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   protected def nameToFileName(name: String): String = name.replaceAll("[^A-Za-z0-9_]", "_")
 
   protected def createIndexFiles(fastaPath: Path): Seq[DatasetIndexFile] = {
-    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
-      case Right(f) => f.toAbsolutePath
-      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
-    }
-    Seq(DatasetIndexFile(FileTypes.I_SAM.fileTypeId, faiIndex.toAbsolutePath.toString))
+    Seq(DatasetIndexFile(FileTypes.I_SAM.fileTypeId, createFaidx(fastaPath)))
   }
 
   protected def composeMetaData(refMetaData: ContigsMetaData)

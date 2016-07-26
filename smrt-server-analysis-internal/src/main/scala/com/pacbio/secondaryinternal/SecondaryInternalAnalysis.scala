@@ -1,25 +1,19 @@
 package com.pacbio.secondaryinternal
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import scala.collection.mutable
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.httpx.SprayJsonSupport
 import com.pacbio.common.app.{BaseApi, BaseServer}
-import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
+import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioService
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondaryinternal.daos._
-import com.pacbio.secondaryinternal.models.ReferenceSetResource
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
-import com.pacbio.secondaryinternal.services.jobtypes.ConditionJobTypeServiceProvider
 
-//import com.pacbio.secondaryinternal.services.jobtypes.ConditionJobTypeServiceProvider
 import com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisProviders
-//import com.pacbio.secondaryinternal.services.{LimsResolverServiceProvider, ReferenceSetResolverServiceProvider, SmrtLinkResourceServiceProvider}
-
-
+import com.pacbio.secondaryinternal.services.jobtypes.ConditionJobTypeServiceProvider
 
 
 trait InternalServiceName {
@@ -33,45 +27,40 @@ trait BaseInternalMicroService extends PacBioService with InternalServiceName {
     pathPrefix(separateOnSlashes(baseServiceName)) { super.prefixedRoutes }
 }
 
-trait ConstantSmrtLinkResourceDaoProvider extends
-  SmrtLinkResourceDaoProvider {
-  val smrtLinkResourceDao: Singleton[SmrtLinkResourceDao] =
-    Singleton(() => new InMemorySmrtLinkResourceDao(Constants.SL_SYSTEMS))
-}
 
-trait InitiallyEmptyReferenceResourceDaoProvider extends
-  ReferenceResourceDaoProvider {
-  val referenceResourceDao =
-    Singleton(() => new InMemoryReferenceResourceDao(mutable.Set.empty[ReferenceSetResource]))
-}
-
-trait SecondaryInternalAnalysisProviders extends
-  SecondaryAnalysisProviders
-//  with LimsDaoProvider
-//  with LimsResolverServiceProvider
-//  with SmrtLinkResourceServiceProvider
-//  with ConstantSmrtLinkResourceDaoProvider
-//  with ReferenceSetResolverServiceProvider
-//  with InitiallyEmptyReferenceResourceDaoProvider
-  with ConditionJobTypeServiceProvider {
+trait SecondaryInternalAnalysisProviders extends SecondaryAnalysisProviders
+    with SmrtLinkAnalysisInternalConfigProvider
+    with ConditionJobTypeServiceProvider{
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis_internal")
-  override val actorSystemName = Some("smrtlink-analysis-internal-server")
+  override val actorSystemName = Some("slia")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
   override val serverPort: Singleton[Int] = pbServices.getInt("port").orElse(8081)
 
 }
 
-trait SecondaryInternalAnalysisApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
+trait SecondaryInternalAnalysisApi extends BaseApi
+    with SmrtLinkRolesInit
+    with LazyLogging
+    with SmrtLinkAnalysisInternalConfigProvider {
+
   override val providers = new SecondaryInternalAnalysisProviders {}
 
-  override def startup(): Unit = {
-    val p = Paths.get(providers.engineConfig.pbRootJobDir)
+  def createIfNotExists(p: Path, message: String): Path = {
     if (!Files.exists(p)) {
-      logger.info(s"Creating root job dir $p")
+      logger.info(s"Creating $message $p")
       Files.createDirectories(p)
+    } else {
+      logger.info(s"Using $message $p")
     }
+    p
+  }
+
+  override def startup(): Unit = {
+    createIfNotExists(Paths.get(providers.engineConfig.pbRootJobDir), "Engine Job Dir")
+    createIfNotExists(providers.reseqConditions(), "Resequencing Condition Dir")
+
   }
 
   sys.addShutdownHook(system.shutdown())
