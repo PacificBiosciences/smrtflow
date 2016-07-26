@@ -964,7 +964,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.map(_.map(toDataStoreJobFile))
     }
 
-  def getSystemSummary(header: String = "System Summary"): Future[MessageResponse] = {
+  def getSystemSummary(header: String = "System Summary"): Future[String] = {
     for {
       ssets <- db.run((dsMetaData2 join dsSubread2 on (_.id === _.id)).length.result)
       rsets <- db.run((dsMetaData2 join dsReference2 on (_.id === _.id)).length.result)
@@ -975,7 +975,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       jobEvents <- db.run(jobEvents.length.result)
       dsFiles <- db.run(datastoreServiceFiles.length.result)
       entryPoints <- db.run(engineJobsDataSets.length.result)
-    } yield MessageResponse(
+    } yield
       s"""
          |$header
          |--------
@@ -992,7 +992,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
          |Total JobEvents      : $jobEvents
          |Total entryPoints    : $entryPoints
          |Total DataStoreFiles : $dsFiles
-       """.stripMargin)
+       """.stripMargin
   }
 }
 
