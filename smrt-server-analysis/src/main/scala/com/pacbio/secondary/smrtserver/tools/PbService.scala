@@ -330,6 +330,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       showNumRecords("ReferenceSets", () => sal.getReferenceSets)
       showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
       showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
+      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets)
+      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets)
+      showNumRecords("ContigSets", () => sal.getContigSets)
+      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets)
       showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
       showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
       showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
@@ -529,7 +533,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   // FIXME too much code duplication
   def runImportBarcodes(path: String, name: String): Int = {
-    PacBioFastaValidator(Paths.get(path)) match {
+    PacBioFastaValidator(Paths.get(path), barcodeMode=true) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
@@ -569,8 +573,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
-        println(s"Could not retrieve existing dataset record: ${err}")
-        //println(ex.getMessage)
+        println(s"No existing dataset record found")
         val dsType = dsMetaTypeFromPath(path)
         val rc = runImportDataSet(path, dsType)
         if (rc == 0) runGetDataSetInfo(Right(dsUuid)) else rc
@@ -582,7 +585,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
-        println(jobInfo)
         waitForJob(jobInfo.uuid)
       }
       case Failure(err) => {

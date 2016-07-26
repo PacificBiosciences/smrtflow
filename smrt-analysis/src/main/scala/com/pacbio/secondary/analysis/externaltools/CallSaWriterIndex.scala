@@ -3,7 +3,6 @@ package com.pacbio.secondary.analysis.externaltools
 import java.nio.file.{Paths, Path}
 
 import com.pacbio.secondary.analysis.converters.IndexCreationError
-import com.pacbio.secondary.analysis.externaltools.CallSamToolsIndex._
 
 /**
  * External Call To sawriter (from blasr tools)
@@ -23,7 +22,7 @@ object CallSaWriterIndex extends ExternalToolsUtils{
     // Does sawriter let you set the output file path?
     val indexFile = fastaPath.toAbsolutePath.toString + ".sa"
     val indexPath = Paths.get(indexFile)
-    apply(fastaPath, samToolExePath) match {
+    apply(fastaPath, EXE) match {
       case Some(e) => Left(e)
       case _ => Right(indexPath)
     }

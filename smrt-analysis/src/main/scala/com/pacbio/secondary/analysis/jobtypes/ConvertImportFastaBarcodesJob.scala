@@ -69,7 +69,7 @@ with timeUtils {
     val outputDir = job.path.resolve("pacbio-barcodes")
 
     def validateAndRun(path: Path): Either[DatasetConvertError, BarcodeSetIO] = {
-      PacBioFastaValidator(path) match {
+      PacBioFastaValidator(path, barcodeMode=true) match {
         case Left(x) => Left(DatasetConvertError(x.msg))
         case Right(refMetaData) => FastaBarcodesConverter(opts.name, path, outputDir, mkdir=true)
       }

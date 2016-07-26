@@ -178,13 +178,13 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
 
     # DataSet
     referenceset_path = to_p("test-data/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml")
-    subreadset_path = to_p("test-data/smrtserver-testdata/ds-subreads/lambda/2372215/0007_micro/0007_micro/Analysis_Results/subreads.xml")
+    subreadset_path = to_p("test-data/smrtserver-testdata/ds-subreads/PacBioTestData/m54006_160504_020705.tiny.subreadset.xml")
 
     # Run Design
     run_design_path = to_p("smrt-server-link/src/test/resources/runCreate2.xml")
 
     # Dev Diagnostic
-    analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json")
+    analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json")
 
     output_dir_prefix = to_p("test-output")
     if not os.path.exists(output_dir_prefix):

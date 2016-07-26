@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.externaltools.{CallSamToolsIndex, CallSaWriterIndex, ExternalCmdFailure, ExternalToolsUtils}
+import com.pacbio.secondary.analysis.externaltools.CallSaWriterIndex
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
@@ -34,16 +34,13 @@ object FastaToReferenceConverter extends FastaConverterBase[ReferenceSet, Contig
   protected val metatype: String = FileTypes.DS_REFERENCE.fileTypeId
 
   override protected def createIndexFiles(fastaPath: Path): Seq[DatasetIndexFile] = {
-    val faiIndex = CallSamToolsIndex.run(fastaPath) match {
-      case Right(f) => f.toAbsolutePath
-      case Left(err) => throw new Exception(s"samtools index failed: ${err.getMessage}")
-    }
+    val faiIndex = createFaidx(fastaPath)
     val saIndex = CallSaWriterIndex.run(fastaPath) match {
       case Right(f) => f.toAbsolutePath
       case Left(err) => throw new Exception(s"sawriter failed: ${err.getMessage}")
     }
     Seq(
-      DatasetIndexFile(FileTypes.I_SAM.fileTypeId, faiIndex.toAbsolutePath.toString),
+      DatasetIndexFile(FileTypes.I_SAM.fileTypeId, faiIndex),
       DatasetIndexFile(FileTypes.I_SAW.fileTypeId, saIndex.toAbsolutePath.toString))
   }
 

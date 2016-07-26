@@ -17,7 +17,6 @@ import scala.util.{Failure, Success, Try}
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.externaltools.{CallSamToolsIndex, ExternalCmdFailure, ExternalToolsUtils}
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.analysis.datasets.io.DataSetWriter
 
@@ -46,7 +45,7 @@ object FastaBarcodesConverter extends FastaConverterBase[BarcodeSet, BarcodeSetM
 
   def createDataset(name: String, fastaPath: Path, outputDir: Path):
                    Either[DatasetConvertError, BarcodeSet] = {
-    PacBioFastaValidator(fastaPath) match {
+    PacBioFastaValidator(fastaPath, barcodeMode=true) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(refMetaData) => Right(createBarcodeSet(fastaPath, refMetaData, name,
                                                     outputDir))
