@@ -15,6 +15,7 @@ import scala.language.higherKinds
 import com.pacbio.secondary.analysis.datasets.{BarcodeSetIO, ConsensusReadSetIO, ContigSetIO, DataSetIO, DataSetType => _, _}
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, ExternalResources}
 import com.pacificbiosciences.pacbiodatasets.{DataSetType, _}
+import java.io.InputStream
 
 /**
  * Load datasets from XML
@@ -26,6 +27,11 @@ object DataSetLoader extends LazyLogging{
   private def toUnMarshaller(context: JAXBContext, path: Path) = {
     val unmarshaller = context.createUnmarshaller()
     unmarshaller.unmarshal(path.toFile)
+  }
+
+  private def toUnMarshaller(context: JAXBContext, is: InputStream) = {
+    val unmarshaller = context.createUnmarshaller()
+    unmarshaller.unmarshal(is)
   }
 
   private def toAbsolute(px : Path, root: Path): Path = {
@@ -129,6 +135,9 @@ object DataSetLoader extends LazyLogging{
     ReferenceSetIO(loadReferenceSet(path), path)
 
   def loadSubreadSet(path: Path): SubreadSet =
+    toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path).asInstanceOf[SubreadSet]
+
+  def loadSubreadSet(path: InputStream): SubreadSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path).asInstanceOf[SubreadSet]
 
   def loadAndResolveSubreadSet(path: Path): SubreadSet = resolveDataSet(loadSubreadSet(path), path.toAbsolutePath.getParent)

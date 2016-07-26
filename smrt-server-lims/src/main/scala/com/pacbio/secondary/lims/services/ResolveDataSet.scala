@@ -1,6 +1,5 @@
 package com.pacbio.secondary.lims.services
 
-import com.pacbio.secondary.lims.LimsYml
 import com.pacbio.secondary.lims.database.Database
 import spray.routing.HttpService
 
@@ -10,6 +9,8 @@ import scala.util.{Failure, Success, Try}
 import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.common.services.utils.CORSSupport.cors
+import com.pacbio.secondary.lims.LimsSubreadSet
 
 
 trait ResolveDataSet extends HttpService {
@@ -22,7 +23,7 @@ trait ResolveDataSet extends HttpService {
    * GET /smrt-lims/lims-subreadset/{RUN-CODE}        # Returns LimsSubreadSet Resource
    * GET /smrt-lims/lims-subreadset/{experiment-id}   # Return List of LimsSubreadSet Resource or empty List if exp id isn't found
    */
-  val resolveLimsSubreadSetRoutes =
+  val resolveLimsSubreadSetRoutes = cors {
     path("subreadset" / Segment) {
       q => {
         get {
@@ -30,26 +31,27 @@ trait ResolveDataSet extends HttpService {
             Future {
               // serialize as JSON with correct HTTP status code
               resolveLimsSubreadSet(q) match {
-                case lys: Seq[LimsYml] =>
+                case lys: Seq[LimsSubreadSet] =>
                   ctx.complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
               }
             }
         }
       }
     }
+  }
 
   // TODO: move this to an actor, probably too slow to keep on request dispatcher
-  def resolveLimsSubreadSet(q: String): Seq[LimsYml] = {
+  def resolveLimsSubreadSet(q: String): Seq[LimsSubreadSet] = {
     // attempt looking up the various ids
-    Try(getByExperiment(q.toInt)) match {
+    Try(subreadsByExperiment(q.toInt)) match {
       case Success(ly :: lys) => ly :: lys
       case _ =>
-        Try(getByRunCode(q)) match {
+        Try(subreadsByRunCode(q)) match {
           case Success(ly :: lys) => ly :: lys
           case _ =>
-            Try(getByAlias(q)) match {
-              case Success(ly) => Seq[LimsYml](ly)
-              case _ => Seq[LimsYml]()
+            Try(subreadByAlias(q)) match {
+              case Success(ly) => Seq[LimsSubreadSet](ly)
+              case _ => Seq[LimsSubreadSet]()
             }
         }
     }
@@ -67,12 +69,12 @@ trait ResolveDataSet extends HttpService {
       (dt, q) => {
         // GET = resolve the alias to the dataset type
         get {
-          complete(getByAlias(q).toJson.prettyPrint) // TODO: match `dt` and do dataset-type-short-name specific alias
+          complete(subreadByAlias(q).toJson.prettyPrint) // TODO: match `dt` and do dataset-type-short-name specific alias
         } ~
         // PUT = set the alias for the dataset type
         post {
           parameters('name) { name =>
-            Try(setAlias(name, q)) match {
+            Try(setAlias(name, q, "lims_subreadset")) match {
               case Success(_) => complete("Set $dt as alias for $id") // TODO: match `dt` and do dataset-type-short-name specific alias
               case Failure(t) => complete(500, "Couldn't set alias '$id' for $dt")
             }

@@ -11,24 +11,37 @@ import DefaultJsonProtocol._
  * calculated and included in the lims.yml files MJ makes. Long-term, this abstraction needs to be rethought and likely
  * recast to a more formal abstraction. As-is, this data duplicates other
  */
-case class LimsYml( // TODO: rename to LimsSubreadDataSet?
-    uuid: String,
-    expcode: Int,
-    runcode: String,
-    path: String,
-    user: String,
-    uid: String,
-    tracefile: String,
-    description: String,
-    wellname: String,
-    cellbarcode: String,
-    seqkitbarcode: String,
-    cellindex: Int,
-    colnum: Int,
-    samplename: String,
-    instid: Int
-)
+case class LimsSubreadSet(
+    val uuid: String,
+    val expid: Int,
+    val runcode: String,
+    val json: JsValue)
 
 object JsonProtocol {
-  implicit val limsYmlFormat = jsonFormat15(LimsYml.apply)
+
+  implicit val limsSubreadSetFormat = jsonFormat4(LimsSubreadSet.apply)
+
+  implicit object AnyJsonFormat extends JsonFormat[Any] {
+    def write(x: Any) = x match {
+      case n: Int => JsNumber(n)
+      case s: String => JsString(s)
+      case m: Map[String, _] => mapFormat[String, Any].write(m)
+      case b: Boolean if b == true => JsTrue
+      case b: Boolean if b == false => JsFalse
+    }
+
+    def read(value: JsValue) = value match {
+      case JsNumber(n) => n.intValue()
+      case JsString(s) => s
+      case o: JsObject => mapFormat[String, Any].read(value)
+      case JsTrue => true
+      case JsFalse => false
+    }
+  }
+
+  object LimsTypes {
+    final val limsSubreadSet = "lims_subreadset"
+    val all = Seq(limsSubreadSet)
+  }
+
 }

@@ -1,13 +1,16 @@
 package com.pacbio.secondary.lims.database.h2
 
+import java.io.StringReader
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 
-import com.pacbio.secondary.lims.LimsYml
+import com.pacbio.secondary.lims.JsonProtocol.LimsTypes
+import com.pacbio.secondary.lims.LimsSubreadSet
 import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.io.Source
+import spray.json._
+
 
 
 /**
@@ -28,31 +31,14 @@ import scala.io.Source
 trait H2Database extends Database {
   this: JdbcDatabase =>
 
-  // some common queries
-  private val limsFields = Seq[String](
-    "uuid",
-    "expcode",
-    "runcode",
-    "path",
-    "user",
-    "uid",
-    "tracefile",
-    "description",
-    "wellname",
-    "cellbarcode",
-    "seqkitbarcode",
-    "cellindex",
-    "colnum",
-    "samplename",
-    "instid")
   // serves as PreparedStatement template and lock for dedicated connection
-  private val lyMergeT = s"MERGE INTO LIMS_YML (${limsFields.mkString(",")}) VALUES (${limsFields.map(_ => "?").mkString(",")});"
-  private val lySelectT = "SELECT * FROM LIMS_YML WHERE expcode = ? AND runcode = ?;"
-  private val aliasMergeT = "MERGE INTO ALIAS (alias, lims_yml_uuid) VALUES (?, ?)"
-  private val aliasSelectT = "SELECT * FROM LIMS_YML WHERE runcode = (SELECT LIMS_YML_UUID FROM ALIAS WHERE ALIAS = ?);"
+  private val lsMergeT = s"MERGE INTO LIMS_SUBREADSET (uuid, expid, runcode, json) VALUES (?,?,?,?);"
+  private val lsSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE uuid = ?;"
+  private val aliasMergeT = "MERGE INTO ALIAS (alias, uuid, type) VALUES (?, ?, ?)"
+  private val aliasSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE runcode = (SELECT UUID FROM ALIAS WHERE ALIAS = ?);"
   private val aliasDeleteT = "DELETE FROM ALIAS WHERE alias = ?;"
-  private val expSelectT = "SELECT * FROM LIMS_YML WHERE expcode = ?;"
-  private val rcSelectT = "SELECT * FROM LIMS_YML WHERE runcode = ?;"
+  private val expSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE expid = ?;"
+  private val rcSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE runcode = ?;"
   private val psCache = new mutable.HashMap[String, PreparedStatement]()
 
   // JDBC driver has to be loaded before DriveManager.getConnection is used
@@ -77,55 +63,56 @@ trait H2Database extends Database {
     }
   }
 
-  def doSetLimsYml(v: LimsYml)(ps: PreparedStatement) : String = {
-    for ((x, i) <- LimsYml.unapply(v).get.productIterator.toList.view.zipWithIndex)
-      x match {
-        case x: String => ps.setString(i+1, x)
-        case x: Int => ps.setInt(i+1, x)
-      }
-    if (ps.executeUpdate() == 1) s"Merged: $v" else throw new Exception(s"Couldn't merge: $v")
+  def doSetSubread(u: String, e: Int, rc: String, json: JsValue)(ps: PreparedStatement): String = {
+    ps.setString(1, u)
+    ps.setInt(2, e)
+    ps.setString(3, rc)
+    ps.setClob(4, new StringReader(json.toString))
+    if (ps.executeUpdate() == 1) s"Merged: $u" else throw new Exception(s"Couldn't merge: $u")
   }
 
-  override def setLimsYml(v: LimsYml): String = use[String](lyMergeT, doSetLimsYml(v))
+  override def setSubread(uuid: String, exp: Int, rc: String, json: JsValue): String = {
+    use[String](lsMergeT, doSetSubread(uuid, exp, rc, json))
+  }
 
-  def doAliasMerge(a: String, pk: String)(ps: PreparedStatement) : String = {
+  def doAliasMerge(a: String, uuid: String, typ: String)(ps: PreparedStatement) : String = {
     ps.setString(1, a)
-    ps.setString(2, pk)
-    if (ps.executeUpdate() == 1) s"Merged: $a" else throw new Exception(s"Couldn't merge: $a, $pk")
+    ps.setString(2, uuid)
+    ps.setString(3, typ)
+    if (ps.executeUpdate() == 1) s"Merged: $a" else throw new Exception(s"Couldn't merge: $a, $uuid")
   }
 
-  override def setAlias(a: String, pk: String): Unit = use[String](aliasMergeT, doAliasMerge(a, pk))
+  override def setAlias(a: String, uuid: String, typ: String): Unit = use[String](aliasMergeT, doAliasMerge(a, uuid, typ))
 
-  private def doRunCode(v: String)(ps: PreparedStatement) : Seq[LimsYml] = {
+  private def doRunCode(v: String)(ps: PreparedStatement) : Seq[LimsSubreadSet] = {
     ps.setString(1, v)
-    ly(ps.executeQuery())
+    subreads(ps.executeQuery())
   }
 
-  override def getByRunCode(rc: String): Seq[LimsYml] = use[Seq[LimsYml]](rcSelectT, doRunCode(rc))
+  override def subreadsByRunCode(rc: String): Seq[LimsSubreadSet] = use[Seq[LimsSubreadSet]](rcSelectT, doRunCode(rc))
 
-  private def doExperiment(v: Int)(ps: PreparedStatement) : Seq[LimsYml] = {
+  private def doExperiment(v: Int)(ps: PreparedStatement) : Seq[LimsSubreadSet] = {
     ps.setInt(1, v)
-    ly(ps.executeQuery())
+    subreads(ps.executeQuery())
   }
 
-  override def getByExperiment(q: Int): Seq[LimsYml] = use[Seq[LimsYml]](expSelectT, doExperiment(q))
+  override def subreadsByExperiment(q: Int): Seq[LimsSubreadSet] = use[Seq[LimsSubreadSet]](expSelectT, doExperiment(q))
 
-  private def doAlias(v: String)(ps: PreparedStatement): LimsYml = {
+  private def doAlias(v: String)(ps: PreparedStatement): LimsSubreadSet = {
     ps.setString(1, v)
-    ly(ps.executeQuery()).head
+    subreads(ps.executeQuery()).head
   }
 
-  override def getByAlias(q: String): LimsYml = use[LimsYml](aliasSelectT, doAlias(q))
+  override def subreadByAlias(q: String): LimsSubreadSet = use[LimsSubreadSet](aliasSelectT, doAlias(q))
 
-  private def doLimsYml(pk: (Int, String))(ps: PreparedStatement): LimsYml = {
-    ps.setInt(1, pk._1)
-    ps.setString(2, pk._2)
-    ly(ps.executeQuery()).head
+  private def doLimsYml(uuid: String)(ps: PreparedStatement): LimsSubreadSet = {
+    ps.setString(1, uuid)
+    subreads(ps.executeQuery()).head
   }
 
-  override def getLimsYml(pk: (Int, String)): LimsYml = use[LimsYml](lySelectT, doLimsYml(pk))
+  override def subread(uuid: String): LimsSubreadSet = use[LimsSubreadSet](lsSelectT, doLimsYml(uuid))
 
-  override def getLimsYml(pks: Seq[(Int, String)]): Seq[LimsYml] = for (pk <- pks) yield getLimsYml(pk)
+  override def subreads(uuids: Seq[String]): Seq[LimsSubreadSet] = for (uuid <- uuids) yield subread(uuid)
 
   private def doAliasDel(v: String)(ps: PreparedStatement) : Unit = {
     ps.setString(1, v)
@@ -135,25 +122,14 @@ trait H2Database extends Database {
   override def delAlias(q: String): Unit = use[Unit](aliasDeleteT, doAliasDel(q))
 
   // helper to convert ResultSet rows to LimsYml
-  private def ly(rs: ResultSet) : Seq[LimsYml] = {
-    val buf = ArrayBuffer[LimsYml]()
+  private def subreads(rs: ResultSet) : Seq[LimsSubreadSet] = {
+    val buf = ArrayBuffer[LimsSubreadSet]()
     while (rs.next()) buf.append(
-    LimsYml(
+      new LimsSubreadSet(
       uuid = rs.getString("uuid"),
-      expcode = rs.getInt("expcode"),
+      expid = rs.getInt("expid"),
       runcode = rs.getString("runcode"),
-      path = rs.getString("path"),
-      user = rs.getString("user"),
-      uid = rs.getString("uid"),
-      tracefile = rs.getString("tracefile"),
-      description = rs.getString("description"),
-      wellname = rs.getString("wellname"),
-      cellbarcode = rs.getString("cellbarcode"),
-      cellindex = rs.getInt("cellindex"),
-      seqkitbarcode = rs.getString("seqkitbarcode"),
-      colnum = rs.getInt("colnum"),
-      samplename = rs.getString("samplename"),
-      instid = rs.getInt("instid")
+      json = rs.getString("json").parseJson
     ))
     rs.close()
     buf.toList
@@ -179,31 +155,20 @@ trait H2Database extends Database {
 object H2TableCreate {
   val sql =
     """-- embedded as a var b/c build is choking on external script.
-      |CREATE TABLE IF NOT EXISTS LIMS_YML (
-      |  uuid VARCHAR,
-      |  expcode INT,
+      |CREATE TABLE IF NOT EXISTS LIMS_SUBREADSET (
+      |  uuid VARCHAR PRIMARY KEY,
+      |  expid INT,
       |  runcode VARCHAR,
-      |  path VARCHAR,
-      |  user VARCHAR,
-      |  uid VARCHAR,
-      |  tracefile VARCHAR,
-      |  description VARCHAR,
-      |  wellname VARCHAR,
-      |  cellbarcode VARCHAR,
-      |  seqkitbarcode VARCHAR,
-      |  cellindex VARCHAR,
-      |  colnum VARCHAR,
-      |  samplename VARCHAR,
-      |  instid INT,
-      |  PRIMARY KEY (expcode, runcode)
+      |  json CLOB
       |);
       |-- this exists only in this service. arbitrary aliases or short codes
       |CREATE TABLE IF NOT EXISTS ALIAS (
       |  alias VARCHAR PRIMARY KEY,
-      |  lims_yml_uuid VARCHAR
+      |  uuid VARCHAR,
+      |  type VARCHAR
       |);
       |-- two indexes to support the queries that PK indexes don't cover
-      |CREATE INDEX IF NOT EXISTS index_limsyml_runcode ON LIMS_YML(RUNCODE);
-      |CREATE INDEX IF NOT EXISTS index_limsyml_uuid ON LIMS_YML(UUID);
+      |CREATE INDEX IF NOT EXISTS index_lims_subreadset_runcode ON LIMS_SUBREADSET(RUNCODE);
+      |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(UUID);
     """.stripMargin
 }
