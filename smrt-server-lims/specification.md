@@ -27,9 +27,9 @@ Creates a LimsSubreadSet with the searchable keys indexed. Eventually leverage `
 Resolving is a mechanism to provide a unique string id alias for a specific dataset by dataset type. Essentially, `name-id` is an alias to resolve a specific DataSet. These aliases can be used in batch pipeline submission (see below).
 
 ```
-GET /smrt-lims/resolver/{dataset-type-short-name}/{name-id}
-POST /smrt-lims/resolver/{dataset-type-short-name}/{UUID} name="name-id" 
-DELETE /smrt-lims/resolver/{datasetyp-type-short-name}/{name-id} # "Unregister `name-id` to specific SubreadSet"
+GET /resolver/{dataset-type-short-name}/{name-id}
+POST /resolver/{dataset-type-short-name}/{UUID} name="name-id" 
+DELETE /resolver/{datasetyp-type-short-name}/{name-id} # "Unregister `name-id` to specific SubreadSet"
 ```
 `dataset-type-short-name` is short name for the specific dataset type (e.g, references, subreads). This is consistent with the SMRT Link dataset API.
 
@@ -40,6 +40,6 @@ When creating an alias The DataSet UUID must be already imported and accessible 
 ReferenceSet is the primary usecase to enable automated batch submission
 
 ```
-GET /smrt-lims/resolver/references/lambdaNeb
-POST /smrt-lims/resolver/references/{UUID}?name="lambdaNeb"
+GET /resolver/references/lambdaNeb
+POST /resolver/references/{UUID}?name="lambdaNeb"
 ```
