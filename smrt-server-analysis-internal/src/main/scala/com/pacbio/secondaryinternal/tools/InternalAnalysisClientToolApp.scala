@@ -129,7 +129,7 @@ trait InternalAnalysisClientToolParser {
 
   lazy val TOOL_ID = "slia"
   lazy val NAME = "SLIA"
-  lazy val VERSION = "0.1.4"
+  lazy val VERSION = "0.1.5"
   lazy val DESCRIPTION =
     """
       |SMRT Link Client Internal Analysis Tool
