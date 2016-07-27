@@ -1,5 +1,6 @@
 package com.pacbio.secondary.analysis.datasets.io
 
+import java.io.InputStream
 import java.net.URI
 import java.nio.file.{Path, Paths}
 import javax.xml.bind.JAXBContext
@@ -26,6 +27,11 @@ object DataSetLoader extends LazyLogging{
   private def toUnMarshaller(context: JAXBContext, path: Path) = {
     val unmarshaller = context.createUnmarshaller()
     unmarshaller.unmarshal(path.toFile)
+  }
+
+  private def toUnMarshaller(context: JAXBContext, is: InputStream) = {
+    val unmarshaller = context.createUnmarshaller()
+    unmarshaller.unmarshal(is)
   }
 
   private def toAbsolute(px : Path, root: Path): Path = {
@@ -130,6 +136,9 @@ object DataSetLoader extends LazyLogging{
 
   def loadSubreadSet(path: Path): SubreadSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path).asInstanceOf[SubreadSet]
+
+  def loadSubreadSet(is: InputStream): SubreadSet =
+    toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), is).asInstanceOf[SubreadSet]
 
   def loadAndResolveSubreadSet(path: Path): SubreadSet = resolveDataSet(loadSubreadSet(path), path.toAbsolutePath.getParent)
 
