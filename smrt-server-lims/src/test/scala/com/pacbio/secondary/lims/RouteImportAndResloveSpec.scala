@@ -51,7 +51,7 @@ class RouteImportAndResloveSpec
 
   private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
 
-  override def subreadset(path: Path): Option[SubreadSet] = {
+  override def subreadset(path: Path, context: String): Option[SubreadSet] = {
     Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset().getBytes()))) match {
       case Success(ds) => Some(ds)
       case Failure(t) => None

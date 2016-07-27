@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims.services
 
-import java.io.{BufferedReader, StringReader}
-import java.nio.file.{Files, Paths, Path}
+import java.io.{BufferedReader, File, StringReader}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
@@ -62,7 +62,7 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
     // need the path in order to parse the UUID from .subreadset.xml
     m.get("path") match {
-      case Some(p) => loadData(subreadset(Paths.get(p.stripPrefix("file://"))), m.toMap)
+      case Some(p) => loadData(subreadset(Paths.get(p.stripPrefix("file://")), m("tracefile")), m.toMap)
       case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
   }
@@ -94,15 +94,19 @@ trait ImportLims extends HttpService with LookupSubreadset {
  * Trait required for abstracting the UUID file lookup for prod vs testing
  */
 trait LookupSubreadset {
-  def subreadset(path: Path): Option[SubreadSet]
+  def subreadset(path: Path, context: String): Option[SubreadSet]
 }
 
 trait FileLookupSubreadset {
-  def subreadset(path: Path): Option[SubreadSet] = {
+  def subreadset(path: Path, context: String): Option[SubreadSet] = {
     Try {
-      (for (v <- Files.newDirectoryStream(path).asScala
-            if v.endsWith("subreadset.xml"))
-        yield DataSetLoader.loadSubreadSet(v)).head
-    }.toOption
+      DataSetLoader.loadSubreadSet(path.resolve(context))
+    }.map(ds => Some(ds)).getOrElse {
+      Try {
+        (for (v <- Files.newDirectoryStream(path).asScala
+              if v.endsWith("subreadset.xml"))
+          yield DataSetLoader.loadSubreadSet(v)).head
+      }.toOption
+    }
   }
 }
