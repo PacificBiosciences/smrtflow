@@ -22,7 +22,7 @@ class InternalServiceActor extends Actor
     with ImportLims
     with ResolveDataSet {
 
-  lazy val jdbcUrl: String = conf.getString("smrt-server-lims.jdbc-url") // required for JdbcDatabaseService
+  lazy val jdbcUrl: String = conf.getString("pb-services.db-uri") // required for JdbcDatabaseService
 
   createTables
 

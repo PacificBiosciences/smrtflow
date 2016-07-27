@@ -24,8 +24,8 @@ object MainSimple extends App with ConfigLoader with LazyLogging{
   // use Akka to create our Spray Service
   val service = system.actorOf(Props[InternalServiceActor], "internal-smrt-link-service")
 
-  val host = conf.getString("smrt-server-lims.host")
-  val port = conf.getInt("smrt-server-lims.port")
+  val host = conf.getString("pb-services.host")
+  val port = conf.getInt("pb-services.port")
   logger.debug(s"Binding: $host:$port")
   IO(Http) ! Http.Bind(service, host, port)
 }
