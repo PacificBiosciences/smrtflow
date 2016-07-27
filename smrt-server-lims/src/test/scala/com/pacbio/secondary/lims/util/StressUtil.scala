@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims.util
 
 import java.lang.System.nanoTime
+import java.util.UUID
 import java.util.concurrent.Executors
 
 import com.pacbio.secondary.lims.JsonProtocol._
@@ -130,7 +131,7 @@ trait StressUtil {
    * @return
    */
   def mockSubreadset(
-      uuid: String = "5fe01e82-c694-4575-9173-c23c458dd0e1"
+      uuid: UUID = UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1")
   ): String = {
     // yay, XML!
     s"""<?xml version="1.0" encoding="UTF-8"?>

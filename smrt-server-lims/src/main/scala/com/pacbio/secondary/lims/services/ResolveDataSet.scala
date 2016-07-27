@@ -1,5 +1,7 @@
 package com.pacbio.secondary.lims.services
 
+import java.util.UUID
+
 import com.pacbio.secondary.lims.database.Database
 import spray.routing.HttpService
 
@@ -74,7 +76,7 @@ trait ResolveDataSet extends HttpService {
         // PUT = set the alias for the dataset type
         post {
           parameters('name) { name =>
-            Try(setAlias(name, q, "lims_subreadset")) match {
+            Try(setAlias(name, UUID.fromString(q), "lims_subreadset")) match {
               case Success(_) => complete("Set $dt as alias for $id") // TODO: match `dt` and do dataset-type-short-name specific alias
               case Failure(t) => complete(500, "Couldn't set alias '$id' for $dt")
             }

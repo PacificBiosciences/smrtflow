@@ -1,5 +1,7 @@
 package com.pacbio.secondary.lims.database
 
+import java.util.UUID
+
 import com.pacbio.secondary.lims.LimsSubreadSet
 import spray.json.JsValue
 
@@ -18,14 +20,14 @@ trait Database {
    * @param uuid
    * @param typ
    */
-  def setAlias(alias: String, uuid: String, typ: String): Unit
+  def setAlias(alias: String, uuid: UUID, typ: String): Unit
 
   def delAlias(alias: String): Unit
 
   /**
    * Store, retrieve and manipulate LIMS versions of SubreadSet
    */
-  def setSubread(uuid: String, expid: Int, runcode: String, json: JsValue): String
+  def setSubread(uuid: UUID, expid: Int, runcode: String, json: JsValue): String
 
   def subreadByAlias(alias: String): LimsSubreadSet
 
@@ -33,7 +35,7 @@ trait Database {
 
   def subreadsByRunCode(rc: String): Seq[LimsSubreadSet]
 
-  def subreads(pks: Seq[String]): Seq[LimsSubreadSet]
+  def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet]
 
-  def subread(pk: String): LimsSubreadSet
+  def subread(uuid: UUID): LimsSubreadSet
 }

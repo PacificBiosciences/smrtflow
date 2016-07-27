@@ -1,15 +1,20 @@
 package com.pacbio.secondary.lims
 
+import java.io.ByteArrayInputStream
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import com.pacbio.secondary.lims.database.{DefaultDatabase, JdbcDatabase, TestDatabase}
-import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
-import com.pacbio.secondary.lims.util.{StressConfig, StressUtil, TestLookupSubreadset}
+import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.lims.database.TestDatabase
+import com.pacbio.secondary.lims.services.{ImportLims, LookupSubreadset, ResolveDataSet}
+import com.pacbio.secondary.lims.util.{StressConfig, StressUtil}
+import com.pacificbiosciences.pacbiodatasets.SubreadSet
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -29,7 +34,7 @@ class StressTestSpec extends Specification
     with TestDatabase
     // routes that will use the test database
     with ImportLims
-    with TestLookupSubreadset
+    with LookupSubreadset
     with ResolveDataSet
     // adds the stress testing utilty methods
     with StressUtil {
@@ -37,6 +42,13 @@ class StressTestSpec extends Specification
 
   // TODO: can remove this when specs2 API is upgraded
   override def map(fragments: =>Fragments) = Step(beforeAll) ^ fragments
+
+  override def subreadset(path: String): Option[SubreadSet] = {
+    Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset(UUID.randomUUID()).getBytes()))) match {
+      case Success(ds) => Some(ds)
+      case Failure(t) => None
+    }
+  }
 
   def beforeAll = createTables()
   def actorRefFactory = system

@@ -2,6 +2,7 @@ package com.pacbio.secondary.lims.database.h2
 
 import java.io.StringReader
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
+import java.util.UUID
 
 import com.pacbio.secondary.lims.JsonProtocol.LimsTypes
 import com.pacbio.secondary.lims.LimsSubreadSet
@@ -35,7 +36,7 @@ trait H2Database extends Database {
   private val lsMergeT = s"MERGE INTO LIMS_SUBREADSET (uuid, expid, runcode, json) VALUES (?,?,?,?);"
   private val lsSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE uuid = ?;"
   private val aliasMergeT = "MERGE INTO ALIAS (alias, uuid, type) VALUES (?, ?, ?)"
-  private val aliasSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE runcode = (SELECT UUID FROM ALIAS WHERE ALIAS = ?);"
+  private val aliasSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE uuid = (SELECT UUID FROM ALIAS WHERE ALIAS = ?);"
   private val aliasDeleteT = "DELETE FROM ALIAS WHERE alias = ?;"
   private val expSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE expid = ?;"
   private val rcSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE runcode = ?;"
@@ -63,26 +64,26 @@ trait H2Database extends Database {
     }
   }
 
-  def doSetSubread(u: String, e: Int, rc: String, json: JsValue)(ps: PreparedStatement): String = {
-    ps.setString(1, u)
+  def doSetSubread(u: UUID, e: Int, rc: String, json: JsValue)(ps: PreparedStatement): String = {
+    ps.setString(1, u.toString)
     ps.setInt(2, e)
     ps.setString(3, rc)
     ps.setClob(4, new StringReader(json.toString))
     if (ps.executeUpdate() == 1) s"Merged: $u" else throw new Exception(s"Couldn't merge: $u")
   }
 
-  override def setSubread(uuid: String, exp: Int, rc: String, json: JsValue): String = {
+  override def setSubread(uuid: UUID, exp: Int, rc: String, json: JsValue): String = {
     use[String](lsMergeT, doSetSubread(uuid, exp, rc, json))
   }
 
-  def doAliasMerge(a: String, uuid: String, typ: String)(ps: PreparedStatement) : String = {
+  def doAliasMerge(a: String, uuid: UUID, typ: String)(ps: PreparedStatement) : String = {
     ps.setString(1, a)
-    ps.setString(2, uuid)
+    ps.setString(2, uuid.toString)
     ps.setString(3, typ)
     if (ps.executeUpdate() == 1) s"Merged: $a" else throw new Exception(s"Couldn't merge: $a, $uuid")
   }
 
-  override def setAlias(a: String, uuid: String, typ: String): Unit = use[String](aliasMergeT, doAliasMerge(a, uuid, typ))
+  override def setAlias(a: String, uuid: UUID, typ: String): Unit = use[String](aliasMergeT, doAliasMerge(a, uuid, typ))
 
   private def doRunCode(v: String)(ps: PreparedStatement) : Seq[LimsSubreadSet] = {
     ps.setString(1, v)
@@ -105,14 +106,14 @@ trait H2Database extends Database {
 
   override def subreadByAlias(q: String): LimsSubreadSet = use[LimsSubreadSet](aliasSelectT, doAlias(q))
 
-  private def doLimsYml(uuid: String)(ps: PreparedStatement): LimsSubreadSet = {
-    ps.setString(1, uuid)
+  private def doLims(uuid: UUID)(ps: PreparedStatement): LimsSubreadSet = {
+    ps.setString(1, uuid.toString)
     subreads(ps.executeQuery()).head
   }
 
-  override def subread(uuid: String): LimsSubreadSet = use[LimsSubreadSet](lsSelectT, doLimsYml(uuid))
+  override def subread(uuid: UUID): LimsSubreadSet = use[LimsSubreadSet](lsSelectT, doLims(uuid))
 
-  override def subreads(uuids: Seq[String]): Seq[LimsSubreadSet] = for (uuid <- uuids) yield subread(uuid)
+  override def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet] = for (uuid <- uuids) yield subread(uuid)
 
   private def doAliasDel(v: String)(ps: PreparedStatement) : Unit = {
     ps.setString(1, v)
@@ -126,7 +127,7 @@ trait H2Database extends Database {
     val buf = ArrayBuffer[LimsSubreadSet]()
     while (rs.next()) buf.append(
       new LimsSubreadSet(
-      uuid = rs.getString("uuid"),
+      uuid = UUID.fromString(rs.getString("uuid")),
       expid = rs.getInt("expid"),
       runcode = rs.getString("runcode"),
       json = rs.getString("json").parseJson
@@ -165,12 +166,12 @@ object H2TableCreate {
       |-- this exists only in this service. arbitrary aliases or short codes
       |CREATE TABLE IF NOT EXISTS ALIAS (
       |  alias VARCHAR PRIMARY KEY,
-      |  uuid VARCHAR,
+      |  uuid UUID,
       |  type VARCHAR
       |);
       |-- two indexes to support the queries that PK indexes don't cover
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_runcode ON LIMS_SUBREADSET(RUNCODE);
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(expid);
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(UUID);
-      |    """.stripMargin
+      |""".stripMargin
 }

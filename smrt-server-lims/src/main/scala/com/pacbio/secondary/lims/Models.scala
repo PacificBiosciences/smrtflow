@@ -1,5 +1,7 @@
 package com.pacbio.secondary.lims
 
+import java.util.UUID
+
 import spray.json._
 import DefaultJsonProtocol._
 
@@ -12,12 +14,21 @@ import DefaultJsonProtocol._
  * recast to a more formal abstraction. As-is, this data duplicates other
  */
 case class LimsSubreadSet(
-    val uuid: String,
+    val uuid: UUID,
     val expid: Int,
     val runcode: String,
     val json: JsValue)
 
 object JsonProtocol {
+
+  val uuidRegex = "/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/".r
+
+  implicit object UUIDJsonFormat extends JsonFormat[UUID] {
+    def write(x: UUID) = JsString(x.toString)
+    def read(value: JsValue) = value match {
+      case JsString(x) => UUID.fromString(x)
+    }
+  }
 
   implicit val limsSubreadSetFormat = jsonFormat4(LimsSubreadSet.apply)
 

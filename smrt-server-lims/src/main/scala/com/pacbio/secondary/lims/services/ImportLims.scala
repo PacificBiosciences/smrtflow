@@ -2,6 +2,7 @@ package com.pacbio.secondary.lims.services
 
 import java.io.{BufferedReader, StringReader}
 import java.nio.file.{Files, Paths}
+import java.util.UUID
 
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.lims.database.Database
@@ -89,8 +90,8 @@ trait ImportLims extends HttpService with LookupSubreadset {
     val runcode = ly("runcode")
 
     // TODO: should be smarter about error handling here and not making alias if setSubread() fails
-    Try(if (uuid != null) setAlias(makeShortcode(uuid), uuid, LimsTypes.limsSubreadSet))
-    setSubread(if (uuid != null) uuid else runcode, expid, runcode, json)
+    Try(if (uuid != null) setAlias(makeShortcode(uuid), UUID.fromString(uuid), LimsTypes.limsSubreadSet))
+    setSubread(UUID.fromString(uuid), expid, runcode, json)
   }
 
   def makeShortcode(uuid: String): String = uuid.substring(0, 6)

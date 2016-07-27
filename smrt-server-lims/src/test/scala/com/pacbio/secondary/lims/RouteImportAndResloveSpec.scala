@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims
 
 import java.io.ByteArrayInputStream
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
@@ -10,7 +11,7 @@ import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
 import com.pacbio.secondary.lims.JsonProtocol._
-import com.pacbio.secondary.lims.util.{StressUtil, TestLookupSubreadset}
+import com.pacbio.secondary.lims.util.StressUtil
 import com.pacificbiosciences.pacbiodatasets.SubreadSet
 import org.specs2.specification.{Fragments, Step}
 import spray.json.DefaultJsonProtocol._
@@ -59,7 +60,7 @@ class RouteImportAndResloveSpec
   // force these tests to run sequentially since later tests rely on logic in earlier tests
   sequential
 
-  val uuid = "5fe01e82-c694-4575-9173-c23c458dd0e1"
+  val uuid = UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1")
   val expcode = 3220001
   val runcode = "3220001-0006"
   val alias = "Foo"
@@ -108,9 +109,9 @@ class RouteImportAndResloveSpec
     //      uuid mustEqual l.uuid
     //    }
     "Alias resolvable via API" in {
-      setAlias(alias, runcode, LimsTypes.limsSubreadSet)
+      setAlias(alias, uuid, LimsTypes.limsSubreadSet)
       val ly = subreadByAlias(alias)
-      (expcode, runcode) mustEqual (ly.expid, ly.runcode)
+      (uuid, expcode, runcode) mustEqual (ly.uuid, ly.expid, ly.runcode)
     }
     "Alias resolvable via GET /subreadset/<alias>" in {
       Get(s"/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
@@ -127,7 +128,7 @@ class RouteImportAndResloveSpec
     }
     "Alias creation via POST /resolver/<dataset-type>/<alias>" in {
       // assume this works based on previous test. TODO: better way to share this ID?
-      Post(s"/resolver/subreadset/$runcode?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
+      Post(s"/resolver/subreadset/$uuid?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual subreadByAlias(alias2).runcode
       }
