@@ -13,7 +13,7 @@ import spray.routing.HttpService
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.JsonProtocol._
@@ -32,7 +32,7 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
   val importLimsRoutes =
   // lims.yml files must be posted to the server
-    pathPrefix("import") {
+    pathPrefix("smrt-lims" / "import") {
       post {
         entity(as[MultipartFormData]) {
           formData => {

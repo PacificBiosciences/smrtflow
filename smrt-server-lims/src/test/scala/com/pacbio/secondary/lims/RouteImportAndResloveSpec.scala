@@ -69,7 +69,7 @@ class RouteImportAndResloveSpec
 
   "Internal LimsSubreadDataSet services" should {
     "Pre-import, expcode is not resolvable via GET" in {
-      Get(s"/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/smrt-lims/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
       }
     }
@@ -82,7 +82,7 @@ class RouteImportAndResloveSpec
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
       loadData(content.getBytes)
-      Post("/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
+      Post("/smrt-lims/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
     }
@@ -90,7 +90,7 @@ class RouteImportAndResloveSpec
       expid mustEqual subreadsByExperiment(expid).head.expid
     }
     "expid resolvable via GET /subreadset/<expcode>" in {
-      Get(s"/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/smrt-lims/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         expid mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.expid
       }
@@ -99,7 +99,7 @@ class RouteImportAndResloveSpec
       runcode mustEqual subreadsByRunCode(runcode).head.runcode
     }
     "runcode resolvable via GET" in {
-      Get(s"/subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/smrt-lims/subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.runcode
       }
@@ -108,7 +108,7 @@ class RouteImportAndResloveSpec
       uuid mustEqual subread(uuid).uuid
     }
     "UUID resolvable via GET /subreadset/uuid/<uuid>" in {
-      Get(s"/subreadset/uuid/$uuid") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/smrt-lims/subreadset/uuid/$uuid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         uuid mustEqual response.entity.data.asString.parseJson.convertTo[LimsSubreadSet].uuid
       }
@@ -123,20 +123,20 @@ class RouteImportAndResloveSpec
     }
     // tests the /resolve prefixed URIs. TODO: add in other dataset types
     "Alias resolvable via GET /resolver/<dataset-type>/<alias>" in {
-      Get(s"/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/smrt-lims/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[LimsSubreadSet].runcode
       }
     }
     "Alias creation via POST /resolver/<dataset-type>/<alias>" in {
       // assume this works based on previous test. TODO: better way to share this ID?
-      Post(s"/resolver/subreadset/$uuid?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
+      Post(s"/smrt-lims/resolver/subreadset/$uuid?name=$alias2") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual subreadByAlias(alias2).runcode
       }
     }
     "Alias delete via DELETE /resolver/<dataset-type>/<alias>" in {
-      Delete(s"/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
+      Delete(s"/smrt-lims/resolver/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
         response.status.intValue mustEqual 404
       }
     }

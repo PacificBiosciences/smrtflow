@@ -27,7 +27,7 @@ trait ResolveDataSet extends HttpService {
    */
   val resolveLimsSubreadSetRoutes = cors {
     // match by runcode
-    path("subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
+    path("smrt-lims" / "subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
       get { ctx =>
         Future {
           val v = subreadsByRunCode(rc)
@@ -36,7 +36,7 @@ trait ResolveDataSet extends HttpService {
       }
     } ~
     // match by experiment ID
-    path("subreadset" / "expid" / IntNumber) { expid =>
+    path("smrt-lims" / "subreadset" / "expid" / IntNumber) { expid =>
       get { ctx =>
         Future {
           val v = subreadsByExperiment(expid)
@@ -45,7 +45,7 @@ trait ResolveDataSet extends HttpService {
       }
     } ~
     // UUID lookup
-    path("subreadset" / "uuid" / JavaUUID) { uuid =>
+    path("smrt-lims" / "subreadset" / "uuid" / JavaUUID) { uuid =>
       get(ctx => Future(ctx.complete(subread(uuid).toJson.prettyPrint)))
     }
   }
@@ -58,7 +58,7 @@ trait ResolveDataSet extends HttpService {
    * DELETE /smrt-lims/resolver/{datasetyp-type-short-name}/{name-id} # "Unregister `name-id` to specific SubreadSet"
    */
   val resolveDataSetRoutes =
-    path("resolver" / Segment / Segment ) { // TODO: can specify dataset-type-short-name as regex
+    path("smrt-lims" / "resolver" / Segment / Segment ) { // TODO: can specify dataset-type-short-name as regex
       (dt, q) => {
         // GET = resolve the alias to the dataset type
         get {
