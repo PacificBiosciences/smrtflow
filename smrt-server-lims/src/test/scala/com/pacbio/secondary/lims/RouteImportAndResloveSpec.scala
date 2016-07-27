@@ -61,20 +61,20 @@ class RouteImportAndResloveSpec
   sequential
 
   val uuid = UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1")
-  val expcode = 3220001
+  val expid = 3220001
   val runcode = "3220001-0006"
   val alias = "Foo"
   val alias2 = "Bar"
 
   "Internal LimsSubreadDataSet services" should {
     "Pre-import, expcode is not resolvable via GET" in {
-      Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
+      Get(s"/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
       }
     }
     "Import data from POST" in {
       // in-mem version of `cat /net/pbi/collections/322/3220001/r54003_20160212_165105/1_A01/lims.yml`
-      val content = mockLimsYml(expcode, runcode)
+      val content = mockLimsYml(expid, runcode)
 
       // post the data from the file
       val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
@@ -85,39 +85,40 @@ class RouteImportAndResloveSpec
         response.status.isSuccess mustEqual true
       }
     }
-    "Full expcode resolvable via API" in {
-      expcode mustEqual subreadsByExperiment(expcode).head.expid
+    "expid resolvable via API" in {
+      expid mustEqual subreadsByExperiment(expid).head.expid
     }
-    "Full expcode resolvable via GET /subreadset/<expcode>" in {
-      Get(s"/subreadset/$expcode") ~> sealRoute(resolveRoutes) ~> check {
+    "expid resolvable via GET /subreadset/<expcode>" in {
+      Get(s"/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
-        expcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.expid
+        expid mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.expid
       }
     }
-    "Full runcode resolvable via API" in {
+    "runcode resolvable via API" in {
       runcode mustEqual subreadsByRunCode(runcode).head.runcode
     }
-    "Full runcode resolvable via GET" in {
-      Get(s"/subreadset/$runcode") ~> sealRoute(resolveRoutes) ~> check {
+    "runcode resolvable via GET" in {
+      Get(s"/subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual true
         runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.runcode
       }
     }
-    // TODO: enable this test -- punted in favor of getting a code review going
-    //    "Shortcode alias automatically exists" in {
-    //      val l = subreadByAlias(makeShortcode(uuid))
-    //      uuid mustEqual l.uuid
-    //    }
+    "UUID resolvable via API" in {
+      uuid mustEqual subread(uuid).uuid
+    }
+    "UUID resolvable via GET /subreadset/uuid/<uuid>" in {
+      Get(s"/subreadset/uuid/$uuid") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual true
+        uuid mustEqual response.entity.data.asString.parseJson.convertTo[LimsSubreadSet].uuid
+      }
+    }
+    "Shortcode alias automatically exists" in {
+      uuid mustEqual subreadByAlias(makeShortcode(uuid)).uuid
+    }
     "Alias resolvable via API" in {
       setAlias(alias, uuid, LimsTypes.limsSubreadSet)
       val ly = subreadByAlias(alias)
-      (uuid, expcode, runcode) mustEqual (ly.uuid, ly.expid, ly.runcode)
-    }
-    "Alias resolvable via GET /subreadset/<alias>" in {
-      Get(s"/subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
-        response.status.isSuccess mustEqual true
-        runcode mustEqual response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]].head.runcode
-      }
+      (uuid, expid, runcode) mustEqual (ly.uuid, ly.expid, ly.runcode)
     }
     // tests the /resolve prefixed URIs. TODO: add in other dataset types
     "Alias resolvable via GET /resolver/<dataset-type>/<alias>" in {

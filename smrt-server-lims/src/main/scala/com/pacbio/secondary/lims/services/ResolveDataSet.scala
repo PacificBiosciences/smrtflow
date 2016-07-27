@@ -26,36 +26,27 @@ trait ResolveDataSet extends HttpService {
    * GET /smrt-lims/lims-subreadset/{experiment-id}   # Return List of LimsSubreadSet Resource or empty List if exp id isn't found
    */
   val resolveLimsSubreadSetRoutes = cors {
-    path("subreadset" / Segment) {
-      q => {
-        get {
-          ctx =>
-            Future {
-              // serialize as JSON with correct HTTP status code
-              resolveLimsSubreadSet(q) match {
-                case lys: Seq[LimsSubreadSet] =>
-                  ctx.complete(if (lys.nonEmpty) 200 else 404, lys.toJson.prettyPrint)
-              }
-            }
+    // match by runcode
+    path("subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
+      get { ctx =>
+        Future {
+          val v = subreadsByRunCode(rc)
+          ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
         }
       }
-    }
-  }
-
-  // TODO: move this to an actor, probably too slow to keep on request dispatcher
-  def resolveLimsSubreadSet(q: String): Seq[LimsSubreadSet] = {
-    // attempt looking up the various ids
-    Try(subreadsByExperiment(q.toInt)) match {
-      case Success(ly :: lys) => ly :: lys
-      case _ =>
-        Try(subreadsByRunCode(q)) match {
-          case Success(ly :: lys) => ly :: lys
-          case _ =>
-            Try(subreadByAlias(q)) match {
-              case Success(ly) => Seq[LimsSubreadSet](ly)
-              case _ => Seq[LimsSubreadSet]()
-            }
+    } ~
+    // match by experiment ID
+    path("subreadset" / "expid" / IntNumber) { expid =>
+      get { ctx =>
+        Future {
+          val v = subreadsByExperiment(expid)
+          ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
         }
+      }
+    } ~
+    // UUID lookup
+    path("subreadset" / "uuid" / JavaUUID) { uuid =>
+      get(ctx => Future(ctx.complete(subread(uuid).toJson.prettyPrint)))
     }
   }
 

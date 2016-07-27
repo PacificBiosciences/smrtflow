@@ -31,11 +31,11 @@ trait StressUtil {
 
   def stressTest(c: StressConfig, ec : ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))) : StressResults = {
     // wait for all the imports to finish
-    val postImportsF = for (i <- 1 to c.imports) yield Future(postLimsYml(mockLimsYml(i, s"$i-0001")))(ec)
+    val postImportsF = for (i <- 1 to c.imports) yield Future(postLimsYml(mockLimsYml(i, mockRuncode(i))))(ec)
     val postImports: Seq[Boolean] = for (f <- postImportsF) yield Await.result(f, Duration(60, "seconds"))
     // wait for all the queries to finish
-    val getExpF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getExperimentOrRunCode(i))(ec))
-    val getRuncodeF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getExperimentOrRunCode(s"$i-0001"))(ec))
+    val getExpF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getExperiment(i))(ec))
+    val getRuncodeF = for (i <- 1 to c.imports) yield (for (j <- 1 to c.queryReps) yield Future(getRunCode(mockRuncode(i)))(ec))
     val getExp: Seq[(Boolean, Seq[LimsSubreadSet])] = for (f <- getExpF.flatten) yield Await.result(f, Duration(60, "seconds"))
     val getRuncode: Seq[(Boolean, Seq[LimsSubreadSet])] = for (f <- getRuncodeF.flatten) yield Await.result(f, Duration(60, "seconds"))
     // return the results
@@ -45,14 +45,22 @@ trait StressUtil {
   /**
    * GET request to lookup existing data by Experiment or Run Code
    */
-  def getExperimentOrRunCode(expOrRunCode: String) : (Boolean, Seq[LimsSubreadSet]) = {
+  def getExperiment(expid: Int) : (Boolean, Seq[LimsSubreadSet]) = {
     implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
 
-    Get(s"/subreadset/$expOrRunCode") ~> sealRoute(resolveRoutes) ~> check {
+    Get(s"/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
       (response.status.isSuccess, response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]])
     }
   }
-  def getExperimentOrRunCode(v: Int) : (Boolean, Seq[LimsSubreadSet]) = getExperimentOrRunCode(v.toString)
+
+  def getRunCode(runcode: String) : (Boolean, Seq[LimsSubreadSet]) = {
+    implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
+
+    Get(s"/subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
+      (response.status.isSuccess, response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]])
+    }
+  }
+
 
   /**
    * POST request with lims.yml content to make a database entry
@@ -69,6 +77,8 @@ trait StressUtil {
       response.status.isSuccess
     }
   }
+
+  def mockRuncode(i: Int, j: Int = 1) : String = f"$i%07d-$j%04d"
 
   /**
    * Creates a mock lims.yml file, allowing override of all values

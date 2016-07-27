@@ -90,11 +90,11 @@ trait ImportLims extends HttpService with LookupSubreadset {
     val runcode = ly("runcode")
 
     // TODO: should be smarter about error handling here and not making alias if setSubread() fails
-    Try(if (uuid != null) setAlias(makeShortcode(uuid), UUID.fromString(uuid), LimsTypes.limsSubreadSet))
+    Try(if (uuid != null) setAlias(makeShortcode(UUID.fromString(uuid)), UUID.fromString(uuid), LimsTypes.limsSubreadSet))
     setSubread(UUID.fromString(uuid), expid, runcode, json)
   }
 
-  def makeShortcode(uuid: String): String = uuid.substring(0, 6)
+  def makeShortcode(uuid: UUID): String = uuid.toString.substring(0, 6)
 }
 
 /**
