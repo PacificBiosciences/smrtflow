@@ -48,7 +48,7 @@ trait StressUtil {
   def getExperiment(expid: Int) : (Boolean, Seq[LimsSubreadSet]) = {
     implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
 
-    Get(s"/smrt-lims/subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
+    Get(s"/smrt-lims/lims-subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
       (response.status.isSuccess, response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]])
     }
   }
@@ -56,7 +56,7 @@ trait StressUtil {
   def getRunCode(runcode: String) : (Boolean, Seq[LimsSubreadSet]) = {
     implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
 
-    Get(s"/smrt-lims/subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
+    Get(s"/smrt-lims/lims-subreadset/runcode/$runcode") ~> sealRoute(resolveRoutes) ~> check {
       (response.status.isSuccess, response.entity.data.asString.parseJson.convertTo[Seq[LimsSubreadSet]])
     }
   }
@@ -73,7 +73,7 @@ trait StressUtil {
     val formFile = FormFile("file", httpEntity)
     val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
     loadData(content.getBytes)
-    Post("/smrt-lims/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
+    Post("/smrt-lims/lims-subreadset/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
       response.status.isSuccess
     }
   }

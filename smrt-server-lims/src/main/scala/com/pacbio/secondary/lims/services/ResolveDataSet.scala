@@ -12,7 +12,6 @@ import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.JsonProtocol._
 import com.pacbio.common.services.utils.CORSSupport.cors
-import com.pacbio.secondary.lims.LimsSubreadSet
 
 
 trait ResolveDataSet extends HttpService {
@@ -27,7 +26,7 @@ trait ResolveDataSet extends HttpService {
    */
   val resolveLimsSubreadSetRoutes = cors {
     // match by runcode
-    path("smrt-lims" / "subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
+    path("smrt-lims" / "lims-subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
       get { ctx =>
         Future {
           val v = subreadsByRunCode(rc)
@@ -36,7 +35,7 @@ trait ResolveDataSet extends HttpService {
       }
     } ~
     // match by experiment ID
-    path("smrt-lims" / "subreadset" / "expid" / IntNumber) { expid =>
+    path("smrt-lims" / "lims-subreadset" / "expid" / IntNumber) { expid =>
       get { ctx =>
         Future {
           val v = subreadsByExperiment(expid)
@@ -45,7 +44,7 @@ trait ResolveDataSet extends HttpService {
       }
     } ~
     // UUID lookup
-    path("smrt-lims" / "subreadset" / "uuid" / JavaUUID) { uuid =>
+    path("smrt-lims" / "lims-subreadset" / "uuid" / JavaUUID) { uuid =>
       get(ctx => Future(ctx.complete(subread(uuid).toJson.prettyPrint)))
     }
   }
@@ -67,7 +66,7 @@ trait ResolveDataSet extends HttpService {
         // PUT = set the alias for the dataset type
         post {
           parameters('name) { name =>
-            Try(setAlias(name, UUID.fromString(q), "lims_subreadset")) match {
+            Try(setAlias(name, UUID.fromString(q), "lims-subreadset")) match {
               case Success(_) => complete("Set $dt as alias for $id") // TODO: match `dt` and do dataset-type-short-name specific alias
               case Failure(t) => complete(500, "Couldn't set alias '$id' for $dt")
             }
