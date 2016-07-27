@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims.services
 
 import java.io.{BufferedReader, StringReader}
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Paths, Path}
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
@@ -26,12 +26,12 @@ import com.pacbio.secondary.lims.JsonProtocol._
  * the same directory.
  */
 trait ImportLims extends HttpService with LookupSubreadset {
-  this: Database  =>
+  this: Database =>
 
   implicit def executionContext = actorRefFactory.dispatcher
 
   val importLimsRoutes =
-    // lims.yml files must be posted to the server
+  // lims.yml files must be posted to the server
     pathPrefix("import") {
       post {
         entity(as[MultipartFormData]) {
@@ -62,27 +62,27 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
     // need the path in order to parse the UUID from .subreadset.xml
     m.get("path") match {
-      case Some(p) => loadData(subreadset(p), m)
+      case Some(p) => loadData(subreadset(Paths.get(p.stripPrefix("file://"))), m)
       case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
   }
 
-  def loadData(s: Option[SubreadSet], ly: mutable.HashMap[String, String]) : String = {
+  def loadData(s: Option[SubreadSet], ly: mutable.HashMap[String, String]): String = {
     // collection info
     val (uuid, json) = s match {
       case Some(subread) => {
         val c = subread.getDataSetMetadata.getCollections.getCollectionMetadata.get(0)
         (subread.getUniqueId,
-         Map[String, Any](
-           "path" -> ly("path"),
-           "pa_version" -> c.getSigProcVer,
-           "ics_version" -> c.getInstCtrlVer,
-           "well" -> c.getWellSample.getWellName,
-           "context" -> c.getContext,
-           "created_at" -> subread.getCreatedAt.toString,
-           "inst_name" -> c.getInstrumentName,
-           "instid" -> c.getInstrumentId
-         ).toJson)
+            Map[String, Any](
+              "path" -> ly("path"),
+              "pa_version" -> c.getSigProcVer,
+              "ics_version" -> c.getInstCtrlVer,
+              "well" -> c.getWellSample.getWellName,
+              "context" -> c.getContext,
+              "created_at" -> subread.getCreatedAt.toString,
+              "inst_name" -> c.getInstrumentName,
+              "instid" -> c.getInstrumentId
+            ).toJson)
       }
       case None => (null, "{}".toJson)
     }
@@ -101,19 +101,15 @@ trait ImportLims extends HttpService with LookupSubreadset {
  * Trait required for abstracting the UUID file lookup for prod vs testing
  */
 trait LookupSubreadset {
-  def subreadset(path: String): Option[SubreadSet]
+  def subreadset(path: Path): Option[SubreadSet]
 }
 
 trait FileLookupSubreadset {
-  def subreadset(path: String): Option[SubreadSet] = {
+  def subreadset(path: Path): Option[SubreadSet] = {
     Try {
-      val p = Paths.get(path.stripPrefix("file://"))
-      (for (v <- Files.newDirectoryStream(p).asScala
-            if v.toString.endsWith("subreadset.xml"))
+      (for (v <- Files.newDirectoryStream(path).asScala
+            if v.endsWith("subreadset.xml"))
         yield DataSetLoader.loadSubreadSet(v)).head
-    } match {
-      case Success(v) => Some(v)
-      case Failure(t) => None
-    }
+    }.toOption
   }
 }

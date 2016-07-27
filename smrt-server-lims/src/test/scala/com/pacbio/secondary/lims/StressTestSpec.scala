@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims
 
 import java.io.ByteArrayInputStream
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -43,7 +44,7 @@ class StressTestSpec extends Specification
   // TODO: can remove this when specs2 API is upgraded
   override def map(fragments: =>Fragments) = Step(beforeAll) ^ fragments
 
-  override def subreadset(path: String): Option[SubreadSet] = {
+  override def subreadset(path: Path): Option[SubreadSet] = {
     Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset(UUID.randomUUID()).getBytes()))) match {
       case Success(ds) => Some(ds)
       case Failure(t) => None

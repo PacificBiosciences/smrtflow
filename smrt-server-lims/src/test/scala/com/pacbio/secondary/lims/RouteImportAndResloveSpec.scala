@@ -1,6 +1,7 @@
 package com.pacbio.secondary.lims
 
 import java.io.ByteArrayInputStream
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -50,7 +51,7 @@ class RouteImportAndResloveSpec
 
   private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
 
-  override def subreadset(path: String): Option[SubreadSet] = {
+  override def subreadset(path: Path): Option[SubreadSet] = {
     Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset().getBytes()))) match {
       case Success(ds) => Some(ds)
       case Failure(t) => None
