@@ -55,7 +55,7 @@ trait CommonClientToolRunner extends LazyLogging{
 
   def nullSummary[T](x: T): Unit = {}
   def defaultSummary[T](x: T): Unit = println(s"-> Summary $x")
-  def statusSummary(x: ServiceStatus): String = s"System ${x.id} ${x.version} ${x.message}"
+  def statusSummary(x: ServiceStatus): Unit = println(s"System ${x.id} ${x.version} ${x.message}")
 
   def runAwait[T](f: () => Future[T]) : T = {
     //val fx = Future.fromTry(Try { f()} )
@@ -84,7 +84,7 @@ trait InternalAnalysisClientToolRunner extends CommonClientToolRunner{
 
 
   def runStatus(host: String, port: Int): Int =
-    runAwaitWithActorSystem[ServiceStatus](defaultSummary[ServiceStatus]){ (system: ActorSystem) =>
+    runAwaitWithActorSystem[ServiceStatus](statusSummary){ (system: ActorSystem) =>
       val client = new InternalAnalysisServiceClient(host, port)(system)
       client.getStatus
     }
@@ -147,7 +147,7 @@ trait InternalAnalysisClientToolParser {
     } children(
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})"
-        ) text "SMRT Link Internal Aanlysis Server Status Summary"
+        ) text "SMRT Link Internal Analysis (SLIA) Server Status Summary"
 
     // Convert
     cmd(Modes.CONVERT.name) action { (_, c) =>
@@ -155,7 +155,7 @@ trait InternalAnalysisClientToolParser {
     } children(
         arg[File]("csv") action { (x, c) => c.copy(pathToCSV = x.toPath) } text "Path to Reseq Conditions CSV",
         opt[File]("reseq-json") action { (x, c) => c.copy(outputPathToReseqConditions = x.toPath) } text s"Path to Output Reseq Conditions JSON (Default: ${DEFAULT.outputPathToReseqConditions})"
-        ) text "Convert CSV Summary"
+        ) text "Convert Reseq Condition CSV to a Reseq Condition JSON file (usable via command pipeline running and testing)"
 
     cmd(Modes.SUBMIT.name) action { (_, c) => c.copy(command = (c) => println(s"with $c"), mode = Modes.SUBMIT)
     } children(
@@ -164,7 +164,7 @@ trait InternalAnalysisClientToolParser {
         opt[String]('n', "name") action { (x, c) => c.copy(jobName = x)} text s"Job Name (Default: ${DEFAULT.jobName})",
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port}"
-        ) text "Submit Reseq Condition CSV Job to SMRTLink Internal Analysis Services"
+        ) text "Submit Reseq Condition CSV job to SMRTLink Internal Analysis Services (SLIA)"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -174,7 +174,7 @@ trait InternalAnalysisClientToolParser {
     opt[Unit]('v', "version") action { (x, c) =>
       showVersion()
       sys.exit(0)
-    } text "Show Version and Exit"
+    } text "Show version and exit"
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
