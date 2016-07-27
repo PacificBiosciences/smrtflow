@@ -19,7 +19,7 @@ object MainSimple extends App with ConfigLoader with LazyLogging{
   LoggerOptions.parseAddDebug(args)
   logger.debug(s"Starting smrt-lims with arguments: ${args.mkString(" ")}")
 
-  implicit val system = ActorSystem("internal-smrt-link-system")
+  implicit val system = ActorSystem("lims")
 
   // use Akka to create our Spray Service
   val service = system.actorOf(Props[InternalServiceActor], "internal-smrt-link-service")
