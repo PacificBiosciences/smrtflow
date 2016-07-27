@@ -156,10 +156,11 @@ object H2TableCreate {
   val sql =
     """-- embedded as a var b/c build is choking on external script.
       |CREATE TABLE IF NOT EXISTS LIMS_SUBREADSET (
-      |  uuid VARCHAR PRIMARY KEY,
+      |  uuid UUID,
       |  expid INT,
       |  runcode VARCHAR,
-      |  json CLOB
+      |  json CLOB,
+      |  PRIMARY KEY (uuid, expid, runcode)
       |);
       |-- this exists only in this service. arbitrary aliases or short codes
       |CREATE TABLE IF NOT EXISTS ALIAS (
@@ -169,6 +170,7 @@ object H2TableCreate {
       |);
       |-- two indexes to support the queries that PK indexes don't cover
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_runcode ON LIMS_SUBREADSET(RUNCODE);
+      |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(expid);
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(UUID);
-    """.stripMargin
+      |    """.stripMargin
 }
