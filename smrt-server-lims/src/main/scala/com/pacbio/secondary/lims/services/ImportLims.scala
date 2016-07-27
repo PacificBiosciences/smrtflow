@@ -62,12 +62,12 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
     // need the path in order to parse the UUID from .subreadset.xml
     m.get("path") match {
-      case Some(p) => loadData(subreadset(Paths.get(p.stripPrefix("file://"))), m)
+      case Some(p) => loadData(subreadset(Paths.get(p.stripPrefix("file://"))), m.toMap)
       case None => "No path in lims.yml file. Can't attempt UUID lookup"
     }
   }
 
-  def loadData(s: Option[SubreadSet], ly: mutable.HashMap[String, String]): String = {
+  def loadData(s: Option[SubreadSet], ly: Map[String, String]): String = {
     // collection info
     val (uuid, json) = s match {
       case Some(subread) => {
