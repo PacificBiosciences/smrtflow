@@ -67,31 +67,24 @@ trait ImportLims extends HttpService with LookupSubreadset {
     }
   }
 
-  def loadData(s: Option[SubreadSet], ly: Map[String, String]): String = {
-    // collection info
-    val (uuid, json) = s match {
-      case Some(subread) => {
-        val c = subread.getDataSetMetadata.getCollections.getCollectionMetadata.get(0)
-        (subread.getUniqueId,
-            Map[String, Any](
-              "path" -> ly("path"),
-              "pa_version" -> c.getSigProcVer,
-              "ics_version" -> c.getInstCtrlVer,
-              "well" -> c.getWellSample.getWellName,
-              "context" -> c.getContext,
-              "created_at" -> subread.getCreatedAt.toString,
-              "inst_name" -> c.getInstrumentName,
-              "instid" -> c.getInstrumentId
-            ).toJson)
-      }
-      case None => (null, "{}".toJson)
+  def loadData(s: Option[SubreadSet], ly: Map[String, String]): String = s match {
+    case Some(subread) => {
+      val c = subread.getDataSetMetadata.getCollections.getCollectionMetadata.get(0)
+      val uuid = UUID.fromString(subread.getUniqueId)
+      setAlias(makeShortcode(uuid), uuid, LimsTypes.limsSubreadSet)
+      setSubread(uuid, ly("expcode").toInt, ly("runcode"),
+        Map[String, Any](
+          "path" -> ly("path"),
+          "pa_version" -> c.getSigProcVer,
+          "ics_version" -> c.getInstCtrlVer,
+          "well" -> c.getWellSample.getWellName,
+          "context" -> c.getContext,
+          "created_at" -> subread.getCreatedAt.toString,
+          "inst_name" -> c.getInstrumentName,
+          "instid" -> c.getInstrumentId
+        ).toJson)
     }
-    val expid = ly("expcode").toInt
-    val runcode = ly("runcode")
-
-    // TODO: should be smarter about error handling here and not making alias if setSubread() fails
-    Try(if (uuid != null) setAlias(makeShortcode(UUID.fromString(uuid)), UUID.fromString(uuid), LimsTypes.limsSubreadSet))
-    setSubread(UUID.fromString(uuid), expid, runcode, json)
+    case None => "No .subreadset.xml found. Can't import."
   }
 
   def makeShortcode(uuid: UUID): String = uuid.toString.substring(0, 6)
