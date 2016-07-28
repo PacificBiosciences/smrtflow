@@ -31,7 +31,7 @@ trait ImportLims extends HttpService with LookupSubreadset {
   implicit def executionContext = actorRefFactory.dispatcher
 
   val importLimsRoutes =
-  // lims.yml files must be posted to the server
+    // lims.yml files must be posted to the server
     pathPrefix("smrt-lims" / "lims-subreadset" / "import") {
       post {
         entity(as[MultipartFormData]) {
@@ -100,7 +100,7 @@ trait LookupSubreadset {
 trait FileLookupSubreadset {
   def subreadset(path: Path, context: String): Option[SubreadSet] = {
     Try {
-      DataSetLoader.loadSubreadSet(path.resolve(context))
+      DataSetLoader.loadSubreadSet(path.resolve(context.replace(".trc.h5", ".subreadset.xml")))
     }.map(ds => Some(ds)).getOrElse {
       Try {
         (for (v <- Files.newDirectoryStream(path).asScala
