@@ -151,9 +151,33 @@ trait LimsClientToolParser {
       c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
     } children(
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
-        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})"
-        //opt[String]("path") action { (x, c) => c.copy(Paths.get(path) = x) } text s"Path of lims.yml file",
+        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
+        opt[String]("path") action { (x, c) => c.copy(path = Paths.get(x)) } text s"Path of lims.yml file"
         ) text "Import lims.yml + .subreadset.xml file via file upload"
+
+    cmd(Modes.GET_RUNCODE.name) action { (_, c) =>
+      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+    } children(
+        opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
+        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
+        opt[String]("runcode") action { (x, c) => c.copy(runcode = x) } text s"Lookup LimsSubreadSet instances by lims.yml 'runcode' value"
+        ) text "Lookup LimsSubreadSet entries by runcode"
+
+    cmd(Modes.GET_EXPID.name) action { (_, c) =>
+      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+    } children(
+        opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
+        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
+        opt[Int]("expid") action { (x, c) => c.copy(expid = x) } text s"Lookup LimsSubreadSet instances by lims.yml 'expid' value"
+        ) text "Lookup LimsSubreadSet entries by expid"
+
+    cmd(Modes.GET_UUID.name) action { (_, c) =>
+      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+    } children(
+        opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
+        opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
+        opt[Int]("uuid") action { (x, c) => c.copy(expid = x) } text s"Lookup LimsSubreadSet by UUID"
+        ) text "Lookup LimsSubreadSet entries by expid"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
