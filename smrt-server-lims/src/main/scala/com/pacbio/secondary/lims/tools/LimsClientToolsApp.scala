@@ -8,35 +8,27 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.pacbio.common.client.UrlUtils
-import com.pacbio.common.models.ServiceStatus
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.lims.LimsSubreadSet
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondaryinternal.IOUtils
-import com.pacbio.secondaryinternal.client.InternalAnalysisServiceClient
-import com.pacbio.secondaryinternal.models.{ReseqConditions, ServiceConditionCsvPipeline}
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 import com.pacbio.secondaryinternal.tools.CommonClientToolRunner
 import spray.client.pipelining._
 import spray.http._
-//import scala.concurrent.ExecutionContext.Implicits.global
-import spray.json._
-import spray.json.DefaultJsonProtocol._
-import com.pacbio.secondary.lims.JsonProtocol._
 
 
 class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   extends AnalysisServiceAccessLayer(baseUrl)(actorSystem)
   with LazyLogging {
+
+  import spray.json._
+  import spray.json.DefaultJsonProtocol._
+  import com.pacbio.secondary.lims.JsonProtocol._
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)
@@ -103,7 +95,6 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
   def runImportLimsYml(host: String, port: Int, path: Path): Int =
     runAwaitWithActorSystem[String](defaultSummary[String]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
-      //client.getStatus
       client.importLimsSubreadSetReport(path)
     }
 
