@@ -66,7 +66,7 @@ object LoggerOptions {
   }
 
   def parseAddDebug(args: Seq[String]): Unit = {
-    val requireOne = Set("--logfile", "--log2stdout", "-h")
+    val requireOne = Set("--log-file", "--log2stdout", "-h")
     val v = if (args.filter(requireOne).isEmpty) args :+ "--log2stdout" else args
     parse(v)
   }
