@@ -4,7 +4,7 @@ import java.lang.System.nanoTime
 import java.util.UUID
 import java.util.concurrent.Executors
 
-import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.secondary.lims.LimsJsonProtocol._
 import com.pacbio.secondary.lims.LimsSubreadSet
 import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification

@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.secondary.lims.LimsJsonProtocol._
 import com.pacbio.common.services.utils.CORSSupport.cors
 
 

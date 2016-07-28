@@ -11,7 +11,7 @@ import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
 import org.specs2.mutable.Specification
 import spray.http._
 import spray.testkit.Specs2RouteTest
-import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.secondary.lims.LimsJsonProtocol._
 import com.pacbio.secondary.lims.util.StressUtil
 import com.pacificbiosciences.pacbiodatasets.SubreadSet
 import org.specs2.specification.{Fragments, Step}

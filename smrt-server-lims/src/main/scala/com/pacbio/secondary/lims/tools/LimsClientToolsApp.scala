@@ -30,7 +30,7 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
 
   import spray.json._
   import spray.json.DefaultJsonProtocol._
-  import com.pacbio.secondary.lims.JsonProtocol._
+  import com.pacbio.secondary.lims.LimsJsonProtocol._
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)

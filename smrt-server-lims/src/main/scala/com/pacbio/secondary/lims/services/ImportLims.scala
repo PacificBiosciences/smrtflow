@@ -16,7 +16,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.lims.JsonProtocol._
+import com.pacbio.secondary.lims.LimsJsonProtocol._
 
 
 /**

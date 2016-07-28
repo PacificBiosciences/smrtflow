@@ -19,7 +19,7 @@ case class LimsSubreadSet(
     val runcode: String,
     val json: JsValue)
 
-object JsonProtocol {
+object LimsJsonProtocol {
 
   val uuidRegex = "/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/".r
 
@@ -30,7 +30,7 @@ object JsonProtocol {
     }
   }
 
-  implicit val limsSubreadSetFormat = jsonFormat4(LimsSubreadSet.apply)
+  implicit val limsSubreadSetFormat = jsonFormat4(LimsSubreadSet)
 
   implicit object AnyJsonFormat extends JsonFormat[Any] {
     def write(x: Any) = x match {
