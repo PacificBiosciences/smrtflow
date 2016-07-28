@@ -1,0 +1,21 @@
+{
+  "jobName": "import_subreads_example",
+  "workflowXml": null,
+  "entryPoints": [{
+    "entryId": "eid_subread",
+    "path": "/path/to/movie.subreadset.xml"
+  }],
+  "description": "Example of import-dataset testkit job",
+  "jobType": "import-dataset",
+  "outputDir": null,
+  "presetXml": null,
+  "reportTests": [{
+    "reportId": "some_report_id",
+    "rules": {
+      "alpha": 1234,
+      "beta__ge": 0.5678,
+      "gamma": "asdf"
+    }
+  }],
+  "pipelineId": null
+}
