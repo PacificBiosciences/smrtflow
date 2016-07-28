@@ -19,6 +19,7 @@ import scala.language.postfixOps
 import com.pacbio.secondaryinternal.tools.CommonClientToolRunner
 import spray.client.pipelining._
 import spray.http._
+import spray.httpx.SprayJsonSupport._
 
 import scala.collection.JavaConversions._
 
@@ -47,18 +48,20 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     Post(toImportUrl("lims-subreadset"), mfd)
   }
 
+  def getSubread: HttpRequest => Future[LimsSubreadSet] = sendReceive ~> unmarshal[LimsSubreadSet]
+
   def getSubreads: HttpRequest => Future[Seq[LimsSubreadSet]] = sendReceive ~> unmarshal[Seq[LimsSubreadSet]]
 
   def subreadsByRuncode(runcode: String): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$runcode")
+    Get(toUrl(s"/smrt-lims/lims-subreadset/runcode/$runcode"))
   }
 
   def subreadsByExp(expid: Int): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$expid")
+    Get(toUrl(s"/smrt-lims/lims-subreadset/expid/$expid"))
   }
 
-  def subreadsByUUID(uuid: UUID): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$uuid")
+  def subreadsByUUID(uuid: UUID): Future[LimsSubreadSet] = getSubread {
+    Get(toUrl(s"/smrt-lims/lims-subreadset/uuid/$uuid"))
   }
 }
 
@@ -129,7 +132,7 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
     }
 
   def runGetSubreadsByUUID(host: String, port: Int, uuid: UUID): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+    runAwaitWithActorSystem[LimsSubreadSet](defaultSummary[LimsSubreadSet]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
       client.subreadsByUUID(uuid)
     }

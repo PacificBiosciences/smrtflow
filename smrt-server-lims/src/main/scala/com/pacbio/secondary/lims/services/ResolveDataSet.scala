@@ -12,6 +12,7 @@ import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.LimsJsonProtocol._
 import com.pacbio.common.services.utils.CORSSupport.cors
+import spray.http.MediaTypes._
 
 
 trait ResolveDataSet extends HttpService {
@@ -27,25 +28,31 @@ trait ResolveDataSet extends HttpService {
   val resolveLimsSubreadSetRoutes = cors {
     // match by runcode
     path("smrt-lims" / "lims-subreadset" / "runcode" / "^([0-9]{7}-[0-9]{4})$".r) { rc =>
-      get { ctx =>
-        Future {
-          val v = subreadsByRunCode(rc)
-          ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
+      respondWithMediaType(`application/json`) {
+        get { ctx =>
+          Future {
+            val v = subreadsByRunCode(rc)
+            ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
+          }
         }
       }
     } ~
     // match by experiment ID
     path("smrt-lims" / "lims-subreadset" / "expid" / IntNumber) { expid =>
-      get { ctx =>
-        Future {
-          val v = subreadsByExperiment(expid)
-          ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
+      respondWithMediaType(`application/json`) {
+        get { ctx =>
+          Future {
+            val v = subreadsByExperiment(expid)
+            ctx.complete(if (v.nonEmpty) 200 else 404, v.toJson.prettyPrint)
+          }
         }
       }
     } ~
     // UUID lookup
     path("smrt-lims" / "lims-subreadset" / "uuid" / JavaUUID) { uuid =>
-      get(ctx => Future(ctx.complete(subread(uuid).toJson.prettyPrint)))
+      respondWithMediaType(`application/json`) {
+        get(ctx => Future(ctx.complete(subread(uuid).toJson.prettyPrint)))
+      }
     }
   }
 
