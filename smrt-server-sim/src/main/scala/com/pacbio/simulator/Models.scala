@@ -66,5 +66,4 @@ case class ScenarioResult(name: String,
 case class SimArgs(loader: ScenarioLoader = ExampleScenarioLoader,
                    config: Option[Path] = None,
                    outputXML: Option[Path] = None,
-                   goldReleasesDir: Option[Path] = None,
                    timeout: Duration = 15.minutes)

@@ -18,7 +18,7 @@ object Sim extends App {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   implicit val system: ActorSystem = ActorSystem("sim")
 
-  final val VERSION = "3.1.0"
+  final val VERSION = "0.1.0"
   final val TOOL_ID = "scenario-runner"
 
   // Add new scenario loaders here
@@ -48,10 +48,6 @@ object Sim extends App {
     opt[String]('o', "output-xml") valueName "<file>" action { (v, c) =>
       c.copy(outputXML = Some(Paths.get(v)))
     } text "Optional output file for Jenkins-readable JUnit-style XML"
-
-    opt[String]('g', "gold-releases-dir") valueName "<dir>" action { (v, c) =>
-      c.copy(goldReleasesDir = Some(Paths.get(v)))
-    } text "Optional output directory for gold releases files"
 
     opt[String]('t', "time-out") valueName "<duration>" action { (v, c) =>
       c.copy(timeout = Duration(v))
@@ -144,46 +140,6 @@ object Sim extends App {
     simArgs.outputXML.foreach {
       outputXML(result, _)
     }
-
-    // output gold releases iff
-    // - the run succeeded,
-    // - the golden releases flag was set,
-    // - and scenario interacts with PAWS via PrimaryClientSteps (i.e., do not for ExampleScenario, etc.)
-//    if (succeeded
-//      && simArgs.goldReleasesDir.isDefined
-//      && scenario.isInstanceOf[PrimaryClientSteps]) {
-//
-//      import spray.json._
-//      import DefaultJsonProtocol._
-//
-//      val dir = simArgs.goldReleasesDir.get
-//      println(s"Attempting to print golden releases file in ${dir.toAbsolutePath.toString}")
-//
-//      val primaryClient = scenario.asInstanceOf[PrimaryClientSteps].primaryClient
-//
-//      // Matches strings of the form "pacbio-pa-X.Y.Z"
-//      val PACBIO_PA_REGEX = "\\Apacbio-pa-\\d+\\.\\d+\\.\\d+\\Z".r
-//
-//      val writeFuture = primaryClient.getComponentVersions.map { m =>
-//        m.keys.find(PACBIO_PA_REGEX.findFirstIn(_).isDefined) match {
-//          case Some(k) =>
-//            val filePath = dir.resolve (s"${m(k)}.json")
-//            for {
-//              bw <- managed(new BufferedWriter(new FileWriter(filePath.toFile)))
-//            } {
-//              println(s"Printing golden releases to file ${filePath.toAbsolutePath.toString}")
-//              bw.write(m.toJson.prettyPrint)
-//            }
-//          case None =>
-//            println("Could not find component named 'pacbio-pa-X.Y.Z'")
-//        }
-//      }
-//
-//      Await.ready(writeFuture, 10.seconds)
-//    } else if (simArgs.goldReleasesDir.isDefined && !succeeded)
-//      println("Skipping printing golden releases because run did not succeed.")
-//    else if (simArgs.goldReleasesDir.isDefined && !scenario.isInstanceOf[PrimaryClientSteps])
-//      println("Skipping printing golden releases because the scenario does not test PAWS.")
 
   } finally {
     system.shutdown()
