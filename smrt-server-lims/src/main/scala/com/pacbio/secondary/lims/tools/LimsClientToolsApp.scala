@@ -7,10 +7,9 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import com.pacbio.common.client.UrlUtils
+import com.pacbio.common.client.{ServiceAccessLayer, UrlUtils}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.lims.LimsSubreadSet
-import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 
@@ -25,7 +24,7 @@ import scala.collection.JavaConversions._
 
 
 class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
-  extends AnalysisServiceAccessLayer(baseUrl)(actorSystem)
+  extends ServiceAccessLayer(baseUrl)(actorSystem)
   with LazyLogging {
 
   import spray.json._
@@ -40,7 +39,7 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
 
   def importLimsSubreadSet: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
 
-  def importLimsSubreadSetReport(path: Path): Future[String] = importLimsSubreadSet {
+  def importLimsSubreadSet(path: Path): Future[String] = importLimsSubreadSet {
     val content = scala.io.Source.fromFile(path.toFile).mkString
     val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
     val formFile = FormFile("file", httpEntity)
@@ -48,19 +47,19 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     Post(toImportUrl("lims-subreadset"), mfd)
   }
 
-  def getSubreads: HttpRequest => Future[Seq[LimsSubreadSet]] = sendReceive ~> unmarshal[Seq[LimsSubreadSet]]
-
-  def subreadsByRuncode(runcode: String): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$runcode")
-  }
-
-  def subreadsByExp(expid: Int): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$expid")
-  }
-
-  def subreadsByUUID(uuid: UUID): Future[Seq[LimsSubreadSet]] = getSubreads {
-    Get(s"/smrt-lims/lims-subreadset/$uuid")
-  }
+//  def getSubreads: HttpRequest => Future[Seq[LimsSubreadSet]] = sendReceive ~> unmarshal[Seq[LimsSubreadSet]]
+//
+//  def subreadsByRuncode(runcode: String): Future[Seq[LimsSubreadSet]] = getSubreads {
+//    Get(s"/smrt-lims/lims-subreadset/$runcode")
+//  }
+//
+//  def subreadsByExp(expid: Int): Future[Seq[LimsSubreadSet]] = getSubreads {
+//    Get(s"/smrt-lims/lims-subreadset/$expid")
+//  }
+//
+//  def subreadsByUUID(uuid: UUID): Future[Seq[LimsSubreadSet]] = getSubreads {
+//    Get(s"/smrt-lims/lims-subreadset/$uuid")
+//  }
 }
 
 /**
@@ -101,11 +100,11 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
       path.toFile.exists() match {
         case false => throw new Exception(s"Path $path is not a file or directory.")
         case _ => path.toFile.isDirectory match {
-          case false => client.importLimsSubreadSetReport(path)
+          case false => client.importLimsSubreadSet(path)
           case _ => {
             val work = for {
               p <- Files.walk(path).iterator() if p.getFileName() == "lims.yml"
-            } yield client.importLimsSubreadSetReport(p)
+            } yield client.importLimsSubreadSet(p)
             Future{
               work.map(p => {
                 println(Await.result(p, 10 seconds))
@@ -117,23 +116,23 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
       }
     }
 
-  def runGetSubreadsByRuncode(host: String, port: Int, runcode: String): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
-      val client = new LimsClient(host, port)(system)
-      client.subreadsByRuncode(runcode)
-    }
-
-  def runGetSubreadsByExp(host: String, port: Int, expid: Int): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
-      val client = new LimsClient(host, port)(system)
-      client.subreadsByExp(expid)
-    }
-
-  def runGetSubreadsByUUID(host: String, port: Int, uuid: UUID): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
-      val client = new LimsClient(host, port)(system)
-      client.subreadsByUUID(uuid)
-    }
+//  def runGetSubreadsByRuncode(host: String, port: Int, runcode: String): Int =
+//    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+//      val client = new LimsClient(host, port)(system)
+//      client.subreadsByRuncode(runcode)
+//    }
+//
+//  def runGetSubreadsByExp(host: String, port: Int, expid: Int): Int =
+//    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+//      val client = new LimsClient(host, port)(system)
+//      client.subreadsByExp(expid)
+//    }
+//
+//  def runGetSubreadsByUUID(host: String, port: Int, uuid: UUID): Int =
+//    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+//      val client = new LimsClient(host, port)(system)
+//      client.subreadsByUUID(uuid)
+//    }
 
 }
 
@@ -214,9 +213,9 @@ object LimsClientToolsApp extends App
     println(s"Running with config $c")
     c.mode match {
       case Modes.IMPORT => runImportLimsYml(c.host, c.port, c.path)
-      case Modes.GET_RUNCODE => runGetSubreadsByRuncode(c.host, c.port, c.runcode)
-      case Modes.GET_EXPID => runGetSubreadsByExp(c.host, c.port, c.expid)
-      case Modes.GET_UUID => runGetSubreadsByUUID(c.host, c.port, c.uuid)
+//      case Modes.GET_RUNCODE => runGetSubreadsByRuncode(c.host, c.port, c.runcode)
+//      case Modes.GET_EXPID => runGetSubreadsByExp(c.host, c.port, c.expid)
+//      case Modes.GET_UUID => runGetSubreadsByUUID(c.host, c.port, c.uuid)
       case unknown =>
         System.err.println(s"Unknown mode '$unknown'")
         1
@@ -246,13 +245,13 @@ object LimsClientToolsAppTest extends App
   println("Running Import")
   runImportLimsYml("127.0.0.1", 8081, Paths.get("/pbi/collections/312/3120145/r54009_20160426_164705/1_A01/lims.yml"))
 
-  println("Running GetByUUID")
-  runGetSubreadsByUUID("127.0.0.1", 8081, UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1"))
-
-  println("Running GetByRuncode")
-  runGetSubreadsByRuncode("127.0.0.1", 8081, "3120145-0010")
-
-  println("Running GetByExp")
-  runGetSubreadsByExp("127.0.0.1", 8081, 3120145)
+//  println("Running GetByUUID")
+//  runGetSubreadsByUUID("127.0.0.1", 8081, UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1"))
+//
+//  println("Running GetByRuncode")
+//  runGetSubreadsByRuncode("127.0.0.1", 8081, "3120145-0010")
+//
+//  println("Running GetByExp")
+//  runGetSubreadsByExp("127.0.0.1", 8081, 3120145)
 
 }

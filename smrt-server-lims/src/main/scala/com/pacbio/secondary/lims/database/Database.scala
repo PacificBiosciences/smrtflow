@@ -27,7 +27,7 @@ trait Database {
   /**
    * Store, retrieve and manipulate LIMS versions of SubreadSet
    */
-  def setSubread(uuid: UUID, expid: Int, runcode: String, json: JsValue): String
+  def setSubread(l: LimsSubreadSet): String
 
   def subreadByAlias(alias: String): LimsSubreadSet
 

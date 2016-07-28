@@ -5,6 +5,8 @@ import java.util.UUID
 import spray.json._
 import DefaultJsonProtocol._
 
+import com.pacbio.common.models.UUIDJsonProtocol
+
 
 /**
  * Superset of a SubreadDataSet file that represents lims.yml
@@ -17,7 +19,15 @@ case class LimsSubreadSet(
     val uuid: UUID,
     val expid: Int,
     val runcode: String,
-    val json: JsValue)
+
+    val path: String,
+    val pa_version: String,
+    val ics_version: String,
+    val well: String,
+    val context: String,
+    val created_at: String,
+    val inst_name: String,
+    val instid: Int)
 
 object LimsJsonProtocol {
 
@@ -30,25 +40,7 @@ object LimsJsonProtocol {
     }
   }
 
-  implicit val limsSubreadSetFormat = jsonFormat4(LimsSubreadSet)
-
-  implicit object AnyJsonFormat extends JsonFormat[Any] {
-    def write(x: Any) = x match {
-      case n: Int => JsNumber(n)
-      case s: String => JsString(s)
-      case m: Map[String, _] => mapFormat[String, Any].write(m)
-      case b: Boolean if b == true => JsTrue
-      case b: Boolean if b == false => JsFalse
-    }
-
-    def read(value: JsValue) = value match {
-      case JsNumber(n) => n.intValue()
-      case JsString(s) => s
-      case o: JsObject => mapFormat[String, Any].read(value)
-      case JsTrue => true
-      case JsFalse => false
-    }
-  }
+  implicit val limsSubreadSetFormat = jsonFormat11(LimsSubreadSet)
 
   object LimsTypes {
     final val limsSubreadSet = "lims_subreadset"

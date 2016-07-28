@@ -17,6 +17,7 @@ import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.lims.LimsJsonProtocol._
+import com.pacbio.secondary.lims.LimsSubreadSet
 
 
 /**
@@ -72,17 +73,19 @@ trait ImportLims extends HttpService with LookupSubreadset {
       val c = subread.getDataSetMetadata.getCollections.getCollectionMetadata.get(0)
       val uuid = UUID.fromString(subread.getUniqueId)
       setAlias(makeShortcode(uuid), uuid, LimsTypes.limsSubreadSet)
-      setSubread(uuid, ly("expcode").toInt, ly("runcode"),
-        Map[String, Any](
-          "path" -> ly("path"),
-          "pa_version" -> c.getSigProcVer,
-          "ics_version" -> c.getInstCtrlVer,
-          "well" -> c.getWellSample.getWellName,
-          "context" -> c.getContext,
-          "created_at" -> subread.getCreatedAt.toString,
-          "inst_name" -> c.getInstrumentName,
-          "instid" -> c.getInstrumentId
-        ).toJson)
+      setSubread(
+        LimsSubreadSet(
+          uuid,
+          ly("expcode").toInt,
+          ly("runcode"),
+          ly("path"),
+          c.getSigProcVer,
+          c.getInstCtrlVer,
+          c.getWellSample.getWellName,
+          c.getContext,
+          subread.getCreatedAt.toString,
+          c.getInstrumentName,
+          c.getInstrumentId.toInt))
     }
     case None => "No .subreadset.xml found. Can't import."
   }

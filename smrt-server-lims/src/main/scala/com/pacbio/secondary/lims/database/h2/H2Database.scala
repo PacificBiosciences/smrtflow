@@ -32,8 +32,21 @@ import spray.json._
 trait H2Database extends Database {
   this: JdbcDatabase =>
 
+  private val lsFields = Seq[String](
+    "uuid",
+    "expid",
+    "runcode",
+    "path",
+    "pa_version",
+    "ics_version",
+    "well",
+    "context",
+    "created_at",
+    "inst_name",
+    "instid")
+
   // serves as PreparedStatement template and lock for dedicated connection
-  private val lsMergeT = s"MERGE INTO LIMS_SUBREADSET (uuid, expid, runcode, json) VALUES (?,?,?,?);"
+  private val lsMergeT = s"MERGE INTO LIMS_SUBREADSET (${lsFields.mkString(",")}) VALUES (${lsFields.map(_ => "?").mkString(",")});"
   private val lsSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE uuid = ?;"
   private val aliasMergeT = "MERGE INTO ALIAS (alias, uuid, type) VALUES (?, ?, ?)"
   private val aliasSelectT = "SELECT * FROM LIMS_SUBREADSET WHERE uuid = (SELECT UUID FROM ALIAS WHERE ALIAS = ?);"
@@ -64,16 +77,18 @@ trait H2Database extends Database {
     }
   }
 
-  def doSetSubread(u: UUID, e: Int, rc: String, json: JsValue)(ps: PreparedStatement): String = {
-    ps.setString(1, u.toString)
-    ps.setInt(2, e)
-    ps.setString(3, rc)
-    ps.setClob(4, new StringReader(json.toString))
-    if (ps.executeUpdate() == 1) s"Merged: $u" else throw new Exception(s"Couldn't merge: $u")
+  def doSetSubread(l: LimsSubreadSet)(ps: PreparedStatement): String = {
+    for ((x, i) <- LimsSubreadSet.unapply(l).get.productIterator.toList.view.zipWithIndex)
+      x match {
+        case x: String => ps.setString(i+1, x)
+        case x: UUID => ps.setString(i+1, x.toString)
+        case x: Int => ps.setInt(i+1, x)
+      }
+    if (ps.executeUpdate() == 1) s"Merged: $l" else throw new Exception(s"Couldn't merge: $l")
   }
 
-  override def setSubread(uuid: UUID, exp: Int, rc: String, json: JsValue): String = {
-    use[String](lsMergeT, doSetSubread(uuid, exp, rc, json))
+  override def setSubread(l: LimsSubreadSet): String = {
+    use[String](lsMergeT, doSetSubread(l))
   }
 
   def doAliasMerge(a: String, uuid: UUID, typ: String)(ps: PreparedStatement) : String = {
@@ -126,12 +141,18 @@ trait H2Database extends Database {
   private def subreads(rs: ResultSet) : Seq[LimsSubreadSet] = {
     val buf = ArrayBuffer[LimsSubreadSet]()
     while (rs.next()) buf.append(
-      new LimsSubreadSet(
-      uuid = UUID.fromString(rs.getString("uuid")),
-      expid = rs.getInt("expid"),
-      runcode = rs.getString("runcode"),
-      json = rs.getString("json").parseJson
-    ))
+      LimsSubreadSet(
+        uuid = UUID.fromString(rs.getString("uuid")),
+        expid = rs.getInt("expid"),
+        runcode = rs.getString("runcode"),
+        path = rs.getString("path"),
+        pa_version = rs.getString("pa_version"),
+        ics_version = rs.getString("ics_version"),
+        well = rs.getString("well"),
+        context = rs.getString("context"),
+        created_at = rs.getString("created_at"),
+        inst_name = rs.getString("inst_name"),
+        instid = rs.getInt("instid")))
     rs.close()
     buf.toList
   }
@@ -160,15 +181,20 @@ object H2TableCreate {
       |  uuid UUID,
       |  expid INT,
       |  runcode VARCHAR,
-      |  json CLOB,
-      |  PRIMARY KEY (uuid, expid, runcode)
-      |);
+      |  path VARCHAR,
+      |  pa_version VARCHAR,
+      |  ics_version VARCHAR,
+      |  well VARCHAR,
+      |  context VARCHAR,
+      |  created_at VARCHAR,
+      |  inst_name VARCHAR,
+      |  instid INT,
+      |  PRIMARY KEY (uuid, expid, runcode));
       |-- this exists only in this service. arbitrary aliases or short codes
       |CREATE TABLE IF NOT EXISTS ALIAS (
       |  alias VARCHAR PRIMARY KEY,
       |  uuid UUID,
-      |  type VARCHAR
-      |);
+      |  type VARCHAR);
       |-- two indexes to support the queries that PK indexes don't cover
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_runcode ON LIMS_SUBREADSET(RUNCODE);
       |CREATE INDEX IF NOT EXISTS index_lims_subreadset_uuid ON LIMS_SUBREADSET(expid);
