@@ -1,7 +1,7 @@
 package com.pacbio.secondary.lims.tools
 
 
-import java.io.File
+import java.nio.file.Files
 import java.net.URL
 import java.nio.file.{Path, Paths}
 import java.util.UUID
@@ -14,12 +14,14 @@ import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import com.pacbio.secondaryinternal.tools.CommonClientToolRunner
 import spray.client.pipelining._
 import spray.http._
+
+import scala.collection.JavaConversions._
 
 
 class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
@@ -71,7 +73,6 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
 object Modes {
   sealed trait Mode { val name: String }
   case object IMPORT extends Mode { val name = "import"}
-  //case object FIND_AND_IMPORT extends Mode { val name = "find_and_import"} // TODO: add dir scan
   case object GET_EXPID extends Mode { val name = "get-expid"}
   case object GET_RUNCODE extends Mode { val name = "get-runcode"}
   case object GET_UUID extends Mode { val name = "get-uuid"}
@@ -92,10 +93,28 @@ case class CustomConfig(
 
 trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move CommonClientToolRunner out of analysis? ATM, it is the only dep requiring smrtServerAnalysisInternal
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   def runImportLimsYml(host: String, port: Int, path: Path): Int =
     runAwaitWithActorSystem[String](defaultSummary[String]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
-      client.importLimsSubreadSetReport(path)
+      path.toFile.exists() match {
+        case false => throw new Exception(s"Path $path is not a file or directory.")
+        case _ => path.toFile.isDirectory match {
+          case false => client.importLimsSubreadSetReport(path)
+          case _ => {
+            val work = for {
+              p <- Files.walk(path).iterator() if p.getFileName() == "lims.yml"
+            } yield client.importLimsSubreadSetReport(p)
+            Future{
+              work.map(p => {
+                println(Await.result(p, 10 seconds))
+              })
+              s"Batch import attempted on ${work.size} files"
+            }
+          }
+        }
+      }
     }
 
   def runGetSubreadsByRuncode(host: String, port: Int, runcode: String): Int =
@@ -144,7 +163,7 @@ trait LimsClientToolParser {
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
         opt[String]("path") action { (x, c) => c.copy(path = Paths.get(x)) } text s"Path of lims.yml file"
-        ) text "Import lims.yml + .subreadset.xml file via file upload"
+        ) text "Import lims.yml + .subreadset.xml file via file upload. If the path is a file, only that file is uploaded. If a directory, it is recursively scanned for lims.yml files to upload."
 
     cmd(Modes.GET_RUNCODE.name) action { (_, c) =>
       c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
@@ -168,7 +187,7 @@ trait LimsClientToolParser {
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
         opt[Int]("uuid") action { (x, c) => c.copy(expid = x) } text s"Lookup LimsSubreadSet by UUID"
-        ) text "Lookup LimsSubreadSet entries by expid"
+        ) text "Lookup LimsSubreadSet entry by UUID in .subreadset.xml file"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
