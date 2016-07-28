@@ -1,17 +1,13 @@
 package com.pacbio.secondary.lims.database.h2
 
-import java.io.StringReader
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 import java.util.UUID
 
-import com.pacbio.secondary.lims.LimsJsonProtocol.LimsTypes
 import com.pacbio.secondary.lims.LimsSubreadSet
 import com.pacbio.secondary.lims.database.{Database, JdbcDatabase}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import spray.json._
-
 
 
 /**
