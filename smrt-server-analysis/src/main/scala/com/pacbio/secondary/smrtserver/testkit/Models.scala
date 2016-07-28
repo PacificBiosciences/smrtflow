@@ -77,7 +77,21 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
       }
     }
   }
+/*
+  implicit object reportRuleFormat extends JsonFormat[ReportTestRules] {
+    def write(rtr: ReportTestRules) = JsObject(
+      "reportId" -> rtr.reportId,
+      "rules" -> rtr.rules.toJson)
 
+    def read(jsValue: jsValue): ReportTestRules = {
+      jsValue.asJsObject.getFields("reportId", "rules") match {
+        case Seq(JsString(id), JsArray(rules)) => {
+        }
+        case x => deserializationError(s"Expected report test rule, got ${x}")
+      }
+    }
+
+  }*/
   implicit val reportRulesFormat = jsonFormat2(ReportTestRules)
   implicit val testkitConfigFormat = jsonFormat8(TestkitConfig)
 }
