@@ -78,7 +78,47 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
     }
   }
 
-  implicit val reportRulesFormat = jsonFormat2(ReportTestRules)
+  /*
+   * We could just use jsonFormat2 for ReportTestRules, but this code allows
+   * us to use a shorthand for specifying expected attribute values, e.g.:
+   *
+   *   "rules": {
+   *     "alpha": 1234,
+   *     "beta__ge": 0.5678
+   *   }
+   *
+   * instead of the more literal format (which can still be used, but not at
+   * the same time).
+   */
+  implicit object reportRulesFormat extends JsonFormat[ReportTestRules] {
+    def write(rtr: ReportTestRules) = JsObject(
+      "reportId" -> JsString(rtr.reportId),
+      "rules" -> rtr.rules.toJson)
+
+    def read(jsValue: JsValue): ReportTestRules = {
+      jsValue.asJsObject.getFields("reportId", "rules") match {
+        case Seq(JsString(rptId), JsArray(rules)) =>
+          ReportTestRules(rptId, rules.map(_.convertTo[ReportAttributeRule]))
+        case Seq(JsString(rptId), JsObject(rules)) => {
+          ReportTestRules(rptId, (for ((k,v) <- rules) yield {
+            val keyFields = k.split("__")
+            val id = keyFields(0)
+            val op = if (keyFields.size == 2) keyFields(1) else "eq"
+            v match {
+              case JsNumber(nv) => {
+                if (nv.isValidInt) ReportAttributeLongRule(id, nv.toLong, op)
+                else ReportAttributeDoubleRule(id, nv.toDouble, op)
+              }
+              case JsString(sv) => ReportAttributeStringRule(id, sv, op)
+              case x => deserializationError(s"Expected report attribute rule, got ${x}")
+            }
+          }).toList)
+        }
+        case x => deserializationError(s"Expected report test rule, got ${x}")
+      }
+    }
+  }
+
   implicit val testkitConfigFormat = jsonFormat8(TestkitConfig)
 }
 

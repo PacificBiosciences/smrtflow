@@ -235,10 +235,16 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   protected def runImportDataSetTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
     val dsPath = cfg.entryPoints(0).path.toString
-    val dsType = dsMetaTypeFromPath(dsPath)
+    val dsUuid = dsUuidFromPath(dsPath)
+    var dsType = dsMetaTypeFromPath(dsPath)
     // XXX should this automatically recover an existing job if present, or
     // always import again?
-    Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+    Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
+      case Success(dsInfo) =>
+        Await.result(sal.getJobById(dsInfo.jobId), TIMEOUT)
+      case Failure(err) =>
+        Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+    }
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
@@ -254,10 +260,12 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       }
     } match {
       case Success(jobInfo) => {
-        println(s"Job ${jobInfo.uuid} started")
         printJobInfo(jobInfo)
         jobId = jobInfo.id
-        waitForJob(jobInfo.uuid)
+        if (! jobInfo.isComplete) {
+          println(s"Job ${jobInfo.uuid} started")
+          waitForJob(jobInfo.uuid)
+        } else if (jobInfo.isSuccessful) 0 else 1
       }
       case Failure(err) => errorExit(err.getMessage)
     }

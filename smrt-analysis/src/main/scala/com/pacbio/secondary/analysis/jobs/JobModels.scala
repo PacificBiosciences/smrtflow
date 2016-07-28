@@ -127,6 +127,9 @@ object JobModels {
       jsonSettings: String,
       createdBy: Option[String]) {
 
+      def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
+      def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
+
       def apply(
           id: Int,
           uuid: UUID,
