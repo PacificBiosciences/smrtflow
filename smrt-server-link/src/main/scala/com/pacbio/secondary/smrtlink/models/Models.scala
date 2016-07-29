@@ -539,14 +539,16 @@ case class FullProject(
     members: Seq[ProjectUserResponse])
 
 // the json structures required in client requests are a subset of the
-// FullProject structure
+// FullProject structure (the FullProject is a valid request, but many
+// fields are optional in requests).
 case class ProjectRequest(
-    id: Option[Int],
     name: String,
     description: String,
+    // if any of these are None in a PUT request, the corresponding
+    // value will stay the same (i.e., the update will be skipped).
     state: Option[String],
-    datasets: Seq[RequestId],
-    members: Seq[ProjectRequestUser])
+    datasets: Option[Seq[RequestId]],
+    members: Option[Seq[ProjectRequestUser]])
 
 case class RequestId(id: Int)
 case class RequestUser(login: String)
@@ -554,9 +556,6 @@ case class ProjectRequestUser(user: RequestUser, role:String)
 
 case class ProjectUser(projectId: Int, login: String, role: String)
 
-//case class ProjectRequest(name: String, state: String, description: String)
-
-//case class ProjectUserRequest(login: String, role: String)
 case class ProjectUserResponse(user: UserResponse, role: String)
 
 case class UserProjectResponse(role: Option[String], project: Project)

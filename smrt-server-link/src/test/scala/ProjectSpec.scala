@@ -87,8 +87,8 @@ with SmrtLinkConstants {
   val totalRoutes = TestProviders.projectService().prefixedRoutes
   val dbURI = TestProviders.dbURI()
 
-  val newProject = ProjectRequest(None, "TestProject", "Test Description", Some("CREATED"), List(), List())
-  val newProject2 = ProjectRequest(None, "TestProject2", "Test Description", Some("ACTIVE"), List(), List())
+  val newProject = ProjectRequest("TestProject", "Test Description", Some("CREATED"), None, None)
+  val newProject2 = ProjectRequest("TestProject2", "Test Description", Some("ACTIVE"), None, None)
 
   val newUser = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Write")
   val newUser2 = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Read")
@@ -121,8 +121,6 @@ with SmrtLinkConstants {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         newProjMembers = proj.members.map(x => ProjectRequestUser(RequestUser(x.user.login), x.role))
-        println(proj)
-        println(newProjMembers)
         newProjId = proj.id
         proj.name === proj.name
         proj.state === "CREATED"
@@ -149,7 +147,7 @@ with SmrtLinkConstants {
     }
 
     "update a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.name === newProject2.name
@@ -157,19 +155,8 @@ with SmrtLinkConstants {
       }
     }
 
-    // "list initial project users" in {
-    //   Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-    //     status.isSuccess must beTrue
-    //     val userJson = responseAs[String].parseJson
-    //     userJson match {
-    //       case JsArray(x) => x.length === 1
-    //       case _ => ko
-    //     }
-    //   }
-    // }
-
     "add and remove a user to/from a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
@@ -180,7 +167,7 @@ with SmrtLinkConstants {
         proj.members.length === 2
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
@@ -193,7 +180,7 @@ with SmrtLinkConstants {
     }
 
     "add a user and change change their role in a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
@@ -204,14 +191,13 @@ with SmrtLinkConstants {
         user(0).role === newUser.role
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser2))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser2)))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        println(s"project $newProjId users: " + users)
         val user = users.filter(_.user.login == newUser2.user.login)
         user(0).role === newUser2.role
       }
@@ -234,7 +220,7 @@ with SmrtLinkConstants {
         proj.datasets.size === 0
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = List(RequestId(movingDsId)), members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
@@ -269,8 +255,26 @@ with SmrtLinkConstants {
       }
     }
 
+    "round trip a project" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val proj = responseAs[FullProject]
+
+        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", proj) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+          status.isSuccess must beTrue
+          val roundTripProj = responseAs[FullProject]
+          proj.name === roundTripProj.name
+          proj.description === roundTripProj.description
+          proj.state === roundTripProj.state
+          proj.datasets.map(_.id) === roundTripProj.datasets.map(_.id)
+          proj.members.map(_.user.login) === roundTripProj.members.map(_.user.login)
+          proj.members.map(_.role) === roundTripProj.members.map(_.role)
+        }
+      }
+    }
+
     "move datasets back to general project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List()))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 

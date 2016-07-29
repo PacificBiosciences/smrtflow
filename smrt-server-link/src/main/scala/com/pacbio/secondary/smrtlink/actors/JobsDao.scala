@@ -70,8 +70,9 @@ trait ProjectDataStore extends LazyLogging {
 
   def createProject(projReq: ProjectRequest, ownerLogin: String): Future[Project] = {
     val owner = ProjectRequestUser(RequestUser(ownerLogin), "Owner")
-    val usersWithOwner = projReq.members.filter(_.user.login != ownerLogin) ++ List(owner)
-    val requestWithOwner = projReq.copy(members = usersWithOwner)
+    val members = projReq.members.getOrElse(List())
+    val withOwner = members.filter(_.user.login != ownerLogin) ++ List(owner)
+    val requestWithOwner = projReq.copy(members = Some(withOwner))
 
     val now = JodaDateTime.now()
     val proj = Project(-99, projReq.name, projReq.description, "CREATED", now, now)
@@ -80,11 +81,15 @@ trait ProjectDataStore extends LazyLogging {
     db.run(fullAction.transactionally)
   }
 
-  def setMembersAndDatasets(proj: Project, projReq: ProjectRequest): DBIO[Project] =
-    DBIO.seq(
-      setProjectMembers(proj.id, projReq.members),
-      setProjectDatasets(proj.id, projReq.datasets)
-    ).andThen(DBIO.successful(proj))
+  def setMembersAndDatasets(proj: Project, projReq: ProjectRequest): DBIO[Project] = {
+    // skip updating member/dataset lists if the request doesn't include those
+    val updates = List(
+      projReq.members.map(setProjectMembers(proj.id, _)),
+      projReq.datasets.map(setProjectDatasets(proj.id, _))
+    ).flatten
+
+    DBIO.sequence(updates).andThen(DBIO.successful(proj))
+  }
 
   def setProjectMembers(projId: Int, members: Seq[ProjectRequestUser]): DBIO[Unit] =
     DBIO.seq(
