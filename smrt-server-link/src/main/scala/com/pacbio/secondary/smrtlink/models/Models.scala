@@ -502,19 +502,61 @@ case class GmapReferenceServiceDataSet(
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
 
+// Project models
+
+// We have a simpler (cheaper to query) project case class for the API
+// response that lists many projects,
 case class Project(
     id: Int,
     name: String,
     description: String,
     state: String,
     createdAt: JodaDateTime,
-    updatedAt: JodaDateTime)
+    updatedAt: JodaDateTime) {
+
+  def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectUserResponse]): FullProject =
+    FullProject(
+      id,
+      name,
+      description,
+      state,
+      createdAt,
+      updatedAt,
+      datasets,
+      members)
+}
+
+// and a more detailed case class for the API responses involving
+// individual projects.
+case class FullProject(
+    id: Int,
+    name: String,
+    description: String,
+    state: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    datasets: Seq[DataSetMetaDataSet],
+    members: Seq[ProjectUserResponse])
+
+// the json structures required in client requests are a subset of the
+// FullProject structure
+case class ProjectRequest(
+    id: Option[Int],
+    name: String,
+    description: String,
+    state: Option[String],
+    datasets: Seq[RequestId],
+    members: Seq[ProjectRequestUser])
+
+case class RequestId(id: Int)
+case class RequestUser(login: String)
+case class ProjectRequestUser(user: RequestUser, role:String)
 
 case class ProjectUser(projectId: Int, login: String, role: String)
 
-case class ProjectRequest(name: String, state: String, description: String)
+//case class ProjectRequest(name: String, state: String, description: String)
 
-case class ProjectUserRequest(login: String, role: String)
+//case class ProjectUserRequest(login: String, role: String)
 case class ProjectUserResponse(user: UserResponse, role: String)
 
 case class UserProjectResponse(role: Option[String], project: Project)

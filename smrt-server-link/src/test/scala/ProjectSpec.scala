@@ -31,6 +31,7 @@ with NoTimeConversions
 with Specs2RouteTest
 with SetupMockData
 with JobServiceConstants
+with BaseRolesInit
 with SmrtLinkConstants {
 
   sequential
@@ -86,16 +87,16 @@ with SmrtLinkConstants {
   val totalRoutes = TestProviders.projectService().prefixedRoutes
   val dbURI = TestProviders.dbURI()
 
-  val newProject = ProjectRequest("TestProject", "CREATED", "Test Description")
-  val newProject2 = ProjectRequest("TestProject2", "CREATED", "Test Description")
+  val newProject = ProjectRequest(None, "TestProject", "Test Description", Some("CREATED"), List(), List())
+  val newProject2 = ProjectRequest(None, "TestProject2", "Test Description", Some("ACTIVE"), List(), List())
 
-  val newUser = ProjectUserRequest(WRITE_USER_2_LOGIN, "WRITER")
-  val newUser2 = ProjectUserRequest(WRITE_USER_2_LOGIN, "READER")
+  val newUser = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Write")
+  val newUser2 = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Read")
 
   var newProjId = 0
+  var newProjMembers: Seq[ProjectRequestUser] = List()
   var dsCount = 0
   var movingDsId = 0
-  var movingDsUuid = UUID.randomUUID()
 
   def dbSetup() = {
     println("Running db setup")
@@ -118,9 +119,13 @@ with SmrtLinkConstants {
     "create a new project" in {
       Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val proj = responseAs[Project]
+        val proj = responseAs[FullProject]
+        newProjMembers = proj.members.map(x => ProjectRequestUser(RequestUser(x.user.login), x.role))
+        println(proj)
+        println(newProjMembers)
         newProjId = proj.id
-        proj.name === newProject.name
+        proj.name === proj.name
+        proj.state === "CREATED"
       }
     }
 
@@ -135,152 +140,114 @@ with SmrtLinkConstants {
     "get a specific project" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val proj = responseAs[Project]
+        val proj = responseAs[FullProject]
         proj.id === newProjId
+        proj.members.length === 1
+        proj.members(0).user.login === WRITE_USER_1_LOGIN
+        proj.members(0).role === "Owner"
       }
     }
 
     "update a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val proj = responseAs[Project]
+        val proj = responseAs[FullProject]
         proj.name === newProject2.name
+        proj.state === newProject2.state.get
       }
     }
 
-    "list initial project users" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-        val userJson = responseAs[String].parseJson
-        userJson match {
-          case JsArray(x) => x.length === 1
-          case _ => ko
-        }
-      }
-    }
+    // "list initial project users" in {
+    //   Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+    //     status.isSuccess must beTrue
+    //     val userJson = responseAs[String].parseJson
+    //     userJson match {
+    //       case JsArray(x) => x.length === 1
+    //       case _ => ko
+    //     }
+    //   }
+    // }
 
     "add and remove a user to/from a project" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users", newUser) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val userJson = responseAs[String].parseJson
-        userJson match {
-          case JsArray(x) => x.length === 2
-          case _ => ko
-        }
+        val proj = responseAs[FullProject]
+        proj.id === newProjId
+        proj.members.length === 2
       }
 
-      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users/${newUser.login}") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val userJson = responseAs[String].parseJson
-        userJson match {
-          case JsArray(x) => x.length === 1
-          case _ => ko
-        }
+        val proj = responseAs[FullProject]
+        proj.id === newProjId
+        proj.members.length === 1
       }
     }
 
     "add a user and change change their role in a project" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users", newUser) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      def userHasRole(projectUserList: Vector[JsValue], login: String, role: String): Boolean = {
-        val nu = projectUserList.filter({
-          case JsObject(y) => y("user") match {
-            case JsObject(z) => z("login") == JsString(login)
-            case _ => false
-          }
-          case _ => false
-        })
-        nu.head match {
-          case JsObject(y) => y("role") == JsString(role)
-          case _ => false
-        }
-      }
-
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        // this doesn't work for reasons I don't understand
-        // val users = responseAs[Seq[ProjectUserResponse]]
-
-        val userJson = responseAs[String].parseJson
-        userJson match {
-          case JsArray(userVec) => {
-            userVec.length === 2
-            userHasRole(userVec, newUser.login, newUser.role) must beTrue
-          }
-          case _ => ko
-        }
+        val users = responseAs[FullProject].members
+        val user = users.filter(_.user.login == newUser.user.login)
+        user(0).role === newUser.role
       }
 
-      Post(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users", newUser2) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers ++ List(newUser2))) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/users") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-
-        val userJson = responseAs[String].parseJson
-        userJson match {
-          case JsArray(userVec) => {
-            userVec.length === 2
-            userHasRole(userVec, newUser2.login, newUser2.role) must beTrue
-          }
-          case _ => ko
-        }
+        val users = responseAs[FullProject].members
+        println(s"project $newProjId users: " + users)
+        val user = users.filter(_.user.login == newUser2.user.login)
+        user(0).role === newUser2.role
       }
     }
 
     "return a list of datasets in a project" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        movingDsId = dsets(0).id
-        movingDsUuid = dsets(1).uuid
-        dsCount = dsets.size
-        dsets.size >= 1
+        val proj = responseAs[FullProject]
+        movingDsId = proj.datasets(0).id
+        dsCount = proj.datasets.size
+        dsCount >= 1
       }
     }
 
     "move datasets to a new project" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        dsets.size === 0
+        val proj = responseAs[FullProject]
+        proj.datasets.size === 0
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets/$movingDsId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        dsets.size === 1
-      }
-
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets/$movingDsUuid") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = List(RequestId(movingDsId)), members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        dsets.size === 2
+        val proj = responseAs[FullProject]
+        proj.datasets.size === 1
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        dsets.size === (dsCount - 2)
+        val proj = responseAs[FullProject]
+        proj.datasets.size === (dsCount - 1)
       }
     }
 
@@ -288,6 +255,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/user-projects/$WRITE_USER_1_LOGIN") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
+        println(results)
         results.size === 2 // the general project from dbSetup, plus
                            // the project from the creation test above
       }
@@ -302,29 +270,19 @@ with SmrtLinkConstants {
     }
 
     "move datasets back to general project" in {
-      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets/$movingDsId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = newProjMembers)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
-        dsets.size === 1
-      }
-
-      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets/$movingDsUuid") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
+        val dsets = responseAs[FullProject].datasets
         dsets.size === 0
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID/datasets") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        val dsets = responseAs[Seq[DataSetMetaDataSet]]
+        val dsets = responseAs[FullProject].datasets
         dsets.size === dsCount
       }
     }

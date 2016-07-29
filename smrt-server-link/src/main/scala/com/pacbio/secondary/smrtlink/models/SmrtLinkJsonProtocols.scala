@@ -167,8 +167,9 @@ trait SmrtLinkJsonProtocols
   implicit val mergeDataSetOptionFormat = jsonFormat3(MergeDataSetOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
+  implicit val fullProjectFormat: RootJsonFormat[FullProject] = cachedImplicit
   implicit val projectRequestFormat: RootJsonFormat[ProjectRequest] = cachedImplicit
-  implicit val projectUserRequestFormat: RootJsonFormat[ProjectUserRequest] = cachedImplicit
+  implicit val projectUserRequestFormat: RootJsonFormat[ProjectRequestUser] = cachedImplicit
   implicit val projectUserResponseFormat: RootJsonFormat[ProjectUserResponse] = cachedImplicit
 }
 
