@@ -245,10 +245,10 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockProject(): Future[Unit] = {
-    val projectId = 1
+    val projectId = 2
     dao.db.run(
       DBIO.seq(
-        projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
+        projects += Project(projectId, "Project 2", "Project 2 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
         projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
       )
     )

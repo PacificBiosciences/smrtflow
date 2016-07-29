@@ -31,21 +31,26 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     "0.1.0",
     "Project create/read/update")
 
+  def fullProject(proj: Project): Future[FullProject] =
+    for {
+      datasets <- jobsDao.getDatasetsByProject(proj.id)
+      dbUsers <- jobsDao.getProjectUsers(proj.id)
+      apiUsers <- Future.sequence(dbUsers.map(u => userDao.getUser(u.login)))
+      userResponses = (dbUsers, apiUsers).zipped.map((u, au) =>
+        ProjectUserResponse(au.toResponse(), u.role))
+    } yield proj.makeFull(datasets, userResponses)
+
   val routes =
     pathPrefix("projects") {
       authenticate(authenticator.jwtAuth) { authInfo =>
         pathEndOrSingleSlash {
           post {
             entity(as[ProjectRequest]) { sopts =>
-              val owner = ProjectUserRequest(authInfo.login, "OWNER")
-              val project = for {
-                proj <- jobsDao.createProject(sopts)
-                addUser <- jobsDao.addProjectUser(proj.id, owner)
-              } yield proj
-
               complete {
                 created {
-                  project
+                  jobsDao
+                    .createProject(sopts, authInfo.login)
+                    .flatMap(fullProject)
                 }
               }
             }
@@ -64,89 +69,20 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
-                    jobsDao.updateProject(projId, sopts)
-                      .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find project $projId")))
-                  }
-                }
-              }
-            } ~
-            get {
-              complete {
-                ok {
-                  jobsDao.getProjectById(projId)
-                    .map(_.getOrElse(throw new ResourceNotFoundError(s"Unable to find project $projId")))
-                }
-              }
-            }
-          } ~
-          pathPrefix("users") {
-            pathEndOrSingleSlash {
-              post {
-                entity(as[ProjectUserRequest]) { newUser =>
-                  complete {
-                    created {
-                      jobsDao.addProjectUser(projId, newUser)
+                    jobsDao.updateProject(projId, sopts).flatMap {
+                      case Some(proj) => fullProject(proj)
+                      case None => throw new ResourceNotFoundError(s"Unable to find project $projId")
                     }
                   }
                 }
-              } ~
-              get {
-                complete {
-                  ok {
-                    for {
-                      users <- jobsDao.getProjectUsers(projId)
-                      apiUsers <- Future.sequence(users.map(u => userDao.getUser(u.login)))
-                    } yield (users, apiUsers).zipped.map((u, au) => ProjectUserResponse(au.toResponse(), u.role))
-                  }
-                }
               }
             } ~
-            path(Segment) { userName =>
-              delete {
-                complete {
-                  ok {
-                    jobsDao.deleteProjectUser(projId, userName)
-                  }
-                }
-              }
-            }
-          } ~
-          pathPrefix("datasets") {
             get {
               complete {
                 ok {
-                  jobsDao.getDatasetsByProject(projId)
-                }
-              }
-            } ~
-            path(IntNumber) { dsId =>
-              put {
-                complete {
-                  ok {
-                    jobsDao.setProjectForDatasetId(dsId, projId)
-                  }
-                }
-              } ~
-              delete {
-                complete {
-                  ok {
-                    jobsDao.setProjectForDatasetId(dsId, GENERAL_PROJECT_ID)
-                  }
-                }
-              }
-            } ~
-            path(JavaUUID) { dsId =>
-              put {
-                complete {
-                  ok {
-                    jobsDao.setProjectForDatasetUuid(dsId, projId)
-                  }
-                }
-              } ~
-              delete {
-                complete {
-                  ok {
-                    jobsDao.setProjectForDatasetUuid(dsId, GENERAL_PROJECT_ID)
+                  jobsDao.getProjectById(projId).flatMap {
+                    case Some(proj) => fullProject(proj)
+                    case None => throw new ResourceNotFoundError(s"Unable to find project $projId")
                   }
                 }
               }
