@@ -206,6 +206,7 @@ with DirectoryResourceProtocol
   implicit val subSystemResourceFormat = jsonFormat8(SubsystemResource)
   implicit val subSystemResourceRecordFormat = jsonFormat5(SubsystemResourceRecord)
   implicit val subSystemConfigFormat = jsonFormat3(SubsystemConfig)
+  implicit val pbMessageResponseFormat = jsonFormat1(MessageResponse)
 }
 
 

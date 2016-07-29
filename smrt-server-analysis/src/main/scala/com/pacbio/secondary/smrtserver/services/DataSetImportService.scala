@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.common.models.{MessageResponse, PacBioComponentManifest}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobsBaseMicroService
@@ -81,7 +81,7 @@ class DataSetImportService(dbActor: ActorRef) extends JobsBaseMicroService {
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  (dbActor ? ImportReferenceDataSetFromFile(r.path)).mapTo[String]
+                  (dbActor ? ImportReferenceDataSetFromFile(r.path)).mapTo[MessageResponse]
                 }
               }
             }
@@ -94,7 +94,7 @@ class DataSetImportService(dbActor: ActorRef) extends JobsBaseMicroService {
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  (dbActor ? ImportSubreadDataSetFromFile(r.path)).mapTo[String]
+                  (dbActor ? ImportSubreadDataSetFromFile(r.path)).mapTo[MessageResponse]
                 }
               }
             }
@@ -109,7 +109,7 @@ class DataSetImportService(dbActor: ActorRef) extends JobsBaseMicroService {
               respondWithMediaType(MediaTypes.`application/json`) {
                 complete {
                   created {
-                    (dbActor ? ConvertReferenceInfoToDataset(r.path, Paths.get("tmp.dataset.xml"))).mapTo[String]
+                    (dbActor ? ConvertReferenceInfoToDataset(r.path, Paths.get("tmp.dataset.xml"))).mapTo[MessageResponse]
                   }
                 }
               }

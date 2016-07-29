@@ -62,11 +62,9 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
             } ~
             delete {
               authorize(authInfo.hasPermission(CLEANUP_ADMIN)) {
-                respondWithMediaType(MediaTypes.`application/json`) {
-                  complete {
-                    ok {
-                      cleanupDao.deleteJob(id)
-                    }
+                complete {
+                  ok {
+                    cleanupDao.deleteJob(id)
                   }
                 }
               }

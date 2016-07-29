@@ -520,12 +520,3 @@ case class ProjectUserResponse(user: UserResponse, role: String)
 case class UserProjectResponse(role: Option[String], project: Project)
  
 case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[String])
-
-// Some endpoints were originally implemented to return string-typed
-// responses, but the smrt-link client has been sending an Accept:
-// application/json header for all requests.  With that request
-// header, the server was responding with a 406 for the
-// string-response-typed endpoints.  Those string-returning endpoints
-// were mostly returning success/failure messages, so they can use
-// this class instead to return a json-typed message response.
-case class MessageResponse(message: String)

@@ -3,7 +3,7 @@ package com.pacbio.common.database
 import com.pacbio.common.actors.{UserDao, UserDaoProvider}
 import com.pacbio.common.auth.{ApiUser, JwtUtils, JwtUtilsProvider, Role}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.UserRecord
+import com.pacbio.common.models.{MessageResponse, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors
 import com.unboundid.ldap.sdk._
 import resource._
@@ -116,7 +116,7 @@ class LdapUserDao(
     Future.failed(new MethodNotImplementedError("CreateUser method not implemented for LDAP User DAO."))
 
   // TODO(smcclellan): Implement deleteUser for LDAP?
-  override def deleteUser(login: String): Future[String] =
+  override def deleteUser(login: String): Future[MessageResponse] =
     Future.failed(new MethodNotImplementedError("DeleteUser method not implemented for LDAP User DAO."))
 
   // TODO(smcclellan): Implement addRole for LDAP?

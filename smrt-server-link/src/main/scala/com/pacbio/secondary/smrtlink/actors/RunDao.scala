@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
 import com.pacbio.secondary.smrtlink.models._
 
@@ -39,7 +40,7 @@ trait RunDao {
   /**
    * Deletes a run design.
    */
-  def deleteRun(id: UUID): Future[String]
+  def deleteRun(id: UUID): Future[MessageResponse]
 
   /**
    * Provides a list of all CollectionMetadata for a given run.
@@ -121,11 +122,11 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
       throw new ResourceNotFoundError(s"Unable to find resource $id")
   }
 
-  override final def deleteRun(id: UUID): Future[String] = Future {
+  override final def deleteRun(id: UUID): Future[MessageResponse] = Future {
     if (runs contains id) {
       runs -= id
       collections -= id
-      s"Successfully deleted run design $id"
+      MessageResponse(s"Successfully deleted run design $id")
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $id")
   }

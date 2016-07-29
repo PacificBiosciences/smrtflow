@@ -5,6 +5,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors._
 import com.pacbio.common.time.{ClockProvider, Clock}
 import com.pacbio.secondary.smrtlink.models.{RegistryResourceUpdate, RegistryProxyRequest, RegistryResourceCreate, RegistryResource}
@@ -21,7 +22,7 @@ trait RegistryDao {
   def getResource(uuid: UUID): RegistryResource
   def createResource(create: RegistryResourceCreate): RegistryResource
   def updateResource(uuid: UUID, update: RegistryResourceUpdate): RegistryResource
-  def deleteResource(uuid: UUID): String
+  def deleteResource(uuid: UUID): MessageResponse
   def proxyRequest(uuid: UUID, req: RegistryProxyRequest): HttpResponse[Array[Byte]]
 }
 
@@ -68,11 +69,11 @@ class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $uuid")
 
-  override def deleteResource(uuid: UUID): String =
+  override def deleteResource(uuid: UUID): MessageResponse =
     if (resources contains uuid) {
       resourcesById -= resources(uuid).resourceId
       resources -= uuid
-      s"Successfully deleted resource $uuid"
+      MessageResponse(s"Successfully deleted resource $uuid")
     } else
       throw new ResourceNotFoundError(s"Unable to find resource $uuid")
 
