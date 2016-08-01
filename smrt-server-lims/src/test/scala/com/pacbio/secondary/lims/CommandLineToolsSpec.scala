@@ -33,6 +33,9 @@ class TestInternalServiceActor
         |  host = "$testHost"
         |  port = $testPort
         |}""".stripMargin)
+
+  // need to make the tables before test run or else slower CI such as CircleCI timeout
+  createTables()
 }
 
 /**
