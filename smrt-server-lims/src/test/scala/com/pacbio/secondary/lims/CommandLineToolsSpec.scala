@@ -59,7 +59,7 @@ class CommandLineToolsSpec
 
   def actorRefFactory = system
 
-  private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
+  private implicit val timeout = RouteTestTimeout(new FiniteDuration(20, TimeUnit.SECONDS))
 
   // force these tests to run sequentially since later tests rely on logic in earlier tests
   sequential
