@@ -34,9 +34,11 @@ object LimsJsonProtocol {
   val uuidRegex = "/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/".r
 
   implicit object UUIDJsonFormat extends JsonFormat[UUID] {
-    def write(x: UUID) = JsString(x.toString)
-    def read(value: JsValue) = value match {
+    def write(obj: UUID): JsValue = JsString(obj.toString)
+
+    def read(json: JsValue): UUID = json match {
       case JsString(x) => UUID.fromString(x)
+      case _ => deserializationError("Expected UUID as JsString")
     }
   }
 
