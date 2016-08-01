@@ -1,30 +1,20 @@
 package com.pacbio.secondary.lims
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintStream}
-import java.nio.file.{Files, Path, Paths}
+import java.io.{ByteArrayOutputStream, PrintStream}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import akka.actor.Props
 import akka.io.IO
-import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.lims.LimsJsonProtocol._
-import com.pacbio.secondary.lims.database.TestDatabase
-import com.pacbio.secondary.lims.services.{ImportLims, ResolveDataSet}
-import com.pacbio.secondary.lims.tools.LimsClient
 import com.pacbio.secondary.lims.util.MockUtil
-import com.pacificbiosciences.pacbiodatasets.SubreadSet
 import com.typesafe.config.ConfigFactory
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
 import spray.can.Http
-import spray.http._
-import spray.json.DefaultJsonProtocol._
-import spray.json._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.util.{Failure, Success, Try}
 import com.pacbio.secondary.lims.tools.LimsClientToolsApp
 
 
@@ -43,17 +33,10 @@ class TestInternalServiceActor
         |  host = "$testHost"
         |  port = $testPort
         |}""".stripMargin)
-  println("Made the test actor.")
 }
 
 /**
- * Tests using POST to import data and GET to resolve the respective UUID
- *
- * This is a simple integration test that ensures several things.
- *
- * - Routes are wired correctly and work
- * - lims.yml import works
- * - Full UUID and short UUID resolution works
+ * Runs the CLI and API equivalent against mock data to assert the code paths work as expected
  */
 class CommandLineToolsSpec
   extends Specification
@@ -81,13 +64,11 @@ class CommandLineToolsSpec
   val uuid = UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1")
   val expid = 3220001
   val runcode = "3220001-0006"
-  val alias = "Foo"
-  val alias2 = "Bar"
   val tracefile = "m54003_160212_165114.trc.h5"
   // temp directory used for import
   val dir = Files.createTempDirectory(Paths.get("/tmp"), "CLI")
 
-
+  // util method to buffer CLI stderr and provide a string for testing
   private def stderr(f: => Unit) : String = {
     val err = System.err
     try {
@@ -100,6 +81,8 @@ class CommandLineToolsSpec
       System.setErr(err)
     }
   }
+
+  // util method to buffer CLI stdout and provide a string for testing
   private def stdout(f: => Unit) : String = {
     val out = System.out
     try {
@@ -113,52 +96,32 @@ class CommandLineToolsSpec
     }
   }
 
-  def cliLookupViaExp: Unit = LimsClientToolsApp.main(Array[String](
-    "get-expid",
-    "--expid", expid.toString,
+  val commonArgs = List[String](
     "--host", testHost,
     "--port", testPort.toString,
-    "--no-jvm-exit"
-  ))
+    "--no-jvm-exit")
 
-  def cliLookupViaRuncode: Unit = LimsClientToolsApp.main(Array[String](
-    "get-runcode",
-    "--runcode", runcode,
-    "--host", testHost,
-    "--port", testPort.toString,
-    "--no-jvm-exit"
-  ))
+  def runCli(args: List[String]) = LimsClientToolsApp.main(args.toArray)
 
-  def cliLookupViaUuid: Unit = LimsClientToolsApp.main(Array[String](
-    "get-uuid",
-    "--uuid", uuid.toString,
-    "--host", testHost,
-    "--port", testPort.toString,
-    "--no-jvm-exit"
-  ))
+  def cliLookupViaExp: Unit = runCli("get-expid" :: "--expid" :: expid.toString :: commonArgs)
+
+  def cliLookupViaRuncode: Unit = runCli("get-runcode" :: "--runcode" :: runcode :: commonArgs)
+
+  def cliLookupViaUuid: Unit = runCli("get-uuid" :: "--uuid" :: uuid.toString :: commonArgs)
 
   // string serialization expected to be observed in all CLI and API output
   val serializedLimsSubreadSet = s"LimsSubreadSet(5fe01e82-c694-4575-9173-c23c458dd0e1,3220001,3220001-0006,${dir.toString},3.0.17,3.0.5.175014,A01,m54009_160426_165001,2016-04-26T18:46:06Z,Inst54009,54009)"
+  val cliLookupFail =
+    s"""|Failed to run spray.httpx.UnsuccessfulResponseException: Status: 404 Not Found
+        |Body: []
+        |""".stripMargin
 
   "Internal LimsSubreadDataSet services" should {
-    "API should fail pre-import: lookup via expcode" in {
-      1 mustEqual LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, expid)
-    }
-    "CLI should fail pre-import: get-expcode" in { // TODO: 404 doesn't mean the code failed
-      stderr(cliLookupViaExp) mustEqual
-        s"""|Failed to run spray.httpx.UnsuccessfulResponseException: Status: 404 Not Found
-            |Body: []
-            |""".stripMargin
-    }
-    "API should fail pre-import: lookup via runcode" in {
-      1 mustEqual LimsClientToolsApp.runGetSubreadsByRuncode(testHost, testPort, runcode)
-    }
-    "CLI should fail pre-import: get-runcode" in { // TODO: 404 doesn't mean the code failed
-      stderr(cliLookupViaRuncode) mustEqual
-          s"""|Failed to run spray.httpx.UnsuccessfulResponseException: Status: 404 Not Found
-              |Body: []
-              |""".stripMargin
-    }
+    "API should fail pre-import: lookup via expcode" in (1 mustEqual LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, expid))
+    // TODO: 404 doesn't mean the code failed -- unless we decide on that semantic
+    "CLI should fail pre-import: get-expcode" in (stderr(cliLookupViaExp) mustEqual cliLookupFail)
+    "API should fail pre-import: lookup via runcode" in (1 mustEqual LimsClientToolsApp.runGetSubreadsByRuncode(testHost, testPort, runcode))
+    "CLI should fail pre-import: get-runcode" in (stderr(cliLookupViaRuncode) mustEqual cliLookupFail)
     "Import data from POST" in {
       val limsYml = dir.resolve("lims.yml")
       val subreadset = dir.resolve(tracefile.replace(".trc.h5", ".subreadset.xml"))
@@ -166,43 +129,14 @@ class CommandLineToolsSpec
         // write the file. change path + context so the auto-lookup of .subreadset.xml matches the mock data
         Files.write(limsYml, mockLimsYml(expid, runcode, path = dir.toString, tracefile = tracefile).getBytes)
         Files.write(subreadset, mockSubreadset().getBytes)
-        stdout {
-          LimsClientToolsApp.main(Array[String](
-            "import",
-            "--path", limsYml.toString,
-            "--host", testHost,
-            "--port", testPort.toString,
-            "--no-jvm-exit"
-          ))
-        } mustEqual
-            s"""Merged: $serializedLimsSubreadSet
-              |""".stripMargin
-      }
-      finally { List(limsYml, subreadset, dir).foreach(Files.delete) }
+        stdout(runCli("import" :: "--path" :: limsYml.toString :: commonArgs)) mustEqual s"Merged: $serializedLimsSubreadSet\n"
+      } finally List(limsYml, subreadset, dir).foreach(Files.delete)
     }
-    "API lookup via expcode works" in {
-      0 mustEqual LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, expid)
-    }
-    "CLI get-expcode works" in {
-      stdout(cliLookupViaExp) mustEqual
-        s"""List($serializedLimsSubreadSet)
-           |""".stripMargin
-    }
-    "API lookup via runcode works" in {
-      0 mustEqual LimsClientToolsApp.runGetSubreadsByRuncode(testHost, testPort, runcode)
-    }
-    "CLI get-expcode works" in {
-      stdout(cliLookupViaRuncode) mustEqual
-          s"""List($serializedLimsSubreadSet)
-              |""".stripMargin
-    }
-    "API lookup via UUID works" in {
-      0 mustEqual LimsClientToolsApp.runGetSubreadByUUID(testHost, testPort, uuid)
-    }
-    "CLI get-uuid works" in {
-      stdout(cliLookupViaUuid) mustEqual
-          s"""Some($serializedLimsSubreadSet)\n
-              |""".stripMargin
-    }
+    "API lookup via expcode works" in (0 mustEqual LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, expid))
+    "CLI get-expcode works" in (stdout(cliLookupViaExp) mustEqual s"List($serializedLimsSubreadSet)\n")
+    "API lookup via runcode works" in (0 mustEqual LimsClientToolsApp.runGetSubreadsByRuncode(testHost, testPort, runcode))
+    "CLI get-expcode works" in (stdout(cliLookupViaRuncode) mustEqual s"List($serializedLimsSubreadSet)\n")
+    "API lookup via UUID works" in (0 mustEqual LimsClientToolsApp.runGetSubreadByUUID(testHost, testPort, uuid))
+    "CLI get-uuid works" in (stdout(cliLookupViaUuid) mustEqual s"Some($serializedLimsSubreadSet)\n")
   }
 }
