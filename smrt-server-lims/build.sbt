@@ -5,6 +5,8 @@ mainClass in (Compile, run) := Some("com.pacbio.secondary.lims.MainSimple")
 
 mainClass in assembly := Some("com.pacbio.secondary.lims.MainSimple")
 
+coverageEnabled := true
+
 assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case PathList("application.conf") => MergeStrategy.first
   case PathList("org", "slf4j", xs@_*) => MergeStrategy.first
