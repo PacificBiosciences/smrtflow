@@ -6,15 +6,14 @@ import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-
-import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider, JobsDaoActorProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import org.specs2.specification.BeforeExample
 import spray.httpx.SprayJsonSupport._
+import spray.json._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
@@ -54,9 +53,9 @@ with JobServiceConstants {
 
   def dbSetup() = {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
+    logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
-    println(s"completed setting up database ${dbURI}")
+    println(s"completed setting up database $dbURI")
   }
 
   textFragment("creating database tables")
@@ -78,22 +77,25 @@ with JobServiceConstants {
     "Secondary analysis Subread DataSetsType resource" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        //val dst = responseAs[DataSetType]
-        //dst.id must be_==("pacbio.datasets.subread")
       }
     }
     "Secondary analysis Subread Schema resource" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/_schema") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        //val dst = responseAs[DataSetType]
-        //dst.id must be_==("pacbio.datasets.subread")
       }
     }
     "Secondary analysis Subread DataSet resource by id" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        //val dst = responseAs[DataSetType]
-        //dst.id must be_==("pacbio.datasets.subread")
+        val subread = responseAs[SubreadServiceDataSet]
+        subread.jobId === 1
+      }
+    }
+    "Secondary analysis Subread DataSet resource by id" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1/details") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val resp = responseAs[String].parseJson
+        resp.asJsObject().fields("MetaType") === JsString("PacBio.DataSet.SubreadSet")
       }
     }
     "Secondary analysis Reference DataSetsType resource" in {
