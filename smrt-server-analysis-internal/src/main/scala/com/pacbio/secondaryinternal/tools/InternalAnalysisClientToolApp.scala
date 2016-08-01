@@ -66,9 +66,10 @@ trait CommonClientToolRunner extends LazyLogging{
     implicit val actorSystem = ActorSystem("slia")
     val exitCode = Try { Await.result(f(actorSystem), TIMEOUT) }.map(summary) match {
       case Success(result) => 0
-      case Failure(err) =>
+      case Failure(err) => {
         System.err.println(s"Failed to run $err")
         1
+      }
     }
     logger.info("Shutting down actor system")
     actorSystem.shutdown()

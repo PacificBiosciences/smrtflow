@@ -40,15 +40,18 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
 
   def importLimsSubreadSet: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
 
-  def importLimsSubreadSet(path: Path): Future[String] = importLimsSubreadSet {
+  def importLimsSubreadSet(path: Path): Future[String] = {
     val content = scala.io.Source.fromFile(path.toFile).mkString
     val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
     val formFile = FormFile("file", httpEntity)
     val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
+    importLimsSubreadSet(mfd)
+  }
+  def importLimsSubreadSet(mfd: MultipartFormData): Future[String] = importLimsSubreadSet {
     Post(toImportUrl("lims-subreadset"), mfd)
   }
 
-  def getSubread: HttpRequest => Future[LimsSubreadSet] = sendReceive ~> unmarshal[LimsSubreadSet]
+  def getSubread: HttpRequest => Future[Option[LimsSubreadSet]] = sendReceive ~> unmarshal[Option[LimsSubreadSet]]
 
   def getSubreads: HttpRequest => Future[Seq[LimsSubreadSet]] = sendReceive ~> unmarshal[Seq[LimsSubreadSet]]
 
@@ -60,7 +63,7 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     Get(toUrl(s"/smrt-lims/lims-subreadset/expid/$expid"))
   }
 
-  def subreadsByUUID(uuid: UUID): Future[LimsSubreadSet] = getSubread {
+  def subreadByUUID(uuid: UUID): Future[Option[LimsSubreadSet]] = getSubread {
     Get(toUrl(s"/smrt-lims/lims-subreadset/uuid/$uuid"))
   }
 }
@@ -90,15 +93,18 @@ case class CustomConfig(
     path: Path = Paths.get("."),
     runcode: String,
     expid: Int,
-    uuid: UUID
+    uuid: UUID,
+    exitJvm: Boolean = true
 ) extends LoggerConfig
 
 trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move CommonClientToolRunner out of analysis? ATM, it is the only dep requiring smrtServerAnalysisInternal
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  private def stdout[T](t: T) : Unit = System.out.println(t)
+
   def runImportLimsYml(host: String, port: Int, path: Path): Int =
-    runAwaitWithActorSystem[String](defaultSummary[String]){ (system: ActorSystem) =>
+    runAwaitWithActorSystem[String](stdout[String]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
       path.toFile.exists() match {
         case false => throw new Exception(s"Path $path is not a file or directory.")
@@ -120,21 +126,21 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
     }
 
   def runGetSubreadsByRuncode(host: String, port: Int, runcode: String): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+    runAwaitWithActorSystem[Seq[LimsSubreadSet]](stdout[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
       client.subreadsByRuncode(runcode)
     }
 
   def runGetSubreadsByExp(host: String, port: Int, expid: Int): Int =
-    runAwaitWithActorSystem[Seq[LimsSubreadSet]](defaultSummary[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
+    runAwaitWithActorSystem[Seq[LimsSubreadSet]](stdout[Seq[LimsSubreadSet]]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
       client.subreadsByExp(expid)
     }
 
-  def runGetSubreadsByUUID(host: String, port: Int, uuid: UUID): Int =
-    runAwaitWithActorSystem[LimsSubreadSet](defaultSummary[LimsSubreadSet]){ (system: ActorSystem) =>
+  def runGetSubreadByUUID(host: String, port: Int, uuid: UUID): Int =
+    runAwaitWithActorSystem[Option[LimsSubreadSet]](stdout[Option[LimsSubreadSet]]){ (system: ActorSystem) =>
       val client = new LimsClient(host, port)(system)
-      client.subreadsByUUID(uuid)
+      client.subreadByUUID(uuid)
     }
 
 }
@@ -168,7 +174,7 @@ trait LimsClientToolParser {
         ) text "Import lims.yml + .subreadset.xml file via file upload. If the path is a file, only that file is uploaded. If a directory, it is recursively scanned for lims.yml files to upload."
 
     cmd(Modes.GET_RUNCODE.name) action { (_, c) =>
-      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+      c.copy(command = (c) => println("with " + c), mode = Modes.GET_RUNCODE)
     } children(
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
@@ -176,7 +182,7 @@ trait LimsClientToolParser {
         ) text "Lookup LimsSubreadSet entries by runcode"
 
     cmd(Modes.GET_EXPID.name) action { (_, c) =>
-      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+      c.copy(command = (c) => println("with " + c), mode = Modes.GET_EXPID)
     } children(
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
@@ -184,11 +190,11 @@ trait LimsClientToolParser {
         ) text "Lookup LimsSubreadSet entries by expid"
 
     cmd(Modes.GET_UUID.name) action { (_, c) =>
-      c.copy(command = (c) => println("with " + c), mode = Modes.IMPORT)
+      c.copy(command = (c) => println("with " + c), mode = Modes.GET_UUID)
     } children(
         opt[String]("host") action { (x, c) => c.copy(host = x) } text s"Hostname of smrtlink server (Default: ${DEFAULT.host})",
         opt[Int]("port") action { (x, c) =>  c.copy(port = x)} text s"Services port on smrtlink server (Default: ${DEFAULT.port})",
-        opt[Int]("uuid") action { (x, c) => c.copy(expid = x) } text s"Lookup LimsSubreadSet by UUID"
+        opt[String]("uuid") action { (x, c) => c.copy(uuid = UUID.fromString(x)) } text s"Lookup LimsSubreadSet by UUID"
         ) text "Lookup LimsSubreadSet entry by UUID in .subreadset.xml file"
 
     opt[Unit]('h', "help") action { (x, c) =>
@@ -201,24 +207,24 @@ trait LimsClientToolParser {
       sys.exit(0)
     } text "Show version and exit"
 
+    opt[Unit]("no-jvm-exit") action { (x, c) => c.copy(exitJvm = false) } text "Test flag. Disables JVM termination during CLI code testing."
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
-
 object LimsClientToolsApp extends App
     with LimsClientToolParser
-    with LimsClientToolRunner{
+    with LimsClientToolRunner {
 
   implicit val TIMEOUT = 20 seconds
 
   def runCustomConfig(c: CustomConfig): Int = {
-    println(s"Running with config $c")
     c.mode match {
       case Modes.IMPORT => runImportLimsYml(c.host, c.port, c.path)
       case Modes.GET_RUNCODE => runGetSubreadsByRuncode(c.host, c.port, c.runcode)
       case Modes.GET_EXPID => runGetSubreadsByExp(c.host, c.port, c.expid)
-      case Modes.GET_UUID => runGetSubreadsByUUID(c.host, c.port, c.uuid)
+      case Modes.GET_UUID => runGetSubreadByUUID(c.host, c.port, c.uuid)
       case unknown =>
         System.err.println(s"Unknown mode '$unknown'")
         1
@@ -226,12 +232,15 @@ object LimsClientToolsApp extends App
   }
 
   def runner(args: Array[String]) = {
-    val exitCode = parser.parse(args, DEFAULT)
-        .map(runCustomConfig)
-        .getOrElse(1)
-    println(s"Exiting $NAME $VERSION with exitCode $exitCode")
-    // This is the ONLY place System.exit should be called
-    System.exit(exitCode)
+    val co = parser.parse(args, DEFAULT)
+    val exitCode = co.map(runCustomConfig).getOrElse(1)
+    co.map(c => {
+      // This is the ONLY place System.exit should be called
+      if (c.exitJvm) {
+        println(s"Exiting $NAME $VERSION with exitCode $exitCode")
+        System.exit(exitCode)
+      }
+    })
   }
 
   runner(args)
@@ -249,7 +258,7 @@ object LimsClientToolsAppTest extends App
   runImportLimsYml("127.0.0.1", 8081, Paths.get("/pbi/collections/312/3120145/r54009_20160426_164705/1_A01/lims.yml"))
 
   println("Running GetByUUID")
-  runGetSubreadsByUUID("127.0.0.1", 8081, UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1"))
+  runGetSubreadByUUID("127.0.0.1", 8081, UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1"))
 
   println("Running GetByRuncode")
   runGetSubreadsByRuncode("127.0.0.1", 8081, "3120145-0010")
