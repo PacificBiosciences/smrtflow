@@ -68,6 +68,9 @@ class RouteImportAndResloveSpec
   val alias2 = "Bar"
 
   "Internal LimsSubreadDataSet services" should {
+    "Pre-import, UUID not resolvable by API" in {
+      subread(uuid) mustEqual None
+    }
     "Pre-import, expcode is not resolvable via GET" in {
       Get(s"/smrt-lims/lims-subreadset/expid/$expid") ~> sealRoute(resolveRoutes) ~> check {
         response.status.isSuccess mustEqual false
@@ -81,7 +84,6 @@ class RouteImportAndResloveSpec
       val httpEntity = HttpEntity(MediaTypes.`multipart/form-data`, HttpData(content)).asInstanceOf[HttpEntity.NonEmpty]
       val formFile = FormFile("file", httpEntity)
       val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
-      loadData(content.getBytes)
       Post("/smrt-lims/lims-subreadset/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
         response.status.isSuccess mustEqual true
       }
@@ -105,7 +107,7 @@ class RouteImportAndResloveSpec
       }
     }
     "UUID resolvable via API" in {
-      uuid mustEqual subread(uuid).uuid
+      uuid mustEqual (subread(uuid) match { case Some(ls) => ls.uuid })
     }
     "UUID resolvable via GET /subreadset/uuid/<uuid>" in {
       Get(s"/smrt-lims/lims-subreadset/uuid/$uuid") ~> sealRoute(resolveRoutes) ~> check {
