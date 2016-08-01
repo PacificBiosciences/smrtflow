@@ -50,6 +50,10 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   import SprayJsonSupport._
   import ReportModels._
 
+  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  }
+
   object AnalysisServiceEndpoints extends ServiceEndpointsTrait {
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
   }
