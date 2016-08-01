@@ -118,7 +118,6 @@ trait H2Database extends Database {
   override def subreadByAlias(q: String): LimsSubreadSet = use[LimsSubreadSet](aliasSelectT, doAlias(q))
 
   private def doLims(uuid: UUID)(ps: PreparedStatement): Option[LimsSubreadSet] = {
-    println("Executing: doLims()")
     ps.setString(1, uuid.toString)
     subreads(ps.executeQuery()).headOption
   }
@@ -127,12 +126,12 @@ trait H2Database extends Database {
 
   override def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet] = (for (uuid <- uuids) yield subread(uuid)).flatMap(sr => sr)
 
-  private def doAliasDel(v: String)(ps: PreparedStatement) : Unit = {
+  private def doAliasDel(v: String)(ps: PreparedStatement) : Boolean = {
     ps.setString(1, v)
-    ps.executeQuery()
+    return ps.executeUpdate() == 1
   }
 
-  override def delAlias(q: String): Unit = use[Unit](aliasDeleteT, doAliasDel(q))
+  override def delAlias(q: String): Boolean = use[Boolean](aliasDeleteT, doAliasDel(q))
 
   // helper to convert ResultSet rows to LimsYml
   private def subreads(rs: ResultSet) : Seq[LimsSubreadSet] = {

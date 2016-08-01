@@ -22,7 +22,7 @@ trait Database {
    */
   def setAlias(alias: String, uuid: UUID, typ: String): Unit
 
-  def delAlias(alias: String): Unit
+  def delAlias(alias: String): Boolean
 
   /**
    * Store, retrieve and manipulate LIMS versions of SubreadSet

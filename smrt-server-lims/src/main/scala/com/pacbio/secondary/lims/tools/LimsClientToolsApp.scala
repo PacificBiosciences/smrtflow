@@ -37,7 +37,7 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   }
 
   protected def toImportUrl(datasetType: String): String = toUrl(s"/smrt-lims/$datasetType/import")
-  
+
   def importLimsSubreadSet: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
 
   def importLimsSubreadSet(path: Path): Future[String] = {

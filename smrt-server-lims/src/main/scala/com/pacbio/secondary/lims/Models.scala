@@ -45,8 +45,7 @@ object LimsJsonProtocol {
   implicit val limsSubreadSetFormat = jsonFormat11(LimsSubreadSet)
 
   object LimsTypes {
-    final val limsSubreadSet = "lims_subreadset"
-    val all = Seq(limsSubreadSet)
+    final val limsSubreadSet = "lims-subreadset"
   }
 
 }

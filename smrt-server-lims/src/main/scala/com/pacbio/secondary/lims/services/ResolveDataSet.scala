@@ -73,19 +73,17 @@ trait ResolveDataSet extends HttpService {
         // PUT = set the alias for the dataset type
         post {
           parameters('name) { name =>
-            Try(setAlias(name, UUID.fromString(q), "lims-subreadset")) match {
+            Try(setAlias(name, UUID.fromString(q), LimsTypes.limsSubreadSet)) match {
               case Success(_) => complete("Set $dt as alias for $id") // TODO: match `dt` and do dataset-type-short-name specific alias
               case Failure(t) => complete(500, "Couldn't set alias '$id' for $dt")
             }
           }
         } ~
         // DELETE = remove the alias
-        delete {
-          parameters('name) { name =>
-            Try(delAlias(name)) match {
-              case Success(_) => complete("Deleted $id as $dt alias") // TODO: match `dt` and do dataset-type-short-name specific alias
-              case Failure(t) => complete(500, "Error. '$id' not deleted for $dt")
-            }
+        delete { ctx =>
+          delAlias(q) match {
+            case true => ctx.complete("Deleted $id as $dt alias") // TODO: match `dt` and do dataset-type-short-name specific alias
+            case _ => ctx.complete(500, "Error. '$id' not deleted for $dt")
           }
         }
       }

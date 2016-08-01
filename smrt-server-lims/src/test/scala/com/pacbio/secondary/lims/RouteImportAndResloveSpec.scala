@@ -139,7 +139,12 @@ class RouteImportAndResloveSpec
     }
     "Alias delete via DELETE /resolver/<dataset-type>/<alias>" in {
       Delete(s"/smrt-lims/resolver/lims-subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
-        response.status.intValue mustEqual 404
+        response.status.isSuccess mustEqual true
+      }
+    }
+    "Deleted alias no longer exists via /resolver/<dataset-type>/<alias>" in {
+      Get(s"/smrt-lims/resolver/lims-subreadset/$alias") ~> sealRoute(resolveRoutes) ~> check {
+        response.status.isSuccess mustEqual false
       }
     }
   }
