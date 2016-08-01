@@ -37,5 +37,5 @@ trait Database {
 
   def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet]
 
-  def subread(uuid: UUID): LimsSubreadSet
+  def subread(uuid: UUID): Option[LimsSubreadSet]
 }

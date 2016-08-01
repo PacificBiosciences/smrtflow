@@ -117,14 +117,15 @@ trait H2Database extends Database {
 
   override def subreadByAlias(q: String): LimsSubreadSet = use[LimsSubreadSet](aliasSelectT, doAlias(q))
 
-  private def doLims(uuid: UUID)(ps: PreparedStatement): LimsSubreadSet = {
+  private def doLims(uuid: UUID)(ps: PreparedStatement): Option[LimsSubreadSet] = {
+    println("Executing: doLims()")
     ps.setString(1, uuid.toString)
-    subreads(ps.executeQuery()).head
+    subreads(ps.executeQuery()).headOption
   }
 
-  override def subread(uuid: UUID): LimsSubreadSet = use[LimsSubreadSet](lsSelectT, doLims(uuid))
+  override def subread(uuid: UUID): Option[LimsSubreadSet] = use[Option[LimsSubreadSet]](lsSelectT, doLims(uuid))
 
-  override def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet] = for (uuid <- uuids) yield subread(uuid)
+  override def subreads(uuids: Seq[UUID]): Seq[LimsSubreadSet] = (for (uuid <- uuids) yield subread(uuid)).flatMap(sr => sr)
 
   private def doAliasDel(v: String)(ps: PreparedStatement) : Unit = {
     ps.setString(1, v)
