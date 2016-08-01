@@ -37,7 +37,7 @@ class LimsClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   }
 
   protected def toImportUrl(datasetType: String): String = toUrl(s"/smrt-lims/$datasetType/import")
-
+  
   def importLimsSubreadSet: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
 
   def importLimsSubreadSet(path: Path): Future[String] = {
@@ -244,25 +244,4 @@ object LimsClientToolsApp extends App
   }
 
   runner(args)
-
-}
-
-// TODO: temporary test. need to move equivalent to the test suite.
-object LimsClientToolsAppTest extends App
-    with LimsClientToolRunner{
-
-  implicit val TIMEOUT = 20 seconds
-
-  // test an import of a known resource
-  println("Running Import")
-  runImportLimsYml("127.0.0.1", 8081, Paths.get("/pbi/collections/312/3120145/r54009_20160426_164705/1_A01/lims.yml"))
-
-  println("Running GetByUUID")
-  runGetSubreadByUUID("127.0.0.1", 8081, UUID.fromString("5fe01e82-c694-4575-9173-c23c458dd0e1"))
-
-  println("Running GetByRuncode")
-  runGetSubreadsByRuncode("127.0.0.1", 8081, "3120145-0010")
-
-  println("Running GetByExp")
-  runGetSubreadsByExp("127.0.0.1", 8081, 3120145)
 }
