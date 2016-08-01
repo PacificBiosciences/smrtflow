@@ -113,23 +113,32 @@ class CommandLineToolsSpec
     }
   }
 
-  def cliLookupViaExp: Unit =
-    LimsClientToolsApp.main(Array[String](
-      "get-expid",
-      "--expid", expid.toString,
-      "--host", testHost,
-      "--port", testPort.toString,
-      "--no-jvm-exit"
-    ))
+  def cliLookupViaExp: Unit = LimsClientToolsApp.main(Array[String](
+    "get-expid",
+    "--expid", expid.toString,
+    "--host", testHost,
+    "--port", testPort.toString,
+    "--no-jvm-exit"
+  ))
 
-  def cliLookupViaRuncode: Unit =
-    LimsClientToolsApp.main(Array[String](
-      "get-runcode",
-      "--runcode", runcode,
-      "--host", testHost,
-      "--port", testPort.toString,
-      "--no-jvm-exit"
-    ))
+  def cliLookupViaRuncode: Unit = LimsClientToolsApp.main(Array[String](
+    "get-runcode",
+    "--runcode", runcode,
+    "--host", testHost,
+    "--port", testPort.toString,
+    "--no-jvm-exit"
+  ))
+
+  def cliLookupViaUuid: Unit = LimsClientToolsApp.main(Array[String](
+    "get-uuid",
+    "--uuid", uuid.toString,
+    "--host", testHost,
+    "--port", testPort.toString,
+    "--no-jvm-exit"
+  ))
+
+  // string serialization expected to be observed in all CLI and API output
+  val serializedLimsSubreadSet = s"LimsSubreadSet(5fe01e82-c694-4575-9173-c23c458dd0e1,3220001,3220001-0006,${dir.toString},3.0.17,3.0.5.175014,A01,m54009_160426_165001,2016-04-26T18:46:06Z,Inst54009,54009)"
 
   "Internal LimsSubreadDataSet services" should {
     "API should fail pre-import: lookup via expcode" in {
@@ -166,7 +175,7 @@ class CommandLineToolsSpec
             "--no-jvm-exit"
           ))
         } mustEqual
-            s"""Merged: LimsSubreadSet(5fe01e82-c694-4575-9173-c23c458dd0e1,3220001,3220001-0006,${dir.toString},3.0.17,3.0.5.175014,A01,m54009_160426_165001,2016-04-26T18:46:06Z,Inst54009,54009)
+            s"""Merged: $serializedLimsSubreadSet
               |""".stripMargin
       }
       finally { List(limsYml, subreadset, dir).foreach(Files.delete) }
@@ -176,7 +185,7 @@ class CommandLineToolsSpec
     }
     "CLI get-expcode works" in {
       stdout(cliLookupViaExp) mustEqual
-        s"""List(LimsSubreadSet(5fe01e82-c694-4575-9173-c23c458dd0e1,3220001,3220001-0006,${dir.toString},3.0.17,3.0.5.175014,A01,m54009_160426_165001,2016-04-26T18:46:06Z,Inst54009,54009))
+        s"""List($serializedLimsSubreadSet)
            |""".stripMargin
     }
     "API lookup via runcode works" in {
@@ -184,7 +193,15 @@ class CommandLineToolsSpec
     }
     "CLI get-expcode works" in {
       stdout(cliLookupViaRuncode) mustEqual
-          s"""List(LimsSubreadSet(5fe01e82-c694-4575-9173-c23c458dd0e1,3220001,3220001-0006,${dir.toString},3.0.17,3.0.5.175014,A01,m54009_160426_165001,2016-04-26T18:46:06Z,Inst54009,54009))
+          s"""List($serializedLimsSubreadSet)
+              |""".stripMargin
+    }
+    "API lookup via UUID works" in {
+      0 mustEqual LimsClientToolsApp.runGetSubreadByUUID(testHost, testPort, uuid)
+    }
+    "CLI get-uuid works" in {
+      stdout(cliLookupViaUuid) mustEqual
+          s"""Some($serializedLimsSubreadSet)\n
               |""".stripMargin
     }
   }
