@@ -29,7 +29,7 @@ class TestInternalServiceActor
 
   override lazy val conf = ConfigFactory.parseString(
     s"""pb-services {
-        |  db-uri = "jdbc:h2:mem:CLI_TEST;DB_CLOSE_DELAY=3"
+        |  db-uri = "jdbc:h2:mem:CLI_TEST;DB_CLOSE_DELAY=30"
         |  host = "$testHost"
         |  port = $testPort
         |}""".stripMargin)
