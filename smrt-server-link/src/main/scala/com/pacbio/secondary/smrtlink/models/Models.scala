@@ -502,30 +502,62 @@ case class GmapReferenceServiceDataSet(
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
 
+// Project models
+
+// We have a simpler (cheaper to query) project case class for the API
+// response that lists many projects,
 case class Project(
     id: Int,
     name: String,
     description: String,
     state: String,
     createdAt: JodaDateTime,
-    updatedAt: JodaDateTime)
+    updatedAt: JodaDateTime) {
+
+  def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectUserResponse]): FullProject =
+    FullProject(
+      id,
+      name,
+      description,
+      state,
+      createdAt,
+      updatedAt,
+      datasets,
+      members)
+}
+
+// and a more detailed case class for the API responses involving
+// individual projects.
+case class FullProject(
+    id: Int,
+    name: String,
+    description: String,
+    state: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    datasets: Seq[DataSetMetaDataSet],
+    members: Seq[ProjectUserResponse])
+
+// the json structures required in client requests are a subset of the
+// FullProject structure (the FullProject is a valid request, but many
+// fields are optional in requests).
+case class ProjectRequest(
+    name: String,
+    description: String,
+    // if any of these are None in a PUT request, the corresponding
+    // value will stay the same (i.e., the update will be skipped).
+    state: Option[String],
+    datasets: Option[Seq[RequestId]],
+    members: Option[Seq[ProjectRequestUser]])
+
+case class RequestId(id: Int)
+case class RequestUser(login: String)
+case class ProjectRequestUser(user: RequestUser, role:String)
 
 case class ProjectUser(projectId: Int, login: String, role: String)
 
-case class ProjectRequest(name: String, state: String, description: String)
-
-case class ProjectUserRequest(login: String, role: String)
 case class ProjectUserResponse(user: UserResponse, role: String)
 
 case class UserProjectResponse(role: Option[String], project: Project)
  
 case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[String])
-
-// Some endpoints were originally implemented to return string-typed
-// responses, but the smrt-link client has been sending an Accept:
-// application/json header for all requests.  With that request
-// header, the server was responding with a 406 for the
-// string-response-typed endpoints.  Those string-returning endpoints
-// were mostly returning success/failure messages, so they can use
-// this class instead to return a json-typed message response.
-case class MessageResponse(message: String)

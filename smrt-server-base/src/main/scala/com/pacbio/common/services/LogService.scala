@@ -43,11 +43,9 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           authenticate(authenticator.jwtAuth) { authInfo =>
             authorize(authInfo.hasPermission(HEALTH_AND_LOGS_ADMIN)) {
               entity(as[LogResourceRecord]) { m =>
-                respondWithMediaType(MediaTypes.`application/json`) {
-                  complete {
-                    created {
-                      logDao.createLogResource(m)
-                    }
+                complete {
+                  created {
+                    logDao.createLogResource(m)
                   }
                 }
               }

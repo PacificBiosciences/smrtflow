@@ -126,6 +126,22 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   private case object TestFailed extends TestResult {val mode="failed"}
   private case object TestPassed extends TestResult {val mode="passed"}
 
+  private def makeTestPassed(testClass: String, testName: String, time: Int = 0): scala.xml.Elem = {
+    nPassed += 1
+    <testcase classname={testClass} name={testName} time={s"$time"}/>
+  }
+
+  private def makeTestSkipped(testClass: String, testName: String): scala.xml.Elem = {
+    nSkips += 1
+    <testcase classname={testClass} name={testName} time="0"><skipped/></testcase>
+  }
+
+  private def makeTestFailed(testClass: String, testName: String, msg: String,
+                             content: String, time: Int = 0): scala.xml.Elem = {
+    nFailures += 1
+    <testcase classname={testClass} name={testName} time={s"$time"}><failure message={s"FAILED: ${msg}"}>{content}</failure></testcase>
+  }
+
   // TODO return JUnit test cases
   private def testReportValues(jobId: Int, reportId: UUID,
                                rptTest: ReportTestRules): Int = {
@@ -133,6 +149,20 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
     } match {
       case Success(report) => {
+        println(s"Report ${report.id}:")
+        val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
+        // always check that datastore and report have the same UUID
+        var uuidTest = if (report.uuid == reportId) {
+          println(s"  passed: report.uuid == '${reportId}'")
+          makeTestPassed(testClass, "test_report_uuid")
+        } else {
+          println(s"  FAILED: report.uuid != '${reportId}'")
+          makeTestFailed(testClass, "test_report_uuid",
+                         "report.uuid != reportId",
+                         s"${reportId} != ${report.uuid}")
+        }
+        testCases.append(uuidTest)
+        // iterate over rules defined in testkit cfg JSON
         (for (rule <- rptTest.rules) yield {
           val isSameId = (other: String) => ((other != "") && (other.split('.').toList.last == rule.attrId))
           var testStatus: TestResult = TestSkipped
@@ -154,24 +184,15 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
             }
           }
           val testStr = s"${rule.attrId} .${rule.op}. ${rule.value}"
-          val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
           val testName = s"test_${rule.attrId}"
           var testCase = testStatus match {
-            case TestPassed => {
-              nPassed += 1
-              <testcase classname={testClass} name={testName} time="0"/>
-            }
-            case TestFailed => {
-              nFailures += 1
-              <testcase classname={testClass} name={testName} time="0"><failure message={s"FAILED: ${rule.attrId}"}>{testStr}</failure></testcase>
-            }
-            case TestSkipped => {
-              nSkips += 1
-              <testcase classname={testClass} name={testName} time="0"><skipped/></testcase>
-            }
+            case TestPassed => makeTestPassed(testClass, testName)
+            case TestFailed => makeTestFailed(testClass, testName, rule.attrId,
+                                              testStr)
+            case TestSkipped => makeTestSkipped(testClass, testName)
           }
           testCases.append(testCase)
-          println(s"${testStatus.mode}:${testStr}")
+          println(s"  ${testStatus.mode}: ${testStr}")
           testStatus match {
             case TestFailed => 1
             case _ => 0
@@ -235,10 +256,16 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   protected def runImportDataSetTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
     val dsPath = cfg.entryPoints(0).path.toString
-    val dsType = dsMetaTypeFromPath(dsPath)
+    val dsUuid = dsUuidFromPath(dsPath)
+    var dsType = dsMetaTypeFromPath(dsPath)
     // XXX should this automatically recover an existing job if present, or
     // always import again?
-    Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+    Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
+      case Success(dsInfo) =>
+        Await.result(sal.getJobById(dsInfo.jobId), TIMEOUT)
+      case Failure(err) =>
+        Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+    }
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
@@ -254,10 +281,12 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       }
     } match {
       case Success(jobInfo) => {
-        println(s"Job ${jobInfo.uuid} started")
         printJobInfo(jobInfo)
         jobId = jobInfo.id
-        waitForJob(jobInfo.uuid)
+        if (! jobInfo.isComplete) {
+          println(s"Job ${jobInfo.uuid} started")
+          waitForJob(jobInfo.uuid)
+        } else if (jobInfo.isSuccessful) 0 else 1
       }
       case Failure(err) => errorExit(err.getMessage)
     }

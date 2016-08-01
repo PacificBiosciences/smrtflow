@@ -33,7 +33,7 @@ trait CleanupDao {
   def createJob(create: ApiCleanupJobCreate): Future[CleanupJobResponse]
   def startJob(id: String): Future[CleanupJobResponse]
   def pauseJob(id: String): Future[CleanupJobResponse]
-  def deleteJob(id: String): Future[String]
+  def deleteJob(id: String): Future[MessageResponse]
 
   def runApiJob(uuid: UUID): Future[Unit]
 
@@ -146,7 +146,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
     }
   }
 
-  override def deleteJob(id: String): Future[String] = Future {
+  override def deleteJob(id: String): Future[MessageResponse] = Future {
     val jobs = allJobs
     if (!jobs.contains(id))
       throw new ResourceNotFoundError(s"Unable to find resource $id")
@@ -155,7 +155,7 @@ abstract class AbstractCleanupDao(clock: Clock, system: ActorSystem, loggerFacto
 
     pauseJob(id)
     apiJobs -= UUID.fromString(id)
-    s"Successfully deleted job $id."
+    MessageResponse(s"Successfully deleted job $id.")
   }
 
   override def runApiJob(uuid: UUID): Future[Unit] = Future {

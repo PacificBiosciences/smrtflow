@@ -22,5 +22,4 @@ packGenerateWindowsBatFile := false
 packMain := Map(
   "smrt-client-internal-analysis" -> "com.pacbio.secondaryinternal.tools.InternalAnalysisClientToolApp",
   "smrt-client-slia" -> "com.pacbio.secondaryinternal.tools.InternalAnalysisClientToolApp"
-
 )

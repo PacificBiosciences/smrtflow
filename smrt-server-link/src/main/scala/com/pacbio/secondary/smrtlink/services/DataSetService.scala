@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.common.models.{MessageResponse, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -103,11 +103,9 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
       } ~
       path(SCHEMA_PREFIX) {
         get {
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              ok {
-                schema
-              }
+          complete {
+            ok {
+              schema
             }
           }
         }
@@ -115,20 +113,20 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
       pathPrefix(MixedId) { id =>
         pathEnd {
           get {
-            complete {
-              ok {
-                (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+            respondWithMediaType(MediaTypes.`application/json`) {
+              complete {
+                ok {
+                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                }
               }
             }
           }
         } ~
         path(DETAILS_PREFIX) {
           get {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              complete {
-                ok {
-                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
-                }
+            complete {
+              ok {
+                (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[MessageResponse]
               }
             }
           }

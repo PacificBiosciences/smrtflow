@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -110,7 +111,7 @@ trait MockUtils extends LazyLogging{
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
 
-  def insertDummySubreadSets(n: Int): Future[Seq[String]] = {
+  def insertDummySubreadSets(n: Int): Future[Seq[MessageResponse]] = {
     def toS = {
       val importJobId = 1
       val ux = UUID.randomUUID()
@@ -138,7 +139,7 @@ trait MockUtils extends LazyLogging{
     Future.sequence((0 until n).map(_ => dao.insertSubreadDataSet(toS)))
   }
 
-  def insertMockSubreadDataSetsFromDir(): Future[Seq[String]] = {
+  def insertMockSubreadDataSetsFromDir(): Future[Seq[MessageResponse]] = {
     val name = "datasets-subreads-rs-converted"
     val files = getMockDataSetFiles(name)
 
@@ -153,7 +154,7 @@ trait MockUtils extends LazyLogging{
     Future.sequence(files.map(toS).map(dao.insertSubreadDataSet))
   }
 
-  def insertMockHdfSubreadDataSetsFromDir(): Future[Seq[String]] = {
+  def insertMockHdfSubreadDataSetsFromDir(): Future[Seq[MessageResponse]] = {
     val name = "datasets-hdfsubreads-rs-converted"
     val files = getMockDataSetFiles(name)
 
@@ -168,7 +169,7 @@ trait MockUtils extends LazyLogging{
     Future.sequence(files.map(toS).map(dao.insertHdfSubreadDataSet))
   }
 
-  def insertMockReferenceDataSetsFromDir(): Future[Seq[String]] = {
+  def insertMockReferenceDataSetsFromDir(): Future[Seq[MessageResponse]] = {
     val name = "datasets-references-rs-converted"
     val files = getMockDataSetFiles(name)
 
@@ -180,7 +181,7 @@ trait MockUtils extends LazyLogging{
     Future.sequence(files.map(toS).map(dao.insertReferenceDataSet))
   }
 
-  def insertMockAlignmentDataSets(n: Int = MOCK_NDATASETS): Future[Seq[String]] = {
+  def insertMockAlignmentDataSets(n: Int = MOCK_NDATASETS): Future[Seq[MessageResponse]] = {
     def toDS =  {
       val uuid = UUID.randomUUID()
       AlignmentServiceDataSet(-1,
@@ -244,10 +245,10 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockProject(): Future[Unit] = {
-    val projectId = 1
+    val projectId = 2
     dao.db.run(
       DBIO.seq(
-        projects += Project(projectId, "Project 1", "Project 1 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
+        projects += Project(projectId, "Project 2", "Project 2 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
         projectsUsers += ProjectUser(projectId, "mkocher", "OWNER")
       )
     )
