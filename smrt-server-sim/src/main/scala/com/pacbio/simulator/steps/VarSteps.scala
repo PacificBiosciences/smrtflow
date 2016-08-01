@@ -42,6 +42,6 @@ trait VarSteps {
     override def := (step: VarStep[T]): Step =
       throw new UnsupportedOperationException("Illegal assignment to MappedVar")
 
-    override def get: T = map(from.value.get)
+    override def get: T = map(from.get)
   }
 }

@@ -23,7 +23,8 @@ object Sim extends App {
 
   // Add new scenario loaders here
   final val LOADERS: Map[String, ScenarioLoader] = Map(
-    "ExampleScenario" -> ExampleScenarioLoader
+    "ExampleScenario"   -> ExampleScenarioLoader,
+    "RunDesignScenario" -> RunDesignScenarioLoader
   )
 
   final val DESCRIPTION =
