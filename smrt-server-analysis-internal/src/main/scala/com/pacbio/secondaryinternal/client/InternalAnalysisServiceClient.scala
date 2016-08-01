@@ -87,8 +87,11 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
       * @return
       */
     def resolve(sc: ServiceCondition): Future[ReseqCondition] = {
+
+      val client = new AnalysisServiceAccessLayer(sc.host, sc.port)(actorSystem)
+
       for {
-        job <- getAnalysisJobById(sc.jobId)
+        job <- client.getAnalysisJobById(sc.jobId)
         sjob <- failJobIfNotSuccessful(job)
         alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId) // FIXME. Make this core trait more well defined
         entryPoints <- getAnalysisJobEntryPoints(sc.jobId)
