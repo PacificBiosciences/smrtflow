@@ -102,6 +102,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
   }
 
+  // FIXME there is some degeneracy in the URLs - this actually works just fine
+  // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
@@ -120,6 +122,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
       CreateBarcodeSet(path, name))
+  }
+
+  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.MERGE_DS),
+         DataSetMergeServiceOptions(datasetType, ids, name))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
