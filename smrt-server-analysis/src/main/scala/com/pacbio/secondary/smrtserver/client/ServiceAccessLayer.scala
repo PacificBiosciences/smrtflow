@@ -122,6 +122,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
       CreateBarcodeSet(path, name))
   }
 
+  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.MERGE_DS),
+         DataSetMergeServiceOptions(datasetType, ids, name))
+  }
+
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
   }

@@ -268,6 +268,17 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     }
   }
 
+  protected def runMergeDataSetsTestJob(cfg: TestkitConfig): EngineJob = {
+    if (cfg.entryPoints.size < 2) throw new Exception("At least two dataset entry points are required for this job type.")
+    val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path.toString))
+    val ids = entryPoints.map(e => e.datasetId.left.get)
+    val dsTypes = entryPoints.map(e => e.fileTypeId).toSet
+    val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
+      throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
+    }
+    Await.result(sal.mergeDataSets(dsType, ids, cfg.jobName), TIMEOUT)
+  }
+
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
                     ignoreTestFailures: Boolean = false): Int = {
     val cfg = loadTestkitCfg(cfgFile)
@@ -277,6 +288,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       cfg.jobType match {
         case "pbsmrtpipe" => runAnalysisTestJob(cfg)
         case "import-dataset" => runImportDataSetTestJob(cfg)
+        case "merge-datasets" => runMergeDataSetsTestJob(cfg)
         case _ => throw new Exception(s"Don't know how to run job type ${cfg.jobType}")
       }
     } match {
