@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.Props
 import akka.io.IO
-import com.pacbio.secondary.lims.util.MockUtil
+import com.pacbio.secondary.lims.util.{CommandLineToolsConfig, CommandLineUtil, MockUtil, TestInternalServiceActor}
 import com.typesafe.config.ConfigFactory
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
@@ -18,26 +18,6 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import com.pacbio.secondary.lims.tools.LimsClientToolsApp
 
 
-trait CommandLineToolsConfig {
-  val testHost = "127.0.0.1"
-  val testPort = 8081
-}
-
-class TestInternalServiceActor
-  extends InternalServiceActor
-  with CommandLineToolsConfig {
-
-  override lazy val conf = ConfigFactory.parseString(
-    s"""pb-services {
-        |  db-uri = "jdbc:h2:mem:CLI_TEST;DB_CLOSE_DELAY=30"
-        |  host = "$testHost"
-        |  port = $testPort
-        |}""".stripMargin)
-
-  // need to make the tables before test run or else slower CI such as CircleCI timeout
-  createTables()
-}
-
 /**
  * Runs the CLI and API equivalent against mock data to assert the code paths work as expected
  */
@@ -46,6 +26,7 @@ class CommandLineToolsSpec
   with Specs2RouteTest
   // helper tools to mock up data
   with MockUtil
+  with CommandLineUtil
   with CommandLineToolsConfig {
 
   // TODO: can remove this when specs2 API is upgraded
@@ -70,34 +51,6 @@ class CommandLineToolsSpec
   val tracefile = "m54003_160212_165114.trc.h5"
   // temp directory used for import
   val dir = Files.createTempDirectory(Paths.get("/tmp"), "CLI")
-
-  // util method to buffer CLI stderr and provide a string for testing
-  private def stderr(f: => Unit) : String = {
-    val err = System.err
-    try {
-      val buf = new ByteArrayOutputStream()
-      System.setErr(new PrintStream(buf))
-      f
-      buf.toString()
-    }
-    finally {
-      System.setErr(err)
-    }
-  }
-
-  // util method to buffer CLI stdout and provide a string for testing
-  private def stdout(f: => Unit) : String = {
-    val out = System.out
-    try {
-      val buf = new ByteArrayOutputStream()
-      System.setOut(new PrintStream(buf))
-      f
-      buf.toString()
-    }
-    finally {
-      System.setOut(out)
-    }
-  }
 
   val commonArgs = List[String](
     "--host", testHost,

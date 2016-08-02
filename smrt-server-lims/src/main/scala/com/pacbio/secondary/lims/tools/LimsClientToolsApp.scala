@@ -111,15 +111,9 @@ trait LimsClientToolRunner extends CommonClientToolRunner { // TODO: move Common
         case _ => path.toFile.isDirectory match {
           case false => client.importLimsSubreadSet(path)
           case _ => {
-            val work = for {
-              p <- Files.walk(path).iterator() if p.getFileName() == "lims.yml"
-            } yield client.importLimsSubreadSet(p)
-            Future{
-              work.map(p => {
-                println(Await.result(p, 10 seconds))
-              })
-              s"Batch import attempted on ${work.size} files"
-            }
+            val work = for (p <- Files.walk(path).iterator() if p.endsWith("lims.yml"))
+              yield client.importLimsSubreadSet(p)
+            Future(work.map(Await.result(_, 10 seconds)).mkString("\n") + s"\nBatch import attempted on ${work.size} files")
           }
         }
       }

@@ -33,13 +33,12 @@ trait ImportLims extends HttpService with LookupSubreadset {
 
   val importLimsRoutes =
     // lims.yml files must be posted to the server
-    pathPrefix("smrt-lims" / "lims-subreadset" / "import") {
+    pathPrefix("smrt-lims" / LimsTypes.limsSubreadSet / "import") {
       post {
         entity(as[MultipartFormData]) {
           formData => {
             val uploadedFile = formData.fields.head.entity.data.toByteArray
-            complete(
-              Future(loadData(uploadedFile)))
+            complete(Future(loadData(uploadedFile)))
           }
         }
       }
