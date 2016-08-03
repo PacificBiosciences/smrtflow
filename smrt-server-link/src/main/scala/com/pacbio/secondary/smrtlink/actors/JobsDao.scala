@@ -62,50 +62,87 @@ trait DalComponent {
 trait ProjectDataStore extends LazyLogging {
   this: DalComponent with SmrtLinkConstants =>
 
-  def getProjects(limit: Int = 100): Future[Seq[Project]] = db.run(projects.take(limit).result)
+  def getProjects(limit: Int = 100): Future[Seq[Project]] =
+    db.run(projects.take(limit).result)
 
   def getProjectById(projId: Int): Future[Option[Project]] =
     db.run(projects.filter(_.id === projId).result.headOption)
 
-  def createProject(opts: ProjectRequest): Future[Project] = {
+  def createProject(projReq: ProjectRequest, ownerLogin: String): Future[Project] = {
+    val owner = ProjectRequestUser(RequestUser(ownerLogin), "Owner")
+    val members = projReq.members.getOrElse(List())
+    val withOwner = members.filter(_.user.login != ownerLogin) ++ List(owner)
+    val requestWithOwner = projReq.copy(members = Some(withOwner))
+
     val now = JodaDateTime.now()
-    val proj = Project(-99, opts.name, opts.description, "CREATED", now, now)
-    val action = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
-    db.run(action)
+    val proj = Project(-99, projReq.name, projReq.description, "CREATED", now, now)
+    val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
+    val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, requestWithOwner))
+    db.run(fullAction.transactionally)
   }
 
-  def updateProject(projId: Int, opts: ProjectRequest): Future[Option[Project]] = {
+  def setMembersAndDatasets(proj: Project, projReq: ProjectRequest): DBIO[Project] = {
+    // skip updating member/dataset lists if the request doesn't include those
+    val updates = List(
+      projReq.members.map(setProjectMembers(proj.id, _)),
+      projReq.datasets.map(setProjectDatasets(proj.id, _))
+    ).flatten
+
+    DBIO.sequence(updates).andThen(DBIO.successful(proj))
+  }
+
+  def setProjectMembers(projId: Int, members: Seq[ProjectRequestUser]): DBIO[Unit] =
+    DBIO.seq(
+      projectsUsers.filter(_.projectId === projId).delete,
+      projectsUsers ++= members.map(m => ProjectUser(projId, m.user.login, m.role))
+    )
+
+  def setProjectDatasets(projId: Int, ids: Seq[RequestId]): DBIO[Unit] = {
     val now = JodaDateTime.now()
-    val update = projects
-      .filter(_.id === projId)
-      .map(p => (p.name, p.state, p.description, p.updatedAt))
-      .update(opts.name, opts.state, opts.description, now)
+    DBIO.seq(
+      // move datasets not in the list of ids back to the general project
+      dsMetaData2
+        .filter(_.projectId === projId)
+        .filterNot(_.id inSet ids.map(_.id))
+        .map(ds => (ds.projectId, ds.updatedAt))
+        .update((GENERAL_PROJECT_ID, now)),
+      // move datasets that *are* in the list of IDs into this project
+      dsMetaData2
+        .filter(_.id inSet ids.map(_.id))
+        .map(ds => (ds.projectId, ds.updatedAt))
+        .update((projId, now))
+    )
+  }
 
-    val updateAndGet = update >> projects.filter(_.id === projId).result.headOption
+  def updateProject(projId: Int, projReq: ProjectRequest): Future[Option[Project]] = {
+    val now = JodaDateTime.now()
+    val update = projReq.state match {
+      case Some(state) =>
+        projects
+          .filter(_.id === projId)
+          .map(p => (p.name, p.state, p.description, p.updatedAt))
+          .update((projReq.name, state, projReq.description, now))
+      case None =>
+        projects
+          .filter(_.id === projId)
+          .map(p => (p.name, p.description, p.updatedAt))
+          .update((projReq.name, projReq.description, now))
+    }
 
-    db.run(updateAndGet)
+    val fullAction = update.andThen(
+      projects.filter(_.id === projId).result.headOption.flatMap { maybeProj =>
+        maybeProj match {
+          case Some(proj) => setMembersAndDatasets(proj, projReq).map(Some(_))
+          case None => DBIO.successful(None)
+        }
+      }
+    )
+
+    db.run(fullAction.transactionally)
   }
 
   def getProjectUsers(projId: Int): Future[Seq[ProjectUser]] =
     db.run(projectsUsers.filter(_.projectId === projId).result)
-
-  def addProjectUser(projId: Int, user: ProjectUserRequest): Future[MessageResponse] = {
-    val action = DBIO.seq(
-      projectsUsers.filter(x => x.projectId === projId && x.login === user.login).delete,
-      projectsUsers += ProjectUser(projId, user.login, user.role)
-    ).map(_ => MessageResponse(s"added user ${user.login} with role ${user.role} to project $projId")).transactionally
-
-    db.run(action)
-  }
-
-  def deleteProjectUser(projId: Int, user: String): Future[MessageResponse] = {
-    val action = projectsUsers
-      .filter(x => x.projectId === projId && x.login === user)
-      .delete
-      .map(_ => MessageResponse(s"removed user $user from project $projId"))
-
-    db.run(action)
-  }
 
   def getDatasetsByProject(projId: Int): Future[Seq[DataSetMetaDataSet]] =
     db.run(dsMetaData2.filter(_.projectId === projId).result)
@@ -150,28 +187,6 @@ trait ProjectDataStore extends LazyLogging {
       .map(_.map(j => ProjectDatasetResponse(j._1, j._2, None)))
 
     db.run(userProjects.zip(genProjects).map(p => p._1 ++ p._2))
-  }
-
-  def setProjectForDatasetId(dsId: Int, projId: Int): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    val action = dsMetaData2
-      .filter(_.id === dsId)
-      .map(ds => (ds.projectId, ds.updatedAt))
-      .update(projId, now)
-      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
-
-    db.run(action)
-  }
-
-  def setProjectForDatasetUuid(dsId: UUID, projId: Int): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    val action = dsMetaData2
-      .filter(_.uuid === dsId)
-      .map(ds => (ds.projectId, ds.updatedAt))
-      .update(projId, now)
-      .map(_ => MessageResponse(s"moved dataset with ID $dsId to project $projId"))
-
-    db.run(action)
   }
 }
 

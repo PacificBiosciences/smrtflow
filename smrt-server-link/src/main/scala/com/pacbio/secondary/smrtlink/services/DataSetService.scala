@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{MessageResponse, PacBioComponentManifest}
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
 import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
 import com.pacbio.secondary.smrtlink.models._
 import shapeless.HNil
-import spray.httpx.marshalling.{Marshaller, ToResponseMarshallable}
+import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
 
 import scala.concurrent.Future
@@ -32,8 +32,6 @@ import scala.reflect.ClassTag
 /**
  * Accessing DataSets by type. Currently several datasets types are
  * not completely supported (ContigSet, CCSreads, CCS Alignments)
- *
- * @param dbActor
  */
 class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLinkConstants {
   // For all the Message types
@@ -113,20 +111,20 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
       pathPrefix(MixedId) { id =>
         pathEnd {
           get {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              complete {
-                ok {
-                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
-                }
+            complete {
+              ok {
+                (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
               }
             }
           }
         } ~
         path(DETAILS_PREFIX) {
           get {
-            complete {
-              ok {
-                (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[MessageResponse]
+            respondWithMediaType(MediaTypes.`application/json`) {
+              complete {
+                ok {
+                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                }
               }
             }
           }

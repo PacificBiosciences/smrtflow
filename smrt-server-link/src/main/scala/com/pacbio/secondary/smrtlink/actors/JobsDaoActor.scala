@@ -19,7 +19,7 @@ import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ProjectUserRequest, ReferenceServiceDataSet, GmapReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ReferenceServiceDataSet, GmapReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable

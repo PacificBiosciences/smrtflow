@@ -47,7 +47,7 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
     if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
     else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
 
-  def getEntryPointBy(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
+  def getFirstDataSetFromEntryPoint(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
     eps.find(_.datasetType == datasetMetaType.dsId) match {
       case Some(x) => Future {
         x.datasetUUID
@@ -87,15 +87,18 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
       * @return
       */
     def resolve(sc: ServiceCondition): Future[ReseqCondition] = {
+
+      val client = new AnalysisServiceAccessLayer(sc.host, sc.port)(actorSystem)
+
       for {
-        job <- getAnalysisJobById(sc.jobId)
+        job <- client.getAnalysisJobById(sc.jobId)
         sjob <- failJobIfNotSuccessful(job)
-        alignmentSetPath <- JobResolvers.resolveAlignmentSet(this, sc.jobId) // FIXME. Make this core trait more well defined
-        entryPoints <- getAnalysisJobEntryPoints(sc.jobId)
-        subreadSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Subread)
-        referenceSetUUID <- getEntryPointBy(entryPoints, DataSetMetaTypes.Reference)
-        subreadSetMetadata <- getDataSetByUuid(subreadSetUUID)
-        referenceSetMetadata <- getDataSetByUuid(referenceSetUUID)
+        alignmentSetPath <- JobResolvers.resolveAlignmentSet(client, sc.jobId) // FIXME. Make this core trait more well defined
+        entryPoints <- client.getAnalysisJobEntryPoints(sc.jobId)
+        subreadSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Subread)
+        referenceSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Reference)
+        subreadSetMetadata <- client.getDataSetByUuid(subreadSetUUID)
+        referenceSetMetadata <- client.getDataSetByUuid(referenceSetUUID)
         ssetPath <- validatePath(Paths.get(subreadSetMetadata.path), s"SubreadSet path for Job ${job.id}")
         rsetPath <- validatePath(Paths.get(referenceSetMetadata.path), s"ReferenceSet path for job ${job.id}")
       } yield ReseqCondition(sc.id, ssetPath, alignmentSetPath, rsetPath)

@@ -126,13 +126,43 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   private case object TestFailed extends TestResult {val mode="failed"}
   private case object TestPassed extends TestResult {val mode="passed"}
 
-  // TODO return JUnit test cases
+  private def makeTestPassed(testClass: String, testName: String, time: Int = 0): scala.xml.Elem = {
+    nPassed += 1
+    <testcase classname={testClass} name={testName} time={s"$time"}/>
+  }
+
+  private def makeTestSkipped(testClass: String, testName: String): scala.xml.Elem = {
+    nSkips += 1
+    <testcase classname={testClass} name={testName} time="0"><skipped/></testcase>
+  }
+
+  private def makeTestFailed(testClass: String, testName: String, msg: String,
+                             content: String, time: Int = 0): scala.xml.Elem = {
+    nFailures += 1
+    <testcase classname={testClass} name={testName} time={s"$time"}><failure message={s"FAILED: ${msg}"}>{content}</failure></testcase>
+  }
+
   private def testReportValues(jobId: Int, reportId: UUID,
                                rptTest: ReportTestRules): Int = {
     Try {
+      // FIXME this actually works for any job type
       Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
     } match {
       case Success(report) => {
+        println(s"Report ${report.id}:")
+        val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
+        // always check that datastore and report have the same UUID
+        var uuidTest = if (report.uuid == reportId) {
+          println(s"  passed: report.uuid == '${reportId}'")
+          makeTestPassed(testClass, "test_report_uuid")
+        } else {
+          println(s"  FAILED: report.uuid != '${reportId}'")
+          makeTestFailed(testClass, "test_report_uuid",
+                         "report.uuid != reportId",
+                         s"${reportId} != ${report.uuid}")
+        }
+        testCases.append(uuidTest)
+        // iterate over rules defined in testkit cfg JSON
         (for (rule <- rptTest.rules) yield {
           val isSameId = (other: String) => ((other != "") && (other.split('.').toList.last == rule.attrId))
           var testStatus: TestResult = TestSkipped
@@ -154,24 +184,15 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
             }
           }
           val testStr = s"${rule.attrId} .${rule.op}. ${rule.value}"
-          val testClass = "Test" + (for (word <- report.id.split('.').last.split("_")) yield {word.capitalize}).toList.mkString("")
           val testName = s"test_${rule.attrId}"
           var testCase = testStatus match {
-            case TestPassed => {
-              nPassed += 1
-              <testcase classname={testClass} name={testName} time="0"/>
-            }
-            case TestFailed => {
-              nFailures += 1
-              <testcase classname={testClass} name={testName} time="0"><failure message={s"FAILED: ${rule.attrId}"}>{testStr}</failure></testcase>
-            }
-            case TestSkipped => {
-              nSkips += 1
-              <testcase classname={testClass} name={testName} time="0"><skipped/></testcase>
-            }
+            case TestPassed => makeTestPassed(testClass, testName)
+            case TestFailed => makeTestFailed(testClass, testName, rule.attrId,
+                                              testStr)
+            case TestSkipped => makeTestSkipped(testClass, testName)
           }
           testCases.append(testCase)
-          println(s"${testStatus.mode}:${testStr}")
+          println(s"  ${testStatus.mode}: ${testStr}")
           testStatus match {
             case TestFailed => 1
             case _ => 0
@@ -189,11 +210,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       case Success(r) => r
       case Failure(err) => Seq[DataStoreReportFile]()
     }
-    // FIXME use reportTypeId
-    // FIXME in the import-dataset job type, all of the reports have source
-    // ID "pbscala::import_dataset" - we can't use that
-    //val reportsMap = (for (r <- reports) yield (r.reportTypeId, r.dataStoreFile.uuid)).toMap
-    val reportsMap = (for (r <- reports) yield (r.dataStoreFile.sourceId.split("-").head, r.dataStoreFile.uuid)).toMap
+    val reportsMap = (for (r <- reports) yield (r.reportTypeId, r.dataStoreFile.uuid)).toMap
     (for (test <- reportTests) yield {
       val reportId = reportsMap(test.reportId)
       testReportValues(jobId, reportId, test)
@@ -247,6 +264,17 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     }
   }
 
+  protected def runMergeDataSetsTestJob(cfg: TestkitConfig): EngineJob = {
+    if (cfg.entryPoints.size < 2) throw new Exception("At least two dataset entry points are required for this job type.")
+    val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path.toString))
+    val ids = entryPoints.map(e => e.datasetId.left.get)
+    val dsTypes = entryPoints.map(e => e.fileTypeId).toSet
+    val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
+      throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
+    }
+    Await.result(sal.mergeDataSets(dsType, ids, cfg.jobName), TIMEOUT)
+  }
+
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
                     ignoreTestFailures: Boolean = false): Int = {
     val cfg = loadTestkitCfg(cfgFile)
@@ -256,6 +284,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       cfg.jobType match {
         case "pbsmrtpipe" => runAnalysisTestJob(cfg)
         case "import-dataset" => runImportDataSetTestJob(cfg)
+        case "merge-datasets" => runMergeDataSetsTestJob(cfg)
         case _ => throw new Exception(s"Don't know how to run job type ${cfg.jobType}")
       }
     } match {
