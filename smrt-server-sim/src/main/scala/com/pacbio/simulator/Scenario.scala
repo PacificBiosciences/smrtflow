@@ -17,7 +17,8 @@ trait ScenarioLoader {
 trait Scenario {
   import StepResult._
 
-  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
+  implicit val system: ActorSystem = ActorSystem("sim")
+  implicit val ec: ExecutionContext = system.dispatcher
 
   // Subclasses may create their own steps by overriding this, or use pre-made steps
   trait Step {

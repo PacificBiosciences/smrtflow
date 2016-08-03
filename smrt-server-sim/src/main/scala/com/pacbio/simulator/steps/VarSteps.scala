@@ -36,6 +36,9 @@ trait VarSteps {
 
     def ==? (value: T): Var[Boolean] = ? (_ == value)
     def !=? (value: T): Var[Boolean] = ? (_ != value)
+
+    def ==? (other: Var[T]): Var[Boolean] = mapWith { v => v == other.get}
+    def !=? (other: Var[T]): Var[Boolean] = mapWith { v => v != other.get}
   }
 
   private[VarSteps] class MappedVar[F, T](from: Var[F], map: F => T) extends Var[T](None) {
