@@ -47,6 +47,7 @@ object Modes {
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
   case object PIPELINE extends Mode {val name = "run-pipeline"}
+  case object IMPORT_MOVIE extends Mode {val name = "import-rs-movie"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
   case object DATASET extends Mode {val name = "get-dataset"}
@@ -191,6 +192,17 @@ object PbServiceParser {
       } text "Name of BarcodeSet"
     ) text "Import Barcodes FASTA"
 
+    cmd(Modes.IMPORT_MOVIE.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.IMPORT_MOVIE)
+    } children(
+      arg[File]("metadata-xml-path") required() action { (p, c) =>
+        c.copy(path = p)
+      } text "Path to RS II movie metadata XML file (or directory)",
+      opt[String]("name") action { (name, c) =>
+        c.copy(name = name)
+      } text "Name of imported HdfSubreadSet"
+    ) text "Import RS II movie metadata XML legacy format as HdfSubreadSet"
+
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.ANALYSIS)
     } children(
@@ -302,6 +314,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
+  // FIXME this should probably return a DataSetMetaType
   protected def dsMetaTypeFromPath(path: String): String = {
     val ds = scala.xml.XML.loadFile(path)
     ds.attributes("MetaType").toString
@@ -311,6 +324,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     val ds = scala.xml.XML.loadFile(path)
     val uniqueId = ds.attributes("UniqueId").toString
     java.util.UUID.fromString(uniqueId)
+  }
+
+  protected def dsNameFromMetadata(path: String): String = {
+    if (! path.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
+    val md = scala.xml.XML.loadFile(path)
+    if (md.label != "Metadata") throw new Exception(s"The file $path does not appear to be an RS II metadata XML")
+    (md \ "Run" \ "Name").text
   }
 
   protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
@@ -594,13 +614,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   private def listDataSetFiles(f: File): Array[File] = {
-    (f.listFiles.filter((fn) =>
-      Try {
-        dsMetaTypeFromPath(fn.getAbsolutePath)
-      } match {
-        case Success(dsType) => true
-        case _ => false
-      })
+    f.listFiles.filter((fn) =>
+      Try { dsMetaTypeFromPath(fn.getAbsolutePath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
@@ -621,6 +636,59 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         } else if (f.isFile) runImportDataSetSafe(f.getAbsolutePath)
         else errorExit(s"${f.getAbsolutePath} is not readable")
     }
+  }
+
+  private def importRsMovie(path: String, name: String): Int = {
+    Try {
+      Await.result(sal.convertRsMovie(path, name), TIMEOUT)
+    } match {
+      case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
+      case Failure(err) => errorExit(s"RS II movie import failed: ${err}")
+    }
+  }
+
+  def runImportRsMovie(f: File, name: String): Int = {
+    val fileName = f.getAbsolutePath
+    if (fileName.endsWith(".fofn")) {
+      if (name == "") errorExit(s"--name argument is required when an FOFN is input")
+      else importRsMovie(fileName, name)
+    } else {
+      Try {
+        dsNameFromMetadata(f.getAbsolutePath)
+      } match {
+        case Success(dsName) =>
+          val finalName = if (name == "") dsName else name
+          importRsMovie(fileName, finalName)
+        case _ => errorExit(s"The path does not appear to be valid RSII metadata XML")
+      }
+    }
+  }
+
+  private def listMovieMetadataFiles(f: File): Array[File] = {
+    f.listFiles.filter((fn) =>
+      Try { dsNameFromMetadata(fn.getAbsolutePath) }.isSuccess
+    ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
+  }
+
+  def runImportRsMovies(f: File, name: String): Int = {
+    if (f.isDirectory) {
+      if (name != "") {
+        errorExit("--name option not allowed when path is a directory")
+      } else {
+        val xmlFiles = listMovieMetadataFiles(f)
+        if (xmlFiles.size == 0) {
+          errorExit(s"No valid RSII movie metadata XMLs found in ${f.getAbsolutePath}")
+        } else {
+          println(s"Found ${xmlFiles.size} RSII metadata XML Files")
+          val xc = (for (xml <- xmlFiles) yield {
+            println(s"Importing ${xml.getAbsolutePath}...")
+            runImportRsMovie(xml, "")
+          }).toList.max
+          if (xc > 0) errorExit("At least one import failed") else 0
+        }
+      }
+    } else if (f.isFile) runImportRsMovie(f, name)
+    else errorExit(s"${f.getAbsolutePath} is not readable")
   }
 
   def runEmitAnalysisTemplate: Int = {
@@ -823,6 +891,7 @@ object PbService {
         case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal)
         case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath, c.name, c.organism, c.ploidy)
         case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path.getAbsolutePath, c.name)
+        case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
                                                       c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate

@@ -33,9 +33,9 @@ with MockJobUtils with timeUtils {
     // Just to have Data to import back into the system
     val startedAt = JodaDateTime.now()
 
-    val dsPath = job.path.resolve("hdfsubread.dataset.xml")
+    val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 
-    convertMovieMetaDataToSubread(Paths.get(opts.path)) match {
+    convertMovieOrFofnToHdfSubread(opts.path) match {
 
       case Right(dataset) =>
         dataset.setName(opts.name)
@@ -48,7 +48,7 @@ with MockJobUtils with timeUtils {
         val dsFile = DataStoreFile(
           UUID.fromString(dataset.getUniqueId),
           sourceId,
-          DataSetMetaTypes.typeToIdString(DataSetMetaTypes.Reference),
+          DataSetMetaTypes.typeToIdString(DataSetMetaTypes.HdfSubread),
           dsPath.toFile.length(),
           now,
           now,

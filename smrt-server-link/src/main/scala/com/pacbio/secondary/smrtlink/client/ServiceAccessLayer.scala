@@ -40,6 +40,7 @@ trait JobTypesTrait {
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
   val CONVERT_FASTA = "convert-fasta-reference"
   val CONVERT_BARCODES = "convert-fasta-barcodes"
+  val CONVERT_MOVIE = "convert-rs-movie"
 }
 
 // FIXME this for sure needs to be somewhere else
