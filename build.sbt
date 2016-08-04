@@ -150,7 +150,7 @@ lazy val smrtServerLink = (
 
 lazy val smrtServerSim = (
   PacBioProject("smrt-server-sim")
-    dependsOn(logging, database, common, smrtAnalysis)
+    dependsOn(logging, database, common, smrtAnalysis, smrtServerLink)
     settings()
   )
 

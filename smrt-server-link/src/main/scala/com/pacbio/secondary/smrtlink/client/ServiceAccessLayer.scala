@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.client
 
+import com.pacbio.common.models.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 
@@ -23,6 +24,7 @@ trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
   val ROOT_JOBS = ROOT_JM + "/jobs"
   val ROOT_DS = "/secondary-analysis/datasets"
+  val ROOT_RUNS = "/smrt-link/runs"
 }
 
 trait ServiceResourceTypesTrait {
@@ -123,7 +125,13 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
 
+  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
+  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
+  protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
+  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
+  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
 
+  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
     datasetId match {
       case Left(x) => getDataSetById(x)
@@ -232,4 +240,38 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAnalysisJobReports(jobId: Int) = getJobReports(jobId, JobTypes.PB_PIPE)
   def getImportJobReports(jobId: Int) = getJobReports(jobId, JobTypes.IMPORT_DS)
   // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
+
+  // Runs
+
+  protected def getRunUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId")
+  protected def getCollectionsUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections")
+  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections/$collectionId")
+
+  def getRuns: Future[Seq[RunSummary]] = getRunsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_RUNS))
+  }
+
+  def getRun(runId: UUID): Future[Run] = getRunPipeline {
+    Get(getRunUrl(runId))
+  }
+
+  def getCollections(runId: UUID): Future[Seq[CollectionMetadata]] = getCollectionsPipeline {
+    Get(getCollectionsUrl(runId))
+  }
+
+  def getCollection(runId: UUID, collectionId: UUID): Future[CollectionMetadata] = getCollectionPipeline {
+    Get(getCollectionUrl(runId, collectionId))
+  }
+
+  def createRun(dataModel: String): Future[RunSummary] = getRunSummaryPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_RUNS), RunCreate(dataModel))
+  }
+
+  def updateRun(runId: UUID, dataModel: Option[String] = None, reserved: Option[Boolean] = None): Future[RunSummary] = getRunSummaryPipeline {
+    Post(getRunUrl(runId), RunUpdate(dataModel, reserved))
+  }
+
+  def deleteRun(runId: UUID): Future[MessageResponse] = getMessageResponsePipeline {
+    Delete(getRunUrl(runId))
+  }
 }

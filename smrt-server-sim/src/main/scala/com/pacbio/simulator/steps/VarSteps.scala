@@ -36,12 +36,15 @@ trait VarSteps {
 
     def ==? (value: T): Var[Boolean] = ? (_ == value)
     def !=? (value: T): Var[Boolean] = ? (_ != value)
+
+    def ==? (other: Var[T]): Var[Boolean] = mapWith { v => v == other.get}
+    def !=? (other: Var[T]): Var[Boolean] = mapWith { v => v != other.get}
   }
 
   private[VarSteps] class MappedVar[F, T](from: Var[F], map: F => T) extends Var[T](None) {
     override def := (step: VarStep[T]): Step =
       throw new UnsupportedOperationException("Illegal assignment to MappedVar")
 
-    override def get: T = map(from.value.get)
+    override def get: T = map(from.get)
   }
 }
