@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.3-SNAPSHOT"
+version in ThisBuild := "0.1.4-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
