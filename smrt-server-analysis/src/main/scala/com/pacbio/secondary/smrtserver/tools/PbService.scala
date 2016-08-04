@@ -47,7 +47,7 @@ object Modes {
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
   case object PIPELINE extends Mode {val name = "run-pipeline"}
-  case object IMPORT_MOVIE extends Mode {val name = "import-movie"}
+  case object IMPORT_MOVIE extends Mode {val name = "import-rs-movie"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
   case object DATASET extends Mode {val name = "get-dataset"}
@@ -679,7 +679,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           errorExit(s"No valid RSII movie metadata XMLs found in ${f.getAbsolutePath}")
         } else {
           println(s"Found ${xmlFiles.size} RSII metadata XML Files")
-          val xc = (for (xml <- xmlFiles) yield runImportRsMovie(xml, "")).toList.max
+          val xc = (for (xml <- xmlFiles) yield {
+            println(s"Importing ${xml.getAbsolutePath}...")
+            runImportRsMovie(xml, "")).toList.max
+          }
           if (xc > 0) errorExit("At least one import failed") else 0
         }
       }
