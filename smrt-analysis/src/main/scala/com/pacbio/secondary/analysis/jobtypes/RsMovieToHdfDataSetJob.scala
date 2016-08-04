@@ -35,7 +35,7 @@ with MockJobUtils with timeUtils {
 
     val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 
-    convertMovieMetaDataToSubread(Paths.get(opts.path)) match {
+    convertMovieOrFofnToHdfSubread(opts.path) match {
 
       case Right(dataset) =>
         dataset.setName(opts.name)

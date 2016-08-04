@@ -327,6 +327,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   protected def dsNameFromMetadata(path: String): String = {
+    if (! path.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
     val md = scala.xml.XML.loadFile(path)
     if (md.label != "Metadata") throw new Exception(s"The file $path does not appear to be an RS II metadata XML")
     (md \ "Run" \ "Name").text
@@ -613,13 +614,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   private def listDataSetFiles(f: File): Array[File] = {
-    (f.listFiles.filter((fn) =>
-      Try {
-        dsMetaTypeFromPath(fn.getAbsolutePath)
-      } match {
-        case Success(dsType) => true
-        case _ => false
-      })
+    f.listFiles.filter((fn) =>
+      Try { dsMetaTypeFromPath(fn.getAbsolutePath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
@@ -642,30 +638,35 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportRsMovie(f: File, name: String): Int = {
+  private def importRsMovie(path: String, name: String): Int = {
     Try {
-      dsNameFromMetadata(f.getAbsolutePath)
+      Await.result(sal.convertRsMovie(path, name), TIMEOUT)
     } match {
-      case Success(dsName) =>
-        val finalName = if (name == "") dsName else name
-        Try {
-          Await.result(sal.convertRsMovie(f.getAbsolutePath, finalName), TIMEOUT)
-        } match {
-          case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
-          case Failure(err) => errorExit(s"RS II movie import failed: ${err}")
-        }
-      case _ => errorExit(s"The path does not appear to be valid metadata XML")
+      case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
+      case Failure(err) => errorExit(s"RS II movie import failed: ${err}")
+    }
+  }
+
+  def runImportRsMovie(f: File, name: String): Int = {
+    val fileName = f.getAbsolutePath
+    if (fileName.endsWith(".fofn")) {
+      if (name == "") errorExit(s"--name argument is required when an FOFN is input")
+      else importRsMovie(fileName, name)
+    } else {
+      Try {
+        dsNameFromMetadata(f.getAbsolutePath)
+      } match {
+        case Success(dsName) =>
+          val finalName = if (name == "") dsName else name
+          importRsMovie(fileName, finalName)
+        case _ => errorExit(s"The path does not appear to be valid RSII metadata XML")
+      }
     }
   }
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
-    (f.listFiles.filter((fn) =>
-      Try {
-        dsNameFromMetadata(fn.getAbsolutePath)
-      } match {
-        case Success(dsName) => true
-        case _ => false
-      })
+    f.listFiles.filter((fn) =>
+      Try { dsNameFromMetadata(fn.getAbsolutePath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
