@@ -1,12 +1,14 @@
 package com.pacbio.secondary.smrtserver.client
 
 import com.pacbio.secondary.smrtserver.models._
+import com.pacbio.secondary.smrtlink.client._
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.secondary.smrtlink.client._
-import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
 
@@ -27,26 +29,12 @@ import java.net.URL
 import java.util.UUID
 import java.lang.System
 
-//FIXME(mkocher)(2016-2-2): This needs to be centralized.
-object AnalysisServicesModels {
-
-  case class CreateDataSet(path: String, datasetType: String)
-
-  case class CreateReferenceSet(
-      path: String,
-      name: String,
-      organism: String,
-      ploidy: String)
-
-  case class CreateBarcodeSet(path: String, name: String)
-}
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
 
 class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends SmrtLinkServiceAccessLayer(baseUrl)(actorSystem) {
 
   import AnalysisClientJsonProtocol._
-  import AnalysisServicesModels._
   import SprayJsonSupport._
   import ReportModels._
 
@@ -107,26 +95,32 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
   def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
+    val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-      CreateDataSet(path, dsMetaType))
+      ImportDataSetOptions(path, dsMetaTypeObj))
   }
 
   def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-      CreateReferenceSet(path, name, organism, ploidy))
+      ConvertImportFastaOptions(path, name, ploidy, organism))
   }
 
   def importFastaBarcodes(path: String, name: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
-      CreateBarcodeSet(path, name))
+      ConvertImportFastaBarcodesOptions(path, name))
   }
 
   def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
     Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.MERGE_DS),
          DataSetMergeServiceOptions(datasetType, ids, name))
+  }
+
+  def convertRsMovie(path: String, name: String) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_MOVIE),
+      MovieMetadataToHdfSubreadOptions(path, name))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
