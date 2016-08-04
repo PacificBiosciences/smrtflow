@@ -681,8 +681,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           println(s"Found ${xmlFiles.size} RSII metadata XML Files")
           val xc = (for (xml <- xmlFiles) yield {
             println(s"Importing ${xml.getAbsolutePath}...")
-            runImportRsMovie(xml, "")).toList.max
-          }
+            runImportRsMovie(xml, "")
+          }).toList.max
           if (xc > 0) errorExit("At least one import failed") else 0
         }
       }
