@@ -1,6 +1,7 @@
 package com.pacbio.secondary.analysis.datasets.validators
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Paths, Files, Path}
+import java.net.URI
 import java.util.UUID
 
 import collection.JavaConversions._
@@ -51,6 +52,11 @@ trait ValidateDataSet {
     }
   }
 
+  private def getExternalResourcePath(resourceId: String): Path = {
+    if (resourceId.startsWith("file://")) Paths.get(URI.create(resourceId))
+    else Paths.get(resourceId)
+  }
+
   /**
    * Validate the Resource Path of the fasta file is found
    *
@@ -59,7 +65,7 @@ trait ValidateDataSet {
    */
   def hasValidExternalResourcePaths(ds: DsType): ValidateDataSetE = {
     ds.getExternalResources.getExternalResource.map(r => r.getResourceId)
-      .filter(x => !Files.exists(Paths.get(x)))
+      .filter(x => !Files.exists(getExternalResourcePath(x)))
       .reduceLeftOption((a, b) => s"$a, $b") match {
       case Some(msg) => s"Unable to find Resource(s) $msg".failNel
       case _ => ds.successNel
