@@ -13,8 +13,6 @@ dependencies:
     - (cd PacBioTestData && git lfs pull && make python)
     - wget -q https://dl.bintray.com/sbt/debian/sbt-0.13.11.deb
     - sudo dpkg -i sbt-0.13.11.deb
-  environment:
-    PB_TEST_DATA_FILES: "`pbdata path`"
   cache_directories:
     - "~/.ivy2"
     - "~/.sbt"
@@ -27,7 +25,7 @@ dependencies:
 
 test:
   override:
-    - sbt test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt test
   # Copy test reports to Circle test reports dir
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
