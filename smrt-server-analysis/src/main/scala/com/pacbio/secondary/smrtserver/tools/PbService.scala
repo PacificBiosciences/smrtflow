@@ -31,7 +31,7 @@ import scala.math._
 import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
-import java.nio.file.Paths
+import java.nio.file.{Paths, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
@@ -91,7 +91,7 @@ object PbServiceParser {
       command: CustomConfig => Unit = showDefaults,
       datasetId: Either[Int, UUID] = Left(0),
       jobId: Either[Int, UUID] = Left(0),
-      path: File = null,
+      path: Path = null,
       name: String = "",
       organism: String = "",
       ploidy: String = "",
@@ -102,7 +102,7 @@ object PbServiceParser {
       pipelineId: String = "",
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
-      presetXml: Option[String] = None,
+      presetXml: Option[Path] = None,
       maxTime: Int = -1) extends LoggerConfig
 
 
@@ -145,7 +145,7 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_DS)
     } children(
       arg[File]("dataset-path") required() action { (p, c) =>
-        c.copy(path = p)
+        c.copy(path = p.toPath)
       } text "DataSet XML path (or directory containing datasets)",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
@@ -159,7 +159,7 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_FASTA)
     } children(
       arg[File]("fasta-path") required() action { (p, c) =>
-        c.copy(path = p)
+        c.copy(path = p.toPath)
       } validate { p => {
         val size = getSizeMb(p)
         // it's great that we can do this, but it would be more awesome if
@@ -185,7 +185,7 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_BARCODES)
     } children(
       arg[File]("fasta-path") required() action { (p, c) =>
-        c.copy(path = p)
+        c.copy(path = p.toPath)
       } text "FASTA path",
       arg[String]("name") required() action { (name, c) =>
         c.copy(name = name)
@@ -196,7 +196,7 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_MOVIE)
     } children(
       arg[File]("metadata-xml-path") required() action { (p, c) =>
-        c.copy(path = p)
+        c.copy(path = p.toPath)
       } text "Path to RS II movie metadata XML file (or directory)",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name)
@@ -207,7 +207,7 @@ object PbServiceParser {
       c.copy(command = (c) => println(c), mode = Modes.ANALYSIS)
     } children(
       arg[File]("json-file") required() action { (p, c) =>
-        c.copy(path = p)
+        c.copy(path = p.toPath)
       } text "JSON config file", // TODO validate json format
       opt[Unit]("block") action { (_, c) =>
         c.copy(block = true)
@@ -232,7 +232,7 @@ object PbServiceParser {
         c.copy(entryPoints = c.entryPoints :+ e)
       } text "Entry point (must be valid PacBio DataSet)",
       opt[File]("preset-xml") action { (x, c) =>
-        c.copy(presetXml = Some(x.getAbsolutePath.toString))
+        c.copy(presetXml = Some(x.toPath))
       } text "XML file specifying pbsmrtpipe options",
       opt[String]("job-title") action { (t, c) =>
         c.copy(jobTitle = t)
@@ -284,11 +284,71 @@ object PbServiceParser {
   }
 }
 
+object PbServiceUtils {
+  import AnalysisClientJsonProtocol._
+
+  // FIXME this should probably return a DataSetMetaType
+  def dsMetaTypeFromPath(path: Path): String = {
+    val ds = scala.xml.XML.loadFile(path.toFile)
+    ds.attributes("MetaType").toString
+  }
+
+  def dsUuidFromPath(path: Path): UUID = {
+    val ds = scala.xml.XML.loadFile(path.toFile)
+    val uniqueId = ds.attributes("UniqueId").toString
+    java.util.UUID.fromString(uniqueId)
+  }
+
+  def dsNameFromMetadata(path: Path): String = {
+    if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
+    val md = scala.xml.XML.loadFile(path.toFile)
+    if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
+    (md \ "Run" \ "Name").text
+  }
+
+  def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
+    if (asJson) println(ds.toJson.prettyPrint) else {
+      println("DATASET SUMMARY:")
+      println(s"  id: ${ds.id}")
+      println(s"  uuid: ${ds.uuid}")
+      println(s"  name: ${ds.name}")
+      println(s"  path: ${ds.path}")
+      println(s"  numRecords: ${ds.numRecords}")
+      println(s"  totalLength: ${ds.totalLength}")
+      println(s"  jobId: ${ds.jobId}")
+      println(s"  md5: ${ds.md5}")
+      println(s"  createdAt: ${ds.createdAt}")
+      println(s"  updatedAt: ${ds.updatedAt}")
+    }
+    0
+  }
+
+  def printJobInfo(job: EngineJob, asJson: Boolean = false): Int = {
+    if (asJson) println(job.toJson.prettyPrint) else {
+      println("JOB SUMMARY:")
+      println(s"  id: ${job.id}")
+      println(s"  uuid: ${job.uuid}")
+      println(s"  name: ${job.name}")
+      println(s"  state: ${job.state}")
+      println(s"  path: ${job.path}")
+      println(s"  jobTypeId: ${job.jobTypeId}")
+      println(s"  createdAt: ${job.createdAt}")
+      println(s"  updatedAt: ${job.updatedAt}")
+      job.createdBy match {
+        case Some(createdBy) => println(s"  createdBy: ${createdBy}")
+        case _ => println("  createdBy: none")
+      }
+      println(s"  comment: ${job.comment}")
+    }
+    0
+  }
+}
 
 // TODO consolidate Try behavior
 class PbService (val sal: AnalysisServiceAccessLayer,
                  val maxTime: Int = -1) extends LazyLogging {
   import AnalysisClientJsonProtocol._
+  import PbServiceUtils._
 
   protected val TIMEOUT = 10 seconds
   private lazy val entryPointsLookup = Map(
@@ -312,25 +372,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   protected def printMsg(msg: String): Int = {
     println(msg)
     0
-  }
-
-  // FIXME this should probably return a DataSetMetaType
-  protected def dsMetaTypeFromPath(path: String): String = {
-    val ds = scala.xml.XML.loadFile(path)
-    ds.attributes("MetaType").toString
-  }
-
-  protected def dsUuidFromPath(path: String): UUID = {
-    val ds = scala.xml.XML.loadFile(path)
-    val uniqueId = ds.attributes("UniqueId").toString
-    java.util.UUID.fromString(uniqueId)
-  }
-
-  protected def dsNameFromMetadata(path: String): String = {
-    if (! path.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
-    val md = scala.xml.XML.loadFile(path)
-    if (md.label != "Metadata") throw new Exception(s"The file $path does not appear to be an RS II metadata XML")
-    (md \ "Run" \ "Name").text
   }
 
   protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
@@ -358,43 +399,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
       showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
       showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
-    }
-    0
-  }
-
-  protected def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
-    if (asJson) println(ds.toJson.prettyPrint) else {
-      println("DATASET SUMMARY:")
-      println(s"  id: ${ds.id}")
-      println(s"  uuid: ${ds.uuid}")
-      println(s"  name: ${ds.name}")
-      println(s"  path: ${ds.path}")
-      println(s"  numRecords: ${ds.numRecords}")
-      println(s"  totalLength: ${ds.totalLength}")
-      println(s"  jobId: ${ds.jobId}")
-      println(s"  md5: ${ds.md5}")
-      println(s"  createdAt: ${ds.createdAt}")
-      println(s"  updatedAt: ${ds.updatedAt}")
-    }
-    0
-  }
-
-  protected def printJobInfo(job: EngineJob, asJson: Boolean = false): Int = {
-    if (asJson) println(job.toJson.prettyPrint) else {
-      println("JOB SUMMARY:")
-      println(s"  id: ${job.id}")
-      println(s"  uuid: ${job.uuid}")
-      println(s"  name: ${job.name}")
-      println(s"  state: ${job.state}")
-      println(s"  path: ${job.path}")
-      println(s"  jobTypeId: ${job.jobTypeId}")
-      println(s"  createdAt: ${job.createdAt}")
-      println(s"  updatedAt: ${job.updatedAt}")
-      job.createdBy match {
-        case Some(createdBy) => println(s"  createdBy: ${createdBy}")
-        case _ => println("  createdBy: none")
-      }
-      println(s"  comment: ${job.comment}")
     }
     0
   }
@@ -514,13 +518,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportFasta(
-      path: String, name: String,
-      organism: String,
-      ploidy: String): Int = {
+  def runImportFasta(path: Path, name: String, organism: String, ploidy: String): Int = {
     var nameFinal = name
     if (name == "") nameFinal = "unknown" // this really shouldn't be optional
-    PacBioFastaValidator(Paths.get(path)) match {
+    PacBioFastaValidator(path) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
@@ -552,8 +553,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   // FIXME too much code duplication
-  def runImportBarcodes(path: String, name: String): Int = {
-    PacBioFastaValidator(Paths.get(path), barcodeMode=true) match {
+  def runImportBarcodes(path: Path, name: String): Int = {
+    PacBioFastaValidator(path, barcodeMode=true) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
@@ -584,7 +585,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportDataSetSafe(path: String): Int = {
+  def runImportDataSetSafe(path: Path): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
     Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
@@ -601,7 +602,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportDataSet(path: String, dsType: String): Int = {
+  def runImportDataSet(path: Path, dsType: String): Int = {
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => {
@@ -615,30 +616,31 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   private def listDataSetFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      Try { dsMetaTypeFromPath(fn.getAbsolutePath) }.isSuccess
+      Try { dsMetaTypeFromPath(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
-  def runImportDataSets(f: File, nonLocal: Option[String]): Int = {
+  def runImportDataSets(path: Path, nonLocal: Option[String]): Int = {
     nonLocal match {
       case Some(dsType) =>
         logger.info(s"Non-local file, importing as type ${dsType}")
-        runImportDataSet(f.getAbsolutePath, dsType)
+        runImportDataSet(path, dsType)
       case _ =>
+        val f = path.toFile
         if (f.isDirectory) {
           val xmlFiles = listDataSetFiles(f)
           if (xmlFiles.size == 0) {
             errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
           } else {
             println(s"Found ${xmlFiles.size} DataSet XML files")
-            (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.getAbsolutePath)).toList.max
+            (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.toPath)).toList.max
           }
-        } else if (f.isFile) runImportDataSetSafe(f.getAbsolutePath)
+        } else if (f.isFile) runImportDataSetSafe(path)
         else errorExit(s"${f.getAbsolutePath} is not readable")
     }
   }
 
-  private def importRsMovie(path: String, name: String): Int = {
+  private def importRsMovie(path: Path, name: String): Int = {
     Try {
       Await.result(sal.convertRsMovie(path, name), TIMEOUT)
     } match {
@@ -647,14 +649,14 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportRsMovie(f: File, name: String): Int = {
-    val fileName = f.getAbsolutePath
+  def runImportRsMovie(path: Path, name: String): Int = {
+    val fileName = path.toAbsolutePath
     if (fileName.endsWith(".fofn")) {
       if (name == "") errorExit(s"--name argument is required when an FOFN is input")
-      else importRsMovie(fileName, name)
+      else importRsMovie(path, name)
     } else {
       Try {
-        dsNameFromMetadata(f.getAbsolutePath)
+        dsNameFromMetadata(path)
       } match {
         case Success(dsName) =>
           val finalName = if (name == "") dsName else name
@@ -666,11 +668,12 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      Try { dsNameFromMetadata(fn.getAbsolutePath) }.isSuccess
+      Try { dsNameFromMetadata(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
-  def runImportRsMovies(f: File, name: String): Int = {
+  def runImportRsMovies(path: Path, name: String): Int = {
+    val f = path.toFile
     if (f.isDirectory) {
       if (name != "") {
         errorExit("--name option not allowed when path is a directory")
@@ -682,12 +685,12 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           println(s"Found ${xmlFiles.size} RSII metadata XML Files")
           val xc = (for (xml <- xmlFiles) yield {
             println(s"Importing ${xml.getAbsolutePath}...")
-            runImportRsMovie(xml, "")
+            runImportRsMovie(xml.toPath, "")
           }).toList.max
           if (xc > 0) errorExit("At least one import failed") else 0
         }
       }
-    } else if (f.isFile) runImportRsMovie(f, name)
+    } else if (f.isFile) runImportRsMovie(path, name)
     else errorExit(s"${f.getAbsolutePath} is not readable")
   }
 
@@ -710,8 +713,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
-  def runAnalysisPipeline(jsonPath: String, block: Boolean): Int = {
-    val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
+  def runAnalysisPipeline(jsonPath: Path, block: Boolean): Int = {
+    val jsonSrc = Source.fromFile(jsonPath.toFile).getLines.mkString
     val jsonAst = jsonSrc.parseJson
     val analysisOptions = jsonAst.convertTo[PbSmrtPipeServiceOptions]
     runAnalysisPipelineImpl(analysisOptions, block)
@@ -768,7 +771,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  protected def importEntryPoint(eid: String, xmlPath: String): BoundServiceEntryPoint = {
+  protected def importEntryPoint(eid: String, xmlPath: Path): BoundServiceEntryPoint = {
     var dsType = dsMetaTypeFromPath(xmlPath)
     var dsUuid = dsUuidFromPath(xmlPath)
     var xc = runImportDataSetSafe(xmlPath)
@@ -785,18 +788,19 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
     val epFields = entryPoint.split(':')
-    if (epFields.length == 2) importEntryPoint(epFields(0), epFields(1))
+    if (epFields.length == 2) importEntryPoint(epFields(0),
+                                               Paths.get(epFields(1)))
     else if (epFields.length == 1) {
-      val xmlPath = epFields(0)
+      val xmlPath = Paths.get(epFields(0))
       val dsType = dsMetaTypeFromPath(xmlPath)
       val eid = entryPointsLookup(dsType)
       importEntryPoint(eid, xmlPath)
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }
 
-  protected def getPipelinePresets(presetXml: Option[String]): PipelineTemplatePreset = {
+  protected def getPipelinePresets(presetXml: Option[Path]): PipelineTemplatePreset = {
     presetXml match {
-      case Some(path) => PipelineTemplatePresetLoader.loadFrom(Paths.get(path))
+      case Some(path) => PipelineTemplatePresetLoader.loadFrom(path)
       case _ => defaultPresets
     }
   }
@@ -848,7 +852,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
-                  presetXml: Option[String] = None, block: Boolean = true,
+                  presetXml: Option[Path] = None, block: Boolean = true,
                   validate: Boolean = true): Int = {
     if (entryPoints.length == 0) return errorExit("At least one entry point is required")
     var pipelineIdFull: String = pipelineId
@@ -889,11 +893,10 @@ object PbService {
       c.mode match {
         case Modes.STATUS => ps.runStatus(c.asJson)
         case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal)
-        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path.getAbsolutePath, c.name, c.organism, c.ploidy)
-        case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path.getAbsolutePath, c.name)
+        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism, c.ploidy)
+        case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name)
         case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name)
-        case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path.getAbsolutePath,
-                                                      c.block)
+        case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
                                               c.jobTitle, c.presetXml, c.block)

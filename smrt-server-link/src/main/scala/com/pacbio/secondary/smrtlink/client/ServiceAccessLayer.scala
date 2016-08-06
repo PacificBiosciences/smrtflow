@@ -81,8 +81,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def toDataSetsUrl(dsType: String): String = {
     toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}")
   }
-  protected def toDataSetUrl(dsType: String, dsId: Int): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${dsId}")
+  protected def toDataSetUrl(dsType: String, dsId: Either[Int,UUID]): String = {
+    dsId match {
+      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${id}")
+      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${uuid}")
+    }
   }
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
@@ -151,73 +154,91 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toDataSetsUrl(DataSetTypes.SUBREADS))
   }
 
-  def getSubreadSetById(dsId: Int): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
+  def getSubreadSet(dsId: Either[Int,UUID]): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
   }
+  def getSubreadSetById(dsId: Int) = getSubreadSet(Left(dsId))
+  def getSubreadSetByUuid(dsId: UUID) = getSubreadSet(Right(dsId))
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
   }
 
-  def getHdfSubreadSetById(dsId: Int): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
+  def getHdfSubreadSet(dsId: Either[Int,UUID]): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
   }
+  def getHdfSubreadSetById(dsId: Int) = getHdfSubreadSet(Left(dsId))
+  def getHdfSubreadSetByUuid(dsId: UUID) = getHdfSubreadSet(Right(dsId))
 
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.BARCODES))
   }
 
-  def getBarcodeSetById(dsId: Int): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
+  def getBarcodeSet(dsId: Either[Int,UUID]): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
     Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
   }
+  def getBarcodeSetById(dsId: Int) = getBarcodeSet(Left(dsId))
+  def getBarcodeSetByUuid(dsId: UUID) = getBarcodeSet(Right(dsId))
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.REFERENCES))
   }
 
-  def getReferenceSetById(dsId: Int): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
+  def getReferenceSet(dsId: Either[Int,UUID]): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
   }
+  def getReferenceSetById(dsId: Int) = getReferenceSet(Left(dsId))
+  def getReferenceSetByUuid(dsId: UUID) = getReferenceSet(Right(dsId))
 
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.GMAPREFERENCES))
   }
 
-  def getGmapReferenceSetById(dsId: Int): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
+  def getGmapReferenceSet(dsId: Either[Int,UUID]): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.GMAPREFERENCES, dsId))
   }
+  def getGmapReferenceSetById(dsId: Int) = getGmapReferenceSet(Left(dsId))
+  def getGmapReferenceSetByUuid(dsId: UUID) = getGmapReferenceSet(Right(dsId))
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
   }
 
-  def getAlignmentSetById(dsId: Int): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
+  def getAlignmentSet(dsId: Either[Int,UUID]): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
     Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
   }
+  def getAlignmentSetById(dsId: Int) = getAlignmentSet(Left(dsId))
+  def getAlignmentSetByUuid(dsId: UUID) = getAlignmentSet(Right(dsId))
 
   def getConsensusReadSets: Future[Seq[CCSreadServiceDataSet]] = getConsensusReadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSREADS))
   }
 
-  def getConsensusReadSetById(dsId: Int): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
+  def getConsensusReadSet(dsId: Either[Int,UUID]): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
   }
+  def getConsensusReadSetById(dsId: Int) = getConsensusReadSet(Left(dsId))
+  def getConsensusReadSetByUuid(dsId: UUID) = getConsensusReadSet(Right(dsId))
 
   def getConsensusAlignmentSets: Future[Seq[ConsensusAlignmentServiceDataSet]] = getConsensusAlignmentSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSALIGNMENTS))
   }
 
-  def getConsensusAlignmentSetById(dsId: Int): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
+  def getConsensusAlignmentSet(dsId: Either[Int,UUID]): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSALIGNMENTS, dsId))
   }
+  def getConsensusAlignmentSetById(dsId: Int) = getConsensusAlignmentSet(Left(dsId))
+  def getConsensusAlignmentSetByUuid(dsId: UUID) = getConsensusAlignmentSet(Right(dsId))
 
   def getContigSets: Future[Seq[ContigServiceDataSet]] = getContigSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CONTIGS))
   }
 
-  def getContigSetById(dsId: Int): Future[ContigServiceDataSet] = getContigSetPipeline {
+  def getContigSet(dsId: Either[Int,UUID]): Future[ContigServiceDataSet] = getContigSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
   }
+  def getContigSetById(dsId: Int) = getContigSet(Left(dsId))
+  def getContigSetByUuid(dsId: UUID) = getContigSet(Right(dsId))
 
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))

@@ -28,6 +28,7 @@ import scala.xml.XML
 import java.net.URL
 import java.util.UUID
 import java.lang.System
+import java.nio.file.Path
 
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
@@ -45,6 +46,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   object AnalysisServiceEndpoints extends ServiceEndpointsTrait {
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
   }
+
+  private def toP(path: Path) = path.toAbsolutePath.toString
 
   def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
@@ -94,23 +97,23 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
+  def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-      ImportDataSetOptions(path, dsMetaTypeObj))
+      ImportDataSetOptions(toP(path), dsMetaTypeObj))
   }
 
-  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
+  def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-      ConvertImportFastaOptions(path, name, ploidy, organism))
+      ConvertImportFastaOptions(toP(path), name, ploidy, organism))
   }
 
-  def importFastaBarcodes(path: String, name: String): Future[EngineJob] = runJobPipeline {
+  def importFastaBarcodes(path: Path, name: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
-      ConvertImportFastaBarcodesOptions(path, name))
+      ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
   def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
@@ -118,9 +121,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
          DataSetMergeServiceOptions(datasetType, ids, name))
   }
 
-  def convertRsMovie(path: String, name: String) = runJobPipeline {
+  def convertRsMovie(path: Path, name: String) = runJobPipeline {
     Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_MOVIE),
-      MovieMetadataToHdfSubreadOptions(path, name))
+      MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {

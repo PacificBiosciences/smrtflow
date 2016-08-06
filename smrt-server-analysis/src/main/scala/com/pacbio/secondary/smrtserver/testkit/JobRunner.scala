@@ -33,6 +33,7 @@ import scala.math._
 
 import java.net.URL
 import java.util.UUID
+import java.nio.file.{Path, Paths}
 import java.io.{File, FileReader, PrintWriter}
 
 
@@ -93,6 +94,7 @@ object TestkitParser {
 
 class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
   import AnalysisClientJsonProtocol._
+  import PbServiceUtils._
   import ReportModels._
   import TestkitModels._
 
@@ -103,8 +105,8 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   protected var nPassed = 0
   protected def nTests: Int = testCases.size
 
-  protected def getPipelineId(pipelineXml: String): String = {
-    val xmlData = scala.xml.XML.loadFile(pipelineXml)
+  protected def getPipelineId(pipelineXml: Path): String = {
+    val xmlData = scala.xml.XML.loadFile(pipelineXml.toFile)
     (xmlData \\ "pipeline-template-preset" \\ "import-template"  \ "@id").toString
   }
 
@@ -233,16 +235,19 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     println("Importing entry points...")
     val entryPoints = new ArrayBuffer[BoundServiceEntryPoint]
     for (ept <- cfg.entryPoints) {
-       entryPoints.append(importEntryPoint(ept.entryId, ept.path.toString))
+       entryPoints.append(importEntryPoint(ept.entryId, ept.path))
     }
     val pipelineId = cfg.pipelineId match {
       case Some(id) => id
       case _ => cfg.workflowXml match {
-        case Some(xmlFile) => getPipelineId(xmlFile)
+        case Some(xmlFile) => getPipelineId(Paths.get(xmlFile))
         case _ => throw new Exception("Either a pipeline ID or workflow XML must be defined")
       }
     }
-    val presets = getPipelinePresets(cfg.presetXml)
+    val presets = cfg.presetXml match { // this is clumsy...
+      case Some(presetXml) => getPipelinePresets(Some(Paths.get(presetXml)))
+      case _ => getPipelinePresets(None)
+    }
     val pipelineOptions = getPipelineServiceOptions(cfg.jobName, pipelineId,
                                                     entryPoints, presets)
     var jobId = 0
@@ -251,7 +256,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
 
   protected def runImportDataSetTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
-    val dsPath = cfg.entryPoints(0).path.toString
+    val dsPath = cfg.entryPoints(0).path
     val dsUuid = dsUuidFromPath(dsPath)
     var dsType = dsMetaTypeFromPath(dsPath)
     // XXX should this automatically recover an existing job if present, or
@@ -266,7 +271,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
 
   protected def runMergeDataSetsTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size < 2) throw new Exception("At least two dataset entry points are required for this job type.")
-    val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path.toString))
+    val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path))
     val ids = entryPoints.map(e => e.datasetId.left.get)
     val dsTypes = entryPoints.map(e => e.fileTypeId).toSet
     val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
