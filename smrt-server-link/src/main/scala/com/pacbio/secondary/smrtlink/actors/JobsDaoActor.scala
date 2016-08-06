@@ -352,7 +352,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case ImportDataStoreFile(dataStoreFile, jobUUID) =>
       log.debug(s"ImportDataStoreFile importing datastore file $dataStoreFile for job ${jobUUID.toString}")
       dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)).flatMap {
-        case Right(m) => Future { m.message }
+        case Right(m) => Future { MessageResponse(m.message) }
         case Left(m) => Future.failed(new Exception(s"Failed to import datastore ${m.message}"))
       } pipeTo sender
 

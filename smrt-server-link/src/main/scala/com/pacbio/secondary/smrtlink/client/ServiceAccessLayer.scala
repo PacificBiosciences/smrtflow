@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.client
 
-import com.pacbio.common.models.MessageResponse
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 

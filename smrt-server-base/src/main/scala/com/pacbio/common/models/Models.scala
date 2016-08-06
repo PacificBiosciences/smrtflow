@@ -294,13 +294,3 @@ case class FileResource(fullPath: String, name: String, mimeType: String, sizeIn
 case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)
 // Record is what a user would POST
 case class SubsystemResourceRecord(name: String, version: String, url: String, apiDocs: String, userDocs:String)
-
-
-// Some endpoints were originally implemented to return string-typed
-// responses, but the smrt-link client has been sending an Accept:
-// application/json header for all requests.  With that request
-// header, the server was responding with a 406 for the
-// string-response-typed endpoints.  Those string-returning endpoints
-// were mostly returning success/failure messages, so they can use
-// this class instead to return a json-typed message response.
-case class MessageResponse(message: String)

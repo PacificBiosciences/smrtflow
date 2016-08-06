@@ -4,8 +4,8 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable
