@@ -5,12 +5,12 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResolver}

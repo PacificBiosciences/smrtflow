@@ -6,10 +6,9 @@ import java.nio.file.{Files, Path, Paths}
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
-import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._

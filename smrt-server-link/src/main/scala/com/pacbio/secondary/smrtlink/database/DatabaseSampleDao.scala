@@ -3,10 +3,10 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.time.{Clock, ClockProvider}
 import com.pacbio.database.Database
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{DalProvider, SampleDao, SampleDaoProvider}
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._

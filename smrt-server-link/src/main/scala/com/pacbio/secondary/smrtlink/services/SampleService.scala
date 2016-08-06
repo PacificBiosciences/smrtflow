@@ -4,11 +4,11 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{MessageResponse, PacBioComponent, PacBioComponentManifest}
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{SampleServiceActor, SampleServiceActorRefProvider}
 import com.pacbio.secondary.smrtlink.models._
-import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -101,7 +101,6 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
                 //authorize(authInfo.hasPermission(SAMPLE_WRITE)) {
                 complete {
                   ok {
-                    // todo: change this to return noContent without any response message upon success
                     (sampleActor ? DeleteSample(uniqueId)).mapTo[MessageResponse]
                   }
                 }

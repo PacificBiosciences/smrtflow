@@ -21,6 +21,15 @@ object CommonMessages {
 
   case class UpdateJobCompletedResult(result: JobResult, workerType: WorkerType)
 
+  // Some endpoints were originally implemented to return string-typed
+  // responses, but the smrt-link client has been sending an Accept:
+  // application/json header for all requests.  With that request
+  // header, the server was responding with a 406 for the
+  // string-response-typed endpoints.  Those string-returning endpoints
+  // were mostly returning success/failure messages, so they can use
+  // this class instead to return a json-typed message response.
+  case class MessageResponse(message: String)
+
   // General Successful message. Intended to be used in DAO layer
   case class SuccessMessage(message: String)
 

@@ -3,9 +3,9 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.database.Database
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 

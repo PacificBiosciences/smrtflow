@@ -12,6 +12,7 @@ import com.pacbio.common.logging.{LogResources, Logger, LoggerFactory, LoggerFac
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors
 import com.pacbio.common.time.{Clock, ClockProvider, PacBioDateTimeFormat}
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import org.joda.time.{DateTime => JodaDateTime, Duration => JodaDuration}
 
 import scala.collection.mutable

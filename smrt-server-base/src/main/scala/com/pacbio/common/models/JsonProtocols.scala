@@ -2,6 +2,7 @@ package com.pacbio.common.models
 
 import com.pacbio.common.auth.Role
 import com.pacbio.common.time.PacBioDateTimeFormat
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 import fommil.sjs.FamilyFormats
