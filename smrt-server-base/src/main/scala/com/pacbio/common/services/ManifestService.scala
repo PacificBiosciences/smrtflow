@@ -1,8 +1,7 @@
 package com.pacbio.common.services
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{PacBioJsonProtocol, PacBioComponentManifest}
-
+import com.pacbio.common.dependency.{ConfigProvider, Singleton}
+import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
@@ -30,7 +29,7 @@ class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioSer
  * {{{ServiceManifestsProvider}}}.
  */
 trait ManifestServiceProvider {
-  this: ServiceManifestsProvider =>
+  this: ServiceManifestsProvider with ConfigProvider =>
 
   final val manifestService: Singleton[ManifestService] =
     Singleton(() => new ManifestService(manifests())).bindToSet(NoManifestServices)
