@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import com.pacbio.common.models._
 import spray.json._
 import org.specs2.mutable._
@@ -40,6 +42,15 @@ class PacbioJsonProtocolSpec extends Specification {
       val x = m.toJson
       println(x)
       m.version must beEqualTo("0.1.1")
+    }
+    "Load Example PacBio Manifest.json " in {
+
+      val p = Paths.get(getClass.getResource("pacbio-manifest.json").toURI)
+      val manifests = scala.io.Source.fromFile(p.toFile)
+        .mkString.parseJson
+        .convertTo[Seq[PacBioComponentManifest]]
+
+      manifests.length should beEqualTo(2)
     }
   }
 }
