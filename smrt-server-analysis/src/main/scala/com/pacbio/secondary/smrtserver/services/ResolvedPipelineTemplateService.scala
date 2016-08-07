@@ -23,9 +23,9 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBase
   import SecondaryAnalysisJsonProtocols._
 
   val manifest = PacBioComponentManifest(toServiceId("resolved_pipeline_templates"),
-    "New Pipeline Template Service",
+    "Pipeline Template Service",
     "0.1.0",
-    "Resolved Pipeline Templates Service")
+    "Resolved Pipeline JSON Templates Service for pbsmrtpipe pipelines")
 
   val PIPELINE_TEMPLATE_PREFIX = "resolved-pipeline-templates"
 
@@ -36,7 +36,7 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBase
           s"status-OK Loaded ${dao.getPipelineTemplates.length}"
         }
       } ~
-      pathEnd {
+      pathEndOrSingleSlash {
         complete {
           dao.getPipelineTemplates
         }
