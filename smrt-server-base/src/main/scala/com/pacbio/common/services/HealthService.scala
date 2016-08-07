@@ -21,12 +21,10 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
 
   implicit val timeout = Timeout(10.seconds)
 
-  val components = Seq.empty[PacBioComponent]
-
   val manifest = PacBioComponentManifest(
     toServiceId("health"),
     "Health Service",
-    "1.0.0", "Subsystem Health Service", components)
+    "1.0.0", "Subsystem Health Service")
 
   val healthServiceName = "health"
 

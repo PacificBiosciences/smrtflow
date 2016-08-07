@@ -35,8 +35,7 @@ class PacbioJsonProtocolSpec extends Specification {
       m.version must beEqualTo("0.1.1")
     }
     "Manifest serialization with Components" in {
-      val components = Seq(PacBioComponent("pacbio.tools.blasr", "0.2.1"), PacBioComponent("pacbio.tools.pbfilter", "0.2.1"))
-      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description", components)
+      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
       m.id must beEqualTo("myid")
       val x = m.toJson
       println(x)

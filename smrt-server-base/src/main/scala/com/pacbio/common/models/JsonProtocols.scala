@@ -109,46 +109,6 @@ trait DurationProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait PacBioComponentProtocol extends DefaultJsonProtocol with FamilyFormats {
-  implicit object PacBioComponentFormat extends JsonFormat[PacBioComponent] {
-    def write(obj: PacBioComponent) = {
-      JsObject(
-        "id" -> JsString(obj.id),
-        "version" -> JsString(obj.version)
-      )
-    }
-    def read(value: JsValue) = {
-      value.asJsObject.getFields("id", "version") match {
-        case Seq(JsString(id), JsString(version)) => PacBioComponent(id, version)
-        case _ => throw new DeserializationException("PacBioComponent expected.")
-      }
-    }
-  }
-}
-
-trait PacBioComponentManifestProtocol extends DefaultJsonProtocol with NullOptions with FamilyFormats {
-
-  implicit val pbComponentProtocol = jsonFormat(PacBioComponent, "id", "version")
-
-  implicit object ManifestFormat extends JsonFormat[PacBioComponentManifest] {
-    def write(obj: PacBioComponentManifest) = JsObject(
-        "id" -> JsString(obj.id),
-        "name" -> JsString(obj.name),
-        "version" -> JsString(obj.version),
-        "description" -> JsString(obj.description),
-        "dependencies" -> JsString("None")
-    )
-
-    def read(value: JsValue) = {
-      value.asJsObject.getFields("id", "name", "version", "description", "dependencies") match {
-        case Seq(JsString(id), JsString(name), JsString(version), JsString(description), JsString(dependencies)) =>
-          PacBioComponentManifest(id, name, version, description)
-        case _ => throw new DeserializationException("PacbioManifest expected.")
-      }
-    }
-  }
-}
-
 // Requires custom JSON serialization because of recursive structure
 trait DirectoryResourceProtocol extends DefaultJsonProtocol {
   this: BaseJsonProtocol =>
@@ -180,12 +140,10 @@ with RoleProtocol
 with CleanupFrequencyProtocol
 with CleanupSizeProtocol
 with DurationProtocol
-with PacBioComponentManifestProtocol
-with PacBioComponentProtocol
 with DirectoryResourceProtocol
 {
   implicit val pbThrowableResponseFormat = jsonFormat3(ThrowableResponse)
-  implicit val pbComponentFormat = jsonFormat2(PacBioComponent)
+  implicit val pbComponentFormat = jsonFormat5(PacBioComponentManifest)
   implicit val pbServiceConfigFormat = jsonFormat2(ServerConfig)
   implicit val pbServiceComponentFormat = jsonFormat3(ServiceComponent)
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
