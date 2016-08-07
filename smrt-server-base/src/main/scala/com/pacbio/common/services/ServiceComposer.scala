@@ -1,14 +1,26 @@
 package com.pacbio.common.services
 
 import scala.collection.mutable.ArrayBuffer
-
-import spray.routing.{RouteConcatenation, Route}
-
+import spray.routing.{Route, RouteConcatenation}
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
 
+import scala.collection.mutable
+
 trait ServiceComposer extends RouteConcatenation with RouteProvider {
   val services = ArrayBuffer.empty[Singleton[PacBioService]]
+  private val _manifests = mutable.Set.empty[PacBioComponentManifest]
+
+  // Enable loading manifests that are "external" to the system (e.g., SL, SL UI)
+  def addManifest(m: PacBioComponentManifest): PacBioComponentManifest = {
+    _manifests.add(m)
+    m
+  }
+
+  def addManifests(ms: Set[PacBioComponentManifest]): Set[PacBioComponentManifest] = {
+    _manifests ++= ms
+    ms
+  }
 
   def addService(service: Singleton[PacBioService]) = {
     services += service
@@ -18,7 +30,8 @@ trait ServiceComposer extends RouteConcatenation with RouteProvider {
     services.map(_().prefixedRoutes).reduce(_ ~ _)
   }
 
-  def manifests(): Seq[PacBioComponentManifest] = {
-    services.map(_().manifest)
+  def manifests(): Set[PacBioComponentManifest] = {
+    services.map(_ ().manifest).toSet ++ _manifests
   }
+
 }
