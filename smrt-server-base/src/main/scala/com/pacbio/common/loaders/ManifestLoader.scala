@@ -1,14 +1,22 @@
 package com.pacbio.common.loaders
 
 import java.io.File
-import spray.json._
+import java.nio.file.Paths
 
+import spray.json._
 import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol}
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
+
+import scala.util.{Try,Failure, Success}
+
+import collection.JavaConversions._
+import collection.JavaConverters._
 
 /**
   * Created by mkocher on 8/7/16.
   */
-trait ManifestLoader {
+trait ManifestLoader extends LazyLogging{
 
   // Putting these constants here for now
   val CONFIG_KEY = "pb-services.manifest-file"
@@ -27,6 +35,15 @@ trait ManifestLoader {
       .mkString.parseJson
       .convertTo[Seq[PacBioComponentManifest]]
 
+  def loadFromConfig(config: Config): Seq[PacBioComponentManifest] =
+    Try { loadFrom(Paths.get(config.getString(CONFIG_KEY)).toFile) } match {
+      case Success(m) =>
+        logger.info(s"Loaded manifests $m")
+        m
+      case Failure(ex) =>
+        logger.warn(s"Failed to load pacbio-manifest.json from config key $CONFIG_KEY Error ${ex.getMessage}")
+        Seq.empty[PacBioComponentManifest]
+    }
 
 }
 
