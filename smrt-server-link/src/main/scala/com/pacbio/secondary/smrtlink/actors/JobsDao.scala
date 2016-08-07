@@ -48,7 +48,7 @@ trait SmrtLinkDalProvider extends DalProvider {
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
     // in-memory DB for tests
-    new Database(dbURI = "jdbc:sqlite:")
+    new Database(dbURI = "jdbc:sqlite::memory:")
   })
 }
 
