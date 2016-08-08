@@ -61,7 +61,7 @@ class MultiImportAndResultsSpec
   override def map(fragments: =>Fragments) = Step(beforeAll) ^ fragments ^ Step(afterAll)
 
   def beforeAll = {
-    val service = system.actorOf(Props[TestInternalServiceActor], "smrt-lims")
+    val service = system.actorOf(Props[TestMultiInternalServiceActor], "smrt-lims")
     IO(Http) ! Http.Bind(service, testHost, testPort)
   }
   def afterAll = IO(Http) ! Http.Unbind(Duration(10, "seconds"))
@@ -129,4 +129,9 @@ class MultiImportAndResultsSpec
       0 mustEqual runs.map(r => LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, r.expid)).sum
     }
   }
+}
+
+// since tests run simultaneously, need to alter port
+class TestMultiInternalServiceActor extends TestInternalServiceActor {
+  override val testPort = 8091
 }
