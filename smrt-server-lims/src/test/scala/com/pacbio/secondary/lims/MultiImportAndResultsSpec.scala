@@ -120,10 +120,10 @@ class MultiImportAndResultsSpec
         Files.delete(v._2)
         Files.delete(v._3)
       }
-      out mustEqual
-        s"""${runs.map(r => outputLine(r, files(r)._3)).mkString("\n")}
-           |Batch import attempted on 0 files
-           |""".stripMargin
+      // order doesn't matter here. import is a race condition
+      true mustEqual out.contains(outputLine(run1, files(run1)._3))
+      true mustEqual out.contains(outputLine(run2, files(run2)._3))
+      true mustEqual out.contains(outputLine(run3, files(run3)._3))
     }
     "CLI lookup finds all runs" in {
       0 mustEqual runs.map(r => LimsClientToolsApp.runGetSubreadsByExp(testHost, testPort, r.expid)).sum
