@@ -107,7 +107,7 @@ class RouteImportAndResloveSpec
       }
     }
     "UUID resolvable via API" in {
-      uuid mustEqual (subread(uuid) match { case Some(ls) => ls.uuid })
+      Some(uuid) mustEqual subread(uuid).map(_.uuid)
     }
     "UUID resolvable via GET /subreadset/uuid/<uuid>" in {
       Get(s"/smrt-lims/lims-subreadset/uuid/$uuid") ~> sealRoute(resolveRoutes) ~> check {
