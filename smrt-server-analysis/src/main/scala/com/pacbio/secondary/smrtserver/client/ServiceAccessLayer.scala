@@ -49,7 +49,6 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   private def toP(path: Path) = path.toAbsolutePath.toString
 
-  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]

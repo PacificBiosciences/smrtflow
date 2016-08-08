@@ -2,12 +2,12 @@
 package com.pacbio.secondary.smrtserver.testkit
 
 import com.pacbio.secondary.smrtserver.tools._
-import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.client.ClientUtils
+import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
 
 import org.ini4j._
 import akka.actor.ActorSystem
@@ -94,7 +94,6 @@ object TestkitParser {
 
 class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
   import AnalysisClientJsonProtocol._
-  import PbServiceUtils._
   import ReportModels._
   import TestkitModels._
 

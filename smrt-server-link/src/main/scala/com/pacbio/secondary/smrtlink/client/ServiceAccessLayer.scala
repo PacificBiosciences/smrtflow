@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.client
 
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.reports._
 import com.pacbio.common.client._
 
 import akka.actor.ActorSystem
@@ -18,7 +19,7 @@ import scala.concurrent.Future
 import java.net.URL
 import java.util.UUID
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol
 
 trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
@@ -62,40 +63,57 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
+  import ReportModels._
 
   object ServiceEndpoints extends ServiceEndpointsTrait
   object ServiceResourceTypes extends ServiceResourceTypesTrait
   object JobTypes extends JobTypesTrait
   object DataSetTypes extends DataSetTypesTrait
 
+  private def jobRoot(jobType: String) = s"${ServiceEndpoints.ROOT_JOBS}/${jobType}"
   protected def toJobUrl(jobType: String, jobId: Either[Int,UUID]): String = {
     jobId match {
-      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${id}")
-      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${uuid}")
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid")
     }
   }
   protected def toJobResourceUrl(jobType: String, jobId: Either[Int,UUID],
                                  resourceType: String): String = {
     jobId match {
-      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${id}/${resourceType}")
-      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${uuid}/${resourceType}")
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id/$resourceType")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid/$resourceType")
     }
   }
   protected def toJobResourceIdUrl(jobType: String, jobId: Either[Int,UUID],
                                    resourceType: String, resourceId: UUID): String = {
     jobId match {
-      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${id}/${resourceType}/${resourceId}")
-      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${uuid}/${resourceType}/${resourceId}")
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id/$resourceType/$resourceId")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid/$resourceType/$resourceId")
     }
   }
 
+  private def dsRoot(dsType: String) = s"${ServiceEndpoints.ROOT_DS}/${dsType}"
   protected def toDataSetsUrl(dsType: String): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}")
+    toUrl(dsRoot(dsType))
   }
   protected def toDataSetUrl(dsType: String, dsId: Either[Int,UUID]): String = {
     dsId match {
-      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${id}")
-      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${uuid}")
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$dsType/$id")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$dsType/$uuid")
+    }
+  }
+  protected def toDataSetResourcesUrl(dsType: String, dsId: Either[Int,UUID],
+                                     resourceType: String): String = {
+    dsId match {
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$id/$resourceType")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$uuid/$resourceType")
+    }
+  }
+  protected def toDataSetResourceUrl(dsType: String, dsId: Either[Int,UUID],
+                                     resourceType: String, resourceId: UUID): String = {
+    dsId match {
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$id/$resourceType/$resourceId")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$uuid/$resourceType/$resourceId")
     }
   }
 
@@ -137,7 +155,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
-  def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
@@ -170,6 +189,13 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
   def getSubreadSetById(dsId: Int) = getSubreadSet(Left(dsId))
   def getSubreadSetByUuid(dsId: UUID) = getSubreadSet(Right(dsId))
+
+  def getSubreadSetReports(dsId: Either[Int,UUID]): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS))
+  }
+  def getSubreadSetReport(dsId: Either[Int,UUID], reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toDataSetResourceUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS, reportId))
+  }
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
@@ -265,7 +291,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getMergeDatasetJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.MERGE_DS, jobId)
   def getImportBarcodesJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
 
-  protected def getJobReports(jobId: Either[Int,UUID], jobType: String): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
+  protected def getJobReports(jobId: Either[Int,UUID], jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))
   }
 
