@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -52,6 +52,7 @@ class DataSetImportScenario(host: String, port: Int)
   override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
 
   val testdata = PacBioTestData()
+  val usePbreports = PbReports.isAvailable()
 
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   val jobId: Var[UUID] = Var()
@@ -61,9 +62,18 @@ class DataSetImportScenario(host: String, port: Int)
   override val steps = Seq(
     subreadSets := GetSubreadSets,
     fail("DataSet database should be initially empty") IF subreadSets ? (_.nonEmpty),
-    // FIXME this should pass the Path directly
     jobId := ImportDataSet(Var(testdata.getFile("subreads-xml")), Var(FileTypes.DS_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? exitSuccess
+    fail("Import job failed") IF jobStatus !=? exitSuccess,
+    jobId := ImportDataSet(Var(testdata.getFile("subreads-sequel")), Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobStatus := WaitForJob(jobId),
+    fail("Import job failed") IF jobStatus !=? exitSuccess,
+    subreadSets := GetSubreadSets,
+    fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
+    jobId := MergeDataSets(Var(FileTypes.DS_SUBREADS.fileTypeId), Var(Seq(1,2)), Var("merge-subreads")),
+    jobStatus := WaitForJob(jobId),
+    fail("Merge job failed") IF jobStatus !=? exitSuccess,
+    subreadSets := GetSubreadSets,
+    fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3
   )
 }
