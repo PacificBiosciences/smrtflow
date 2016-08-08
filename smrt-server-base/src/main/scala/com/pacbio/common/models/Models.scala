@@ -12,10 +12,13 @@ object Models
 
 object PacBioNamespaces {
 
-  sealed abstract class PacBioNamespace
-  case object SMRTTools extends PacBioNamespace
-  case object SMRTServices extends PacBioNamespace
-  case object SMRTApps extends PacBioNamespace
+  sealed trait PacBioNamespace { val name: String}
+  // Commandline Tools, e.g., blasr
+  case object SMRTTools extends PacBioNamespace { val name = "tools"}
+  // Web Services, e.g., smrtlink_analysis
+  case object SMRTServices extends PacBioNamespace {val name = "services"}
+  // UI Applications, e.g., smrtlink_ui
+  case object SMRTApps extends PacBioNamespace {val name = "apps"}
 
 }
 
@@ -85,10 +88,7 @@ object LogLevel {
 // Subsystem Settings
 case class SubsystemConfig(id: String, name: String, startedAt: JodaDateTime)
 
-// The Name of components/dependencies
-case class PacBioComponent(id: String, version: String)
-
-case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[PacBioComponent] = Nil)
+case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[String] = Nil)
 
 case class ServiceComponent(id: String, typeId: String, version: String)
 

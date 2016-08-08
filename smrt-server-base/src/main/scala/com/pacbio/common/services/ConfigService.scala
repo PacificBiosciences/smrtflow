@@ -20,12 +20,10 @@ class ConfigService extends PacBioService {
 
   implicit val timeout = Timeout(10.seconds)
 
-  val components = Seq(PacBioComponent(toServiceId("config"), "0.1.0"))
-
   val manifest = PacBioComponentManifest(
     toServiceId("config"),
     "Config Service",
-    "0.1.0", "Subsystem Config Service", components)
+    "0.1.0", "Subsystem Config Service")
 
   val routes = pathPrefix("config") {
     pathEnd {

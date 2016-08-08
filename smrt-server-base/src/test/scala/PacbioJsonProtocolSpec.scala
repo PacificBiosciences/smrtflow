@@ -1,3 +1,6 @@
+import java.nio.file.Paths
+
+import com.pacbio.common.loaders.ManifestLoader
 import com.pacbio.common.models._
 import spray.json._
 import org.specs2.mutable._
@@ -35,12 +38,19 @@ class PacbioJsonProtocolSpec extends Specification {
       m.version must beEqualTo("0.1.1")
     }
     "Manifest serialization with Components" in {
-      val components = Seq(PacBioComponent("pacbio.tools.blasr", "0.2.1"), PacBioComponent("pacbio.tools.pbfilter", "0.2.1"))
-      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description", components)
+      val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
       m.id must beEqualTo("myid")
       val x = m.toJson
       println(x)
       m.version must beEqualTo("0.1.1")
+    }
+    "Load Example PacBio Manifest.json " in {
+
+      val p = Paths.get(getClass.getResource("pacbio-manifest.json").toURI)
+
+      val manifests = ManifestLoader.loadFrom(p.toFile)
+
+      manifests.length should beEqualTo(2)
     }
   }
 }

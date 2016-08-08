@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "Example PacBio Manifest",
+    "id": "alpha",
+    "version": "0.1.0",
+    "name": "Component Alpha",
+    "description": "Component Alpha description",
+    "dependencies": []
+  },
+  {
+    "id": "beta",
+    "version": "0.1.0",
+    "name": "Component Beta",
+    "description": "Component Beta description",
+    "dependencies": ["alpha"]
+  }
+]
