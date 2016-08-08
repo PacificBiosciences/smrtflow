@@ -12,10 +12,13 @@ object Models
 
 object PacBioNamespaces {
 
-  sealed abstract class PacBioNamespace
-  case object SMRTTools extends PacBioNamespace
-  case object SMRTServices extends PacBioNamespace
-  case object SMRTApps extends PacBioNamespace
+  sealed trait PacBioNamespace { val name: String}
+  // Commandline Tools, e.g., blasr
+  case object SMRTTools extends PacBioNamespace { val name = "tools"}
+  // Web Services, e.g., smrtlink_analysis
+  case object SMRTServices extends PacBioNamespace {val name = "services"}
+  // UI Applications, e.g., smrtlink_ui
+  case object SMRTApps extends PacBioNamespace {val name = "apps"}
 
 }
 
