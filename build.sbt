@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.3-SNAPSHOT"
+version in ThisBuild := "0.1.5-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -148,12 +148,6 @@ lazy val smrtServerLink = (
     settings()
   )
 
-lazy val smrtServerSim = (
-  PacBioProject("smrt-server-sim")
-    dependsOn(logging, database, common, smrtAnalysis)
-    settings()
-  )
-
 lazy val smrtServerAnalysis = (
   PacBioProject("smrt-server-analysis")
     dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
@@ -169,5 +163,10 @@ lazy val smrtServerAnalysisInternal = (
 lazy val smrtServerLims = (
   PacBioProject("smrt-server-lims")
     dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysisInternal)
+  )
+
+lazy val smrtServerSim = (
+  PacBioProject("smrt-server-sim")
+    dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
     settings()
   )

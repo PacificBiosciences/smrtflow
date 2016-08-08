@@ -1,7 +1,7 @@
 package com.pacbio.common.services
 
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{PacBioJsonProtocol, PacBioComponent, PacBioComponentManifest}
+import com.pacbio.common.models.{PacBioJsonProtocol, PacBioComponentManifest}
 
 import scala.collection.mutable
 
@@ -20,9 +20,7 @@ class SubSystemComponentService extends PacBioService with AppConfig {
 
   var _componentManifests = mutable.Map(manifest.id -> manifest)
 
-  def manifestToComponents(m: Seq[PacBioComponentManifest]): Seq[PacBioComponent] = {
-    m.map(x => PacBioComponent(x.id, x.version))
-  }
+  def manifestToComponents(m: Seq[PacBioComponentManifest]) = m.map(_.id)
 
   def toComponents =
     manifestToComponents(_componentManifests.values.toList)

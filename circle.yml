@@ -25,7 +25,7 @@ dependencies:
 
 test:
   override:
-    - sbt test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt test
   # Copy test reports to Circle test reports dir
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/

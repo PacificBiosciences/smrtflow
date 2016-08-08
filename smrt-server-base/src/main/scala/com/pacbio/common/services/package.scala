@@ -213,7 +213,7 @@ package object services {
 
   trait ServiceIdUtils {
 
-    private def toServiceId(n: PacBioNamespaces.PacBioNamespace, s: String) = "pacbio." + n.toString.toLowerCase + "." + s.toLowerCase
+    private def toServiceId(n: PacBioNamespaces.PacBioNamespace, s: String) = s"pacbio.${n.name}.${s.toLowerCase()}"
 
     /**
      * Util for creating Pacbio Tool ID type (e.g., pacbio.services.my_id, pacbio.services.secondary.internal_dataset)

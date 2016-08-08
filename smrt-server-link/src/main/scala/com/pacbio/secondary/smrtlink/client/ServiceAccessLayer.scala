@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.client
 
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 
@@ -23,6 +24,7 @@ trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
   val ROOT_JOBS = ROOT_JM + "/jobs"
   val ROOT_DS = "/secondary-analysis/datasets"
+  val ROOT_RUNS = "/smrt-link/runs"
 }
 
 trait ServiceResourceTypesTrait {
@@ -40,6 +42,7 @@ trait JobTypesTrait {
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
   val CONVERT_FASTA = "convert-fasta-reference"
   val CONVERT_BARCODES = "convert-fasta-barcodes"
+  val CONVERT_MOVIE = "convert-rs-movie"
 }
 
 // FIXME this for sure needs to be somewhere else
@@ -78,8 +81,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def toDataSetsUrl(dsType: String): String = {
     toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}")
   }
-  protected def toDataSetUrl(dsType: String, dsId: Int): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${dsId}")
+  protected def toDataSetUrl(dsType: String, dsId: Either[Int,UUID]): String = {
+    dsId match {
+      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${id}")
+      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${uuid}")
+    }
   }
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
@@ -122,7 +128,13 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
   def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
 
+  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
+  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
+  protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
+  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
+  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
 
+  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
     datasetId match {
       case Left(x) => getDataSetById(x)
@@ -142,73 +154,91 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toDataSetsUrl(DataSetTypes.SUBREADS))
   }
 
-  def getSubreadSetById(dsId: Int): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
+  def getSubreadSet(dsId: Either[Int,UUID]): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
   }
+  def getSubreadSetById(dsId: Int) = getSubreadSet(Left(dsId))
+  def getSubreadSetByUuid(dsId: UUID) = getSubreadSet(Right(dsId))
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
   }
 
-  def getHdfSubreadSetById(dsId: Int): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
+  def getHdfSubreadSet(dsId: Either[Int,UUID]): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
   }
+  def getHdfSubreadSetById(dsId: Int) = getHdfSubreadSet(Left(dsId))
+  def getHdfSubreadSetByUuid(dsId: UUID) = getHdfSubreadSet(Right(dsId))
 
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.BARCODES))
   }
 
-  def getBarcodeSetById(dsId: Int): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
+  def getBarcodeSet(dsId: Either[Int,UUID]): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
     Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
   }
+  def getBarcodeSetById(dsId: Int) = getBarcodeSet(Left(dsId))
+  def getBarcodeSetByUuid(dsId: UUID) = getBarcodeSet(Right(dsId))
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.REFERENCES))
   }
 
-  def getReferenceSetById(dsId: Int): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
+  def getReferenceSet(dsId: Either[Int,UUID]): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
   }
+  def getReferenceSetById(dsId: Int) = getReferenceSet(Left(dsId))
+  def getReferenceSetByUuid(dsId: UUID) = getReferenceSet(Right(dsId))
 
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.GMAPREFERENCES))
   }
 
-  def getGmapReferenceSetById(dsId: Int): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
+  def getGmapReferenceSet(dsId: Either[Int,UUID]): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.GMAPREFERENCES, dsId))
   }
+  def getGmapReferenceSetById(dsId: Int) = getGmapReferenceSet(Left(dsId))
+  def getGmapReferenceSetByUuid(dsId: UUID) = getGmapReferenceSet(Right(dsId))
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
   }
 
-  def getAlignmentSetById(dsId: Int): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
+  def getAlignmentSet(dsId: Either[Int,UUID]): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
     Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
   }
+  def getAlignmentSetById(dsId: Int) = getAlignmentSet(Left(dsId))
+  def getAlignmentSetByUuid(dsId: UUID) = getAlignmentSet(Right(dsId))
 
   def getConsensusReadSets: Future[Seq[CCSreadServiceDataSet]] = getConsensusReadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSREADS))
   }
 
-  def getConsensusReadSetById(dsId: Int): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
+  def getConsensusReadSet(dsId: Either[Int,UUID]): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
   }
+  def getConsensusReadSetById(dsId: Int) = getConsensusReadSet(Left(dsId))
+  def getConsensusReadSetByUuid(dsId: UUID) = getConsensusReadSet(Right(dsId))
 
   def getConsensusAlignmentSets: Future[Seq[ConsensusAlignmentServiceDataSet]] = getConsensusAlignmentSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSALIGNMENTS))
   }
 
-  def getConsensusAlignmentSetById(dsId: Int): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
+  def getConsensusAlignmentSet(dsId: Either[Int,UUID]): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSALIGNMENTS, dsId))
   }
+  def getConsensusAlignmentSetById(dsId: Int) = getConsensusAlignmentSet(Left(dsId))
+  def getConsensusAlignmentSetByUuid(dsId: UUID) = getConsensusAlignmentSet(Right(dsId))
 
   def getContigSets: Future[Seq[ContigServiceDataSet]] = getContigSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CONTIGS))
   }
 
-  def getContigSetById(dsId: Int): Future[ContigServiceDataSet] = getContigSetPipeline {
+  def getContigSet(dsId: Either[Int,UUID]): Future[ContigServiceDataSet] = getContigSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
   }
+  def getContigSetById(dsId: Int) = getContigSet(Left(dsId))
+  def getContigSetByUuid(dsId: UUID) = getContigSet(Right(dsId))
 
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
     Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
@@ -231,4 +261,38 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAnalysisJobReports(jobId: Int) = getJobReports(jobId, JobTypes.PB_PIPE)
   def getImportJobReports(jobId: Int) = getJobReports(jobId, JobTypes.IMPORT_DS)
   // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
+
+  // Runs
+
+  protected def getRunUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId")
+  protected def getCollectionsUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections")
+  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections/$collectionId")
+
+  def getRuns: Future[Seq[RunSummary]] = getRunsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_RUNS))
+  }
+
+  def getRun(runId: UUID): Future[Run] = getRunPipeline {
+    Get(getRunUrl(runId))
+  }
+
+  def getCollections(runId: UUID): Future[Seq[CollectionMetadata]] = getCollectionsPipeline {
+    Get(getCollectionsUrl(runId))
+  }
+
+  def getCollection(runId: UUID, collectionId: UUID): Future[CollectionMetadata] = getCollectionPipeline {
+    Get(getCollectionUrl(runId, collectionId))
+  }
+
+  def createRun(dataModel: String): Future[RunSummary] = getRunSummaryPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_RUNS), RunCreate(dataModel))
+  }
+
+  def updateRun(runId: UUID, dataModel: Option[String] = None, reserved: Option[Boolean] = None): Future[RunSummary] = getRunSummaryPipeline {
+    Post(getRunUrl(runId), RunUpdate(dataModel, reserved))
+  }
+
+  def deleteRun(runId: UUID): Future[MessageResponse] = getMessageResponsePipeline {
+    Delete(getRunUrl(runId))
+  }
 }

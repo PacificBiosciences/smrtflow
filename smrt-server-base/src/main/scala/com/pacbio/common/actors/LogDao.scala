@@ -8,6 +8,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{BaseJsonProtocol, _}
 import com.pacbio.common.services.PacBioServiceErrors
 import com.pacbio.common.time.{Clock, ClockProvider}
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 

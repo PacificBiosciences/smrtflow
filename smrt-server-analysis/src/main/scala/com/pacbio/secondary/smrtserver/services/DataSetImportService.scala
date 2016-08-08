@@ -5,7 +5,8 @@ import java.nio.file.Paths
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.models.{MessageResponse, PacBioComponentManifest}
+import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobsBaseMicroService

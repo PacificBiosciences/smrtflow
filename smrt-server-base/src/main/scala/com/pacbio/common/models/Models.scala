@@ -12,10 +12,13 @@ object Models
 
 object PacBioNamespaces {
 
-  sealed abstract class PacBioNamespace
-  case object SMRTTools extends PacBioNamespace
-  case object SMRTServices extends PacBioNamespace
-  case object SMRTApps extends PacBioNamespace
+  sealed trait PacBioNamespace { val name: String}
+  // Commandline Tools, e.g., blasr
+  case object SMRTTools extends PacBioNamespace { val name = "tools"}
+  // Web Services, e.g., smrtlink_analysis
+  case object SMRTServices extends PacBioNamespace {val name = "services"}
+  // UI Applications, e.g., smrtlink_ui
+  case object SMRTApps extends PacBioNamespace {val name = "apps"}
 
 }
 
@@ -85,10 +88,7 @@ object LogLevel {
 // Subsystem Settings
 case class SubsystemConfig(id: String, name: String, startedAt: JodaDateTime)
 
-// The Name of components/dependencies
-case class PacBioComponent(id: String, version: String)
-
-case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[PacBioComponent] = Nil)
+case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[String] = Nil)
 
 case class ServiceComponent(id: String, typeId: String, version: String)
 
@@ -294,13 +294,3 @@ case class FileResource(fullPath: String, name: String, mimeType: String, sizeIn
 case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)
 // Record is what a user would POST
 case class SubsystemResourceRecord(name: String, version: String, url: String, apiDocs: String, userDocs:String)
-
-
-// Some endpoints were originally implemented to return string-typed
-// responses, but the smrt-link client has been sending an Accept:
-// application/json header for all requests.  With that request
-// header, the server was responding with a 406 for the
-// string-response-typed endpoints.  Those string-returning endpoints
-// were mostly returning success/failure messages, so they can use
-// this class instead to return a json-typed message response.
-case class MessageResponse(message: String)

@@ -1,16 +1,18 @@
 package com.pacbio.secondary.analysis.jobtypes
 
-import java.nio.file.{Paths, Path}
-import java.util.UUID
+import com.pacbio.secondary.analysis.datasets.validators.ValidateHdfSubreadSet
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.{DataSetWriter, DataSetLoader}
 import com.pacbio.secondary.analysis.tools.timeUtils
-import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.analysis.converters.MovieMetadataConverter._
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 
-import scala.util.{Success, Try, Failure}
+import scalaz.{Success, Failure}
+
+import java.nio.file.{Paths, Path}
+import java.util.UUID
+import org.joda.time.{DateTime => JodaDateTime}
 
 
 // Importing Movies -> HdfSubread DataSet
@@ -33,34 +35,40 @@ with MockJobUtils with timeUtils {
     // Just to have Data to import back into the system
     val startedAt = JodaDateTime.now()
 
-    val dsPath = job.path.resolve("hdfsubread.dataset.xml")
+    val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 
-    convertMovieMetaDataToSubread(Paths.get(opts.path)) match {
+    convertMovieOrFofnToHdfSubread(opts.path) match {
 
       case Right(dataset) =>
-        dataset.setName(opts.name)
-        // Update the name and rewrite the file
-        DataSetWriter.writeHdfSubreadSet(dataset, dsPath)
-        val sourceId = s"pbscala::${jobTypeId.id}"
+        ValidateHdfSubreadSet.validator(dataset) match {
+          case Success(ds) =>
+            dataset.setName(opts.name)
+            // Update the name and rewrite the file
+            DataSetWriter.writeHdfSubreadSet(dataset, dsPath)
+            val sourceId = s"pbscala::${jobTypeId.id}"
 
-        // FIXME. The timestamps are in the wrong format
-        val now = JodaDateTime.now()
-        val dsFile = DataStoreFile(
-          UUID.fromString(dataset.getUniqueId),
-          sourceId,
-          DataSetMetaTypes.typeToIdString(DataSetMetaTypes.Reference),
-          dsPath.toFile.length(),
-          now,
-          now,
-          dsPath.toAbsolutePath.toString,
-          isChunked = false,
-          "HdfSubreadSet",
-          "RS movie XML converted to PacBio HdfSubreadSet XML")
+            // FIXME. The timestamps are in the wrong format
+            val now = JodaDateTime.now()
+            val dsFile = DataStoreFile(
+              UUID.fromString(dataset.getUniqueId),
+              sourceId,
+              DataSetMetaTypes.typeToIdString(DataSetMetaTypes.HdfSubread),
+              dsPath.toFile.length(),
+              now,
+              now,
+              dsPath.toAbsolutePath.toString,
+              isChunked = false,
+              "HdfSubreadSet",
+              "RS movie XML converted to PacBio HdfSubreadSet XML")
 
-        val resources = setupJobResourcesAndCreateDirs(job.path)
-        val ds = toDatastore(resources, Seq(dsFile))
-        writeDataStore(ds, resources.datastoreJson)
-        Right(ds)
+            val resources = setupJobResourcesAndCreateDirs(job.path)
+            val ds = toDatastore(resources, Seq(dsFile))
+            writeDataStore(ds, resources.datastoreJson)
+            Right(ds)
+          case Failure(errorsNel) =>
+            val msg = errorsNel.list.mkString("; ")
+            Left(ResultFailed(job.jobId, jobTypeId.toString, s"Failed to convert ${opts.path}. ${msg}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
+        }
       case Left(ex) =>
         Left(ResultFailed(job.jobId, jobTypeId.toString, s"Failed to convert ${opts.path}. ${ex.msg}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
     }

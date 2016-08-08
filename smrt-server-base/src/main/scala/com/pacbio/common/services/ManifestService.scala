@@ -1,8 +1,8 @@
 package com.pacbio.common.services
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{PacBioJsonProtocol, PacBioComponentManifest}
-
+import com.pacbio.common.dependency.{ConfigProvider, Singleton}
+import com.pacbio.common.loaders.ManifestLoader
+import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
@@ -30,10 +30,11 @@ class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioSer
  * {{{ServiceManifestsProvider}}}.
  */
 trait ManifestServiceProvider {
-  this: ServiceManifestsProvider =>
+  this: ServiceManifestsProvider with ConfigProvider =>
 
+  // Load a Manifest defined in the application.conf (e.g., SL version) and add it to the list
   final val manifestService: Singleton[ManifestService] =
-    Singleton(() => new ManifestService(manifests())).bindToSet(NoManifestServices)
+    Singleton(() => new ManifestService(manifests() ++ ManifestLoader.loadFromConfig(config()))).bindToSet(NoManifestServices)
 }
 
 
@@ -43,8 +44,8 @@ class ManifestServicex(services: ServiceComposer) extends PacBioService with Def
 
   val manifest = PacBioComponentManifest(
     toServiceId("service_manifests"),
-    "Status Service",
-    "0.2.0", "Subsystem Manifest Service")
+    "Component Manifest Service",
+    "0.2.0", "Subsystem Component Manifest/Version Service")
 
   val routes =
     path("services" / "manifests") {
@@ -57,10 +58,12 @@ class ManifestServicex(services: ServiceComposer) extends PacBioService with Def
 }
 
 trait ManifestServiceProviderx {
-  this: ServiceComposer =>
+  this: ServiceComposer with ConfigProvider =>
 
   final val manifestService: Singleton[ManifestServicex] =
     Singleton(() => new ManifestServicex(this))
 
+  // Really need to rethink these entire model
+  addManifests(ManifestLoader.loadFromConfig(config()).toSet)
   addService(manifestService)
 }

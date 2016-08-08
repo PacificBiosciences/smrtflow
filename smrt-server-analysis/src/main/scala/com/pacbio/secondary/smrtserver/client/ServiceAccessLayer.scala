@@ -1,12 +1,14 @@
 package com.pacbio.secondary.smrtserver.client
 
 import com.pacbio.secondary.smrtserver.models._
+import com.pacbio.secondary.smrtlink.client._
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.secondary.smrtlink.client._
-import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
 
@@ -26,27 +28,14 @@ import scala.xml.XML
 import java.net.URL
 import java.util.UUID
 import java.lang.System
+import java.nio.file.Path
 
-//FIXME(mkocher)(2016-2-2): This needs to be centralized.
-object AnalysisServicesModels {
-
-  case class CreateDataSet(path: String, datasetType: String)
-
-  case class CreateReferenceSet(
-      path: String,
-      name: String,
-      organism: String,
-      ploidy: String)
-
-  case class CreateBarcodeSet(path: String, name: String)
-}
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
 
 class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends SmrtLinkServiceAccessLayer(baseUrl)(actorSystem) {
 
   import AnalysisClientJsonProtocol._
-  import AnalysisServicesModels._
   import SprayJsonSupport._
   import ReportModels._
 
@@ -57,6 +46,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   object AnalysisServiceEndpoints extends ServiceEndpointsTrait {
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
   }
+
+  private def toP(path: Path) = path.toAbsolutePath.toString
 
   def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
@@ -102,24 +93,37 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
   }
 
+  // FIXME there is some degeneracy in the URLs - this actually works just fine
+  // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
-  def importDataSet(path: String, dsMetaType: String): Future[EngineJob] = runJobPipeline {
+  def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
+    val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
-      CreateDataSet(path, dsMetaType))
+      ImportDataSetOptions(toP(path), dsMetaTypeObj))
   }
 
-  def importFasta(path: String, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
+  def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
-      CreateReferenceSet(path, name, organism, ploidy))
+      ConvertImportFastaOptions(toP(path), name, ploidy, organism))
   }
 
-  def importFastaBarcodes(path: String, name: String): Future[EngineJob] = runJobPipeline {
+  def importFastaBarcodes(path: Path, name: String): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
-      CreateBarcodeSet(path, name))
+      ConvertImportFastaBarcodesOptions(toP(path), name))
+  }
+
+  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.MERGE_DS),
+         DataSetMergeServiceOptions(datasetType, ids, name))
+  }
+
+  def convertRsMovie(path: Path, name: String) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_MOVIE),
+      MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {

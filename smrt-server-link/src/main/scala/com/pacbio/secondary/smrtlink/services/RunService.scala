@@ -6,6 +6,7 @@ import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{RunServiceActorRefProvider, SearchCriteria, RunServiceActor}
 import com.pacbio.secondary.smrtlink.auth.SmrtLinkRoles
 import com.pacbio.secondary.smrtlink.models._

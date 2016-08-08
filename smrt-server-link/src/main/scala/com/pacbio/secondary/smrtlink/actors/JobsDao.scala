@@ -5,13 +5,13 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.MessageResponse
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
 import com.pacbio.secondary.analysis.engine.EngineDao.{DataStoreComponent, JobEngineDaoComponent, JobEngineDataStore}
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -48,7 +48,7 @@ trait SmrtLinkDalProvider extends DalProvider {
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
     // in-memory DB for tests
-    new Database(dbURI = "jdbc:sqlite:")
+    new Database(dbURI = "jdbc:sqlite::memory:")
   })
 }
 

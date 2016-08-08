@@ -9,7 +9,7 @@ import JobModels._
 import akka.pattern.ask
 import akka.actor.ActorRef
 import akka.util.Timeout
-import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFile, FailedMessage, SuccessMessage}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile, FailedMessage, SuccessMessage}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging
@@ -122,7 +122,7 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
     if (ds.isChunked) {
       Future.successful(s"skipping import of intermediate chunked file $ds")
     } else {
-      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[String]
+      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[MessageResponse].map(_.message)
     }
   }
 

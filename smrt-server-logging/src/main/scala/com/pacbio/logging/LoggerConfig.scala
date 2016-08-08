@@ -24,8 +24,7 @@ trait LoggerConfig {
   var debug = false
 
   // arbitrary formatting for console and log files
-  val consolePattern = "%X{akkaTimestamp} %-5level[%thread] %logger{0} - %msg%n"
-  val filePattern = "%date{yyyy-MM-dd} %X{akkaTimestamp} %-5level[%thread] %logger{1} - %msg%n"
+  val filePattern = "%date{yyyy-MM-dd HH:mm:ss.SSS, UTC}UTC %-5level[%thread] %logger{1} - %msg%n"
   val fileRollingPosfix = ".%i.gz"
 
   /**

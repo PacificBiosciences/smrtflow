@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors.ActorSystemProvider
 import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
-import com.pacbio.common.models.{PacBioComponent, PacBioComponentManifest}
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
 import com.pacbio.secondary.analysis.engine.EngineConfig
@@ -44,13 +44,11 @@ class JobManagerService(
   implicit val routing = RoutingSettings.default
 
   val serviceId = toServiceId("job_manager")
-  val deps = Seq(PacBioComponent(toServiceId("status"), "0.1.0"))
   override val manifest = PacBioComponentManifest(
     serviceId,
     "Service Job Manager",
     "0.3.2",
-    "Secondary Analysis Job Manager Service to run Job types. See /job-manager/job-types for available job types",
-    deps)
+    "Secondary Analysis Job Manager Service to run Job types. See /job-manager/job-types for available job types")
 
   def wrap(t: JobTypeService): Route = pathPrefix(SERVICE_PREFIX / JOB_ROOT_PREFIX) { t.routes }
   val jobServiceTypeRoutes = jobTypes.map(wrap).reduce(_ ~ _)
