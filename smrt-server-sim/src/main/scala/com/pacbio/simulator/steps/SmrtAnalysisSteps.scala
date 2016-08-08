@@ -5,6 +5,7 @@ import java.util.UUID
 import java.nio.file.Path
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.smrtserver.tools.PbService
@@ -31,7 +32,12 @@ trait SmrtAnalysisSteps {
   case class WaitForJob(jobId: Var[UUID]) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
-      output(smrtLinkClient.pollForJob(jobId.get))
+      output(Try {
+        smrtLinkClient.pollForJob(jobId.get)
+      } match {
+        case Success(x) => 0
+        case Failure(msg) => 1
+      })
       SUCCEEDED
     }
   }
