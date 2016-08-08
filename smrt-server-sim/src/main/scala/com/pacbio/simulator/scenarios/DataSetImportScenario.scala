@@ -10,6 +10,7 @@ import com.typesafe.config.{Config, ConfigException}
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -45,7 +46,7 @@ object DataSetImportScenarioLoader extends ScenarioLoader {
 }
 
 class DataSetImportScenario(host: String, port: Int)
-  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps with SmrtAnalysisSteps {
+  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps with SmrtAnalysisSteps with ClientUtils {
 
   override val name = "DataSetImportScenario"
 
@@ -57,6 +58,7 @@ class DataSetImportScenario(host: String, port: Int)
 
   val testdata = PacBioTestData()
   val usePbreports = PbReports.isAvailable()
+  val N_SUBREAD_REPORTS = if (usePbreports) 3 else 1
 
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
@@ -68,59 +70,80 @@ class DataSetImportScenario(host: String, port: Int)
   val contigSets: Var[Seq[ContigServiceDataSet]] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
+  val dsReports: Var[Seq[DataStoreReportFile]] = Var()
 
-  override val steps = Seq(
-    // SUBREADS
+  var subreads1 = testdata.getFile("subreads-xml")
+  var subreadsUuid1 = dsUuidFromPath(subreads1)
+  var subreads2 = testdata.getFile("subreads-sequel")
+  var subreadsUuid2 = dsUuidFromPath(subreads2)
+  var reference1 = testdata.getFile("lambdaNEB")
+  var barcodes = testdata.getFile("barcodeset")
+  var bcFasta = testdata.getFile("barcode-fasta")
+  var hdfsubreads = testdata.getFile("hdfsubreads")
+  var rsMovie = testdata.getFile("rs-movie-metadata")
+
+  val subreadTests = Seq(
     subreadSets := GetSubreadSets,
     fail(MSG_DS_ERR) IF subreadSets ? (_.nonEmpty),
-    jobId := ImportDataSet(Var(testdata.getFile("subreads-xml")), Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(Var(subreads1), Var(FileTypes.DS_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(Var(testdata.getFile("subreads-sequel")), Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    dsReports := GetSubreadSetReports(Var(subreadsUuid1)),
+    fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
+    jobId := ImportDataSet(Var(subreads2), Var(FileTypes.DS_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
     fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
+    // there will be 3 reports if pbreports is available
+    dsReports := GetSubreadSetReports(Var(subreadsUuid2)),
+    fail(s"Expected $N_SUBREAD_REPORTS reports") IF dsReports.mapWith(_.size) !=? N_SUBREAD_REPORTS,
+    // merge SubreadSets
     jobId := MergeDataSets(Var(FileTypes.DS_SUBREADS.fileTypeId), Var(Seq(1,2)), Var("merge-subreads")),
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
-    fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3,
-    // REFERENCES
+    fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3
+  )
+  val referenceTests = Seq(
     referenceSets := GetReferenceSets,
     fail(MSG_DS_ERR) IF referenceSets ? (_.nonEmpty),
-    jobId := ImportDataSet(Var(testdata.getFile("lambdaNEB")), Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobId := ImportDataSet(Var(reference1), Var(FileTypes.DS_REFERENCE.fileTypeId)),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     referenceSets := GetReferenceSets,
-    fail("Expected one ReferenceSet") IF referenceSets.mapWith(_.size) !=? 1,
+    fail("Expected one ReferenceSet") IF referenceSets.mapWith(_.size) !=? 1
     // TODO would be nice to have a FASTA import here...
-    // BARCODES
+  )
+  val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     fail(MSG_DS_ERR) IF barcodeSets ? (_.nonEmpty),
-    jobId := ImportDataSet(Var(testdata.getFile("barcodeset")), Var(FileTypes.DS_BARCODE.fileTypeId)),
+    jobId := ImportDataSet(Var(barcodes), Var(FileTypes.DS_BARCODE.fileTypeId)),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     barcodeSets := GetBarcodeSets,
     fail("Expected one BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 1,
-    jobId := ImportFastaBarcodes(Var(testdata.getFile("barcode-fasta")), Var("import-barcodes")),
+    jobId := ImportFastaBarcodes(Var(bcFasta), Var("import-barcodes")),
     jobStatus := WaitForJob(jobId),
     fail("Import barcodes job failed") IF jobStatus !=? EXIT_SUCCESS,
     barcodeSets := GetBarcodeSets,
-    fail("Expected two BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 2,
-    // HdfSubreadSet
+    fail("Expected two BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 2
+  )
+  val hdfSubreadTests = Seq(
     hdfSubreadSets := GetHdfSubreadSets,
     fail(MSG_DS_ERR) IF hdfSubreadSets ? (_.nonEmpty),
-    jobId := ImportDataSet(Var(testdata.getFile("hdfsubreads")), Var(FileTypes.DS_HDF_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(Var(hdfsubreads), Var(FileTypes.DS_HDF_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
     fail("Import HdfSubreads job failed") IF jobStatus !=? EXIT_SUCCESS,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected one HdfSubreadSet") IF hdfSubreadSets.mapWith(_.size) !=? 1,
-    jobId := ConvertRsMovie(Var(testdata.getFile("rs-movie-metadata"))),
+    jobId := ConvertRsMovie(Var(rsMovie)),
     jobStatus := WaitForJob(jobId),
     fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
     hdfSubreadSets := GetHdfSubreadSets,
-    fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2,
+    fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2
+  )
+  val otherTests = Seq(
     // ContigSet
     contigSets := GetContigSets,
     fail(MSG_DS_ERR) IF contigSets ? (_.nonEmpty),
@@ -152,8 +175,10 @@ class DataSetImportScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import ConsensusAlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     ccsAlignmentSets := GetConsensusAlignmentSets,
-    fail("Expected one ConsensusAlignmentSet") IF ccsAlignmentSets.mapWith(_.size) !=? 1,
-    // FAILURE MODES
+    fail("Expected one ConsensusAlignmentSet") IF ccsAlignmentSets.mapWith(_.size) !=? 1
+  )
+  // FAILURE MODES
+  val failureTests = Seq(
     // not a dataset
     jobId := ImportDataSet(Var(testdata.getFile("lambda-fasta")), Var(FileTypes.DS_REFERENCE.fileTypeId)),
     jobStatus := WaitForJob(jobId),
@@ -170,5 +195,11 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ConvertRsMovie(Var(testdata.getFile("hdfsubreads"))),
     jobStatus := WaitForJob(jobId),
     fail("Expected RS Movie import to fail") IF jobStatus !=? EXIT_FAILURE
+    // merge mixed dataset types
+    // FIXME this won't even start a job, which is fine - should we still test?
+    //jobId := MergeDataSets(Var(FileTypes.DS_SUBREADS.fileTypeId), Var(Seq(1,4)), Var("merge-subreads")),
+    //jobStatus := WaitForJob(jobId),
+    //fail("Expected merge job to fail") IF jobStatus !=? EXIT_FAILURE
   )
+  override val steps = subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests
 }

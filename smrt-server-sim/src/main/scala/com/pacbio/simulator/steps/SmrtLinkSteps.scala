@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
 
@@ -11,6 +12,8 @@ import scala.concurrent.Future
 
 trait SmrtLinkSteps {
   this: Scenario with VarSteps =>
+
+  import ReportModels._
 
   val smrtLinkClient: SmrtLinkServiceAccessLayer
 
@@ -204,6 +207,30 @@ trait SmrtLinkSteps {
   case class GetGmapReferenceSet(dsId: Var[UUID]) extends VarStep[GmapReferenceServiceDataSet] {
     override val name = "GetGmapReferenceSet"
     override def run: Future[Result] = smrtLinkClient.getGmapReferenceSetByUuid(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetSubreadSetReports(dsId: Var[UUID]) extends VarStep[Seq[DataStoreReportFile]] {
+    override val name = "GetSubreadSetReports"
+    override def run: Future[Result] = smrtLinkClient.getSubreadSetReports(Right(dsId.get)).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  case class GetSubreadSetReport(dsId: Var[UUID], reportId: Var[UUID]) extends VarStep[Report] {
+    override val name = "GetSubreadSetReport"
+    override def run: Future[Result] = smrtLinkClient.getSubreadSetReport(Right(dsId.get), reportId.get).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  case class GetImportJobDataStore(jobId: Var[UUID]) extends VarStep[Seq[DataStoreServiceFile]] {
+    override val name = "GetImportJobDataStore"
+    override def run: Future[Result] = smrtLinkClient.getImportDatasetJobDataStore(Right(jobId.get)).map { d =>
       output(d)
       SUCCEEDED
     }
