@@ -1,0 +1,15 @@
+{
+  "name": "Job import-dataset",
+  "updatedAt": "2016-08-04T23:46:10.759Z",
+  "path": "/Users/mkocher/gh_mk_projects/smrtflow/smrt-server-analysis/jobs-root/000/000001",
+  "state": "SUCCESSFUL",
+  "uuid": "e4831a60-8833-4299-9732-d0c18277df32",
+  "smrtlinkToolsVersion": "3.0.0",
+  "jobTypeId": "import-dataset",
+  "id": 1,
+  "smrtlinkVersion": "3.2.0",
+  "comment": "Importing DataSet",
+  "createdAt": "2016-08-04T23:46:04.768Z",
+  "createdBy": "root",
+  "jsonSettings": "{\"path\":\"/Users/mkocher/gh_mk_projects/smrtflow/test-data/smrtserver-testdata/ds-references/mk-01/mk_name_01/referenceset.xml\",\"datasetType\":\"PacBio.DataSet.ReferenceSet\"}"
+}

@@ -238,9 +238,64 @@ trait URIJsonProtocol extends DefaultJsonProtocol {
 
 }
 
+// FIXME giant hack to for backwards compatibility with existing internal
+// smrtlink instances.  This should be removed at the earliest possible
+// opportunity.
+trait EngineJobJsonProtocol extends DefaultJsonProtocol
+    with UUIDJsonProtocol
+    with JobStatesJsonProtocol
+    with JodaDateTimeProtocol {
+  implicit object engineJobFormat extends JsonFormat[EngineJob] {
+    def write(job: EngineJob): JsObject = JsObject(
+      "id" -> job.id.toJson,
+      "uuid" -> job.uuid.toJson,
+      "name" -> job.name.toJson,
+      "comment" -> job.comment.toJson,
+      "createdAt" -> job.createdAt.toJson,
+      "updatedAt" -> job.updatedAt.toJson,
+      "state" -> job.state.toJson,
+      "jobTypeId" -> job.jobTypeId.toJson,
+      "path" -> job.path.toJson,
+      "jsonSettings" -> job.jsonSettings.toJson,
+      "createdBy" -> job.createdBy.toJson,
+      "smrtlinkVersion" -> job.smrtlinkVersion.map(s => JsString(s)).getOrElse(JsNull),
+      "smrtlinkToolsVersion" -> job.smrtlinkToolsVersion.map(s => JsString(s)).getOrElse(JsNull))
 
+    def read(value: JsValue): EngineJob = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("id", "uuid", "name", "comment", "createdAt",
+                      "updatedAt", "state", "jobTypeId", "path",
+                      "jsonSettings") match {
+        case Seq(JsNumber(id), JsString(uuid), JsString(name),
+                 JsString(comment), JsString(createdAt), JsString(updatedAt),
+                 JsString(state), JsString(jobTypeId), JsString(path),
+                 JsString(jsonSettings)) =>
+          val createdBy = jsObj.getFields("createdBy") match {
+            case Seq(JsString(s)) => Some(s)
+            case _ => None
+          }
+          val smrtlinkVersion = jsObj.getFields("smrtlinkVersion") match {
+            case Seq(JsString(v)) => Some(v)
+            case _ => None
+          }
+          val smrtlinkToolsVersion = jsObj.getFields("smrtlinkToolsVersion") match {
+            case Seq(JsString(v)) => Some(v)
+            case _ => None
+          }
+          EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
+                    JsString(createdAt).convertTo[JodaDateTime],
+                    JsString(updatedAt).convertTo[JodaDateTime],
+                    JsString(state).convertTo[AnalysisJobStates.JobStates],
+                    jobTypeId, path, jsonSettings, createdBy,
+                    smrtlinkVersion, smrtlinkToolsVersion)
+        case x => deserializationError(s"Expected EngineJob, got $x")
+      }
+    }
+  }
+}
 
 trait JobTypeSettingProtocol extends DefaultJsonProtocol
+with EngineJobJsonProtocol
 with JodaDateTimeProtocol
 with UUIDJsonProtocol
 with JobStatesJsonProtocol
@@ -282,7 +337,8 @@ with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)
-  implicit val engineJobFormat = jsonFormat13(EngineJob)
+// FIXME we should use this instead of the atrocity above
+//  implicit val engineJobFormat = jsonFormat13(EngineJob)
 
 }
 
