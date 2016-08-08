@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.1.5-SNAPSHOT"
+version in ThisBuild := "0.1.6-SNAPSHOT"
 
 //FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
 organization in ThisBuild := "com.pacbio"
@@ -35,6 +35,8 @@ javaOptions in ThisBuild += "-Xmx4g"
 val gitHeadCommitSha = taskKey[String]("Determines the current git commit SHA")
 
 val makeVersionProperties = taskKey[Seq[File]]("Creates a version.properties file we can find at runtime.")
+
+val makePacBioComponentManifest = taskKey[Seq[File]]("Creates a pacbio-manifest.json as a managed resource")
 
 val akkaV = "2.3.6"
 
@@ -107,6 +109,26 @@ gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 // This doesn't work as expected
 //initialCommands in (Test, console) := """ammonite.repl.Main().run()"""
 
+/**
+  * This might need to be rethought. This is only generated and build time.
+  * MK would like this stored in the repo with the current version.
+  * The build will only consume this via pbbundler, so it's not absolutely necessary to store this in the repo.
+  *
+  * This will current
+  *
+  * @param v Version string of the SMRT Link Analysis Services
+  * @return
+  */
+def pacBioManifest(v: String) =
+  s"""
+    |{
+    | "id":"smrtlink_services",
+    | "name": "SMRT Analysis Services",
+    | "version": "$v",
+    | "description":"SMRT Link Analysis Services and Job Orchestration engine",
+    | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
+    | }
+  """.stripMargin
 
 // Projects in this build
 
@@ -117,17 +139,28 @@ lazy val database =
 
 
 lazy val common = (
-  PacBioProject("smrt-common-models")
-    settings(
-    makeVersionProperties := {
-      val propFile = (resourceManaged in Compile).value / "version.properties"
-      val content = "version=%s\nsha1=%s" format (version.value, gitHeadCommitSha.value)
-      IO.write(propFile, content)
-      Seq(propFile)
-    },
-    resourceGenerators in Compile <+= makeVersionProperties
+    PacBioProject("smrt-common-models")
+        settings(
+        makeVersionProperties := {
+          val propFile = (resourceManaged in Compile).value / "version.properties"
+          val content = "version=%s\nsha1=%s" format(version.value, gitHeadCommitSha.value)
+          IO.write(propFile, content)
+          Seq(propFile)
+        },
+        resourceGenerators in Compile <+= makeVersionProperties
+        )
+
+        settings(
+        makePacBioComponentManifest := {
+          val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
+          val sfVersion = version.value.replace("-SNAPSHOT-", "")
+          val pacbioVersion = "%s-%s" format(sfVersion, gitHeadCommitSha.value.take(7))
+          IO.write(propFile, pacBioManifest(pacbioVersion))
+          Seq(propFile)
+        },
+        resourceGenerators in Compile <+= makePacBioComponentManifest
+        )
     )
-  )
 
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
