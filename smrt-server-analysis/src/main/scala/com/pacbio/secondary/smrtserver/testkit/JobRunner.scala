@@ -148,7 +148,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
                                rptTest: ReportTestRules): Int = {
     Try {
       // FIXME this actually works for any job type
-      Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
+      Await.result(sal.getAnalysisJobReport(Left(jobId), reportId), TIMEOUT)
     } match {
       case Success(report) => {
         println(s"Report ${report.id}:")
@@ -207,7 +207,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
 
   def runTests(reportTests: Seq[ReportTestRules], jobId: Int): Int = {
     val reports = Try {
-      Await.result(sal.getAnalysisJobReports(jobId), TIMEOUT)
+      Await.result(sal.getAnalysisJobReports(Left(jobId)), TIMEOUT)
     } match {
       case Success(r) => r
       case Failure(err) => Seq[DataStoreReportFile]()

@@ -82,20 +82,20 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   def getJobByTypeAndId(jobType: String, jobId: Int): Future[EngineJob] = getJobPipeline {
-    Get(toJobUrl(jobType, jobId))
+    Get(toJobUrl(jobType, Left(jobId)))
   }
 
   def getAnalysisJobById(jobId: Int): Future[EngineJob] = {
     getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
   }
 
-  protected def getJobReport(jobType: String, jobId: Int, reportId: UUID): Future[Report] = getReportPipeline {
+  protected def getJobReport(jobType: String, jobId: Either[Int,UUID], reportId: UUID): Future[Report] = getReportPipeline {
     Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
   }
 
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
-  def getAnalysisJobReport(jobId: Int, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+  def getAnalysisJobReport(jobId: Either[Int,UUID], reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
   def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get

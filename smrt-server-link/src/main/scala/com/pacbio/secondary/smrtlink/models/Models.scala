@@ -244,10 +244,9 @@ case class BarcodeServiceSet(id: Int, uuid: UUID) extends IdAble
 
 case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
 
-// FIXME for consistency this should be ConsensusRead...
-case class CCSreadServiceSet(id: Int, uuid: UUID) extends IdAble
+case class ConsensusReadServiceSet(id: Int, uuid: UUID) extends IdAble
 
-case class CCSreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: CCSreadServiceSet)
+case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusReadServiceSet)
 
 case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends IdAble
 
@@ -402,7 +401,7 @@ case class AlignmentServiceDataSet(
     datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
-case class CCSreadServiceDataSet(
+case class ConsensusReadServiceDataSet(
     id: Int,
     uuid: UUID,
     name: String,

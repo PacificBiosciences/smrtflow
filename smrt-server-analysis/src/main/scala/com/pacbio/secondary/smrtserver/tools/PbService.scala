@@ -459,7 +459,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
               case "barcodes" => println(ds.asInstanceOf[BarcodeServiceDataSet].toJson.prettyPrint + sep)
               case "references" => println(ds.asInstanceOf[ReferenceServiceDataSet].toJson.prettyPrint + sep)
               case "gmapreferences" => println(ds.asInstanceOf[GmapReferenceServiceDataSet].toJson.prettyPrint + sep)
-              case "ccsreads" => println(ds.asInstanceOf[CCSreadServiceDataSet].toJson.prettyPrint + sep)
+              case "ccsreads" => println(ds.asInstanceOf[ConsensusReadServiceDataSet].toJson.prettyPrint + sep)
               case "ccsalignments" => println(ds.asInstanceOf[ConsensusAlignmentServiceDataSet].toJson.prettyPrint + sep)
               case "contigs" => println(ds.asInstanceOf[ContigServiceDataSet].toJson.prettyPrint + sep)
             }
@@ -531,7 +531,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+                Await.result(sal.getImportFastaJobDataStore(Left(job.id)), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {
@@ -564,7 +564,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportBarcodesJobDataStore(job.id), TIMEOUT)
+                Await.result(sal.getImportBarcodesJobDataStore(Left(job.id)), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {

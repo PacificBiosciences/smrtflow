@@ -226,7 +226,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         GetBarcodeDataSetsByUUID,
         GetBarcodeDataSetDetailsById,
         GetBarcodeDataSetDetailsByUUID) ~
-      datasetRoutes[CCSreadServiceDataSet](
+      datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
         GetConsensusReadDataSets,
         SchemaLoader.ccsReadSchema.content,

@@ -313,8 +313,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <>(BarcodeServiceSet.tupled, BarcodeServiceSet.unapply)
   }
 
-  class CCSreadDataSetT(tag: Tag) extends IdAbleTable[CCSreadServiceSet](tag, "datasets_ccsreads") {
-    def * = (id, uuid) <>(CCSreadServiceSet.tupled, CCSreadServiceSet.unapply)
+  class CCSreadDataSetT(tag: Tag) extends IdAbleTable[ConsensusReadServiceSet](tag, "datasets_ccsreads") {
+    def * = (id, uuid) <>(ConsensusReadServiceSet.tupled, ConsensusReadServiceSet.unapply)
   }
 
   class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
