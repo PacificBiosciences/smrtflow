@@ -72,6 +72,7 @@ trait StressUtil extends MockUtil {
     val formFile = FormFile("file", httpEntity)
     val mfd = MultipartFormData(Seq(BodyPart(formFile, "file")))
     loadData(content.getBytes)
+    implicit val defaultTimeout = RouteTestTimeout(Duration(30, "seconds"))
     Post("/smrt-lims/lims-subreadset/import", mfd) ~> sealRoute(importLimsRoutes) ~> check {
       response.status.isSuccess
     }
