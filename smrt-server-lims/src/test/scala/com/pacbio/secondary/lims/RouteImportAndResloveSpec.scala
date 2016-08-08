@@ -49,7 +49,7 @@ class RouteImportAndResloveSpec
 
   def actorRefFactory = system
 
-  private implicit val timeout = RouteTestTimeout(new FiniteDuration(10, TimeUnit.SECONDS))
+  private implicit val timeout = RouteTestTimeout(new FiniteDuration(30, TimeUnit.SECONDS))
 
   override def subreadset(path: Path, context: String): Option[SubreadSet] = {
     Try(DataSetLoader.loadSubreadSet(new ByteArrayInputStream(mockSubreadset().getBytes()))) match {
