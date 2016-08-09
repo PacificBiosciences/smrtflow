@@ -183,8 +183,10 @@ object JobsDaoActor {
   case class GetDataStoreFileByUUID(uuid: UUID) extends DataStoreMessage
 
   case class GetDataStoreServiceFilesByJobId(i: Int) extends DataStoreMessage
+  case class GetDataStoreServiceFilesByJobUuid(uuid: UUID) extends DataStoreMessage
 
-  case class GetDataStoreReportFileByJobId(jobId: Int) extends DataStoreMessage
+  case class GetDataStoreReportFilesByJobId(jobId: Int) extends DataStoreMessage
+  case class GetDataStoreReportFilesByJobUuid(jobUuid: UUID) extends DataStoreMessage
 
   case class GetDataStoreReportByUUID(uuid: UUID) extends DataStoreMessage
 
@@ -641,9 +643,11 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetDataStoreFilesByJobId(jobId) => pipeWith(dao.getDataStoreFilesByJobId(jobId))
 
     case GetDataStoreServiceFilesByJobId(jobId: Int) => pipeWith(dao.getDataStoreServiceFilesByJobId(jobId))
+    case GetDataStoreServiceFilesByJobUuid(jobUuid: UUID) => pipeWith(dao.getDataStoreServiceFilesByJobUuid(jobUuid))
 
     // Reports
-    case GetDataStoreReportFileByJobId(jobId: Int) => pipeWith(dao.getDataStoreReportFilesByJobId(jobId))
+    case GetDataStoreReportFilesByJobId(jobId: Int) => pipeWith(dao.getDataStoreReportFilesByJobId(jobId))
+    case GetDataStoreReportFilesByJobUuid(jobUuid: UUID) => pipeWith(dao.getDataStoreReportFilesByJobUuid(jobUuid))
 
     case GetDataStoreReportByUUID(reportUUID: UUID) => pipeWith {
       dao.getDataStoreReportByUUID(reportUUID).map(_.getOrElse(toE(s"Unable to find report ${reportUUID.toString}")))

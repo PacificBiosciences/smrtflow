@@ -549,10 +549,21 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   def getDataStoreServiceFilesByJobId(i: Int): Future[Seq[DataStoreServiceFile]] =
     db.run(datastoreServiceFiles.filter(_.jobId === i).result)
 
+  def getDataStoreServiceFilesByJobUuid(uuid: UUID): Future[Seq[DataStoreServiceFile]] =
+    db.run(datastoreServiceFiles.filter(_.jobUUID === uuid).result)
+
   def getDataStoreReportFilesByJobId(jobId: Int): Future[Seq[DataStoreReportFile]] =
     db.run {
       datastoreServiceFiles
         .filter(_.jobId === jobId)
+        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
+        .result
+    }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
+
+  def getDataStoreReportFilesByJobUuid(jobUuid: UUID): Future[Seq[DataStoreReportFile]] =
+    db.run {
+      datastoreServiceFiles
+        .filter(_.jobUUID === jobUuid)
         .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
         .result
     }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))

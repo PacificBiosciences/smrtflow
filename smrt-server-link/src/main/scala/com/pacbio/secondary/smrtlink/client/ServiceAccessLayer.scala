@@ -26,6 +26,7 @@ trait ServiceEndpointsTrait {
   val ROOT_JOBS = ROOT_JM + "/jobs"
   val ROOT_DS = "/secondary-analysis/datasets"
   val ROOT_RUNS = "/smrt-link/runs"
+  val ROOT_DATASTORE = "/secondary-analysis/datastore-files"
 }
 
 trait ServiceResourceTypesTrait {
@@ -193,9 +194,6 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getSubreadSetReports(dsId: Either[Int,UUID]): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
     Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS))
   }
-  def getSubreadSetReport(dsId: Either[Int,UUID], reportId: UUID): Future[Report] = getReportPipeline {
-    Get(toDataSetResourceUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS, reportId))
-  }
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
@@ -290,6 +288,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getImportFastaJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
   def getMergeDatasetJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.MERGE_DS, jobId)
   def getImportBarcodesJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
+
+  def getReport(reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${reportId}/download"))
+  }
 
   protected def getJobReports(jobId: Either[Int,UUID], jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))

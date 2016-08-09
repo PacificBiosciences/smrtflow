@@ -449,7 +449,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def waitForJob(jobId: UUID): Int = {
     println(s"waiting for job ${jobId} to complete...")
-    Try { sal.pollForJob(jobId, maxTime) } match {
+    Try { sal.pollForJob(Right(jobId), maxTime) } match {
       case Success(msg) => runGetJobInfo(Right(jobId))
       case Failure(err) => {
         runGetJobInfo(Right(jobId))

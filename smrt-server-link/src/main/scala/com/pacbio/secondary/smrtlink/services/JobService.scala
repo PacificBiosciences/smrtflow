@@ -1,3 +1,6 @@
+
+// FIXME it would be cleaner to re-use the MixedId model from DataSetService.scala
+
 package com.pacbio.secondary.smrtlink.services
 
 import java.io.File
@@ -118,7 +121,7 @@ trait JobService
     path(IntNumber / JOB_REPORT_PREFIX) { jobId =>
       get {
         complete {
-          (dbActor ? GetDataStoreReportFileByJobId(jobId)).mapTo[Seq[DataStoreReportFile]]
+          (dbActor ? GetDataStoreReportFilesByJobId(jobId)).mapTo[Seq[DataStoreReportFile]]
         }
       }
     } ~
@@ -133,10 +136,35 @@ trait JobService
         }
       }
     } ~
+    path(JavaUUID / JOB_REPORT_PREFIX) { jobUuid =>
+      get {
+        complete {
+          (dbActor ? GetDataStoreReportFilesByJobUuid(jobUuid)).mapTo[Seq[DataStoreReportFile]]
+        }
+      }
+    } ~
+    path(JavaUUID / JOB_REPORT_PREFIX / JavaUUID) { (jobUuid, reportUUID) =>
+      get {
+        respondWithMediaType(MediaTypes.`application/json`) {
+          complete {
+            ok {
+              (dbActor ? GetDataStoreReportByUUID(reportUUID)).mapTo[String]
+            }
+          }
+        }
+      }
+    } ~
     path(IntNumber / JOB_DATASTORE_PREFIX) { jobId =>
       get {
         complete {
           (dbActor ? GetDataStoreServiceFilesByJobId(jobId)).mapTo[Seq[DataStoreServiceFile]]
+        }
+      }
+    } ~
+    path(JavaUUID / JOB_DATASTORE_PREFIX) { jobId =>
+      get {
+        complete {
+          (dbActor ? GetDataStoreServiceFilesByJobUuid(jobId)).mapTo[Seq[DataStoreServiceFile]]
         }
       }
     } ~

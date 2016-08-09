@@ -141,7 +141,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   // FIXME this could be cleaner, and logging would be helpful
-  def pollForJob(jobId: UUID, maxTime: Int = -1): Int = {
+  def pollForJob(jobId: Either[Int,UUID], maxTime: Int = -1): Int = {
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
@@ -152,7 +152,12 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
-      Try { Await.result(getJobByUuid(jobId), requestTimeOut) } match {
+      Try {
+        Await.result(jobId match {
+          case Left(id) => getJobById(id)
+          case Right(uuid) => getJobByUuid(uuid)
+        }, requestTimeOut)
+      } match {
         case Success(x) => x.state match {
           case AnalysisJobStates.SUCCESSFUL => {
             exitFlag = false
