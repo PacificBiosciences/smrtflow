@@ -48,7 +48,6 @@ import scala.util.{Failure, Success, Try}
  *    a. If only one .subreadset.xml exists and it doesn't match the movie context name, use it.
  *    b. If (somehow) more than one .subreadset.xml exists and one matches the movie context name,
  * use the one that matches.
- *
  */
 class MultiImportAndResultsSpec
   extends Specification
