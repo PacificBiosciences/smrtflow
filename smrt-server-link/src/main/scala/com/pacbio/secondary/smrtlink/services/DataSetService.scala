@@ -10,7 +10,7 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDaoActorProvider, JobsDaoActor}
+import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
 import com.pacbio.secondary.smrtlink.models._
 import shapeless.HNil
@@ -20,11 +20,11 @@ import spray.routing.{PathMatcher1, Route}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
-
 import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
+import com.pacbio.common.models.Models.MixedIdType
 
 import scala.reflect.ClassTag
 
@@ -59,13 +59,6 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL.map(_.shortName + "$").reduceLeft((a, c) => s"$a|$c")
     ("(" + xs + ")").r
-  }
-
-  case class MixedIdType(id: Either[Int, UUID]) {
-    def map[T](fInt: Int => _ <: T, fUUID: UUID => _ <: T): T = id match {
-      case Left(i) => fInt(i)
-      case Right(i) => fUUID(i)
-    }
   }
 
   // The order of JavaUUID and IntNumber are important here, as IntNumber will capture a UUID
