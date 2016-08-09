@@ -220,9 +220,9 @@ trait SmrtLinkSteps {
     }
   }
 
-  case class GetSubreadSetReport(dsId: Var[UUID], reportId: Var[UUID]) extends VarStep[Report] {
-    override val name = "GetSubreadSetReport"
-    override def run: Future[Result] = smrtLinkClient.getSubreadSetReport(Right(dsId.get), reportId.get).map { r =>
+  case class GetReport(reportId: Var[UUID]) extends VarStep[Report] {
+    override val name = "GetReport"
+    override def run: Future[Result] = smrtLinkClient.getReport(reportId.get).map { r =>
       output(r)
       SUCCEEDED
     }

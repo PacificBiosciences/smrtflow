@@ -33,7 +33,7 @@ trait SmrtAnalysisSteps {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       output(Try {
-        smrtLinkClient.pollForJob(jobId.get)
+        smrtLinkClient.pollForJob(Right(jobId.get))
       } match {
         case Success(x) => 0
         case Failure(msg) => 1
