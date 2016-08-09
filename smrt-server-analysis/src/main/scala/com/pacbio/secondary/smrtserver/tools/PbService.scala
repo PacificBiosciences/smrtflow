@@ -5,7 +5,7 @@ import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.converters._
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models.{ServiceStatus}
 
@@ -284,71 +284,11 @@ object PbServiceParser {
   }
 }
 
-object PbServiceUtils {
-  import AnalysisClientJsonProtocol._
-
-  // FIXME this should probably return a DataSetMetaType
-  def dsMetaTypeFromPath(path: Path): String = {
-    val ds = scala.xml.XML.loadFile(path.toFile)
-    ds.attributes("MetaType").toString
-  }
-
-  def dsUuidFromPath(path: Path): UUID = {
-    val ds = scala.xml.XML.loadFile(path.toFile)
-    val uniqueId = ds.attributes("UniqueId").toString
-    java.util.UUID.fromString(uniqueId)
-  }
-
-  def dsNameFromMetadata(path: Path): String = {
-    if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
-    val md = scala.xml.XML.loadFile(path.toFile)
-    if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
-    (md \ "Run" \ "Name").text
-  }
-
-  def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
-    if (asJson) println(ds.toJson.prettyPrint) else {
-      println("DATASET SUMMARY:")
-      println(s"  id: ${ds.id}")
-      println(s"  uuid: ${ds.uuid}")
-      println(s"  name: ${ds.name}")
-      println(s"  path: ${ds.path}")
-      println(s"  numRecords: ${ds.numRecords}")
-      println(s"  totalLength: ${ds.totalLength}")
-      println(s"  jobId: ${ds.jobId}")
-      println(s"  md5: ${ds.md5}")
-      println(s"  createdAt: ${ds.createdAt}")
-      println(s"  updatedAt: ${ds.updatedAt}")
-    }
-    0
-  }
-
-  def printJobInfo(job: EngineJob, asJson: Boolean = false): Int = {
-    if (asJson) println(job.toJson.prettyPrint) else {
-      println("JOB SUMMARY:")
-      println(s"  id: ${job.id}")
-      println(s"  uuid: ${job.uuid}")
-      println(s"  name: ${job.name}")
-      println(s"  state: ${job.state}")
-      println(s"  path: ${job.path}")
-      println(s"  jobTypeId: ${job.jobTypeId}")
-      println(s"  createdAt: ${job.createdAt}")
-      println(s"  updatedAt: ${job.updatedAt}")
-      job.createdBy match {
-        case Some(createdBy) => println(s"  createdBy: ${createdBy}")
-        case _ => println("  createdBy: none")
-      }
-      println(s"  comment: ${job.comment}")
-    }
-    0
-  }
-}
 
 // TODO consolidate Try behavior
 class PbService (val sal: AnalysisServiceAccessLayer,
-                 val maxTime: Int = -1) extends LazyLogging {
+                 val maxTime: Int = -1) extends LazyLogging with ClientUtils {
   import AnalysisClientJsonProtocol._
-  import PbServiceUtils._
 
   protected val TIMEOUT = 10 seconds
   private lazy val entryPointsLookup = Map(
@@ -459,7 +399,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
               case "barcodes" => println(ds.asInstanceOf[BarcodeServiceDataSet].toJson.prettyPrint + sep)
               case "references" => println(ds.asInstanceOf[ReferenceServiceDataSet].toJson.prettyPrint + sep)
               case "gmapreferences" => println(ds.asInstanceOf[GmapReferenceServiceDataSet].toJson.prettyPrint + sep)
-              case "ccsreads" => println(ds.asInstanceOf[CCSreadServiceDataSet].toJson.prettyPrint + sep)
+              case "ccsreads" => println(ds.asInstanceOf[ConsensusReadServiceDataSet].toJson.prettyPrint + sep)
               case "ccsalignments" => println(ds.asInstanceOf[ConsensusAlignmentServiceDataSet].toJson.prettyPrint + sep)
               case "contigs" => println(ds.asInstanceOf[ContigServiceDataSet].toJson.prettyPrint + sep)
             }
@@ -509,7 +449,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def waitForJob(jobId: UUID): Int = {
     println(s"waiting for job ${jobId} to complete...")
-    Try { sal.pollForJob(jobId, maxTime) } match {
+    Try { sal.pollForJob(Right(jobId), maxTime) } match {
       case Success(msg) => runGetJobInfo(Right(jobId))
       case Failure(err) => {
         runGetJobInfo(Right(jobId))
@@ -531,7 +471,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
+                Await.result(sal.getImportFastaJobDataStore(Left(job.id)), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {
@@ -564,7 +504,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportBarcodesJobDataStore(job.id), TIMEOUT)
+                Await.result(sal.getImportBarcodesJobDataStore(Left(job.id)), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {

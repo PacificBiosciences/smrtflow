@@ -117,7 +117,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val gmap = GmapReferenceServiceSet(id = -1, UUID.randomUUID(), "ploidy", "organism")
       val alignment = AlignmentServiceSet(id = -1, UUID.randomUUID())
       val barcode = BarcodeServiceSet(id = -1, UUID.randomUUID())
-      val ccs = CCSreadServiceSet(id = -1, UUID.randomUUID())
+      val ccs = ConsensusReadServiceSet(id = -1, UUID.randomUUID())
       val consensus = ConsensusAlignmentServiceSet(id = -1, UUID.randomUUID())
       val contig = ContigServiceSet(id = -1, UUID.randomUUID())
       val datastoreFile = DataStoreServiceFile(

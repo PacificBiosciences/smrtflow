@@ -549,10 +549,21 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   def getDataStoreServiceFilesByJobId(i: Int): Future[Seq[DataStoreServiceFile]] =
     db.run(datastoreServiceFiles.filter(_.jobId === i).result)
 
+  def getDataStoreServiceFilesByJobUuid(uuid: UUID): Future[Seq[DataStoreServiceFile]] =
+    db.run(datastoreServiceFiles.filter(_.jobUUID === uuid).result)
+
   def getDataStoreReportFilesByJobId(jobId: Int): Future[Seq[DataStoreReportFile]] =
     db.run {
       datastoreServiceFiles
         .filter(_.jobId === jobId)
+        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
+        .result
+    }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
+
+  def getDataStoreReportFilesByJobUuid(jobUuid: UUID): Future[Seq[DataStoreReportFile]] =
+    db.run {
+      datastoreServiceFiles
+        .filter(_.jobUUID === jobUuid)
         .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
         .result
     }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
@@ -635,9 +646,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     insertDataSetSafe[AlignmentServiceDataSet](ds, "AlignmentSet",
       (id) => { dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid) })
 
-  def insertConsensusReadDataSet(ds: CCSreadServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[CCSreadServiceDataSet](ds, "ConsensusReadSet",
-      (id) => { dsCCSread2 forceInsert CCSreadServiceSet(id, ds.uuid) })
+  def insertConsensusReadDataSet(ds: ConsensusReadServiceDataSet): Future[MessageResponse] =
+    insertDataSetSafe[ConsensusReadServiceDataSet](ds, "ConsensusReadSet",
+      (id) => { dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid) })
 
   def insertConsensusAlignmentDataSet(ds: ConsensusAlignmentServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[ConsensusAlignmentServiceDataSet](ds, "ConsensusAlignmentSet",
@@ -824,22 +835,22 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 
   def toCCSread(t1: DataSetMetaDataSet) =
-    CCSreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
+    ConsensusReadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[CCSreadServiceDataSet]] = {
+  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ConsensusReadServiceDataSet]] = {
     val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
     db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
-  def getCCSDataSetById(id: Int): Future[Option[CCSreadServiceDataSet]] =
+  def getCCSDataSetById(id: Int): Future[Option[ConsensusReadServiceDataSet]] =
     db.run {
       val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
 
-  def getCCSDataSetByUUID(id: UUID): Future[Option[CCSreadServiceDataSet]] =
+  def getCCSDataSetByUUID(id: UUID): Future[Option[ConsensusReadServiceDataSet]] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))

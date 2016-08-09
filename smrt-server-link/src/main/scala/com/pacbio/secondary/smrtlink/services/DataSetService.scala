@@ -135,7 +135,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
               ok {
                 val dataset: Future[R] = (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
                 val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
-                  (dbActor ? GetDataStoreReportFileByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
+                  (dbActor ? GetDataStoreReportFilesByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
                 }
                 reports
               }
@@ -226,7 +226,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         GetBarcodeDataSetsByUUID,
         GetBarcodeDataSetDetailsById,
         GetBarcodeDataSetDetailsByUUID) ~
-      datasetRoutes[CCSreadServiceDataSet](
+      datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
         GetConsensusReadDataSets,
         SchemaLoader.ccsReadSchema.content,

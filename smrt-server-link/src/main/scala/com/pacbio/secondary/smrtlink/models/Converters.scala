@@ -230,7 +230,7 @@ object Converters {
       tags, toMd5(uuid.toString), userId, jobId, projectId)
   }
 
-  def convert(dataset: ConsensusReadSet, path: Path, userId: Int, jobId: Int, projectId: Int): CCSreadServiceDataSet = {
+  def convert(dataset: ConsensusReadSet, path: Path, userId: Int, jobId: Int, projectId: Int): ConsensusReadServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -242,7 +242,7 @@ object Converters {
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
 
-    CCSreadServiceDataSet(-99,
+    ConsensusReadServiceDataSet(-99,
       uuid,
       dataset.getName,
       path.toFile.toString,

@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.client
 
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.reports._
 import com.pacbio.common.client._
 
 import akka.actor.ActorSystem
@@ -18,13 +19,14 @@ import scala.concurrent.Future
 import java.net.URL
 import java.util.UUID
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol
 
 trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
   val ROOT_JOBS = ROOT_JM + "/jobs"
   val ROOT_DS = "/secondary-analysis/datasets"
   val ROOT_RUNS = "/smrt-link/runs"
+  val ROOT_DATASTORE = "/secondary-analysis/datastore-files"
 }
 
 trait ServiceResourceTypesTrait {
@@ -62,29 +64,57 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
+  import ReportModels._
 
   object ServiceEndpoints extends ServiceEndpointsTrait
   object ServiceResourceTypes extends ServiceResourceTypesTrait
   object JobTypes extends JobTypesTrait
   object DataSetTypes extends DataSetTypesTrait
 
-  protected def toJobUrl(jobType: String, jobId: Int): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}")
+  private def jobRoot(jobType: String) = s"${ServiceEndpoints.ROOT_JOBS}/${jobType}"
+  protected def toJobUrl(jobType: String, jobId: Either[Int,UUID]): String = {
+    jobId match {
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid")
+    }
   }
-  protected def toJobResourceUrl(jobType: String, jobId: Int, resourceType: String): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}/${resourceType}")
+  protected def toJobResourceUrl(jobType: String, jobId: Either[Int,UUID],
+                                 resourceType: String): String = {
+    jobId match {
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id/$resourceType")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid/$resourceType")
+    }
   }
-  protected def toJobResourceIdUrl(jobType: String, jobId: Int, resourceType: String, resourceId: UUID): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_JOBS}/${jobType}/${jobId}/${resourceType}/${resourceId}")
+  protected def toJobResourceIdUrl(jobType: String, jobId: Either[Int,UUID],
+                                   resourceType: String, resourceId: UUID): String = {
+    jobId match {
+      case Left(id) => toUrl(jobRoot(jobType) + s"/$id/$resourceType/$resourceId")
+      case Right(uuid) => toUrl(jobRoot(jobType) + s"/$uuid/$resourceType/$resourceId")
+    }
   }
 
+  private def dsRoot(dsType: String) = s"${ServiceEndpoints.ROOT_DS}/${dsType}"
   protected def toDataSetsUrl(dsType: String): String = {
-    toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}")
+    toUrl(dsRoot(dsType))
   }
   protected def toDataSetUrl(dsType: String, dsId: Either[Int,UUID]): String = {
     dsId match {
-      case Left(id) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${id}")
-      case Right(uuid) => toUrl(s"${ServiceEndpoints.ROOT_DS}/${dsType}/${uuid}")
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$dsType/$id")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$dsType/$uuid")
+    }
+  }
+  protected def toDataSetResourcesUrl(dsType: String, dsId: Either[Int,UUID],
+                                     resourceType: String): String = {
+    dsId match {
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$id/$resourceType")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$uuid/$resourceType")
+    }
+  }
+  protected def toDataSetResourceUrl(dsType: String, dsId: Either[Int,UUID],
+                                     resourceType: String, resourceId: UUID): String = {
+    dsId match {
+      case Left(id) => toUrl(dsRoot(dsType) + s"/$id/$resourceType/$resourceId")
+      case Right(uuid) => toUrl(dsRoot(dsType) + s"/$uuid/$resourceType/$resourceId")
     }
   }
 
@@ -109,7 +139,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def getGmapReferenceSetPipeline = getDataSetPipeline[GmapReferenceServiceDataSet]
   protected def getBarcodeSetPipeline = getDataSetPipeline[BarcodeServiceDataSet]
   protected def getAlignmentSetPipeline = getDataSetPipeline[AlignmentServiceDataSet]
-  protected def getConsensusReadSetPipeline = getDataSetPipeline[CCSreadServiceDataSet]
+  protected def getConsensusReadSetPipeline = getDataSetPipeline[ConsensusReadServiceDataSet]
   protected def getConsensusAlignmentSetPipeline = getDataSetPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
 
@@ -120,13 +150,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def getGmapReferenceSetsPipeline = getDataSetsPipeline[GmapReferenceServiceDataSet]
   protected def getBarcodeSetsPipeline = getDataSetsPipeline[BarcodeServiceDataSet]
   protected def getAlignmentSetsPipeline = getDataSetsPipeline[AlignmentServiceDataSet]
-  protected def getConsensusReadSetsPipeline = getDataSetsPipeline[CCSreadServiceDataSet]
+  protected def getConsensusReadSetsPipeline = getDataSetsPipeline[ConsensusReadServiceDataSet]
   protected def getConsensusAlignmentSetsPipeline = getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetsPipeline = getDataSetsPipeline[ContigServiceDataSet]
 
   def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
   def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
-  def getJobReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
@@ -159,6 +190,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
   def getSubreadSetById(dsId: Int) = getSubreadSet(Left(dsId))
   def getSubreadSetByUuid(dsId: UUID) = getSubreadSet(Right(dsId))
+
+  def getSubreadSetReports(dsId: Either[Int,UUID]): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS))
+  }
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
@@ -210,11 +245,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAlignmentSetById(dsId: Int) = getAlignmentSet(Left(dsId))
   def getAlignmentSetByUuid(dsId: UUID) = getAlignmentSet(Right(dsId))
 
-  def getConsensusReadSets: Future[Seq[CCSreadServiceDataSet]] = getConsensusReadSetsPipeline {
+  def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] = getConsensusReadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSREADS))
   }
 
-  def getConsensusReadSet(dsId: Either[Int,UUID]): Future[CCSreadServiceDataSet] = getConsensusReadSetPipeline {
+  def getConsensusReadSet(dsId: Either[Int,UUID]): Future[ConsensusReadServiceDataSet] = getConsensusReadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
   }
   def getConsensusReadSetById(dsId: Int) = getConsensusReadSet(Left(dsId))
@@ -241,25 +276,29 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getContigSetByUuid(dsId: UUID) = getContigSet(Right(dsId))
 
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
-    Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
+    Get(toJobResourceUrl(JobTypes.PB_PIPE, Left(jobId), ServiceResourceTypes.ENTRY_POINTS))
   }
 
-  protected def getJobDataStore(jobType: String, jobId: Int) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
+  protected def getJobDataStore(jobType: String, jobId: Either[Int,UUID]) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
-  def getAnalysisJobDataStore(jobId: Int) = getJobDataStore(JobTypes.PB_PIPE, jobId)
-  def getImportDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
-  def getImportFastaJobDataStore(jobId: Int) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
-  def getMergeDatasetJobDataStore(jobId: Int) = getJobDataStore(JobTypes.MERGE_DS, jobId)
-  def getImportBarcodesJobDataStore(jobId: Int) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
+  def getAnalysisJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.PB_PIPE, jobId)
+  def getImportDatasetJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
+  def getImportFastaJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
+  def getMergeDatasetJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.MERGE_DS, jobId)
+  def getImportBarcodesJobDataStore(jobId: Either[Int,UUID]) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
 
-  protected def getJobReports(jobId: Int, jobType: String): Future[Seq[DataStoreReportFile]] = getJobReportsPipeline {
+  def getReport(reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${reportId}/download"))
+  }
+
+  protected def getJobReports(jobId: Either[Int,UUID], jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))
   }
 
-  def getAnalysisJobReports(jobId: Int) = getJobReports(jobId, JobTypes.PB_PIPE)
-  def getImportJobReports(jobId: Int) = getJobReports(jobId, JobTypes.IMPORT_DS)
+  def getAnalysisJobReports(jobId: Either[Int,UUID]) = getJobReports(jobId, JobTypes.PB_PIPE)
+  def getImportJobReports(jobId: Either[Int,UUID]) = getJobReports(jobId, JobTypes.IMPORT_DS)
   // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
 
   // Runs
