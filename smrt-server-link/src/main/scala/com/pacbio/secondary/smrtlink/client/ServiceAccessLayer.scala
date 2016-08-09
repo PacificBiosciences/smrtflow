@@ -27,6 +27,7 @@ trait ServiceEndpointsTrait {
   val ROOT_DS = "/secondary-analysis/datasets"
   val ROOT_RUNS = "/smrt-link/runs"
   val ROOT_DATASTORE = "/secondary-analysis/datastore-files"
+  val ROOT_PROJECTS = "/secondary-analysis/projects"
 }
 
 trait ServiceResourceTypesTrait {
@@ -154,18 +155,21 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def getConsensusAlignmentSetsPipeline = getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetsPipeline = getDataSetsPipeline[ContigServiceDataSet]
 
-  def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
-  def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
-  def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
-  def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
+  protected def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
+  protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
+  protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
+  protected def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
   protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
   protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
   protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
+  protected def getProjectsPipeline: HttpRequest => Future[Seq[FullProject]] = sendReceive ~> unmarshal[Seq[FullProject]]
+  protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceive ~> unmarshal[FullProject]
 
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
+
   def getDataSetByAny(datasetId: Either[Int, UUID]): Future[DataSetMetaDataSet] = {
     datasetId match {
       case Left(x) => getDataSetById(x)
@@ -333,5 +337,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   def deleteRun(runId: UUID): Future[MessageResponse] = getMessageResponsePipeline {
     Delete(getRunUrl(runId))
+  }
+
+  def getProjects: Future[Seq[FullProject]] = getProjectsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PROJECTS))
+  }
+
+  def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"))
+  }
+
+  def createProject(name: String, description: String) = getProjectPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_PROJECTS),
+         ProjectRequest(name, description, None, None, None))
   }
 }
