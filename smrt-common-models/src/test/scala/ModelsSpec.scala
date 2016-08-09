@@ -49,8 +49,10 @@ class ModelsSpec extends Specification {
   "Example/Test usage of IdAble" should {
     "Sanity Test to Serialize IdAble" in {
 
+      val us = "1770b34b-4624-405f-85c1-04198b078586"
+      val uuid = UUID.fromString(us)
       val p1 = Person(1234, "Person A Int")
-      val p2 = Person(UUID.randomUUID(), "Person B UUID")
+      val p2 = Person(uuid, "Person B UUID")
 
       val people = Set(p1, p2)
       // Round trip from Person -> Json -> String -> Json -> Person
@@ -58,6 +60,7 @@ class ModelsSpec extends Specification {
       val px1 = s1.parseJson.convertTo[Person]
       val px2 = p2.toJson.toString.parseJson.convertTo[Person]
 
+      p2.i.toIdString must beEqualTo(us)
       // If we've got here, everything is good
       people.size must beEqualTo(2)
     }

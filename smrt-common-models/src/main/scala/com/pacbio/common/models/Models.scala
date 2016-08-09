@@ -17,10 +17,17 @@ object Models {
     }
   }
 
-  sealed trait IdAble
+  sealed trait IdAble {
+    def toIdString: String
+  }
 
-  case class IntIdAble(n: Int) extends IdAble
-  case class UUIDIdAble(n: UUID) extends IdAble
+  case class IntIdAble(n: Int) extends IdAble {
+    def toIdString = n.toString
+  }
+
+  case class UUIDIdAble(n: UUID) extends IdAble {
+    def toIdString = n.toString
+  }
 
 }
 
