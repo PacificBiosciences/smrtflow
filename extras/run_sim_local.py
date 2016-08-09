@@ -14,8 +14,7 @@ import os
 import sys
 
 ROOT_DIR = op.dirname(op.dirname(op.abspath(__file__)))
-JAR_FILE = ROOT_DIR + \
-    "/smrt-server-analysis/target/scala-2.11/smrt-server-analysis-assembly-0.1.5-SNAPSHOT.jar"
+TARGET_DIR = ROOT_DIR + "/smrt-server-analysis/target"
 GET_STATUS = ROOT_DIR + "/smrt-server-base/target/pack/bin/get-smrt-server-status"
 SIM_RUNNER = ROOT_DIR + "/smrt-server-sim/target/pack/bin/scenario-runner"
 
@@ -27,11 +26,24 @@ class ServiceManager(object):
 
     def __init__(self):
         self._t = threading.Thread(target=self._run)
+        self.jar_file = None
+        for dir_name in os.listdir(TARGET_DIR):
+            if dir_name.startswith("scala-"):
+                for file_name in os.listdir(op.join(TARGET_DIR, dir_name)):
+                    if (file_name.startswith("smrt-server-analysis-assembly")
+                        and file_name.endswith(".jar")):
+                        self.jar_file = op.join(TARGET_DIR, dir_name, file_name)
+                        break
+                else:
+                    continue
+                break
+        if self.jar_file is None:
+            raise RuntimeError("Can't find assembly jar file")
 
     def _run(self):
         with open("smrt-server-analysis.out", "w") as out:
             with open("smrt-server-analysis.err", "w") as err:
-                self._p = subprocess.Popen(["java", "-jar", JAR_FILE],
+                self._p = subprocess.Popen(["java", "-jar", self.jar_file],
                                            stdout=out, stderr=err)
 
     def __enter__(self):
