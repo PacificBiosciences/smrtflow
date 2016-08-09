@@ -46,17 +46,13 @@ class ServiceManager(object):
 def run(argv):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("scenario")
-    p.add_argument("--tmp-dir", action="store_true",
-                   help="Run in temporary directory and clean up afterwards")
+    p.add_argument("--local", action="store_true",
+                   help="Run in current directory instead of tmp dir")
     args = p.parse_args(argv)
     test_conf = tempfile.NamedTemporaryFile(suffix=".conf").name
     with open(test_conf, "w") as conf:
         conf.write("smrt-link-host = \"localhost\"\n")
         conf.write("smrt-link-port = 8070\n")
-    if op.exists("smrt-server-analysis/db"):
-        shutil.rmtree("smrt-server-analysis/db")
-    if op.exists("smrt-server-analysis/jobs-root"):
-        shutil.rmtree("smrt-server-analysis/jobs-root")
     try:
         import pbtestdata
     except ImportError:
@@ -67,9 +63,12 @@ def run(argv):
         os.environ["PB_TEST_DATA_FILES"] = pbtestdata.get_path()
     cwd = os.getcwd()
     tmp_dir = None
-    if args.tmp_dir:
+    if not args.local:
         tmp_dir = tempfile.mkdtemp()
         os.chdir(tmp_dir)
+    else:
+        if op.exists("db") or op.exists("jobs-root"):
+            raise RuntimeError("Please remove 'db' and 'jobs-root' directories")
     try:
         with ServiceManager() as server:
             assert subprocess.call([GET_STATUS, "--host", "localhost",
