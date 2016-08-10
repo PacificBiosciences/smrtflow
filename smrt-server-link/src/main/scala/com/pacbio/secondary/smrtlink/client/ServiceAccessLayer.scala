@@ -87,7 +87,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   private def dsRoot(dsType: String) = s"${ServiceEndpoints.ROOT_DS}/${dsType}"
   protected def toDataSetsUrl(dsType: String): String = toUrl(dsRoot(dsType))
   protected def toDataSetUrl(dsType: String, dsId: IdAble): String =
-    toUrl(dsRoot(dsType) + s"/$dsType/${dsId.toIdString}")
+    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}")
   protected def toDataSetResourcesUrl(dsType: String, dsId: IdAble,
                                      resourceType: String): String =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType")

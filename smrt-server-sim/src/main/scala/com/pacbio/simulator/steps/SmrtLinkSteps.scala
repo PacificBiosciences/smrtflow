@@ -238,6 +238,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetMergeJobDataStore(jobId: Var[UUID]) extends VarStep[Seq[DataStoreServiceFile]] {
+    override val name = "GetMergeJobDataStore"
+    override def run: Future[Result] = smrtLinkClient.getMergeDatasetJobDataStore(jobId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetProjects extends VarStep[Seq[Project]] {
     override val name = "GetProjects"
     override def run: Future[Result] = smrtLinkClient.getProjects.map { p =>
