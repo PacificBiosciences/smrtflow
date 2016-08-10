@@ -39,7 +39,7 @@ trait JobResolvers {
 
   def resolveAlignmentSet(sal: AnalysisServiceAccessLayer, jobId: Int): Future[Path] = {
     for {
-      job <- sal.getJobById(jobId)
+      job <- sal.getJob(jobId)
       path <- findAlignmentSetInJob(Paths.get(job.path))
     } yield path
   }

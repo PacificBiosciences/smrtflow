@@ -91,14 +91,14 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
       val client = new AnalysisServiceAccessLayer(sc.host, sc.port)(actorSystem)
 
       for {
-        job <- client.getAnalysisJobById(sc.jobId)
+        job <- client.getAnalysisJob(sc.jobId)
         sjob <- failJobIfNotSuccessful(job)
         alignmentSetPath <- JobResolvers.resolveAlignmentSet(client, sc.jobId) // FIXME. Make this core trait more well defined
         entryPoints <- client.getAnalysisJobEntryPoints(sc.jobId)
         subreadSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Subread)
         referenceSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Reference)
-        subreadSetMetadata <- client.getDataSetByUuid(subreadSetUUID)
-        referenceSetMetadata <- client.getDataSetByUuid(referenceSetUUID)
+        subreadSetMetadata <- client.getDataSet(subreadSetUUID)
+        referenceSetMetadata <- client.getDataSet(referenceSetUUID)
         ssetPath <- validatePath(Paths.get(subreadSetMetadata.path), s"SubreadSet path for Job ${job.id}")
         rsetPath <- validatePath(Paths.get(referenceSetMetadata.path), s"ReferenceSet path for job ${job.id}")
       } yield ReseqCondition(sc.id, ssetPath, alignmentSetPath, rsetPath)
