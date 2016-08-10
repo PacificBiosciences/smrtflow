@@ -7,7 +7,7 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.common.models.{ServiceStatus}
+import com.pacbio.common.models._
 
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
@@ -56,6 +56,9 @@ object Modes {
 }
 
 object PbServiceParser {
+  import CommonModels._
+  import CommonModelImplicits._
+
   val VERSION = "0.1.0"
   var TOOL_ID = "pbscala.tools.pbservice"
   private val MAX_FASTA_SIZE = 100.0 // megabytes
@@ -69,15 +72,15 @@ object PbServiceParser {
   }
 
   // is there a cleaner way to do this?
-  private def entityIdOrUuid(entityId: String): Either[Int, UUID] = {
+  private def entityIdOrUuid(entityId: String): IdAble = {
     try {
-      Left(entityId.toInt)
+      IntIdAble(entityId.toInt)
     } catch {
       case e: Exception => {
         try {
-          Right(UUID.fromString(entityId))
+          UUIDIdAble(UUID.fromString(entityId))
         } catch {
-          case e: Exception => Left(0)
+          case e: Exception => 0
         }
       }
     }
@@ -89,8 +92,8 @@ object PbServiceParser {
       port: Int,
       block: Boolean = false,
       command: CustomConfig => Unit = showDefaults,
-      datasetId: Either[Int, UUID] = Left(0),
-      jobId: Either[Int, UUID] = Left(0),
+      datasetId: IdAble = 0,
+      jobId: IdAble = 0,
       path: Path = null,
       name: String = "",
       organism: String = "",
@@ -112,8 +115,8 @@ object PbServiceParser {
 
     private def validateId(entityId: String, entityType: String): Either[String, Unit] = {
       entityIdOrUuid(entityId) match {
-        case Left(x) => if (x > 0) success else failure(s"${entityType} ID must be a positive integer or a UUID string")
-        case Right(x) => success
+        case IntIdAble(x) => if (x > 0) success else failure(s"${entityType} ID must be a positive integer or a UUID string")
+        case UUIDIdAble(x) => success
       }
     }
 
@@ -289,6 +292,8 @@ object PbServiceParser {
 class PbService (val sal: AnalysisServiceAccessLayer,
                  val maxTime: Int = -1) extends LazyLogging with ClientUtils {
   import AnalysisClientJsonProtocol._
+  import CommonModels._
+  import CommonModelImplicits._
 
   protected val TIMEOUT = 10 seconds
   private lazy val entryPointsLookup = Map(
@@ -365,8 +370,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runGetDataSetInfo(datasetId: Either[Int, UUID], asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getDataSetByAny(datasetId), TIMEOUT) } match {
+  def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
+    Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
       case Success(ds) => printDataSetInfo(ds, asJson)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
@@ -421,8 +426,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runGetJobInfo(jobId: Either[Int, UUID], asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getJobByAny(jobId), TIMEOUT) } match {
+  def runGetJobInfo(jobId: IdAble, asJson: Boolean = false): Int = {
+    Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
       case Success(job) => printJobInfo(job, asJson)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
@@ -449,10 +454,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def waitForJob(jobId: UUID): Int = {
     println(s"waiting for job ${jobId} to complete...")
-    Try { sal.pollForJob(Right(jobId), maxTime) } match {
-      case Success(msg) => runGetJobInfo(Right(jobId))
+    Try { sal.pollForJob(jobId, maxTime) } match {
+      case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
-        runGetJobInfo(Right(jobId))
+        runGetJobInfo(jobId)
         errorExit(err.getMessage)
       }
     }
@@ -471,12 +476,12 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportFastaJobDataStore(Left(job.id)), TIMEOUT)
+                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {
                     if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                      return runGetDataSetInfo(Right(dsFile.uuid))
+                      return runGetDataSetInfo(dsFile.uuid)
                     }
                   }
                   errorExit("Couldn't find ReferenceSet")
@@ -504,12 +509,12 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           waitForJob(job.uuid) match {
             case 0 => {
               Try {
-                Await.result(sal.getImportBarcodesJobDataStore(Left(job.id)), TIMEOUT)
+                Await.result(sal.getImportBarcodesJobDataStore(job.id), TIMEOUT)
               } match {
                 case Success(dataStoreFiles) => {
                   for (dsFile <- dataStoreFiles) {
                     if (dsFile.fileTypeId == "PacBio.DataSet.BarcodeSet") {
-                      return runGetDataSetInfo(Right(dsFile.uuid))
+                      return runGetDataSetInfo(dsFile.uuid)
                     }
                   }
                   errorExit("Couldn't find BarcodeSet")
@@ -528,7 +533,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runImportDataSetSafe(path: Path): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
-    Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
+    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) => {
         println(s"Dataset ${dsUuid.toString} already imported.")
         printDataSetInfo(dsInfo)
@@ -537,7 +542,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         println(s"No existing dataset record found")
         val dsType = dsMetaTypeFromPath(path)
         val rc = runImportDataSet(path, dsType)
-        if (rc == 0) runGetDataSetInfo(Right(dsUuid)) else rc
+        if (rc == 0) runGetDataSetInfo(dsUuid) else rc
       }
     }
   }
@@ -662,16 +667,21 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def validateEntryPoints(entryPoints: Seq[BoundServiceEntryPoint]): Int = {
     for (entryPoint <- entryPoints) {
+      // FIXME
+      val datasetId: IdAble = entryPoint.datasetId match {
+        case Left(id) => IntIdAble(id)
+        case Right(uuid) => UUIDIdAble(uuid)
+      }
       Try {
-        Await.result(sal.getDataSetByAny(entryPoint.datasetId), TIMEOUT)
+        Await.result(sal.getDataSet(datasetId), TIMEOUT)
       } match {
         case Success(dsInfo) => {
           // TODO check metatype against input
-          println(s"Found entry point ${entryPoint.entryId} (datasetId = ${entryPoint.datasetId})")
+          println(s"Found entry point ${entryPoint.entryId} (datasetId = ${datasetId})")
           printDataSetInfo(dsInfo)
         }
         case Failure(err) => {
-          return errorExit(s"can't retrieve datasetId ${entryPoint.datasetId}")
+          return errorExit(s"can't retrieve datasetId ${datasetId}")
         }
       }
     }
@@ -718,7 +728,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
     // this is stupidly inefficient
     val dsId = Try {
-      Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT)
+      Await.result(sal.getDataSet(dsUuid), TIMEOUT)
     } match {
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
