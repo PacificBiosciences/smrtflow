@@ -8,8 +8,11 @@ import scala.concurrent.Future
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondaryinternal.models.{PortalResolver, JobResource, JobResourceError}
+import com.pacbio.common.models.CommonModelImplicits
 
 trait JobResolvers {
+
+  import CommonModelImplicits._
 
   /**
    * FIXME. This is basically terrible. The lack of exit points from the pipeline template make this interface unclear

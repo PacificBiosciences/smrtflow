@@ -7,6 +7,7 @@ import java.util.UUID
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.ActorSystem
 import com.pacbio.common.client.UrlUtils
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -34,6 +35,7 @@ class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSys
   import InternalAnalysisJsonProcotols._
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
+  import CommonModelImplicits._
 
   val conditionJobTypeId = "conditions"
 
