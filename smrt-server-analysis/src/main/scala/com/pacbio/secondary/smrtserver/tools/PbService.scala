@@ -109,7 +109,7 @@ object PbServiceParser {
       maxTime: Int = -1) extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=600)
+  lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
