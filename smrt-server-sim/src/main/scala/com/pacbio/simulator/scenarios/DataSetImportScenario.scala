@@ -61,8 +61,10 @@ class DataSetImportScenario(host: String, port: Int)
   val testdata = PacBioTestData()
   val usePbreports = PbReports.isAvailable()
   val N_SUBREAD_REPORTS = if (usePbreports) 3 else 1
+  val N_SUBREAD_MERGE_REPORTS = if (usePbreports) 5 else 3
 
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
+  val subreadSet: Var[SubreadServiceDataSet] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
   val barcodeSets: Var[Seq[BarcodeServiceDataSet]] = Var()
   val hdfSubreadSets: Var[Seq[HdfSubreadServiceDataSet]] = Var()
@@ -73,6 +75,7 @@ class DataSetImportScenario(host: String, port: Int)
   val dsFiles: Var[Seq[DataStoreServiceFile]] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
+  val dsMeta: Var[DataSetMetaDataSet] = Var()
   val dsReports: Var[Seq[DataStoreReportFile]] = Var()
   val dsReport: Var[Report] = Var()
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
@@ -109,6 +112,7 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ImportDataSet(subreads1, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    dsMeta := GetDataSet(subreadsUuid1),
     dsReports := GetSubreadSetReports(subreadsUuid1),
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
     dataStore := GetImportJobDataStore(jobId),
@@ -117,6 +121,7 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ImportDataSet(subreads2, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    dsMeta := GetDataSet(subreadsUuid2),
     subreadSets := GetSubreadSets,
     fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
     // there will be 3 reports if pbreports is available
@@ -129,7 +134,14 @@ class DataSetImportScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
-    fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3
+    fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3,
+    dataStore := GetMergeJobDataStore(jobId),
+    fail(s"Expected $N_SUBREAD_MERGE_REPORTS datastore files") IF dataStore.mapWith(_.size) !=? N_SUBREAD_MERGE_REPORTS,
+    // XXX unfortunately there's no way to predict exactly where in the
+    // datastore the SubreadSet will appear
+    subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+    dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
+    fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid)
   )
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,
@@ -167,7 +179,15 @@ class DataSetImportScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
     hdfSubreadSets := GetHdfSubreadSets,
-    fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2
+    fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2,
+    // merge HdfSubreadSets
+    // XXX it's actually a little gross that this works, since these contain
+    // the same bax.h5 files...
+    jobId := MergeDataSets(ftHdfSubreads, hdfSubreadSets.mapWith(_.map(d => d.id)), Var("merge-hdfsubreads")),
+    jobStatus := WaitForJob(jobId),
+    fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
+    hdfSubreadSets := GetHdfSubreadSets,
+    fail("Expected three HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 3
   )
   val otherTests = Seq(
     // ContigSet
@@ -186,6 +206,15 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     alignmentSets := GetAlignmentSets,
     fail("Expected one AlignmentSet") IF alignmentSets.mapWith(_.size) !=? 1,
+    jobId := ImportDataSet(alignments2, ftAlign),
+    jobStatus := WaitForJob(jobId),
+    fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    alignmentSets := GetAlignmentSets,
+    jobId := MergeDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var("merge-alignments")),
+    jobStatus := WaitForJob(jobId),
+    fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
+    alignmentSets := GetAlignmentSets,
+    fail("Expected three AlignmentSets") IF alignmentSets.mapWith(_.size) !=? 3,
     // ConsensusReadSet
     ccsSets := GetConsensusReadSets,
     fail(MSG_DS_ERR) IF ccsSets ? (_.nonEmpty),

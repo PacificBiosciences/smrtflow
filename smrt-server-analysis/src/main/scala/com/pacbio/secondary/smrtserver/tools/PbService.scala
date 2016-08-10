@@ -322,7 +322,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
       case Success(records) => println(s"${label} ${records.size}")
-      case Failure(err) => println("ERROR: couldn't retrieve ${label}")
+      case Failure(err) => println(s"ERROR: couldn't retrieve ${label}")
     }
   }
 

@@ -92,7 +92,7 @@ object GetStatusRunner extends LazyLogging {
           xc = 0
         }
         case Failure(err) => {
-          println(s"failed: ${err}")
+          println(s"failed: ${err.getMessage}")
           if (ntries < c.maxRetries) {
             Thread.sleep(c.sleepTime * 1000)
           }
