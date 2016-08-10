@@ -198,7 +198,7 @@ case class PbSmrtPipeServiceOptions(
 
 
 // New DataSet Service Models
-trait IdAble {
+trait UniqueIdAble {
   val id: Int
   val uuid: UUID
 }
@@ -210,9 +210,9 @@ trait ProjectAble {
   val isActive: Boolean
 }
 
-case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends IdAble with ProjectAble
+case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
 
-case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends IdAble
+case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends UniqueIdAble
 
 case class SubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: SubreadServiceSet)
 
@@ -228,35 +228,35 @@ case class HdfSubreadServiceSet(
     instrumentId: String,
     instrumentName: String,
     runName: String,
-    instrumentControlVersion: String) extends IdAble
+    instrumentControlVersion: String) extends UniqueIdAble
 
 case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: HdfSubreadServiceSet)
 
-case class ReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends IdAble
+case class ReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
 
 case class ReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ReferenceServiceSet)
 
-case class AlignmentServiceSet(id: Int, uuid: UUID) extends IdAble
+case class AlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
 case class AlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: AlignmentServiceSet)
 
-case class BarcodeServiceSet(id: Int, uuid: UUID) extends IdAble
+case class BarcodeServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
 case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
 
-case class ConsensusReadServiceSet(id: Int, uuid: UUID) extends IdAble
+case class ConsensusReadServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
 case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusReadServiceSet)
 
-case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends IdAble
+case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
 
 case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
 
-case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends IdAble
+case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
 case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
 
-case class ContigServiceSet(id: Int, uuid: UUID) extends IdAble
+case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
 case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
 

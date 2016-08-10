@@ -7,12 +7,14 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
+import com.pacbio.common.models._
 
 import scala.concurrent.Future
 
 trait SmrtLinkSteps {
   this: Scenario with VarSteps =>
 
+  import CommonModelImplicits._
   import ReportModels._
 
   val smrtLinkClient: SmrtLinkServiceAccessLayer
@@ -62,7 +64,7 @@ trait SmrtLinkSteps {
   case class GetDataSet(dsId: Var[UUID]) extends VarStep[DataSetMetaDataSet] {
     override val name = "GetDataSet"
 
-    override def run: Future[Result] = smrtLinkClient.getDataSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getDataSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -78,7 +80,7 @@ trait SmrtLinkSteps {
 
   case class GetSubreadSet(dsId: Var[UUID]) extends VarStep[SubreadServiceDataSet] {
     override val name = "GetSubreadSet"
-    override def run: Future[Result] = smrtLinkClient.getSubreadSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getSubreadSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -94,7 +96,7 @@ trait SmrtLinkSteps {
 
   case class GetHdfSubreadSet(dsId: Var[UUID]) extends VarStep[HdfSubreadServiceDataSet] {
     override val name = "GetHdfSubreadSet"
-    override def run: Future[Result] = smrtLinkClient.getHdfSubreadSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getHdfSubreadSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -110,7 +112,7 @@ trait SmrtLinkSteps {
 
   case class GetReferenceSet(dsId: Var[UUID]) extends VarStep[ReferenceServiceDataSet] {
     override val name = "GetReferenceSet"
-    override def run: Future[Result] = smrtLinkClient.getReferenceSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getReferenceSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -126,7 +128,7 @@ trait SmrtLinkSteps {
 
   case class GetBarcodeSet(dsId: Var[UUID]) extends VarStep[BarcodeServiceDataSet] {
     override val name = "GetBarcodeSet"
-    override def run: Future[Result] = smrtLinkClient.getBarcodeSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getBarcodeSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -142,7 +144,7 @@ trait SmrtLinkSteps {
 
   case class GetAlignmentSet(dsId: Var[UUID]) extends VarStep[AlignmentServiceDataSet] {
     override val name = "GetAlignmentSet"
-    override def run: Future[Result] = smrtLinkClient.getAlignmentSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getAlignmentSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -158,7 +160,7 @@ trait SmrtLinkSteps {
 
   case class GetConsensusReadSet(dsId: Var[UUID]) extends VarStep[ConsensusReadServiceDataSet] {
     override val name = "GetConsensusReadSet"
-    override def run: Future[Result] = smrtLinkClient.getConsensusReadSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getConsensusReadSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -174,7 +176,7 @@ trait SmrtLinkSteps {
 
   case class GetConsensusAlignmentSet(dsId: Var[UUID]) extends VarStep[ConsensusAlignmentServiceDataSet] {
     override val name = "GetConsensusAlignmentSet"
-    override def run: Future[Result] = smrtLinkClient.getConsensusAlignmentSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getConsensusAlignmentSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -190,7 +192,7 @@ trait SmrtLinkSteps {
 
   case class GetContigSet(dsId: Var[UUID]) extends VarStep[ContigServiceDataSet] {
     override val name = "GetContigSet"
-    override def run: Future[Result] = smrtLinkClient.getContigSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getContigSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -206,7 +208,7 @@ trait SmrtLinkSteps {
 
   case class GetGmapReferenceSet(dsId: Var[UUID]) extends VarStep[GmapReferenceServiceDataSet] {
     override val name = "GetGmapReferenceSet"
-    override def run: Future[Result] = smrtLinkClient.getGmapReferenceSetByUuid(dsId.get).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getGmapReferenceSet(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -214,7 +216,7 @@ trait SmrtLinkSteps {
 
   case class GetSubreadSetReports(dsId: Var[UUID]) extends VarStep[Seq[DataStoreReportFile]] {
     override val name = "GetSubreadSetReports"
-    override def run: Future[Result] = smrtLinkClient.getSubreadSetReports(Right(dsId.get)).map { r =>
+    override def run: Future[Result] = smrtLinkClient.getSubreadSetReports(dsId.get).map { r =>
       output(r)
       SUCCEEDED
     }
@@ -230,8 +232,32 @@ trait SmrtLinkSteps {
 
   case class GetImportJobDataStore(jobId: Var[UUID]) extends VarStep[Seq[DataStoreServiceFile]] {
     override val name = "GetImportJobDataStore"
-    override def run: Future[Result] = smrtLinkClient.getImportDatasetJobDataStore(Right(jobId.get)).map { d =>
+    override def run: Future[Result] = smrtLinkClient.getImportDatasetJobDataStore(jobId.get).map { d =>
       output(d)
+      SUCCEEDED
+    }
+  }
+
+  case object GetProjects extends VarStep[Seq[Project]] {
+    override val name = "GetProjects"
+    override def run: Future[Result] = smrtLinkClient.getProjects.map { p =>
+      output(p)
+      SUCCEEDED
+    }
+  }
+
+  case class GetProject(projectId: Var[Int]) extends VarStep[FullProject] {
+    override val name = "GetProject"
+    override def run: Future[Result] = smrtLinkClient.getProject(projectId.get).map { p =>
+      output(p)
+      SUCCEEDED
+    }
+  }
+
+  case class CreateProject(projectName: Var[String], description: Var[String]) extends VarStep[Int] {
+    override val name = "CreateProject"
+    override def run: Future[Result] = smrtLinkClient.createProject(projectName.get, description.get).map { p =>
+      output(p.id)
       SUCCEEDED
     }
   }

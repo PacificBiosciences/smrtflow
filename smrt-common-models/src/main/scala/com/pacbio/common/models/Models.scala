@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 /**
   * Created by mkocher on 8/9/16.
   */
-object Models {
+object CommonModels {
 
   // "Old" model
   case class MixedIdType(id: Either[Int, UUID]) {
@@ -31,8 +31,8 @@ object Models {
 
 }
 
-object ModelImplicits {
-  import Models._
+object CommonModelImplicits {
+  import CommonModels._
 
   implicit def toUUIDIdAble(n: UUID): UUIDIdAble = UUIDIdAble(n)
   implicit def toIntIdAble(n: Int):IntIdAble = IntIdAble(n)

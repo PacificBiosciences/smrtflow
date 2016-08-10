@@ -38,6 +38,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   import AnalysisClientJsonProtocol._
   import SprayJsonSupport._
   import ReportModels._
+  import CommonModels._
+  import CommonModelImplicits._
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)
@@ -65,36 +67,25 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_FASTA)
   def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_BARCODES)
 
-  def getJobByAny(jobId: Either[Int, UUID]): Future[EngineJob] = {
-    jobId match {
-      case Left(x) => getJobById(x)
-      case Right(x) => getJobByUuid(x)
-    }
+  def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString))
   }
 
-  def getJobById(jobId: Int): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
+  def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] = getJobPipeline {
+    Get(toJobUrl(jobType, jobId))
   }
 
-  def getJobByUuid(jobId: UUID): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId))
-  }
-
-  def getJobByTypeAndId(jobType: String, jobId: Int): Future[EngineJob] = getJobPipeline {
-    Get(toJobUrl(jobType, Left(jobId)))
-  }
-
-  def getAnalysisJobById(jobId: Int): Future[EngineJob] = {
+  def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
     getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
   }
 
-  protected def getJobReport(jobType: String, jobId: Either[Int,UUID], reportId: UUID): Future[Report] = getReportPipeline {
+  protected def getJobReport(jobType: String, jobId: IdAble, reportId: UUID): Future[Report] = getReportPipeline {
     Get(toJobResourceIdUrl(jobType, jobId, ServiceResourceTypes.REPORTS, reportId))
   }
 
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
-  def getAnalysisJobReport(jobId: Either[Int,UUID], reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+  def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
 
   def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
@@ -141,7 +132,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   }
 
   // FIXME this could be cleaner, and logging would be helpful
-  def pollForJob(jobId: Either[Int,UUID], maxTime: Int = -1): Int = {
+  def pollForJob(jobId: IdAble, maxTime: Int = -1): Int = {
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
@@ -153,10 +144,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
       nIterations += 1
       Thread.sleep(sleepTime)
       Try {
-        Await.result(jobId match {
-          case Left(id) => getJobById(id)
-          case Right(uuid) => getJobByUuid(uuid)
-        }, requestTimeOut)
+        Await.result(getJob(jobId), requestTimeOut)
       } match {
         case Success(x) => x.state match {
           case AnalysisJobStates.SUCCESSFUL => {

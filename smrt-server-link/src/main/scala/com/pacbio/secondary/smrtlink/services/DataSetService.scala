@@ -24,7 +24,7 @@ import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-import com.pacbio.common.models.Models.MixedIdType
+import com.pacbio.common.models.CommonModels.MixedIdType
 
 import scala.reflect.ClassTag
 

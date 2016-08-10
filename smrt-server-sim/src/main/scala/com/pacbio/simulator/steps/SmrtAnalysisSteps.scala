@@ -14,10 +14,13 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
+import com.pacbio.common.models._
 
 
 trait SmrtAnalysisSteps {
   this: Scenario with VarSteps =>
+
+  import CommonModelImplicits._
 
   val smrtLinkClient: AnalysisServiceAccessLayer
 
@@ -33,7 +36,7 @@ trait SmrtAnalysisSteps {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       output(Try {
-        smrtLinkClient.pollForJob(Right(jobId.get))
+        smrtLinkClient.pollForJob(jobId.get)
       } match {
         case Success(x) => 0
         case Failure(msg) => 1

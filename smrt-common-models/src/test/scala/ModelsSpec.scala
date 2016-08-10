@@ -1,6 +1,4 @@
-import com.pacbio.common.models.ModelImplicits
-import com.pacbio.common.models.Models
-import Models.IdAble
+import com.pacbio.common.models.{CommonModels,CommonModelImplicits}
 import org.specs2.mutable.Specification
 import java.util.UUID
 
@@ -10,14 +8,15 @@ import scala.language.implicitConversions
 
 
 object TestModels {
+  import CommonModels._
   case class Person(i: IdAble, name: String)
 }
 
 
 trait CustomJsonProtocol extends DefaultJsonProtocol {
   import TestModels._
-  import Models._
-  import ModelImplicits._
+  import CommonModels._
+  import CommonModelImplicits._
 
   implicit object IdAbleFormat extends JsonFormat[IdAble] {
     def write(i: IdAble): JsValue =
@@ -43,7 +42,7 @@ object CustomJsonProtocol extends CustomJsonProtocol
 class ModelsSpec extends Specification {
 
   import TestModels._
-  import ModelImplicits._
+  import CommonModelImplicits._
   import CustomJsonProtocol._
 
   "Example/Test usage of IdAble" should {

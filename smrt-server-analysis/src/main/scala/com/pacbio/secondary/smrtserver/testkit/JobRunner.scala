@@ -8,6 +8,7 @@ import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
+import com.pacbio.common.models._
 
 import org.ini4j._
 import akka.actor.ActorSystem
@@ -96,6 +97,8 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
   import AnalysisClientJsonProtocol._
   import ReportModels._
   import TestkitModels._
+  import CommonModels._
+  import CommonModelImplicits._
 
   protected val testCases = ArrayBuffer[scala.xml.Elem]()
   protected var nFailures = 0
@@ -147,7 +150,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
                                rptTest: ReportTestRules): Int = {
     Try {
       // FIXME this actually works for any job type
-      Await.result(sal.getAnalysisJobReport(Left(jobId), reportId), TIMEOUT)
+      Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
     } match {
       case Success(report) => {
         println(s"Report ${report.id}:")
@@ -206,7 +209,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
 
   def runTests(reportTests: Seq[ReportTestRules], jobId: Int): Int = {
     val reports = Try {
-      Await.result(sal.getAnalysisJobReports(Left(jobId)), TIMEOUT)
+      Await.result(sal.getAnalysisJobReports(jobId), TIMEOUT)
     } match {
       case Success(r) => r
       case Failure(err) => Seq[DataStoreReportFile]()
@@ -260,9 +263,9 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     var dsType = dsMetaTypeFromPath(dsPath)
     // XXX should this automatically recover an existing job if present, or
     // always import again?
-    Try { Await.result(sal.getDataSetByUuid(dsUuid), TIMEOUT) } match {
+    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) =>
-        Await.result(sal.getJobById(dsInfo.jobId), TIMEOUT)
+        Await.result(sal.getJob(dsInfo.jobId), TIMEOUT)
       case Failure(err) =>
         Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
     }
@@ -311,7 +314,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
 
   def runTestsOnly(cfgFile: File, testJobId: Int, xunitOut: File,
                    ignoreTestFailures: Boolean = false): Int = {
-    if (runGetJobInfo(Left(testJobId)) != 0) return errorExit(s"Couldn't retrieve job ${testJobId}")
+    if (runGetJobInfo(testJobId) != 0) return errorExit(s"Couldn't retrieve job ${testJobId}")
     val cfg = loadTestkitCfg(cfgFile)
     if (cfg.reportTests.size > 0) {
       var testStatus = runTests(cfg.reportTests, testJobId)
