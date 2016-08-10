@@ -26,6 +26,7 @@ import com.pacbio.simulator.steps._
  *   run-xml-path = "/path/to/testdata/runDataModel.xml"
  * }}}
  */
+
 object DataSetImportScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for DataSetImportScenario")

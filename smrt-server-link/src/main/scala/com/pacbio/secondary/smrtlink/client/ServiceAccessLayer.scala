@@ -165,7 +165,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
   protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
   protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
-  protected def getProjectsPipeline: HttpRequest => Future[Seq[FullProject]] = sendReceive ~> unmarshal[Seq[FullProject]]
+  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceive ~> unmarshal[Seq[Project]]
   protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceive ~> unmarshal[FullProject]
 
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
@@ -339,7 +339,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Delete(getRunUrl(runId))
   }
 
-  def getProjects: Future[Seq[FullProject]] = getProjectsPipeline {
+  def getProjects: Future[Seq[Project]] = getProjectsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_PROJECTS))
   }
 
@@ -347,7 +347,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     Get(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"))
   }
 
-  def createProject(name: String, description: String) = getProjectPipeline {
+  def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_PROJECTS),
          ProjectRequest(name, description, None, None, None))
   }

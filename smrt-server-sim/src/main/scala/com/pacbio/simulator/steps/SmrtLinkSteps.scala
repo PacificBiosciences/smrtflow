@@ -235,4 +235,28 @@ trait SmrtLinkSteps {
       SUCCEEDED
     }
   }
+
+  case object GetProjects extends VarStep[Seq[Project]] {
+    override val name = "GetProjects"
+    override def run: Future[Result] = smrtLinkClient.getProjects.map { p =>
+      output(p)
+      SUCCEEDED
+    }
+  }
+
+  case class GetProject(projectId: Var[Int]) extends VarStep[FullProject] {
+    override val name = "GetProject"
+    override def run: Future[Result] = smrtLinkClient.getProject(projectId.get).map { p =>
+      output(p)
+      SUCCEEDED
+    }
+  }
+
+  case class CreateProject(projectName: Var[String], description: Var[String]) extends VarStep[Int] {
+    override val name = "CreateProject"
+    override def run: Future[Result] = smrtLinkClient.createProject(projectName.get, description.get).map { p =>
+      output(p.id)
+      SUCCEEDED
+    }
+  }
 }
