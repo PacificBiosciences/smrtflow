@@ -1,6 +1,6 @@
 {
   "_comment": "This config contains additional fields used in pbsmrtpipe standalone tests",
-  "jobName": "test_job",
+  "testId": "test_job",
   "workflowXml": null,
   "entryPoints": [{
     "entryId": "eid_subread",
@@ -28,6 +28,6 @@
     }]
   }],
   "pipelineId": "pbsmrtpipe.pipelines.sa3_sat",
-  "output_dir": "job_output",
-  "py_tests": []
+  "outputDir": "job_output",
+  "pythonTests": []
 }

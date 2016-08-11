@@ -1,5 +1,5 @@
 {
-  "jobName": "import_subreads_example",
+  "testId": "import_subreads_example",
   "workflowXml": null,
   "entryPoints": [{
     "entryId": "eid_subread",
