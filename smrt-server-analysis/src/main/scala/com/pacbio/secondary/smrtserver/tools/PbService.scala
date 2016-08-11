@@ -291,6 +291,7 @@ object PbServiceParser {
 // TODO consolidate Try behavior
 class PbService (val sal: AnalysisServiceAccessLayer,
                  val maxTime: Int = -1) extends LazyLogging with ClientUtils {
+
   import AnalysisClientJsonProtocol._
   import CommonModels._
   import CommonModelImplicits._
@@ -320,7 +321,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
-    Try { Await.result(fn(), TIMEOUT) } match {
+    Try {
+      Await.result(fn(), TIMEOUT)
+    } match {
       case Success(records) => println(s"${label} ${records.size}")
       case Failure(err) => println(s"ERROR: couldn't retrieve ${label}")
     }
@@ -329,7 +332,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
     if (asJson) {
       println(status.toJson.prettyPrint)
-    } else{
+    } else {
       println(s"Status ${status.message}")
       showNumRecords("SubreadSets", () => sal.getSubreadSets)
       showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
@@ -364,14 +367,18 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
 
   def runStatus(asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getStatus, TIMEOUT) } match {
+    Try {
+      Await.result(sal.getStatus, TIMEOUT)
+    } match {
       case Success(status) => printStatus(status, asJson)
       case Failure(err) => errorExit(err.getMessage)
     }
   }
 
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
+    Try {
+      Await.result(sal.getDataSet(datasetId), TIMEOUT)
+    } match {
       case Success(ds) => printDataSetInfo(ds, asJson)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
     }
@@ -427,16 +434,21 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   def runGetJobInfo(jobId: IdAble, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
+    Try {
+      Await.result(sal.getJob(jobId), TIMEOUT)
+    } match {
       case Success(job) => printJobInfo(job, asJson)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
 
   def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
+    Try {
+      Await.result(sal.getAnalysisJobs, TIMEOUT)
+    } match {
       case Success(engineJobs) => {
-        if (asJson) println(engineJobs.toJson.prettyPrint) else {
+        if (asJson) println(engineJobs.toJson.prettyPrint)
+        else {
           var k = 0
           val table = for (job <- engineJobs.reverse if k < maxItems) yield {
             k += 1
@@ -454,7 +466,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def waitForJob(jobId: UUID): Int = {
     println(s"waiting for job ${jobId} to complete...")
-    Try { sal.pollForJob(jobId, maxTime) } match {
+    Try {
+      sal.pollForJob(jobId, maxTime)
+    } match {
       case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
         runGetJobInfo(jobId)
@@ -499,7 +513,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   // FIXME too much code duplication
   def runImportBarcodes(path: Path, name: String): Int = {
-    PacBioFastaValidator(path, barcodeMode=true) match {
+    PacBioFastaValidator(path, barcodeMode = true) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
@@ -533,7 +547,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runImportDataSetSafe(path: Path): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
-    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
+    Try {
+      Await.result(sal.getDataSet(dsUuid), TIMEOUT)
+    } match {
       case Success(dsInfo) => {
         println(s"Dataset ${dsUuid.toString} already imported.")
         printDataSetInfo(dsInfo)
@@ -549,7 +565,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   def runImportDataSet(path: Path, dsType: String): Int = {
     logger.info(dsType)
-    Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
+    Try {
+      Await.result(sal.importDataSet(path, dsType), TIMEOUT)
+    } match {
       case Success(jobInfo: EngineJob) => {
         waitForJob(jobInfo.uuid)
       }
@@ -561,7 +579,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   private def listDataSetFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      Try { dsMetaTypeFromPath(fn.toPath) }.isSuccess
+      Try {
+        dsMetaTypeFromPath(fn.toPath)
+      }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
@@ -613,7 +633,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      Try { dsNameFromMetadata(fn.toPath) }.isSuccess
+      Try {
+        dsNameFromMetadata(fn.toPath)
+      }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
@@ -699,7 +721,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def validatePipelineOptions(analysisOptions: PbSmrtPipeServiceOptions): Int = {
     max(validatePipelineId(analysisOptions.pipelineId),
-        validateEntryPoints(analysisOptions.entryPoints))
+      validateEntryPoints(analysisOptions.entryPoints))
   }
 
   protected def runAnalysisPipelineImpl(analysisOptions: PbSmrtPipeServiceOptions, block: Boolean = true, validate: Boolean = true): Int = {
@@ -739,7 +761,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
     val epFields = entryPoint.split(':')
     if (epFields.length == 2) importEntryPoint(epFields(0),
-                                               Paths.get(epFields(1)))
+      Paths.get(epFields(1)))
     else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsType = dsMetaTypeFromPath(xmlPath)
@@ -766,8 +788,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   // how options are actually passed to services, so we need to convert them
   // here
   protected def getPipelineServiceOptions(jobTitle: String, pipelineId: String,
-      entryPoints: Seq[BoundServiceEntryPoint],
-      presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
+                                          entryPoints: Seq[BoundServiceEntryPoint],
+                                          presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
     Try {
       Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
     } match {
@@ -777,7 +799,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         }).toMap
         // FIXME unmarshalling is broken, so this is a little hacky
         val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
-        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
+        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id, templateOpt) <- jtaskOptions) yield {
           val template = templateOpt.asJsObject.fields
           val optionValue = presetOptionsLookup.getOrElse(id,
             template("default") match {
@@ -787,7 +809,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             })
           template("optionTypeId").asInstanceOf[JsString].value match {
             case OptionTypes.STRING => ServiceTaskStrOption(id, optionValue,
-                                                            OptionTypes.STRING)
+              OptionTypes.STRING)
             case OptionTypes.INTEGER => ServiceTaskIntOption(id, optionValue.toInt, OptionTypes.INTEGER)
             case OptionTypes.FLOAT => ServiceTaskDoubleOption(id, optionValue.toDouble, OptionTypes.FLOAT)
             case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
@@ -795,7 +817,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         }).toList
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
-                                 workflowOptions)
+          workflowOptions)
       }
       case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
     }
@@ -804,28 +826,27 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
                   presetXml: Option[Path] = None, block: Boolean = true,
                   validate: Boolean = true): Int = {
-    if (entryPoints.length == 0) return errorExit("At least one entry point is required")
-    var pipelineIdFull: String = pipelineId
-    val idFields = pipelineIdFull.split('.')
-    if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
-    println(s"pipeline ID: ${pipelineIdFull}")
-    if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
-    var jobTitleTmp = jobTitle
-    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
-    Try {
-      for (ep <- entryPoints) yield importEntryPointAutomatic(ep)
-    } match {
-      case Success(eps) => {
-        Try {
-          getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps,
-                                    getPipelinePresets(presetXml))
-        } match {
-          case Success(pipelineOptions) => runAnalysisPipelineImpl(
-            pipelineOptions, block=block, validate=false)
-          case Failure(err) => errorExit(err.getMessage)
-        }
-      }
-      case Failure(err) => errorExit(err.getMessage)
+
+    def failIfEmpty[T](items: Seq[T], errorMessage: String = ""): Try[Seq[T]] = {
+      if (items.isEmpty) Failure(throw new Exception(s"$errorMessage is empty"))
+      else Success(items)
+    }
+
+    // Allow for short form and assume the namespace is "pbsmrtpipe"
+    val pId = if (pipelineId.split(".") == 3) pipelineId else s"pbsmrtpipe.pipelines.$pipelineId"
+    val title = if (jobTitle.isEmpty) s"pbservice-$pId" else jobTitle
+
+    val tx = for {
+      epoints <- failIfEmpty[String](entryPoints, "Must have at least one Entry-Point(s)")
+      pipeline <- Try { Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT) }
+      boundEntryPoints <- Try { entryPoints.map(importEntryPointAutomatic) }
+      pipelineOptions <- Try { getPipelineServiceOptions(title, pId, boundEntryPoints, getPipelinePresets(presetXml)) }
+      exitCode <- Try { runAnalysisPipelineImpl(pipelineOptions, block = block, validate = false) }
+    } yield exitCode
+
+    tx match {
+      case Success(i) => i
+      case Failure(ex) => errorExit(s"Failed to Run pipeline ${ex.getMessage}")
     }
   }
 }
@@ -854,8 +875,8 @@ object PbService {
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
-        case _ => {
-          println("Unsupported action")
+        case m => {
+          println(s"Unsupported action $m")
           1
         }
       }
