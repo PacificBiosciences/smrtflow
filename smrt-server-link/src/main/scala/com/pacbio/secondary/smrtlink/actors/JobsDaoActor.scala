@@ -63,7 +63,9 @@ object JobsDaoActor {
       coreJob: CoreJob,
       engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
       jsonSettings: String,
-      createdBy: Option[String]) extends JobMessage
+      createdBy: Option[String],
+      smrtLinkVersion: Option[String],
+      smrtLinkToolsVersion: Option[String]) extends JobMessage
 
 
   // Get all DataSet Entry Points
@@ -657,8 +659,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy) =>
-      pipeWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy))
+    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion) =>
+      pipeWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion))
 
     case UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) =>
       pipeWith(dao.updateJobState(jobId, state, message))

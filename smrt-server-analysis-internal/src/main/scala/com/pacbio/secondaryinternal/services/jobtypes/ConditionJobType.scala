@@ -43,7 +43,12 @@ import com.pacbio.secondaryinternal.{IOUtils, InternalAnalysisJsonProcotols, Job
 import com.typesafe.scalalogging.LazyLogging
 
 
-class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int, reseqConditionsDir: Path)(implicit val actorSystem: ActorSystem)
+class ConditionJobType(dbActor: ActorRef,
+                       serviceStatusHost: String,
+                       port: Int,
+                       reseqConditionsDir: Path,
+                       smrtLinkVersion: Option[String],
+                       smrtLinkToolsVersion: Option[String])(implicit val actorSystem: ActorSystem)
   extends JobTypeService with LazyLogging{
 
   // import SecondaryAnalysisJsonProtocols._
@@ -134,7 +139,7 @@ class ConditionJobType(dbActor: ActorRef, serviceStatusHost: String, port: Int, 
                 reseqConditions <- client.resolveConditionRecord(record)
                 _ <- Future { IOUtils.writeReseqConditions(reseqConditions, conditionPath) }
                 coreJob <- Future { CoreJob(uuid, toPbsmrtPipeJobOptions(record.pipelineId, conditionPath, Option(toURI(rootUpdateURL, uuid)))) }
-                engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None)).mapTo[EngineJob]
+                engineJob <- (dbActor ?  CreateJobType(uuid, record.name, record.description, jobType, coreJob, None, record.toJson.toString, None, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
             }
           }
@@ -162,7 +167,7 @@ trait ConditionJobTypeServiceProvider {
       new ConditionJobType(
         jobsDaoActor(),
         if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
-        port(), reseqConditions()
+        port(), reseqConditions(), smrtLinkVersion(), smrtLinkToolsVersion()
       )
     }.bindToSet(JobTypes)
 

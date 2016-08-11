@@ -217,7 +217,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
     val jsonSettings = "{}"
 
-    val job = EngineJob(-99, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None)
+    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None, None, None)
 
     val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
       val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
@@ -348,14 +348,16 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       coreJob: CoreJob,
       entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
       jsonSetting: String,
-      createdBy: Option[String]): Future[EngineJob] = {
+      createdBy: Option[String],
+      smrtLinkVersion: Option[String],
+      smrtLinkToolsVersion: Option[String]): Future[EngineJob] = {
 
     // This should really be Option[String]
     val path = ""
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()
 
-    val engineJob = EngineJob(-9999, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy)
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
 
     logger.info(s"Creating Job $engineJob")
 

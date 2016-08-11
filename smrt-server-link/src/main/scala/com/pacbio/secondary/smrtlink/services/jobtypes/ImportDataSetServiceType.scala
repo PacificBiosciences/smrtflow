@@ -7,14 +7,11 @@ import akka.pattern.ask
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-
-
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -22,11 +19,15 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
-class ImportDataSetServiceType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService {
+class ImportDataSetServiceType(dbActor: ActorRef,
+                               authenticator: Authenticator,
+                               smrtLinkVersion: Option[String],
+                               smrtLinkToolsVersion: Option[String]) extends JobTypeService {
 
   import SmrtLinkJsonProtocols._
 
@@ -50,7 +51,7 @@ class ImportDataSetServiceType(dbActor: ActorRef, authenticator: Authenticator) 
 
     val fx = for {
       vopts <- validate(sopts)
-      engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint,  CoreJob(uuid, sopts), None, sopts.toJson.toString(), createdBy)).mapTo[EngineJob]
+      engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint,  CoreJob(uuid, sopts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
     } yield engineJob
 
     fx
@@ -84,8 +85,8 @@ class ImportDataSetServiceType(dbActor: ActorRef, authenticator: Authenticator) 
 trait ImportDataSetServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with JobManagerServiceProvider =>
+    with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
-    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
 }

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -18,14 +18,16 @@ import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import spray.json._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 
 
-class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator)
+class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator,
+                                 smrtLinkVersion: Option[String],
+                                 smrtLinkToolsVersion: Option[String])
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -55,7 +57,9 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
                 coreJob,
                 None,
                 jsonSettings,
-                authInfo.map(_.login))).mapTo[EngineJob]
+                authInfo.map(_.login),
+                smrtLinkVersion,
+                smrtLinkToolsVersion)).mapTo[EngineJob]
 
               complete {
                 created {
@@ -73,8 +77,9 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
 trait ImportDataStoreServiceTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with JobManagerServiceProvider =>
+    with JobManagerServiceProvider
+    with SmrtLinkConfigProvider =>
 
   val importDataStoreServiceType: Singleton[ImportDataStoreServiceType] =
-    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
 }

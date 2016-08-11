@@ -5,10 +5,10 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, PipelineBaseOption, BoundEntryPoint, EngineJob}
+import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, PipelineBaseOption}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -19,12 +19,16 @@ import spray.json._
 import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class MockPbsmrtpipeJobType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
+class MockPbsmrtpipeJobType(dbActor: ActorRef,
+                            authenticator: Authenticator,
+                            smrtLinkVersion: Option[String],
+                            smrtLinkToolsVersion: Option[String]) extends JobTypeService with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -63,7 +67,9 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, authenticator: Authenticator) ext
                 coreJob,
                 None,
                 jsonSettings,
-                authInfo.map(_.login)
+                authInfo.map(_.login),
+                smrtLinkVersion,
+                smrtLinkToolsVersion
               )).mapTo[EngineJob]
 
               complete {
@@ -82,8 +88,8 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef, authenticator: Authenticator) ext
 trait MockPbsmrtpipeJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with JobManagerServiceProvider =>
+    with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), authenticator())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
 }

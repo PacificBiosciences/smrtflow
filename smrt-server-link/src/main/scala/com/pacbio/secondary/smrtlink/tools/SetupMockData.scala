@@ -106,7 +106,7 @@ trait MockUtils extends LazyLogging{
         jobType,
         "path",
         "{}",
-        Some("root"))}
+        Some("root"), None, None)}
     val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
