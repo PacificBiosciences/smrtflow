@@ -1,6 +1,6 @@
 {
-  "id": "pbsmrtpipe.pipelines.sa3_ds_ccs_align",
-  "name": "CCS Mapping",
+  "id": "pbsmrtpipe.pipelines.sa3_ds_barcode_ccs",
+  "name": "CCS with Barcoding",
   "description": "Override Description",
   "taskOptions": [
     {"id": "pbccs.task_options.min_passes", "hidden": false},
