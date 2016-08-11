@@ -1,0 +1,8 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_ds_barcode_laa",
+  "name": "LAA with Barcoding",
+  "description": "Override Description",
+  "taskOptions": [
+    {"id": "pblaa.task_options.min_length",        "hidden": false}
+  ]
+}
