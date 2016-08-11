@@ -37,12 +37,13 @@ object TestkitModels {
   case class ReportTestRules(reportId: String, rules: Seq[ReportAttributeRule])
 
   case class TestkitConfig(
-    jobName: String,
+    testId: String,
     jobType: String,
     description: String,
     pipelineId: Option[String],
     workflowXml: Option[String],
     presetXml: Option[String],
+    presetJson: Option[String],
     entryPoints: Seq[EntryPointPath],
     reportTests: Seq[ReportTestRules])
 
@@ -119,7 +120,7 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
     }
   }
 
-  implicit val testkitConfigFormat = jsonFormat8(TestkitConfig)
+  implicit val testkitConfigFormat = jsonFormat9(TestkitConfig)
 }
 
 object MockConfig extends TestkitJsonProtocol {
@@ -143,6 +144,7 @@ object MockConfig extends TestkitJsonProtocol {
         Some("pbsmrtpipe.pipelines.sa3_sat"),
         None,
         Some("preset.xml"),
+        None,
         entryPoints,
         reportTests)
   }
