@@ -4,11 +4,10 @@ import com.pacbio.secondary.smrtserver.models._
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.secondary.analysis.reports.ReportModels
+import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
 
@@ -36,8 +35,10 @@ object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAn
 class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends SmrtLinkServiceAccessLayer(baseUrl)(actorSystem) {
 
   import AnalysisClientJsonProtocol._
+  import SecondaryModels._
   import SprayJsonSupport._
   import ReportModels._
+  import JobModels._
   import CommonModels._
   import CommonModelImplicits._
 
@@ -47,6 +48,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   object AnalysisServiceEndpoints extends ServiceEndpointsTrait {
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
+    val ROOT_PTRULES = "/secondary-analysis/pipeline-template-view-rules"
+    val ROOT_REPORT_RULES = "/secondary-analysis/report-view-rules"
   }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
@@ -55,7 +58,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceive ~> unmarshal[Seq[EngineJob]]
   def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceive ~> unmarshal[EngineJob]
+  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] = sendReceive ~> unmarshal[Seq[ReportViewRule]]
+  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] = sendReceive ~> unmarshal[ReportViewRule]
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
+  def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceive ~> unmarshal[Seq[PipelineTemplateViewRule]]
+  def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceive ~> unmarshal[PipelineTemplateViewRule]
 
   protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
@@ -86,6 +93,14 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+
+  def getReportViewRules: Future[Seq[ReportViewRule]] = getReportViewRulesPipeline {
+    Get(toUrl(AnalysisServiceEndpoints.ROOT_REPORT_RULES))
+  }
+
+  def getReportViewRule(reportId: String): Future[ReportViewRule] = getReportViewRulePipeline {
+    Get(toUrl(AnalysisServiceEndpoints.ROOT_REPORT_RULES + s"/$reportId"))
+  }
 
   def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
@@ -123,6 +138,14 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   // FIXME this doesn't quite work...
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
+  }
+
+  def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] = getPipelineTemplateViewRulesPipeline {
+    Get(toUrl(AnalysisServiceEndpoints.ROOT_PTRULES))
+  }
+
+  def getPipelineTemplateViewRule(pipelineId: String): Future[PipelineTemplateViewRule] = getPipelineTemplateViewRulePipeline {
+    Get(toUrl(AnalysisServiceEndpoints.ROOT_PTRULES + s"/$pipelineId"))
   }
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
