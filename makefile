@@ -34,6 +34,16 @@ repl:
 smrt-server-analysis-tools:
 	sbt smrt-server-analysis/pack
 
+get-pbdata: PacBioTestData
+
+PacBioTestData:
+	git clone https://github.com/PacificBiosciences/PacBioTestData.git
+
+import-pbdata: insert-pbdata
+
+insert-pbdata:
+	pbservice import-dataset PacBioTestData --debug
+
 insert-mock-data:
 	sbt "smrt-server-analysis/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
 

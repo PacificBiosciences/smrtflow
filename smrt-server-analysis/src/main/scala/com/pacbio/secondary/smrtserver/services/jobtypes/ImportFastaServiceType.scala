@@ -33,7 +33,9 @@ class ImportFastaServiceType(
     dbActor: ActorRef,
     authenticator: Authenticator,
     serviceStatusHost: String,
-    port: Int)
+    port: Int,
+    smrtLinkVersion: Option[String],
+    smrtLinkToolsVersion: Option[String])
   extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
@@ -108,7 +110,9 @@ class ImportFastaServiceType(
                   toCoreJob(sopts, uuid),
                   None,
                   sopts.toJson.toString(),
-                  authInfo.map(_.login))).mapTo[EngineJob]
+                  authInfo.map(_.login),
+                  smrtLinkVersion,
+                  smrtLinkToolsVersion)).mapTo[EngineJob]
               }
 
               complete {
@@ -132,5 +136,6 @@ trait ImportFastaServiceTypeProvider {
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
     Singleton(() => new ImportFastaServiceType(jobsDaoActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
-      port())).bindToSet(JobTypes)
+      port(), smrtLinkVersion(), smrtLinkToolsVersion()))
+      .bindToSet(JobTypes)
 }

@@ -45,7 +45,9 @@ class PbsmrtpipeServiceJobType(
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
     serviceStatusHost: String,
     port: Int,
-    commandTemplate: Option[CommandTemplate] = None)
+    commandTemplate: Option[CommandTemplate] = None,
+    smrtLinkVersion: Option[String],
+    smrtLinkToolsVersion: Option[String])
   extends JobTypeService with LazyLogging {
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
@@ -98,7 +100,7 @@ class PbsmrtpipeServiceJobType(
                 workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions }
                 opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
                 coreJob <- Future { CoreJob(uuid, opts)}
-                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), authInfo.map(_.login))).mapTo[EngineJob]
+                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
 
               complete {
@@ -170,5 +172,5 @@ trait PbsmrtpipeServiceJobTypeProvider {
       // for status messages to be sent back to the Server
       if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port(),
-      cmdTemplate())).bindToSet(JobTypes)
+      cmdTemplate(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
 }

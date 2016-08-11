@@ -19,14 +19,13 @@ import collection.JavaConverters._
 trait ManifestLoader extends LazyLogging{
 
   // Putting these constants here for now
+  // application.conf id
   val CONFIG_KEY = "pb-services.manifest-file"
-
-  // SL-UI component id
-  val SL_UI_ID = "smrtlink_ui"
-
+  // SL Tools component id
+  val SMRT_LINK_TOOLS_ID = "smrttools"
   // SL "component" id (this is a bit unclear. This should be the "system" component id and version and shouldn't
   // be confused with the services version)
-  val SL_ID = "smrtlink"
+  val SMRTLINK_ID = "smrtlink"
 
   import PacBioJsonProtocol._
 

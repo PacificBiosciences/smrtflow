@@ -126,8 +126,8 @@ object JobModels {
       path: String,
       jsonSettings: String,
       createdBy: Option[String],
-      smrtlinkVersion: Option[String] = Some("3.2.0"),
-      smrtlinkToolsVersion: Option[String] = Some("3.0.0")) {
+      smrtlinkVersion: Option[String],
+      smrtlinkToolsVersion: Option[String]) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -144,13 +144,13 @@ object JobModels {
           path: String,
           jsonSettings: String,
           createdBy: Option[String],
-          smrtlinkVersion: Option[String] = Some("3.2.0"),
-          smrtlinkToolsVersion: Option[String] = Some("3.0.0")) = {
+          smrtlinkVersion: Option[String],
+          smrtlinkToolsVersion: Option[String]) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion)
       }
   }
 
