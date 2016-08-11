@@ -3,6 +3,7 @@ package com.pacbio.common.services
 import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
+import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.typesafe.config._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
@@ -63,18 +64,18 @@ class ConfigService extends PacBioService {
           c.getConfig(p)
         }
         else
-          throw new NoSuchElementException(s"Unable to find resource $p at path $traversed")
+          throw new ResourceNotFoundError(s"Unable to find resource '$p' at path '$traversed'")
       }}
     }
     val leafConf: Try[ConfigValue] = conf.flatMap { c => Try {
       configPath.lastOption match {
         case Some(p) =>
           if (c.hasPath(p)) {
-            traversed = traversed + "." + p
+            if (traversed.isEmpty) traversed = p else traversed = traversed + "." + p
             c.getValue(p)
           }
           else
-            throw new NoSuchElementException(s"Unable to find resource $p at path $traversed")
+            throw new ResourceNotFoundError(s"Unable to find resource '$p' at path '$traversed'")
         case None => c.root()
       }
     }}
