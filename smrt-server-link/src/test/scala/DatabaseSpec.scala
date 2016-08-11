@@ -57,7 +57,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "job-type-id",
         "/job/path",
         "{\"foo\":true}",
-        Some("jsnow"))
+        Some("jsnow"), Some("0.1.0-SL"), Some("0.1.1-SL-TOOLS"))
       val event = JobEvent(UUID.randomUUID(), jobId = -1, AnalysisJobStates.CREATED, "job-created", createdAt = now)
       val tag = (-1, "tag-name")
       val jTag = (-1, -1)
