@@ -22,14 +22,14 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       val json = cfg.toJson
       println(json.prettyPrint)
       val cfg2 = json.convertTo[TestkitConfig]
-      true must beEqualTo(cfg.jobName == cfg2.jobName)
+      true must beEqualTo(cfg.testId == cfg2.testId)
     }
     "Read in testkit cfg from file" in {
       val jsonPath = Paths.get(getClass.getResource(test_cfg).toURI).toString
       val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
       val jsonAst = jsonSrc.parseJson
       val cfg = jsonAst.convertTo[TestkitConfig]
-      cfg.jobName must beEqualTo("test_job")
+      cfg.testId must beEqualTo("test_job")
       val json = cfg.toJson
       val cfg2 = json.convertTo[TestkitConfig]
       cfg.reportTests(0).rules(0).attrId must beEqualTo(cfg2.reportTests(0).rules(0).attrId)
@@ -40,7 +40,7 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       val jsonSrc = Source.fromFile(jsonPath).getLines.mkString
       val jsonAst = jsonSrc.parseJson
       val cfg = jsonAst.convertTo[TestkitConfig]
-      cfg.jobName must beEqualTo("import_subreads_example")
+      cfg.testId must beEqualTo("import_subreads_example")
       val json = cfg.toJson
       println(json.prettyPrint)
       val cfg2 = json.convertTo[TestkitConfig]

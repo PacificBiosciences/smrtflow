@@ -250,7 +250,7 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
       case Some(presetXml) => getPipelinePresets(Some(Paths.get(presetXml)))
       case _ => getPipelinePresets(None)
     }
-    val pipelineOptions = getPipelineServiceOptions(cfg.jobName, pipelineId,
+    val pipelineOptions = getPipelineServiceOptions(cfg.testId, pipelineId,
                                                     entryPoints, presets)
     var jobId = 0
     Await.result(sal.runAnalysisPipeline(pipelineOptions), TIMEOUT)
@@ -279,13 +279,13 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
     val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
       throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
     }
-    Await.result(sal.mergeDataSets(dsType, ids, cfg.jobName), TIMEOUT)
+    Await.result(sal.mergeDataSets(dsType, ids, cfg.testId), TIMEOUT)
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,
                     ignoreTestFailures: Boolean = false): Int = {
     val cfg = loadTestkitCfg(cfgFile)
-    println(cfg.jobName)
+    println(cfg.testId)
     var jobId = -1
     var xc = Try {
       cfg.jobType match {
