@@ -83,9 +83,14 @@ object IOUtils extends LazyLogging{
    */
   def toPresetXml(options: Seq[PipelineBaseOption], taskOptions: Seq[PipelineBaseOption]): Node = {
 
-    def toOptionXml(o: PipelineBaseOption) = <option id={o.id}>
-      <value>{o.value}</value>
-    </option>
+    def toOptionXml(o: PipelineBaseOption) = {
+      <option id={o.id}>
+        <value>{o match {
+          case opt: PipelineStrOption => if (o.value == "") "\"\"" else o.value
+          case _ => o.value
+        }}</value>
+      </option>
+    }
 
     val root =
       <preset-template-xml>
