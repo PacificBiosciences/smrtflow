@@ -203,7 +203,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   val resolver: JobResourceResolver
   // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
   // should be deleted. This should probably just be stored as a json blob in the database.
-  var _runnableJobs: mutable.Map[UUID, RunnableJobWithId]
+  var _runnableJobs: mutable.LinkedHashMap[UUID, RunnableJobWithId]
 
   /**
    * This is the pbscala engine required interface. The `createJob` method is the prefered method to add new jobs
@@ -1041,7 +1041,7 @@ with DataSetStore {
 
   import JobModels._
 
-  var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
+  var _runnableJobs = mutable.LinkedHashMap[UUID, RunnableJobWithId]()
 }
 
 trait JobsDaoProvider {
