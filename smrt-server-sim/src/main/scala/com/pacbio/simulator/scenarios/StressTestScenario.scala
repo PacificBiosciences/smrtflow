@@ -75,7 +75,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
       Seq[ServiceTaskOptionBase](),
       Seq[ServiceTaskOptionBase]()))
   val jobId: Var[UUID] = Var()
-  val jobIds: Seq[Var[UUID]] = (for (i <- 0 to nJobs) yield Var(UUID.randomUUID())).toSeq
+  val jobIds: Seq[Var[UUID]] = (0 to nJobs).map(_ => Var(UUID.randomUUID()))
   val jobStatus: Var[Int] = Var()
 
   val setupSteps = Seq(
@@ -86,11 +86,11 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
   // submit multiple jobs in quick succession, and make sure they all finish.
-  val pbsmrtpipeJobTests = (for (i <- 0 to nJobs) yield {
-      Seq(jobIds(i) := RunAnalysisPipeline(pipelineOpts))
-    }).flatMap(s => s) ++ (for (i <- 0 to nJobs) yield {
-      Seq(jobStatus := WaitForJob(jobIds(i), Var(maxTime)),
-          fail(TIMEOUT_ERR) IF jobStatus !=? EXIT_SUCCESS)
-    }).flatMap(s => s)
+  val pbsmrtpipeJobTests = (0 to nJobs).map(i => Seq(
+      jobIds(i) := RunAnalysisPipeline(pipelineOpts)
+    )).flatMap(s => s) ++ (0 to nJobs).map(i => Seq(
+      jobStatus := WaitForJob(jobIds(i), Var(maxTime)),
+      fail(TIMEOUT_ERR) IF jobStatus !=? EXIT_SUCCESS
+    )).flatMap(s => s)
   override val steps = setupSteps ++ pbsmrtpipeJobTests
 }
