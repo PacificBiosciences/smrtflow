@@ -26,7 +26,8 @@ object Sim extends App {
     "ExampleScenario"   -> ExampleScenarioLoader,
     "RunDesignScenario" -> RunDesignScenarioLoader,
     "DataSetImportScenario" -> DataSetImportScenarioLoader,
-    "ProjectsScenario" -> ProjectsScenarioLoader
+    "ProjectsScenario" -> ProjectsScenarioLoader,
+    "StressTest" -> StressTestScenarioLoader
   )
 
   final val DESCRIPTION =

@@ -69,7 +69,36 @@ trait GetStatusParser {
   }
 }
 
-object GetStatusRunner extends LazyLogging {
+trait GetSmrtServerStatus extends LazyLogging {
+  val STATUS_TIMEOUT = 5 seconds
+
+  def getStatus(sal: ServiceAccessLayer, maxRetries: Int, sleepTime: Int): Int = {
+    var xc = 1
+    var ntries = 0
+    while (ntries < maxRetries) {
+      ntries += 1
+      val result = Try { Await.result(sal.getStatus, STATUS_TIMEOUT) }
+      result match {
+        case Success(x) => {
+          println(s"GET ${sal.baseUrl}: SUCCESS")
+          println(x)
+          ntries = maxRetries
+          xc = 0
+        }
+        case Failure(err) => {
+          println(s"failed: ${err.getMessage}")
+          if (ntries < maxRetries) {
+            Thread.sleep(sleepTime * 1000)
+          }
+        }
+      }
+    }
+    xc
+  }
+}
+
+
+object GetStatusRunner extends GetSmrtServerStatus with LazyLogging {
   final val SERVICE_ENDPOINTS = Vector()
 
   def apply (c: GetStatusConfig): Int = {
@@ -79,26 +108,7 @@ object GetStatusRunner extends LazyLogging {
     val url = new URL(s"http://${c.host}:${c.port}")
     println(s"URL: ${url}")
     val sal = new ServiceAccessLayer(url)(actorSystem)
-    var xc = 1
-    var ntries = 0
-    while (ntries < c.maxRetries) {
-      ntries += 1
-      val result = Try { Await.result(sal.getStatus, 5 seconds) }
-      result match {
-        case Success(x) => {
-          println(s"GET ${url}: SUCCESS")
-          println(x)
-          ntries = c.maxRetries
-          xc = 0
-        }
-        case Failure(err) => {
-          println(s"failed: ${err.getMessage}")
-          if (ntries < c.maxRetries) {
-            Thread.sleep(c.sleepTime * 1000)
-          }
-        }
-      }
-    }
+    var xc = getStatus(sal, c.maxRetries, c.sleepTime)
     if (xc == 0) {
       if (c.uiPort > 0) xc = sal.checkUiEndpoint(c.uiPort) else println("No UI port specified, skipping")
       if (xc == 0) xc = sal.checkServiceEndpoints

@@ -5,6 +5,7 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels
+import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
 import com.pacbio.common.models._
@@ -19,8 +20,18 @@ trait SmrtLinkSteps {
 
   val smrtLinkClient: SmrtLinkServiceAccessLayer
 
+  case object GetStatus extends VarStep[Int] with GetSmrtServerStatus {
+    override val name = "GetStatus"
+    override def run: Future[Result] = Future {
+      getStatus(smrtLinkClient, 5, 8)
+    }.map { x => 
+      output(x)
+      SUCCEEDED
+    }
+  }
+
   case object GetRuns extends VarStep[Seq[RunSummary]] {
-    override val name = "GetRun"
+    override val name = "GetRuns"
 
     override def run: Future[Result] = smrtLinkClient.getRuns.map { r =>
       output(r)

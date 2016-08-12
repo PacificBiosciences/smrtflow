@@ -106,6 +106,10 @@ class DataSetImportScenario(host: String, port: Int)
   val ccs = Var(testdata.getFile("rsii-ccs"))
   val ccsAligned = Var(testdata.getFile("rsii-ccs-aligned"))
 
+  val setupSteps = Seq(
+    jobStatus := GetStatus,
+    fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
+  )
   val subreadTests = Seq(
     subreadSets := GetSubreadSets,
     fail(MSG_DS_ERR) IF subreadSets ? (_.nonEmpty),
@@ -256,5 +260,5 @@ class DataSetImportScenario(host: String, port: Int)
     //jobStatus := WaitForJob(jobId),
     //fail("Expected merge job to fail") IF jobStatus !=? EXIT_FAILURE
   )
-  override val steps = subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests
+  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests
 }
