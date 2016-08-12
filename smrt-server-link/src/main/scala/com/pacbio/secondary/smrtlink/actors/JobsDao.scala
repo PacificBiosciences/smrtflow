@@ -196,6 +196,8 @@ trait ProjectDataStore extends LazyLogging {
 trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   this: DalComponent =>
 
+  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
   val resolver: JobResourceResolver
@@ -264,7 +266,25 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   override def getNextRunnableJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
+    _runnableJobs.values.find((rj) =>
+      rj.state == AnalysisJobStates.CREATED &&
+      !QUICK_TASK_IDS(rj.job.jobOptions.toJob.jobTypeId)) match {
+      case Some(job) =>
+        getJobById(job.id).map {
+          case Some(j) =>
+            _runnableJobs.remove(j.uuid)
+            Right(RunnableJobWithId(job.id, job.job, j.state))
+          case None => Left(noWork)
+        }
+      case None => Future(Left(noWork))
+    }
+  }
+
+  def getNextRunnableQuickJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
+    val noWork = NoAvailableWorkError("No Available work to run.")
+    _runnableJobs.values.find((rj) =>
+      rj.state == AnalysisJobStates.CREATED &&
+      QUICK_TASK_IDS(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) =>
         getJobById(job.id).map {
           case Some(j) =>
