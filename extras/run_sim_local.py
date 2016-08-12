@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# TODO rewrite me in Scala
+
 """
 Wrapper script to start the analysis server and run a simulator scenario.
 """
@@ -16,7 +18,6 @@ import sys
 
 ROOT_DIR = op.dirname(op.dirname(op.abspath(__file__)))
 TARGET_DIR = ROOT_DIR + "/smrt-server-analysis/target"
-GET_STATUS = ROOT_DIR + "/smrt-server-base/target/pack/bin/get-smrt-server-status"
 SIM_RUNNER = ROOT_DIR + "/smrt-server-sim/target/pack/bin/scenario-runner"
 
 log = logging.getLogger(__name__)
@@ -69,11 +70,21 @@ def run(argv):
                    help="Run in current directory instead of tmp dir")
     p.add_argument("--stay-alive", action="store_true",
                    help="Leave services running after simulator exits")
+    p.add_argument("--max-workers", action="store", default=8,
+                   help="Max. number of engine job workers")
+    p.add_argument("--njobs", action="store", default=50,
+                   help="Number of simultaneous jobs in StressTest")
+    p.add_argument("--max-time", action="store", default=300,
+                   help="Maximum time to wait for pbsmrtpipe jobs")
     args = p.parse_args(argv)
     test_conf = tempfile.NamedTemporaryFile(suffix=".conf").name
     with open(test_conf, "w") as conf:
         conf.write("smrt-link-host = \"localhost\"\n")
         conf.write("smrt-link-port = 8070\n")
+        conf.write("njobs = {n}\n".format(n=args.njobs))
+        conf.write("max-time = {t}\n".format(t=args.max_time))
+    log.info("Capping number of workers at {j}".format(j=args.max_workers))
+    os.environ["PB_ENGINE_MAX_WORKERS"] = str(args.max_workers)
     try:
         import pbtestdata
     except ImportError:
@@ -94,10 +105,6 @@ def run(argv):
     rc = 0
     try:
         with ServiceManager() as server:
-            log.info("Checking server status...")
-            assert subprocess.call([GET_STATUS, "--host", "localhost",
-                                    "--port", "8070",
-                                    "--max-retries", "8"]) == 0
             log.info("Running simulator scenario...")
             rc = subprocess.call([SIM_RUNNER, args.scenario, test_conf])
             if args.stay_alive:

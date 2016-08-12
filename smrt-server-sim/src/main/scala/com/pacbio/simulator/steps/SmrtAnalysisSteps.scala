@@ -32,11 +32,11 @@ trait SmrtAnalysisSteps {
     }
   }
 
-  case class WaitForJob(jobId: Var[UUID]) extends VarStep[Int] {
+  case class WaitForJob(jobId: Var[UUID], maxTime: Var[Int] = Var(1800)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       output(Try {
-        smrtLinkClient.pollForJob(jobId.get)
+        smrtLinkClient.pollForJob(jobId.get, maxTime.get)
       } match {
         case Success(x) => 0
         case Failure(msg) => 1
@@ -78,4 +78,11 @@ trait SmrtAnalysisSteps {
     }
   }
 
+  case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
+    override val name = "RunAnalysisPipeline"
+    override def run: Future[Result] = smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
 }

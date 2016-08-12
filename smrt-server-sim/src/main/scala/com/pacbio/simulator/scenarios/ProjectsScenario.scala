@@ -58,6 +58,7 @@ class ProjectsScenario(host: String, port: Int)
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
+  val jobStatus: Var[Int] = Var()
   val projId: Var[Int] = Var()
   val projects: Var[Seq[Project]] = Var()
   val project: Var[FullProject] = Var()
@@ -66,6 +67,10 @@ class ProjectsScenario(host: String, port: Int)
   val subreads1 = Var(testdata.getFile("subreads-xml"))
   val subreadsUuid1 = Var(dsUuidFromPath(subreads1.get))*/
 
+  val setupSteps = Seq(
+    jobStatus := GetStatus,
+    fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
+  )
   val projectTests = Seq(
     projects := GetProjects,
     fail(MSG_PROJ_ERR) IF projects.mapWith(_.size) !=? 1,
@@ -79,5 +84,5 @@ class ProjectsScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,*/
   )
-  override val steps = projectTests
+  override val steps = setupSteps ++ projectTests
 }
