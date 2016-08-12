@@ -27,6 +27,7 @@ object Sim extends App {
     "RunDesignScenario" -> RunDesignScenarioLoader,
     "DataSetImportScenario" -> DataSetImportScenarioLoader,
     "ProjectsScenario" -> ProjectsScenarioLoader,
+    "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
     "StressTest" -> StressTestScenarioLoader
   )
 
