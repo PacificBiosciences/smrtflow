@@ -85,4 +85,12 @@ trait SmrtAnalysisSteps {
       SUCCEEDED
     }
   }
+
+  case class GetJob(jobId: Var[UUID]) extends VarStep[EngineJob] {
+    override val name = "GetJob"
+    override def run: Future[Result] = smrtLinkClient.getJob(jobId.get).map { j =>
+      output(j)
+      SUCCEEDED
+    }
+  }
 }

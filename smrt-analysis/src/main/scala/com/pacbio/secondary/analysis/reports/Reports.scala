@@ -25,6 +25,8 @@ object ReportModels {
 
   case class ReportDoubleAttribute(id: String, name: String, value: Double) extends ReportAttribute
 
+  case class ReportBooleanAttribute(id: String, name: String, value: Boolean) extends ReportAttribute
+
   case class ReportPlot(id: String, image: String, caption: Option[String] = None)
 
   case class ReportTable(id: String, title: Option[String] = None, columns: Seq[ReportTableColumn])
@@ -88,6 +90,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
       case rla: ReportLongAttribute => rla.toJson
       case rsa: ReportStrAttribute => rsa.toJson
       case rda: ReportDoubleAttribute => rda.toJson
+      case rba: ReportBooleanAttribute => rba.toJson
     }
 
     def read(jsonAttr: JsValue): ReportAttribute = {
@@ -96,6 +99,8 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           if (value.isValidInt) ReportLongAttribute(id, name, value.toLong)
           else ReportDoubleAttribute(id, name, value.toDouble)
         }
+        case Seq(JsString(id), JsString(name), JsBoolean(value)) =>
+          ReportBooleanAttribute(id, name, value)
         case Seq(JsString(id), JsString(name), JsString(value)) =>
           ReportStrAttribute(id, name, value.toString)
       }
@@ -114,6 +119,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
               case x: Double => JsNumber(x)
               case i: Int => JsNumber(i)
               case s: String => JsString(s)
+              case b: Boolean => JsBoolean(b)
               case _ => JsNull
           }).toList:_* // expand sequence
         )
@@ -131,6 +137,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           val values = (for (value <- jsValues) yield value match {
             case JsNumber(x) => x.doubleValue
             case JsString(s) => s
+            case JsBoolean(b) => b
             case _ => null
           }).toList
           ReportTableColumn(id, header, values)
@@ -253,7 +260,6 @@ object ReportUtils extends ReportJsonProtocol {
   def mockReport(baseId: String, title: String): Report = {
 
     def toI(n: String) = s"$baseId.$n"
-    def toA(n: Int, id: String) = ReportLongAttribute(toI(id), s"name $id", n)
     def toP(n: Int, id: String) = ReportPlot(toI(id), s"$id.png", Some(s"Caption $id"))
     def toPg(id: String, plots: List[ReportPlot]) = ReportPlotGroup(toI(id), Some(s"title $id"), Some(s"legend $id"), plots)
 
@@ -261,13 +267,16 @@ object ReportUtils extends ReportJsonProtocol {
     // the format should evolve to have the base id of {tool}.reports.{base-id}
     //val rid = s"pbsmrtpipe.reports.$baseId"
 
-    val nattrs = 10
     val nplots = 3
 
     val plots = (1 until nplots).map(x => toP(x, toI(s"plot_$x")))
     val plotGroup = toPg(toI("plotgroups"), plots.toList)
 
-    val attrs = (1 until nattrs).map(n => toA(n, s"attr$n"))
+    val attrs = Seq(
+      ReportLongAttribute("nfiles", "Number of Files ", 7),
+      ReportDoubleAttribute("run_time", "Run Time", 123.4),
+      ReportStrAttribute("job_name", "Job Name", "Report test"),
+      ReportBooleanAttribute("was_successful", "Job Succeeded", true))
 
     Report(baseId, title, REPORT_SCHEMA_VERSION, attrs.toList, List(plotGroup), List(toReportTable), UUID.randomUUID)
   }
