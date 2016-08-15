@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports,CallSaWriterIndex}
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
@@ -59,9 +59,10 @@ class DataSetImportScenario(host: String, port: Int)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
   val testdata = PacBioTestData()
-  val usePbreports = PbReports.isAvailable()
-  val N_SUBREAD_REPORTS = if (usePbreports) 3 else 1
-  val N_SUBREAD_MERGE_REPORTS = if (usePbreports) 5 else 3
+  val HAVE_PBREPORTS = PbReports.isAvailable()
+  val HAVE_SAWRITER = CallSaWriterIndex.isAvailable()
+  val N_SUBREAD_REPORTS = if (HAVE_PBREPORTS) 3 else 1
+  val N_SUBREAD_MERGE_REPORTS = if (HAVE_PBREPORTS) 5 else 3
 
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   val subreadSet: Var[SubreadServiceDataSet] = Var()
@@ -155,8 +156,13 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     referenceSets := GetReferenceSets,
     fail("Expected one ReferenceSet") IF referenceSets.mapWith(_.size) !=? 1
-    // TODO would be nice to have a FASTA import here...
-  )
+  ) ++ (if (! HAVE_SAWRITER) Seq() else Seq(
+    jobId := ImportFasta(refFasta, Var("import-fasta")),
+    jobStatus := WaitForJob(jobId),
+    fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
+    referenceSets := GetReferenceSets,
+    fail("Expected two ReferenceSets") IF referenceSets.mapWith(_.size) !=? 2
+  ))
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     fail(MSG_DS_ERR) IF barcodeSets ? (_.nonEmpty),
