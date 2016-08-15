@@ -196,12 +196,14 @@ trait ProjectDataStore extends LazyLogging {
 trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   this: DalComponent =>
 
+  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
   val resolver: JobResourceResolver
   // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
   // should be deleted. This should probably just be stored as a json blob in the database.
-  var _runnableJobs: mutable.Map[UUID, RunnableJobWithId]
+  var _runnableJobs: mutable.LinkedHashMap[UUID, RunnableJobWithId]
 
   /**
    * This is the pbscala engine required interface. The `createJob` method is the prefered method to add new jobs
@@ -262,9 +264,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     }
   }
 
-  override def getNextRunnableJobWithId: Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
+  private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
+    _runnableJobs.values.find((rj) =>
+      rj.state == AnalysisJobStates.CREATED &&
+      jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) =>
         getJobById(job.id).map {
           case Some(j) =>
@@ -275,6 +279,10 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
       case None => Future(Left(noWork))
     }
   }
+
+  private def filterByQuickJobType(j: JobTypeId): Boolean = QUICK_TASK_IDS contains j
+  override def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobTypeId) => !filterByQuickJobType(j))
+  def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
 
   /**
    * Get all the Job Events accosciated with a specific job
@@ -1033,7 +1041,7 @@ with DataSetStore {
 
   import JobModels._
 
-  var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
+  var _runnableJobs = mutable.LinkedHashMap[UUID, RunnableJobWithId]()
 }
 
 trait JobsDaoProvider {

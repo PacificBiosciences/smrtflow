@@ -64,7 +64,7 @@ object EngineDao {
     // Used locally to Resolve the Job directory path
     val jobResolver: JobResourceResolver
     // local cache of jobs to run. Keep the CoreJob instance around until the job is completed, then deleted it
-    var _runnableJobs: mutable.Map[UUID, RunnableJobWithId]
+    var _runnableJobs: mutable.LinkedHashMap[UUID, RunnableJobWithId]
     // Persistence layer for all jobs
     var _engineJobs: mutable.Map[UUID, EngineJob]
     // JobUUID -> Events
@@ -222,7 +222,7 @@ object EngineDao {
   class JobEngineDao(val jobResolver: JobResourceResolver) extends JobEngineDataStore with InMemoryJobEngineDaoComponent with InMemoryDataStore {
 
     var dataStoreJobFiles = mutable.Map[UUID, DataStoreJobFile]()
-    var _runnableJobs = mutable.Map[UUID, RunnableJobWithId]()
+    var _runnableJobs = mutable.LinkedHashMap[UUID, RunnableJobWithId]()
     var _engineJobs = mutable.Map[UUID, EngineJob]()
     var _jobEvents = mutable.Map[UUID, mutable.MutableList[JobEvent]]()
   }

@@ -276,17 +276,26 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   def checkForWork(): Unit = {
     //log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
 
-    if (workers.nonEmpty || quickWorkers.nonEmpty) {
+    if (workers.nonEmpty) {
       val f = dao.getNextRunnableJobWithId
 
       f onSuccess {
-        case Right(runnableJob) =>
-          val jobType = runnableJob.job.jobOptions.toJob.jobTypeId
-          if ((QUICK_TASK_IDS contains jobType) && quickWorkers.nonEmpty) addJobToWorker(runnableJob, quickWorkers)
-          else addJobToWorker(runnableJob, workers)
+        case Right(runnableJob) => addJobToWorker(runnableJob, workers)
         case Left(e) => log.debug(s"No work found. ${e.message}")
       }
 
+      f onFailure {
+        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+      }
+    } else {
+      log.debug("No available workers.")
+    }
+    if (quickWorkers.nonEmpty) {
+      val f = dao.getNextRunnableQuickJobWithId
+      f onSuccess {
+        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers)
+        case Left(e) => log.debug(s"No work found. ${e.message}")
+      }
       f onFailure {
         case e => log.error(s"Failure checking for new work ${e.getMessage}")
       }
