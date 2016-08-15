@@ -180,6 +180,14 @@ class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with
               case ReportLongAttribute(id,name, value) => if (isSameId(id)) {
                 if (testReportValue[Long](value, rule.value.asInstanceOf[Long], rule.op)) TestPassed else TestFailed
               } else TestSkipped
+              case ReportBooleanAttribute(id,name, value) => if (isSameId(id)) {
+                val expected = rule.value.asInstanceOf[Boolean]
+                if (rule.op == "eq") {
+                  if (value == expected) TestPassed else TestFailed
+                } else if (rule.op == "ne") {
+                  if (value == expected) TestFailed else TestPassed
+                } else throw new Exception(s"Operator ${rule.op} not supported for booleans")
+              } else TestSkipped
               case ReportStrAttribute(id,name,value) => TestSkipped
             }
             testStatus = testStatusAttr match {
