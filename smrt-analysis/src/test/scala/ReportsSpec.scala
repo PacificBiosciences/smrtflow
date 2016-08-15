@@ -32,9 +32,14 @@ class ReportsSpec extends Specification with ReportJsonProtocol with LazyLogging
       val uuidFromJson = rs.uuid
       uuid must beEqualTo(uuidFromJson)
       rs.attributes(0).asInstanceOf[ReportLongAttribute].value must beEqualTo(7)
+      rs.getAttributeLongValue("nfiles") must beEqualTo(Some(7))
       rs.attributes(1).asInstanceOf[ReportDoubleAttribute].value must beEqualTo(123.4)
+      rs.getAttributeDoubleValue("run_time") must beEqualTo(Some(123.4))
       rs.attributes(2).asInstanceOf[ReportStrAttribute].value must beEqualTo("Report test")
+      rs.getAttributeValue("job_name").get.asInstanceOf[String] must beEqualTo("Report test")
       rs.attributes(3).asInstanceOf[ReportBooleanAttribute].value must beTrue
+      rs.getAttributeValue("was_successful").get.asInstanceOf[Boolean] must beEqualTo(true)
+      rs.getPlot("unit_test.unit_test.plotgroups", "unit_test.unit_test.plot_1") must beSome
     }
     "Load Report Version 1.0.0 schema " in {
 

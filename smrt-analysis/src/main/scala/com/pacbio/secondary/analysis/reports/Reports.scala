@@ -17,7 +17,11 @@ object ReportModels {
   // This is the version of the report data model schema
   final val REPORT_SCHEMA_VERSION = "1.0.0"
 
-  abstract class ReportAttribute
+  sealed trait ReportAttribute {
+    val id: String
+    val name: String
+    val value: Any
+  }
 
   case class ReportLongAttribute(id: String, name: String, value: Long) extends ReportAttribute
 
@@ -62,7 +66,38 @@ object ReportModels {
       plotGroups: List[ReportPlotGroup],
       tables: List[ReportTable],
       uuid: UUID,
-      datasetUuids: Set[UUID] = Set.empty[UUID])
+      datasetUuids: Set[UUID] = Set.empty[UUID]) {
+
+    def getAttributeValue(attrId: String): Option[Any] = {
+      for (attr <- attributes) {
+        if (attr.id == attrId) return Some(attr.value)
+      }
+      None
+    }
+    def getAttributeLongValue(attrId: String): Option[Long] = {
+      getAttributeValue(attrId) match {
+        case Some(x) => Some(x.asInstanceOf[Long])
+        case _ => None
+      }
+    }
+    def getAttributeDoubleValue(attrId: String): Option[Double] = {
+      getAttributeValue(attrId) match {
+        case Some(x) => Some(x.asInstanceOf[Double])
+        case _ => None
+      }
+    }
+
+    def getPlot(plotGroupId: String, plotId: String): Option[ReportPlot] = {
+      for (plotGroup <- plotGroups) {
+        if (plotGroup.id == plotGroupId) {
+          for (plot <- plotGroup.plots) {
+            if (plot.id == plotId) return Some(plot)
+          }
+        }
+      }
+      None
+    }
+  }
 
   /**
     * Report and corresponding Path to the Json file
