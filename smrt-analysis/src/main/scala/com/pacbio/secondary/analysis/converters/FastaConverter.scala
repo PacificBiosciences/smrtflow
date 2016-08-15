@@ -67,7 +67,8 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   protected def composeDataSet(fastaPath: Path,
                                name: String,
                                outputDir: Path,
-                               metadata: U)
+                               metadata: U,
+                               relativePath: Boolean = true)
                               (implicit man: Manifest[T]): T = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
@@ -89,7 +90,11 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     er.setTags(tags)
     er.setDescription(s"Converted with $programName")
     er.setTimeStampedName(fastaTimeStampName)
-    er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
+    if (relativePath) {
+      er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
+    } else{
+      er.setResourceId(fastaPath.toAbsolutePath.toString)
+    }
 
     val fileIndices = new FileIndices()
     for (indexFile <- createIndexFiles(fastaPath)) {
