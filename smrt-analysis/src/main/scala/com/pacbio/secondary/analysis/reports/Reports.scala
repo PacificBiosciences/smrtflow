@@ -68,12 +68,8 @@ object ReportModels {
       uuid: UUID,
       datasetUuids: Set[UUID] = Set.empty[UUID]) {
 
-    def getAttributeValue(attrId: String): Option[Any] = {
-      for (attr <- attributes) {
-        if (attr.id == attrId) return Some(attr.value)
-      }
-      None
-    }
+    def getAttributeValue(attrId: String): Option[Any] =
+      attributes.map(a => (a.id, a.value)).toMap.get(attrId)
     def getAttributeLongValue(attrId: String): Option[Long] = {
       getAttributeValue(attrId) match {
         case Some(x) => Some(x.asInstanceOf[Long])
@@ -90,9 +86,7 @@ object ReportModels {
     def getPlot(plotGroupId: String, plotId: String): Option[ReportPlot] = {
       for (plotGroup <- plotGroups) {
         if (plotGroup.id == plotGroupId) {
-          for (plot <- plotGroup.plots) {
-            if (plot.id == plotId) return Some(plot)
-          }
+          return plotGroup.plots.map(p => (p.id, p)).toMap.get(plotId)
         }
       }
       None

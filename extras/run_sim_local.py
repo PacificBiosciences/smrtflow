@@ -12,6 +12,7 @@ import argparse
 import tempfile
 import logging
 import shutil
+import signal
 import os.path as op
 import os
 import sys
@@ -22,6 +23,21 @@ SIM_RUNNER = ROOT_DIR + "/smrt-server-sim/target/pack/bin/scenario-runner"
 
 log = logging.getLogger(__name__)
 
+MANIFEST = """
+[{
+  "name": "SMRT Link",
+  "description": "SMRT Link (smrtlink-incremental_3.2.0.184296,184296-184240-184167-184167-184167)",
+  "version": "3.2.0.184296",
+  "id": "smrtlink",
+  "dependencies": []
+}, {
+  "name": "SMRT Tools",
+  "description": "SMRT Tools (smrttools-incremental_3.2.0.184296)",
+  "version": "3.2.0.184296",
+  "id": "smrttools",
+  "dependencies": []
+}]
+"""
 
 class ServiceManager(object):
     """
@@ -62,6 +78,15 @@ class ServiceManager(object):
         self._t.join()
 
 
+# http://stackoverflow.com/a/1191537
+class Alarm(Exception):
+    pass
+
+
+def _alarm_handler(signum, frame):
+    raise Alarm
+
+
 def run(argv):
     logging.basicConfig(level=logging.INFO)
     p = argparse.ArgumentParser(description=__doc__)
@@ -74,8 +99,10 @@ def run(argv):
                    help="Max. number of engine job workers")
     p.add_argument("--njobs", action="store", default=50,
                    help="Number of simultaneous jobs in StressTest")
-    p.add_argument("--max-time", action="store", default=300,
+    p.add_argument("--max-wait", action="store", default=300,
                    help="Maximum time to wait for pbsmrtpipe jobs")
+    p.add_argument("--timeout", action="store", type=int, default=None,
+                   help="Kill simulator after X seconds if not finished")
     args = p.parse_args(argv)
     if not op.exists(SIM_RUNNER):
         raise RuntimeError("'{s}' not found".format(s=SIM_RUNNER))
@@ -84,7 +111,12 @@ def run(argv):
         conf.write("smrt-link-host = \"localhost\"\n")
         conf.write("smrt-link-port = 8070\n")
         conf.write("njobs = {n}\n".format(n=args.njobs))
-        conf.write("max-time = {t}\n".format(t=args.max_time))
+        conf.write("max-time = {t}\n".format(t=args.max_wait))
+    manifest = tempfile.NamedTemporaryFile(suffix="_manifest.json").name
+    with open(manifest, "w") as mout:
+        mout.write(MANIFEST)
+    log.info("Manifest file is {f}".format(f=manifest))
+    os.environ["PB_SERVICES_MANIFEST_FILE"] = manifest
     log.info("Capping number of workers at {j}".format(j=args.max_workers))
     os.environ["PB_ENGINE_MAX_WORKERS"] = str(args.max_workers)
     try:
@@ -108,9 +140,17 @@ def run(argv):
     try:
         with ServiceManager() as server:
             log.info("Running simulator scenario...")
-            rc = subprocess.call([SIM_RUNNER, args.scenario, test_conf])
-            if rc != 0:
-                log.error("Simulator scenario failed")
+            signal.signal(signal.SIGALRM, _alarm_handler)
+            if args.timeout is not None and args.timeout > 0:
+                signal.alarm(args.timeout)
+            try :
+                rc = subprocess.call([SIM_RUNNER, args.scenario, test_conf])
+                signal.alarm(0)
+            except Alarm:
+                log.error("Simulator did not terminate, killed")
+            else:
+                if rc != 0:
+                    log.error("Simulator scenario failed")
             if args.stay_alive:
                 log.warn("Leaving services running - control-C to exit")
                 while True:
