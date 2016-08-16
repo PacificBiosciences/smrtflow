@@ -14,6 +14,7 @@ import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
@@ -89,6 +90,7 @@ class DataSetImportScenario(host: String, port: Int)
   val ccsAlignmentSets: Var[Seq[ConsensusAlignmentServiceDataSet]] = Var()
   val contigSets: Var[Seq[ContigServiceDataSet]] = Var()
   val dsFiles: Var[Seq[DataStoreServiceFile]] = Var()
+  val job: Var[EngineJob] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
   val nBytes: Var[Int] = Var()
@@ -148,6 +150,9 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ImportDataSet(subreads1, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     dsMeta := GetDataSet(subreadsUuid1),
     dsReports := GetSubreadSetReports(subreadsUuid1),
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
@@ -169,6 +174,9 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := MergeDataSets(ftSubreads, Var(Seq(1,2)), Var("merge-subreads")),
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     subreadSets := GetSubreadSets,
     fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3,
     dataStore := GetMergeJobDataStore(jobId),
@@ -205,6 +213,9 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ImportFasta(refFasta, Var("import-fasta")),
     jobStatus := WaitForJob(jobId),
     fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     referenceSets := GetReferenceSets,
     fail("Expected two ReferenceSets") IF referenceSets.mapWith(_.size) !=? 2
   ))
@@ -214,6 +225,9 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ImportDataSet(barcodes, ftBarcodes),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     barcodeSets := GetBarcodeSets,
     fail("Expected one BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 1,
     jobId := ImportFastaBarcodes(bcFasta, Var("import-barcodes")),
@@ -233,6 +247,9 @@ class DataSetImportScenario(host: String, port: Int)
     jobId := ConvertRsMovie(rsMovie),
     jobStatus := WaitForJob(jobId),
     fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2,
     // merge HdfSubreadSets
