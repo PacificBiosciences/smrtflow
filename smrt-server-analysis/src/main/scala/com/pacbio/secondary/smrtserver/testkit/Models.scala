@@ -32,6 +32,8 @@ object TestkitModels {
 
   case class ReportAttributeDoubleRule(attrId: String, value: Double, op: String) extends ReportAttributeRule
 
+  case class ReportAttributeBooleanRule(attrId: String, value: Boolean, op: String) extends ReportAttributeRule
+
   case class ReportAttributeStringRule(attrId: String, value: String, op: String = "eq") extends ReportAttributeRule
 
   case class ReportTestRules(reportId: String, rules: Seq[ReportAttributeRule])
@@ -56,12 +58,14 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
   implicit val entryPointPathFormat = jsonFormat2(EntryPointPath)
   implicit val reportLongRuleFormat = jsonFormat3(ReportAttributeLongRule)
   implicit val reportDoubleRuleFormat = jsonFormat3(ReportAttributeDoubleRule)
+  implicit val reportBooleanRuleFormat = jsonFormat3(ReportAttributeBooleanRule)
   implicit val reportStringRuleFormat = jsonFormat3(ReportAttributeStringRule)
 
   implicit object reportAttributeRuleFormat extends JsonFormat[ReportAttributeRule] {
     def write(rar: ReportAttributeRule) = rar match {
       case rlr: ReportAttributeLongRule => rlr.toJson
       case rdr: ReportAttributeDoubleRule => rdr.toJson
+      case rbr: ReportAttributeBooleanRule => rbr.toJson
       case rsr: ReportAttributeStringRule => rsr.toJson
     }
 
@@ -71,6 +75,8 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
           if (value.isValidInt) ReportAttributeLongRule(id, value.toLong, op)
           else ReportAttributeDoubleRule(id, value.toDouble, op)
         }
+        case Seq(JsString(id), JsBoolean(value), JsString(op)) =>
+          ReportAttributeBooleanRule(id, value, op)
         case _ => jsRule.asJsObject.getFields("attrId", "value") match {
           case Seq(JsString(id), JsString(value)) => ReportAttributeStringRule(id, value)
           case x => deserializationError(s"Expected attribute rule, got ${x}")
@@ -110,6 +116,7 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
                 if (nv.isValidInt) ReportAttributeLongRule(id, nv.toLong, op)
                 else ReportAttributeDoubleRule(id, nv.toDouble, op)
               }
+              case JsBoolean(bv) => ReportAttributeBooleanRule(id, bv, op)
               case JsString(sv) => ReportAttributeStringRule(id, sv, op)
               case x => deserializationError(s"Expected report attribute rule, got ${x}")
             }

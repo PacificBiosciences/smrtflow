@@ -241,6 +241,15 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.MERGE_DS, jobId)
   def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
 
+  // FIXME how to convert to String?
+  def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/download"))
+  }
+
+  /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/download"))
+  }*/
+
   def getReport(reportId: UUID): Future[Report] = getReportPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${reportId}/download"))
   }
@@ -252,6 +261,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, JobTypes.PB_PIPE)
   def getImportJobReports(jobId: IdAble) = getJobReports(jobId, JobTypes.IMPORT_DS)
   // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
+
+  def getDataStoreFileResource(fileId: UUID, relpath: String): Future[HttpResponse] = respPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
+  }
 
   // Runs
 

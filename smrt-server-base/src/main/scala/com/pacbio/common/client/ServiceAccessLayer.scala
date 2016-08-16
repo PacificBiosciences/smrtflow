@@ -48,9 +48,11 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def serviceStatusEndpoints: Vector[String] = Vector()
 
   // Pipelines and serialization
-  def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
-  def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-  def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
+  protected def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
+  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] = sendReceive ~> unmarshal[Array[Byte]]
+  // XXX This is misnamed - it could just as easily be XML or plaintext
+  protected def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
 
   val statusUrl = toUrl("/status")
 

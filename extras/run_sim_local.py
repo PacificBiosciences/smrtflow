@@ -77,6 +77,8 @@ def run(argv):
     p.add_argument("--max-time", action="store", default=300,
                    help="Maximum time to wait for pbsmrtpipe jobs")
     args = p.parse_args(argv)
+    if not op.exists(SIM_RUNNER):
+        raise RuntimeError("'{s}' not found".format(s=SIM_RUNNER))
     test_conf = tempfile.NamedTemporaryFile(suffix=".conf").name
     with open(test_conf, "w") as conf:
         conf.write("smrt-link-host = \"localhost\"\n")
@@ -107,6 +109,8 @@ def run(argv):
         with ServiceManager() as server:
             log.info("Running simulator scenario...")
             rc = subprocess.call([SIM_RUNNER, args.scenario, test_conf])
+            if rc != 0:
+                log.error("Simulator scenario failed")
             if args.stay_alive:
                 log.warn("Leaving services running - control-C to exit")
                 while True:
