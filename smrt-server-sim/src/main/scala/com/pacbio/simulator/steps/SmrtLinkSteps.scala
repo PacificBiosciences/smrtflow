@@ -282,6 +282,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetDataStoreFileResource(fileId: Var[UUID], relpath: Var[String]) extends VarStep[Int] {
+    override val name = "GetDataStoreFileResource"
+    override def run: Future[Result] = smrtLinkClient.getDataStoreFileResource(fileId.get, relpath.get).map { a =>
+      output(a.entity.data.toByteArray.size) // 'a' is Array[Byte], all we test for is the size
+      SUCCEEDED
+    }
+  }
+
   case object GetProjects extends VarStep[Seq[Project]] {
     override val name = "GetProjects"
     override def run: Future[Result] = smrtLinkClient.getProjects.map { p =>

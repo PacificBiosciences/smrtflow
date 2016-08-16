@@ -23,7 +23,6 @@ import com.pacbio.simulator.steps._
  * {{{
  *   smrt-link-host = "smrtlink-bihourly"
  *   smrt-link-port = 8081
- *   run-xml-path = "/path/to/testdata/runDataModel.xml"
  * }}}
  */
 
@@ -48,7 +47,13 @@ object DataSetImportScenarioLoader extends ScenarioLoader {
 }
 
 class DataSetImportScenario(host: String, port: Int)
-  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps with SmrtAnalysisSteps with ClientUtils {
+    extends Scenario
+    with VarSteps
+    with ConditionalSteps
+    with IOSteps
+    with SmrtLinkSteps
+    with SmrtAnalysisSteps
+    with ClientUtils {
 
   override val name = "DataSetImportScenario"
 
@@ -64,6 +69,16 @@ class DataSetImportScenario(host: String, port: Int)
   val N_SUBREAD_REPORTS = if (HAVE_PBREPORTS) 3 else 1
   val N_SUBREAD_MERGE_REPORTS = if (HAVE_PBREPORTS) 5 else 3
 
+  // various Report model identifiers
+  val RPT_NBASES = "raw_data_report.nbases"
+  val RPT_READLENGTH = "raw_data_report.read_length"
+  val RPT_INSERT = "raw_data_report.insert_length"
+  val RPT_PLOT_GROUP = "raw_data_report.insert_length_plot_group"
+  val RPT_PLOT = RPT_PLOT_GROUP + ".insert_length_plot_0"
+  val RPT_TABLE = "loading_xml_report.loading_xml_table"
+  val RPT_PRODZMWS = "loading_xml_report.loading_xml_table.productive_zmws"
+  val RPT_PROD = "loading_xml_report.loading_xml_table.productivity"
+
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   val subreadSet: Var[SubreadServiceDataSet] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
@@ -76,6 +91,7 @@ class DataSetImportScenario(host: String, port: Int)
   val dsFiles: Var[Seq[DataStoreServiceFile]] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
+  val nBytes: Var[Int] = Var()
   val dsMeta: Var[DataSetMetaDataSet] = Var()
   val dsReports: Var[Seq[DataStoreReportFile]] = Var()
   val dsReport: Var[Report] = Var()
@@ -106,6 +122,21 @@ class DataSetImportScenario(host: String, port: Int)
   val contigs = Var(testdata.getFile("contigset"))
   val ccs = Var(testdata.getFile("rsii-ccs"))
   val ccsAligned = Var(testdata.getFile("rsii-ccs-aligned"))
+
+  private def getReportUuid(reports: Var[Seq[DataStoreReportFile]], reportId: String): Var[UUID] = {
+    reports.mapWith(_.map(r => (r.reportTypeId, r.dataStoreFile.uuid)).toMap.get(reportId).get)
+  }
+
+  private def getReportTableValue(report: Report, tableId: String, columnId: String): Option[Any] = {
+    for (table <- report.tables) {
+      if (table.id == tableId) {
+        for (column <- table.columns) {
+          if (column.id == columnId) return Some(column.values(0))
+        }
+      }
+    }
+    return None
+  }
 
   val setupSteps = Seq(
     jobStatus := GetStatus,
@@ -147,7 +178,21 @@ class DataSetImportScenario(host: String, port: Int)
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
     dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
     fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid)
-  )
+  ) ++ (if (!HAVE_PBREPORTS) Seq() else Seq(
+    // RUN QC FUNCTIONS (see run-qc-service.ts)
+    dsReports := GetSubreadSetReports(subreadsUuid2),
+    dsReport := GetReport(getReportUuid(dsReports, "pbreports.tasks.filter_stats_report_xml")),
+    fail("Wrong report ID") IF dsReport.mapWith(_.id) !=? "raw_data_report",
+    fail(s"Can't retrieve $RPT_NBASES") IF dsReport.mapWith(_.getAttributeLongValue(RPT_NBASES).get) !=? 1672335649,
+    fail(s"Can't retrieve $RPT_READLENGTH") IF dsReport.mapWith(_.getAttributeLongValue(RPT_READLENGTH).get) !=? 4237,
+    fail(s"Can't retrieve $RPT_INSERT") IF dsReport.mapWith(_.getAttributeLongValue(RPT_INSERT).get) !=? 4450,
+    nBytes := GetDataStoreFileResource(dsReport.mapWith(_.uuid), dsReport.mapWith(_.getPlot(RPT_PLOT_GROUP, RPT_PLOT).get.image)),
+    fail("Image has no content") IF nBytes ==? 0,
+    dsReport := GetReport(getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
+    fail("Wrong report ID") IF dsReport.mapWith(_.id) !=? "loading_xml_report",
+    fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, RPT_PRODZMWS)) ==? None,
+    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0")) ==? None
+  ))
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,
     fail(MSG_DS_ERR) IF referenceSets ? (_.nonEmpty),
