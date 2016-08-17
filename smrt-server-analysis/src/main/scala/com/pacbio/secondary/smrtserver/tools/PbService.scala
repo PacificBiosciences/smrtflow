@@ -19,6 +19,7 @@ import spray.httpx.SprayJsonSupport
 
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -578,7 +579,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
           } else {
             println(s"Found ${xmlFiles.size} DataSet XML files")
-            (for (xml <- xmlFiles) yield runImportDataSetSafe(xml.toPath)).toList.max
+            val failed: ListBuffer[String] = ListBuffer()
+            xmlFiles.foreach { xml =>
+              println(s"Importing ${xml.getAbsolutePath}...")
+              val rc = runImportRsMovie(xml.toPath, "")
+              if (rc != 0) failed.append(xml.getAbsolutePath.toString)
+            }
+            if (failed.size > 0) {
+              println(s"${failed.size} import(s) failed:")
+              failed.foreach { println }
+              1
+            } else 0
           }
         } else if (f.isFile) runImportDataSetSafe(path)
         else errorExit(s"${f.getAbsolutePath} is not readable")
@@ -628,11 +639,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           errorExit(s"No valid RSII movie metadata XMLs found in ${f.getAbsolutePath}")
         } else {
           println(s"Found ${xmlFiles.size} RSII metadata XML Files")
-          val xc = (for (xml <- xmlFiles) yield {
+          val failed: ListBuffer[String] = ListBuffer()
+          xmlFiles.foreach { xml =>
             println(s"Importing ${xml.getAbsolutePath}...")
-            runImportRsMovie(xml.toPath, "")
-          }).toList.max
-          if (xc > 0) errorExit("At least one import failed") else 0
+            val rc = runImportRsMovie(xml.toPath, "")
+            if (rc != 0) failed.append(xml.getAbsolutePath.toString)
+          }
+          if (failed.size > 0) {
+            println(s"${failed.size} import(s) failed:")
+            failed.foreach { println }
+            1
+          } else 0
         }
       }
     } else if (f.isFile) runImportRsMovie(path, name)
