@@ -42,9 +42,9 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
 
   val routes =
     pathPrefix("projects") {
-      authenticate(authenticator.jwtAuth) { authInfo =>
-        pathEndOrSingleSlash {
-          post {
+      pathEndOrSingleSlash {
+        post {
+          authenticate(authenticator.jwtAuth) { authInfo =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
                 created {
@@ -54,18 +54,22 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
                 }
               }
             }
-          } ~
-          get {
+          }
+        } ~
+        get {
+          authenticate(authenticator.jwtAuth) { authInfo =>
             complete {
               ok {
                 jobsDao.getProjects(1000)
               }
             }
           }
-        } ~
-        pathPrefix(IntNumber) { projId =>
-          pathEndOrSingleSlash {
-            put {
+        }
+      } ~
+      pathPrefix(IntNumber) { projId =>
+        pathEndOrSingleSlash {
+          put {
+            authenticate(authenticator.jwtAuth) { authInfo =>
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
@@ -76,8 +80,10 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
                   }
                 }
               }
-            } ~
-            get {
+            }
+          } ~
+          get {
+            authenticate(authenticator.jwtAuth) { authInfo =>
               complete {
                 ok {
                   jobsDao.getProjectById(projId).flatMap {
@@ -93,18 +99,22 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     } ~
     path("projects-datasets" / Segment) { login =>
       get {
-        complete {
-          ok {
-            jobsDao.getUserProjectsDatasets(login)
+        authenticate(authenticator.jwtAuth) { authInfo =>
+          complete {
+            ok {
+              jobsDao.getUserProjectsDatasets(login)
+            }
           }
         }
       }
     } ~
     path("user-projects" / Segment) { login =>
       get {
-        complete {
-          ok {
-            jobsDao.getUserProjects(login)
+        authenticate(authenticator.jwtAuth) { authInfo =>
+          complete {
+            ok {
+              jobsDao.getUserProjects(login)
+            }
           }
         }
       }
