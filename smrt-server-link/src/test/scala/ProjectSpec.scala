@@ -142,7 +142,7 @@ with SmrtLinkConstants {
         proj.id === newProjId
         proj.members.length === 1
         proj.members(0).user.login === WRITE_USER_1_LOGIN
-        proj.members(0).role === "Owner"
+        proj.members(0).role === "OWNER"
       }
     }
 
