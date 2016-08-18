@@ -13,8 +13,8 @@
       "fileTypeId": "PacBio.FileTypes.log",
       "sourceId": "pbsmrtpipe::master.log",
       "isHidden": true,
-      "description": "",
-      "name": ""
+      "description": null,
+      "name": null
     }
   ]
 }
