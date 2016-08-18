@@ -6,6 +6,8 @@ clean:
 	rm -f secondary-smrt-server*.log
 	rm -rf smrt-server-analysis/{db,jobs-root}
 	rm -rf smrt-server-link/{db,jobs-root}
+	rm -rf smrt-server-analysis-internal/{db,jobs-root}
+	rm -rf smrt-server-analysis-internal/analysis_services.db
 	sbt clean
 
 clean-db:
