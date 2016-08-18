@@ -17,7 +17,6 @@ import spray.httpx
 import spray.json._
 import spray.httpx.SprayJsonSupport
 
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.postfixOps
@@ -25,6 +24,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
+import scala.util.matching.Regex
 import scala.xml.XML
 import scala.io.Source
 import scala.math._
@@ -307,7 +307,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
     Seq[PipelineBaseOption](),
     Seq[PipelineBaseOption]())
+  private lazy val rsMovieName = """m([0-9]{6})_([0-9a-z]{5,})_([0-9a-z]{5,})_c([0-9]{16,})_(\w\d)_(\w\d)""".r
 
+  private def matchRsMovieName(file: File): Boolean =
+    rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
   protected def errorExit(msg: String): Int = {
@@ -624,7 +627,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      Try { dsNameFromMetadata(fn.toPath) }.isSuccess
+      matchRsMovieName(fn) && Try { dsNameFromMetadata(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
