@@ -10,12 +10,11 @@ trait PipelineTemplateResourceLoader extends JsonAndEnvResourceLoader[PipelineTe
 
   val ROOT_DIR_PREFIX = "resolved-pipeline-templates"
 
-  override def loadMessage(pt: PipelineTemplate) = s"Loaded PipelineTemplate ${pt.id}"
+  override def loadMessage(pt: PipelineTemplate) =
+    s"Loaded PipelineTemplate ${pt.id}"
 
-  def loadFromString(xs: String): PipelineTemplate = {
-    val jx = xs.parseJson
-    jx.convertTo[PipelineTemplate]
-  }
+  def loadFromString(xs: String): PipelineTemplate =
+    xs.parseJson.convertTo[PipelineTemplate]
 
 }
 object PipelineTemplateResourceLoader extends PipelineTemplateResourceLoader

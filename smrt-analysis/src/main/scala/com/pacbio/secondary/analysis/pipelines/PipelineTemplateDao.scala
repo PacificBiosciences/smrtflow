@@ -27,18 +27,11 @@ class PipelineTemplateDao(pipelineTemplates: Seq[PipelineTemplate]) extends Pipe
 
   def getPipelineTemplateById(pipelineTemplateId: String): Option[PipelineTemplate] = _pipelines.get(pipelineTemplateId)
 
-  def getPipelinePresetBy(pipelineId: String, pipelinePresetId: String): Option[PipelineTemplatePreset] = {
-    getPipelineTemplateById(pipelineId) match {
-      case Some(x) => x.presets.find(_.presetId == pipelinePresetId)
-      case _ => None
-    }
-  }
+  def getPipelinePresetBy(pipelineId: String, pipelinePresetId: String): Option[PipelineTemplatePreset] =
+    getPipelineTemplateById(pipelineId).flatMap(x => x.presets.find(_.presetId == pipelinePresetId))
 
-  def getPresetsFromPipelineTemplateId(pipelineId: String) = {
-    _pipelines.get(pipelineId) match {
-      case Some(x) => Option(x.presets)
-      case _ => None
-    }
-  }
+  def getPresetsFromPipelineTemplateId(pipelineId: String) =
+    _pipelines.get(pipelineId).map(_.presets)
+
 
 }

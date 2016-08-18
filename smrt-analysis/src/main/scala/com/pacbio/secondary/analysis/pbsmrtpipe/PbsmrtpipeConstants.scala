@@ -16,6 +16,8 @@ object PbsmrtpipeConstants {
   final val ENV_PB_RULES_REPORT_VIEW_DIR = "PB_RULES_REPORT_VIEW_DIR"
   final val ENV_PB_RULES_PIPELINE_VIEW_DIR = "PB_RULES_PIPELINE_VIEW_DIR"
 
+  final val ENV_PB_RULES_DATASTORE_VIEW_DIR = "PB_RULES_DATASTORE_VIEW_DIR"
+
   // base pbsmrtpipe options
   sealed trait PbsmrtpipeEngineOption {
     def toI(n: String) = s"pbsmrtpipe.options.$n"
