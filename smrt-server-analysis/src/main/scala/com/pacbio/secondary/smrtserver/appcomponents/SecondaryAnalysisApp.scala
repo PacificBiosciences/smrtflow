@@ -15,6 +15,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 trait SecondaryAnalysisProviders
   extends SmrtLinkProviders
+  with PipelineDataStoreViewRulesServiceProvider
   with PipelineTemplateProvider
   with ResolvedPipelineTemplateServiceProvider
   with PipelineTemplateViewRulesServiceProvider
