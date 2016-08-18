@@ -309,12 +309,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     Seq[PipelineBaseOption]())
   private lazy val rsMovieName = """m([0-9]{6})_([0-9a-z]{5,})_([0-9a-z]{5,})_c([0-9]{16,})_(\w\d)_(\w\d)""".r
 
-  private def matchRsMovieName(file: File): Boolean = {
-    rsMovieName.findPrefixMatchOf(file.getName) match {
-      case Some(m) => true
-      case _ => false
-    }
-  }
+  private def matchRsMovieName(file: File): Boolean =
+    rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
   protected def errorExit(msg: String): Int = {
