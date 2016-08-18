@@ -60,10 +60,6 @@ trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysis
     // Must have the prefixed '/'
     val sx = getClass.getResourceAsStream("/" + xs)
     val theString = IOUtils.toString(sx, "UTF-8")
-    //println("loaded string")
-    //println(theString)
-    //val jx = theString.parseJson
-    //val pt = jx.convertTo[T]
     val pt = loadFromString(theString)
     logger.debug(s"${loadMessage(pt)} from $xs")
     pt
