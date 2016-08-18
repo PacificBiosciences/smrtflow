@@ -291,4 +291,8 @@ object JobModels {
       description: String,
       taskOptions: Seq[PipelineOptionViewRule])
 
+  // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
+  case class DataStoreFileViewRule(sourceId: String, name: Option[String], description: Option[String], isHidden: Boolean = false, fileTypeId: String)
+  case class PipelineDataStoreViewRules(pipelineId: String, rules: Seq[DataStoreFileViewRule], smrtlinkVersion: String)
+
 }
