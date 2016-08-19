@@ -2,12 +2,17 @@ package com.pacbio.secondary.smrtserver.services
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.analysis.jobs.JobModels.PipelineDataStoreViewRules
 import com.pacbio.secondary.analysis.pipelines.PipelineDataStoreViewRulesDao
 import com.pacbio.secondary.smrtlink.services.JobsBaseMicroService
 import com.pacbio.secondary.smrtserver.loaders.PipelineDataStoreViewRulesResourceLoader
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import spray.httpx.SprayJsonSupport._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * Created by mkocher on 8/18/16.
@@ -15,6 +20,9 @@ import spray.httpx.SprayJsonSupport._
 class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) extends JobsBaseMicroService{
 
   import SecondaryAnalysisJsonProtocols._
+
+  def failIfNone[T](x: Option[T], message: String): Future[T] =
+    x.map(p => Future {p}).getOrElse(Future.failed(new ResourceNotFoundError(message)))
 
   val PVR_PREFIX = "pipeline-datastore-view-rules"
 
@@ -38,7 +46,7 @@ class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) exte
         get {
           complete {
             ok {
-              dao.getById(pipelineId)
+              failIfNone[PipelineDataStoreViewRules](dao.getById(pipelineId), s"Unable to find view rules for pipeline id $pipelineId")
             }
           }
         }
