@@ -58,6 +58,8 @@ sbt "smrt-server-analysis/run"
 See application.conf for configuration parameters.
 
 
+See the ["Quick" Service docs](https://github.com/PacificBiosciences/smrtflow/tree/master/smrt-server-analysis#services-quick-docs) for Service endpoints defined in SMRT Link Analysis.
+
 ### REPL
 
 
