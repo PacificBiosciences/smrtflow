@@ -93,4 +93,20 @@ trait SmrtAnalysisSteps {
       SUCCEEDED
     }
   }
+
+  case class GetPipelineTemplateViewRule(pipelineId: Var[String]) extends VarStep[PipelineTemplateViewRule] {
+    override val name = "GetPipelineTemplateViewRule"
+    override def run: Future[Result] = smrtLinkClient.getPipelineTemplateViewRule(pipelineId.get).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  case class GetDataStoreViewRules(pipelineId: Var[String]) extends VarStep[PipelineDataStoreViewRules] {
+    override val name = "GetDataStoreViewRules"
+    override def run: Future[Result] = smrtLinkClient.getPipelineDataStoreViewRules(pipelineId.get).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
 }
