@@ -100,6 +100,8 @@ class PbsmrtpipeScenario(host: String, port: Int)
   val report: Var[Report] = Var()
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
   val entryPoints: Var[Seq[EngineJobEntryPoint]] = Var()
+  val dsRules: Var[PipelineDataStoreViewRules] = Var()
+  val pipelineRules: Var[PipelineTemplateViewRule] = Var()
 
   val setupSteps = Seq(
     jobStatus := GetStatus,
@@ -127,7 +129,14 @@ class PbsmrtpipeScenario(host: String, port: Int)
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid)
+  // these are probably overkill...
+  val miscTests = Seq(
+    dsRules := GetDataStoreViewRules(Var("pbsmrtpipe.pipelines.dev_01")),
+    fail("Wrong pipelineId") IF dsRules.mapWith(_.pipelineId) !=? "pbsmrtpipe.pipelines.dev_01",
+    pipelineRules := GetPipelineTemplateViewRule(Var("pbsmrtpipe.pipelines.sa3_sat")),
+    fail("Wrong id") IF pipelineRules.mapWith(_.id) !=? "pbsmrtpipe.pipelines.sa3_sat"
+  )
   // TODO SAT job?  this is problematic because of the added depenendencies;
   // we need to check for pbalign and GenomicConsensus first
-  override val steps = setupSteps ++ diagnosticJobTests
+  override val steps = setupSteps ++ diagnosticJobTests ++ miscTests
 }

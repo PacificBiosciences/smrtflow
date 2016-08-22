@@ -50,6 +50,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
     val ROOT_PT = "/secondary-analysis/resolved-pipeline-templates"
     val ROOT_PTRULES = "/secondary-analysis/pipeline-template-view-rules"
     val ROOT_REPORT_RULES = "/secondary-analysis/report-view-rules"
+    val ROOT_DS_RULES = "/secondary-analysis/pipeline-datastore-view-rules"
   }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
@@ -63,6 +64,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceive ~> unmarshal[PipelineTemplate]
   def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceive ~> unmarshal[Seq[PipelineTemplateViewRule]]
   def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceive ~> unmarshal[PipelineTemplateViewRule]
+  def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceive ~> unmarshal[PipelineDataStoreViewRules]
 
   protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
@@ -146,6 +148,10 @@ class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
 
   def getPipelineTemplateViewRule(pipelineId: String): Future[PipelineTemplateViewRule] = getPipelineTemplateViewRulePipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PTRULES + s"/$pipelineId"))
+  }
+
+  def getPipelineDataStoreViewRules(pipelineId: String): Future[PipelineDataStoreViewRules] = getPipelineDataStoreViewRulesPipeline {
+    Get(toUrl(AnalysisServiceEndpoints.ROOT_DS_RULES + s"/$pipelineId"))
   }
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
