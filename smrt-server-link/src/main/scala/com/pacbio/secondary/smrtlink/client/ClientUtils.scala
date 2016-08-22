@@ -71,4 +71,16 @@ trait ClientUtils {
     }
     0
   }
+
+  def printProjectInfo(project: FullProject): Int = {
+    println("PROJECT SUMMARY:")
+    println(s"  id: ${project.id}")
+    println(s"  name: ${project.name}")
+    println(s"  description: ${project.description}")
+    println(s"  createdAt: ${project.createdAt}")
+    println(s"  updatedAt: ${project.updatedAt}")
+    println(s"  datasets: ${project.datasets.size}")
+    println(s"  members: ${project.members.size}")
+    0
+  }
 }

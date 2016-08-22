@@ -53,6 +53,7 @@ object Modes {
   case object JOBS extends Mode {val name = "get-jobs"}
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
+  case object CREATE_PROJECT extends Mode {val name = "create-project"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -107,7 +108,9 @@ object PbServiceParser {
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
       presetXml: Option[Path] = None,
-      maxTime: Int = -1) extends LoggerConfig
+      maxTime: Int = -1,
+      project: Option[String] = None,
+      description: String = "") extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
@@ -156,7 +159,10 @@ object PbServiceParser {
       } text "Maximum time to poll for running job status",
       opt[String]("non-local") action { (t, c) =>
         c.copy(nonLocal = Some(t))
-      } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)"
+      } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)",
+      opt[String]("project") action { (p, c) =>
+        c.copy(project = Some(p))
+      } text "Name of project associated with this dataset"
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -280,6 +286,17 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+
+    cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.CREATE_PROJECT)
+    } children(
+      arg[String]("name") required() action { (n, c) =>
+        c.copy(name = n)
+      } text "Project name",
+      arg[String]("description") required() action { (d, c) =>
+        c.copy(description = d)
+      } text "Project description"
+    ) text "Start a new project"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -534,7 +551,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportDataSetSafe(path: Path): Int = {
+  def runImportDataSetSafe(path: Path,
+                           projectName: Option[String] = None): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
     Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
@@ -546,7 +564,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         println(s"No existing dataset record found")
         val dsType = dsMetaTypeFromPath(path)
         val rc = runImportDataSet(path, dsType)
-        if (rc == 0) runGetDataSetInfo(dsUuid) else rc
+        if (rc == 0) {
+          runGetDataSetInfo(dsUuid)
+          projectName match {
+            case Some(name) => addDataSetToProject(dsUuid, name)
+            case None => 0
+          }
+        } else rc
       }
     }
   }
@@ -569,7 +593,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
-  def runImportDataSets(path: Path, nonLocal: Option[String]): Int = {
+  def runImportDataSets(path: Path,
+                        nonLocal: Option[String],
+                        projectName: Option[String] = None): Int = {
     nonLocal match {
       case Some(dsType) =>
         logger.info(s"Non-local file, importing as type ${dsType}")
@@ -594,7 +620,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
               1
             } else 0
           }
-        } else if (f.isFile) runImportDataSetSafe(path)
+        } else if (f.isFile) runImportDataSetSafe(path, projectName)
         else errorExit(s"${f.getAbsolutePath} is not readable")
     }
   }
@@ -657,6 +683,42 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       }
     } else if (f.isFile) runImportRsMovie(path, name)
     else errorExit(s"${f.getAbsolutePath} is not readable")
+  }
+
+  def addDataSetToProjectId(dsId: IdAble, projectId: Int): Int = {
+    Try { Await.result(sal.getProject(projectId), TIMEOUT) } match {
+      case Success(project) =>
+        Try { Await.result(sal.getDataSet(dsId), TIMEOUT) } match {
+          case Success(ds) =>
+            val request = project.asRequest.appendDataSet(ds.id)
+            Try {
+              Await.result(sal.updateProject(projectId, request), TIMEOUT)
+            } match {
+              case Success(p) => printProjectInfo(p)
+              case Failure(err) => errorExit(s"Couldn't add dataset to project: ${err.getMessage}")
+            }
+          case Failure(err) => errorExit(s"Couldn't retrieve dataset $dsId")
+        }
+      case Failure(err) => errorExit(s"Couldn't retrieve project $projectId: ${err.getMessage}")
+    }
+  }
+
+  def addDataSetToProject(dsId: IdAble, projectName: String): Int = {
+    Try { Await.result(sal.getProjects, TIMEOUT) } match {
+      case Success(projects) =>
+        projects.map(p => (p.name, p.id)).toMap.get(projectName) match {
+          case Some(projectId) => addDataSetToProjectId(dsId, projectId)
+          case None => errorExit(s"Can't find project named '$projectName'")
+        }
+      case Failure(err) => errorExit(s"Couldn't retrieve projects: ${err.getMessage}")
+    }
+  }
+
+  def runCreateProject(name: String, description: String): Int = {
+    Try { Await.result(sal.createProject(name, description), TIMEOUT) } match {
+      case Success(project) => printProjectInfo(project)
+      case Failure(err) => errorExit(s"Couldn't create project: ${err.getMessage}")
+    }
   }
 
   def runEmitAnalysisTemplate: Int = {
@@ -862,7 +924,8 @@ object PbService {
     try {
       c.mode match {
         case Modes.STATUS => ps.runStatus(c.asJson)
-        case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal)
+        case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal,
+                                                     c.project)
         case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism, c.ploidy)
         case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name)
         case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name)
@@ -874,6 +937,7 @@ object PbService {
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)
         case _ => {
           println("Unsupported action")
           1

@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.client
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports._
+import com.pacbio.common.auth.BaseRolesInit
 import com.pacbio.common.models._
 import com.pacbio.common.client._
 
@@ -62,7 +63,7 @@ trait DataSetTypesTrait {
   val CCSALIGNMENTS = "ccsalignments"
 }
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
+class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) with BaseRolesInit {
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
@@ -311,5 +312,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_PROJECTS),
          ProjectRequest(name, description, None, None, None))
+  }
+
+  def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
+    Put(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"), request)
   }
 }
