@@ -23,7 +23,7 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success, Try, Properties}
 import scala.util.matching.Regex
 import scala.xml.XML
 import scala.io.Source
@@ -117,7 +117,8 @@ object PbServiceParser {
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
-      authToken: Option[String] = None) extends LoggerConfig
+      authToken: Option[String] = Properties.envOrNone("PBSERVICE_AUTH_TOKEN")
+  ) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
