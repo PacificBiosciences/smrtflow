@@ -330,9 +330,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
-  protected def errorExit(msg: String): Int = {
+  protected def errorExit(msg: String, exitCode: Int = -1): Int = {
     println(msg)
-    1
+    exitCode
   }
 
   protected def printMsg(msg: String): Int = {
@@ -551,8 +551,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportDataSetSafe(path: Path,
-                           projectName: Option[String] = None): Int = {
+  def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
     Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
@@ -566,10 +565,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         val rc = runImportDataSet(path, dsType)
         if (rc == 0) {
           runGetDataSetInfo(dsUuid)
-          projectName match {
-            case Some(name) => addDataSetToProject(dsUuid, name)
-            case None => 0
-          }
+          if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
         } else rc
       }
     }
@@ -596,6 +592,11 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runImportDataSets(path: Path,
                         nonLocal: Option[String],
                         projectName: Option[String] = None): Int = {
+    val projectId = projectName match {
+      case Some(name) => getProjectIdByName(name)
+      case None => 0
+    }
+    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     nonLocal match {
       case Some(dsType) =>
         logger.info(s"Non-local file, importing as type ${dsType}")
@@ -611,7 +612,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             val failed: ListBuffer[String] = ListBuffer()
             xmlFiles.foreach { xml =>
               println(s"Importing ${xml.getAbsolutePath}...")
-              val rc = runImportRsMovie(xml.toPath, "")
+              val rc = runImportDataSetSafe(xml.toPath, projectId)
               if (rc != 0) failed.append(xml.getAbsolutePath.toString)
             }
             if (failed.size > 0) {
@@ -620,12 +621,12 @@ class PbService (val sal: AnalysisServiceAccessLayer,
               1
             } else 0
           }
-        } else if (f.isFile) runImportDataSetSafe(path, projectName)
+        } else if (f.isFile) runImportDataSetSafe(path, projectId)
         else errorExit(s"${f.getAbsolutePath} is not readable")
     }
   }
 
-  private def importRsMovie(path: Path, name: String): Int = {
+  private def convertRsMovie(path: Path, name: String): Int = {
     Try {
       Await.result(sal.convertRsMovie(path, name), TIMEOUT)
     } match {
@@ -638,14 +639,14 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     val fileName = path.toAbsolutePath
     if (fileName.endsWith(".fofn")) {
       if (name == "") errorExit(s"--name argument is required when an FOFN is input")
-      else importRsMovie(path, name)
+      else convertRsMovie(path, name)
     } else {
       Try {
         dsNameFromMetadata(path)
       } match {
         case Success(dsName) =>
           val finalName = if (name == "") dsName else name
-          importRsMovie(fileName, finalName)
+          convertRsMovie(fileName, finalName)
         case _ => errorExit(s"The path does not appear to be valid RSII metadata XML")
       }
     }
@@ -685,7 +686,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     else errorExit(s"${f.getAbsolutePath} is not readable")
   }
 
-  def addDataSetToProjectId(dsId: IdAble, projectId: Int): Int = {
+  def addDataSetToProject(dsId: IdAble, projectId: Int,
+                          verbose: Boolean = false): Int = {
     Try { Await.result(sal.getProject(projectId), TIMEOUT) } match {
       case Success(project) =>
         Try { Await.result(sal.getDataSet(dsId), TIMEOUT) } match {
@@ -694,7 +696,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             Try {
               Await.result(sal.updateProject(projectId, request), TIMEOUT)
             } match {
-              case Success(p) => printProjectInfo(p)
+              case Success(p) =>
+                if (verbose) printProjectInfo(p) else printMsg(s"Added dataset to project ${p.name}")
               case Failure(err) => errorExit(s"Couldn't add dataset to project: ${err.getMessage}")
             }
           case Failure(err) => errorExit(s"Couldn't retrieve dataset $dsId")
@@ -703,14 +706,26 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def addDataSetToProject(dsId: IdAble, projectName: String): Int = {
+  protected def getProjectIdByName(projectName: String): Int = {
     Try { Await.result(sal.getProjects, TIMEOUT) } match {
       case Success(projects) =>
         projects.map(p => (p.name, p.id)).toMap.get(projectName) match {
-          case Some(projectId) => addDataSetToProjectId(dsId, projectId)
-          case None => errorExit(s"Can't find project named '$projectName'")
+          case Some(projectId) => projectId
+          case None => errorExit(s"Can't find project named '$projectName'", -1)
         }
-      case Failure(err) => errorExit(s"Couldn't retrieve projects: ${err.getMessage}")
+      case Failure(err) => errorExit(s"Couldn't retrieve projects: ${err.getMessage}", -1)
+    }
+  }
+
+  def addDataSetToProjectName(dsId: IdAble, projectName: String): Int = {
+    val projectId = getProjectIdByName(projectName)
+    if (projectId <= 0) 1 else addDataSetToProject(dsId, projectId)
+  }
+
+  protected def showProjectInfo(projectId: Int): Int = {
+    Try { Await.result(sal.getProject(projectId), TIMEOUT) } match {
+      case Success(project) => printProjectInfo(project)
+      case Failure(err) => errorExit(s"Couldn't retrieve project $projectId: ${err.getMessage}")
     }
   }
 
