@@ -29,8 +29,8 @@ import DefaultJsonProtocol._
 import spray.httpx.SprayJsonSupport
 
 
-class InternalAnalysisServiceClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
-    extends AnalysisServiceAccessLayer(baseUrl)(actorSystem) with LazyLogging {
+class InternalAnalysisServiceClient(baseUrl: URL, authToken: Option[String] = None)(implicit actorSystem: ActorSystem)
+    extends AnalysisServiceAccessLayer(baseUrl, authToken)(actorSystem) with LazyLogging {
 
   import InternalAnalysisJsonProcotols._
   import ServicesClientJsonProtocol._

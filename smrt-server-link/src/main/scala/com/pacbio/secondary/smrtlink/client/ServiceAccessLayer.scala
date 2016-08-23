@@ -3,19 +3,20 @@ package com.pacbio.secondary.smrtlink.client
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports._
+import com.pacbio.common.auth.BaseRolesInit
 import com.pacbio.common.models._
 import com.pacbio.common.client._
 
 import akka.actor.ActorSystem
-import spray.client.pipelining._
-import scala.concurrent.duration._
 
 import spray.http._
+import spray.client.pipelining._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 import java.net.URL
 import java.util.UUID
@@ -62,7 +63,9 @@ trait DataSetTypesTrait {
   val CCSALIGNMENTS = "ccsalignments"
 }
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
+    (implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(baseUrl)(actorSystem) with BaseRolesInit {
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
@@ -106,6 +109,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
 
 
+  protected def sendReceiveAuthenticated = authToken match {
+    case Some(token) => addHeader("Authorization", s"Bearer $token") ~> sendReceive
+    case None => sendReceive
+  }
+
   // Pipelines and serialization
   protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
 
@@ -141,8 +149,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
   protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
   protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
-  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceive ~> unmarshal[Seq[Project]]
-  protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceive ~> unmarshal[FullProject]
+
+  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceiveAuthenticated ~> unmarshal[Seq[Project]]
+  protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceiveAuthenticated ~> unmarshal[FullProject]
 
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
 
@@ -311,5 +320,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_PROJECTS),
          ProjectRequest(name, description, None, None, None))
+  }
+
+  def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
+    Put(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"), request)
   }
 }

@@ -313,4 +313,12 @@ trait SmrtLinkSteps {
       SUCCEEDED
     }
   }
+
+  case class UpdateProject(projectId: Var[Int], request: Var[ProjectRequest]) extends VarStep[FullProject] {
+    override val name = "UpdateProject"
+    override def run: Future[Result] = smrtLinkClient.updateProject(projectId.get, request.get).map { p =>
+      output(p)
+      SUCCEEDED
+    }
+  }
 }

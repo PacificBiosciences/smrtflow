@@ -535,7 +535,16 @@ case class FullProject(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     datasets: Seq[DataSetMetaDataSet],
-    members: Seq[ProjectUserResponse])
+    members: Seq[ProjectUserResponse]) {
+
+  def asRequest: ProjectRequest =
+    ProjectRequest(
+      name,
+      description,
+      Some(state),
+      Some(datasets.map(ds => RequestId(ds.id))),
+      Some(members.map(u => ProjectRequestUser(RequestUser(u.user.login), u.role))))
+}
 
 // the json structures required in client requests are a subset of the
 // FullProject structure (the FullProject is a valid request, but many
@@ -547,7 +556,14 @@ case class ProjectRequest(
     // value will stay the same (i.e., the update will be skipped).
     state: Option[String],
     datasets: Option[Seq[RequestId]],
-    members: Option[Seq[ProjectRequestUser]])
+    members: Option[Seq[ProjectRequestUser]]) {
+
+  // this returns a copy!
+  def appendDataSet(dsId: Int): ProjectRequest = {
+    val allDatasets = datasets.map(ds => ds ++ Seq(RequestId(dsId))).getOrElse(Seq(RequestId(dsId)))
+    this.copy(datasets = Some(allDatasets))
+  }
+}
 
 case class RequestId(id: Int)
 case class RequestUser(login: String)
