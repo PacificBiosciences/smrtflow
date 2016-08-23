@@ -54,7 +54,9 @@ object FileTypes {
 
   case class FileBaseType(fileTypeId: String, baseFileName: String, fileExt: String, mimeType: String) extends FileType
   case class IndexFileBaseType(fileTypeId: String, baseFileName: String, fileExt: String, mimeType: String) extends FileType with PacBioIndexType
-  case class DataSetBaseType(fileTypeId: String, baseFileName: String, fileExt: String, mimeType: String) extends FileType with PacBioDataSetType
+  case class DataSetBaseType(fileTypeId: String, baseFileName: String, fileExt: String, mimeType: String) extends FileType with PacBioDataSetType {
+    def dsName: String = fileTypeId.split(".").last
+  }
 
   // The most generic file type
   final val TXT = FileBaseType(toFT("txt"), "file", "txt", "text/plain")
