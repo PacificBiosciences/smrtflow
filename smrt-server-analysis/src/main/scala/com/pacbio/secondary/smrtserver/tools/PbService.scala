@@ -117,7 +117,7 @@ object PbServiceParser {
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
-      authToken: Option[String] = Properties.envOrNone("PBSERVICE_AUTH_TOKEN")
+      authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN")
   ) extends LoggerConfig
 
 
