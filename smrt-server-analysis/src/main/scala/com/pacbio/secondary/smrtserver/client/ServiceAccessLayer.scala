@@ -32,7 +32,9 @@ import java.nio.file.Path
 
 object AnalysisClientJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols
 
-class AnalysisServiceAccessLayer(baseUrl: URL)(implicit actorSystem: ActorSystem) extends SmrtLinkServiceAccessLayer(baseUrl)(actorSystem) {
+class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
+    (implicit actorSystem: ActorSystem)
+    extends SmrtLinkServiceAccessLayer(baseUrl, authToken)(actorSystem) {
 
   import AnalysisClientJsonProtocol._
   import SecondaryModels._

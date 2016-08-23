@@ -88,6 +88,12 @@ object PbServiceParser {
     }
   }
 
+  private def getToken(token: String): String = {
+    if (Paths.get(token).toFile.isFile) {
+      (Source.fromFile(token).getLines.take(1).toList)(0)
+    } else token
+  }
+
   case class CustomConfig(
       mode: Modes.Mode = Modes.UNKNOWN,
       host: String,
@@ -110,7 +116,8 @@ object PbServiceParser {
       presetXml: Option[Path] = None,
       maxTime: Int = -1,
       project: Option[String] = None,
-      description: String = "") extends LoggerConfig
+      description: String = "",
+      authToken: Option[String] = None) extends LoggerConfig
 
 
   lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
@@ -133,6 +140,10 @@ object PbServiceParser {
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
     } text "Services port on smrtlink server"
+
+    opt[String]("token") action { (t, c) =>
+      c.copy(authToken = Some(getToken(t)))
+    } text "Authentication token (required for project services)"
 
     opt[Unit]("json") action { (_, c) =>
       c.copy(asJson = true)
@@ -932,7 +943,7 @@ object PbService {
     // creation includes validation, but it wasn't failing on extra 'http://'
     val host = c.host.replaceFirst("http://", "")
     val url = new URL(s"http://${host}:${c.port}")
-    val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
+    val sal = new AnalysisServiceAccessLayer(url, c.authToken)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {
       c.mode match {
