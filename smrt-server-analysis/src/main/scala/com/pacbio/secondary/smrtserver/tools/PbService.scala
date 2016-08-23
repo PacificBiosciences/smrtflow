@@ -5,6 +5,7 @@ import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.converters._
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models._
@@ -200,7 +201,10 @@ object PbServiceParser {
       } text "Ploidy",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status"
+      } text "Maximum time to poll for running job status",
+      opt[String]("project") action { (p, c) =>
+        c.copy(project = Some(p))
+      } text "Name of project associated with this reference"
     ) text "Import Reference FASTA"
 
     cmd(Modes.IMPORT_BARCODES.name) action { (_, c) =>
@@ -211,7 +215,10 @@ object PbServiceParser {
       } text "FASTA path",
       arg[String]("name") required() action { (name, c) =>
         c.copy(name = name)
-      } text "Name of BarcodeSet"
+      } text "Name of BarcodeSet",
+      opt[String]("project") action { (p, c) =>
+        c.copy(project = Some(p))
+      } text "Name of project associated with these barcodes"
     ) text "Import Barcodes FASTA"
 
     cmd(Modes.IMPORT_MOVIE.name) action { (_, c) =>
@@ -485,8 +492,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  protected def waitForJob(jobId: UUID): Int = {
-    println(s"waiting for job ${jobId} to complete...")
+  protected def waitForJob(jobId: IdAble): Int = {
+    println(s"waiting for job ${jobId.toIdString} to complete...")
     Try { sal.pollForJob(jobId, maxTime) } match {
       case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
@@ -496,7 +503,32 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runImportFasta(path: Path, name: String, organism: String, ploidy: String): Int = {
+  private def finishImport(jobId: IdAble,
+                           dsType: FileTypes.DataSetBaseType,
+                           getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
+                           projectId: Int = 0): Int = {
+    waitForJob(jobId) match {
+      case 0 => Try { Await.result(getDataStore(jobId), TIMEOUT) } match {
+        case Success(dataStoreFiles) => {
+          val dsFiles = dataStoreFiles.filter(_.fileTypeId == dsType.fileTypeId)
+          if (dsFiles.size == 1) {
+            runGetDataSetInfo(dsFiles(0).uuid)
+            if (projectId > 0) addDataSetToProject(dsFiles(0).uuid, projectId) else 0
+          } else errorExit(s"Couldn't find ${dsType.dsName}")
+        }
+        case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
+      }
+      case x => x
+    }
+  }
+
+  def runImportFasta(path: Path,
+                     name: String,
+                     organism: String,
+                     ploidy: String,
+                     projectName: Option[String] = None): Int = {
+    val projectId = getProjectIdByName(projectName)
+    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     var nameFinal = name
     if (name == "") nameFinal = "unknown" // this really shouldn't be optional
     PacBioFastaValidator(path) match {
@@ -505,59 +537,27 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
       } match {
         case Success(job: EngineJob) => {
-          println(job)
-          waitForJob(job.uuid) match {
-            case 0 => {
-              Try {
-                Await.result(sal.getImportFastaJobDataStore(job.id), TIMEOUT)
-              } match {
-                case Success(dataStoreFiles) => {
-                  for (dsFile <- dataStoreFiles) {
-                    if (dsFile.fileTypeId == "PacBio.DataSet.ReferenceSet") {
-                      return runGetDataSetInfo(dsFile.uuid)
-                    }
-                  }
-                  errorExit("Couldn't find ReferenceSet")
-                }
-                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
-              }
-            }
-            case x => x
-          }
+          finishImport(job.uuid, FileTypes.DS_REFERENCE,
+                       sal.getImportFastaJobDataStore, projectId)
         }
         case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
       }
     }
   }
 
-  // FIXME too much code duplication
-  def runImportBarcodes(path: Path, name: String): Int = {
+  def runImportBarcodes(path: Path,
+                        name: String,
+                        projectName: Option[String] = None): Int = {
+    val projectId = getProjectIdByName(projectName)
+    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     PacBioFastaValidator(path, barcodeMode=true) match {
       case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
       case Right(md) => Try {
         Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
       } match {
-        case Success(job: EngineJob) => {
-          println(job)
-          waitForJob(job.uuid) match {
-            case 0 => {
-              Try {
-                Await.result(sal.getImportBarcodesJobDataStore(job.id), TIMEOUT)
-              } match {
-                case Success(dataStoreFiles) => {
-                  for (dsFile <- dataStoreFiles) {
-                    if (dsFile.fileTypeId == "PacBio.DataSet.BarcodeSet") {
-                      return runGetDataSetInfo(dsFile.uuid)
-                    }
-                  }
-                  errorExit("Couldn't find BarcodeSet")
-                }
-                case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
-              }
-            }
-            case x => x
-          }
-        }
+        case Success(job: EngineJob) =>
+          finishImport(job.uuid, FileTypes.DS_BARCODE,
+                       sal.getImportBarcodesJobDataStore, projectId)
         case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
       }
     }
@@ -604,10 +604,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runImportDataSets(path: Path,
                         nonLocal: Option[String],
                         projectName: Option[String] = None): Int = {
-    val projectId = projectName match {
-      case Some(name) => getProjectIdByName(name)
-      case None => 0
-    }
+    val projectId = getProjectIdByName(projectName)
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     nonLocal match {
       case Some(dsType) =>
@@ -716,20 +713,16 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  protected def getProjectIdByName(projectName: String): Int = {
+  protected def getProjectIdByName(projectName: Option[String]): Int = {
+    if (! projectName.isDefined) return 0
     Try { Await.result(sal.getProjects, TIMEOUT) } match {
       case Success(projects) =>
-        projects.map(p => (p.name, p.id)).toMap.get(projectName) match {
+        projects.map(p => (p.name, p.id)).toMap.get(projectName.get) match {
           case Some(projectId) => projectId
-          case None => errorExit(s"Can't find project named '$projectName'", -1)
+          case None => errorExit(s"Can't find project named '${projectName.get}'", -1)
         }
       case Failure(err) => errorExit(s"Couldn't retrieve projects: ${err.getMessage}", -1)
     }
-  }
-
-  def addDataSetToProjectName(dsId: IdAble, projectName: String): Int = {
-    val projectId = getProjectIdByName(projectName)
-    if (projectId <= 0) 1 else addDataSetToProject(dsId, projectId)
   }
 
   protected def showProjectInfo(projectId: Int): Int = {
@@ -951,8 +944,10 @@ object PbService {
         case Modes.STATUS => ps.runStatus(c.asJson)
         case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal,
                                                      c.project)
-        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism, c.ploidy)
-        case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name)
+        case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism,
+                                                     c.ploidy, c.project)
+        case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name,
+                                                           c.project)
         case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
