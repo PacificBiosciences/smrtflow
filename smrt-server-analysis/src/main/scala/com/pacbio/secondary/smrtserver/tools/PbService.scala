@@ -688,21 +688,19 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   def addDataSetToProject(dsId: IdAble, projectId: Int,
                           verbose: Boolean = false): Int = {
-    Try { Await.result(sal.getProject(projectId), TIMEOUT) } match {
-      case Success(project) =>
-        Try { Await.result(sal.getDataSet(dsId), TIMEOUT) } match {
-          case Success(ds) =>
-            val request = project.asRequest.appendDataSet(ds.id)
-            Try {
-              Await.result(sal.updateProject(projectId, request), TIMEOUT)
-            } match {
-              case Success(p) =>
-                if (verbose) printProjectInfo(p) else printMsg(s"Added dataset to project ${p.name}")
-              case Failure(err) => errorExit(s"Couldn't add dataset to project: ${err.getMessage}")
-            }
-          case Failure(err) => errorExit(s"Couldn't retrieve dataset $dsId")
+    val tx = for {
+      project <- Try { Await.result(sal.getProject(projectId), TIMEOUT) }
+      ds <- Try { Await.result(sal.getDataSet(dsId), TIMEOUT) }
+      request <- Try { project.asRequest.appendDataSet(ds.id) }
+      projectWithDataSet <- Try {
+          Await.result(sal.updateProject(projectId, request), TIMEOUT)
         }
-      case Failure(err) => errorExit(s"Couldn't retrieve project $projectId: ${err.getMessage}")
+      } yield projectWithDataSet
+
+      tx match {
+        case Success(p) =>
+          if (verbose) printProjectInfo(p) else printMsg(s"Added dataset to project ${p.name}")
+        case Failure(err) => errorExit(s"Couldn't add dataset to project: ${err.getMessage}")
     }
   }
 

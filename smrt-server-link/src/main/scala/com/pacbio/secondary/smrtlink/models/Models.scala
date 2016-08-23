@@ -560,10 +560,8 @@ case class ProjectRequest(
 
   // this returns a copy!
   def appendDataSet(dsId: Int): ProjectRequest = {
-    this.copy(datasets = datasets match {
-      case Some(ds) => Some(ds ++ Seq(RequestId(dsId)))
-      case None => Some(Seq(RequestId(dsId)))
-    })
+    val allDatasets = datasets.map(ds => ds ++ Seq(RequestId(dsId))).getOrElse(Seq(RequestId(dsId)))
+    this.copy(datasets = Some(allDatasets))
   }
 }
 
