@@ -115,9 +115,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   }
 
   // Pipelines and serialization
-  protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceive ~> unmarshal[DataSetMetaDataSet]
+  protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceiveAuthenticated ~> unmarshal[DataSetMetaDataSet]
 
-  private def getDataSetPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceive ~> unmarshal[T]
+  private def getDataSetPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceiveAuthenticated ~> unmarshal[T]
   protected def getSubreadSetPipeline = getDataSetPipeline[SubreadServiceDataSet]
   protected def getHdfSubreadSetPipeline = getDataSetPipeline[HdfSubreadServiceDataSet]
   protected def getReferenceSetPipeline = getDataSetPipeline[ReferenceServiceDataSet]
@@ -128,7 +128,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getConsensusAlignmentSetPipeline = getDataSetPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
 
-  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = sendReceive ~> unmarshal[Seq[T]]
+  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = sendReceiveAuthenticated ~> unmarshal[Seq[T]]
   protected def getSubreadSetsPipeline = getDataSetsPipeline[SubreadServiceDataSet]
   protected def getHdfSubreadSetsPipeline = getDataSetsPipeline[HdfSubreadServiceDataSet]
   protected def getReferenceSetsPipeline = getDataSetsPipeline[ReferenceServiceDataSet]
@@ -139,21 +139,21 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getConsensusAlignmentSetsPipeline = getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetsPipeline = getDataSetsPipeline[ContigServiceDataSet]
 
-  protected def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceive ~> unmarshal[Seq[DataStoreServiceFile]]
-  protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceive ~> unmarshal[Seq[EngineJobEntryPoint]]
-  protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceive ~> unmarshal[Seq[DataStoreReportFile]]
-  protected def getReportPipeline: HttpRequest => Future[Report] = sendReceive ~> unmarshal[Report]
+  protected def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceiveAuthenticated ~> unmarshal[Seq[DataStoreServiceFile]]
+  protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceiveAuthenticated ~> unmarshal[Seq[EngineJobEntryPoint]]
+  protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceiveAuthenticated ~> unmarshal[Seq[DataStoreReportFile]]
+  protected def getReportPipeline: HttpRequest => Future[Report] = sendReceiveAuthenticated ~> unmarshal[Report]
 
-  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceive ~> unmarshal[Seq[RunSummary]]
-  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceive ~> unmarshal[RunSummary]
-  protected def getRunPipeline: HttpRequest => Future[Run] = sendReceive ~> unmarshal[Run]
-  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceive ~> unmarshal[Seq[CollectionMetadata]]
-  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceive ~> unmarshal[CollectionMetadata]
+  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceiveAuthenticated ~> unmarshal[Seq[RunSummary]]
+  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceiveAuthenticated ~> unmarshal[RunSummary]
+  protected def getRunPipeline: HttpRequest => Future[Run] = sendReceiveAuthenticated ~> unmarshal[Run]
+  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceiveAuthenticated ~> unmarshal[Seq[CollectionMetadata]]
+  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceiveAuthenticated ~> unmarshal[CollectionMetadata]
 
   protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceiveAuthenticated ~> unmarshal[Seq[Project]]
   protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceiveAuthenticated ~> unmarshal[FullProject]
 
-  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceive ~> unmarshal[MessageResponse]
+  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceiveAuthenticated ~> unmarshal[MessageResponse]
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId.toIdString))
