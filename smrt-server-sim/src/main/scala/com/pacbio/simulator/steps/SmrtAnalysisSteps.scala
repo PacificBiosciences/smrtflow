@@ -35,9 +35,8 @@ trait SmrtAnalysisSteps {
   case class WaitForJob(jobId: Var[UUID], maxTime: Var[Int] = Var(1800)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
-      output(Try {
-        smrtLinkClient.pollForJob(jobId.get, maxTime.get)
-      } match {
+      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get)
+       match {
         case Success(x) => 0
         case Failure(msg) => 1
       })

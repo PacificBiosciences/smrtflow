@@ -10,9 +10,9 @@ import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
-
 import akka.actor.ActorSystem
 import spray.client.pipelining._
+
 import scala.concurrent.duration._
 //import spray.http.StatusCode._
 import spray.http._
@@ -162,40 +162,69 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
       pipelineOptions)
   }
 
-  // FIXME this could be cleaner, and logging would be helpful
-  def pollForJob(jobId: IdAble, maxTime: Int = -1): Int = {
+  /**
+    * FIXME(mpkocher)(2016-8-22)
+    * - maxTime should be Option[Duration]
+    * - replace tStart with JodaDateTime
+    * - make sleepTime configurable
+    * - Add Retry to Poll
+    * - Raise Custom Exception type for Failed job to distinquish Failed jobs and jobs that exceeded maxTime
+    * - replace while loop with recursion
+    *
+    * @param jobId Job Id or UUID
+    * @param maxTime Max time to poll for the job
+    *
+    * @return EngineJob
+    */
+  def pollForJob(jobId: IdAble, maxTime: Int = -1): Try[EngineJob] = {
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
     val requestTimeOut = 10.seconds
-    var jobState: Option[String] = None
+    var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
+
+    def failIfNotState(state: AnalysisJobStates.JobStates, job: EngineJob): Try[EngineJob] = {
+      if (job.state == state) Success(job)
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+    }
+
+    def failIfFailedJob(job: EngineJob): Try[EngineJob] = failIfNotState(AnalysisJobStates.FAILED, job)
+
+    def failIfNotSuccessfulJob(job: EngineJob) = failIfNotState(AnalysisJobStates.SUBMITTED, job)
+
+    def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
+      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
+      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
+        Failure(new Exception(s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
+      } else {
+        Success(job)
+      }
+    }
 
     while(exitFlag) {
       nIterations += 1
       Thread.sleep(sleepTime)
-      Try {
-        Await.result(getJob(jobId), requestTimeOut)
-      } match {
-        case Success(x) => x.state match {
-          case AnalysisJobStates.SUCCESSFUL => {
+
+      val tx = for {
+        job <- Try { Await.result(getJob(jobId), requestTimeOut)}
+        notFailedJob <- failIfFailedJob(job)
+        _ <- failIfExceededMaxTime(notFailedJob)
+      } yield notFailedJob
+
+      tx match {
+        case Success(job) =>
+          if (job.state == AnalysisJobStates.SUCCESSFUL) {
             exitFlag = false
-            jobState = Some("SUCCESSFUL")
+            runningJob = Some(job)
           }
-          case AnalysisJobStates.FAILED => throw new Exception(s"Analysis job $jobId failed")
-          case sx => jobState = Some(s"${x.state.stateId}")
-        }
-        case Failure(err) => throw new Exception(s"Failed getting job $jobId state ${err.getMessage}")
-      }
-      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
-      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
-        throw new Exception(s"Run time exceeded specified limit (${maxTime} s)")
+        case Failure(ex) => throw ex
       }
     }
 
-    jobState match {
-      case sx @ Some("SUCCESSFUL") => 0
-      case _ => throw new Exception(s"Unable to Successfully run job $jobId")
+    runningJob match {
+      case Some(job) => failIfNotSuccessfulJob(job)
+      case _ => Failure(new Exception(s"Failed to run job $jobId."))
     }
   }
 
