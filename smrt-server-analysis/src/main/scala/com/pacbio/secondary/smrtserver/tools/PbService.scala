@@ -503,22 +503,30 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  private def finishImport(jobId: IdAble,
-                           dsType: FileTypes.DataSetBaseType,
-                           getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
-                           projectId: Int = 0): Int = {
-    waitForJob(jobId) match {
-      case 0 => Try { Await.result(getDataStore(jobId), TIMEOUT) } match {
-        case Success(dataStoreFiles) => {
-          val dsFiles = dataStoreFiles.filter(_.fileTypeId == dsType.fileTypeId)
-          if (dsFiles.size == 1) {
-            runGetDataSetInfo(dsFiles(0).uuid)
-            if (projectId > 0) addDataSetToProject(dsFiles(0).uuid, projectId) else 0
-          } else errorExit(s"Couldn't find ${dsType.dsName}")
+  private def importFasta(path: Path,
+                          dsType: FileTypes.DataSetBaseType,
+                          runJob: () => Future[EngineJob],
+                          getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
+                          projectName: Option[String],
+                          barcodeMode: Boolean = false): Int = {
+    val projectId = getProjectIdByName(projectName)
+    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
+    val tx = for {
+      contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
+      job <- Try { Await.result(runJob(), TIMEOUT) }
+      job <- sal.pollForJob(job.uuid, maxTime)
+      dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
+    } yield dataStoreFiles
+
+    tx match {
+      case Success(dataStoreFiles) =>
+        dataStoreFiles.find(_.fileTypeId == dsType.fileTypeId) match {
+          case Some(ds) =>
+            runGetDataSetInfo(ds.uuid)
+            if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
+          case None => errorExit(s"Couldn't find ${dsType.dsName}")
         }
-        case Failure(err) => errorExit(s"Error retrieving import job datastore: ${err.getMessage}")
-      }
-      case x => x
+      case Failure(err) => errorExit(s"Import job error: ${err.getMessage}")
     }
   }
 
@@ -527,41 +535,24 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                      organism: String,
                      ploidy: String,
                      projectName: Option[String] = None): Int = {
-    val projectId = getProjectIdByName(projectName)
-    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     var nameFinal = name
     if (name == "") nameFinal = "unknown" // this really shouldn't be optional
-    PacBioFastaValidator(path) match {
-      case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
-      case Right(md) => Try {
-        Await.result(sal.importFasta(path, nameFinal, organism, ploidy), TIMEOUT)
-      } match {
-        case Success(job: EngineJob) => {
-          finishImport(job.uuid, FileTypes.DS_REFERENCE,
-                       sal.getImportFastaJobDataStore, projectId)
-        }
-        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
-      }
-    }
+    importFasta(path,
+                FileTypes.DS_REFERENCE,
+                () => sal.importFasta(path, nameFinal, organism, ploidy),
+                sal.getImportFastaJobDataStore,
+                projectName)
   }
 
   def runImportBarcodes(path: Path,
                         name: String,
-                        projectName: Option[String] = None): Int = {
-    val projectId = getProjectIdByName(projectName)
-    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
-    PacBioFastaValidator(path, barcodeMode=true) match {
-      case Left(x) => errorExit(s"Fasta validation failed: ${x.msg}")
-      case Right(md) => Try {
-        Await.result(sal.importFastaBarcodes(path, name), TIMEOUT)
-      } match {
-        case Success(job: EngineJob) =>
-          finishImport(job.uuid, FileTypes.DS_BARCODE,
-                       sal.getImportBarcodesJobDataStore, projectId)
-        case Failure(err) => errorExit(s"FASTA import failed: ${err.getMessage}")
-      }
-    }
-  }
+                        projectName: Option[String] = None): Int =
+    importFasta(path,
+                FileTypes.DS_BARCODE,
+                () => sal.importFastaBarcodes(path, name),
+                sal.getImportBarcodesJobDataStore,
+                projectName,
+                true)
 
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
@@ -720,13 +711,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           case None => errorExit(s"Can't find project named '${projectName.get}'", -1)
         }
       case Failure(err) => errorExit(s"Couldn't retrieve projects: ${err.getMessage}", -1)
-    }
-  }
-
-  protected def showProjectInfo(projectId: Int): Int = {
-    Try { Await.result(sal.getProject(projectId), TIMEOUT) } match {
-      case Success(project) => printProjectInfo(project)
-      case Failure(err) => errorExit(s"Couldn't retrieve project $projectId: ${err.getMessage}")
     }
   }
 
@@ -910,20 +894,16 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
     var jobTitleTmp = jobTitle
     if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
-    Try {
-      for (ep <- entryPoints) yield importEntryPointAutomatic(ep)
-    } match {
-      case Success(eps) => {
-        Try {
-          getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps,
-                                    getPipelinePresets(presetXml))
-        } match {
-          case Success(pipelineOptions) => runAnalysisPipelineImpl(
-            pipelineOptions, block=block, validate=false)
-          case Failure(err) => errorExit(err.getMessage)
-        }
-      }
-      case Failure(err) => errorExit(err.getMessage)
+    val tx = for {
+      eps <- Try { entryPoints.map(importEntryPointAutomatic(_)) }
+      presets <- Try { getPipelinePresets(presetXml) }
+      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets) }
+      job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
+    } yield job
+
+    tx match {
+      case Success(job) => if (block) waitForJob(job.uuid) else 0
+      case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
     }
   }
 }

@@ -166,4 +166,10 @@ object PacBioFastaValidator extends LazyLogging{
     }
   }
 
+  def validate(path: Path, barcodeMode: Boolean = false): ContigsMetaData = {
+    apply(path, barcodeMode) match {
+      case Left(err) => throw err
+      case Right(ctgs) => ctgs
+    }
+  }
 }
