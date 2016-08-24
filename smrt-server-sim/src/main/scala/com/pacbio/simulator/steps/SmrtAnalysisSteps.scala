@@ -35,11 +35,8 @@ trait SmrtAnalysisSteps {
   case class WaitForJob(jobId: Var[UUID], maxTime: Var[Int] = Var(1800)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
-      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get)
-       match {
-        case Success(x) => 0
-        case Failure(msg) => 1
-      })
+      // Return non-zero exit code. This probably needs to be refactored at the Sim level
+      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get).map(_ => 0).getOrElse(1))
       SUCCEEDED
     }
   }
