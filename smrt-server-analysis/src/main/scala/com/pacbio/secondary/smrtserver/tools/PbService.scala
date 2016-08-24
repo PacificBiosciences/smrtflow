@@ -494,7 +494,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def waitForJob(jobId: IdAble): Int = {
     println(s"waiting for job ${jobId.toIdString} to complete...")
-    Try { sal.pollForJob(jobId, maxTime) } match {
+    sal.pollForJob(jobId, maxTime) match {
       case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
         runGetJobInfo(jobId)
@@ -701,9 +701,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       project <- Try { Await.result(sal.getProject(projectId), TIMEOUT) }
       ds <- Try { Await.result(sal.getDataSet(dsId), TIMEOUT) }
       request <- Try { project.asRequest.appendDataSet(ds.id) }
-      projectWithDataSet <- Try {
-          Await.result(sal.updateProject(projectId, request), TIMEOUT)
-        }
+      projectWithDataSet <- Try { Await.result(sal.updateProject(projectId, request), TIMEOUT) }
       } yield projectWithDataSet
 
       tx match {
