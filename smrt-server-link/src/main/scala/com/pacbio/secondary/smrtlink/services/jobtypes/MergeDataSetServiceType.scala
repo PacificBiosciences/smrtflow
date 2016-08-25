@@ -30,7 +30,20 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 case class InValidJobOptionsError(msg: String) extends Exception(msg)
 
 
-object ValidatorDataSetMergeServiceOptions {
+trait ValidatorDataSetServicesOptions {
+  def validateDataSetType(datasetType: String): Option[InValidJobOptionsError] = {
+    DataSetMetaTypes.toDataSetType(datasetType) match {
+      case Some(x) => None
+      case _ => Some(InValidJobOptionsError("Unsupported dataset type '$datasetType'"))
+    }
+  }
+
+  def validateDataSetExists(ids: Seq[Int]): Option[InValidJobOptionsError] = {
+    None
+  }
+}
+
+object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptions {
 
   def apply(opts: DataSetMergeServiceOptions): Option[InValidJobOptionsError] = {
     validate(opts)
@@ -44,18 +57,7 @@ object ValidatorDataSetMergeServiceOptions {
     } yield v4
   }
 
-  def validateDataSetType(datasetType: String): Option[InValidJobOptionsError] = {
-    DataSetMetaTypes.toDataSetType(datasetType) match {
-      case Some(x) => None
-      case _ => Some(InValidJobOptionsError("Unsupported dataset type '$datasetType'"))
-    }
-  }
-
   def validateName(name: String): Option[InValidJobOptionsError] = {
-    None
-  }
-
-  def validateDataSetExists(ids: Seq[Int]): Option[InValidJobOptionsError] = {
     None
   }
 

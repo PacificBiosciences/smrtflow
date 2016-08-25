@@ -23,6 +23,7 @@ trait SecondaryAnalysisJsonProtocols extends SmrtLinkJsonProtocols with ReportJs
 
   implicit val reportAttributeViewRuleFormat = jsonFormat2(ReportAttributeViewRule)
   implicit val reportViewRuleFormat = jsonFormat3(ReportViewRule)
+  implicit val exportOptions = jsonFormat3(DataSetExportServiceOptions)
 
   // this is here to break a tie between otherwise-ambiguous implicits;
   // see the spray-json-shapeless documentation
