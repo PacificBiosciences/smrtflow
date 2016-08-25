@@ -4,14 +4,15 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 import javax.xml.bind.JAXBContext
 
-import com.pacbio.secondary.analysis.datasets
-import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
 import com.typesafe.scalalogging.LazyLogging
 
 import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.language.postfixOps
 import scala.language.higherKinds
+
+import com.pacbio.secondary.analysis.datasets
+import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
 import com.pacbio.secondary.analysis.datasets.{BarcodeSetIO, ConsensusReadSetIO, ContigSetIO, DataSetIO, DataSetType => _, _}
 import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, ExternalResources}
 import com.pacificbiosciences.pacbiodatasets.{DataSetType, _}
