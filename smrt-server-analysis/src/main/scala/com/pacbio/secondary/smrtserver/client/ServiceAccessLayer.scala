@@ -135,6 +135,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
+  def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.EXPORT_DS),
+         DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
+  }
+
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
   }
@@ -221,7 +226,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
             exitFlag = false
             runningJob = Some(job)
           }
-        case Failure(ex) => throw ex
+        case Failure(ex) =>
+            exitFlag = false
+            runningJob = None
       }
     }
 
