@@ -249,6 +249,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
   def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.MERGE_DS, jobId)
   def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
+  def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_MOVIE, jobId)
 
   // FIXME how to convert to String?
   def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
