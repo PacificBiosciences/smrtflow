@@ -185,7 +185,11 @@ class DataSetImportScenario(host: String, port: Int)
     // datastore the SubreadSet will appear
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
     dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
-    fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid)
+    fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid),
+    // export SubreadSets
+    jobId := ExportDataSets(ftSubreads, Var(Seq(1,2)), Var(Paths.get("subreadsets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
   ) ++ (if (!HAVE_PBREPORTS) Seq() else Seq(
     // RUN QC FUNCTIONS (see run-qc-service.ts)
     dsReports := GetSubreadSetReports(subreadsUuid2),
