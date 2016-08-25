@@ -15,13 +15,12 @@ import com.pacbio.secondary.analysis.datasets._
 import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType
 
 
-class ExportDataSets(datasets: Seq[Path], dsType: String, zipPath: Path)
+class ExportDataSets(
+      datasets: Seq[Path],
+      dsType: DataSetMetaTypes.DataSetMetaType,
+      zipPath: Path)
     extends LazyLogging {
 
-  val dsMetaType = DataSetMetaTypes.toDataSetType(dsType) match {
-    case Some(dst) => dst
-    case None => throw new Exception(s"Can't get dataset type $dsType")
-  }
   val dest = new FileOutputStream(zipPath.toFile)
   val out = new ZipOutputStream(new BufferedOutputStream(dest))
 
@@ -48,32 +47,30 @@ class ExportDataSets(datasets: Seq[Path], dsType: String, zipPath: Path)
   def write: Int = {
     val n = datasets.map { dsPath =>
       val basePath = dsPath.getParent
-      val ds = DataSetLoader.loadType(dsMetaType, dsPath)
+      val ds = DataSetLoader.loadType(dsType, dsPath)
       val dsId = UUID.fromString(ds.getUniqueId)
       val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
       val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
-      val nbytes = {
-        val extRes = ds.getExternalResources
-        if (extRes == null) 0 else extRes.getExternalResource.map { er =>
-          writeResourceFile(dsId, er, basePath) + {
-            val extRes2 = er.getExternalResources
-            if (extRes2 == null) 0 else extRes2.getExternalResource.map { rr =>
-              writeResourceFile(dsId, rr, basePath) + {
-                val fi = rr.getFileIndices
-                if (fi == null) 0 else fi.getFileIndex.map {
+      val nbytes = Option(ds.getExternalResources).map { extRes =>
+        extRes.getExternalResource.map { er =>
+          writeResourceFile(dsId, er, basePath) +
+          Option(er.getExternalResources).map { extRes2 =>
+            extRes2.getExternalResource.map { rr =>
+              writeResourceFile(dsId, rr, basePath) +
+              Option(rr.getFileIndices).map { fi =>
+                fi.getFileIndex.map {
                   writeResourceFile(dsId, _, basePath)
                 }.sum
-              }
+              }.getOrElse(0)
             }.sum
-          } + {
-            val fi = er.getFileIndices
-            if (fi == null) 0 else fi.getFileIndex.map {
+          }.getOrElse(0) + Option(er.getFileIndices).map { fi =>
+            fi.getFileIndex.map {
               writeResourceFile(dsId, _, basePath)
             }.sum
-          }
+          }.getOrElse(0)
         }.sum
-      }
-      DataSetWriter.writeDataSet(dsMetaType, ds, dsTmp)
+      }.getOrElse(0)
+      DataSetWriter.writeDataSet(dsType, ds, dsTmp)
       writeFile(dsTmp, dsOutPath) + nbytes
     }.sum
     out.close
@@ -83,7 +80,9 @@ class ExportDataSets(datasets: Seq[Path], dsType: String, zipPath: Path)
 }
 
 object ExportDataSets {
-  def apply(datasets: Seq[Path], dsType: String, zipPath: Path): Int = {
+  def apply(datasets: Seq[Path],
+            dsType: DataSetMetaTypes.DataSetMetaType,
+            zipPath: Path): Int = {
     val writer = new ExportDataSets(datasets, dsType, zipPath)
     writer.write
   }

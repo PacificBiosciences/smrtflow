@@ -21,7 +21,8 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val datasets = Seq(Paths.get(url.getPath))
       val zipPath = Files.createTempFile("referencesets", ".zip")
       //val zipPath = Paths.get("referencesets.zip")
-      val n = ExportDataSets(datasets, FileTypes.DS_REFERENCE.fileTypeId, zipPath)
+      val dsType = DataSetMetaTypes.toDataSetType(FileTypes.DS_REFERENCE.fileTypeId).get
+      val n = ExportDataSets(datasets, dsType, zipPath)
       n must beGreaterThan(0)
     }
   }
@@ -40,7 +41,8 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
                          pbdata.getFile("subreads-xml"))
       val zipPath = Files.createTempFile("subreadsets", ".zip")
       //val zipPath = Paths.get("subreadsets.zip")
-      val n = ExportDataSets(datasets, FileTypes.DS_SUBREADS.fileTypeId, zipPath)
+      val dsType = DataSetMetaTypes.toDataSetType(FileTypes.DS_SUBREADS.fileTypeId).get
+      val n = ExportDataSets(datasets, dsType, zipPath)
       n must beGreaterThan(0)
     }
   }
