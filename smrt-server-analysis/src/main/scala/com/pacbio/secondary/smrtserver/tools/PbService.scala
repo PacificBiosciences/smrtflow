@@ -229,7 +229,10 @@ object PbServiceParser {
       } text "Path to RS II movie metadata XML file (or directory)",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name)
-      } text "Name of imported HdfSubreadSet"
+      } text "Name of imported HdfSubreadSet",
+      opt[String]("project") action { (p, c) =>
+        c.copy(project = Some(p))
+      } text "Name of project associated with this dataset"
     ) text "Import RS II movie metadata XML legacy format as HdfSubreadSet"
 
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
@@ -388,21 +391,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
-  // TODO this is extremely general, move it somewhere central
-  protected def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
-    val columns = table.transpose
-    val widths = for ((col, header) <- columns zip headers) yield {
-      max(header.length, (for (cell <- col) yield cell.length).reduceLeft(_ max _))
-    }
-    val mkline = (row: Seq[String]) => for ((c, w) <- row zip widths) yield c.padTo(w, ' ')
-    println(mkline(headers).mkString(" "))
-    for (row <- table) {
-      println(mkline(row).mkString(" "))
-    }
-    0
-  }
-
-
   def runStatus(asJson: Boolean = false): Int = {
     Try { Await.result(sal.getStatus, TIMEOUT) } match {
       case Success(status) => printStatus(status, asJson)
@@ -477,11 +465,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
       case Success(engineJobs) => {
         if (asJson) println(engineJobs.toJson.prettyPrint) else {
-          var k = 0
-          val table = for (job <- engineJobs.reverse if k < maxItems) yield {
-            k += 1
-            Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString)
-          }
+          val table = engineJobs.reverse.take(maxItems).map(job =>
+            Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString))
           printTable(table, Seq("ID", "State", "Name", "UUID"))
         }
         0
@@ -554,6 +539,33 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                 projectName,
                 true)
 
+  private def importXmlRecursive(path: Path,
+                                 listFilesOfType: File => Array[File],
+                                 doImportOne: Path => Int,
+                                 doImportMany: Path => Int): Int = {
+    val f = path.toFile
+    if (f.isDirectory) {
+      val xmlFiles = listFilesOfType(f)
+      if (xmlFiles.size == 0) {
+        errorExit(s"No valid XML files found in ${f.getAbsolutePath}")
+      } else {
+        println(s"Found ${xmlFiles.size} matching XML files")
+        val failed: ListBuffer[String] = ListBuffer()
+        xmlFiles.foreach { xmlFile =>
+          println(s"Importing ${xmlFile.getAbsolutePath}...")
+          val rc = doImportMany(xmlFile.toPath)
+          if (rc != 0) failed.append(xmlFile.getAbsolutePath.toString)
+        }
+        if (failed.size > 0) {
+          println(s"${failed.size} import(s) failed:")
+          failed.foreach { println }
+          1
+        } else 0
+      }
+    } else if (f.isFile) doImportOne(f.toPath)
+    else errorExit(s"${f.getAbsolutePath} is not readable")
+  }
+
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
     println(s"UUID: ${dsUuid.toString}")
@@ -577,12 +589,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runImportDataSet(path: Path, dsType: String): Int = {
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
-      case Success(jobInfo: EngineJob) => {
-        waitForJob(jobInfo.uuid)
-      }
-      case Failure(err) => {
-        errorExit(s"Dataset import failed: ${err}")
-      }
+      case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
+      case Failure(err) => errorExit(s"Dataset import failed: ${err}")
     }
   }
 
@@ -602,53 +610,33 @@ class PbService (val sal: AnalysisServiceAccessLayer,
         logger.info(s"Non-local file, importing as type ${dsType}")
         runImportDataSet(path, dsType)
       case _ =>
-        val f = path.toFile
-        if (f.isDirectory) {
-          val xmlFiles = listDataSetFiles(f)
-          if (xmlFiles.size == 0) {
-            errorExit(s"No valid datasets found in ${f.getAbsolutePath}")
-          } else {
-            println(s"Found ${xmlFiles.size} DataSet XML files")
-            val failed: ListBuffer[String] = ListBuffer()
-            xmlFiles.foreach { xml =>
-              println(s"Importing ${xml.getAbsolutePath}...")
-              val rc = runImportDataSetSafe(xml.toPath, projectId)
-              if (rc != 0) failed.append(xml.getAbsolutePath.toString)
-            }
-            if (failed.size > 0) {
-              println(s"${failed.size} import(s) failed:")
-              failed.foreach { println }
-              1
-            } else 0
-          }
-        } else if (f.isFile) runImportDataSetSafe(path, projectId)
-        else errorExit(s"${f.getAbsolutePath} is not readable")
+        importXmlRecursive(path, listDataSetFiles,
+                           (p) => runImportDataSetSafe(p, projectId),
+                           (p) => runImportDataSetSafe(p, projectId))
     }
   }
 
-  private def convertRsMovie(path: Path, name: String): Int = {
-    Try {
-      Await.result(sal.convertRsMovie(path, name), TIMEOUT)
-    } match {
-      case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
-      case Failure(err) => errorExit(s"RS II movie import failed: ${err}")
-    }
-  }
-
-  def runImportRsMovie(path: Path, name: String): Int = {
+  def runImportRsMovie(path: Path, name: String, projectId: Int = 0): Int = {
     val fileName = path.toAbsolutePath
-    if (fileName.endsWith(".fofn")) {
-      if (name == "") errorExit(s"--name argument is required when an FOFN is input")
-      else convertRsMovie(path, name)
-    } else {
-      Try {
-        dsNameFromMetadata(path)
-      } match {
-        case Success(dsName) =>
-          val finalName = if (name == "") dsName else name
-          convertRsMovie(fileName, finalName)
-        case _ => errorExit(s"The path does not appear to be valid RSII metadata XML")
-      }
+    if (fileName.endsWith(".fofn") && (name == "")) {
+      return errorExit(s"--name argument is required when an FOFN is input")
+    }
+    val tx = for {
+      finalName <- Try { if (name == "") dsNameFromMetadata(path) else name }
+      job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
+      job <- sal.pollForJob(job.uuid)
+      dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
+    } yield dataStoreFiles
+
+    tx match {
+      case Success(dataStoreFiles) =>
+        dataStoreFiles.find(_.fileTypeId == FileTypes.DS_HDF_SUBREADS.fileTypeId) match {
+          case Some(ds) =>
+            runGetDataSetInfo(ds.uuid)
+            if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
+          case None => errorExit(s"Couldn't find HdfSubreadSet")
+        }
+      case Failure(err) => errorExit(s"RSII movie import failed: ${err.getMessage}")
     }
   }
 
@@ -658,32 +646,18 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
-  def runImportRsMovies(path: Path, name: String): Int = {
-    val f = path.toFile
-    if (f.isDirectory) {
-      if (name != "") {
-        errorExit("--name option not allowed when path is a directory")
-      } else {
-        val xmlFiles = listMovieMetadataFiles(f)
-        if (xmlFiles.size == 0) {
-          errorExit(s"No valid RSII movie metadata XMLs found in ${f.getAbsolutePath}")
-        } else {
-          println(s"Found ${xmlFiles.size} RSII metadata XML Files")
-          val failed: ListBuffer[String] = ListBuffer()
-          xmlFiles.foreach { xml =>
-            println(s"Importing ${xml.getAbsolutePath}...")
-            val rc = runImportRsMovie(xml.toPath, "")
-            if (rc != 0) failed.append(xml.getAbsolutePath.toString)
-          }
-          if (failed.size > 0) {
-            println(s"${failed.size} import(s) failed:")
-            failed.foreach { println }
-            1
-          } else 0
-        }
-      }
-    } else if (f.isFile) runImportRsMovie(path, name)
-    else errorExit(s"${f.getAbsolutePath} is not readable")
+  def runImportRsMovies(path: Path,
+                        name: String,
+                        projectName: Option[String] = None): Int = {
+    val projectId = getProjectIdByName(projectName)
+    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
+    def doImportMany(p: Path): Int = {
+      if (name != "") errorExit("--name option not allowed when path is a directory")
+      else runImportRsMovie(p, name, projectId)
+    }
+    importXmlRecursive(path, listMovieMetadataFiles,
+                       (p) => runImportRsMovie(p, name, projectId),
+                       (p) => doImportMany(p))
   }
 
   def addDataSetToProject(dsId: IdAble, projectId: Int,
@@ -854,9 +828,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
     } match {
       case Success(pipelineJson) => {
-        val presetOptionsLookup = (for (presetOpt <- presets.taskOptions) yield {
-          (presetOpt.id, presetOpt.value.toString)
-        }).toMap
+        val presetOptionsLookup = presets.taskOptions.map(opt => (opt.id, opt.value.toString)).toMap
         // FIXME unmarshalling is broken, so this is a little hacky
         val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
         val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
@@ -926,7 +898,8 @@ object PbService {
                                                      c.ploidy, c.project)
         case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name,
                                                            c.project)
-        case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name)
+        case Modes.IMPORT_MOVIE => ps.runImportRsMovies(c.path, c.name,
+                                                        c.project)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,

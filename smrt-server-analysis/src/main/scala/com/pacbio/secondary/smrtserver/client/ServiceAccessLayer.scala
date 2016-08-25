@@ -189,9 +189,12 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
       else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
     }
 
-    def failIfFailedJob(job: EngineJob): Try[EngineJob] = failIfNotState(AnalysisJobStates.FAILED, job)
+    def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
+      if (job.state != AnalysisJobStates.FAILED) Success(job)
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+    }
 
-    def failIfNotSuccessfulJob(job: EngineJob) = failIfNotState(AnalysisJobStates.SUBMITTED, job)
+    def failIfNotSuccessfulJob(job: EngineJob) = failIfNotState(AnalysisJobStates.SUCCESSFUL, job)
 
     def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0

@@ -4,6 +4,7 @@ import java.util.UUID
 import java.nio.file.{Paths, Path}
 
 import scala.xml.XML
+import scala.math._
 
 import spray.httpx.SprayJsonSupport
 import spray.json._
@@ -81,6 +82,17 @@ trait ClientUtils {
     println(s"  updatedAt: ${project.updatedAt}")
     println(s"  datasets: ${project.datasets.size}")
     println(s"  members: ${project.members.size}")
+    0
+  }
+
+  def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
+    val columns = table.transpose
+    val widths = (columns zip headers).map{ case (col, header) =>
+      max(header.length, col.map(_.length).reduceLeft(_ max _))
+    }
+    val mkline = (row: Seq[String]) => (row zip widths).map{ case (c,w) => c.padTo(w, ' ') }
+    println(mkline(headers).mkString(" "))
+    table.foreach(row => println(mkline(row).mkString(" ")))
     0
   }
 }
