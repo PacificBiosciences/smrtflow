@@ -4,6 +4,7 @@ import java.nio.file.Path
 import javax.xml.bind._
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 
 /**
  *
@@ -47,7 +48,7 @@ object DataSetWriter {
     dataset
   }
 
-  def writeDataSet(dataset: ConsensusReadSet, path: Path): ConsensusReadSet = {
+  def writeConsensusReadSet(dataset: ConsensusReadSet, path: Path): ConsensusReadSet = {
     toMarshaller(JAXBContext.newInstance(classOf[ConsensusReadSet])).marshal(dataset, path.toFile)
     dataset
   }
@@ -65,5 +66,19 @@ object DataSetWriter {
   def writeGmapReferenceSet(dataset: GmapReferenceSet, path: Path): GmapReferenceSet = {
     toMarshaller(JAXBContext.newInstance(classOf[GmapReferenceSet])).marshal(dataset, path.toFile)
     dataset
+  }
+
+  def writeDataSet(dst: DataSetMetaTypes.DataSetMetaType, dataset: DataSetType, path: Path): DataSetType = {
+    dst match {
+      case DataSetMetaTypes.Subread => writeSubreadSet(dataset.asInstanceOf[SubreadSet], path)
+      case DataSetMetaTypes.HdfSubread => writeHdfSubreadSet(dataset.asInstanceOf[HdfSubreadSet], path)
+      case DataSetMetaTypes.Reference => writeReferenceSet(dataset.asInstanceOf[ReferenceSet], path)
+      case DataSetMetaTypes.Alignment => writeAlignmentSet(dataset.asInstanceOf[AlignmentSet], path)
+      case DataSetMetaTypes.CCS => writeConsensusReadSet(dataset.asInstanceOf[ConsensusReadSet], path)
+      case DataSetMetaTypes.AlignmentCCS => writeConsensusAlignmentSet(dataset.asInstanceOf[ConsensusAlignmentSet], path)
+      case DataSetMetaTypes.Contig => writeContigSet(dataset.asInstanceOf[ContigSet], path)
+      case DataSetMetaTypes.Barcode => writeBarcodeSet(dataset.asInstanceOf[BarcodeSet], path)
+      case DataSetMetaTypes.GmapReference => writeGmapReferenceSet(dataset.asInstanceOf[GmapReferenceSet], path)
+    }
   }
 }

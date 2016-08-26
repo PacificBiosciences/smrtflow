@@ -176,7 +176,7 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
                 writer.writeLineStdout("  " + msgs.mkString("\n  "))
                 Right(ResultSuccess(pbJob.jobId, job.jobTypeId.toString, toM(AnalysisJobStates.SUCCESSFUL), runTime, AnalysisJobStates.SUCCESSFUL, host))
               case Failure(ex) =>
-                writer.writeLineStderr("Failed to insert datastore files: ${ex.getMessage}")
+                writer.writeLineStderr(s"Failed to insert datastore files: ${ex.getMessage}")
                 Left(ResultFailed(pbJob.jobId, job.jobTypeId.toString, s"Job $job FAILED to import datafiles ${ex.getMessage}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
             }
           case Right(x) =>

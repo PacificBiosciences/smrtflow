@@ -48,6 +48,7 @@ trait JobTypesTrait {
   val CONVERT_FASTA = "convert-fasta-reference"
   val CONVERT_BARCODES = "convert-fasta-barcodes"
   val CONVERT_MOVIE = "convert-rs-movie"
+  val EXPORT_DS = "export-datasets"
 }
 
 // FIXME this for sure needs to be somewhere else
@@ -244,12 +245,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
+  // FIXME some of these probably don't belong here
   def getAnalysisJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.PB_PIPE, jobId)
   def getImportDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
   def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
   def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.MERGE_DS, jobId)
   def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
   def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_MOVIE, jobId)
+  def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.EXPORT_DS, jobId)
 
   // FIXME how to convert to String?
   def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {

@@ -74,6 +74,14 @@ trait SmrtAnalysisSteps {
     }
   }
 
+  case class ExportDataSets(dsType: Var[String], ids: Var[Seq[Int]], outputPath: Var[Path]) extends VarStep[UUID] {
+    override val name = "ExportDataSets"
+    override def run: Future[Result] = smrtLinkClient.exportDataSets(dsType.get, ids.get, outputPath.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
+
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
     override def run: Future[Result] = smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>

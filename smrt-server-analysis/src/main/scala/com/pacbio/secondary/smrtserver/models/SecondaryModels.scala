@@ -23,4 +23,7 @@ object SecondaryModels {
   case class ReportAttributeViewRule(id: String, name: String)
 
   case class ReportViewRule(id: String, name: String, attributes: Seq[ReportAttributeViewRule])
+
+  case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
+                                         outputPath: String)
 }
