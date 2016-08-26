@@ -38,17 +38,10 @@ trait ServiceResourceTypesTrait {
   val ENTRY_POINTS = "entry-points"
 }
 
-// FIXME this should probably use com.pacbio.secondary.analysis.jobtypes
 trait JobTypesTrait {
   val IMPORT_DS = "import-dataset"
-  val IMPORT_DSTORE = "import-datastore"
   val MERGE_DS = "merge-datasets"
-  val PB_PIPE = "pbsmrtpipe"
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
-  val CONVERT_FASTA = "convert-fasta-reference"
-  val CONVERT_BARCODES = "convert-fasta-barcodes"
-  val CONVERT_MOVIE = "convert-rs-movie"
-  val EXPORT_DS = "export-datasets"
 }
 
 // FIXME this for sure needs to be somewhere else
@@ -101,9 +94,6 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
       ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
-      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA,
-      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES,
-      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE,
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
@@ -236,23 +226,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
   }
 
-  // FIXME I think this still only works with Int
-  def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
-    Get(toJobResourceUrl(JobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
-  }
-
   protected def getJobDataStore(jobType: String, jobId: IdAble) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
   }
 
-  // FIXME some of these probably don't belong here
-  def getAnalysisJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.PB_PIPE, jobId)
   def getImportDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
-  def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_FASTA, jobId)
   def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.MERGE_DS, jobId)
-  def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_BARCODES, jobId)
-  def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.CONVERT_MOVIE, jobId)
-  def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.EXPORT_DS, jobId)
 
   // FIXME how to convert to String?
   def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
@@ -271,9 +250,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))
   }
 
-  def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, JobTypes.PB_PIPE)
   def getImportJobReports(jobId: IdAble) = getJobReports(jobId, JobTypes.IMPORT_DS)
-  // XXX CONVERT_FASTA does not generate reports yet; what about MERGE_DS?
 
   def getDataStoreFileResource(fileId: UUID, relpath: String): Future[HttpResponse] = respPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
