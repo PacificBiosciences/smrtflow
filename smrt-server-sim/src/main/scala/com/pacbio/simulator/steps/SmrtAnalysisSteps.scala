@@ -113,4 +113,29 @@ trait SmrtAnalysisSteps {
       SUCCEEDED
     }
   }
+
+  case class GetAnalysisJobDataStore(jobId: Var[UUID]) extends VarStep[Seq[DataStoreServiceFile]] {
+    override val name = "GetAnalysisJobDataStore"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobDataStore(jobId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetAnalysisJobReports(jobId: Var[UUID]) extends VarStep[Seq[DataStoreReportFile]] {
+    override val name = "GetAnalysisJobReports"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobReports(jobId.get).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  // XXX this only works with Int
+  case class GetAnalysisJobEntryPoints(jobId: Var[Int]) extends VarStep[Seq[EngineJobEntryPoint]] {
+    override val name = "GetAnalysisJobEntryPoints"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobEntryPoints(jobId.get).map { e =>
+      output(e)
+      SUCCEEDED
+    }
+  }
 }

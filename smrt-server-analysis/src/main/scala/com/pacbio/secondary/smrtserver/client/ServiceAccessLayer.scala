@@ -55,6 +55,25 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     val ROOT_DS_RULES = "/secondary-analysis/pipeline-datastore-view-rules"
   }
 
+  object AnalysisJobTypes extends JobTypesTrait {
+    val IMPORT_DSTORE = "import-datastore"
+    val CONVERT_FASTA = "convert-fasta-reference"
+    val CONVERT_BARCODES = "convert-fasta-barcodes"
+    val CONVERT_MOVIE = "convert-rs-movie"
+    val EXPORT_DS = "export-datasets"
+    val PB_PIPE = "pbsmrtpipe"
+  }
+
+  override def serviceStatusEndpoints: Vector[String] = Vector(
+      ServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.IMPORT_DS,
+      ServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.CONVERT_FASTA,
+      ServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.CONVERT_BARCODES,
+      ServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.PB_PIPE,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
+      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
+
   private def toP(path: Path) = path.toAbsolutePath.toString
 
   def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceiveAuthenticated ~> unmarshal[EngineJob]
@@ -72,11 +91,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
 
-  def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.PB_PIPE)
-  def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.IMPORT_DS)
-  def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.MERGE_DS)
-  def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_FASTA)
-  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(JobTypes.CONVERT_BARCODES)
+  def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.PB_PIPE)
+  def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.IMPORT_DS)
+  def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.MERGE_DS)
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.CONVERT_FASTA)
+  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.CONVERT_BARCODES)
 
   def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString))
@@ -87,7 +106,20 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   }
 
   def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
-    getJobByTypeAndId(JobTypes.PB_PIPE, jobId)
+    getJobByTypeAndId(AnalysisJobTypes.PB_PIPE, jobId)
+  }
+
+  def getAnalysisJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.PB_PIPE, jobId)
+  def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.CONVERT_FASTA, jobId)
+  def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.CONVERT_BARCODES, jobId)
+  def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.CONVERT_MOVIE, jobId)
+  def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.EXPORT_DS, jobId)
+
+  def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, AnalysisJobTypes.PB_PIPE)
+
+  // FIXME I think this still only works with Int
+  def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
+    Get(toJobResourceUrl(AnalysisJobTypes.PB_PIPE, jobId, ServiceResourceTypes.ENTRY_POINTS))
   }
 
   protected def getJobReport(jobType: String, jobId: IdAble, reportId: UUID): Future[Report] = getReportPipeline {
@@ -96,7 +128,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
-  def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(JobTypes.PB_PIPE, jobId, reportId)
+  def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(AnalysisJobTypes.PB_PIPE, jobId, reportId)
 
   def getReportViewRules: Future[Seq[ReportViewRule]] = getReportViewRulesPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_REPORT_RULES))
@@ -109,34 +141,34 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
     val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
     Post(
-      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS),
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.IMPORT_DS),
       ImportDataSetOptions(toP(path), dsMetaTypeObj))
   }
 
   def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
     Post(
-      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_FASTA),
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.CONVERT_FASTA),
       ConvertImportFastaOptions(toP(path), name, ploidy, organism))
   }
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] = runJobPipeline {
     Post(
-      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_BARCODES),
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.CONVERT_BARCODES),
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
   def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.MERGE_DS),
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.MERGE_DS),
          DataSetMergeServiceOptions(datasetType, ids, name))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.CONVERT_MOVIE),
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.CONVERT_MOVIE),
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
   def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
-    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.EXPORT_DS),
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.EXPORT_DS),
          DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
   }
 
@@ -163,7 +195,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
     Post(
-      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + JobTypes.PB_PIPE),
+      toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.PB_PIPE),
       pipelineOptions)
   }
 

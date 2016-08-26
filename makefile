@@ -93,7 +93,7 @@ test-int-run-sanity: test-int-get-status test-int-import-data test-int-run-analy
 test-sim:
 	sbt "smrt-server-analysis/assembly"
 	sbt "smrt-server-sim/pack"
-	python extras/run_sim_local.py DataSetImportScenario
+	python extras/run_sim_local.py DataSetScenario
 
 validate-report-view-rules:
 	find ./smrt-server-analysis/src/main/resources/report-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
