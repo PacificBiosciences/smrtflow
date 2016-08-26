@@ -2,7 +2,7 @@
 package com.pacbio.secondary.smrtserver.services.jobtypes
 
 import java.util.UUID
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import spray.http.MediaTypes
 import spray.json._
@@ -14,6 +14,7 @@ import akka.pattern.ask
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try, Properties}
 
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
@@ -34,25 +35,26 @@ import com.pacbio.secondary.smrtserver.models.SecondaryModels.DataSetExportServi
 
 object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOptions {
 
-  def apply(opts: DataSetExportServiceOptions): Option[InValidJobOptionsError] = {
-    validate(opts)
-  }
-
-  def validateOutputPath(path: String): Option[InValidJobOptionsError] = {
+  def validateOutputPath(path: String): Future[Path] = {
     val p = Paths.get(path)
     val dir = p.getParent
-    if (p.toFile.exists) Some(InValidJobOptionsError(s"The file ${path} already exists"))
-    else if (! dir.toFile.exists) Some(InValidJobOptionsError(s"The directory ${dir.toString} does not exist"))
-    else if (! Files.isWritable(dir)) Some(InValidJobOptionsError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
-    else None
+    if (p.toFile.exists) Future.failed(new InValidJobOptionsError(s"The file ${path} already exists"))
+    else if (! dir.toFile.exists) Future.failed(new InValidJobOptionsError(s"The directory ${dir.toString} does not exist"))
+    else if (! Files.isWritable(dir)) Future.failed(new InValidJobOptionsError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
+    else Future { p }
   }
 
-  def validate(opts: DataSetExportServiceOptions): Option[InValidJobOptionsError] = {
+  def validate(opts: DataSetExportServiceOptions, dbActor: ActorRef): Future[ExportDataSetsOptions] = {
     for {
-      v1 <- validateDataSetType(opts.datasetType)
-      v3 <- validateOutputPath(opts.outputPath)
-      v4 <- validateDataSetExists(opts.ids)
-    } yield v4
+      datasetType <- validateDataSetType(opts.datasetType)
+      outputPath <- validateOutputPath(opts.outputPath)
+      paths <- validateDataSetsExist(opts.ids, datasetType, dbActor)
+      //  paths <- validateDataSets(paths, datasetType)
+    } yield ExportDataSetsOptions(datasetType, paths, outputPath)
+  }
+
+  def apply(opts: DataSetExportServiceOptions, dbActor: ActorRef): Future[ExportDataSetsOptions] = {
+    validate(opts, dbActor)
   }
 
 }
@@ -82,16 +84,17 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
 
               val uuid = UUID.randomUUID()
               logger.info(s"attempting to create an export-datasets job ${uuid.toString} with options $sopts")
-
+              // FIXME too much code duplication here
               val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))
 
               val fx = for {
                 uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
                 resolvedPaths <- Future { uuidPaths.map(x => x._2) }
                 engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
-                exportDataSetOptions <- Future { ExportDataSetsOptions(sopts.datasetType, resolvedPaths, sopts.outputPath) }
-                coreJob <- Future { CoreJob(uuid, exportDataSetOptions) }
-                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), exportDataSetOptions.toJson.toString, authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
+                //engineEntryPoints <- Future { vopts.paths.map(p => EngineJobEntryPointRecord(p, vopts.datasetType.dsId)) }
+                vopts <- ValidatorDataSetExportServiceOptions(sopts, dbActor)
+                coreJob <- Future { CoreJob(uuid, vopts) }
+                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
 
               complete {

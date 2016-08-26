@@ -242,6 +242,21 @@ object ImplicitDataSetLoader {
   def loaderAndResolve[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
     resolveDataSet[T](lx.load(path), path.toAbsolutePath.getParent)
 
+  def loaderAndResolveType(dst: DataSetMetaTypes.DataSetMetaType,
+                           input: Path): DataSetType = {
+    dst match {
+      case DataSetMetaTypes.Subread => loaderAndResolve[SubreadSet](input)
+      case DataSetMetaTypes.HdfSubread => loaderAndResolve[HdfSubreadSet](input)
+      case DataSetMetaTypes.Reference => loaderAndResolve[ReferenceSet](input)
+      case DataSetMetaTypes.Alignment => loaderAndResolve[AlignmentSet](input)
+      case DataSetMetaTypes.CCS => loaderAndResolve[ConsensusReadSet](input)
+      case DataSetMetaTypes.AlignmentCCS => loaderAndResolve[ConsensusAlignmentSet](input)
+      case DataSetMetaTypes.Contig => loaderAndResolve[ContigSet](input)
+      case DataSetMetaTypes.Barcode => loaderAndResolve[BarcodeSet](input)
+      case DataSetMetaTypes.GmapReference => loaderAndResolve[GmapReferenceSet](input)
+    }
+  }
+
 }
 
 object ImplicitDataSetIOLoader {

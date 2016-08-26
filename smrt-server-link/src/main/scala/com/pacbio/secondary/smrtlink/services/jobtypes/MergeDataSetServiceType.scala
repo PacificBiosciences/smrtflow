@@ -1,12 +1,25 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
 import java.util.UUID
+import java.nio.file.{Path,Paths}
 
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success, Try, Properties}
+import scala.concurrent.ExecutionContext.Implicits.global
+import spray.json._
+import spray.httpx.SprayJsonSupport
+import spray.http.MediaTypes
+import SprayJsonSupport._
+import com.typesafe.scalalogging.LazyLogging
 import akka.actor.ActorRef
 import akka.pattern.ask
+
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetLoader._
+import com.pacbio.secondary.analysis.datasets.validators.ImplicitDataSetValidators._
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
@@ -15,14 +28,6 @@ import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDao
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
-import com.typesafe.scalalogging.LazyLogging
-import spray.http.MediaTypes
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import spray.json._
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 
 
@@ -31,35 +36,67 @@ case class InValidJobOptionsError(msg: String) extends Exception(msg)
 
 
 trait ValidatorDataSetServicesOptions {
-  def validateDataSetType(datasetType: String): Option[InValidJobOptionsError] = {
+  def validateDataSetType(datasetType: String): Future[DataSetMetaTypes.DataSetMetaType] = {
     DataSetMetaTypes.toDataSetType(datasetType) match {
-      case Some(x) => None
-      case _ => Some(InValidJobOptionsError("Unsupported dataset type '$datasetType'"))
+      case Some(dst) => Future { dst }
+      case _ => Future.failed(new InValidJobOptionsError("Unsupported dataset type '$datasetType'"))
     }
   }
 
-  def validateDataSetExists(ids: Seq[Int]): Option[InValidJobOptionsError] = {
-    None
+  def validateDataSetsExist(datasets: Seq[Int],
+                            dsType: DataSetMetaTypes.DataSetMetaType,
+                            dbActor: ActorRef): Future[Seq[Path]] = {
+    val fsx = datasets.map(id => ValidateImportDataSetUtils.resolveDataSet(dsType.dsId, id, dbActor))
+    Future.sequence(fsx).map { f => 
+      f.map { ds =>
+        val path = Paths.get(ds.path)
+        if (path.toFile.exists) path else {
+          throw InValidJobOptionsError(s"The dataset path $path does not exist")
+        }
+      }
+    }
   }
+
+  // FIXME does not compile yet
+  /*
+  def validateDataSets(datasets: Seq[Path],
+                       dsType: DataSetMetaTypes.DataSetMetaType): Future[Seq[Path]] = {
+    Try {
+      datasets.map { path =>
+        val ds = loaderAndResolveType(dsType, path) //DataSetLoader.loadType(dsType, path)
+        validator(ds) match {
+          case Success(ds) => path
+          case Failure(errorsNel) =>
+            val msg = errorsNel.list.mkString("; ")
+            throw InValidJobOptionsError(s"Failed validation of ${path.toString}: $msg")
+        }
+      }
+    } match {
+      case Success(paths) => Future { paths }
+      case Failure(err) => Future.failed(err)
+    }
+  }*/
+
 }
 
 object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptions {
 
-  def apply(opts: DataSetMergeServiceOptions): Option[InValidJobOptionsError] = {
-    validate(opts)
+  def apply(opts: DataSetMergeServiceOptions,
+            dbActor: ActorRef): Future[MergeDataSetOptions] = {
+    validate(opts, dbActor)
   }
 
-  def validate(opts: DataSetMergeServiceOptions): Option[InValidJobOptionsError] = {
+  def validate(opts: DataSetMergeServiceOptions,
+               dbActor: ActorRef): Future[MergeDataSetOptions] = {
     for {
-      v1 <- validateDataSetType(opts.datasetType)
-      v3 <- validateName(opts.name)
-      v4 <- validateDataSetExists(opts.ids)
-    } yield v4
+      datasetType <- validateDataSetType(opts.datasetType)
+      name <- validateName(opts.name)
+      paths <- validateDataSetsExist(opts.ids, datasetType, dbActor)
+    //  paths <- validateDataSets(paths, datasetType)
+    } yield MergeDataSetOptions(datasetType.dsId, paths.map(_.toString), name)
   }
 
-  def validateName(name: String): Option[InValidJobOptionsError] = {
-    None
-  }
+  def validateName(name: String): Future[String] = Future { name }
 
 }
 
