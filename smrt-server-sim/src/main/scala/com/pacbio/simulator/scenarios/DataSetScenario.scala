@@ -1,4 +1,14 @@
 
+// This tests the following service job types:
+//   import-dataset
+//   merge-datasets
+//   export-datasets
+//   convert-fasta-barcodes
+//   convert-fasta-reference (only if 'sawriter' is available)
+//   convert-rs-movie
+//
+// TODO: test GmapReferenceSet?
+
 package com.pacbio.simulator.scenarios
 
 import java.net.URL
@@ -27,10 +37,10 @@ import com.pacbio.simulator.steps._
  * }}}
  */
 
-object DataSetImportScenarioLoader extends ScenarioLoader {
+object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
-    require(config.isDefined, "Path to config file must be specified for DataSetImportScenario")
-    require(PacBioTestData.isAvailable, "PacBioTestData must be configured for DataSetImportScenario")
+    require(config.isDefined, "Path to config file must be specified for DataSetScenario")
+    require(PacBioTestData.isAvailable, "PacBioTestData must be configured for DataSetScenario")
     val c: Config = config.get
 
     // Resolve overrides with String
@@ -41,13 +51,13 @@ object DataSetImportScenarioLoader extends ScenarioLoader {
         case e: ConfigException.WrongType => c.getString(key).trim.toInt
       }
 
-    new DataSetImportScenario(
+    new DataSetScenario(
       c.getString("smrt-link-host"),
       getInt("smrt-link-port"))
   }
 }
 
-class DataSetImportScenario(host: String, port: Int)
+class DataSetScenario(host: String, port: Int)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -56,7 +66,7 @@ class DataSetImportScenario(host: String, port: Int)
     with SmrtAnalysisSteps
     with ClientUtils {
 
-  override val name = "DataSetImportScenario"
+  override val name = "DataSetScenario"
 
   override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
 
@@ -212,8 +222,13 @@ class DataSetImportScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     referenceSets := GetReferenceSets,
-    fail("Expected one ReferenceSet") IF referenceSets.mapWith(_.size) !=? 1
+    fail("Expected one ReferenceSet") IF referenceSets.mapWith(_.size) !=? 1,
+    // export ReferenceSet
+    jobId := ExportDataSets(ftReference, referenceSets.mapWith(_.map(d => d.id)), Var(Paths.get("referencesets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
   ) ++ (if (! HAVE_SAWRITER) Seq() else Seq(
+    // FASTA import tests (require sawriter)
     jobId := ImportFasta(refFasta, Var("import-fasta")),
     jobStatus := WaitForJob(jobId),
     fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -234,11 +249,16 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     barcodeSets := GetBarcodeSets,
     fail("Expected one BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 1,
+    // import FASTA
     jobId := ImportFastaBarcodes(bcFasta, Var("import-barcodes")),
     jobStatus := WaitForJob(jobId),
     fail("Import barcodes job failed") IF jobStatus !=? EXIT_SUCCESS,
     barcodeSets := GetBarcodeSets,
-    fail("Expected two BarcodeSets") IF barcodeSets.mapWith(_.size) !=? 2
+    fail("Expected two BarcodeSets") IF barcodeSets.mapWith(_.size) !=? 2,
+    // export BarcodeSets
+    jobId := ExportDataSets(ftBarcodes, barcodeSets.mapWith(_.map(d => d.id)), Var(Paths.get("barcodesets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
   )
   val hdfSubreadTests = Seq(
     hdfSubreadSets := GetHdfSubreadSets,
@@ -248,6 +268,7 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import HdfSubreads job failed") IF jobStatus !=? EXIT_SUCCESS,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected one HdfSubreadSet") IF hdfSubreadSets.mapWith(_.size) !=? 1,
+    // import RSII movie
     jobId := ConvertRsMovie(rsMovie),
     jobStatus := WaitForJob(jobId),
     fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -256,6 +277,10 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2,
+    // export HdfSubreadSet
+    jobId := ExportDataSets(ftHdfSubreads, hdfSubreadSets.mapWith(_.map(d => d.id)), Var(Paths.get("hdfsubreadsets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     // merge HdfSubreadSets
     // XXX it's actually a little gross that this works, since these contain
     // the same bax.h5 files...
@@ -274,6 +299,9 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import ContigSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     contigSets := GetContigSets,
     fail("Expected one ContigSet") IF contigSets.mapWith(_.size) !=? 1,
+    jobId := ExportDataSets(ftContigs, contigSets.mapWith(_.map(d => d.id)), Var(Paths.get("contigsets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     // AlignmentSet
     alignmentSets := GetAlignmentSets,
     fail(MSG_DS_ERR) IF alignmentSets ? (_.nonEmpty),
@@ -282,9 +310,15 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     alignmentSets := GetAlignmentSets,
     fail("Expected one AlignmentSet") IF alignmentSets.mapWith(_.size) !=? 1,
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(alignments2, ftAlign),
     jobStatus := WaitForJob(jobId),
     fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    // export
+    jobId := ExportDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("alignmentsets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    // merge
     alignmentSets := GetAlignmentSets,
     jobId := MergeDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var("merge-alignments")),
     jobStatus := WaitForJob(jobId),
@@ -299,6 +333,9 @@ class DataSetImportScenario(host: String, port: Int)
     fail("Import ConsensusReadSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     ccsSets := GetConsensusReadSets,
     fail("Expected one ConsensusReadSet") IF ccsSets.mapWith(_.size) !=? 1,
+    jobId := ExportDataSets(ftCcs, ccsSets.mapWith(_.map(d => d.id)), Var(Paths.get("ccssets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     // ConsensusAlignmentSet
     ccsAlignmentSets := GetConsensusAlignmentSets,
     fail(MSG_DS_ERR) IF ccsAlignmentSets ? (_.nonEmpty),
@@ -306,7 +343,10 @@ class DataSetImportScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import ConsensusAlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     ccsAlignmentSets := GetConsensusAlignmentSets,
-    fail("Expected one ConsensusAlignmentSet") IF ccsAlignmentSets.mapWith(_.size) !=? 1
+    fail("Expected one ConsensusAlignmentSet") IF ccsAlignmentSets.mapWith(_.size) !=? 1,
+    jobId := ExportDataSets(ftCcsAlign, ccsAlignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("ccsalignmentsets.zip").toAbsolutePath)),
+    jobStatus := WaitForJob(jobId),
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
   )
   // FAILURE MODES
   val failureTests = Seq(
