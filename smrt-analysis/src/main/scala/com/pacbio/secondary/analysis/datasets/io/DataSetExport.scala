@@ -24,11 +24,6 @@ class ExportDataSets(
   val dest = new FileOutputStream(zipPath.toFile)
   val out = new ZipOutputStream(new BufferedOutputStream(dest))
 
-  private def getResourcePath(basePath: Path, resourceId: String): Path = {
-    val resPath = if (resourceId.startsWith("file://")) Paths.get(URI.create(resourceId)) else Paths.get(resourceId)
-    if (! resPath.isAbsolute) basePath.resolve(resPath) else resPath
-  }
-
   private def writeFile(path: Path, zipOutPath: String): Int = {
     val ze = new ZipEntry(zipOutPath)
     out.putNextEntry(ze)
@@ -37,35 +32,47 @@ class ExportDataSets(
     data.size
   }
 
-  private def writeResourceFile(dsId: UUID, res: InputOutputDataType, basePath: Path): Int = {
-    val resourcePath = getResourcePath(basePath, res.getResourceId)
-    logger.info(s"writing $resourcePath")
-    res.setResourceId(resourcePath.getFileName.toString)
-    writeFile(resourcePath, s"${dsId}/${res.getResourceId}")
+  private def writeResourceFile(dsId: UUID,
+                                res: InputOutputDataType,
+                                basePath: Path,
+                                ignoreMissing: Boolean = false): Int = {
+    val resourcePath = Paths.get(res.getResourceId)
+    if (! resourcePath.toFile.exists) {
+      val msg = s"resource ${resourcePath.toString} is missing"
+      if (ignoreMissing) {
+        logger.error(msg)
+        0
+      } else {
+        throw new Exception(msg)
+      }
+    } else {
+      logger.info(s"writing $resourcePath")
+      writeFile(resourcePath, s"${dsId}/${res.getResourceId}")
+    }
   }
 
-  def write: Int = {
+  def write(skipMissingFiles: Boolean = false): Int = {
     val n = datasets.map { dsPath =>
       val basePath = dsPath.getParent
-      val ds = DataSetLoader.loadType(dsType, dsPath)
+      val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
       val dsId = UUID.fromString(ds.getUniqueId)
       val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
       val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
       val nbytes = Option(ds.getExternalResources).map { extRes =>
         extRes.getExternalResource.map { er =>
-          writeResourceFile(dsId, er, basePath) +
+          writeResourceFile(dsId, er, basePath, skipMissingFiles) +
           Option(er.getExternalResources).map { extRes2 =>
             extRes2.getExternalResource.map { rr =>
-              writeResourceFile(dsId, rr, basePath) +
+              writeResourceFile(dsId, rr, basePath, skipMissingFiles) +
               Option(rr.getFileIndices).map { fi =>
                 fi.getFileIndex.map {
-                  writeResourceFile(dsId, _, basePath)
+                  writeResourceFile(dsId, _, basePath, skipMissingFiles)
                 }.sum
               }.getOrElse(0)
             }.sum
           }.getOrElse(0) + Option(er.getFileIndices).map { fi =>
             fi.getFileIndex.map {
-              writeResourceFile(dsId, _, basePath)
+              writeResourceFile(dsId, _, basePath, skipMissingFiles)
             }.sum
           }.getOrElse(0)
         }.sum
@@ -82,8 +89,9 @@ class ExportDataSets(
 object ExportDataSets {
   def apply(datasets: Seq[Path],
             dsType: DataSetMetaTypes.DataSetMetaType,
-            zipPath: Path): Int = {
+            zipPath: Path,
+            skipMissingFiles: Boolean = false): Int = {
     val writer = new ExportDataSets(datasets, dsType, zipPath)
-    writer.write
+    writer.write(skipMissingFiles)
   }
 }
