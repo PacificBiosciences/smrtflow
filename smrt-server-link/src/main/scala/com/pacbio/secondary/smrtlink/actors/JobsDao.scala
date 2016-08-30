@@ -30,6 +30,8 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import slick.driver.SQLiteDriver.api._
+import org.sqlite.SQLiteErrorCode
+import java.sql.SQLException
 
 import scala.concurrent.duration._
 
@@ -57,6 +59,14 @@ trait TestDalProvider extends DalProvider {
  */
 trait DalComponent {
   val db: Database
+
+  def isConstraintViolation(t: Throwable): Boolean = {
+    t match {
+      case se: SQLException =>
+        se.getErrorCode() == SQLiteErrorCode.SQLITE_CONSTRAINT.code
+      case _ => false
+    }
+  }
 }
 
 trait ProjectDataStore extends LazyLogging {

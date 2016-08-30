@@ -5,7 +5,7 @@ import com.pacbio.common.actors.{ActorRefFactoryProvider, InMemoryUserDaoProvide
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models.UserRecord
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -17,7 +17,7 @@ import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunner
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-import spray.http.OAuth2BearerToken
+import spray.http.{OAuth2BearerToken, StatusCodes}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing.AuthenticationFailedRejection
@@ -30,6 +30,7 @@ class ProjectSpec extends Specification
 with NoTimeConversions
 with Specs2RouteTest
 with SetupMockData
+with PacBioServiceErrors
 with JobServiceConstants
 with BaseRolesInit
 with SmrtLinkConstants {
@@ -89,6 +90,7 @@ with SmrtLinkConstants {
 
   val newProject = ProjectRequest("TestProject", "Test Description", Some("CREATED"), None, None)
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some("ACTIVE"), None, None)
+  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some("ACTIVE"), None, None)
 
   val newUser = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Write")
   val newUser2 = ProjectRequestUser(RequestUser(WRITE_USER_2_LOGIN), "Can Read")
@@ -127,6 +129,12 @@ with SmrtLinkConstants {
       }
     }
 
+    "fail to create a project with a conflicting name" in {
+      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status === StatusCodes.Conflict
+      }
+    }
+
     "return a list of all projects" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -152,6 +160,20 @@ with SmrtLinkConstants {
         val proj = responseAs[FullProject]
         proj.name === newProject2.name
         proj.state === newProject2.state.get
+      }
+    }
+
+    "fail to update a project with a conflicting name" in {
+      var confProjId = 0
+
+      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject3) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val proj = responseAs[FullProject]
+        confProjId = proj.id
+      }
+
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$confProjId", newProject3.copy(name = newProject2.name)) ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status === StatusCodes.Conflict
       }
     }
 
@@ -241,9 +263,8 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/user-projects/$WRITE_USER_1_LOGIN") ~> addCredentials(WRITE_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
-        println(results)
-        results.size === 2 // the general project from dbSetup, plus
-                           // the project from the creation test above
+        results.size === 3 // the general project from dbSetup, plus
+                           // the two projects from earlier tests
       }
     }
 
