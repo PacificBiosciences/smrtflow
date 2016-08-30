@@ -4,7 +4,7 @@ import com.pacbio.common.actors.{UserDao, UserDaoProvider}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.services.PacBioServiceErrors.{ConflictError, ResourceNotFoundError}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoProvider, JobsDao}
@@ -40,6 +40,20 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
         ProjectUserResponse(au.toResponse(), u.role))
     } yield proj.makeFull(datasets, userResponses)
 
+  def maybeFullProject(projId: Int): Option[Project] => Future[FullProject] = {
+    {
+      case Some(proj) => fullProject(proj)
+      case None => throw new ResourceNotFoundError(s"Unable to find project $projId")
+    }
+  }
+
+  def translateConflict(sopts: ProjectRequest): PartialFunction[Throwable, Future[FullProject]] = {
+    {
+      case ex: Throwable if jobsDao.isConstraintViolation(ex) =>
+        Future.failed(new ConflictError(s"There is already a project named ${sopts.name}"))
+    }
+  }
+
   val routes =
     pathPrefix("projects") {
       pathEndOrSingleSlash {
@@ -51,6 +65,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
                   jobsDao
                     .createProject(sopts, authInfo.login)
                     .flatMap(fullProject)
+                    .recoverWith(translateConflict(sopts))
                 }
               }
             }
@@ -73,10 +88,10 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
-                    jobsDao.updateProject(projId, sopts).flatMap {
-                      case Some(proj) => fullProject(proj)
-                      case None => throw new ResourceNotFoundError(s"Unable to find project $projId")
-                    }
+                    jobsDao
+                      .updateProject(projId, sopts)
+                      .flatMap(maybeFullProject(projId))
+                      .recoverWith(translateConflict(sopts))
                   }
                 }
               }
@@ -86,10 +101,9 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
             authenticate(authenticator.jwtAuth) { authInfo =>
               complete {
                 ok {
-                  jobsDao.getProjectById(projId).flatMap {
-                    case Some(proj) => fullProject(proj)
-                    case None => throw new ResourceNotFoundError(s"Unable to find project $projId")
-                  }
+                  jobsDao
+                    .getProjectById(projId)
+                    .flatMap(maybeFullProject(projId))
                 }
               }
             }

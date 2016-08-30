@@ -114,6 +114,8 @@ package object services {
       extends PacBioServiceError(message, cause) { override val code = NotFound }
     class MethodNotImplementedError(message: String, cause: Throwable = null)
       extends PacBioServiceError(message, cause) { override val code = NotImplemented }
+    class ConflictError(message: String, cause: Throwable = null)
+      extends PacBioServiceError(message, cause) { override val code = Conflict }
     class UnprocessableEntityError(message: String, cause: Throwable = null)
       extends PacBioServiceError(message, cause) { override val code = UnprocessableEntity }
     class UnknownServerError(message: String, cause: Throwable = null)
