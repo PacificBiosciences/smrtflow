@@ -32,6 +32,7 @@ object FastaToReferenceConverter extends FastaConverterBase[ReferenceSet, Contig
   protected val dsName: String = "ReferenceSet"
   protected val programName: String = "fasta-to-reference"
   protected val metatype: String = FileTypes.DS_REFERENCE.fileTypeId
+  protected val fastaMetatype: String = FileTypes.FASTA_REF.fileTypeId
 
   override protected def createIndexFiles(fastaPath: Path): Seq[DatasetIndexFile] = {
     val faiIndex = createFaidx(fastaPath)

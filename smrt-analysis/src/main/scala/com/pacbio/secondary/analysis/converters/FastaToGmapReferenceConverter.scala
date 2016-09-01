@@ -40,6 +40,7 @@ object GmapReferenceConverter extends FastaConverterBase[GmapReferenceSet, Conti
   protected val dsName: String = "GmapReferenceSet"
   protected val programName: String = "fasta-to-gmap-reference"
   protected val metatype: String = FileTypes.DS_GMAP_REF.fileTypeId
+  protected val fastaMetatype: String = FileTypes.FASTA_REF.fileTypeId
 
   def generateGmapDb(fastaPath: Path, name: String, outputDir: Path): Either[ExternalCmdFailure, GmapDbInfo] = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
