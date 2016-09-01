@@ -32,6 +32,7 @@ object FastaBarcodesConverter extends FastaConverterBase[BarcodeSet, BarcodeSetM
   protected val dsName: String = "BarcodeSet"
   protected val programName: String = "fasta-to-barcodes"
   protected val metatype: String = FileTypes.DS_BARCODE.fileTypeId
+  protected val fastaMetatype: String = FileTypes.FASTA_BC.fileTypeId
 
   override protected def setMetadata(ds: BarcodeSet, metadata: BarcodeSetMetadataType): Unit = ds.setDataSetMetadata(metadata)
 

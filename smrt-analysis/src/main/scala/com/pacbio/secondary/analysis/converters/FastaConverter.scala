@@ -44,6 +44,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   protected val dsName: String // ReferenceSet
   protected val programName: String // fasta-to-reference
   protected val metatype: String // PacBio.DataSet.ReferenceSet
+  protected val fastaMetatype: String // PacBio.ReferenceFile.ReferenceFastaFile
 
   protected def nameToFileName(name: String): String = name.replaceAll("[^A-Za-z0-9_]", "_")
 
@@ -84,7 +85,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     val er = new ExternalResource()
     er.setCreatedAt(createdAt)
     er.setModifiedAt(createdAt)
-    er.setMetaType(FileTypes.FASTA_REF.fileTypeId)
+    er.setMetaType(fastaMetatype)
     er.setName(s"Fasta $name")
     er.setUniqueId(UUID.randomUUID().toString)
     er.setTags(tags)
@@ -154,6 +155,7 @@ object FastaContigsConverter extends FastaConverterBase[ContigSet, ContigSetMeta
   protected val dsName: String = "ContigSet"
   protected val programName: String = "unknown"
   protected val metatype: String = FileTypes.DS_CONTIG.fileTypeId
+  protected val fastaMetatype: String = FileTypes.FASTA_CONTIG.fileTypeId
 
   override protected def setMetadata(ds: ContigSet, metadata: ContigSetMetadataType): Unit = ds.setDataSetMetadata(metadata)
 }
