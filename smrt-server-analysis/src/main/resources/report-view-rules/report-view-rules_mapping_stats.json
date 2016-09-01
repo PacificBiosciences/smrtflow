@@ -1,6 +1,41 @@
 {
   "id": "mapping_stats",
-  "name": "Mapping Report",
-  "attributes": []
-
+  "title": "Mapping Report",
+  "attributes": [
+    {
+      "id": "mapped_subread_concordance_mean",
+      "type": "float",
+      "format": "{p:.2f} %",
+      "description": "The mean concordance of subreads that mapped to the reference sequence",
+      "name": "Mean Concordance (mapped)"
+    },
+    {
+      "id": "mapped_subreads_n",
+      "type": "int",
+      "format": "{:,d}",
+      "description": "The number of subreads mapped to the reference sequence",
+      "name": "Number of Subreads (mapped)"
+    }
+  ],
+  "tables": [
+    {
+      "id": "mapping_stats_table",
+      "title": "Mapping Statistics Summary",
+      "columns": [
+        {
+          "id": "mapped_reads",
+          "header": "Number of Polymerase Reads (mapped)",
+          "type": "int",
+          "format": "{:,d}"
+        },
+        {
+          "id": "mapped_subread_concordance",
+          "header": "Mean Concordance (mapped)",
+          "format": "{p:.2f} %",
+          "type": "float"
+        }
+      ]
+    }
+  ],
+  "name": "Mapping Report"
 }
