@@ -3,6 +3,9 @@ package com.pacbio.secondary.smrtserver.models
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 
+import spray.json._
+
+
 object SecondaryModels {
 
   // Secondary Analysis System Configuration
@@ -20,9 +23,7 @@ object SecondaryModels {
   // Need to find a better way to do this
   case class PacBioSchema(id: String, content: String)
 
-  case class ReportAttributeViewRule(id: String, name: String)
-
-  case class ReportViewRule(id: String, name: String, attributes: Seq[ReportAttributeViewRule])
+  case class ReportViewRule(id: String, rules: JsObject)
 
   case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
                                          outputPath: String)
