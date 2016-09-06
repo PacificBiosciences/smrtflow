@@ -7,14 +7,14 @@
       "type": "float",
       "format": "{p:.2f} %",
       "description": "The mean concordance of subreads that mapped to the reference sequence",
-      "name": "Mean Concordance (mapped)"
+      "title": "Mean Concordance (mapped)"
     },
     {
       "id": "mapped_subreads_n",
       "type": "int",
       "format": "{:,d}",
       "description": "The number of subreads mapped to the reference sequence",
-      "name": "Number of Subreads (mapped)"
+      "title": "Number of Subreads (mapped)"
     }
   ],
   "tables": [
@@ -37,5 +37,5 @@
       ]
     }
   ],
-  "name": "Mapping Report"
+  "title": "Mapping Report"
 }

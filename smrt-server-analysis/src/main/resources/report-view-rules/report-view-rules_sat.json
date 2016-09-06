@@ -1,7 +1,7 @@
 {
   "id": "sat",
-  "name": "Site Acceptance Test Report",
+  "title": "Site Acceptance Test Report",
   "attributes": [
-    {"id": "attribute_id", "name": "Display Name of attribute"}
+    {"id": "attribute_id", "title": "Display Name of attribute"}
   ]
 }
