@@ -1,0 +1,120 @@
+{
+  "swagger": "2.0",
+  "schemes": [
+    "https"
+  ],
+  "x-wso2-security": {
+    "apim": {
+      "x-wso2-scopes": [
+        {
+          "name": "run_qc",
+          "key": "run_qc",
+          "roles": "internal%2FPbAdmin%2Cinternal%2FPbLabTech",
+          "description": "RunQC%20API%20access"
+        },
+      ]
+    }
+  },
+  "paths": {
+    "/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run_qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run_qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{runId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run_qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+    },
+    "/smrt-link/runs/{runId}/collections": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run_qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{runId}/collections/{collectionId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run_qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    }
+  }
+}
