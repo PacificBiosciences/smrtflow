@@ -1,8 +1,22 @@
 # Service Command Line Interface to SMRT Link Internal Analysis (SLIA)
 
-exe name `smrt-client-slia`
 
-Subparser Models
+### Build Tools
+
+`$>sbt smrt-server-analysis-internal/pack`
+
+Add exe's to path
+
+`$> export PATH=$(readlink -f smrt-server-analysis-internal/target/pack/bin):$PATH`
+
+Sanity Test
+
+`$>smrt-client-slia --help`
+
+
+Client Exe name `smrt-client-slia `
+
+# CLI Subparsers
 
 ### Status
 
@@ -18,14 +32,15 @@ Exiting SLIA 0.1.5 with exitCode 0
 
 `convert` will convert a Reseq Condition CSV to a Reseq Condition JSON by resolving the required files.
 
+*Must* have access to the resolved file paths.
+
 
 ### Submit
 
 `submit` will submit a Reseq Condition CSV to a SLIA instance.
 
 
-
-### Misc
+## Misc
 
 Use `pbservice` to get the core functionality (e.g, get status of job) from SMRT Link Analysis.
 
