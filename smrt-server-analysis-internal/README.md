@@ -94,7 +94,7 @@ def bindings():
 Note pbinternal2 is currently not in the build. The dev/poc tools are currently in 'pysiv2.internal' to get around the lack of an internal build. 
 
 
-### CSV and Services
+### CSV Example file and Services
 
 
 CSV file format is can be used to as an intermediate format to specify conditions from existing jobs that have been run.
@@ -185,3 +185,4 @@ Server: spray-can/1.3.3
 
 ```
 
+See [Commandline Tools](https://github.com/PacificBiosciences/smrtflow/blob/master/smrt-server-analysis-internal/CLI.md) to help interface with the SLIA Services.
