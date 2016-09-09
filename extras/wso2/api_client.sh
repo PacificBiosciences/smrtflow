@@ -145,7 +145,6 @@ get_token_params="grant_type=password"
 get_token_params="$get_token_params&username=$username"
 get_token_params="$get_token_params&password=$password"
 if [ ! -z $scope ]; then
-  # TODO(smcclellan): This isn't working for some reason. The returned token always has default scope.
   get_token_params="$get_token_params&scope=$scope"
 fi 
 get_token_resp=$(do_curl -d "'$get_token_params'" -H "'Authorization: Basic $basic_auth'" $get_token_uri)
