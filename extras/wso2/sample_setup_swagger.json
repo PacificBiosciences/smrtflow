@@ -9,9 +9,9 @@
         {
           "name": "sample_setup",
           "key": "sample_setup",
-          "roles": "internal%2FPbAdmin%2Cinternal%2FPbLabTech",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
           "description": "SampleSetup%20API%20access"
-        },
+        }
       ]
     }
   },

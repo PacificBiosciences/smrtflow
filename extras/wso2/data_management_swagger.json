@@ -9,9 +9,9 @@
         {
           "name": "data_management",
           "key": "data_management",
-          "roles": "internal%2FPbAdmin%2Cinternal%2FPbLabTech%2Cinternal%2FPbBioinformatics",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatics",
           "description": "DataManagement%20API%20access"
-        },
+        }
       ]
     }
   },

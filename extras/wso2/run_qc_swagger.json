@@ -9,9 +9,9 @@
         {
           "name": "run_qc",
           "key": "run_qc",
-          "roles": "internal%2FPbAdmin%2Cinternal%2FPbLabTech",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
           "description": "RunQC%20API%20access"
-        },
+        }
       ]
     }
   },

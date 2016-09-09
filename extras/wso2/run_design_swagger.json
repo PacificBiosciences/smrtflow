@@ -9,9 +9,9 @@
         {
           "name": "run_design",
           "key": "run_design",
-          "roles": "internal%2FPbAdmin%2Cinternal%2FPbLabTech",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
           "description": "RunDesign%20API%20access"
-        },
+        }
       ]
     }
   },
