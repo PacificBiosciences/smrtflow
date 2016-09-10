@@ -1,0 +1,991 @@
+{
+  "swagger": "2.0",
+  "schemes": [
+    "https"
+  ],
+  "x-wso2-security": {
+    "apim": {
+      "x-wso2-scopes": [
+        {
+          "name": "run-design",
+          "key": "run-design",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "description": "Run%20Design%20Authorization"
+        },
+        {
+          "name": "run-qc",
+          "key": "run-qc",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "description": "Run%20QC%20Authorization"
+        },
+        {
+          "name": "sample-setup",
+          "key": "sample-setup",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "description": "Sample%20Setup%20Authorization"
+        },
+        {
+          "name": "data-management",
+          "key": "data-management",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatics",
+          "description": "Data%20Management%20Authorization"
+        },
+        {
+          "name": "smrt-analysis",
+          "key": "smrt-analysis",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatics",
+          "description": "SMRT%20Analysis%20Authorization"
+        }
+      ]
+    }
+  },
+  "paths": {
+    "/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design,run-qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{runId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design,run-qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "delete": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{runId}/collections": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design,run-qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{runId}/collections/{collectionId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "run-design,run-qc",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/samples": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "sample-setup",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "sample-setup",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-link/runs/{sampleId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "sample-setup",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "sampleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "sample-setup",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "sampleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "delete": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "sample-setup",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "sampleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-base/files/*": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-base/files-download/*": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/dataset-types": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/dataset-types/{type}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datasets/{typeOrId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "typeOrId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datasets/{type}/_schema": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datasets/{type}/{dataset-id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "dataset-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "dataset-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "dataset-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/report-view-rules": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/report-view-rules/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/report-view-rules/{rule-id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "rule-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "template-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "template-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/job-types": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/resources": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job-id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "relpath",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    }
+  }
+}
