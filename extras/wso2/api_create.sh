@@ -21,10 +21,6 @@ case $key in
   password="$2"
   shift
   ;;
-  -n|--name)
-  name="$2"
-  shift
-  ;;
   -t|--target)
   target="$2"
   shift
@@ -59,14 +55,9 @@ if [ -z $password ]; then
   echo
 fi
 
-if [ -z $name ]; then
-echo -n "API name: "
-read name
-fi
-
 if [ -z $target ]; then
-echo -n "Target URL: "
-read target
+  echo -n "Target URL: "
+  read target
 fi
 
 if [ -z $swagger_file ]; then
@@ -75,6 +66,7 @@ if [ -z $swagger_file ]; then
 fi
 
 cookie_file="cookies.tmp"
+name="SMRTLink"
 
 get_uri() {
   port=$(($2+$port_offset))
@@ -124,6 +116,26 @@ publish_params="$publish_params&publishToGateway=true"
 publish_params="$publish_params&requireResubscription=true"
 publish_resp=$(do_curl -X "POST" -d "'$publish_params'" $publish_uri)
 echo "Publish API Response: $publish_resp"
+
+# Login to store
+
+login_uri=$(get_uri "http" 9763 "/store/site/blocks/user/login/ajax/login.jag")
+login_params="action=login"
+login_params="$login_params&username=$username"
+login_params="$login_params&password=$password"
+login_resp=$(do_curl -X "POST" -d "'$login_params'" $login_uri)
+
+# Subscribe to API
+
+subscribe_uri=$(get_uri "http" 9763 "/store/site/blocks/subscription/subscription-add/ajax/subscription-add.jag")
+subscribe_params="action=addAPISubscription"
+subscribe_params="$subscribe_params&name=$name"
+subscribe_params="$subscribe_params&version=1.0.0"
+subscribe_params="$subscribe_params&provider=$username"
+subscribe_params="$subscribe_params&tier=Unlimited"
+subscribe_params="$subscribe_params&applicationName=DefaultApplication"
+subscribe_resp=$(do_curl -X "POST" -d "'$subscribe_params'" $subscribe_uri)
+echo "Subscribe Response: $subscribe_resp"
 
 # Cleanup cookies file
 
