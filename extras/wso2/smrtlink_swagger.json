@@ -650,6 +650,21 @@
           "200": {},
           "default": {}
         }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {},
+          "default": {}
+        }
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
