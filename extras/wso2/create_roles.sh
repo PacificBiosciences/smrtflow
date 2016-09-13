@@ -54,7 +54,7 @@ get_uri() {
 
 rusms_endpoint=$(get_uri "https" 9443 "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint")
 
-roles="Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics"
+roles="Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatician"
 
 for role in $roles; do
   curl --user $username:password --header "Content-Type: text/xml;charset=UTF-8" --header "SOAPAction: \"urn:addRole\"" -k -d @- $rusms_endpoint <<EOF
