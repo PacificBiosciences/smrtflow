@@ -57,7 +57,7 @@ rusms_endpoint=$(get_uri "https" 9443 "/services/RemoteUserStoreManagerService.R
 roles="Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics"
 
 for role in $roles; do
-  curl --user $username:password --header "Content-Type: text/xml;charset=UTF-8" --header "SOAPAction: \"urn:addRole\"" -k -d @- $rusms_endpoint <<EOF
+  curl --user $username:$password --header "Content-Type: text/xml;charset=UTF-8" --header "SOAPAction: \"urn:addRole\"" -k -d @- $rusms_endpoint <<EOF
 <?xml version='1.0' encoding='utf-8'?>
   <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'
                      xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/'
