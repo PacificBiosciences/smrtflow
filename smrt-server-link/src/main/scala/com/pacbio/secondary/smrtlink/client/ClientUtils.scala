@@ -53,8 +53,13 @@ trait ClientUtils {
     0
   }
 
-  def printJobInfo(job: EngineJob, asJson: Boolean = false): Int = {
-    if (asJson) println(job.toJson.prettyPrint) else {
+  def printJobInfo(job: EngineJob, asJson: Boolean = false,
+                   dumpJobSettings: Boolean = false): Int = {
+    if (dumpJobSettings) {
+      println(job.jsonSettings.parseJson.prettyPrint)
+    } else if (asJson) {
+      println(job.toJson.prettyPrint)
+    } else {
       println("JOB SUMMARY:")
       println(s"  id: ${job.id}")
       println(s"  uuid: ${job.uuid}")

@@ -111,6 +111,7 @@ object PbServiceParser {
       datasetType: String = "subreads",
       nonLocal: Option[String] = None,
       asJson: Boolean = false,
+      dumpJobSettings: Boolean = false,
       pipelineId: String = "",
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
@@ -279,7 +280,10 @@ object PbServiceParser {
     } children(
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Job") } text "Job ID"
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[Unit]("show-settings") action { (_, c) =>
+        c.copy(dumpJobSettings = true)
+      } text "Print JSON settings for job, suitable for input to 'pbservice run-analysis'"
     ) text "Show job details"
 
     cmd(Modes.JOBS.name) action { (_, c) =>
@@ -454,9 +458,11 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runGetJobInfo(jobId: IdAble, asJson: Boolean = false): Int = {
+  def runGetJobInfo(jobId: IdAble,
+                    asJson: Boolean = false,
+                    dumpJobSettings: Boolean = false): Int = {
     Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
-      case Success(job) => printJobInfo(job, asJson)
+      case Success(job) => printJobInfo(job, asJson, dumpJobSettings)
       case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
     }
   }
@@ -874,7 +880,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     } yield job
 
     tx match {
-      case Success(job) => if (block) waitForJob(job.uuid) else 0
+      case Success(job) => if (block) waitForJob(job.uuid) else printJobInfo(job)
       case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
     }
   }
@@ -904,7 +910,7 @@ object PbService {
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
                                               c.jobTitle, c.presetXml, c.block)
-        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson)
+        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
