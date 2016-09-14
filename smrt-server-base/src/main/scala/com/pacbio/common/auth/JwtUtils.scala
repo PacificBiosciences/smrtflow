@@ -5,7 +5,7 @@ import java.security.Signature
 import org.json4s._
 import org.json4s.Extraction
 
-import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import authentikat.jwt.{JwtClaimsSetJValue, JsonWebToken, JwtClaimsSet, JwtHeader}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.time.{PacBioDateTimeFormat, ClockProvider, Clock}
 import org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString
@@ -13,6 +13,7 @@ import org.joda.time.{DateTime => JodaDateTime, Duration => JodaDuration}
 
 import scala.concurrent.duration._
 import scala.language.implicitConversions
+import scala.util.Try
 
 // TODO(smcclellan): Add unit tests
 
@@ -29,6 +30,11 @@ trait JwtUtils {
    * Validates a JWT, returning the user login if the JWT is valid.
    */
   def validate(jwt: String): Option[String]
+
+  /**
+   * Parses a JWT, returning the user login if possible. DOES NOT VALIDATE THE SIGNATURE.
+   */
+  def parse(jwt: String, claimsDialect: ClaimsDialect): Option[String]
 }
 
 /**
@@ -36,6 +42,32 @@ trait JwtUtils {
  */
 trait JwtUtilsProvider {
   val jwtUtils: Singleton[JwtUtils]
+}
+
+// TODO(smcclellan): Make claims dialect configurable and use for all jwt parsing
+trait ClaimsDialect {
+  def toClaimsSet(jClaims: JwtClaimsSetJValue): Option[ClaimsSet]
+}
+
+object WSO2ClaimsDialect extends ClaimsDialect {
+  override def toClaimsSet(jClaims: JwtClaimsSetJValue): Option[ClaimsSet] = {
+    val tClaims = for {
+      jo <- Try(jClaims.jvalue.asInstanceOf[JObject])
+      eu <- Try(jo.values("http://wso2.org/claims/enduser"))
+      un <- Try(eu.asInstanceOf[String])
+    } yield ClaimsSet( // TODO(smcclellan): Use real values here, or make claims optional
+      id = un,
+      userName = un,
+      email = "",
+      firstName = "",
+      lastName = "",
+      iat = new JodaDateTime,
+      exp = new JodaDateTime,
+      roles = Set.empty,
+      iss = "",
+      sub = "")
+    tClaims.toOption
+  }
 }
 
 case class ClaimsSet(
@@ -95,7 +127,7 @@ class JwtUtilsImpl(clock: Clock) extends JwtUtils {
     JwtClaimsSet(Extraction.decompose(claims))
   }
 
-  def getJwt(user: ApiUser): String = {
+  override def getJwt(user: ApiUser): String = {
     val now = clock.dateNow()
 
     val header = JwtHeader("RS256")
@@ -114,8 +146,15 @@ class JwtUtilsImpl(clock: Clock) extends JwtUtils {
     getRsaJwt(header, toJwtClaimsSet(claimsSet))
   }
 
-  def validate(jwt: String): Option[String] = {
+  override def validate(jwt: String): Option[String] = {
     validateRsa(jwt)
+  }
+
+  override def parse(jwt: String, claimsDialect: ClaimsDialect): Option[String] = {
+    for {
+      (_, claims, _) <- JsonWebToken.unapply(jwt)
+      claimsSet <- claimsDialect.toClaimsSet(claims)
+    } yield claimsSet.userName
   }
 
   // JWT for scala does not yet implement RS256, so we have to roll our own signing method. Once implemented, we should

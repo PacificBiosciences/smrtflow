@@ -1,7 +1,7 @@
 package com.pacbio.common.auth
 
 import com.pacbio.common.actors.{UserDao, UserDaoProvider}
-import com.pacbio.common.dependency.{ConfigProvider, Singleton, TypesafeSingletonReader}
+import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
 import spray.http._
 import spray.routing.authentication.{BasicAuth, UserPass}
 import spray.routing.directives.AuthMagnet
@@ -61,6 +61,9 @@ final class AuthInfo(user: ApiUser) {
  * }}}
  */
 trait Authenticator {
+  // TODO(smcclellan): Rename these "basicAuth", "jwtAuth", and "wso2Auth" or similar
+  // TODO(smcclellan): Remove dead code when wso2 auth is implemented everywhere
+
   /**
    * Performs authentication using the Basic scheme, with a login and password, e.g. "Authorization: Basic user:pass"
    */
@@ -70,7 +73,44 @@ trait Authenticator {
    * Performs authentication using a JWT in a custom scheme similar to OAuth's Bearer scheme., e.g.
    * "Authorization: Bearer jwtstring"
    */
+  def smrtLinkJwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo]
+
+  /**
+   * Parses claims passed to SMRTLink from WSO2 as a JWT. Does not validate the JWT signature.
+   */
   def jwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo]
+}
+
+abstract class AbstractAuthenticator(jwtUtils: JwtUtils) extends Authenticator {
+  override def jwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
+    import AuthenticationFailedRejection._
+
+    def authHeader(ctx: RequestContext) = ctx.request.headers.find(_.is("x-jwt-assertion"))
+
+    def toUser(login: String): ApiUser = {
+      val normalizedLogin = if (login.contains("@")) login.split("@")(0) else login
+      ApiUser(login = normalizedLogin, id = normalizedLogin, email = None, firstName = None, lastName = None)
+    }
+
+    def validateToken(ctx: RequestContext): Future[Option[AuthInfo]] = Future {
+      // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
+      authHeader(ctx)
+        .map(_.value)                                           // Render header as string
+        .flatMap(jwt => jwtUtils.parse(jwt, WSO2ClaimsDialect)) // Parse JWT and get user login
+        .map(toUser)                                            // Get user from DAO
+        .map(user => new AuthInfo(user))                        // Convert user object to AuthInfo object
+    }
+
+    def authenticate(ctx: RequestContext): Future[Either[Rejection, AuthInfo]] =
+      validateToken(ctx).map {
+        case Some(authInfo) => Right(authInfo)
+        case None =>
+          val cause = if (authHeader(ctx).isEmpty) CredentialsMissing else CredentialsRejected
+          Left(AuthenticationFailedRejection(cause, List.empty))
+      }
+
+    ctx: RequestContext => authenticate(ctx)
+  }
 }
 
 /**
@@ -84,7 +124,7 @@ trait AuthenticatorProvider {
  * Implementation of Authenticator that checks user/pass credentials against a UserDao, and verifies JWT credentials
  * with a JwtUtils.
  */
-class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authenticator {
+class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends AbstractAuthenticator(jwtUtils) {
   val REALM = "pacificbiosciences.com"
 
   override def userPassAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
@@ -101,7 +141,9 @@ class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authentica
     BasicAuth(validateUser _, realm = REALM)
   }
 
-  override def jwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
+
+
+  override def smrtLinkJwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
     import AuthenticationFailedRejection._
     import HttpHeaders._
     import spray.util._
@@ -141,14 +183,14 @@ class AuthenticatorImpl(userDao: UserDao, jwtUtils: JwtUtils) extends Authentica
 /**
  * Implementation of Authenticator that ignores credentials and returns a fake AuthInfo with ROOT privileges.
  */
-class FakeAuthenticator extends Authenticator {
+class FakeAuthenticator(jwtUtils: JwtUtils) extends AbstractAuthenticator(jwtUtils) {
   import UserDao.ROOT_USER
 
   override def userPassAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
     ctx: RequestContext => Future { Right(new AuthInfo(ROOT_USER)) }
   }
 
-  override def jwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
+  override def smrtLinkJwtAuth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
     ctx: RequestContext => Future { Right(new AuthInfo(ROOT_USER)) }
   }
 }
@@ -167,7 +209,7 @@ trait AuthenticatorImplProvider extends AuthenticatorProvider with EnableAuthent
 
   override val authenticator: Singleton[Authenticator] = Singleton(() => enableAuthentication() match {
     case true => new AuthenticatorImpl(userDao(), jwtUtils())
-    case false => new FakeAuthenticator
+    case false => new FakeAuthenticator(jwtUtils())
   })
 }
 
@@ -175,5 +217,7 @@ trait AuthenticatorImplProvider extends AuthenticatorProvider with EnableAuthent
  * Provides a singleton FakeAuthenticator.
  */
 trait FakeAuthenticatorProvider extends AuthenticatorProvider {
-  override val authenticator: Singleton[Authenticator] = Singleton(() => new FakeAuthenticator)
+  this: JwtUtilsProvider =>
+
+  override val authenticator: Singleton[Authenticator] = Singleton(() => new FakeAuthenticator(jwtUtils()))
 }
