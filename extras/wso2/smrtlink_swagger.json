@@ -1001,6 +1001,25 @@
           "default": {}
         }
       }
+    },
+    "/secondary-analysis/datastore-files/{uuid}/download": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
     }
   }
 }
