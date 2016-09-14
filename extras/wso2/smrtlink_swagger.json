@@ -1020,6 +1020,20 @@
           "default": {}
         }
       }
+    },
+    "/secondary-analysis/pipeline-datastore-view-rules": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management,smrt-analysis",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
     }
   }
 }
