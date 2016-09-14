@@ -31,10 +31,11 @@ trait JwtUtils {
    */
   def validate(jwt: String): Option[String]
 
+  // TODO(smcclellan): We give this a dummy implementation so as not to break current test code
   /**
    * Parses a JWT, returning the user login if possible. DOES NOT VALIDATE THE SIGNATURE.
    */
-  def parse(jwt: String, claimsDialect: ClaimsDialect): Option[String]
+  def parse(jwt: String, claimsDialect: ClaimsDialect): Option[String] = Some("root")
 }
 
 /**
