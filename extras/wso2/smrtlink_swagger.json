@@ -56,7 +56,7 @@
     "/smrt-link/runs": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "run-design,run-qc",
+        "x-scope": "run-qc",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -85,7 +85,7 @@
     "/smrt-link/runs/{runId}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "run-design,run-qc",
+        "x-scope": "run-qc",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -150,7 +150,7 @@
     "/smrt-link/runs/{runId}/collections": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "run-design,run-qc",
+        "x-scope": "run-qc",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -172,7 +172,7 @@
     "/smrt-link/runs/{runId}/collections/{collectionId}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "run-design,run-qc",
+        "x-scope": "run-qc",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -294,7 +294,7 @@
     "/smrt-base/files/*": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -308,7 +308,7 @@
     "/smrt-base/files-download/*": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "responses": {
           "200": {},
@@ -319,7 +319,7 @@
     "/secondary-analysis/dataset-types": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -333,7 +333,7 @@
     "/secondary-analysis/dataset-types/{type}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -355,7 +355,7 @@
     "/secondary-analysis/datasets/{typeOrId}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -377,7 +377,7 @@
     "/secondary-analysis/datasets/{type}/_schema": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -399,7 +399,7 @@
     "/secondary-analysis/datasets/{type}/{dataset-id}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -427,7 +427,7 @@
     "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -455,7 +455,7 @@
     "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -483,7 +483,7 @@
     "/secondary-analysis/report-view-rules": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -497,7 +497,7 @@
     "/secondary-analysis/report-view-rules/status": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -511,7 +511,7 @@
     "/secondary-analysis/report-view-rules/{rule-id}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -533,7 +533,7 @@
     "/secondary-analysis/resolved-pipeline-templates": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -547,7 +547,7 @@
     "/secondary-analysis/resolved-pipeline-templates/status": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -561,7 +561,7 @@
     "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -583,7 +583,7 @@
     "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -605,7 +605,7 @@
     "/secondary-analysis/job-manager/status": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -619,7 +619,7 @@
     "/secondary-analysis/job-manager/job-types": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -633,7 +633,7 @@
     "/secondary-analysis/job-manager/jobs/{type}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -670,7 +670,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -698,7 +698,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -726,7 +726,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -754,7 +754,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -782,7 +782,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "parameters": [
           {
@@ -813,7 +813,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -841,7 +841,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -875,7 +875,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -903,7 +903,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "produces": [
           "application/json"
@@ -937,7 +937,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "parameters": [
           {
@@ -968,7 +968,7 @@
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/resources": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "data-management,smrt-analysis",
+        "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "parameters": [
           {
