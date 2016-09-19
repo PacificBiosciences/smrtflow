@@ -53,6 +53,19 @@
         }
       }
     },
+    "/services/manifests": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
     "/smrt-link/runs": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
@@ -994,6 +1007,113 @@
             "in": "query",
             "required": true,
             "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/datastore-files/{uuid}/download": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/pipeline-datastore-view-rules": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/projects": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "post": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/projects/{id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      },
+      "put": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
           }
         ],
         "responses": {
