@@ -13,9 +13,7 @@ import scala.util.Try
 
 object JwtUtils {
   val USERNAME_CLAIM = "http://wso2.org/claims/enduser"
-
-  // TODO(smcclellan): This is for testing. Get real roles from WSO2 claims?
-  val ROLES_CLAIM = "http://nanofluidics.com/claims/roles"
+  val ROLES_CLAIM = "http://wso2.org/claims/role"
 }
 
 /**
@@ -47,12 +45,13 @@ class JwtUtilsImpl extends JwtUtils {
   override def parse(jwt: String): Option[UserRecord] = {
     for {
       (_, claims, _) <- JsonWebToken.unapply(jwt)
-      jobject        <- Try(claims.jvalue.asInstanceOf[JObject]).toOption  .map(x => {println("JWT CLAIMS:"); x.values.foreach(v => println(s"${v._1} -> ${v._2}")); x})
+      jobject        <- Try(claims.jvalue.asInstanceOf[JObject]).toOption
       unclaim        <- jobject.values.get(USERNAME_CLAIM)
       rclaim         <- jobject.values.get(ROLES_CLAIM)
       username       <- Try(unclaim.asInstanceOf[String]).toOption
-      roles          <- Try(rclaim.asInstanceOf[String]).toOption
-                          .map(r => Set(r.split(","):_*))
+                          .map(_.split("@").head)
+      roles          <- Try(rclaim.asInstanceOf[List[String]]).toOption
+                          .map(_.toSet)
                           .map(_.map(Roles.fromString))
                           .map(_.filter(_.isDefined))
                           .map(_.map(_.get))
