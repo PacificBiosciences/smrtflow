@@ -132,9 +132,9 @@ case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, leve
 object Roles {
   sealed trait Role { val name: String }
 
-  object PbAdmin extends Role { override val name = "PbAdmin" }
-  object PbLabTech extends Role { override val name = "PbLabTech" }
-  object PbBioinformatician extends Role { override val name = "PbBioinformatician" }
+  object PbAdmin extends Role { override val name = "Internal/PbAdmin" }
+  object PbLabTech extends Role { override val name = "Internal/PbLabTech" }
+  object PbBioinformatician extends Role { override val name = "Internal/PbBioinformatician" }
 
   def fromString(name: String): Option[Role] =
     Seq(PbAdmin, PbLabTech, PbBioinformatician).find(_.name == name)
