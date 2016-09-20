@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.client
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports._
-import com.pacbio.common.auth.BaseRolesInit
 import com.pacbio.common.models._
 import com.pacbio.common.client._
 
@@ -59,7 +58,7 @@ trait DataSetTypesTrait {
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     (implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem) with BaseRolesInit {
+    extends ServiceAccessLayer(baseUrl)(actorSystem)  {
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._

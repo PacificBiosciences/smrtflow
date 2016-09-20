@@ -8,7 +8,6 @@ import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{RunServiceActorRefProvider, SearchCriteria, RunServiceActor}
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRoles
 import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._
 
@@ -21,7 +20,6 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
   with SmrtLinkJsonProtocols {
 
   import RunServiceActor._
-  import SmrtLinkRoles._
 
   val manifest = PacBioComponentManifest(
     toServiceId("runs"),
@@ -30,7 +28,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
     "Database-backed CRUD operations for Runs")
 
   val routes =
-    //authenticate(authenticator.jwtAuth) { authInfo =>
+    //authenticate(authenticator.wso2Auth) { authInfo =>
       pathPrefix("runs") {
         pathEnd {
           get {
@@ -42,7 +40,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RunCreate]) { create =>
-              //authorize(authInfo.hasPermission(RUN_DESIGN_WRITE)) {
+              //authorize(authInfo.hasPermission(PbAdmin)) {
                 complete {
                   created {
                     //(runActor ? CreateRun(authInfo.login, create)).mapTo[RunMetadata]
@@ -64,7 +62,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
             } ~
             post {
               entity(as[RunUpdate]) { update =>
-                //authorize(authInfo.hasPermission(RUN_DESIGN_WRITE)) {
+                //authorize(authInfo.hasPermission(PbAdmin)) {
                   complete {
                     ok {
                       (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
@@ -74,7 +72,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
               }
             } ~
             delete {
-              //authorize(authInfo.hasPermission(RUN_DESIGN_WRITE)) {
+              //authorize(authInfo.hasPermission(PbAdmin)) {
                 complete {
                   ok {
                     (runActor ? DeleteRun(id)).mapTo[MessageResponse]

@@ -2,10 +2,9 @@ package com.pacbio.common.services
 
 import akka.util.Timeout
 import com.pacbio.common.actors.{CleanupDaoProvider, CleanupDao}
-import com.pacbio.common.auth.{AuthenticatorProvider, BaseRoles, Authenticator}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
-import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 import spray.json.DefaultJsonProtocol
 
@@ -18,8 +17,8 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
-  import BaseRoles._
   import PacBioJsonProtocol._
+  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -30,7 +29,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix("cleanup" / "jobs") {
-      authenticate(authenticator.jwtAuth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { authInfo =>
         pathEnd {
           get {
             complete {
@@ -40,7 +39,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(CLEANUP_ADMIN)) {
+            authorize(authInfo.hasPermission(PbAdmin)) {
               entity(as[ApiCleanupJobCreate]) { c =>
                 complete {
                   created {
@@ -61,7 +60,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
               }
             } ~
             delete {
-              authorize(authInfo.hasPermission(CLEANUP_ADMIN)) {
+              authorize(authInfo.hasPermission(PbAdmin)) {
                 complete {
                   ok {
                     cleanupDao.deleteJob(id)

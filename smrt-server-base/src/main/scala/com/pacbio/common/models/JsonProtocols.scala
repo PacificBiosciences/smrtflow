@@ -1,6 +1,5 @@
 package com.pacbio.common.models
 
-import com.pacbio.common.auth.Role
 import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import org.joda.time.{DateTime => JodaDateTime}
@@ -59,16 +58,6 @@ trait LogLevelProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait RoleProtocol extends DefaultJsonProtocol with FamilyFormats {
-  implicit object RoleFormat extends JsonFormat[Role] {
-    def write(obj: Role): JsValue = JsString(obj.toString)
-    def read(json: JsValue): Role = json match {
-      case JsString(name) => Role.repo(name)
-      case _ => deserializationError("Expected Role type as JsString")
-    }
-  }
-}
-
 trait CleanupFrequencyProtocol extends DefaultJsonProtocol with FamilyFormats {
 
   implicit object CleanupFrequencyProtocol extends JsonFormat[CleanupFrequency.CleanupFrequency] {
@@ -105,6 +94,18 @@ trait DurationProtocol extends DefaultJsonProtocol with FamilyFormats {
     def read(json: JsValue): Duration = json match {
       case JsString(x) => Duration(x)
       case _ => deserializationError("Expected Duration type as JsString")
+    }
+  }
+}
+
+trait RoleProtocol extends DefaultJsonProtocol with FamilyFormats {
+
+  implicit object RoleFormat extends JsonFormat[Roles.Role] {
+    def write(role: Roles.Role): JsValue = JsString(role.name)
+
+    def read(json: JsValue): Roles.Role = json match {
+      case JsString(x) => Roles.fromString(x).getOrElse(deserializationError(s"Unknown role: $x"))
+      case _ => deserializationError("Expected LogLevel type as JsString")
     }
   }
 }
@@ -155,8 +156,7 @@ with DirectoryResourceProtocol
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)
   implicit val pbLogMessageFormat = jsonFormat5(LogMessage)
-  implicit val pbUserResponseFormat = jsonFormat6(UserResponse)
-  implicit val pbUserRecordFormat = jsonFormat4(UserRecord)
+  implicit val pbUserRecordFormat = jsonFormat2 { (l: String, r: Set[Roles.Role]) => UserRecord(l, r) }
   implicit val pbConfigEntryFormat = jsonFormat2(ConfigEntry)
   implicit val pbConfigResponseFormat = jsonFormat2(ConfigResponse)
   implicit val pbApiCleanupJobCreateFormat = jsonFormat7(ApiCleanupJobCreate)

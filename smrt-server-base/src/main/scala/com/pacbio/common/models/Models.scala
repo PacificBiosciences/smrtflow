@@ -2,7 +2,6 @@ package com.pacbio.common.models
 
 import java.util.UUID
 
-import com.pacbio.common.auth.Role
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.duration._
@@ -128,10 +127,24 @@ case class LogMessageRecord(message: String, level: LogLevel.LogLevel, sourceId:
 case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, level: LogLevel.LogLevel, sourceId: String)
 
 
-// User System
-case class UserResponse(login: String, id: String, email: Option[String], firstName: Option[String], lastName: Option[String], roles: Set[Role])
+// Users
 
-case class UserRecord(password: String, email: Option[String] = None, firstName: Option[String] = None, lastName: Option[String] = None)
+object Roles {
+  sealed trait Role { val name: String }
+
+  object PbAdmin extends Role { override val name = "PbAdmin" }
+  object PbLabTech extends Role { override val name = "PbLabTech" }
+  object PbBioinformatician extends Role { override val name = "PbBioinformatician" }
+
+  def fromString(name: String): Option[Role] =
+    Seq(PbAdmin, PbLabTech, PbBioinformatician).find(_.name == name)
+}
+
+object UserRecord {
+  def apply(userName: String, roles: Roles.Role*): UserRecord = UserRecord(userName, Set(roles:_*))
+}
+
+case class UserRecord(userName: String, roles: Set[Roles.Role] = Set.empty)
 
 
 // Config Service

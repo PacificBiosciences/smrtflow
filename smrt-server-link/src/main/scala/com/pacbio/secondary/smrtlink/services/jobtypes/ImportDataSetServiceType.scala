@@ -67,7 +67,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[ImportDataSetOptions]) { sopts =>
               complete {
                 created {

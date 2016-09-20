@@ -6,10 +6,7 @@ import java.util.UUID
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
-import com.pacbio.common.auth.ApiUser
-import com.pacbio.common.models.UserResponse
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 
 object Models
 
@@ -543,7 +540,7 @@ case class FullProject(
       description,
       Some(state),
       Some(datasets.map(ds => RequestId(ds.id))),
-      Some(members.map(u => ProjectRequestUser(RequestUser(u.user.login), u.role))))
+      Some(members.map(u => ProjectRequestUser(RequestUser(u.login), u.role))))
 }
 
 // the json structures required in client requests are a subset of the
@@ -571,7 +568,7 @@ case class ProjectRequestUser(user: RequestUser, role:String)
 
 case class ProjectUser(projectId: Int, login: String, role: String)
 
-case class ProjectUserResponse(user: UserResponse, role: String)
+case class ProjectUserResponse(login: String, role: String)
 
 case class UserProjectResponse(role: Option[String], project: Project)
  

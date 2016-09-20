@@ -44,7 +44,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[PbSmrtPipeServiceOptions]) { ropts =>
               // 0. Mock Validation of inputs (skip this for now)
               // 1.  Create a new job in db
