@@ -8,7 +8,7 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
-import com.pacbio.common.auth.{BaseRolesInit, JwtUtilsImplProvider, FakeAuthenticatorProvider, AuthenticatorImplProvider}
+import com.pacbio.common.auth.{JwtUtilsImplProvider, FakeAuthenticatorProvider, AuthenticatorImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonReader, Singleton, SetBindings}
@@ -46,8 +46,6 @@ trait CoreProviders extends
   InMemoryHealthDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
-  UserServiceProvider with
-  LdapUserDaoProvider with
   CleanupServiceProvider with
   CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
@@ -61,7 +59,6 @@ trait CoreProviders extends
   SubSystemResourceServiceProvider with
   ActorSystemProvider with
   BaseSmrtServerDatabaseConfigProviders with
-  TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
   FakeAuthenticatorProvider with
@@ -93,8 +90,6 @@ trait AuthenticatedCoreProviders extends
   InMemoryHealthDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
-  UserServiceProviderx with
-  LdapUserDaoProvider with
   CleanupServiceProviderx with
   CleanupServiceActorRefProvider with
   InMemoryCleanupDaoProvider with
@@ -108,7 +103,6 @@ trait AuthenticatedCoreProviders extends
   SubSystemResourceServiceProviderx with
   ActorSystemProvider with
   BaseSmrtServerDatabaseConfigProviders with
-  TypesafeLdapUserDaoConfigProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
@@ -130,7 +124,7 @@ trait AuthenticatedCoreProviders extends
   override val logback: Singleton[Boolean] = Singleton(true)
 }
 
-trait BaseApi extends BaseRolesInit {
+trait BaseApi {
   val providers: ActorSystemProvider with RouteProvider
 
   // Override these with custom startup and shutdown logic

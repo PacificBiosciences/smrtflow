@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.common.actors.{UserDao, UserDaoProvider}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
@@ -18,7 +17,7 @@ import scala.concurrent.Future
 /**
  * Accessing Projects
  */
-class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenticator)
+class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
   extends JobsBaseMicroService
   with SmrtLinkConstants {
 
@@ -35,9 +34,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     for {
       datasets <- jobsDao.getDatasetsByProject(proj.id)
       dbUsers <- jobsDao.getProjectUsers(proj.id)
-      apiUsers <- Future.sequence(dbUsers.map(u => userDao.getUser(u.login)))
-      userResponses = (dbUsers, apiUsers).zipped.map((u, au) =>
-        ProjectUserResponse(au.toResponse(), u.role))
+      userResponses <- Future(dbUsers.map(u => ProjectUserResponse(u.login, u.role)))
     } yield proj.makeFull(datasets, userResponses)
 
   def maybeFullProject(projId: Int): Option[Project] => Future[FullProject] = {
@@ -58,7 +55,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     pathPrefix("projects") {
       pathEndOrSingleSlash {
         post {
-          authenticate(authenticator.jwtAuth) { authInfo =>
+          authenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
                 created {
@@ -72,7 +69,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
           }
         } ~
         get {
-          authenticate(authenticator.jwtAuth) { authInfo =>
+          authenticate(authenticator.wso2Auth) { authInfo =>
             complete {
               ok {
                 jobsDao.getProjects(1000)
@@ -84,7 +81,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
       pathPrefix(IntNumber) { projId =>
         pathEndOrSingleSlash {
           put {
-            authenticate(authenticator.jwtAuth) { authInfo =>
+            authenticate(authenticator.wso2Auth) { authInfo =>
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
@@ -98,7 +95,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
             }
           } ~
           get {
-            authenticate(authenticator.jwtAuth) { authInfo =>
+            authenticate(authenticator.wso2Auth) { authInfo =>
               complete {
                 ok {
                   jobsDao
@@ -113,7 +110,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     } ~
     path("projects-datasets" / Segment) { login =>
       get {
-        authenticate(authenticator.jwtAuth) { authInfo =>
+        authenticate(authenticator.wso2Auth) { authInfo =>
           complete {
             ok {
               jobsDao.getUserProjectsDatasets(login)
@@ -124,7 +121,7 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
     } ~
     path("user-projects" / Segment) { login =>
       get {
-        authenticate(authenticator.jwtAuth) { authInfo =>
+        authenticate(authenticator.wso2Auth) { authInfo =>
           complete {
             ok {
               jobsDao.getUserProjects(login)
@@ -138,12 +135,11 @@ class ProjectService(jobsDao: JobsDao, userDao: UserDao, authenticator: Authenti
 
 trait ProjectServiceProvider {
   this: JobsDaoProvider
-    with UserDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
-    Singleton(() => new ProjectService(jobsDao(), userDao(), authenticator()))
+    Singleton(() => new ProjectService(jobsDao(), authenticator()))
 
   addService(projectService)
 }

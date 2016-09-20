@@ -2,7 +2,7 @@ package com.pacbio.common.services
 
 import akka.util.Timeout
 import com.pacbio.common.actors.{HealthDaoProvider, HealthDao}
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator, BaseRoles}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import spray.http.MediaTypes
@@ -16,8 +16,8 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
-  import BaseRoles._
   import PacBioJsonProtocol._
+  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -30,7 +30,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix(healthServiceName) {
-      authenticate(authenticator.jwtAuth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { authInfo =>
         pathEnd {
           get {
             complete {
@@ -51,7 +51,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             } ~
             post {
               entity(as[HealthMetricCreateMessage]) { m =>
-                authorize(authInfo.hasPermission(HEALTH_AND_LOGS_ADMIN)) {
+                authorize(authInfo.hasPermission(PbAdmin)) {
                   respondWithMediaType(MediaTypes.`application/json`) {
                     complete {
                       created {
@@ -93,7 +93,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(HEALTH_AND_LOGS_WRITE)) {
+            authorize(authInfo.hasPermission(PbAdmin)) {
               entity(as[HealthMetricUpdateMessage]) { m =>
                 complete {
                   created {

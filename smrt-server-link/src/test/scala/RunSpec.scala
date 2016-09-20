@@ -3,14 +3,12 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.actors.InMemoryUserDaoProvider
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{UserRecord, XmlTemplateReader}
+import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.{PacBioDateTimeFormat, FakeClockProvider}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRoles
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.RunService
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
@@ -18,7 +16,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
-import spray.http.OAuth2BearerToken
+import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives}
 import spray.testkit.Specs2RouteTest
@@ -31,14 +29,14 @@ class RunSpec
   with Directives
   with Specs2RouteTest
   with NoTimeConversions
-  with BaseRolesInit
   with PacBioServiceErrors {
 
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
   import SmrtLinkJsonProtocols._
-  import SmrtLinkRoles._
+  import Roles._
+  import Authenticator._
 
   val RUN_ID = UUID.randomUUID()
   val RUN_NAME = s"Run-$RUN_ID"
@@ -105,19 +103,18 @@ class RunSpec
     ).result().mkString
 
   val READ_USER_LOGIN = "reader"
-  val WRITE_USER_1_LOGIN = "root"
-  val WRITE_USER_2_LOGIN = "writer2"
+  val ADMIN_USER_1_LOGIN = "admin1"
+  val ADMIN_USER_2_LOGIN = "admin2"
   val INVALID_JWT = "invalid.jwt"
-  val READ_CREDENTIALS = OAuth2BearerToken(READ_USER_LOGIN)
-  val WRITE_CREDENTIALS_1 = OAuth2BearerToken(WRITE_USER_1_LOGIN)
-  val WRITE_CREDENTIALS_2 = OAuth2BearerToken(WRITE_USER_2_LOGIN)
-  val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
+  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
+  val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
+  val ADMIN_CREDENTIALS_2 = RawHeader(JWT_HEADER, ADMIN_USER_2_LOGIN)
+  val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   object TestProviders extends
     ServiceComposer with
     RunServiceActorProvider with
     InMemoryRunDaoProvider with
-    InMemoryUserDaoProvider with
     AuthenticatorImplProvider with
     JwtUtilsProvider with
     FakeClockProvider with
@@ -126,23 +123,16 @@ class RunSpec
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
+        if (jwt.startsWith("admin")) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+      }
     })
-
-    override final val defaultRoles = Set.empty[Role]
   }
 
   val actorRef = TestActorRef[RunServiceActor](TestProviders.runServiceActor())
   val authenticator = TestProviders.authenticator()
 
   val routes = new RunService(actorRef, authenticator).prefixedRoutes
-
-  TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().addRole(WRITE_USER_1_LOGIN, RUN_DESIGN_WRITE)
-  TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
-  TestProviders.userDao().addRole(WRITE_USER_2_LOGIN, RUN_DESIGN_WRITE)
 
   trait daoSetup extends Scope {
     TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()
@@ -152,7 +142,7 @@ class RunSpec
   "Run Service" should {
     // TODO(smcclellan): Add more than one run
     "return a list of all runs" in new daoSetup {
-      Get("/smrt-link/runs") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
@@ -161,47 +151,47 @@ class RunSpec
     }
 
     "return a subset of all runs" in new daoSetup {
-      Get(s"/smrt-link/runs?createdBy=$CREATED_BY") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs?createdBy=$CREATED_BY") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
         runs.head.createdBy === Some(CREATED_BY)
       }
 
-      Get("/smrt-link/runs?substring=Fake") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?substring=Fake") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
         runs.head.summary === Some(RUN_SUMMARY)
       }
 
-      Get("/smrt-link/runs?substring=Run") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?substring=Run") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
         runs.head.name === RUN_NAME
       }
 
-      Get("/smrt-link/runs?reserved=false") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?reserved=false") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
         runs.head.reserved === false
       }
 
-      Get("/smrt-link/runs?createdBy=foo") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?createdBy=foo") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 0
       }
 
-      Get("/smrt-link/runs?substring=foo") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?substring=foo") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 0
       }
 
-      Get("/smrt-link/runs?reserved=true") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/runs?reserved=true") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 0
@@ -209,7 +199,7 @@ class RunSpec
     }
 
     "return a specific run" in new daoSetup {
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         // TODO(smcclellan): Check all parsed fields
@@ -227,7 +217,7 @@ class RunSpec
     }
 
     "return a run set of collections" in new daoSetup {
-      Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collections = responseAs[Seq[CollectionMetadata]]
         collections.size === 2
@@ -263,7 +253,7 @@ class RunSpec
     }
 
     "return a specific collection" in new daoSetup {
-      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collect1 = responseAs[CollectionMetadata]
 
@@ -289,7 +279,7 @@ class RunSpec
         .replaceAllLiterally(RUN_ID.toString, newId.toString)
         .replaceAllLiterally(CREATED_BY, newCreator)
       val create = RunCreate(newModel)
-      Post("/smrt-link/runs", create) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Post("/smrt-link/runs", create) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.uniqueId === newId
@@ -297,7 +287,7 @@ class RunSpec
         run.reserved === false
       }
 
-      Get(s"/smrt-link/runs/$newId") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$newId") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         run.uniqueId === newId
@@ -315,13 +305,13 @@ class RunSpec
         dataModel = None,
         reserved = Some(true))
 
-      Post(s"/smrt-link/runs/$RUN_ID", update1) ~> addCredentials(WRITE_CREDENTIALS_2) ~> routes ~> check {
+      Post(s"/smrt-link/runs/$RUN_ID", update1) ~> addHeader(ADMIN_CREDENTIALS_2) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.reserved === true
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         run.reserved === true
@@ -332,14 +322,14 @@ class RunSpec
         dataModel = Some(newModel),
         reserved = None)
 
-      Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addCredentials(WRITE_CREDENTIALS_2) ~> routes ~> check {
+      Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addHeader(ADMIN_CREDENTIALS_2) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.numCellsCompleted === 1
         run.reserved === true
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         run.numCellsCompleted === 1
@@ -347,7 +337,7 @@ class RunSpec
         run.dataModel === newModel
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collection = responseAs[CollectionMetadata]
 
@@ -361,11 +351,11 @@ class RunSpec
     }
 
     "delete a run design" in new daoSetup {
-      Delete(s"/smrt-link/runs/$RUN_ID") ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Delete(s"/smrt-link/runs/$RUN_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beFalse
         status.intValue === 404
       }
@@ -378,24 +368,24 @@ class RunSpec
     //     rejection must beAnInstanceOf[AuthenticationFailedRejection]
     //   }
 
-    //   Get("/smrt-link/runs") ~> addCredentials(INVALID_CREDENTIALS) ~> routes ~> check {
+    //   Get("/smrt-link/runs") ~> addHeader(INVALID_CREDENTIALS) ~> routes ~> check {
     //     handled must beFalse
     //     rejection must beAnInstanceOf[AuthenticationFailedRejection]
     //   }
 
     //   val create = RunCreate(<run id="0" name="X">XXX</run>.mkString, "Name", "Summary.")
-    //   Post("/smrt-link/runs", create) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+    //   Post("/smrt-link/runs", create) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
     //     handled must beFalse
     //     rejection === AuthorizationFailedRejection
     //   }
 
     //   val update = RunUpdate(runDataModel = None, name = None, summary = None, reserved = None)
-    //   Post("/smrt-link/runs/0", update) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+    //   Post("/smrt-link/runs/0", update) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
     //     handled must beFalse
     //     rejection === AuthorizationFailedRejection
     //   }
 
-    //   Delete("/smrt-link/runs/0", update) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+    //   Delete("/smrt-link/runs/0", update) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
     //     handled must beFalse
     //     rejection === AuthorizationFailedRejection
     //   }
@@ -403,12 +393,12 @@ class RunSpec
 
     "reject malformed xml" in new daoSetup {
       val create = RunCreate(<foo id="0" name="X">XXX</foo>.mkString)
-      Post("/smrt-link/runs", create) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Post("/smrt-link/runs", create) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.intValue === 422
       }
 
       val update = RunUpdate(dataModel = Some(<run id="0" foo="A">AAA</run>.mkString))
-      Post(s"/smrt-link/runs/$RUN_ID", update) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Post(s"/smrt-link/runs/$RUN_ID", update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.intValue === 422
       }
     }
