@@ -15,7 +15,7 @@
         {
           "name": "run-qc",
           "key": "run-qc",
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2FPbBioinformatician",
           "description": "Run%20QC%20Authorization"
         },
         {
@@ -27,13 +27,13 @@
         {
           "name": "data-management",
           "key": "data-management",
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatics",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
           "description": "Data%20Management%20Authorization"
         },
         {
           "name": "smrt-analysis",
           "key": "smrt-analysis",
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatics",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
           "description": "SMRT%20Analysis%20Authorization"
         }
       ]
