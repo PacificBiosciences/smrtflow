@@ -1,9 +1,9 @@
 import java.util.UUID
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.actors.InMemoryUserDaoProvider
-import com.pacbio.common.auth.{Role, _}
+import com.pacbio.common.auth._
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.actors.{InMemorySampleDao, InMemorySampleDaoProvider, SampleServiceActor, SampleServiceActorProvider}
@@ -13,7 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
-import spray.http.OAuth2BearerToken
+import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
 import spray.routing.Directives
 import spray.testkit.Specs2RouteTest
@@ -25,7 +25,6 @@ class SampleSpec extends
     Specification with
     Directives with
     Specs2RouteTest with
-    BaseRolesInit with
     LazyLogging with
     NoTimeConversions with
     PacBioServiceErrors {
@@ -35,6 +34,8 @@ class SampleSpec extends
 
   // for implicit json converters
   import SmrtLinkJsonProtocols._
+  import Roles._
+  import Authenticator._
 
   //
   // Setup TestProvider to compose our actors with an InMemory DAO
@@ -44,12 +45,12 @@ class SampleSpec extends
   val SAMPLE2_UUID = UUID.randomUUID()
   val SAMPLE3_UUID = UUID.randomUUID()
   val READ_USER_LOGIN = "reader"
-  val WRITE_USER_1_LOGIN = "root"
-  val WRITE_USER_2_LOGIN = "writer2"
+  val ADMIN_USER_1_LOGIN = "admin1"
+  val ADMIN_USER_2_LOGIN = "admin2"
   val INVALID_JWT = "invalid.jwt"
   val FAKE_SAMPLE = "{Chemistry:S1, InputConcentration:23.1}"
-  val READ_CREDENTIALS = OAuth2BearerToken(READ_USER_LOGIN)
-  val WRITE_CREDENTIALS_1 = OAuth2BearerToken(WRITE_USER_1_LOGIN)
+  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
+  val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
 
   val SAMPLE_PATH = "/smrt-link/samples"
   var SAMPLE_PATH_SLASH = SAMPLE_PATH + "/"
@@ -58,7 +59,6 @@ class SampleSpec extends
     ServiceComposer with
     SampleServiceActorProvider with
     InMemorySampleDaoProvider with
-    InMemoryUserDaoProvider with
     AuthenticatorImplProvider with
     JwtUtilsProvider with
     FakeClockProvider {
@@ -66,11 +66,10 @@ class SampleSpec extends
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
+        if (jwt.startsWith("admin")) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+      }
     })
-
-    override final val defaultRoles = Set.empty[Role]
   }
 
   val actorRef = TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
@@ -86,11 +85,11 @@ class SampleSpec extends
     Await.ready(
       Future.sequence(Seq(
         TestProviders.sampleDao()
-          .createSample(WRITE_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One")),
+          .createSample(ADMIN_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One")),
         TestProviders.sampleDao()
-          .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two")),
+          .createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two")),
         TestProviders.sampleDao()
-          .createSample(WRITE_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
+          .createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
       )),
       10.seconds
     )
@@ -98,16 +97,16 @@ class SampleSpec extends
 
   "Sample Service" should {
     "return a list of saved samples" in new daoSetup {
-      Get(SAMPLE_PATH) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(SAMPLE_PATH) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val samples = responseAs[Set[Sample]]
         samples.size === 3
-        samples.map(_.createdBy) === Set(WRITE_USER_1_LOGIN, WRITE_USER_2_LOGIN, WRITE_USER_2_LOGIN)
+        samples.map(_.createdBy) === Set(ADMIN_USER_1_LOGIN, ADMIN_USER_2_LOGIN, ADMIN_USER_2_LOGIN)
       }
     }
 
     "return a specific sample" in new daoSetup {
-      Get(SAMPLE_PATH_SLASH + SAMPLE1_UUID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(SAMPLE_PATH_SLASH + SAMPLE1_UUID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         logger.info("request: GET " + SAMPLE_PATH_SLASH + SAMPLE1_UUID)
         status.isSuccess must beTrue
         val sample = responseAs[Sample]
@@ -117,7 +116,7 @@ class SampleSpec extends
       }
     }
     "return a different sample" in new daoSetup {
-      Get(SAMPLE_PATH_SLASH + SAMPLE2_UUID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(SAMPLE_PATH_SLASH + SAMPLE2_UUID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         logger.info("request: GET " + SAMPLE_PATH_SLASH + SAMPLE2_UUID)
         status.isSuccess must beTrue
         val sample = responseAs[Sample]
@@ -130,13 +129,13 @@ class SampleSpec extends
     "update a sample" in new daoSetup {
       val newDetails = "{Chemistry:S2, InputConcentration:21.1}"
       val update = SampleUpdate(details = Some(newDetails), name = None)
-      Post(SAMPLE_PATH_SLASH + SAMPLE3_UUID, update) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Post(SAMPLE_PATH_SLASH + SAMPLE3_UUID, update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         logger.info("request: POST " + SAMPLE_PATH_SLASH + SAMPLE3_UUID)
         val sample = responseAs[Sample]
         sample.name === "Sample Three"
         sample.details === newDetails
       }
-      Get(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         logger.info("request: GET " + SAMPLE_PATH_SLASH + SAMPLE3_UUID)
         status.isSuccess must beTrue
         val sample = responseAs[Sample]
@@ -147,15 +146,15 @@ class SampleSpec extends
     }
 
     "delete a sample" in new daoSetup {
-      Delete(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Delete(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         logger.info("request: DELETE " + SAMPLE_PATH_SLASH + SAMPLE3_UUID)
         status.isSuccess must beTrue
       }
-      Get(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addCredentials(WRITE_CREDENTIALS_1) ~> routes ~> check {
+      Get(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.isSuccess must beFalse
         status.intValue === 404
       }
-      Get(SAMPLE_PATH) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get(SAMPLE_PATH) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val samples = responseAs[Set[Sample]]
         samples.size === 2

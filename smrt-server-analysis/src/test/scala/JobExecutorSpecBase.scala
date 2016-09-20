@@ -2,6 +2,7 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
@@ -52,7 +53,6 @@ with JobServiceConstants {
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
-  InMemoryUserDaoProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
   InMemoryLogDaoProvider with
@@ -62,8 +62,7 @@ with JobServiceConstants {
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
 
     override val config: Singleton[Config] = Singleton(testConfig)

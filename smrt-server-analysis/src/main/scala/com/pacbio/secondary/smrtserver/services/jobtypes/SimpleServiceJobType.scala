@@ -41,7 +41,7 @@ class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) exte
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[SimpleDevJobOptions]) { opts =>
               // 1.  Create a new job in db
               // 2. Create a new CoreJob instance

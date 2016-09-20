@@ -10,7 +10,6 @@ import com.pacbio.common.app.{BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioService
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
 
 import com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisProviders
 import com.pacbio.secondaryinternal.services.jobtypes.ConditionJobTypeServiceProvider
@@ -41,7 +40,6 @@ trait SecondaryInternalAnalysisProviders extends SecondaryAnalysisProviders
 }
 
 trait SecondaryInternalAnalysisApi extends BaseApi
-    with SmrtLinkRolesInit
     with LazyLogging
     with SmrtLinkAnalysisInternalConfigProvider {
 

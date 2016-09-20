@@ -6,7 +6,6 @@ import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
 import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes.{ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider}
@@ -49,7 +48,7 @@ trait SmrtLinkProviders extends
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }
 
-trait SmrtLinkApi extends BaseApi with SmrtLinkRolesInit with LazyLogging {
+trait SmrtLinkApi extends BaseApi with LazyLogging {
 
   override val providers = new SmrtLinkProviders {}
 

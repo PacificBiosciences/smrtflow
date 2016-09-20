@@ -88,7 +88,7 @@ class DirectPbsmrtpipeJobType(
           }
         } ~
           post {
-            optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+            optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
               entity(as[PbsmrtpipeDirectJobOptions]) { ropts =>
 
                 val uuid = UUID.randomUUID()

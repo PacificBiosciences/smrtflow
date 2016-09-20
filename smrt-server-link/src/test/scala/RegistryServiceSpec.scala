@@ -2,20 +2,18 @@ import java.net.URL
 import java.util.UUID
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.actors.InMemoryUserDaoProvider
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.UserRecord
+import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.{FakeClock, FakeClockProvider}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRoles
 import com.pacbio.secondary.smrtlink.models.{RegistryResourceUpdate, RegistryResource, RegistryResourceCreate, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.services.RegistryService
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import spray.http.OAuth2BearerToken
+import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
 import spray.routing.Directives
 import spray.testkit.Specs2RouteTest
@@ -26,8 +24,9 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
   sequential
 
   import SmrtLinkJsonProtocols._
-  import SmrtLinkRoles._
-
+  import Roles._
+  import Authenticator._
+  
   val FAKE_HOST = "fake.server.com"
   val FAKE_PORT = 1234
   val RESOURCE_ID = "resource_id"
@@ -35,11 +34,11 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
   val NOW = 1000000000L
 
   val READ_USER_LOGIN = "reader"
-  val WRITE_USER_LOGIN = "writer"
+  val ADMIN_USER_LOGIN = "admin"
   val INVALID_JWT = "invalid.jwt"
-  val READ_CREDENTIALS = OAuth2BearerToken(READ_USER_LOGIN)
-  val WRITE_CREDENTIALS = OAuth2BearerToken(WRITE_USER_LOGIN)
-  val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
+  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
+  val ADMIN_CREDENTIALS = RawHeader(JWT_HEADER, ADMIN_USER_LOGIN)
+  val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   trait daoSetup extends Scope {
 
@@ -49,19 +48,16 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       ServiceComposer with
       RegistryServiceActorProvider with
       InMemoryRegistryDaoProvider with
-      InMemoryUserDaoProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider {
 
         // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-        override val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-          override def getJwt(user: ApiUser): String = user.login
-          override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+        override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
+          override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
+            if (jwt == ADMIN_USER_LOGIN) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+          }
         })
-
-        // Users initially have no permissions.
-        override val defaultRoles = Set.empty[Role]
 
         // Mock http connections
         override val registryProxyHttp = Singleton(mockHttp)
@@ -72,10 +68,6 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
     val routes = new RegistryService(actorRef, authenticator).prefixedRoutes
 
-    TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-    TestProviders.userDao().createUser(WRITE_USER_LOGIN, UserRecord("pass"))
-    TestProviders.userDao().addRole(WRITE_USER_LOGIN, REGISTRY_WRITE)
-
     TestProviders.clock().asInstanceOf[FakeClock].reset(NOW)
     TestProviders.registryDao().asInstanceOf[InMemoryRegistryDao].clear()
     TestProviders.registryDao().createResource(RegistryResourceCreate(FAKE_HOST, FAKE_PORT, RESOURCE_ID))
@@ -83,7 +75,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
   "Registry Service" should {
     "return a list of all resources" in new daoSetup {
-      Get("/smrt-link/registry-service/resources") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resources = responseAs[Set[RegistryResource]]
         resources.size === 1
@@ -96,7 +88,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
     }
 
     "return a resource by id" in new daoSetup {
-      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resources = responseAs[Set[RegistryResource]]
         resources.size === 1
@@ -109,7 +101,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
     }
 
     "return empty set for missing id" in new daoSetup {
-      Get("/smrt-link/registry-service/resources?resourceId=foo") ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=foo") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resources = responseAs[Set[RegistryResource]]
         resources.size === 0
@@ -120,12 +112,12 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       val newResourceId = "new_resource_id"
       val create = RegistryResourceCreate(FAKE_HOST, FAKE_PORT, newResourceId)
       var uuid: UUID = null
-      Post("/smrt-link/registry-service/resources", create) ~> addCredentials(WRITE_CREDENTIALS) ~> routes ~> check {
+      Post("/smrt-link/registry-service/resources", create) ~> addHeader(ADMIN_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[RegistryResource]
         uuid = resource.uuid
       }
-      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[RegistryResource]
         resource.host === FAKE_HOST
@@ -142,13 +134,13 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       val newNow = NOW + 1L
       val update = RegistryResourceUpdate(Some(newHost), Some(newPort))
       var uuid: UUID = null
-      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[Set[RegistryResource]].head
         uuid = resource.uuid
       }
       TestProviders.clock().asInstanceOf[FakeClock].reset(newNow)
-      Post("/smrt-link/registry-service/resources/" + uuid.toString + "/update", update) ~> addCredentials(WRITE_CREDENTIALS) ~> routes ~> check {
+      Post("/smrt-link/registry-service/resources/" + uuid.toString + "/update", update) ~> addHeader(ADMIN_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[RegistryResource]
         resource.host === newHost
@@ -157,7 +149,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
         resource.createdAt.getMillis === NOW
         resource.updatedAt.getMillis === newNow
       }
-      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[RegistryResource]
         resource.host === newHost
@@ -170,22 +162,22 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
     "delete a resource" in new daoSetup {
       var uuid: UUID = null
-      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[Set[RegistryResource]].head
         uuid = resource.uuid
       }
-      Delete("/smrt-link/registry-service/resources/" + uuid.toString) ~> addCredentials(WRITE_CREDENTIALS) ~> routes ~> check {
+      Delete("/smrt-link/registry-service/resources/" + uuid.toString) ~> addHeader(ADMIN_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
       }
-      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources/" + uuid.toString) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.intValue === 404
       }
     }
 
     "get from proxy" in new daoSetup {
       var uuid: UUID = null
-      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[Set[RegistryResource]].head
         uuid = resource.uuid
@@ -204,7 +196,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
       val paramName = "param"
       val paramVal = "value"
-      Get("/smrt-link/registry-service/resources/" + uuid.toString + "/proxy" + testPath + "?" + paramName + "=" + paramVal) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources/" + uuid.toString + "/proxy" + testPath + "?" + paramName + "=" + paramVal) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
 
         val resp = responseAs[String]
@@ -215,7 +207,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
         there was one(mockRequest).method("GET")
         there was one(mockRequest).asBytes
         there was one(mockRequest).params(Map(paramName -> paramVal))
-        there was one(mockRequest).headers(Map("Authorization" -> ("Bearer " + READ_USER_LOGIN)))
+        there was one(mockRequest).headers(Map(JWT_HEADER -> READ_USER_LOGIN))
 
         there was no(mockRequest).postData(any[Array[Byte]])
       }
@@ -223,7 +215,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
     "post to proxy" in new daoSetup {
       var uuid: UUID = null
-      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Get("/smrt-link/registry-service/resources?resourceId=" + RESOURCE_ID) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val resource = responseAs[Set[RegistryResource]].head
         uuid = resource.uuid
@@ -241,7 +233,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
         HttpResponse[Array[Byte]](expectedResponse.getBytes(HttpConstants.utf8), 200, Map("Via" -> expectedVia))
 
       val postData = "post data"
-      Post("/smrt-link/registry-service/resources/" + uuid.toString + "/proxy" + testPath, postData) ~> addCredentials(READ_CREDENTIALS) ~> routes ~> check {
+      Post("/smrt-link/registry-service/resources/" + uuid.toString + "/proxy" + testPath, postData) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
 
         val resp = responseAs[String]
@@ -252,7 +244,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
         there was one(mockRequest).method("POST")
         there was one(mockRequest).asBytes
         there was one(mockRequest).postData(postData.getBytes(HttpConstants.utf8))
-        there was one(mockRequest).headers(Map("Authorization" -> ("Bearer " + READ_USER_LOGIN)))
+        there was one(mockRequest).headers(Map(JWT_HEADER -> READ_USER_LOGIN))
 
         there was no(mockRequest).params(any[Map[String, String]])
       }

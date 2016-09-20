@@ -79,7 +79,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[DataSetExportServiceOptions]) { sopts =>
 
               val uuid = UUID.randomUUID()

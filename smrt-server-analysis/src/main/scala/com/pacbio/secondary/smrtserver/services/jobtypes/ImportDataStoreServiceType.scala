@@ -44,7 +44,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.jwtAuth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
             entity(as[ImportDataStoreOptions]) { sopts =>
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
