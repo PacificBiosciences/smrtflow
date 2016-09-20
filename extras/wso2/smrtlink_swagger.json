@@ -74,6 +74,32 @@
         "produces": [
           "application/json"
         ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "substring",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "createdBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "reserved",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
         "responses": {
           "200": {},
           "default": {}
@@ -978,33 +1004,15 @@
         }
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/resources": {
+    "/secondary-analysis/datastore-files/{uuid}/download": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "parameters": [
           {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "job-id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
             "name": "uuid",
             "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "relpath",
-            "in": "query",
             "required": true,
             "type": "string"
           }
@@ -1015,7 +1023,7 @@
         }
       }
     },
-    "/secondary-analysis/datastore-files/{uuid}/download": {
+    "/secondary-analysis/datastore-files/{uuid}/resources": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
         "x-scope": "data-management",
@@ -1024,6 +1032,12 @@
           {
             "name": "uuid",
             "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "relpath",
+            "in": "query",
             "required": true,
             "type": "string"
           }
@@ -1046,6 +1060,56 @@
           "200": {},
           "default": {}
         }
+      }
+    },
+    "/secondary-analysis/pipeline-template-view-rules": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/pipeline-template-view-rules/status": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+        {
+          "name": "rule-id",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        }
+        ],
+          "responses": {
+            "200": {},
+            "default": {}
+          }
       }
     },
     "/secondary-analysis/projects": {
