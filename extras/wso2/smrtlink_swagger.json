@@ -15,7 +15,7 @@
         {
           "name": "run-qc",
           "key": "run-qc",
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2FPbBioinformatician",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
           "description": "Run%20QC%20Authorization"
         },
         {

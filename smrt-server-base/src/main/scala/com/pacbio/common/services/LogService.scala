@@ -1,11 +1,10 @@
 package com.pacbio.common.services
 
 import com.pacbio.common.actors._
-import com.pacbio.common.auth.{AuthenticatorProvider, BaseRoles, Authenticator}
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import org.joda.time.{DateTime => JodaDateTime}
-import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
@@ -16,8 +15,8 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
-  import BaseRoles._
   import PacBioJsonProtocol._
+  import Roles._
   import language.implicitConversions
 
   implicit def longOptionToJodaDateTimeOption(t: Option[Long]): Option[JodaDateTime] = t.map(new JodaDateTime(_))
@@ -40,8 +39,8 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           }
         } ~
         post {
-          authenticate(authenticator.jwtAuth) { authInfo =>
-            authorize(authInfo.hasPermission(HEALTH_AND_LOGS_ADMIN)) {
+          authenticate(authenticator.wso2Auth) { authInfo =>
+            authorize(authInfo.hasPermission(PbAdmin)) {
               entity(as[LogResourceRecord]) { m =>
                 complete {
                   created {
@@ -95,8 +94,8 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authenticate(authenticator.jwtAuth) { authInfo =>
-              authorize(authInfo.hasPermission(HEALTH_AND_LOGS_WRITE)) {
+            authenticate(authenticator.wso2Auth) { authInfo =>
+              authorize(authInfo.hasPermission(PbAdmin)) {
                 entity(as[LogMessageRecord]) { m =>
                   complete {
                     created {

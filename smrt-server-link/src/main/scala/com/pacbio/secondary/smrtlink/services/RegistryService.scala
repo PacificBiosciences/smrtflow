@@ -11,7 +11,6 @@ import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{RegistryServiceActorRefProvider, RegistryServiceActor}
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRoles
 import com.pacbio.secondary.smrtlink.models._
 import spray.http.{HttpResponse => SprayHttpResponse, HttpHeader, HttpEntity, HttpMethod}
 import spray.httpx.SprayJsonSupport._
@@ -25,7 +24,6 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
   extends SmrtLinkBaseMicroService with SmrtLinkJsonProtocols {
 
   import RegistryServiceActor._
-  import SmrtLinkRoles._
 
   val COMPONENT_ID = toServiceId("registry")
   val COMPONENT_VERSION = "0.1.1"
@@ -36,7 +34,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
     COMPONENT_VERSION, "Subsystem Resource Registry Service")
 
   val routes =
-    //authenticate(authenticator.jwtAuth) { authInfo =>
+    //authenticate(authenticator.wso2Auth) { authInfo =>
       pathPrefix("registry-service" / "resources") {
         pathEnd {
           get {
@@ -48,7 +46,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RegistryResourceCreate]) { create =>
-              //authorize(authInfo.hasPermission(REGISTRY_WRITE)) {
+              //authorize(authInfo.hasPermission(PbAdmin)) {
                 complete {
                   created {
                     (registryActor ? CreateResource(create)).mapTo[RegistryResource]
@@ -87,7 +85,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           path("update") {
             post {
               entity(as[RegistryResourceUpdate]) { update =>
-                //authorize(authInfo.hasPermission(REGISTRY_WRITE)) {
+                //authorize(authInfo.hasPermission(PbAdmin)) {
                   complete {
                     ok {
                       (registryActor ? UpdateResource(uuid, update)).mapTo[RegistryResource]

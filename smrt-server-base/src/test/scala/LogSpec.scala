@@ -1,6 +1,5 @@
 import java.io.File
 
-import com.pacbio.common.actors.{InMemoryUserDaoProvider, UserDao}
 import com.pacbio.common.auth._
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
@@ -10,7 +9,7 @@ import com.pacbio.common.time._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
-import spray.http.OAuth2BearerToken
+import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
 import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives, HttpService}
 import spray.testkit.Specs2RouteTest
@@ -24,13 +23,13 @@ class LogSpec
   with NoTimeConversions
   with Directives
   with Specs2RouteTest
-  with HttpService
-  with BaseRolesInit {
+  with HttpService {
 
   sequential
 
   import PacBioJsonProtocol._
-  import BaseRoles._
+  import Authenticator._
+  import Roles._
 
   def actorRefFactory = system
 
@@ -41,7 +40,6 @@ class LogSpec
   val componentId2 = "pacbio.my_component.two"
 
   val readUserLogin = "reader"
-  val writeUserLogin = "writer"
   val adminUserLogin = "admin"
 
   val invalidJwt = "invalid.jwt"
@@ -51,19 +49,17 @@ class LogSpec
       LogServiceProvider with
       DatabaseLogDaoProvider with
       BaseSmrtServerDatabaseConfigProviders with
-      InMemoryUserDaoProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == invalidJwt) None else Some(jwt)
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == invalidJwt) None else Some {
+        if (jwt == adminUserLogin) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+      }
     })
-
-    override final val defaultRoles = Set.empty[Role]
-
+    
     override final val logDaoBufferSize = 4
 
     // Database config that uses a temporary database file
@@ -75,16 +71,7 @@ class LogSpec
   }
 
   val authenticator = TestProviders.authenticator()
-  val userDao: UserDao = TestProviders.userDao()
   val logDao: DatabaseLogDao = TestProviders.logDao().asInstanceOf[DatabaseLogDao]
-
-  Await.ready(for {
-    _ <- userDao.createUser(readUserLogin, UserRecord("pass"))
-    _ <- userDao.createUser(writeUserLogin, UserRecord("pass"))
-    _ <- userDao.addRole(writeUserLogin, HEALTH_AND_LOGS_WRITE)
-    _ <- userDao.createUser(adminUserLogin, UserRecord("pass"))
-    _ <- userDao.addRole(adminUserLogin, HEALTH_AND_LOGS_ADMIN)
-  } yield (), 10.seconds)
 
   val routes = TestProviders.logService().prefixedRoutes
 
@@ -106,8 +93,8 @@ class LogSpec
   "Log Service" should {
 
     "return a list of log resources" in new daoSetup {
-      val credentials = OAuth2BearerToken(readUserLogin)
-      Get("/smrt-base/loggers") ~> addCredentials(credentials) ~> routes ~> check {
+      val credentials = RawHeader(JWT_HEADER, readUserLogin)
+      Get("/smrt-base/loggers") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val resources = responseAs[Set[LogResource]]
         resources.size === 2
@@ -116,29 +103,29 @@ class LogSpec
     }
 
     "return a specific log resource" in new daoSetup {
-      val credentials = OAuth2BearerToken(readUserLogin)
-      Get("/smrt-base/loggers/" + componentId1) ~> addCredentials(credentials) ~> routes ~> check {
+      val credentials = RawHeader(JWT_HEADER, readUserLogin)
+      Get("/smrt-base/loggers/" + componentId1) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         responseAs[LogResource].id === componentId1
       }
     }
 
     "create a new log resource" in new daoSetup {
-      val credentials = OAuth2BearerToken(adminUserLogin)
+      val credentials = RawHeader(JWT_HEADER, adminUserLogin)
       val newComponentId = "pacbio.my_component.new"
       val record = LogResourceRecord("Logger for New Component", newComponentId, "New Component")
-      Post("/smrt-base/loggers", record) ~> addCredentials(credentials) ~> routes ~> check {
+      Post("/smrt-base/loggers", record) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
       }
-      Get("/smrt-base/loggers/" + newComponentId) ~> addCredentials(credentials) ~> routes ~> check {
+      Get("/smrt-base/loggers/" + newComponentId) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         responseAs[LogResource].id === newComponentId
       }
     }
 
     "return recent messages from a log resource" in new daoSetup {
-      val credentials = OAuth2BearerToken(readUserLogin)
-      Get("/smrt-base/loggers/" + componentId1 + "/messages") ~> addCredentials(credentials) ~> routes ~> check {
+      val credentials = RawHeader(JWT_HEADER, readUserLogin)
+      Get("/smrt-base/loggers/" + componentId1 + "/messages") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val messages = responseAs[Set[LogMessage]]
         messages.size === 2
@@ -147,14 +134,14 @@ class LogSpec
     }
 
     "create a new log message" in new daoSetup {
-      val credentials = OAuth2BearerToken(writeUserLogin)
+      val credentials = RawHeader(JWT_HEADER, adminUserLogin)
       val record = LogMessageRecord("This component has critical info", LogLevel.CRITICAL, "test source")
       var message: LogMessage = null
-      Post("/smrt-base/loggers/" + componentId2 + "/messages", record) ~> addCredentials(credentials) ~> routes ~> check {
+      Post("/smrt-base/loggers/" + componentId2 + "/messages", record) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         message = responseAs[LogMessage]
       }
-      Get("/smrt-base/loggers/" + componentId2 + "/messages") ~> addCredentials(credentials) ~> routes ~> check {
+      Get("/smrt-base/loggers/" + componentId2 + "/messages") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val messages = responseAs[Seq[LogMessage]]
         messages.filter{ m => m.level == LogLevel.CRITICAL } === Seq(message)
@@ -162,8 +149,8 @@ class LogSpec
     }
 
     "return recent messages from all resources" in new daoSetup {
-      val credentials = OAuth2BearerToken(readUserLogin)
-      Get("/smrt-base/loggers/system/messages") ~> addCredentials(credentials) ~> routes ~> check {
+      val credentials = RawHeader(JWT_HEADER, readUserLogin)
+      Get("/smrt-base/loggers/system/messages") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val messages = responseAs[Set[LogMessage]]
         messages.size === 3
@@ -172,8 +159,8 @@ class LogSpec
     }
 
     "search for messages in a log resource with a given substring" in new daoSetup {
-      val read = OAuth2BearerToken(readUserLogin)
-      val write = OAuth2BearerToken(writeUserLogin)
+      val read = RawHeader(JWT_HEADER, readUserLogin)
+      val write = RawHeader(JWT_HEADER, adminUserLogin)
       for (i <- 0 until 100) {
         val parity = i % 2 match {
           case 0 => "even"
@@ -185,14 +172,14 @@ class LogSpec
 
         TestProviders.clock().asInstanceOf[FakeClock].reset(timeMs)
         val record = LogMessageRecord(message, LogLevel.NOTICE, source)
-        Post("/smrt-base/loggers/" + componentId2 + "/messages", record) ~> addCredentials(write) ~> routes ~> check {
+        Post("/smrt-base/loggers/" + componentId2 + "/messages", record) ~> addHeader(write) ~> routes ~> check {
           status.isSuccess must beTrue
         }
       }
 
       // This search should capture messages where i % 2 == 0, i % 3 == 0, and i % 5 == 1. To wit, 6, 36, 66, 96, etc.
       val searchString = "substring=even&sourceId=source0&startTime=100&endTime=200"
-      Get("/smrt-base/loggers/" + componentId2 + "/search?" + searchString) ~> addCredentials(read) ~> routes ~> check {
+      Get("/smrt-base/loggers/" + componentId2 + "/search?" + searchString) ~> addHeader(read) ~> routes ~> check {
         status.isSuccess must beTrue
         val messages = responseAs[Seq[LogMessage]]
         messages.size === 4
@@ -204,8 +191,8 @@ class LogSpec
     }
 
     "search for messages in all resources with a given substring" in new daoSetup {
-      val read = OAuth2BearerToken(readUserLogin)
-      val write = OAuth2BearerToken(writeUserLogin)
+      val read = RawHeader(JWT_HEADER, readUserLogin)
+      val write = RawHeader(JWT_HEADER, adminUserLogin)
       for (i <- 0 until 100) {
         val parity = if (i % 2 == 0) "even" else "odd"
         val message = "This is message number " + i + " and it is " + parity
@@ -217,14 +204,14 @@ class LogSpec
 
         TestProviders.clock().asInstanceOf[FakeClock].reset(timeMs)
         val record = LogMessageRecord(message, LogLevel.NOTICE, source)
-        Post("/smrt-base/loggers/" + target + "/messages", record) ~> addCredentials(write) ~> routes ~> check {
+        Post("/smrt-base/loggers/" + target + "/messages", record) ~> addHeader(write) ~> routes ~> check {
           status.isSuccess must beTrue
         }
       }
 
       // This search should capture messages where i % 2 == 0, i % 3 == 0, and i % 5 == 1. To wit, 6, 36, 66, 96, etc.
       val searchString = "substring=even&sourceId=source0&startTime=100&endTime=200"
-      Get("/smrt-base/loggers/system/search?" + searchString) ~> addCredentials(read) ~> routes ~> check {
+      Get("/smrt-base/loggers/system/search?" + searchString) ~> addHeader(read) ~> routes ~> check {
         status.isSuccess must beTrue
         val messages = responseAs[Seq[LogMessage]]
         messages.size === 4
@@ -243,21 +230,14 @@ class LogSpec
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
 
-      val invalid = OAuth2BearerToken(invalidJwt)
-      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addCredentials(invalid) ~> routes ~> check {
+      val invalid = RawHeader(JWT_HEADER, invalidJwt)
+      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addHeader(invalid) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
 
-      val noWrite = OAuth2BearerToken(readUserLogin)
-      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addCredentials(noWrite) ~> routes ~> check {
-        handled must beFalse
-        rejection === AuthorizationFailedRejection
-      }
-
-      val noAdmin = OAuth2BearerToken(writeUserLogin)
-      val resource = LogResourceRecord("Logger for New Component", "pacbio.new_component", "New Component")
-      Post("/smrt-base/loggers", resource) ~> addCredentials(noAdmin) ~> routes ~> check {
+      val noAdmin = RawHeader(JWT_HEADER, readUserLogin)
+      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addHeader(noAdmin) ~> routes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }

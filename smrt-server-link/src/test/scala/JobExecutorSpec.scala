@@ -2,7 +2,7 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.UserRecord
+import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
@@ -20,11 +20,10 @@ import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
-import spray.http.OAuth2BearerToken
+import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
@@ -37,17 +36,19 @@ with JobServiceConstants {
   sequential
 
   import SmrtLinkJsonProtocols._
+  import Roles._
+  import Authenticator._
 
   implicit val routeTestTimeout = RouteTestTimeout(5.seconds)
 
   val READ_USER_LOGIN = "reader"
-  val WRITE_USER_1_LOGIN = "root"
-  val WRITE_USER_2_LOGIN = "writer2"
+  val ADMIN_USER_1_LOGIN = "admin1"
+  val ADMIN_USER_2_LOGIN = "admin2"
   val INVALID_JWT = "invalid.jwt"
-  val READ_CREDENTIALS = OAuth2BearerToken(READ_USER_LOGIN)
-  val WRITE_CREDENTIALS_1 = OAuth2BearerToken(WRITE_USER_1_LOGIN)
-  val WRITE_CREDENTIALS_2 = OAuth2BearerToken(WRITE_USER_2_LOGIN)
-  val INVALID_CREDENTIALS = OAuth2BearerToken(INVALID_JWT)
+  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
+  val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
+  val ADMIN_CREDENTIALS_2 = RawHeader(JWT_HEADER, ADMIN_USER_2_LOGIN)
+  val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   object TestProviders extends
   ServiceComposer with
@@ -63,7 +64,6 @@ with JobServiceConstants {
   JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
-  InMemoryUserDaoProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
   InMemoryLogDaoProvider with
@@ -73,8 +73,9 @@ with JobServiceConstants {
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def getJwt(user: ApiUser): String = user.login
-      override def validate(jwt: String): Option[String] = if (jwt == INVALID_JWT) None else Some(jwt)
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
+        if (jwt.startsWith("admin")) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+      }
     })
 
     override val config: Singleton[Config] = Singleton(testConfig)
@@ -83,12 +84,6 @@ with JobServiceConstants {
     override val baseServiceId: Singleton[String] = Singleton("test-service")
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
   }
-
-  Await.ready(for {
-    _ <- TestProviders.userDao().createUser(READ_USER_LOGIN, UserRecord("pass"))
-    _ <- TestProviders.userDao().createUser(WRITE_USER_1_LOGIN, UserRecord("pass"))
-    _ <- TestProviders.userDao().createUser(WRITE_USER_2_LOGIN, UserRecord("pass"))
-  } yield (), 10.seconds)
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db

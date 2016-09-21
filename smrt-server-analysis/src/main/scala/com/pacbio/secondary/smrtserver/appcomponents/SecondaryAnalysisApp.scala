@@ -1,14 +1,11 @@
 package com.pacbio.secondary.smrtserver.appcomponents
 
-import java.nio.file.{Files, Paths}
-
-import com.pacbio.common.app.{BaseServer, BaseApi}
+import com.pacbio.common.app.BaseServer
 import com.pacbio.common.dependency.{TypesafeSingletonReader, Singleton}
 import com.pacbio.common.logging.{LoggerFactoryProvider, LogResources}
 import com.pacbio.common.models.LogResourceRecord
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
-import com.pacbio.secondary.smrtlink.auth.SmrtLinkRolesInit
 import com.pacbio.secondary.smrtserver.services._
 import com.pacbio.secondary.smrtserver.services.jobtypes._
 import com.typesafe.scalalogging.LazyLogging
@@ -45,7 +42,7 @@ trait SecondaryAnalysisProviders
   Singleton(LogResourceRecord("SMRT Link UI", "smrtlink", "SMRTLink UI")).bindToSet(LogResources)
 }
 
-trait SecondaryApi extends SmrtLinkApi with SmrtLinkRolesInit with LazyLogging {
+trait SecondaryApi extends SmrtLinkApi with LazyLogging {
   override val providers = new SecondaryAnalysisProviders {}
 
   sys.addShutdownHook(system.shutdown())
