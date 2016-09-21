@@ -7,6 +7,12 @@
     "apim": {
       "x-wso2-scopes": [
         {
+          "name": "admin",
+          "key": "admin",
+          "roles": "Internal%2FPbAdmin",
+          "description": "Admin%20Authorization"
+        },
+        {
           "name": "run-design",
           "key": "run-design",
           "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
