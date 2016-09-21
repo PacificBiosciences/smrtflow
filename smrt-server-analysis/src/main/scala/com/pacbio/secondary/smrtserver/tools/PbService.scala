@@ -144,9 +144,10 @@ object PbServiceParser {
       c.copy(port = x)
     } text "Services port on smrtlink server"
 
-    opt[String]("token") action { (t, c) =>
+    // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
+    /*opt[String]("token") action { (t, c) =>
       c.copy(authToken = Some(getToken(t)))
-    } text "Authentication token (required for project services)"
+    } text "Authentication token (required for project services)"*/
 
     opt[Unit]("json") action { (_, c) =>
       c.copy(asJson = true)
@@ -173,10 +174,10 @@ object PbServiceParser {
       } text "Maximum time to poll for running job status",
       opt[String]("non-local") action { (t, c) =>
         c.copy(nonLocal = Some(t))
-      } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)",
+      } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)" /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this dataset"
+      } text "Name of project associated with this dataset"*/
     ) text "Import DataSet XML"
 
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
@@ -202,10 +203,10 @@ object PbServiceParser {
       } text "Ploidy",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status",
+      } text "Maximum time to poll for running job status" /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this reference"
+      } text "Name of project associated with this reference" */
     ) text "Import Reference FASTA"
 
     cmd(Modes.IMPORT_BARCODES.name) action { (_, c) =>
@@ -216,10 +217,10 @@ object PbServiceParser {
       } text "FASTA path",
       arg[String]("name") required() action { (name, c) =>
         c.copy(name = name)
-      } text "Name of BarcodeSet",
+      } text "Name of BarcodeSet" /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with these barcodes"
+      } text "Name of project associated with these barcodes" */
     ) text "Import Barcodes FASTA"
 
     cmd(Modes.IMPORT_MOVIE.name) action { (_, c) =>
@@ -230,10 +231,10 @@ object PbServiceParser {
       } text "Path to RS II movie metadata XML file (or directory)",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name)
-      } text "Name of imported HdfSubreadSet",
+      } text "Name of imported HdfSubreadSet" /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this dataset"
+      } text "Name of project associated with this dataset"*/
     ) text "Import RS II movie metadata XML legacy format as HdfSubreadSet"
 
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
@@ -313,7 +314,8 @@ object PbServiceParser {
       } text "Max number of Datasets to show"
     )
 
-    cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
+    // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
+    /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.CREATE_PROJECT)
     } children(
       arg[String]("name") required() action { (n, c) =>
@@ -322,7 +324,7 @@ object PbServiceParser {
       arg[String]("description") required() action { (d, c) =>
         c.copy(description = d)
       } text "Project description"
-    ) text "Start a new project"
+    ) text "Start a new project"*/
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -914,7 +916,7 @@ object PbService {
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
-        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)
+/*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case _ => {
           println("Unsupported action")
           1

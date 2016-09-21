@@ -99,10 +99,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
       ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
 
 
-  protected def sendReceiveAuthenticated = authToken match {
+  // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
+  /*protected def sendReceiveAuthenticated = authToken match {
     case Some(token) => addHeader("Authorization", s"Bearer $token") ~> sendReceive
     case None => sendReceive
-  }
+  }*/
+  protected def sendReceiveAuthenticated = sendReceive
 
   // Pipelines and serialization
   protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceiveAuthenticated ~> unmarshal[DataSetMetaDataSet]
@@ -289,6 +291,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Delete(getRunUrl(runId))
   }
 
+  // FIXME(nechols)(2016-09-21) these are currently broken pending fixes to
+  // authentication
   def getProjects: Future[Seq[Project]] = getProjectsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_PROJECTS))
   }
