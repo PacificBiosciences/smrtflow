@@ -7,6 +7,12 @@
     "apim": {
       "x-wso2-scopes": [
         {
+          "name": "admin",
+          "key": "admin",
+          "roles": "Internal%2FPbAdmin",
+          "description": "Admin%20Authorization"
+        },
+        {
           "name": "run-design",
           "key": "run-design",
           "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
@@ -31,8 +37,8 @@
           "description": "Data%20Management%20Authorization"
         },
         {
-          "name": "smrt-analysis",
-          "key": "smrt-analysis",
+          "name": "analysis",
+          "key": "analysis",
           "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
           "description": "SMRT%20Analysis%20Authorization"
         }
@@ -692,13 +698,21 @@
       },
       "post": {
         "x-auth-type": "Application%20%26%20Application%20User",
-        "x-scope": "smrt-analysis",
+        "x-scope": "analysis",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
         ],
         "produces": [
           "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
         ],
         "responses": {
           "201": {},
