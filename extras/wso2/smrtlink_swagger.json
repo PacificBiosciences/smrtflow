@@ -1014,7 +1014,7 @@
     },
     "/secondary-analysis/datastore-files/{uuid}/download": {
       "get": {
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "None",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "parameters": [
