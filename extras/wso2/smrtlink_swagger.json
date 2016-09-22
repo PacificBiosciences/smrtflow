@@ -265,7 +265,7 @@
         }
       }
     },
-    "/smrt-link/runs/{sampleId}": {
+    "/smrt-link/samples/{sampleId}": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
         "x-scope": "sample-setup",
