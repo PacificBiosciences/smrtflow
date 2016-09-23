@@ -54,6 +54,7 @@ trait CoreProviders extends
   StatusGeneratorProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
+  DiskSpaceServiceProvider with
   MimeTypeDetectors with
   SubSystemComponentServiceProvider with
   SubSystemResourceServiceProvider with
@@ -98,6 +99,7 @@ trait AuthenticatedCoreProviders extends
   StatusGeneratorProvider with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
+  DiskSpaceServiceProviderx with
   MimeTypeDetectors with
   SubSystemComponentServiceProviderx with
   SubSystemResourceServiceProviderx with
