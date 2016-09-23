@@ -1,6 +1,6 @@
 package com.pacbio.common.services
 
-import java.io.File
+import java.nio.file.{Paths, Path}
 
 import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
@@ -25,12 +25,12 @@ class DiskSpaceService extends BaseSmrtService {
     "Disk Space Service",
     "0.1.0", "Disk Space Service")
 
-  private val idsToPaths: Map[String, String] = Map("smrtlink.root" -> "/")
-  
+  private val idsToPaths: Map[String, Path] = Map("smrtlink.resources.root" -> Paths.get("/"))
+
   private def toResource(id: String): DiskSpaceResource = {
     idsToPaths.get(id).map { p =>
-      val dir = new File(p)
-      DiskSpaceResource(id, p, dir.getTotalSpace, dir.getUsableSpace, dir.getFreeSpace)
+      val dir = p.toFile
+      DiskSpaceResource(id, p.toString, dir.getTotalSpace, dir.getUsableSpace, dir.getFreeSpace)
     }.getOrElse {
       val ids = idsToPaths.keySet.map(i => s"'$i'").reduce(_ + ", " + _)
       throw new ResourceNotFoundError(s"Could not find resource with id $id. Available resources are: $ids.")
