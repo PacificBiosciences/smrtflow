@@ -17,6 +17,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes._
 import spray.httpx.SprayJsonSupport._
+import spray.http.HttpHeaders
 import spray.json._
 import spray.routing._
 import spray.routing.directives.FileAndResourceDirectives
@@ -104,7 +105,10 @@ class JobManagerService(
         path("download") {
           get {
             onSuccess((dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]) { file =>
-              getFromFile(file.path)
+              val fn = s"job-${file.jobId}-${file.uuid.toString}-${Paths.get(file.path).toAbsolutePath.getFileName}"
+              respondWithHeader(HttpHeaders.`Content-Disposition`("attachment; filename=" + fn)) {
+                getFromFile(file.path)
+              }
             }
           }
         } ~
