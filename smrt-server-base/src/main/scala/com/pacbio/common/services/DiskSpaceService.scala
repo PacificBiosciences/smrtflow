@@ -1,11 +1,11 @@
 package com.pacbio.common.services
 
 import java.io.File
-import java.nio.file.{FileSystem, FileSystems}
 
 import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
+import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import DefaultJsonProtocol._
@@ -20,21 +20,39 @@ class DiskSpaceService extends BaseSmrtService {
 
   implicit val timeout = Timeout(10.seconds)
 
-  val manifest = PacBioComponentManifest(
+  override val manifest = PacBioComponentManifest(
     toServiceId("disk_space"),
     "Disk Space Service",
     "0.1.0", "Disk Space Service")
 
-  val fileSystem: FileSystem = FileSystems.getDefault
+  private val idsToPaths: Map[String, String] = Map("smrtlink.root" -> "/")
+  
+  private def toResource(id: String): DiskSpaceResource = {
+    idsToPaths.get(id).map { p =>
+      val dir = new File(p)
+      DiskSpaceResource(id, p, dir.getTotalSpace, dir.getUsableSpace, dir.getFreeSpace)
+    }.getOrElse {
+      val ids = idsToPaths.keySet.map(i => s"'$i'").reduce(_ + ", " + _)
+      throw new ResourceNotFoundError(s"Could not find resource with id $id. Available resources are: $ids.")
+    }
+  }
 
-  val routes =
-    path("disk-space") {
-      parameters('path.?) { path: Option[String] =>
+  override val routes =
+    pathPrefix("disk-space") {
+      pathEndOrSingleSlash {
         get {
           complete {
             ok {
-              val dir = new File(path.getOrElse("/"))
-              DiskSpaceResource(dir.getTotalSpace, dir.getUsableSpace, dir.getFreeSpace)
+              idsToPaths.keySet.map(toResource)
+            }
+          }
+        }
+      } ~
+      path(Segment) { id =>
+        get {
+          complete {
+            ok {
+              toResource(id)
             }
           }
         }

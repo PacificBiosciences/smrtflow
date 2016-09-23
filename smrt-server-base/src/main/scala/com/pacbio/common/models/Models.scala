@@ -304,7 +304,7 @@ case class FileResource(fullPath: String, name: String, mimeType: String, sizeIn
 
 
 // Disk Space Service
-case class DiskSpaceResource(totalSpace: Long, usableSpace: Long, freeSpace: Long)
+case class DiskSpaceResource(id: String, path: String, totalSpace: Long, usableSpace: Long, freeSpace: Long)
 
 // SubSystem Resources
 case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)
