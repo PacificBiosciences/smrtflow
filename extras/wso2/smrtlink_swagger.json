@@ -66,6 +66,40 @@
         }
       }
     },
+    "/smrt-base/disk-space": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
+    "/smrt-base/disk-space/{resourceId}": {
+      "get": {
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "resourceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "default": {}
+        }
+      }
+    },
     "/smrt-link/runs": {
       "get": {
         "x-auth-type": "Application%20%26%20Application%20User",
