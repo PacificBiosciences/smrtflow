@@ -128,6 +128,7 @@ object FileTypes {
 
   // Other DataSet accessories
   final val STS_XML = FileBaseType("PacBio.SubreadFile.ChipStatsFile", "file", "sts.xml", "application/xml")
+  final val STS_H5 = FileBaseType("PacBio.SubreadFile.ChipStatsH5File", "file", "sts.h5", "application/octet-stream")
 
   // Only Supported RS era Reference Index file types, which are used to
   // convert to ReferenceSet
