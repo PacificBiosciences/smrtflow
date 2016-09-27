@@ -9,7 +9,7 @@
     "title": "SMRT Link Analysis Services"
   },
   "host": "localhost:8081",
-  "basePath": "SMRTLink/1.0.0",
+  "basePath": "/SMRTLink/1.0.0",
   "x-wso2-security": {
     "apim": {
       "x-wso2-scopes": [
