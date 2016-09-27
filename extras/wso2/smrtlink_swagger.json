@@ -35,6 +35,12 @@
           "key": "analysis",
           "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
           "description": "SMRT%20Analysis%20Authorization"
+        },
+        {
+          "name": "iui-basic",
+          "key": "iui-basic",
+          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
+          "description": "Instrument%20Basic%20Authorization"
         }
       ]
     }
