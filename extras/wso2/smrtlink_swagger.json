@@ -14,40 +14,40 @@
     "apim": {
       "x-wso2-scopes": [
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech",
           "name": "run-design",
           "key": "run-design",
-          "description": "Run%20Design%20Authorization"
+          "description": "Run Design Authorization"
         },
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
           "name": "run-qc",
           "key": "run-qc",
-          "description": "Run%20QC%20Authorization"
+          "description": "Run QC Authorization"
         },
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech",
           "name": "sample-setup",
           "key": "sample-setup",
-          "description": "Sample%20Setup%20Authorization"
+          "description": "Sample Setup Authorization"
         },
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
           "name": "data-management",
           "key": "data-management",
-          "description": "Data%20Management%20Authorization"
+          "description": "Data Management Authorization"
         },
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
           "name": "analysis",
           "key": "analysis",
-          "description": "SMRT%20Analysis%20Authorization"
+          "description": "SMRT Analysis Authorization"
         },
         {
-          "roles": "Internal%2FPbAdmin%2CInternal%2FPbLabTech%2CInternal%2FPbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
           "name": "iui-basic",
           "key": "iui-basic",
-          "description": "Instrument%20Basic%20Authorization"
+          "description": "Instrument Basic Authorization"
         }
       ]
     }
@@ -68,7 +68,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/pipeline-template-view-rules": {
@@ -86,7 +86,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
@@ -123,7 +123,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -142,7 +142,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/resolved-pipeline-templates": {
@@ -160,7 +160,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/smrt-base/disk-space": {
@@ -177,7 +177,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/datasets/{type}/{dataset-id}": {
@@ -208,7 +208,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -234,7 +234,7 @@
           "text/plain; charset=UTF-8"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -266,7 +266,7 @@
           "text/plain; charset=UTF-8"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -284,7 +284,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -304,7 +304,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
@@ -335,7 +335,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -361,7 +361,7 @@
           "application/json"
         ],
         "x-scope": "analysis",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -388,7 +388,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -404,7 +404,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/report-view-rules": {
@@ -422,7 +422,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/smrt-base/disk-space/{resourceId}": {
@@ -447,7 +447,7 @@
             "in": "path"
           }
         ],
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/services/manifests": {
@@ -464,7 +464,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
@@ -495,7 +495,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -514,7 +514,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/smrt-link/runs/{runId}/collections/{collectionId}": {
@@ -545,7 +545,7 @@
           "application/json"
         ],
         "x-scope": "run-qc",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -563,7 +563,7 @@
           "application/json"
         ],
         "x-scope": "run-design",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -608,7 +608,7 @@
           "application/json"
         ],
         "x-scope": "run-qc",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -634,7 +634,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -660,7 +660,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -686,7 +686,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -704,7 +704,7 @@
           "application/json"
         ],
         "x-scope": "sample-setup",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -724,7 +724,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/resolved-pipeline-templates/status": {
@@ -742,7 +742,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/projects/{id}": {
@@ -767,7 +767,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -794,7 +794,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -830,7 +830,7 @@
             "in": "path"
           }
         ],
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
@@ -867,7 +867,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -899,7 +899,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -925,7 +925,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -951,7 +951,7 @@
           "application/json"
         ],
         "x-scope": "run-qc",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -983,7 +983,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1019,7 +1019,7 @@
             "in": "query"
           }
         ],
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/status": {
@@ -1037,7 +1037,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/datastore-files/{uuid}/resources": {
@@ -1066,7 +1066,7 @@
             "in": "query"
           }
         ],
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/smrt-link/samples/{sampleId}": {
@@ -1091,7 +1091,7 @@
           "application/json"
         ],
         "x-scope": "sample-setup",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -1118,7 +1118,7 @@
           "application/json"
         ],
         "x-scope": "sample-setup",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       },
       "get": {
@@ -1142,7 +1142,7 @@
           "application/json"
         ],
         "x-scope": "sample-setup",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1161,7 +1161,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
@@ -1192,7 +1192,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1211,7 +1211,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/status": {
@@ -1228,7 +1228,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
@@ -1259,7 +1259,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1285,7 +1285,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1311,7 +1311,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1366,7 +1366,7 @@
           "application/json"
         ],
         "x-scope": "data-management",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1392,7 +1392,7 @@
           "application/json"
         ],
         "x-scope": "run-design",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
           "application/json"
@@ -1419,7 +1419,7 @@
           "application/json"
         ],
         "x-scope": "run-design",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       },
       "get": {
@@ -1443,7 +1443,7 @@
           "application/json"
         ],
         "x-scope": "run-qc",
-        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
@@ -1462,7 +1462,7 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application%20%26%20Application%20User"
+        "x-auth-type": "Application & Application User"
       }
     }
   }
