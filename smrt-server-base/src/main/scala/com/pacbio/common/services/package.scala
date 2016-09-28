@@ -92,7 +92,7 @@ package object services {
     /**
      * Bundles a service response with the HTTP code 204 (NO CONTENT)
      */
-    def noContent[T](r: T)(implicit m: Marshaller[T]): ToResponseMarshallable = joinCode(NoContent, r)
+    def noContent: ToResponseMarshallable = NoContent
   }
 
   object PacBioServiceErrors {

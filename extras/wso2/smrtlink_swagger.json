@@ -1231,6 +1231,138 @@
         "x-auth-type": "Application%20%26%20Application%20User"
       }
     },
+    "/scope/run-design": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "run-design",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/scope/run-qc": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "run-qc",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/scope/sample-setup": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "sample-setup",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/scope/data-management": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "data-management",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/scope/analysis": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "analysis",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/scope/iui-basic": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-scope": "iui-basic",
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/role/Internal/PbAdmin": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/role/Internal/PbLabTech": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/role/Internal/PbBioinformatician": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "204": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application%20%26%20Application%20User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
       "get": {
         "responses": {
