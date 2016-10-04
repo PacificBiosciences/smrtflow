@@ -29,7 +29,7 @@ class ConditionalJobSpec  extends Specification {
         // should not make it past here
         val dmt = DataSetMetaTypes.Subread
         val emptyEntryPoints = List()
-        Try(client.getFirstDataSetFromEntryPoint(sc, emptyEntryPoints, dmt)) match {
+        Try(client.getFirstDataSetFromEntryPoint(emptyEntryPoints, dmt, client.noDataSetErrorMessage(sc, dmt))) match {
           case Failure(t) => t.getMessage mustEqual client.noDataSetErrorMessage(sc, dmt)
         }
       }
@@ -50,7 +50,8 @@ class ConditionalJobSpec  extends Specification {
         val dmt = DataSetMetaTypes.Subread
         val uuid = UUID.randomUUID()
         val validEntryPoints = List(EngineJobEntryPoint(sc.jobId, uuid, dmt.toString))
-        Await.result(client.getFirstDataSetFromEntryPoint(sc, validEntryPoints, dmt), Duration(1, "seconds")) match {
+        val f = client.getFirstDataSetFromEntryPoint(validEntryPoints, dmt, "Shouldn't raise exception")
+        Await.result(f, Duration(1, "seconds")) match {
           case v: UUID => v mustEqual uuid
         }
       }
