@@ -49,12 +49,15 @@ class InternalAnalysisServiceClient(baseUrl: URL, authToken: Option[String] = No
     if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
     else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
 
+  def noDataSetErrorMessage(sc: ServiceCondition, dmt: DataSetMetaType) =
+    s"Failed resolve ${sc.id}'s Entry Point of type $dmt for jobId ${sc.jobId} at ${sc.host}:${sc.port}"
+
   def getFirstDataSetFromEntryPoint(sc: ServiceCondition, eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
     eps.find(_.datasetType == datasetMetaType.dsId) match {
       case Some(x) => Future {
         x.datasetUUID
       }
-      case _ => Future.failed(throw new Exception(s"Failed resolve ${sc.id}'s Entry Point of type $datasetMetaType for jobId ${sc.jobId} at ${sc.host}:${sc.port}"))
+      case _ => Future.failed(throw new Exception(noDataSetErrorMessage(sc, datasetMetaType)))
     }
   }
 
