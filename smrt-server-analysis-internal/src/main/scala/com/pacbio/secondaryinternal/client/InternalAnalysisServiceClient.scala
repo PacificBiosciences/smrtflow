@@ -49,12 +49,12 @@ class InternalAnalysisServiceClient(baseUrl: URL, authToken: Option[String] = No
     if (job.state == AnalysisJobStates.SUCCESSFUL) Future { job }
     else Future.failed(throw new Exception(s"Job ${job.id} was not successful ${job.state}. Unable to process conditions"))
 
-  def getFirstDataSetFromEntryPoint(eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
+  def getFirstDataSetFromEntryPoint(sc: ServiceCondition, eps: Seq[EngineJobEntryPoint], datasetMetaType: DataSetMetaType): Future[UUID] = {
     eps.find(_.datasetType == datasetMetaType.dsId) match {
       case Some(x) => Future {
         x.datasetUUID
       }
-      case _ => Future.failed(throw new Exception(s"Failed resolve Entry Point type $datasetMetaType"))
+      case _ => Future.failed(throw new Exception(s"Failed resolve ${sc.id}'s Entry Point of type $datasetMetaType for jobId ${sc.jobId} at ${sc.host}:${sc.port}"))
     }
   }
 
@@ -97,8 +97,8 @@ class InternalAnalysisServiceClient(baseUrl: URL, authToken: Option[String] = No
         sjob <- failJobIfNotSuccessful(job)
         alignmentSetPath <- JobResolvers.resolveAlignmentSet(client, sc.jobId) // FIXME. Make this core trait more well defined
         entryPoints <- client.getAnalysisJobEntryPoints(sc.jobId)
-        subreadSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Subread)
-        referenceSetUUID <- getFirstDataSetFromEntryPoint(entryPoints, DataSetMetaTypes.Reference)
+        subreadSetUUID <- getFirstDataSetFromEntryPoint(sc, entryPoints, DataSetMetaTypes.Subread)
+        referenceSetUUID <- getFirstDataSetFromEntryPoint(sc, entryPoints, DataSetMetaTypes.Reference)
         subreadSetMetadata <- client.getDataSet(subreadSetUUID)
         referenceSetMetadata <- client.getDataSet(referenceSetUUID)
         ssetPath <- validatePath(Paths.get(subreadSetMetadata.path), s"SubreadSet path for Job ${job.id}")
