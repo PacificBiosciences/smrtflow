@@ -1,19 +1,20 @@
 package com.pacbio.secondary.smrtserver.services.jobtypes
 
 import java.net.{URI, URL}
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.logging.{LoggerFactoryProvider, LoggerFactory}
+import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.LogMessageRecord
 import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.CoreJob
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.PbSmrtPipeJobOptions
+import com.pacbio.secondary.analysis.jobtypes.{PbSmrtPipeJobOptions, PbsmrtpipeJobUtils}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
@@ -21,6 +22,8 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, ValidateImportDataSetUtils}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.common.services.PacBioServiceErrors._
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtserver.SmrtServerConstants
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
@@ -74,6 +77,26 @@ class PbsmrtpipeServiceJobType(
     ValidateImportDataSetUtils.resolveDataSetByAny(e.fileTypeId, e.datasetId, dbActor).map { d =>
       (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
     }
+  }
+
+  def failIfNotRunning(engineJob: EngineJob): Future[EngineJob] = {
+    if (engineJob.isRunning) Future { engineJob }
+    else Future.failed(new UnprocessableEntityError(s"Only terminating ${AnalysisJobStates.RUNNING} is supported"))
+  }
+
+  /**
+    * Hacky Workaround for terminating a job.
+    *
+    * Only supports jobs in the Running state where pbsmrtpipe has already started.
+    *
+    * @param engineJob
+    * @return
+    */
+  def terminatePbsmrtpipeJob(engineJob: EngineJob): Future[MessageResponse] = {
+    for {
+      runningJob <- failIfNotRunning(engineJob)
+      _ <- Future { PbsmrtpipeJobUtils.interruptPbsmrtpipeJobFromDir(Paths.get(runningJob.path))} // FIXME Handle failure in better well defined model
+    } yield MessageResponse(s"Terminated Job ${runningJob.id} in ${runningJob.path}")
   }
 
   val routes =
@@ -143,6 +166,18 @@ class PbsmrtpipeServiceJobType(
                 }
               }
             }
+          }
+        }
+      }
+    } ~
+    path(endpoint / IntNumber / "terminate") {id =>
+      post {
+        complete {
+          ok {
+            for {
+              engineJob <- (dbActor ? GetJobById(id)).mapTo[EngineJob]
+              message <- terminatePbsmrtpipeJob(engineJob)
+            } yield message
           }
         }
       }

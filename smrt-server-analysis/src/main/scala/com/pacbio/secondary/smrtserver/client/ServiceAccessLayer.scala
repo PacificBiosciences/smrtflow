@@ -11,6 +11,7 @@ import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
 import akka.actor.ActorSystem
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import spray.client.pipelining._
 
 import scala.concurrent.duration._
@@ -53,6 +54,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     val ROOT_PTRULES = "/secondary-analysis/pipeline-template-view-rules"
     val ROOT_REPORT_RULES = "/secondary-analysis/report-view-rules"
     val ROOT_DS_RULES = "/secondary-analysis/pipeline-datastore-view-rules"
+    // Not sure where this should go
+    val TERMINATE_JOB = "terminate"
   }
 
   object AnalysisJobTypes extends JobTypesTrait {
@@ -129,6 +132,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(AnalysisJobTypes.PB_PIPE, jobId, reportId)
+
+  def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
+    getMessageResponsePipeline { Post(toJobResourceUrl(AnalysisJobTypes.PB_PIPE, jobId, AnalysisServiceEndpoints.TERMINATE_JOB))}
 
   def getReportViewRules: Future[Seq[ReportViewRule]] = getReportViewRulesPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_REPORT_RULES))

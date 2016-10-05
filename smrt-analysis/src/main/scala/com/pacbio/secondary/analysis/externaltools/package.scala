@@ -14,9 +14,12 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.collection.JavaConversions._
 
 /**
- * Utils to Shell out to external Process
- * Created by mkocher on 9/26/15.
- */
+  * Utils to Shell out to external Process
+  * Created by mkocher on 9/26/15.
+  *
+  * This needs to be rethought and cleanedup. There's too many degenerative models here.
+  *
+  */
 package object externaltools {
 
   sealed trait ExternalCmdResult {
@@ -53,7 +56,7 @@ package object externaltools {
      * @param stderr
      * @return
      */
-    def runCmd(cmd: Seq[String], stdout: Path, stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+    def runUnixCmd(cmd: Seq[String], stdout: Path, stderr: Path): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
       val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
@@ -89,12 +92,20 @@ package object externaltools {
       fout.close()
       ferr.close()
 
-      rcode match {
-        case 0 => Right(ExternalCmdSuccess(cmd, runTime))
-        case x => Left(ExternalCmdFailure(cmd, runTime, errStr.toString()))
-      }
+      (rcode, errStr.toString())
 
     }
+
+    def runCmd(cmd: Seq[String], stdout: Path, stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+      val startedAt = JodaDateTime.now()
+      val (exitCode, errorMessage) = runUnixCmd(cmd, stdout, stderr)
+      val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
+      exitCode match {
+        case 0 => Right(ExternalCmdSuccess(cmd, runTime))
+        case x => Left(ExternalCmdFailure(cmd, runTime, errorMessage))
+      }
+    }
+
 
     /**
      * Resolve commandline exe path to absolute path.

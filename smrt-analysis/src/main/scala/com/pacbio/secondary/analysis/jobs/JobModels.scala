@@ -131,6 +131,7 @@ object JobModels {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
+      def isRunning: Boolean = this.state == AnalysisJobStates.RUNNING
 
       def apply(
           id: Int,
