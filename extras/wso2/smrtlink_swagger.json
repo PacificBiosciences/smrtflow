@@ -1263,6 +1263,34 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
+      "post": {
+        "description": "Terminate a running pbsmrtpipe analysis job",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Id as an Int",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
       "get": {
         "responses": {
