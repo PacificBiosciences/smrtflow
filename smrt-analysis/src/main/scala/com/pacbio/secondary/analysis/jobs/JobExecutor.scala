@@ -116,7 +116,7 @@ class SimpleJobRunner extends JobRunner with timeUtils {
  */
 class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUtils{
 
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout = Timeout(10.seconds)
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[String] = {
     if (ds.isChunked) {
@@ -148,6 +148,7 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
     val startedAt = JodaDateTime.now()
 
     writer.writeLineStdout(smsg)
+    // Block until the job completes
     val jobResult = Try {job.run(pbJob, writer)}
     writer.writeLineStdout(s"Completed running job ${job.jobTypeId.id} Result -> $jobResult")
 
@@ -166,7 +167,7 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
             writer.writeLineStdout(s"attempting to import $x")
             val fx = importAbleFile(x, pbJob.jobId)
 
-            // Block
+            // Block until the db import is completed
             Try {
               Await.result(fx, timeout.duration)
             } match {
