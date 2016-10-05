@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
+import com.pacbio.secondary.smrtserver.client.{AnalysisClientJsonProtocol, AnalysisServiceAccessLayer}
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -9,7 +9,6 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models._
-
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
@@ -24,17 +23,17 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try, Properties}
+import scala.util.{Failure, Properties, Success, Try}
 import scala.util.matching.Regex
 import scala.xml.XML
 import scala.io.Source
 import scala.math._
-
 import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 
@@ -52,6 +51,7 @@ object Modes {
   case object IMPORT_MOVIE extends Mode {val name = "import-rs-movie"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
+  case object TERMINATE_JOB extends Mode { val name = "terminate-job"} // This currently ONLY supports Analysis Jobs
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
@@ -250,6 +250,14 @@ object PbServiceParser {
         c.copy(maxTime = t)
       } text "Maximum time to poll for running job status"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
+
+    cmd(Modes.TERMINATE_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TERMINATE_JOB)
+    } children(
+        arg[Int]("job-id") required() action { (p, c) =>
+          c.copy(jobId = p)
+        } text "SMRT Link Analysis Job Id"
+        ) text "Terminate a SMRT Link Analysis Job By Int Id in the RUNNING state"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
@@ -866,16 +874,16 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
                   presetXml: Option[Path] = None, block: Boolean = true,
                   validate: Boolean = true): Int = {
-    if (entryPoints.length == 0) return errorExit("At least one entry point is required")
-    var pipelineIdFull: String = pipelineId
-    val idFields = pipelineIdFull.split('.')
-    if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
-    println(s"pipeline ID: ${pipelineIdFull}")
+    if (entryPoints.isEmpty) return errorExit("At least one entry point is required")
+
+    val pipelineIdFull = if (pipelineId.split('.').length != 3) s"pbsmrtpipe.pipelines.$pipelineId" else pipelineId
+
+    println(s"pipeline ID: $pipelineIdFull")
     if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
     var jobTitleTmp = jobTitle
-    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
+    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-$pipelineIdFull"
     val tx = for {
-      eps <- Try { entryPoints.map(importEntryPointAutomatic(_)) }
+      eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
       opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets) }
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
@@ -886,6 +894,25 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
     }
   }
+  def runTerminateAnalysisJob(jobId: IdAble): Int = {
+    println(s"Attempting to terminate Analysis Job $jobId")
+    // Only Int Job ids are supported
+    def failIfUUID(i: IdAble): Future[Int] = {
+      i match {
+        case IntIdAble(n) => Future {n}
+        case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
+      }
+    }
+    val fx = for {
+      i <- failIfUUID(jobId)
+      messageResponse <- sal.terminatePbsmrtpipeJob(i)
+    } yield messageResponse
+
+    Try {Await.result(fx, TIMEOUT) } match {
+      case Success(m) => println(m.message); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
 }
 
 object PbService {
@@ -894,7 +921,7 @@ object PbService {
     // FIXME we need some kind of hostname validation here - supposedly URL
     // creation includes validation, but it wasn't failing on extra 'http://'
     val host = c.host.replaceFirst("http://", "")
-    val url = new URL(s"http://${host}:${c.port}")
+    val url = new URL(s"http://$host:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url, c.authToken)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {
@@ -914,11 +941,12 @@ object PbService {
                                               c.jobTitle, c.presetXml, c.block)
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
-        case _ => {
-          println("Unsupported action")
+        case x => {
+          println(s"Unsupported action '$x'")
           1
         }
       }
