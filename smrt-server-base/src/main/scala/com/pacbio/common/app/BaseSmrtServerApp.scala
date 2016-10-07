@@ -55,6 +55,7 @@ trait CoreProviders extends
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   DiskSpaceServiceProvider with
+  ScopeServiceProvider with
   MimeTypeDetectors with
   SubSystemComponentServiceProvider with
   SubSystemResourceServiceProvider with
@@ -100,6 +101,7 @@ trait AuthenticatedCoreProviders extends
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   DiskSpaceServiceProviderx with
+  ScopeServiceProviderx with
   MimeTypeDetectors with
   SubSystemComponentServiceProviderx with
   SubSystemResourceServiceProviderx with
