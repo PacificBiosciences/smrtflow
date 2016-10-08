@@ -123,7 +123,9 @@ object PbServiceParser {
   ) extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
+  lazy val defaultHost: String = Properties.envOrElse("PB_SERVICE_HOST", "localhost")
+  lazy val defaultPort: Int = Properties.envOrElse("PB_SERVICE_PORT", "8070").toInt
+  lazy val defaults = CustomConfig(null, defaultHost, defaultPort, maxTime=1800)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
@@ -138,11 +140,11 @@ object PbServiceParser {
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
-    } text "Hostname of smrtlink server"
+    } text s"Hostname of smrtlink server (default: $defaultHost).  Override the default with env PB_SERVICE_HOST."
 
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
-    } text "Services port on smrtlink server"
+    } text s"Services port on smrtlink server (default: $defaultPort).  Override default with env PB_SERVICE_PORT."
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*opt[String]("token") action { (t, c) =>
