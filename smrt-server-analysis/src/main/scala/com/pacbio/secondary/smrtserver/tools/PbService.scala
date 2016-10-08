@@ -140,11 +140,11 @@ object PbServiceParser {
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
-    } text "Hostname of smrtlink server.  Override the default with env PB_SERVICE_HOST (default: localhost)"
+    } text s"Hostname of smrtlink server (default: $defaultHost).  Override the default with env PB_SERVICE_HOST."
 
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
-    } text "Services port on smrtlink server.  Override default with env PB_SERVICE_PORT (default: 8070)"
+    } text s"Services port on smrtlink server (default: $defaultPort).  Override default with env PB_SERVICE_PORT."
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*opt[String]("token") action { (t, c) =>
