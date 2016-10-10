@@ -29,12 +29,11 @@ tools-smrt-analysis:
 tools-smrt-analysis-internal:
 	sbt smrt-server-analysis-internal/{compile,pack}
 
+tools-smrt-server-analysis:
+	sbt smrt-server-analysis/pack
 
 repl:
 	sbt smrt-analysis/test:console
-
-smrt-server-analysis-tools:
-	sbt smrt-server-analysis/pack
 
 get-pbdata: PacBioTestData
 
