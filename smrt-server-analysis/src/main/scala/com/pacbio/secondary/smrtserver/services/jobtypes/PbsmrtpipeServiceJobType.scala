@@ -95,8 +95,8 @@ class PbsmrtpipeServiceJobType(
   def terminatePbsmrtpipeJob(engineJob: EngineJob): Future[MessageResponse] = {
     for {
       runningJob <- failIfNotRunning(engineJob)
-      _ <- Future { PbsmrtpipeJobUtils.interruptPbsmrtpipeJobFromDir(Paths.get(runningJob.path))} // FIXME Handle failure in better well defined model
-    } yield MessageResponse(s"Terminated Job ${runningJob.id} in ${runningJob.path}")
+      _ <- Future { PbsmrtpipeJobUtils.terminateJobFromDir(Paths.get(runningJob.path))} // FIXME Handle failure in better well defined model
+    } yield MessageResponse(s"Attempting to terminate analysis job ${runningJob.id} in ${runningJob.path}")
   }
 
   val routes =

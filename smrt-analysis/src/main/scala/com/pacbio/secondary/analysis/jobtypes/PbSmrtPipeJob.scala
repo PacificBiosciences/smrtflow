@@ -38,40 +38,13 @@ case class PbSmrtPipeJobOptions(
 object PbsmrtpipeJobUtils {
 
   final val PBSMRTPIPE_PID_KILL_FILE_SCRIPT = ".pbsmrtpipe-terminate.sh"
-  final val PBSMRTPIPE_PID = ".pbsmrtpipe-pid"
 
-  // MK. Should investigate libs to handle this in a more complete and principled fashion
-  // https://github.com/jnr/jnr-process
-  // https://github.com/jnr/jnr-posix
-  sealed trait UnixSignal {
-    val signal: Signal
-    override def toString: String = signal.toString
-  }
-  case object SigInt extends UnixSignal { val signal = new Signal("INT")}
-  case object SigKill extends UnixSignal { val signal = new Signal("KILL")}
+  private def resolveTerminateScript(jobDir: Path): Path = jobDir.resolve(PBSMRTPIPE_PID_KILL_FILE_SCRIPT)
 
-  def getPbsmrtpipePidFromJobDir(jobDir: Path): Path = jobDir.resolve(PBSMRTPIPE_PID)
-
-  private def sendSignalToProcess(pid: Int, signal: UnixSignal) = {
-    val cmd = Seq("kill", s"-${signal.toString}", pid.toString)
+  def terminateJobFromDir(jobDir: Path) = {
+    val cmd = Seq("bash", resolveTerminateScript(jobDir).toAbsolutePath.toString)
     ExternalToolsUtils.runCmd(cmd)
   }
-
-  // This assumes the file is of the form "12345" with the process ID as currently defined in pbsmrtpipe 0.44.0
-  private def pidFileToInt(fx: File): Int = scala.io.Source.fromFile(fx).mkString.trim.toInt
-
-  def getPbmsrtpipeProcessId(jobDir: Path): Int =
-    pidFileToInt(getPbsmrtpipePidFromJobDir(jobDir).toFile)
-
-  def interruptPbsmrtpipeJob(pid: Int) = sendSignalToProcess(pid, SigInt)
-  def killPbsmrtpipeJob(pid: Int) = sendSignalToProcess(pid, SigKill)
-
-  def interruptPbsmrtpipeJobFromDir(jobDir: Path) =
-    interruptPbsmrtpipeJob(pidFileToInt(getPbsmrtpipePidFromJobDir(jobDir).toFile))
-
-  def killPbsmrtpipeJobFromDir(jobDir: Path) =
-    killPbsmrtpipeJob(pidFileToInt(getPbsmrtpipePidFromJobDir(jobDir).toFile))
-
 }
 
 
@@ -155,10 +128,9 @@ with ExternalToolsUtils {
       PacBioDataStore(startedAt, startedAt, "0.2.1", Seq.empty[DataStoreFile])
     }
 
-    //FIXME(mpkocher)(2016-10-4) pbsmrtpipe needs a well-defined mapping of exit code to state.
-    // This will enable state of jobs that have terminated by the user to be propagated
     exitCode match {
       case 0 => Right(ds)
+      case 7 => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). $errorMessage", runTimeSec, AnalysisJobStates.TERMINATED, host))
       case x => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed with exit code $x. $errorMessage", runTimeSec, AnalysisJobStates.FAILED, host))
     }
   }
