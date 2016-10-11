@@ -62,9 +62,35 @@ See the ["Quick" Service docs](https://github.com/PacificBiosciences/smrtflow/tr
 
 ### REPL
 
-
-
 ```
 sbt test:console
 ```
 
+### Integration testing
+
+At a minimum, integration test analysis jobs requires installing pbsmrtpipe (in a virtualenv) to run a pbsmrtpipe analysis job. Specific pipeilnes will have dependencies on exes, such as `samtools` or `blasr`.
+
+- install pbsmrtpipe in a VE
+- enable scala tools via `make tools`
+- add tools to path using `source setup-tools-env.sh` Test with `which pbservice ` or `pbservice --help`
+- fetch PacBioTestData `make PacBioTestData`
+- launch services `make start-smrt-server-analysis` or `make start-smrt-server-analysis-jar`
+- import PacBioTestData `make import-pbdata`
+- import canned ReferenceSet and SubreadSet `make test-int-import-data`
+- run dev_diagnostic_stress test `make test-int-run-analysis-stress`
+
+
+### Swagger Docs
+
+The [SMRT Link Analysis Services](https://github.com/PacificBiosciences/smrtflow/blob/master/smrtlink_swagger.json) are documented using [Swagger Specification](http://swagger.io/specification/).
+
+Validation:
+
+```
+npm install swagger-tools
+node_modules/swagger-cli/bin/swagger.js validate /path/to/smrtlink_swagger.json
+```
+
+Editor:
+
+[UI Editor](http://editor.swagger.io/#/) to import and edit the swagger file from a file or URL.
