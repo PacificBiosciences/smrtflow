@@ -33,7 +33,7 @@ tools-smrt-server-analysis:
 	sbt smrt-server-analysis/pack
 
 repl:
-	sbt smrt-analysis/test:console
+	sbt smrtflow/test:console
 
 get-pbdata: PacBioTestData
 

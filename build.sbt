@@ -44,59 +44,61 @@ val sprayV = "1.3.3"
 
 // Common settings/definitions for the build
 
+lazy val baseSettings = Seq(
+  "ch.qos.logback" % "logback-classic" % "1.1.7",
+  "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
+  "com.github.samtools" % "htsjdk" % "1.129",
+  "com.github.fge" % "json-schema-validator" % "2.2.5",
+  "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
+  "com.github.nscala-time" %% "nscala-time" % "1.4.0",
+  "com.github.scopt" %% "scopt" % "3.4.0",
+  "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
+  "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
+  "com.h2database" % "h2" % "1.4.192",
+  "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
+  "com.jsuereth" %% "scala-arm" % "1.4",
+  "com.lihaoyi" % "ammonite" % "0.7.8" % "test" cross CrossVersion.full,
+  "com.novocode" % "junit-interface" % "0.10" % "test",
+  "com.typesafe.akka" %% "akka-actor" % akkaV,
+  "com.typesafe.akka" %% "akka-slf4j" % akkaV,
+  "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+  "com.typesafe.slick" %% "slick" % "3.1.0",
+  "com.unboundid" % "unboundid-ldapsdk" % "2.3.3",
+  "commons-cli" % "commons-cli" % "1.2",
+  "commons-io" % "commons-io" % "2.4",
+  "commons-lang" % "commons-lang" % "2.6",
+  "io.spray" % "spray-can_2.11" % sprayV,
+  "io.spray" % "spray-client_2.11" % sprayV,
+  "io.spray" % "spray-http_2.11" % sprayV,
+  "io.spray" % "spray-io_2.11" % sprayV,
+  "io.spray" % "spray-routing-shapeless2_2.11" % sprayV,
+  "io.spray" % "spray-servlet_2.11" % sprayV,
+  "io.spray" % "spray-testkit_2.11" % sprayV % "test",
+  "io.spray" % "spray-util_2.11" % sprayV,
+  "io.spray" %% "spray-json" % "1.3.2",
+  "joda-time" % "joda-time" % "2.4",
+  "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
+  "org.apache.avro" % "avro" % "1.8.0",
+  "org.apache.commons" % "commons-dbcp2" % "2.0.1",
+  "org.eclipse.persistence" % "eclipselink" % "2.6.0",
+  "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
+  "org.flywaydb" % "flyway-core" % "4.0",
+  "org.ini4j" % "ini4j" % "0.5.4",
+  "org.joda" % "joda-convert" % "1.6",
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+  "org.scalaj" %% "scalaj-http" % "1.1.5",
+  "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
+  "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
+  "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+  "org.utgenome.thirdparty" % "picard" % "1.86.0",
+  "log4j" % "log4j" % "1.2.17"
+)
+
 def PacBioProject(name: String): Project = (
     Project(name, file(name))
         settings (
-        libraryDependencies ++= Seq(
-          "ch.qos.logback" % "logback-classic" % "1.1.7",
-          "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
-          "com.github.samtools" % "htsjdk" % "1.129",
-          "com.github.fge" % "json-schema-validator" % "2.2.5",
-          "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
-          "com.github.nscala-time" %% "nscala-time" % "1.4.0",
-          "com.github.scopt" %% "scopt" % "3.4.0",
-          "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
-          "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
-          "com.h2database" % "h2" % "1.4.192",
-          "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
-          "com.jsuereth" %% "scala-arm" % "1.4",
-          "com.lihaoyi" % "ammonite-repl" % "0.6.2" % "test" cross CrossVersion.full,
-          "com.novocode" % "junit-interface" % "0.10" % "test",
-          "com.typesafe.akka" %% "akka-actor" % akkaV,
-          "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-          "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
-          "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-          "com.typesafe.slick" %% "slick" % "3.1.0",
-          "com.unboundid" % "unboundid-ldapsdk" % "2.3.3",
-          "commons-cli" % "commons-cli" % "1.2",
-          "commons-io" % "commons-io" % "2.4",
-          "commons-lang" % "commons-lang" % "2.6",
-          "io.spray" % "spray-can_2.11" % sprayV,
-          "io.spray" % "spray-client_2.11" % sprayV,
-          "io.spray" % "spray-http_2.11" % sprayV,
-          "io.spray" % "spray-io_2.11" % sprayV,
-          "io.spray" % "spray-routing-shapeless2_2.11" % sprayV,
-          "io.spray" % "spray-servlet_2.11" % sprayV,
-          "io.spray" % "spray-testkit_2.11" % sprayV % "test",
-          "io.spray" % "spray-util_2.11" % sprayV,
-          "io.spray" %% "spray-json" % "1.3.2",
-          "joda-time" % "joda-time" % "2.4",
-          "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
-          "org.apache.avro" % "avro" % "1.8.0",
-          "org.apache.commons" % "commons-dbcp2" % "2.0.1",
-          "org.eclipse.persistence" % "eclipselink" % "2.6.0",
-          "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
-          "org.flywaydb" % "flyway-core" % "4.0",
-          "org.ini4j" % "ini4j" % "0.5.4",
-          "org.joda" % "joda-convert" % "1.6",
-          "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-          "org.scalaj" %% "scalaj-http" % "1.1.5",
-          "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
-          "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
-          "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-          "org.utgenome.thirdparty" % "picard" % "1.86.0",
-          "log4j" % "log4j" % "1.2.17"
-        )
+        libraryDependencies ++= baseSettings
         )
     )
     .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -105,9 +107,6 @@ def PacBioProject(name: String): Project = (
 
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
-
-// This doesn't work as expected
-//initialCommands in (Test, console) := """ammonite.repl.Main().run()"""
 
 /**
   * This might need to be rethought. This is only generated and build time.
@@ -120,17 +119,53 @@ gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
   * @return
   */
 def pacBioManifest(v: String) =
-  s"""
-    |{
-    | "id":"smrtlink_services",
-    | "name": "SMRT Analysis Services",
-    | "version": "$v",
-    | "description":"SMRT Link Analysis Services and Job Orchestration engine",
-    | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
-    | }
+s"""
+   |{
+   | "id":"smrtlink_services",
+   | "name": "SMRT Analysis Services",
+   | "version": "$v",
+   | "description":"SMRT Link Analysis Services and Job Orchestration engine",
+   | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
+   | }
   """.stripMargin
 
 // Projects in this build
+
+lazy val noPublish = Seq(
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false
+)
+
+// still can't get these to be imported successfully within ammonite on startup
+val replImports =
+"""
+  |import java.util.UUID
+  |import akka.actor.ActorSystem
+  |import scala.concurrent.duration._
+  |import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer => Sal}
+  |import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+  |import com.pacbio.secondary.analysis.constants._
+  |import com.pacbio.secondary.analysis.datasets.io._
+""".stripMargin
+
+// Project to use the ammonite repl
+lazy val smrtflow = project.in(file("."))
+    .settings(moduleName := "smrtflow")
+    .settings(noPublish)
+    .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
+    .settings(libraryDependencies ++= baseSettings)
+    .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
+    .settings(initialCommands in (Test, console) :=
+    s"""
+       |val welcomeBanner = Some("Welcome to the smrtflow REPL")
+       |import ammonite.repl._
+       |import ammonite.ops._
+       |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
+       |""".stripMargin)
+    .dependsOn(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .aggregate(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+
 
 lazy val logging = PacBioProject("smrt-server-logging")
 
@@ -164,43 +199,43 @@ lazy val common = (
 
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
-  PacBioProject("smrt-analysis")
-    dependsOn(logging, database, common)
-    settings()
-  )
+    PacBioProject("smrt-analysis")
+        dependsOn(logging, database, common)
+        settings()
+    )
 
 lazy val smrtServerBase = (
-  PacBioProject("smrt-server-base")
-    dependsOn(logging, database, common, smrtAnalysis)
-    settings()
-  )
+    PacBioProject("smrt-server-base")
+        dependsOn(logging, database, common, smrtAnalysis)
+        settings()
+    )
 
 lazy val smrtServerLink = (
-  PacBioProject("smrt-server-link")
-    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
-    settings()
-  )
+    PacBioProject("smrt-server-link")
+        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
+        settings()
+    )
 
 lazy val smrtServerLims = (
-  PacBioProject("smrt-server-lims")
-    dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    settings ()
-  )
+    PacBioProject("smrt-server-lims")
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+        settings ()
+    )
 
 lazy val smrtServerAnalysis = (
-  PacBioProject("smrt-server-analysis")
-    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
-  )
+    PacBioProject("smrt-server-analysis")
+        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+        settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
+    )
 
 lazy val smrtServerAnalysisInternal = (
-  PacBioProject("smrt-server-analysis-internal")
-    dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
-    settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
-  )
+    PacBioProject("smrt-server-analysis-internal")
+        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
+        settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
+    )
 
 lazy val smrtServerSim = (
-  PacBioProject("smrt-server-sim")
-    dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
-    settings()
-  )
+    PacBioProject("smrt-server-sim")
+        dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
+        settings()
+    )
