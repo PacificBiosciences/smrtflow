@@ -14,8 +14,7 @@ name := "smrtflow"
 
 version in ThisBuild := "0.2.1-SNAPSHOT"
 
-//FIXME(mpkocher)(2016-4-30) This should be com.pacb, PacBio doesn't own pacbio.com
-organization in ThisBuild := "com.pacbio"
+organization in ThisBuild := "pacbio.smrt.smrtflow"
 
 // Seeing a lot of evicted calls
 scalaVersion in ThisBuild := "2.11.8"
@@ -27,8 +26,9 @@ parallelExecution in ThisBuild := false
 fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
-
 javaOptions in ThisBuild += "-Xmx4g"
+// tmp files are written during testing; cannot be mounted noexec because of sqlite
+javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP") != None) sys.env("TMP") else "/tmp")
 
 // Custom keys for this build.
 
@@ -42,8 +42,14 @@ val akkaV = "2.3.6"
 
 val sprayV = "1.3.3"
 
-// Common settings/definitions for the build
+credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+publishTo in ThisBuild := {
+  val nexus = "http://ossnexus.pacificbiosciences.com/repository/"
+  if (isSnapshot.value) Some("Nexus snapshots" at nexus + "maven-snapshots")
+  else Some("Nexus releases" at nexus + "maven-releases")
+}
 
+// Common settings/definitions for the build
 lazy val baseSettings = Seq(
   "ch.qos.logback" % "logback-classic" % "1.1.7",
   "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
