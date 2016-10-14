@@ -25,8 +25,16 @@ object IOUtils extends LazyLogging{
   }
 
   def parseLine(condId : String, host : String, jobId : Int): ServiceCondition = {
-    ServiceCondition(condId, host.split(":")(0), if (!host.contains(":")) 8081 else host.split(":")(1).toInt, jobId)
-
+    val spHost = host split ":"
+    // See: https://confluence.pacificbiosciences.com/display/SL/On-site+SMRT+Link+servers
+    val port = 
+      if (spHost.length == 2) spHost(1).toInt
+      else
+        spHost(0) match {
+          case "smrtlink-release" => 9091
+          case _ => 8081
+        }
+    ServiceCondition(condId, spHost(0), port, jobId)
   }
 
   private def writeString(sx: String, path: Path) = {
