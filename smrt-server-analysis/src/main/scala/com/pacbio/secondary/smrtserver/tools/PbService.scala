@@ -378,10 +378,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
-  protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
+  protected def showNumRecords(label: String, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
-      case Success(records) => println(s"${label} ${records.size}")
-      case Failure(err) => println(s"ERROR: couldn't retrieve ${label}")
+      case Success(nrecords) => println(s"$label $nrecords")
+      case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
   }
 
@@ -389,20 +389,21 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (asJson) {
       println(status.toJson.prettyPrint)
     } else{
-      println(s"Status ${status.message}")
-      showNumRecords("SubreadSets", () => sal.getSubreadSets)
-      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
-      showNumRecords("ReferenceSets", () => sal.getReferenceSets)
-      showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
-      showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
-      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets)
-      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets)
-      showNumRecords("ContigSets", () => sal.getContigSets)
-      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets)
-      showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
-      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
-      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
-      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
+      println(s"SMRTLink Services Version: ${status.version} \nStatus: ${status.message}\nDataSet Summary:")
+      showNumRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
+      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
+      showNumRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
+      showNumRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
+      showNumRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
+      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
+      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
+      showNumRecords("ContigSets", () => sal.getContigSets.map(_.length))
+      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
+      println("SMRT Link Job Summary:")
+      showNumRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
+      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
+      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
+      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
     }
     0
   }
@@ -417,7 +418,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
     Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
       case Success(ds) => printDataSetInfo(ds, asJson)
-      case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
+      case Failure(err) => errorExit(s"Could not retrieve existing dataset record: $err")
     }
   }
 
@@ -441,7 +442,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           for (ds <- records) {
             // XXX this is annoying - the records get interpreted as
             // Seq[ServiceDataSetMetaData], which can't be unmarshalled
-            var sep = if (k < records.size) "," else ""
+            val sep = if (k < records.size) "," else ""
             dsType match {
               case "subreads" => println(ds.asInstanceOf[SubreadServiceDataSet].toJson.prettyPrint + sep)
               case "hdfsubreads" => println(ds.asInstanceOf[HdfSubreadServiceDataSet].toJson.prettyPrint + sep)
@@ -475,7 +476,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                     dumpJobSettings: Boolean = false): Int = {
     Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
       case Success(job) => printJobInfo(job, asJson, dumpJobSettings)
-      case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
+      case Failure(err) => errorExit(s"Could not retrieve job record: $err")
     }
   }
 
@@ -538,8 +539,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                      organism: String,
                      ploidy: String,
                      projectName: Option[String] = None): Int = {
-    var nameFinal = name
-    if (name == "") nameFinal = "unknown" // this really shouldn't be optional
+    // this really shouldn't be optional
+    val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
                 FileTypes.DS_REFERENCE,
                 () => sal.importFasta(path, nameFinal, organism, ploidy),
@@ -555,7 +556,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                 () => sal.importFastaBarcodes(path, name),
                 sal.getImportBarcodesJobDataStore,
                 projectName,
-                true)
+                barcodeMode = true)
 
   private def importXmlRecursive(path: Path,
                                  listFilesOfType: File => Array[File],
@@ -564,17 +565,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     val f = path.toFile
     if (f.isDirectory) {
       val xmlFiles = listFilesOfType(f)
-      if (xmlFiles.size == 0) {
+      if (xmlFiles.isEmpty) {
         errorExit(s"No valid XML files found in ${f.getAbsolutePath}")
       } else {
-        println(s"Found ${xmlFiles.size} matching XML files")
+        println(s"Found ${xmlFiles.length} matching XML files")
         val failed: ListBuffer[String] = ListBuffer()
         xmlFiles.foreach { xmlFile =>
           println(s"Importing ${xmlFile.getAbsolutePath}...")
           val rc = doImportMany(xmlFile.toPath)
           if (rc != 0) failed.append(xmlFile.getAbsolutePath.toString)
         }
-        if (failed.size > 0) {
+        if (failed.nonEmpty) {
           println(s"${failed.size} import(s) failed:")
           failed.foreach { println }
           1
@@ -608,7 +609,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
-      case Failure(err) => errorExit(s"Dataset import failed: ${err}")
+      case Failure(err) => errorExit(s"Dataset import failed: $err")
     }
   }
 
@@ -625,7 +626,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     nonLocal match {
       case Some(dsType) =>
-        logger.info(s"Non-local file, importing as type ${dsType}")
+        logger.info(s"Non-local file, importing as type $dsType")
         runImportDataSet(path, dsType)
       case _ =>
         importXmlRecursive(path, listDataSetFiles,
