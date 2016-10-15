@@ -90,9 +90,21 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
   def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
 
+  def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
+  def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
+
   protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
+
+  def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS))
+  }
+  // Added in smrtflow 0.1.11 and SA > 3.2.0
+  def getPacBioComponentManifestById(manifestId: String): Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS + "/" + manifestId))
+  }
+
 
   def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.PB_PIPE)
   def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.IMPORT_DS)
