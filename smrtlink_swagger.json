@@ -467,6 +467,32 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/services/manifests/{resourceId}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "description": "Manifest Id",
+            "required": true,
+            "type": "string",
+            "name": "resourceId",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
       "get": {
         "responses": {

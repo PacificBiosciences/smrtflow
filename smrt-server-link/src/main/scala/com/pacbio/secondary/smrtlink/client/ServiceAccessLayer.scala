@@ -29,6 +29,7 @@ trait ServiceEndpointsTrait {
   val ROOT_RUNS = "/smrt-link/runs"
   val ROOT_DATASTORE = "/secondary-analysis/datastore-files"
   val ROOT_PROJECTS = "/secondary-analysis/projects"
+  val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
 }
 
 trait ServiceResourceTypesTrait {
