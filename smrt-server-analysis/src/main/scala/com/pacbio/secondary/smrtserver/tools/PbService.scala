@@ -33,7 +33,7 @@ import java.util.UUID
 import java.io.{File, FileReader}
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 
@@ -55,6 +55,8 @@ object Modes {
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
+  case object MANIFESTS extends Mode {val name = "get-manifests"}
+  case object MANIFEST extends Mode {val name = "get-manifest"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -91,7 +93,7 @@ object PbServiceParser {
 
   private def getToken(token: String): String = {
     if (Paths.get(token).toFile.isFile) {
-      (Source.fromFile(token).getLines.take(1).toList)(0)
+      Source.fromFile(token).getLines.take(1).toList.head
     } else token
   }
 
@@ -119,7 +121,8 @@ object PbServiceParser {
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
-      authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN")
+      authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
+      manifestId: String = "smrtlink"
   ) extends LoggerConfig
 
 
@@ -323,6 +326,17 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+    cmd(Modes.MANIFESTS.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
+    } text "Get a List of SMRT Link PacBio sComponent Versions"
+
+    cmd(Modes.MANIFEST.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.MANIFEST)
+    } children(
+        opt[String]('i', "manifest-id") action { (t, c) =>
+          c.copy(manifestId = t)
+        } text s"Manifest By Id (Default: ${defaults.manifestId})"
+        ) text "Get PacBio Component Manifest version by Id."
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
@@ -916,6 +930,38 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
+
+  def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
+
+  def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
+    s"Components ${manifests.length}\n" + manifests.map(manifestSummary).reduce(_ + "\n" + _)
+  }
+
+  def runGetPacBioManifests: Int = {
+    Try {Await.result[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, TIMEOUT)} match {
+      case Success(manifests) => println(manifestsSummary(manifests)); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  // This is to make it backward compatiblity. Remove this when the other systems are updated
+  private def getManifestById(manifestId: String): Future[PacBioComponentManifest] = {
+    sal.getPacBioComponentManifests.flatMap { manifests =>
+      manifests.find(x => x.id == manifestId) match {
+        case Some(m) => Future { m }
+        case _ => Future.failed(new ResourceNotFoundError(s"Unable to find $manifestId"))
+      }
+    }
+  }
+
+  def runGetPacBioManifestById(ix: String): Int = {
+    println(s"Attempting to get PacBio Component '$ix'")
+    Try {Await.result[PacBioComponentManifest](getManifestById(ix), TIMEOUT)} match {
+      case Success(manifest) => println(manifestSummary(manifest)); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
 }
 
 object PbService {
@@ -947,6 +993,8 @@ object PbService {
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
+        case Modes.MANIFESTS => ps.runGetPacBioManifests
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")
