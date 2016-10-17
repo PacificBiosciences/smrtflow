@@ -3,6 +3,7 @@ package com.pacbio.common.services
 import com.pacbio.common.dependency.{ConfigProvider, Singleton}
 import com.pacbio.common.loaders.ManifestLoader
 import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol}
+import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
@@ -23,7 +24,7 @@ class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioSer
   def getById(manifestId: String): Future[PacBioComponentManifest] = {
     allManifests.find(_.id == manifestId) match {
       case Some(m) => Future { m }
-      case _ => Future.failed(new Exception(s"Unable to find manifest id $manifestId"))
+      case _ => Future.failed(new ResourceNotFoundError(s"Unable to find manifest id $manifestId"))
     }
   }
 
