@@ -101,7 +101,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS))
   }
   // Added in smrtflow 0.1.11 and SA > 3.2.0
-  def getPacBioComponentManifestById(manifestId: String): Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
+  def getPacBioComponentManifestById(manifestId: String): Future[PacBioComponentManifest] = getServiceManifestPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS + "/" + manifestId))
   }
 
