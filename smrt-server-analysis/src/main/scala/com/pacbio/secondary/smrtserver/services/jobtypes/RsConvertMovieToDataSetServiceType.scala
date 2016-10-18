@@ -56,7 +56,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
                 coreJob,
                 None,
                 jsonSettings,
-                user.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
+                user.map(_.userName), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
 
               complete {
                 created {

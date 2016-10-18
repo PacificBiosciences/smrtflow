@@ -73,7 +73,7 @@ class ImportFastaBarcodesServiceType(
                   CoreJob(uuid, sopts),
                   None,
                   sopts.toJson.toString(),
-                  user.map(_.login),
+                  user.map(_.userName),
                   smrtLinkVersion,
                   smrtLinkToolsVersion)).mapTo[EngineJob]
               }

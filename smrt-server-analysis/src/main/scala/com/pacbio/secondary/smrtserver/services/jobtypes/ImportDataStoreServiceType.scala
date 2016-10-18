@@ -57,7 +57,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
                 coreJob,
                 None,
                 jsonSettings,
-                user.map(_.login),
+                user.map(_.userName),
                 smrtLinkVersion,
                 smrtLinkToolsVersion)).mapTo[EngineJob]
 
