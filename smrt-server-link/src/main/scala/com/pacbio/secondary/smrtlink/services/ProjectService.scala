@@ -55,12 +55,12 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     pathPrefix("projects") {
       pathEndOrSingleSlash {
         post {
-          authenticate(authenticator.wso2Auth) { authInfo =>
+          authenticate(authenticator.wso2Auth) { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
                 created {
                   jobsDao
-                    .createProject(sopts, authInfo.login)
+                    .createProject(sopts, user.userName)
                     .flatMap(fullProject)
                     .recoverWith(translateConflict(sopts))
                 }
@@ -69,7 +69,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           }
         } ~
         get {
-          authenticate(authenticator.wso2Auth) { authInfo =>
+          authenticate(authenticator.wso2Auth) { user =>
             complete {
               ok {
                 jobsDao.getProjects(1000)
@@ -81,7 +81,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
       pathPrefix(IntNumber) { projId =>
         pathEndOrSingleSlash {
           put {
-            authenticate(authenticator.wso2Auth) { authInfo =>
+            authenticate(authenticator.wso2Auth) { user =>
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
@@ -95,7 +95,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
             }
           } ~
           get {
-            authenticate(authenticator.wso2Auth) { authInfo =>
+            authenticate(authenticator.wso2Auth) { user =>
               complete {
                 ok {
                   jobsDao
@@ -110,7 +110,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     } ~
     path("projects-datasets" / Segment) { login =>
       get {
-        authenticate(authenticator.wso2Auth) { authInfo =>
+        authenticate(authenticator.wso2Auth) { user =>
           complete {
             ok {
               jobsDao.getUserProjectsDatasets(login)
@@ -121,7 +121,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     } ~
     path("user-projects" / Segment) { login =>
       get {
-        authenticate(authenticator.wso2Auth) { authInfo =>
+        authenticate(authenticator.wso2Auth) { user =>
           complete {
             ok {
               jobsDao.getUserProjects(login)

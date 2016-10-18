@@ -1,7 +1,8 @@
 package com.pacbio.common.auth
 
 import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
-import com.pacbio.common.models.{Roles, UserRecord}
+import com.pacbio.common.models.Roles.ALL_ROLES
+import com.pacbio.common.models.UserRecord
 import spray.routing.directives.AuthMagnet
 import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
 
@@ -10,57 +11,16 @@ import scala.concurrent.{ExecutionContext, Future}
 // TODO(smcclellan): Add unit tests
 
 /**
- * Represents all the information necessary to perform authorization.
- */
-sealed trait AuthInfo {
-  /**
-   * The login for the authenticated user.
-   */
-  val login: String
-
-  /**
-   * The PacBio roles of the authenticated user
-   */
-  val roles: Set[Roles.Role]
-
-  /**
-   * Determines whether the authenticated user is the given user. (Or has Admin privileges.)
-   */
-  def isUserOrAdmin(l: String): Boolean = login.compareToIgnoreCase(l) == 0 || hasPermission(Roles.PbAdmin)
-
-  /**
-   * Determines whether the authenticated user can act as one of the given roles.
-   */
-  def hasPermission(r: Roles.Role*): Boolean = roles.intersect(r.toSet).nonEmpty
-}
-
-/**
- * An AuthInfo based on a claims set extracted from a JWT
- */
-final class JwtAuthInfo(user: UserRecord) extends AuthInfo {
-  override val login: String = user.userName
-  override val roles: Set[Roles.Role] = user.roles
-}
-
-/**
- * An AuthInfo that represents a generic root user with all permissions
- */
-object RootAuthInfo extends AuthInfo {
-  override val login: String = "root"
-  override val roles: Set[Roles.Role] = Set(Roles.PbAdmin, Roles.PbLabTech, Roles.PbBioinformatician)
-}
-
-/**
- * Contains methods that can be passed as a parameter to the spray authenticate directive in order to extract an
- * AuthInfo. E.g.:
+ * Contains methods that can be passed as a parameter to the spray authenticate directive in order to extract a
+ * UserRecord. E.g.:
  *
  * {{{
  *   pathPrefix("api") {
  *     path("jwtProtected") {
- *       authenticate(myAuthenticator.wso2Auth) { authInfo =>
+ *       authenticate(myAuthenticator.wso2Auth) { user =>
  *         get {
  *           // All authenticated users can enter here
- *           complete("Hi, " + authInfo.login)
+ *           complete("Hi, " + user.userName)
  *         }
  *       }
  *     }
@@ -71,7 +31,7 @@ trait Authenticator {
   /**
    * Parses claims passed to SMRTLink from WSO2 as a JWT. Does not validate the JWT signature.
    */
-  def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo]
+  def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord]
 }
 
 object Authenticator {
@@ -92,22 +52,21 @@ trait AuthenticatorProvider {
 class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
   import Authenticator.JWT_HEADER
 
-  override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
+  override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
     import AuthenticationFailedRejection._
 
     def authHeader(ctx: RequestContext) = ctx.request.headers.find(_.is(JWT_HEADER))
 
-    def validateToken(ctx: RequestContext): Future[Option[AuthInfo]] = Future {
+    def validateToken(ctx: RequestContext): Future[Option[UserRecord]] = Future {
       // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
       authHeader(ctx)
         .map(_.value)                           // Render header as string
         .flatMap(jwt => jwtUtils.parse(jwt))    // Parse JWT and get claims
-        .map(claims => new JwtAuthInfo(claims)) // Convert user object to AuthInfo object
     }
 
-    def authenticate(ctx: RequestContext): Future[Either[Rejection, AuthInfo]] =
+    def authenticate(ctx: RequestContext): Future[Either[Rejection, UserRecord]] =
       validateToken(ctx).map {
-        case Some(authInfo) => Right(authInfo)
+        case Some(user) => Right(user)
         case None =>
           val cause = if (authHeader(ctx).isEmpty) CredentialsMissing else CredentialsRejected
           Left(AuthenticationFailedRejection(cause, challengeHeaders = List.empty))
@@ -121,8 +80,10 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
  * Implementation of Authenticator that ignores credentials and returns a generic root AuthInfo.
  */
 class FakeAuthenticator extends Authenticator {
-  override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[AuthInfo] = {
-    ctx: RequestContext => Future { Right(RootAuthInfo) }
+  val ROOT = UserRecord("root", None, None, ALL_ROLES)
+
+  override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
+    ctx: RequestContext => Future { Right(ROOT) }
   }
 }
 

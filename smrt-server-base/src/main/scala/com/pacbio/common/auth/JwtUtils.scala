@@ -12,8 +12,13 @@ import scala.util.Try
 // TODO(smcclellan): Add unit tests
 
 object JwtUtils {
+  // Required
   val USERNAME_CLAIM = "http://wso2.org/claims/enduser"
   val ROLES_CLAIM = "http://wso2.org/claims/role"
+
+  // Optional
+  val FIRST_NAME_CLAIM = "http://wso2.org/claims/givenname"
+  val LAST_NAME_CLAIM = "http://wso2.org/claims/lastname"
 }
 
 /**
@@ -42,20 +47,24 @@ class JwtUtilsImpl extends JwtUtils {
 
   private implicit val claimFormats = DefaultFormats
 
+  private def extractUsername(raw: String): String = raw.split("/").last.split("@").head
+
   override def parse(jwt: String): Option[UserRecord] = {
     for {
       (_, claims, _) <- JsonWebToken.unapply(jwt)
-      jobject        <- Try(claims.jvalue.asInstanceOf[JObject]).toOption
-      unclaim        <- jobject.values.get(USERNAME_CLAIM)
-      rclaim         <- jobject.values.get(ROLES_CLAIM)
-      username       <- Try(unclaim.asInstanceOf[String]).toOption
-                          .map(_.split("@").head)
-      roles          <- Try(rclaim.asInstanceOf[List[String]]).toOption
-                          .map(_.toSet)
-                          .map(_.map(Roles.fromString))
-                          .map(_.filter(_.isDefined))
-                          .map(_.map(_.get))
-    } yield UserRecord(username, roles)
+      cm <- Try(claims.jvalue.asInstanceOf[JObject].values).toOption
+      ur <- Try {
+        UserRecord(
+          extractUsername(cm(USERNAME_CLAIM).asInstanceOf[String]),
+          cm.get(FIRST_NAME_CLAIM).map(_.asInstanceOf[String]),
+          cm.get(LAST_NAME_CLAIM).map(_.asInstanceOf[String]),
+          cm(ROLES_CLAIM).asInstanceOf[List[String]]
+            .toSet
+            .map(Roles.fromString)
+            .filter(_.isDefined)
+            .map(_.get))
+      }.toOption
+    } yield ur
   }
 }
 

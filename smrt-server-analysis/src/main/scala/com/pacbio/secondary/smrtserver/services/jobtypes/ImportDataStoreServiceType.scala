@@ -44,7 +44,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[ImportDataStoreOptions]) { sopts =>
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
@@ -57,7 +57,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
                 coreJob,
                 None,
                 jsonSettings,
-                authInfo.map(_.login),
+                user.map(_.login),
                 smrtLinkVersion,
                 smrtLinkToolsVersion)).mapTo[EngineJob]
 

@@ -28,7 +28,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
     "Database-backed CRUD operations for Runs")
 
   val routes =
-    //authenticate(authenticator.wso2Auth) { authInfo =>
+    //authenticate(authenticator.wso2Auth) { user =>
       pathPrefix("runs") {
         pathEnd {
           get {
@@ -40,10 +40,10 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RunCreate]) { create =>
-              //authorize(authInfo.hasPermission(PbAdmin)) {
+              //authorize(user.hasPermission(PbAdmin)) {
                 complete {
                   created {
-                    //(runActor ? CreateRun(authInfo.login, create)).mapTo[RunMetadata]
+                    //(runActor ? CreateRun(user.userName, create)).mapTo[RunMetadata]
                     (runActor ? CreateRun(create)).mapTo[RunSummary]
                   }
                 }
@@ -62,7 +62,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
             } ~
             post {
               entity(as[RunUpdate]) { update =>
-                //authorize(authInfo.hasPermission(PbAdmin)) {
+                //authorize(user.hasPermission(PbAdmin)) {
                   complete {
                     ok {
                       (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
@@ -72,7 +72,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
               }
             } ~
             delete {
-              //authorize(authInfo.hasPermission(PbAdmin)) {
+              //authorize(user.hasPermission(PbAdmin)) {
                 complete {
                   ok {
                     (runActor ? DeleteRun(id)).mapTo[MessageResponse]

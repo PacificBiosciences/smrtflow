@@ -39,8 +39,8 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           }
         } ~
         post {
-          authenticate(authenticator.wso2Auth) { authInfo =>
-            authorize(authInfo.hasPermission(PbAdmin)) {
+          authenticate(authenticator.wso2Auth) { user =>
+            authorize(user.hasPermission(PbAdmin)) {
               entity(as[LogResourceRecord]) { m =>
                 complete {
                   created {
@@ -94,8 +94,8 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authenticate(authenticator.wso2Auth) { authInfo =>
-              authorize(authInfo.hasPermission(PbAdmin)) {
+            authenticate(authenticator.wso2Auth) { user =>
+              authorize(user.hasPermission(PbAdmin)) {
                 entity(as[LogMessageRecord]) { m =>
                   complete {
                     created {

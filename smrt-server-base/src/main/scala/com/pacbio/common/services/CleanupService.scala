@@ -29,7 +29,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix("cleanup" / "jobs") {
-      authenticate(authenticator.wso2Auth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { user =>
         pathEnd {
           get {
             complete {
@@ -39,7 +39,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(PbAdmin)) {
+            authorize(user.hasPermission(PbAdmin)) {
               entity(as[ApiCleanupJobCreate]) { c =>
                 complete {
                   created {
@@ -60,7 +60,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
               }
             } ~
             delete {
-              authorize(authInfo.hasPermission(PbAdmin)) {
+              authorize(user.hasPermission(PbAdmin)) {
                 complete {
                   ok {
                     cleanupDao.deleteJob(id)

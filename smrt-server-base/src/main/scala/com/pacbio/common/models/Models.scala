@@ -136,15 +136,57 @@ object Roles {
   object PbLabTech extends Role { override val name = "Internal/PbLabTech" }
   object PbBioinformatician extends Role { override val name = "Internal/PbBioinformatician" }
 
-  def fromString(name: String): Option[Role] =
-    Seq(PbAdmin, PbLabTech, PbBioinformatician).find(_.name == name)
+  val ALL_ROLES = Set(PbAdmin, PbLabTech, PbBioinformatician)
+
+  def fromString(name: String): Option[Role] = ALL_ROLES.find(_.name == name)
+
+  // Permissions
+
+  sealed trait Permission {
+    def accept(roles: Set[Role]): Boolean
+
+    final def & (p: Permission): Permission = new AndPermission(this, p)
+    final def | (p: Permission): Permission = new OrPermission(this, p)
+  }
+
+  implicit final class RolePermission(role: Role) extends Permission {
+    override def accept(roles: Set[Role]): Boolean = roles.contains(role)
+  }
+
+  final class AndPermission(p1: Permission, p2: Permission) extends Permission {
+    override def accept(roles: Set[Role]): Boolean = p1.accept(roles) && p2.accept(roles)
+  }
+
+  final class OrPermission(p1: Permission, p2: Permission) extends Permission {
+    override def accept(roles: Set[Role]): Boolean = p1.accept(roles) || p2.accept(roles)
+  }
 }
 
-object UserRecord {
-  def apply(userName: String, roles: Roles.Role*): UserRecord = UserRecord(userName, Set(roles:_*))
-}
+case class UserRecord(userName: String,
+                      firstName: Option[String] = None,
+                      lastName: Option[String] = None,
+                      roles: Set[Roles.Role] = Set.empty) {
+  import Roles._
 
-case class UserRecord(userName: String, roles: Set[Roles.Role] = Set.empty)
+  /**
+   * Determines whether the user is the given user. (Or has Admin privileges.)
+   */
+  def isUserOrAdmin(l: String): Boolean = userName.compareToIgnoreCase(l) == 0 || hasPermission(PbAdmin)
+
+  /**
+   * Determines whether the user has the given permissions.
+   */
+  def hasPermission(p: Permission): Boolean = p.accept(roles)
+
+  def getDisplayName: String = {
+    val name = for {
+      f <- firstName
+      l <- lastName
+    } yield s"$f $l"
+
+    name.getOrElse(userName)
+  }
+}
 
 
 // Config Service

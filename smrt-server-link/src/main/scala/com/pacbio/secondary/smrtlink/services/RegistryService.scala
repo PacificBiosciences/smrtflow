@@ -34,7 +34,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
     COMPONENT_VERSION, "Subsystem Resource Registry Service")
 
   val routes =
-    //authenticate(authenticator.wso2Auth) { authInfo =>
+    //authenticate(authenticator.wso2Auth) { user =>
       pathPrefix("registry-service" / "resources") {
         pathEnd {
           get {
@@ -46,7 +46,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RegistryResourceCreate]) { create =>
-              //authorize(authInfo.hasPermission(PbAdmin)) {
+              //authorize(user.hasPermission(PbAdmin)) {
                 complete {
                   created {
                     (registryActor ? CreateResource(create)).mapTo[RegistryResource]
@@ -85,7 +85,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           path("update") {
             post {
               entity(as[RegistryResourceUpdate]) { update =>
-                //authorize(authInfo.hasPermission(PbAdmin)) {
+                //authorize(user.hasPermission(PbAdmin)) {
                   complete {
                     ok {
                       (registryActor ? UpdateResource(uuid, update)).mapTo[RegistryResource]

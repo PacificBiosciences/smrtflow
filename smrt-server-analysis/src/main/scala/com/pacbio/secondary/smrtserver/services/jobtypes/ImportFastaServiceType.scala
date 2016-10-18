@@ -94,7 +94,7 @@ class ImportFastaServiceType(
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[ConvertImportFastaOptions]) { sopts =>
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
@@ -110,7 +110,7 @@ class ImportFastaServiceType(
                   toCoreJob(sopts, uuid),
                   None,
                   sopts.toJson.toString(),
-                  authInfo.map(_.login),
+                  user.map(_.login),
                   smrtLinkVersion,
                   smrtLinkToolsVersion)).mapTo[EngineJob]
               }

@@ -30,7 +30,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix(healthServiceName) {
-      authenticate(authenticator.wso2Auth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { user =>
         pathEnd {
           get {
             complete {
@@ -51,7 +51,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             } ~
             post {
               entity(as[HealthMetricCreateMessage]) { m =>
-                authorize(authInfo.hasPermission(PbAdmin)) {
+                authorize(user.hasPermission(PbAdmin)) {
                   respondWithMediaType(MediaTypes.`application/json`) {
                     complete {
                       created {
@@ -93,7 +93,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(PbAdmin)) {
+            authorize(user.hasPermission(PbAdmin)) {
               entity(as[HealthMetricUpdateMessage]) { m =>
                 complete {
                   created {

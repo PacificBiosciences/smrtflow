@@ -156,7 +156,7 @@ with DirectoryResourceProtocol
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)
   implicit val pbLogMessageFormat = jsonFormat5(LogMessage)
-  implicit val pbUserRecordFormat = jsonFormat2 { (l: String, r: Set[Roles.Role]) => UserRecord(l, r) }
+  implicit val pbUserRecordFormat = jsonFormat4(UserRecord)
   implicit val pbConfigEntryFormat = jsonFormat2(ConfigEntry)
   implicit val pbConfigResponseFormat = jsonFormat2(ConfigResponse)
   implicit val pbApiCleanupJobCreateFormat = jsonFormat7(ApiCleanupJobCreate)
