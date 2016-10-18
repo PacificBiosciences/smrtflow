@@ -10,8 +10,12 @@ test-data-smrt-server
 smrt-server-analysis-internal/jobs-root
 smrt-server-analysis-internal/analysis_services.db
 
+# Test Data
+PacBioTestData
+
 test-data/smrtserver-testdata
 test-output/*
+jobs-root/*
 profile.json
 
 # sbt specific

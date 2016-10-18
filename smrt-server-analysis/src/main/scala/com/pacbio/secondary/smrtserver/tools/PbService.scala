@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer,AnalysisClientJsonProtocol}
+import com.pacbio.secondary.smrtserver.client.{AnalysisClientJsonProtocol, AnalysisServiceAccessLayer}
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -9,7 +9,6 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.models._
-
 import akka.actor.ActorSystem
 import org.joda.time.DateTime
 import scopt.OptionParser
@@ -24,17 +23,17 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try, Properties}
+import scala.util.{Failure, Properties, Success, Try}
 import scala.util.matching.Regex
 import scala.xml.XML
 import scala.io.Source
 import scala.math._
-
 import java.net.URL
 import java.util.UUID
 import java.io.{File, FileReader}
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 
@@ -52,9 +51,12 @@ object Modes {
   case object IMPORT_MOVIE extends Mode {val name = "import-rs-movie"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
+  case object TERMINATE_JOB extends Mode { val name = "terminate-job"} // This currently ONLY supports Analysis Jobs
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
+  case object MANIFESTS extends Mode {val name = "get-manifests"}
+  case object MANIFEST extends Mode {val name = "get-manifest"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -91,7 +93,7 @@ object PbServiceParser {
 
   private def getToken(token: String): String = {
     if (Paths.get(token).toFile.isFile) {
-      (Source.fromFile(token).getLines.take(1).toList)(0)
+      Source.fromFile(token).getLines.take(1).toList.head
     } else token
   }
 
@@ -119,11 +121,14 @@ object PbServiceParser {
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
-      authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN")
+      authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
+      manifestId: String = "smrtlink"
   ) extends LoggerConfig
 
 
-  lazy val defaults = CustomConfig(null, "localhost", 8070, maxTime=1800)
+  lazy val defaultHost: String = Properties.envOrElse("PB_SERVICE_HOST", "localhost")
+  lazy val defaultPort: Int = Properties.envOrElse("PB_SERVICE_PORT", "8070").toInt
+  lazy val defaults = CustomConfig(null, defaultHost, defaultPort, maxTime=1800)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
@@ -138,11 +143,11 @@ object PbServiceParser {
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
-    } text "Hostname of smrtlink server"
+    } text s"Hostname of smrtlink server (default: $defaultHost).  Override the default with env PB_SERVICE_HOST."
 
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
-    } text "Services port on smrtlink server"
+    } text s"Services port on smrtlink server (default: $defaultPort).  Override default with env PB_SERVICE_PORT."
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*opt[String]("token") action { (t, c) =>
@@ -251,6 +256,14 @@ object PbServiceParser {
       } text "Maximum time to poll for running job status"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
 
+    cmd(Modes.TERMINATE_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TERMINATE_JOB)
+    } children(
+        arg[Int]("job-id") required() action { (p, c) =>
+          c.copy(jobId = p)
+        } text "SMRT Link Analysis Job Id"
+        ) text "Terminate a SMRT Link Analysis Job By Int Id in the RUNNING state"
+
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
     } children(
@@ -313,6 +326,17 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+    cmd(Modes.MANIFESTS.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
+    } text "Get a List of SMRT Link PacBio sComponent Versions"
+
+    cmd(Modes.MANIFEST.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.MANIFEST)
+    } children(
+        opt[String]('i', "manifest-id") action { (t, c) =>
+          c.copy(manifestId = t)
+        } text s"Manifest By Id (Default: ${defaults.manifestId})"
+        ) text "Get PacBio Component Manifest version by Id."
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
@@ -368,10 +392,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
-  protected def showNumRecords(label: String, fn: () => Future[Seq[Any]]): Unit = {
+  protected def showNumRecords(label: String, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
-      case Success(records) => println(s"${label} ${records.size}")
-      case Failure(err) => println(s"ERROR: couldn't retrieve ${label}")
+      case Success(nrecords) => println(s"$label $nrecords")
+      case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
   }
 
@@ -379,20 +403,21 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (asJson) {
       println(status.toJson.prettyPrint)
     } else{
-      println(s"Status ${status.message}")
-      showNumRecords("SubreadSets", () => sal.getSubreadSets)
-      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets)
-      showNumRecords("ReferenceSets", () => sal.getReferenceSets)
-      showNumRecords("BarcodeSets", () => sal.getBarcodeSets)
-      showNumRecords("AlignmentSets", () => sal.getAlignmentSets)
-      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets)
-      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets)
-      showNumRecords("ContigSets", () => sal.getContigSets)
-      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets)
-      showNumRecords("import-dataset Jobs", () => sal.getImportJobs)
-      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs)
-      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs)
-      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs)
+      println(s"SMRTLink Services Version: ${status.version} \nStatus: ${status.message}\nDataSet Summary:")
+      showNumRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
+      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
+      showNumRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
+      showNumRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
+      showNumRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
+      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
+      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
+      showNumRecords("ContigSets", () => sal.getContigSets.map(_.length))
+      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
+      println("SMRT Link Job Summary:")
+      showNumRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
+      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
+      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
+      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
     }
     0
   }
@@ -407,7 +432,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
     Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
       case Success(ds) => printDataSetInfo(ds, asJson)
-      case Failure(err) => errorExit(s"Could not retrieve existing dataset record: ${err}")
+      case Failure(err) => errorExit(s"Could not retrieve existing dataset record: $err")
     }
   }
 
@@ -431,7 +456,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           for (ds <- records) {
             // XXX this is annoying - the records get interpreted as
             // Seq[ServiceDataSetMetaData], which can't be unmarshalled
-            var sep = if (k < records.size) "," else ""
+            val sep = if (k < records.size) "," else ""
             dsType match {
               case "subreads" => println(ds.asInstanceOf[SubreadServiceDataSet].toJson.prettyPrint + sep)
               case "hdfsubreads" => println(ds.asInstanceOf[HdfSubreadServiceDataSet].toJson.prettyPrint + sep)
@@ -465,7 +490,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                     dumpJobSettings: Boolean = false): Int = {
     Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
       case Success(job) => printJobInfo(job, asJson, dumpJobSettings)
-      case Failure(err) => errorExit(s"Could not retrieve job record: ${err}")
+      case Failure(err) => errorExit(s"Could not retrieve job record: $err")
     }
   }
 
@@ -528,8 +553,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                      organism: String,
                      ploidy: String,
                      projectName: Option[String] = None): Int = {
-    var nameFinal = name
-    if (name == "") nameFinal = "unknown" // this really shouldn't be optional
+    // this really shouldn't be optional
+    val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
                 FileTypes.DS_REFERENCE,
                 () => sal.importFasta(path, nameFinal, organism, ploidy),
@@ -545,7 +570,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                 () => sal.importFastaBarcodes(path, name),
                 sal.getImportBarcodesJobDataStore,
                 projectName,
-                true)
+                barcodeMode = true)
 
   private def importXmlRecursive(path: Path,
                                  listFilesOfType: File => Array[File],
@@ -554,17 +579,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     val f = path.toFile
     if (f.isDirectory) {
       val xmlFiles = listFilesOfType(f)
-      if (xmlFiles.size == 0) {
+      if (xmlFiles.isEmpty) {
         errorExit(s"No valid XML files found in ${f.getAbsolutePath}")
       } else {
-        println(s"Found ${xmlFiles.size} matching XML files")
+        println(s"Found ${xmlFiles.length} matching XML files")
         val failed: ListBuffer[String] = ListBuffer()
         xmlFiles.foreach { xmlFile =>
           println(s"Importing ${xmlFile.getAbsolutePath}...")
           val rc = doImportMany(xmlFile.toPath)
           if (rc != 0) failed.append(xmlFile.getAbsolutePath.toString)
         }
-        if (failed.size > 0) {
+        if (failed.nonEmpty) {
           println(s"${failed.size} import(s) failed:")
           failed.foreach { println }
           1
@@ -598,7 +623,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
-      case Failure(err) => errorExit(s"Dataset import failed: ${err}")
+      case Failure(err) => errorExit(s"Dataset import failed: $err")
     }
   }
 
@@ -615,7 +640,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     nonLocal match {
       case Some(dsType) =>
-        logger.info(s"Non-local file, importing as type ${dsType}")
+        logger.info(s"Non-local file, importing as type $dsType")
         runImportDataSet(path, dsType)
       case _ =>
         importXmlRecursive(path, listDataSetFiles,
@@ -866,16 +891,16 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
                   presetXml: Option[Path] = None, block: Boolean = true,
                   validate: Boolean = true): Int = {
-    if (entryPoints.length == 0) return errorExit("At least one entry point is required")
-    var pipelineIdFull: String = pipelineId
-    val idFields = pipelineIdFull.split('.')
-    if (idFields.size != 3) pipelineIdFull = s"pbsmrtpipe.pipelines.${pipelineId}"
-    println(s"pipeline ID: ${pipelineIdFull}")
+    if (entryPoints.isEmpty) return errorExit("At least one entry point is required")
+
+    val pipelineIdFull = if (pipelineId.split('.').length != 3) s"pbsmrtpipe.pipelines.$pipelineId" else pipelineId
+
+    println(s"pipeline ID: $pipelineIdFull")
     if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
     var jobTitleTmp = jobTitle
-    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-${pipelineIdFull}"
+    if (jobTitle.length == 0) jobTitleTmp = s"pbservice-$pipelineIdFull"
     val tx = for {
-      eps <- Try { entryPoints.map(importEntryPointAutomatic(_)) }
+      eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
       opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets) }
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
@@ -886,6 +911,57 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
     }
   }
+  def runTerminateAnalysisJob(jobId: IdAble): Int = {
+    println(s"Attempting to terminate Analysis Job $jobId")
+    // Only Int Job ids are supported
+    def failIfUUID(i: IdAble): Future[Int] = {
+      i match {
+        case IntIdAble(n) => Future {n}
+        case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
+      }
+    }
+    val fx = for {
+      i <- failIfUUID(jobId)
+      messageResponse <- sal.terminatePbsmrtpipeJob(i)
+    } yield messageResponse
+
+    Try {Await.result(fx, TIMEOUT) } match {
+      case Success(m) => println(m.message); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
+
+  def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
+    s"Components ${manifests.length}\n" + manifests.map(manifestSummary).reduce(_ + "\n" + _)
+  }
+
+  def runGetPacBioManifests: Int = {
+    Try {Await.result[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, TIMEOUT)} match {
+      case Success(manifests) => println(manifestsSummary(manifests)); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  // This is to make it backward compatiblity. Remove this when the other systems are updated
+  private def getManifestById(manifestId: String): Future[PacBioComponentManifest] = {
+    sal.getPacBioComponentManifests.flatMap { manifests =>
+      manifests.find(x => x.id == manifestId) match {
+        case Some(m) => Future { m }
+        case _ => Future.failed(new ResourceNotFoundError(s"Unable to find $manifestId"))
+      }
+    }
+  }
+
+  def runGetPacBioManifestById(ix: String): Int = {
+    println(s"Attempting to get PacBio Component '$ix'")
+    Try {Await.result[PacBioComponentManifest](getManifestById(ix), TIMEOUT)} match {
+      case Success(manifest) => println(manifestSummary(manifest)); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
 }
 
 object PbService {
@@ -894,7 +970,7 @@ object PbService {
     // FIXME we need some kind of hostname validation here - supposedly URL
     // creation includes validation, but it wasn't failing on extra 'http://'
     val host = c.host.replaceFirst("http://", "")
-    val url = new URL(s"http://${host}:${c.port}")
+    val url = new URL(s"http://$host:${c.port}")
     val sal = new AnalysisServiceAccessLayer(url, c.authToken)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {
@@ -914,11 +990,14 @@ object PbService {
                                               c.jobTitle, c.presetXml, c.block)
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
+        case Modes.MANIFESTS => ps.runGetPacBioManifests
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
-        case _ => {
-          println("Unsupported action")
+        case x => {
+          println(s"Unsupported action '$x'")
           1
         }
       }

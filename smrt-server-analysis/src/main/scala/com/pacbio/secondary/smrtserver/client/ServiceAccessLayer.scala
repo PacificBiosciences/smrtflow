@@ -11,6 +11,7 @@ import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.common.client._
 import com.pacbio.common.models._
 import akka.actor.ActorSystem
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import spray.client.pipelining._
 
 import scala.concurrent.duration._
@@ -53,6 +54,8 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     val ROOT_PTRULES = "/secondary-analysis/pipeline-template-view-rules"
     val ROOT_REPORT_RULES = "/secondary-analysis/report-view-rules"
     val ROOT_DS_RULES = "/secondary-analysis/pipeline-datastore-view-rules"
+    // Not sure where this should go
+    val TERMINATE_JOB = "terminate"
   }
 
   object AnalysisJobTypes extends JobTypesTrait {
@@ -87,9 +90,21 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
   def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
 
+  def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
+  def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
+
   protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobType))
   }
+
+  def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS))
+  }
+  // Added in smrtflow 0.1.11 and SA > 3.2.0
+  def getPacBioComponentManifestById(manifestId: String): Future[PacBioComponentManifest] = getServiceManifestPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_SERVICE_MANIFESTS + "/" + manifestId))
+  }
+
 
   def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.PB_PIPE)
   def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(AnalysisJobTypes.IMPORT_DS)
@@ -129,6 +144,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(AnalysisJobTypes.PB_PIPE, jobId, reportId)
+
+  def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
+    getMessageResponsePipeline { Post(toJobResourceUrl(AnalysisJobTypes.PB_PIPE, jobId, AnalysisServiceEndpoints.TERMINATE_JOB))}
 
   def getReportViewRules: Future[Seq[ReportViewRule]] = getReportViewRulesPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_REPORT_RULES))

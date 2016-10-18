@@ -1,21 +1,21 @@
 package com.pacbio.secondary.analysis.jobtypes
 
+import java.io.File
 import java.net.URI
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 
 import scala.util.Try
-
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-
-import com.pacbio.secondary.analysis.jobs.{BaseCoreJob, BaseJobOptions, AnalysisJobStates, CoreJobModel}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, BaseCoreJob, BaseJobOptions, CoreJobModel}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.pbsmrtpipe._
+import sun.misc.Signal
 
 // Contain for all SmrtpipeJob 'type' options
 case class PbSmrtPipeJobOptions(
@@ -35,10 +35,23 @@ case class PbSmrtPipeJobOptions(
   }
 }
 
+object PbsmrtpipeJobUtils {
+
+  final val PBSMRTPIPE_PID_KILL_FILE_SCRIPT = ".pbsmrtpipe-terminate.sh"
+
+  private def resolveTerminateScript(jobDir: Path): Path = jobDir.resolve(PBSMRTPIPE_PID_KILL_FILE_SCRIPT)
+
+  def terminateJobFromDir(jobDir: Path) = {
+    val cmd = Seq("bash", resolveTerminateScript(jobDir).toAbsolutePath.toString)
+    ExternalToolsUtils.runCmd(cmd)
+  }
+}
+
 
 class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions) extends BaseCoreJob(opts: PbSmrtPipeJobOptions)
 with ExternalToolsUtils {
 
+  //FIXME(mpkocher)(2016-10-4) Push these hardcoded values back to a constants layer
   val DEFAULT_STDERR = "job.stderr"
   val DEFAULT_STDOUT = "job.stdout"
   val DEFAULT_JOB_SH = "pbscala-job.sh"
@@ -100,7 +113,7 @@ with ExternalToolsUtils {
     val stdoutP = job.path.resolve(DEFAULT_STDOUT)
     val stderrP = job.path.resolve(DEFAULT_STDERR)
     writer(s"Running $wrappedCmd")
-    val result = runCmd(wrappedCmd, stdoutP, stderrP)
+    val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
     val datastorePath = job.path.resolve("workflow/datastore.json")
@@ -112,12 +125,13 @@ with ExternalToolsUtils {
       xs.convertTo[PacBioDataStore]
     } getOrElse {
       writer(s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
-      PacBioDataStore(startedAt, startedAt, "0.2.1", Seq[DataStoreFile]())
+      PacBioDataStore(startedAt, startedAt, "0.2.1", Seq.empty[DataStoreFile])
     }
 
-    result match {
-      case Left(ex) => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed $ex", runTimeSec, AnalysisJobStates.FAILED, host))
-      case Right(_) => Right(ds)
+    exitCode match {
+      case 0 => Right(ds)
+      case 7 => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). $errorMessage", runTimeSec, AnalysisJobStates.TERMINATED, host))
+      case x => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed with exit code $x. $errorMessage", runTimeSec, AnalysisJobStates.FAILED, host))
     }
   }
 }

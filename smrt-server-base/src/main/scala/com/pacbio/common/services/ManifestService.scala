@@ -3,8 +3,12 @@ package com.pacbio.common.services
 import com.pacbio.common.dependency.{ConfigProvider, Singleton}
 import com.pacbio.common.loaders.ManifestLoader
 import com.pacbio.common.models.{PacBioComponentManifest, PacBioJsonProtocol}
+import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import spray.httpx.SprayJsonSupport._
 import spray.json._
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioService with DefaultJsonProtocol {
 
@@ -15,14 +19,30 @@ class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioSer
     "Status Service",
     "0.2.0", "Subsystem Manifest Service")
 
+  val allManifests = (manifests + manifest).toList
+
+  def getById(manifestId: String): Future[PacBioComponentManifest] = {
+    allManifests.find(_.id == manifestId) match {
+      case Some(m) => Future { m }
+      case _ => Future.failed(new ResourceNotFoundError(s"Unable to find manifest id $manifestId"))
+    }
+  }
+
   val routes =
     path("services" / "manifests") {
       get {
         complete {
-          (manifests + manifest).toList
+          allManifests
         }
       }
-    }
+    } ~
+        path("services" / "manifests" / Segment) { manifestId =>
+          get {
+            complete {
+              getById(manifestId)
+            }
+          }
+        }
 }
 
 /**
