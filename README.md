@@ -2,7 +2,7 @@
 
 [![Circle CI](https://circleci.com/gh/PacificBiosciences/smrtflow.svg?style=svg)](https://circleci.com/gh/PacificBiosciences/smrtflow)
 
-See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs. This README.md is intended to be terse notes for developers.
+**This README.md is intended to be terse notes** for developers. See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs.
 
 "SMRT" refers to PacBio's [sequencing technology](http://www.pacb.com/smrt-science/smrt-sequencing/) and "smrtflow" is the name common models, Resolved Tool Contract/Tool Contract interface, commandline analysis tools, service orchestration engine and web services written in scala. PacBio pipelines can be run leveraging the PacBio workflow engine, [pbsmrtipe](https://github.com/PacificBiosciences/pbsmrtpipe) (must be installed).
  
@@ -40,6 +40,8 @@ pbservice --help
 fasta-to-reference --help
 ```
 
+See the [full docs for details](http://smrtflow.readthedocs.io/) for details and examples of using SL tools, such as `pbservice` or `fasta-to-reference`.
+
 ## Services
 
 Launching SMRT Link/Analysis Services
@@ -55,12 +57,38 @@ export PB_SERVICES_PORT=9997
 sbt "smrt-server-analysis/run"
 ```
 
-See application.conf for configuration parameters.
+See the [full docs for details](http://smrtflow.readthedocs.io/)
 
+See [reference.conf](https://github.com/PacificBiosciences/smrtflow/blob/master/smrt-server-link/src/main/resources/reference.conf) for more configuration parameters.
 
-See the ["Quick" Service docs](https://github.com/PacificBiosciences/smrtflow/tree/master/smrt-server-analysis#services-quick-docs) for Service endpoints defined in SMRT Link Analysis.
+### Swagger Docs
+
+The [SMRT Link Analysis Services](https://github.com/PacificBiosciences/smrtflow/blob/master/smrtlink_swagger.json) are documented using [Swagger Specification](http://swagger.io/specification/).
+
+#### Validation of the swagger.json file
+
+```
+npm install swagger-tools
+node_modules/swagger-cli/bin/swagger.js validate /path/to/smrtlink_swagger.json
+```
+
+#### UI Editor
+
+[UI Editor](http://editor.swagger.io/#/) to import and edit the swagger file from a file or URL.
+
+### PacBio Common Models
+
+Many core data models are described using XSDs.
+
+See [Resources Dir](https://github.com/PacificBiosciences/smrtflow/tree/master/smrt-common-models/src/main/resources/pb-common-xsds) for details.
+
+See the [Readme](https://github.com/PacificBiosciences/smrtflow/blob/master/smrt-common-models/README.md) for generating the java classes from the XSDs.
+
+Also see the common model (e.g., Report, ToolContract, DataStore, Pipeline, PipelineView Rules) [schemas here](https://github.com/PacificBiosciences/pbcommand/tree/master/pbcommand/schemas)
 
 ### REPL
+
+Interactively load the smrtflow library code and execute expressions.
 
 ```
 sbt smrtflow/test:console
@@ -119,18 +147,3 @@ At a minimum, integration test analysis jobs requires installing pbsmrtpipe (in 
 - import canned ReferenceSet and SubreadSet `make test-int-import-data`
 - run dev_diagnostic_stress test `make test-int-run-analysis-stress`
 
-
-### Swagger Docs
-
-The [SMRT Link Analysis Services](https://github.com/PacificBiosciences/smrtflow/blob/master/smrtlink_swagger.json) are documented using [Swagger Specification](http://swagger.io/specification/).
-
-Validation:
-
-```
-npm install swagger-tools
-node_modules/swagger-cli/bin/swagger.js validate /path/to/smrtlink_swagger.json
-```
-
-Editor:
-
-[UI Editor](http://editor.swagger.io/#/) to import and edit the swagger file from a file or URL.
