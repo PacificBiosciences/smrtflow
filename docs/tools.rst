@@ -54,7 +54,7 @@ Importing a DataSet into SMRT Link Server
     $> pbservice import-dataset --host smrtlink-beta --port 8081 /path/to/subreadset.xml
 
 
-.. note:: This can also operate recursively on a directory. All files ending in *.subreadset.xml will be imported into the system. Any files that have already been imported into the system will be skipped.
+.. note:: This can also operate recursively on a directory. All files ending in `*.subreadset.xml` will be imported into the system. Any files that have already been imported into the system will be skipped.
 
 Submit an Resequencing Analysis Job
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
