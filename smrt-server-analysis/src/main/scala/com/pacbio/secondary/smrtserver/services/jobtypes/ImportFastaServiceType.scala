@@ -110,7 +110,7 @@ class ImportFastaServiceType(
                   toCoreJob(sopts, uuid),
                   None,
                   sopts.toJson.toString(),
-                  user.map(_.userName),
+                  user.map(_.userId),
                   smrtLinkVersion,
                   smrtLinkToolsVersion)).mapTo[EngineJob]
               }

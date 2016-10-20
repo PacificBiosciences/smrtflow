@@ -18,7 +18,6 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 

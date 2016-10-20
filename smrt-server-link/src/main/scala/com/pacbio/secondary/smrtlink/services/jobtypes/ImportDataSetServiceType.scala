@@ -71,7 +71,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
             entity(as[ImportDataSetOptions]) { sopts =>
               complete {
                 created {
-                  createJob(sopts, user.map(_.userName))
+                  createJob(sopts, user.map(_.userId))
                 }
               }
             }

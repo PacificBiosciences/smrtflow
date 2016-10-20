@@ -17,7 +17,6 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 

@@ -57,7 +57,7 @@ class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) exte
                 coreJob,
                 None,
                 jsonSettings,
-                user.map(_.userName), None, None)).mapTo[EngineJob]
+                user.map(_.userId), None, None)).mapTo[EngineJob]
 
               complete {
                 created {

@@ -98,18 +98,6 @@ trait DurationProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait RoleProtocol extends DefaultJsonProtocol with FamilyFormats {
-
-  implicit object RoleFormat extends JsonFormat[Roles.Role] {
-    def write(role: Roles.Role): JsValue = JsString(role.name)
-
-    def read(json: JsValue): Roles.Role = json match {
-      case JsString(x) => Roles.fromString(x).getOrElse(deserializationError(s"Unknown role: $x"))
-      case _ => deserializationError("Expected LogLevel type as JsString")
-    }
-  }
-}
-
 // Requires custom JSON serialization because of recursive structure
 trait DirectoryResourceProtocol extends DefaultJsonProtocol {
   this: BaseJsonProtocol =>
@@ -137,7 +125,6 @@ with UUIDJsonProtocol
 with JodaDateTimeProtocol
 with HealthProtocols
 with LogLevelProtocol
-with RoleProtocol
 with CleanupFrequencyProtocol
 with CleanupSizeProtocol
 with DurationProtocol

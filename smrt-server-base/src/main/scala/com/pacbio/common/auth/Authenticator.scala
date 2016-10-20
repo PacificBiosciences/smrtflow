@@ -1,7 +1,6 @@
 package com.pacbio.common.auth
 
 import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
-import com.pacbio.common.models.Roles.ALL_ROLES
 import com.pacbio.common.models.UserRecord
 import spray.routing.directives.AuthMagnet
 import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
@@ -20,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  *       authenticate(myAuthenticator.wso2Auth) { user =>
  *         get {
  *           // All authenticated users can enter here
- *           complete("Hi, " + user.userName)
+ *           complete("Hi, " + user.getDisplayName)
  *         }
  *       }
  *     }
@@ -80,7 +79,7 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
  * Implementation of Authenticator that ignores credentials and returns a generic root AuthInfo.
  */
 class FakeAuthenticator extends Authenticator {
-  val ROOT = UserRecord("root", None, None, ALL_ROLES)
+  val ROOT = UserRecord("root", None, None, Set("Internal/PbAdmin"))
 
   override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
     ctx: RequestContext => Future { Right(ROOT) }

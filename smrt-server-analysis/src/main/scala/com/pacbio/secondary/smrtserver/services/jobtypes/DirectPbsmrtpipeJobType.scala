@@ -121,7 +121,7 @@ class DirectPbsmrtpipeJobType(
                   coreJob,
                   entryPoints,
                   jsonSettings.toString(),
-                  user.map(_.userName), smrtLinkVersion, smrtLinkToolsVersion
+                  user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion
                 )).mapTo[EngineJob]
 
                 complete {

@@ -129,33 +129,10 @@ case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, leve
 
 // Users
 
-object Roles {
-  sealed trait Role { val name: String }
-
-  object PbAdmin extends Role { override val name = "Internal/PbAdmin" }
-  object PbLabTech extends Role { override val name = "Internal/PbLabTech" }
-  object PbBioinformatician extends Role { override val name = "Internal/PbBioinformatician" }
-
-  val ALL_ROLES = Set(PbAdmin, PbLabTech, PbBioinformatician)
-
-  def fromString(name: String): Option[Role] = ALL_ROLES.find(_.name == name)
-}
-
-case class UserRecord(userName: String,
+case class UserRecord(userId: String,
                       firstName: Option[String] = None,
                       lastName: Option[String] = None,
-                      roles: Set[Roles.Role] = Set.empty) {
-  import Roles._
-
-  /**
-   * Determines whether the user is the given user. (Or has Admin privileges.)
-   */
-  def isUserOrAdmin(l: String): Boolean = userName.compareToIgnoreCase(l) == 0 || hasPermission(PbAdmin)
-
-  /**
-   * Determines whether the user has the given permissions.
-   */
-  def hasPermission(r: Role): Boolean = roles.contains(r)
+                      roles: Set[String] = Set.empty) {
 
   def getDisplayName: String = {
     val name = for {
@@ -163,7 +140,7 @@ case class UserRecord(userName: String,
       l <- lastName
     } yield s"$f $l"
 
-    name.getOrElse(userName)
+    name.getOrElse(userId)
   }
 }
 

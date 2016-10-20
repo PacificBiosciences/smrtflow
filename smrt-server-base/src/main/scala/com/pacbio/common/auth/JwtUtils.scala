@@ -1,6 +1,6 @@
 package com.pacbio.common.auth
 
-import com.pacbio.common.models.{Roles, UserRecord}
+import com.pacbio.common.models.UserRecord
 import org.json4s._
 
 import authentikat.jwt.JsonWebToken
@@ -58,11 +58,7 @@ class JwtUtilsImpl extends JwtUtils {
           extractUsername(cm(USERNAME_CLAIM).asInstanceOf[String]),
           cm.get(FIRST_NAME_CLAIM).map(_.asInstanceOf[String]),
           cm.get(LAST_NAME_CLAIM).map(_.asInstanceOf[String]),
-          cm(ROLES_CLAIM).asInstanceOf[List[String]]
-            .toSet
-            .map(Roles.fromString)
-            .filter(_.isDefined)
-            .map(_.get))
+          cm(ROLES_CLAIM).asInstanceOf[List[String]].toSet)
       }.toOption
     } yield ur
   }

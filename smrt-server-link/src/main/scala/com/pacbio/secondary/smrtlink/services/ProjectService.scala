@@ -60,7 +60,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
               complete {
                 created {
                   jobsDao
-                    .createProject(sopts, user.userName)
+                    .createProject(sopts, user.userId)
                     .flatMap(fullProject)
                     .recoverWith(translateConflict(sopts))
                 }

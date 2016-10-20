@@ -16,7 +16,6 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
   import language.implicitConversions
 
   implicit def longOptionToJodaDateTimeOption(t: Option[Long]): Option[JodaDateTime] = t.map(new JodaDateTime(_))

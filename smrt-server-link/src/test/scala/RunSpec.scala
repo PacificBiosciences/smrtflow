@@ -35,7 +35,6 @@ class RunSpec
   sequential
 
   import SmrtLinkJsonProtocols._
-  import Roles._
   import Authenticator._
 
   val RUN_ID = UUID.randomUUID()
@@ -105,11 +104,9 @@ class RunSpec
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
   val ADMIN_USER_2_LOGIN = "admin2"
-  val INVALID_JWT = "invalid.jwt"
   val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
   val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
   val ADMIN_CREDENTIALS_2 = RawHeader(JWT_HEADER, ADMIN_USER_2_LOGIN)
-  val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   object TestProviders extends
     ServiceComposer with
@@ -120,12 +117,8 @@ class RunSpec
     FakeClockProvider with
     DataModelParserImplProvider {
 
-    // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
-        if (jwt.startsWith("admin")) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
-      }
+      override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
     })
   }
 

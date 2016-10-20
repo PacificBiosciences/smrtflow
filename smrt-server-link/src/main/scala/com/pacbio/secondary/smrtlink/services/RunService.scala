@@ -42,7 +42,7 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
             entity(as[RunCreate]) { create =>
               complete {
                 created {
-                  //(runActor ? CreateRun(user.userName, create)).mapTo[RunMetadata]
+                  //(runActor ? CreateRun(user.userId, create)).mapTo[RunMetadata]
                   (runActor ? CreateRun(create)).mapTo[RunSummary]
                 }
               }
