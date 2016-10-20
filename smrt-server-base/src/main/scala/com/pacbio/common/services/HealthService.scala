@@ -17,7 +17,6 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -30,7 +29,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix(healthServiceName) {
-      authenticate(authenticator.wso2Auth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { user =>
         pathEnd {
           get {
             complete {
@@ -51,12 +50,10 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             } ~
             post {
               entity(as[HealthMetricCreateMessage]) { m =>
-                authorize(authInfo.hasPermission(PbAdmin)) {
-                  respondWithMediaType(MediaTypes.`application/json`) {
-                    complete {
-                      created {
-                        healthDao.createHealthMetric(m)
-                      }
+                respondWithMediaType(MediaTypes.`application/json`) {
+                  complete {
+                    created {
+                      healthDao.createHealthMetric(m)
                     }
                   }
                 }
@@ -93,12 +90,10 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(PbAdmin)) {
-              entity(as[HealthMetricUpdateMessage]) { m =>
-                complete {
-                  created {
-                    healthDao.update(m)
-                  }
+            entity(as[HealthMetricUpdateMessage]) { m =>
+              complete {
+                created {
+                  healthDao.update(m)
                 }
               }
             }

@@ -88,7 +88,7 @@ class DirectPbsmrtpipeJobType(
           }
         } ~
           post {
-            optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+            optionalAuthenticate(authenticator.wso2Auth) { user =>
               entity(as[PbsmrtpipeDirectJobOptions]) { ropts =>
 
                 val uuid = UUID.randomUUID()
@@ -121,7 +121,7 @@ class DirectPbsmrtpipeJobType(
                   coreJob,
                   entryPoints,
                   jsonSettings.toString(),
-                  authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion
+                  user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion
                 )).mapTo[EngineJob]
 
                 complete {

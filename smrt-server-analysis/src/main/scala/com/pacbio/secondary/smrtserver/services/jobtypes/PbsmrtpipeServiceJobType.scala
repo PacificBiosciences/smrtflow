@@ -108,7 +108,7 @@ class PbsmrtpipeServiceJobType(
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[PbSmrtPipeServiceOptions]) { ropts =>
 
               val uuid = UUID.randomUUID()
@@ -123,7 +123,7 @@ class PbsmrtpipeServiceJobType(
                 workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions }
                 opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
                 coreJob <- Future { CoreJob(uuid, opts)}
-                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
+                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
 
               complete {

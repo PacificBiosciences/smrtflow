@@ -79,7 +79,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[DataSetExportServiceOptions]) { sopts =>
 
               val uuid = UUID.randomUUID()
@@ -94,7 +94,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
                 //engineEntryPoints <- Future { vopts.paths.map(p => EngineJobEntryPointRecord(p, vopts.datasetType.dsId)) }
                 vopts <- ValidatorDataSetExportServiceOptions(sopts, dbActor)
                 coreJob <- Future { CoreJob(uuid, vopts) }
-                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
+                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
 
               complete {

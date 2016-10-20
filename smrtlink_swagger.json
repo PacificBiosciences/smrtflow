@@ -1257,6 +1257,23 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/user": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
       "get": {
         "responses": {

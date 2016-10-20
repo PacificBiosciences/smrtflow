@@ -24,7 +24,6 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
   sequential
 
   import SmrtLinkJsonProtocols._
-  import Roles._
   import Authenticator._
   
   val FAKE_HOST = "fake.server.com"
@@ -35,10 +34,8 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_LOGIN = "admin"
-  val INVALID_JWT = "invalid.jwt"
   val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
   val ADMIN_CREDENTIALS = RawHeader(JWT_HEADER, ADMIN_USER_LOGIN)
-  val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   trait daoSetup extends Scope {
 
@@ -54,9 +51,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
 
         // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
         override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-          override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
-            if (jwt == ADMIN_USER_LOGIN) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
-          }
+          override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
         })
 
         // Mock http connections

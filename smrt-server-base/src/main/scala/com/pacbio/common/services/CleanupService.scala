@@ -18,7 +18,6 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -29,7 +28,7 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
 
   val routes =
     pathPrefix("cleanup" / "jobs") {
-      authenticate(authenticator.wso2Auth) { authInfo =>
+      authenticate(authenticator.wso2Auth) { user =>
         pathEnd {
           get {
             complete {
@@ -39,12 +38,10 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(authInfo.hasPermission(PbAdmin)) {
-              entity(as[ApiCleanupJobCreate]) { c =>
-                complete {
-                  created {
-                    cleanupDao.createJob(c)
-                  }
+            entity(as[ApiCleanupJobCreate]) { c =>
+              complete {
+                created {
+                  cleanupDao.createJob(c)
                 }
               }
             }
@@ -60,11 +57,9 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
               }
             } ~
             delete {
-              authorize(authInfo.hasPermission(PbAdmin)) {
-                complete {
-                  ok {
-                    cleanupDao.deleteJob(id)
-                  }
+              complete {
+                ok {
+                  cleanupDao.deleteJob(id)
                 }
               }
             }

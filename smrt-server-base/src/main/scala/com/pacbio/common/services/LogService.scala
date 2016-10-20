@@ -16,7 +16,6 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
   with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
-  import Roles._
   import language.implicitConversions
 
   implicit def longOptionToJodaDateTimeOption(t: Option[Long]): Option[JodaDateTime] = t.map(new JodaDateTime(_))
@@ -39,13 +38,11 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
           }
         } ~
         post {
-          authenticate(authenticator.wso2Auth) { authInfo =>
-            authorize(authInfo.hasPermission(PbAdmin)) {
-              entity(as[LogResourceRecord]) { m =>
-                complete {
-                  created {
-                    logDao.createLogResource(m)
-                  }
+          authenticate(authenticator.wso2Auth) { user =>
+            entity(as[LogResourceRecord]) { m =>
+              complete {
+                created {
+                  logDao.createLogResource(m)
                 }
               }
             }
@@ -94,13 +91,11 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authenticate(authenticator.wso2Auth) { authInfo =>
-              authorize(authInfo.hasPermission(PbAdmin)) {
-                entity(as[LogMessageRecord]) { m =>
-                  complete {
-                    created {
-                      logDao.createLogMessage(id, m)
-                    }
+            authenticate(authenticator.wso2Auth) { user =>
+              entity(as[LogMessageRecord]) { m =>
+                complete {
+                  created {
+                    logDao.createLogMessage(id, m)
                   }
                 }
               }

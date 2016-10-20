@@ -57,7 +57,7 @@ class ImportFastaBarcodesServiceType(
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[ConvertImportFastaBarcodesOptions]) { sopts =>
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
@@ -73,7 +73,7 @@ class ImportFastaBarcodesServiceType(
                   CoreJob(uuid, sopts),
                   None,
                   sopts.toJson.toString(),
-                  authInfo.map(_.login),
+                  user.map(_.userId),
                   smrtLinkVersion,
                   smrtLinkToolsVersion)).mapTo[EngineJob]
               }

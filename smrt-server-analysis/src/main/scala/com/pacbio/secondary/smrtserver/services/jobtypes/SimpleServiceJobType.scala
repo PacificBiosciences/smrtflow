@@ -41,7 +41,7 @@ class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) exte
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[SimpleDevJobOptions]) { opts =>
               // 1.  Create a new job in db
               // 2. Create a new CoreJob instance
@@ -57,7 +57,7 @@ class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) exte
                 coreJob,
                 None,
                 jsonSettings,
-                authInfo.map(_.login), None, None)).mapTo[EngineJob]
+                user.map(_.userId), None, None)).mapTo[EngineJob]
 
               complete {
                 created {

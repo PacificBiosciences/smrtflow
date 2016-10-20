@@ -35,7 +35,6 @@ with SmrtLinkConstants {
   sequential
 
   import SmrtLinkJsonProtocols._
-  import Roles._
   import Authenticator._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
@@ -68,9 +67,7 @@ with SmrtLinkConstants {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some {
-        if (jwt.startsWith("admin")) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
-      }
+      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
 
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)

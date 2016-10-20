@@ -52,6 +52,7 @@ trait CoreProviders extends
   CleanupSchedulerProvider with
   StatusServiceProvider with
   StatusGeneratorProvider with
+  UserServiceProvider with
   ConfigServiceProvider with
   CommonFilesServiceProvider with
   DiskSpaceServiceProvider with
@@ -97,6 +98,7 @@ trait AuthenticatedCoreProviders extends
   CleanupSchedulerProvider with
   StatusServiceProviderx with
   StatusGeneratorProvider with
+  UserServiceProviderx with
   ConfigServiceProviderx with
   CommonFilesServiceProviderx with
   DiskSpaceServiceProviderx with

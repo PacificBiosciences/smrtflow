@@ -44,7 +44,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[MovieMetadataToHdfSubreadOptions]) { sopts =>
               val uuid = UUID.randomUUID()
               val coreJob = CoreJob(uuid, sopts)
@@ -56,7 +56,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
                 coreJob,
                 None,
                 jsonSettings,
-                authInfo.map(_.login), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
+                user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
 
               complete {
                 created {

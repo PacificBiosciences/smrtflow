@@ -67,11 +67,11 @@ class ImportDataSetServiceType(dbActor: ActorRef,
           }
         } ~
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { authInfo =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[ImportDataSetOptions]) { sopts =>
               complete {
                 created {
-                  createJob(sopts, authInfo.map(_.login))
+                  createJob(sopts, user.map(_.userId))
                 }
               }
             }
