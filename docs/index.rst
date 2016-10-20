@@ -11,7 +11,10 @@ Sequel SMRT Link Web Services API v3.1
 
 
    Introduction <introduction>
+   Tools <tools>
+   SMRT Link Analysis Config <sla_config>
    SMRT Link Service API  <SMRT_Link_Service_API/index>
    SMRT Analysis Service API  <SMRT_Secondary_Service_API/index>
    SMRT Base Service API  <SMRT_Base_Service_API/index>
+   Disclaimer <disclaimer>
 
