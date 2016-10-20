@@ -35,7 +35,6 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
     "0.1.0", "Subsystem Sample Service")
 
   val routes =
-  //authenticate(authenticator.jwtAuth) { user =>
     path("samples/test/clear") {
       post {
         complete {
@@ -67,13 +66,11 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
         } ~
           post {
             entity(as[SampleCreate]) { create =>
-              //authorize(user.hasPermission(SAMPLE_WRITE)) {
               complete {
                 created {
                   (sampleActor ? CreateSample("root", create)).mapTo[Sample]
                 }
               }
-              //}
             }
           }
       } ~
@@ -88,28 +85,23 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
             } ~
               post {
                 entity(as[SampleUpdate]) { update =>
-                  //authorize(user.hasPermission(SAMPLE_WRITE)) {
                   complete {
                     ok {
                       (sampleActor ? UpdateSample(uniqueId, update)).mapTo[Sample]
                     }
                   }
-                  //}
                 }
               } ~
               delete {
-                //authorize(user.hasPermission(SAMPLE_WRITE)) {
                 complete {
                   ok {
                     (sampleActor ? DeleteSample(uniqueId)).mapTo[MessageResponse]
                   }
                 }
-                //}
               }
           }
         }
     }
-  //}
 }
 
 /**

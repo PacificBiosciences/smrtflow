@@ -46,13 +46,11 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RegistryResourceCreate]) { create =>
-              //authorize(user.hasPermission(PbAdmin)) {
-                complete {
-                  created {
-                    (registryActor ? CreateResource(create)).mapTo[RegistryResource]
-                  }
+              complete {
+                created {
+                  (registryActor ? CreateResource(create)).mapTo[RegistryResource]
                 }
-              //}
+              }
             }
           }
         } ~
@@ -85,13 +83,11 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
           path("update") {
             post {
               entity(as[RegistryResourceUpdate]) { update =>
-                //authorize(user.hasPermission(PbAdmin)) {
-                  complete {
-                    ok {
-                      (registryActor ? UpdateResource(uuid, update)).mapTo[RegistryResource]
-                    }
+                complete {
+                  ok {
+                    (registryActor ? UpdateResource(uuid, update)).mapTo[RegistryResource]
                   }
-                //}
+                }
               }
             }
           } ~

@@ -139,27 +139,6 @@ object Roles {
   val ALL_ROLES = Set(PbAdmin, PbLabTech, PbBioinformatician)
 
   def fromString(name: String): Option[Role] = ALL_ROLES.find(_.name == name)
-
-  // Permissions
-
-  sealed trait Permission {
-    def accept(roles: Set[Role]): Boolean
-
-    final def & (p: Permission): Permission = new AndPermission(this, p)
-    final def | (p: Permission): Permission = new OrPermission(this, p)
-  }
-
-  implicit final class RolePermission(role: Role) extends Permission {
-    override def accept(roles: Set[Role]): Boolean = roles.contains(role)
-  }
-
-  final class AndPermission(p1: Permission, p2: Permission) extends Permission {
-    override def accept(roles: Set[Role]): Boolean = p1.accept(roles) && p2.accept(roles)
-  }
-
-  final class OrPermission(p1: Permission, p2: Permission) extends Permission {
-    override def accept(roles: Set[Role]): Boolean = p1.accept(roles) || p2.accept(roles)
-  }
 }
 
 case class UserRecord(userName: String,
@@ -176,7 +155,7 @@ case class UserRecord(userName: String,
   /**
    * Determines whether the user has the given permissions.
    */
-  def hasPermission(p: Permission): Boolean = p.accept(roles)
+  def hasPermission(r: Role): Boolean = roles.contains(r)
 
   def getDisplayName: String = {
     val name = for {

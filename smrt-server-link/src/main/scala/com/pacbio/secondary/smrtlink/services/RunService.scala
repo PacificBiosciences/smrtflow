@@ -40,14 +40,12 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
           } ~
           post {
             entity(as[RunCreate]) { create =>
-              //authorize(user.hasPermission(PbAdmin)) {
-                complete {
-                  created {
-                    //(runActor ? CreateRun(user.userName, create)).mapTo[RunMetadata]
-                    (runActor ? CreateRun(create)).mapTo[RunSummary]
-                  }
+              complete {
+                created {
+                  //(runActor ? CreateRun(user.userName, create)).mapTo[RunMetadata]
+                  (runActor ? CreateRun(create)).mapTo[RunSummary]
                 }
-              //}
+              }
             }
           }
         } ~
@@ -62,23 +60,19 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
             } ~
             post {
               entity(as[RunUpdate]) { update =>
-                //authorize(user.hasPermission(PbAdmin)) {
-                  complete {
-                    ok {
-                      (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
-                    }
+                complete {
+                  ok {
+                    (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
                   }
-                //}
+                }
               }
             } ~
             delete {
-              //authorize(user.hasPermission(PbAdmin)) {
-                complete {
-                  ok {
-                    (runActor ? DeleteRun(id)).mapTo[MessageResponse]
-                  }
+              complete {
+                ok {
+                  (runActor ? DeleteRun(id)).mapTo[MessageResponse]
                 }
-              //}
+              }
             }
           } ~
           pathPrefix("collections") {

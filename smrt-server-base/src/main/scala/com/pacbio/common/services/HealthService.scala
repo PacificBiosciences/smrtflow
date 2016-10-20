@@ -51,12 +51,10 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             } ~
             post {
               entity(as[HealthMetricCreateMessage]) { m =>
-                authorize(user.hasPermission(PbAdmin)) {
-                  respondWithMediaType(MediaTypes.`application/json`) {
-                    complete {
-                      created {
-                        healthDao.createHealthMetric(m)
-                      }
+                respondWithMediaType(MediaTypes.`application/json`) {
+                  complete {
+                    created {
+                      healthDao.createHealthMetric(m)
                     }
                   }
                 }
@@ -93,12 +91,10 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(user.hasPermission(PbAdmin)) {
-              entity(as[HealthMetricUpdateMessage]) { m =>
-                complete {
-                  created {
-                    healthDao.update(m)
-                  }
+            entity(as[HealthMetricUpdateMessage]) { m =>
+              complete {
+                created {
+                  healthDao.update(m)
                 }
               }
             }

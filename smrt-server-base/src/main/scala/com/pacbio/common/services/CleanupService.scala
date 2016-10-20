@@ -39,12 +39,10 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
             }
           } ~
           post {
-            authorize(user.hasPermission(PbAdmin)) {
-              entity(as[ApiCleanupJobCreate]) { c =>
-                complete {
-                  created {
-                    cleanupDao.createJob(c)
-                  }
+            entity(as[ApiCleanupJobCreate]) { c =>
+              complete {
+                created {
+                  cleanupDao.createJob(c)
                 }
               }
             }
@@ -60,11 +58,9 @@ class CleanupService(cleanupDao: CleanupDao, authenticator: Authenticator)
               }
             } ~
             delete {
-              authorize(user.hasPermission(PbAdmin)) {
-                complete {
-                  ok {
-                    cleanupDao.deleteJob(id)
-                  }
+              complete {
+                ok {
+                  cleanupDao.deleteJob(id)
                 }
               }
             }
