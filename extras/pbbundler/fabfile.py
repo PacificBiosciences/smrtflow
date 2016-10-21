@@ -397,53 +397,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 
 
 @task
-def build_smrtlink_services(version, services_root_dir, wso2_api_manager_zip,
-                            publish_to=None,
-                            analysis_server="smrt-server-analysis"):
-    """
-    Build the SMRT Link UI and copy it into the Tomcat. The bundles will be written to ./built-bundles/
-
-    :param version: Semantic Version string
-    :param services_root_dir: Root Directory to the Services (e.g.,  /Users/mkocher/workspaces/mk_mb_pbbundler/scala)
-    :param publish_to: Copy the bundle.tgz to output directory. Ignore if not given
-
-    :param publish_to: Copy the bundle.tgz to output directory. Ignore if not
-    given
-
-    Example:
-
-    $> fab build_smrtlink_services_ui:"0.2.1-1234", "/Users/mkocher/workspaces/mk_mb_pbbundler/ui", "/Users/mkocher/workspaces/mk_mb_pbbundler/scala"
-
-
-    Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
-
-    To copy the tar.gz bundle to the outputdir.
-
-    """
-    name = _to_build_name(Constants.SLS, version)
-    output_bundle_dir = os.path.join(_ROOT_BUILT_BUNDLES, name)
-
-    log.info("Creating bundle {n} -> {d} ".format(n=name, d=output_bundle_dir))
-
-    _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
-
-    _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_dir)
-
-    _build_smrtlink_services(services_root_dir, output_bundle_dir, analysis_server=analysis_server)
-
-    # Write the PacBio Version file
-    smrtflow_versions = _get_smrtflow_version(services_root_dir)
-    pacbio_version_file = os.path.join(output_bundle_dir, PbConstants.MANIFEST_FILE)
-    write_pacbio_versions(smrtflow_versions, pacbio_version_file)
-    log.info("Wrote smrtflow versions {v} to {o}".format(v=smrtflow_versions, o=pacbio_version_file))
-
-    gzip_path = _create_gzip(output_bundle_dir)
-    _publish_to(gzip_path, publish_to)
-    log.info("Completed build bundle {b} in {d}".format(b=name, d=output_bundle_dir))
-    return 0
-
-
-@task
 def build_smrtlink_services_ui(version,
                                smrtlink_ui_dir,
                                smrtflow_root_dir,
