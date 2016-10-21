@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# Bash3 Boilerplate. Copyright (c) 2014, kvz.io
+
+set -o errexit
+set -o pipefail
+set -o nounset
+# set -o xtrace
+
+# Set magic variables for current file & dir
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+__base="$(basename ${__file} .sh)"
+
+arg1="${1:-}"
+
+SERVICES_JAR_NAME="secondary-analysis-services.jar"
+
+echo "Applying config"
+python $__dir/apply-config
+echo "Completed applying config"
+
+JAVA_PID=$__root/java.pid
+JAVA_STDOUT=$__root/java.stdout
+JAVA_STDERR=$__root/java.stderr
+SERVICES_JVM_ARGS=$(cat $__root/services-jvm-args)
+SERVICES_ARGS=$(cat $__root/services-args)
+
+tomcat_dir="$__dir/../apache-tomcat-8.0.26"
+ws02_dir="$__dir/../wso2am-2.0.0"
+
+
+check_port() {
+   local port=$1; shift;
+
+   local netstat_available;
+
+   if ! which netstat > /dev/null 2>&1 ; then
+	return;
+   fi	
+
+   local pidprogs;
+   local act_pidprogs;
+   pidprogs=$(netstat -l -n -p 2> /dev/null | awk -v pat=":$port" '$4 ~ pat {print $NF}' | sort -u)
+   if [[ ! -z "$pidprogs" ]] ; then
+       act_pidprogs=$(echo $(echo "$pidprogs" | grep -E -v '^-$'))
+       if [[ -z "$act_pidprogs" ]] ; then
+          echo "  Port '$port' already in use (by unknown pid/prog)"
+       else
+          echo "  Port '$port' already in use (by pid/prog: $act_pidprogs)"
+       fi
+       echo "Daemons not started, exiting."
+       exit 4;
+   fi
+}
+
+
+echo "Checking SMRT Link services daemon..."
+if [ -f $JAVA_PID ]; then
+   PID=`cat $JAVA_PID`
+   if [[ $PID =~ ^[0-9]+$ ]] ; then
+      if kill -0 "$PID" > /dev/null 2>&1 ; then
+         echo "java already running: $JAVA_PID" 1>&2
+         echo "Run services-stop or kill process '$PID', then rerun" 1>&2
+         echo "Services not started!" 1>&2
+         exit 2;
+      else
+         # Stale pid file, remove it and continue on.
+         echo "Removing java services pid file for stale pid ($PID)..."
+         rm -f "$JAVA_PID"
+      fi
+   else
+      echo "Unrecognized pid ($PID) in pid file ($JAVA_PID)" 1>&2
+      echo "Services not started!" 1>&2
+      exit 3
+   fi
+fi
+echo "completed checking SMRT Link services daemon"
+
+
+# Services are not running.  Check to make sure that the port we will use
+# is not already in use.
+#port=$(sed -n -e 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9]\+\)[[:space:]]*$/\1/p'  "$__root/prod.conf")
+# The check_port function will exit with an error if the port it is in use.
+#check_port "$port";
+ 
+
+echo "Checking GUI webserver daemon..."
+
+# Quick check to determine if tomcat is running.  
+tomcat_running=false;
+if [[ ! -z ${CATALINA_PID+set} ]] && [[ -f "$CATALINA_PID" ]]; then
+   pid=$(cat "$CATALINA_PID")
+   if [[ $pid =~ ^[0-9]+$ ]] ; then
+      if kill -0 "$pid" > /dev/null 2>&1; then     
+         tomcat_running=true;
+      fi
+   fi
+fi
+
+# If tomcat is not running, check that all the tomcat ports are not in use.
+# If tomcat is running, do not check the ports and let the normal tomcat
+# startup fail below.
+if ! $tomcat_running; then
+   ports=$(cat $tomcat_dir/conf/server.xml | \
+	   sed -e 's/<!--.*-->//'| \
+           sed -e '/<!--/,/-->/d' | \
+           sed -n -e 's/.*[[:space:]]port="\([0-9]\+\)".*/\1/p' | \
+           sort -u)
+   for port in $ports; do
+      check_port "$port"
+   done
+fi
+
+# Fire up the services
+echo "Starting services daemon..."
+java $SERVICES_JVM_ARGS \
+     -Dconfig.file=$__root/prod.conf \
+     -jar $__root/$SERVICES_JAR_NAME \
+     $SERVICES_ARGS \
+     > $JAVA_STDOUT \
+     2> $JAVA_STDERR &
+
+sl_services_pid=$!
+echo $sl_services_pid >$JAVA_PID
+echo "Started up SMRT Link services on PID ${sl_services_pid}"
+
+# Fire up the GUI webserver
+echo "Starting GUI webserver daemon..."
+$tomcat_dir/bin/startup.sh
+echo "started up GUI webserver"
+
+echo "Starting up ENTERPRISE wso2 API Manager"
+bash $ws02_dir/bin/wso2server.sh --start
+echo "started up WSO2 API Manager"
+
+echo "Completed starting the SMRT Link services and tomcat UI server"

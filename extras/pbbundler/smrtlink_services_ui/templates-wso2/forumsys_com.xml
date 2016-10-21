@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UserStoreManager class="org.wso2.carbon.user.core.ldap.ReadOnlyLDAPUserStoreManager">
+   <Property name="ConnectionURL">ldap://ldap.forumsys.com:389</Property>
+   <Property name="ConnectionName">cn=read-only-admin,dc=example,dc=com</Property>
+   <Property encrypted="true" name="ConnectionPassword">U57XaWZIJHoj8hyMpGTHriXtOdSwZwEBSPjvHmDM/Td9QPGFo1obCWbW/z6W5ebVAKdsIQ7Tii9sUYtNptW2DH14SfUbPTZO80dIl3W2LPMLlWQVJ8DyDedAJo9WgP8490r56TjoJKHN4J5EdJwApYuQPDZMsuBSj80gaAJlpfk=</Property>
+   <Property name="UserSearchBase">dc=example,dc=com</Property>
+   <Property name="UserNameAttribute">uid</Property>
+   <Property name="UserNameSearchFilter">(&amp;(objectClass=person)(uid=?))</Property>
+   <Property name="UserNameListFilter">(objectClass=person)</Property>
+   <Property name="UserDNPattern"/>
+   <Property name="DisplayNameAttribute">uid</Property>
+   <Property name="Disabled">false</Property>
+   <Property name="ReadGroups">true</Property>
+   <Property name="GroupSearchBase">ou=Groups,dc=wso2,dc=org</Property>
+   <Property name="GroupNameAttribute">cn</Property>
+   <Property name="GroupNameSearchFilter">(&amp;(objectClass=groupOfNames)(cn=?))</Property>
+   <Property name="GroupNameListFilter">(objectClass=groupOfNames)</Property>
+   <Property name="RoleDNPattern"/>
+   <Property name="MembershipAttribute">member</Property>
+   <Property name="MemberOfAttribute"/>
+   <Property name="BackLinksEnabled">false</Property>
+   <Property name="ReplaceEscapeCharactersAtUserLogin">true</Property>
+   <Property name="SCIMEnabled">false</Property>
+   <Property name="PasswordHashMethod">PLAIN_TEXT</Property>
+   <Property name="MultiAttributeSeparator">,</Property>
+   <Property name="MaxUserNameListLength">100</Property>
+   <Property name="MaxRoleNameListLength">100</Property>
+   <Property name="UserRolesCacheEnabled">true</Property>
+   <Property name="ConnectionPoolingEnabled">false</Property>
+   <Property name="LDAPConnectionTimeout">5000</Property>
+   <Property name="ReadTimeout">5000</Property>
+   <Property name="RetryAttempts">0</Property>
+   <Property name="CountRetrieverClass"/>
+   <Property name="DomainName">forumsys.com</Property>
+   <Property name="Description">Example ReadOnly LDAP by forumsys.com&#xD;
+            </Property>
+</UserStoreManager>

@@ -1,0 +1,183 @@
+#!/usr/bin/env python
+
+import os
+import pprint
+import socket
+import urllib2
+import json
+import logging
+import sys
+import time
+import argparse
+import itertools
+
+log = logging.getLogger(__name__)
+
+_LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
+
+_BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'config.json')
+
+__author__ = "M. Kocher"
+__version__ = '0.1.2'
+
+
+def get_parser():
+    desc = "Check the status of the SMRT Services"
+    p = argparse.ArgumentParser(version=__version__,
+                                description=desc,
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    f = p.add_argument
+    f('--max-retries', type=int, default=3, help="Number of retries")
+    f('--sleep-time', type=int, default=5, help="Sleep time between retries (in sec)")
+    f('--debug', action='store_true', default=False, help="Enable DEBUG logging")
+    return p
+
+
+# Keep this in sync with apply-config
+class ConfigConstants(object):
+    """Constants used in config.json"""
+    HOST = "HOST"
+    PORT = "PB_SERVICES_PORT"
+    ANALYSIS_PORT = "PB_SERVICES_ANALYSIS_PORT"
+
+    PB_SMRTPIPE_PRESET = "PB_SMRTPIPE_PRESET_XML"
+    PB_SERVICES_NWORKERS = "PB_SERVICES_NWORKERS"
+    PB_JOB_ROOT = "PB_JOB_ROOT"
+    PB_TMP_DIR = "PB_TMP_DIR"
+
+    # Make a call to ws02 to make sure it started up correctly
+    # https://localhost:9443/publisher
+    WS02_PORT = 9443
+    WS02_STATUS_ENDPOINT = "publisher"
+
+
+def _load_config():
+    with open(_CONFIG_JSON, 'r') as f:
+        d = json.loads(f.read())
+    return d
+
+
+def _check_status_or_raise(url, prefix_msg=None, log_results=False):
+    msg = "Check {u}".format(u=url)
+    if prefix_msg is not None:
+        msg = " ".join([prefix_msg, msg])
+        log.debug(msg)
+    x = urllib2.urlopen(url)
+    datum = x.read()
+    if log_results:
+        log.info(datum)
+    x.close()
+    log.debug("Successfully reached {u}".format(u=url))
+    return True
+
+
+def _check_status(url, prefix_msg=None):
+
+    try:
+        return _check_status_or_raise(url, prefix_msg=prefix_msg)
+    except Exception as e:
+        sys.stderr.write("Failed to make request to {u}\n{e}".format(u=url, e=e.message))
+        return False
+
+
+def _check_with_retry(url, ntries, sleep_time_sec=1):
+
+    status = False
+    n = 0
+    while n < ntries:
+        state = _check_status(url, prefix_msg="Attempt {i}".format(i=n + 1))
+        if state is True:
+            status = True
+            break
+        time.sleep(sleep_time_sec)
+        n += 1
+
+    return status
+
+
+def _to_url(host, port):
+    if not host.startswith("http://"):
+        host = "http://" + host
+    return ":".join([host, str(port)])
+
+
+def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep_time_sec=1):
+    """
+    Check analysis service status, dataset types and jobs types. Check tomcat
+    to verify UI code was loaded
+
+    :return: status
+    :rtype: bool
+    """
+
+    tcat_url = _to_url(host, tomcat_port)
+
+    services_url = _to_url(host, analysis_port) + "/status"
+
+    ds_types = ('subreads', 'references', 'hdfsubreads', 'alignments')
+
+    ds_urls = [_to_url(host, analysis_port) + '/secondary-analysis/datasets/{f}'.format(f=f) for f in ds_types]
+
+    job_types = ('pbsmrtpipe', 'convert-fasta-reference', 'import-dataset')
+    job_urls = [_to_url(host, analysis_port) + "/secondary-analysis/job-manager/jobs/{f}".format(f=f) for f in job_types]
+
+    # MK. Tomcat will lazily-load after the first request. Making an initial request
+    # here to trigger (and **ignore** the response), then check the analysis services,
+    # then check tomcat status.
+    _check_status(tcat_url)
+
+    wso2_status_url = _to_url(host, wso2_port) + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
+    # FIXME(mpkocher)(2016-9-7). Roll out ws02 incrementally. Ignore the failures on startup for now
+    _check_with_retry(wso2_status_url, 3)
+
+    urls = [[services_url], ds_urls, job_urls, [tcat_url]]
+
+    return all(_check_with_retry(u, max_retries, sleep_time_sec) for u in itertools.chain(*urls))
+
+
+def run_main(c, max_retries, sleep_time_sec):
+
+    h = c.get(ConfigConstants.HOST, None)
+    host = socket.getfqdn() if h is None else h
+    port = c[ConfigConstants.PORT]
+    # should this be exposed in the config.json ?
+    ws02_port = ConfigConstants.WS02_PORT
+
+    url = _to_url(host, port)
+    status = get_status(host,
+                        port,
+                        c[ConfigConstants.ANALYSIS_PORT],
+                        max_retries=max_retries,
+                        sleep_time_sec=sleep_time_sec,
+                        wso2_port=ws02_port)
+
+    if status is True:
+        log.info("Successfully found endpoints")
+    else:
+        sys.stderr.write("Unable to find endpoints at root {f}/ after {n} retries\n".format(f=url, n=max_retries))
+        sys.stderr.write("Analysis Services did NOT start successfully. \nCheck config in {c}\n".format(c=_CONFIG_JSON))
+    return 0 if status is True else 1
+
+
+def main(argv=sys.argv):
+
+    p = get_parser()
+    args = p.parse_args(argv)
+
+    level = logging.DEBUG if args.debug else logging.INFO
+
+    logging.basicConfig(level=level, format=_LOG_FORMAT, stream=sys.stdout)
+    log.debug(args)
+
+    max_retries = args.max_retries
+    sleep_time_sec = args.sleep_time
+    c = _load_config()
+    log.debug("Loaded config")
+    log.debug("\n" + pprint.pformat(c))
+
+    return run_main(c, max_retries, sleep_time_sec)
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
