@@ -1,0 +1,712 @@
+#!/usr/bin/env python
+"""
+Loads the values in config.json and updates the necessary templates.
+
+Specifically,
+load, validate, resolve resource paths in config.json to absolute paths,
+update the UI config (api-config.json) and
+write new config.json
+
+"""
+import os
+import json
+import pprint
+import socket
+from string import Template
+import sys
+import logging
+import datetime
+import functools
+import traceback
+import argparse
+
+__author__ = "M. Kocher"
+__version__ = '0.4.3'
+
+
+log = logging.getLogger(__name__)
+
+_LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
+_TOMCAT_VERSION = "apache-tomcat-8.0.26"
+_BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'config.json')
+_SERVICES_JVM_ARGS = os.path.join(_BUNDLE_ROOT, "services-jvm-args")
+_SERVICES_ARGS = os.path.join(_BUNDLE_ROOT, "services-args")
+_TOMCAT_ENV = os.path.join(_BUNDLE_ROOT, _TOMCAT_VERSION, "bin", "setenv.sh")
+_SERVICES_LOG_LEVEL = "INFO"
+
+# These are Internal
+_PROD_CONF = os.path.join(_BUNDLE_ROOT, 'prod.conf')
+_TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
+
+
+class InvalidConfigOptionResource(IOError):
+    """Resource that are not found"""
+    pass
+
+
+def get_parser():
+    p = argparse.ArgumentParser(version=__version__,
+                                description=__doc__,
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    f = p.add_argument
+    f('--config-json', default=_CONFIG_JSON, help="Path to Config.json")
+    f('--debug', action='store_true', default=False, help="Enable DEBUG logging")
+    f('--validate-only', action='store_true', default=False, help="Validate the config.json")
+    return p
+
+
+class ConfigConstants(object):
+    """Constants used in config.json"""
+
+    # host address to bind to
+    HOST = "HOST"
+    # Tomcat Address Port
+    PORT = "PB_SERVICES_PORT"
+    # Analysis Services PORT
+    ANALYSIS_PORT = "PB_SERVICES_ANALYSIS_PORT"
+
+    # HTTPS
+    ENABLE_HTTPS = "ENABLE_HTTPS"
+
+    # SMRT VIEW PORT
+    PB_SMRT_VIEW_PORT = "PB_SMRT_VIEW_PORT"
+
+    # Sqlite Database URI
+    PB_DB_URI = "PB_DB_URI"
+
+    PB_SMRTPIPE_PRESET = "PB_SMRTPIPE_PRESET_XML"
+    PB_SERVICES_NWORKERS = "PB_SERVICES_NWORKERS"
+    PB_JOB_ROOT = "PB_JOB_ROOT"
+    PB_TMP_DIR = "PB_TMP_DIR"
+    PB_LOG_DIR = "PB_LOG_DIR"
+
+    PB_ANALYSIS_SHUTDOWN_PORT = "PB_ANALYSIS_SHUTDOWN_PORT"
+    PB_ANALYSIS_AJP_PORT = "PB_ANALYSIS_AJP_PORT"
+
+    # Auth Configs
+    ENABLE_AUTH = "ENABLE_AUTH"
+    LDAP_BASE_USER_DN = "LDAP_BASE_USER_DN"
+    LDAP_BASE_USER_PASSWORD_FILE = "LDAP_BASE_USER_PASSWORD_FILE"
+    LDAP_HOST = "LDAP_HOST"
+    LDAP_PORT = "LDAP_PORT"
+    LDAP_USERS_DN = "LDAP_USERS_DN"
+    LDAP_USERS_CACHE_SIZE = "LDAP_USERS_CACHE_SIZE"
+    LDAP_USERS_USERNAME_ATTR = "LDAP_USERS_USERNAME_ATTR"
+    LDAP_USERS_ID_ATTR = "LDAP_USERS_ID_ATTR"
+    LDAP_USERS_ID_TYPE = "LDAP_USERS_ID_TYPE"
+    LDAP_USERS_EMAIL_ATTR = "LDAP_USERS_EMAIL_ATTR"
+    LDAP_USERS_FIRST_NAME_ATTR = "LDAP_USERS_FIRST_NAME_ATTR"
+    LDAP_USERS_LAST_NAME_ATTR = "LDAP_USERS_LAST_NAME_ATTR"
+
+    # Memory, in MB
+    PB_SERVICES_ANALYSIS_MEM_MAX = "PB_SERVICES_ANALYSIS_MEM_MAX"
+    PB_SERVICES_ANALYSIS_MEM_MIN = "PB_SERVICES_ANALYSIS_MEM_MIN"
+    PB_SERVICES_MEM = "PB_SERVICES_MEM"
+
+    # Option[Path] to pacbio-manifest.json File
+    PB_MANIFEST_FILE = "PB_MANIFEST_FILE"
+
+    # Event Server URL Option[URL]
+    PB_SERVICES_EVENT_URL = "PB_SERVICES_EVENT_URL"
+
+
+class SystemConfig(object):
+    DEFAULT_PORT = 8080
+    DEFAULT_HTTPS_PORT = 8443
+
+    DEFAULT_ANALYSIS_PORT = 8070
+
+    DEFAULT_ENABLE_HTTPS = False
+
+    # These should really have default values that are initialized
+    # and Validated
+    # For now keeping as Option[String]
+    DEFAULT_PB_SMRTPIPE_PRESET_XML = None
+    DEFAULT_PB_JOB_ROOT = None
+    DEFAULT_PB_TMP_DIR = None
+    DEFAULT_PB_LOG_DIR = "."
+
+    DEFAULT_DB_URI = "./smrtlink_sqlite.db"
+
+    DEFAULT_PB_ANALYSIS_SHUTDOWN_PORT = 8005
+    DEFAULT_PB_ANALYSIS_AJP_PORT = 8009
+
+    DEFAULT_PB_SMRT_VIEW_PORT = 8084
+
+    DEFAULT_PB_SERVICES_NWORKERS = 50
+
+    DEFAULT_ENABLE_AUTH = False
+    DEFAULT_LDAP_PORT = 389
+    DEFAULT_LDAP_USERS_CACHE_SIZE = 10
+    DEFAULT_LDAP_USERS_USERNAME_ATTR = "sAMAccountName"
+    DEFAULT_LDAP_USERS_ID_ATTR = "objectGUID"
+    DEFAULT_LDAP_USERS_ID_TYPE = "BYTES_GUID"
+
+    # Memory, in MB
+    DEFAULT_PB_SERVICES_ANALYSIS_MEM_MAX = 4096
+    DEFAULT_PB_SERVICES_ANALYSIS_MEM_MIN = 4096
+    DEFAULT_PB_SERVICES_MEM = 1024
+
+    DEFAULT_PB_MANIFEST_FILE = None
+
+    PB_SERVICES_EVENT_URL = None
+
+    def __init__(self, host, port, analysis_port, enable_https, pb_pbsmrtpipe_preset_xml,
+                 service_nworkers, tmp_dir, log_dir, job_root, pb_analysis_shutdown_port,
+                 pb_analysis_ajp_port, db_uri, enable_auth, ldap_base_user_dn, ldap_base_user_password_file,
+                 ldap_host, ldap_port, ldap_users_dn, ldap_users_cache_size, ldap_users_username_attr,
+                 ldap_users_id_attr, ldap_users_id_type, ldap_users_email_attr, ldap_users_first_name_attr,
+                 ldap_users_last_name_attr, smrt_view_port, pb_services_analysis_mem_max,
+                 pb_services_analysis_mem_min, pb_services_mem, pb_manifest_file, pbservices_event_url):
+        # Tomcat host
+        self.host = host
+        # Tomcat port
+        self.port = port
+        # analysis services port
+        self.analysis_port = analysis_port
+        # Enable https
+        self.enable_https = enable_https
+        # Option[String]
+        self.pb_pbsmrtipe_preset_xml = pb_pbsmrtpipe_preset_xml
+        self.service_nworkers = service_nworkers
+        # Option[String] should default to standard env TMP_DIR or TMPDIR
+        self.tmp_dir = tmp_dir
+        # Option[String]
+        self.log_dir = log_dir
+        # Option[String]
+        self.job_root = job_root
+
+        self.pb_smrt_view_port = smrt_view_port
+
+        # Tomcat server port
+        self.pb_analysis_shutdown_port = pb_analysis_shutdown_port
+        # Tomcat AJP port
+        self.pb_analysis_ajp_port = pb_analysis_ajp_port
+
+        # db URI
+        self.db_uri = db_uri
+
+        #Auth
+        self.enable_auth = enable_auth
+        self.ldap_base_user_dn = ldap_base_user_dn
+        self.ldap_base_user_password_file = ldap_base_user_password_file
+        self.ldap_host = ldap_host
+        self.ldap_port = ldap_port
+        self.ldap_users_dn = ldap_users_dn
+        self.ldap_users_cache_size = ldap_users_cache_size
+        self.ldap_users_username_attr = ldap_users_username_attr
+        self.ldap_users_id_attr = ldap_users_id_attr
+        self.ldap_users_id_type = ldap_users_id_type
+        self.ldap_users_email_attr = ldap_users_email_attr
+        self.ldap_users_first_name_attr = ldap_users_first_name_attr
+        self.ldap_users_last_name_attr = ldap_users_last_name_attr
+
+        # Memory, in MB
+        self.pb_services_analysis_mem_max = pb_services_analysis_mem_max
+        self.pb_services_analysis_mem_min = pb_services_analysis_mem_min
+        self.pb_services_mem = pb_services_mem
+
+        self.pb_manifest_file = pb_manifest_file
+
+        self.pbservices_event_url = pbservices_event_url
+
+    def __repr__(self):
+        _d = dict(k=self.__class__.__name__,
+                  h=self.host,
+                  p=self.port,
+                  a=self.analysis_port, x=self.pb_pbsmrtipe_preset_xml)
+        return "<{k} host:{h} port:{p} analysis:{a} preset: {x}>".format(**_d)
+
+    @staticmethod
+    def from_dict(d):
+        enable_https = d.get(ConfigConstants.ENABLE_HTTPS, SystemConfig.DEFAULT_ENABLE_HTTPS)
+        default_port = SystemConfig.DEFAULT_HTTPS_PORT if enable_https else SystemConfig.DEFAULT_PORT
+        return SystemConfig(d[ConfigConstants.HOST],
+                            d.get(ConfigConstants.PORT, default_port),
+                            d.get(ConfigConstants.ANALYSIS_PORT, SystemConfig.DEFAULT_ANALYSIS_PORT),
+                            enable_https,
+                            d.get(ConfigConstants.PB_SMRTPIPE_PRESET, SystemConfig.DEFAULT_PB_SMRTPIPE_PRESET_XML),
+                            d.get(ConfigConstants.PB_SERVICES_NWORKERS, SystemConfig.DEFAULT_PB_SERVICES_NWORKERS),
+                            d.get(ConfigConstants.PB_TMP_DIR, SystemConfig.DEFAULT_PB_TMP_DIR),
+                            d.get(ConfigConstants.PB_LOG_DIR, SystemConfig.DEFAULT_PB_LOG_DIR),
+                            d.get(ConfigConstants.PB_JOB_ROOT, SystemConfig.DEFAULT_PB_JOB_ROOT),
+                            d.get(ConfigConstants.PB_ANALYSIS_SHUTDOWN_PORT, SystemConfig.DEFAULT_PB_ANALYSIS_SHUTDOWN_PORT),
+                            d.get(ConfigConstants.PB_ANALYSIS_AJP_PORT, SystemConfig.DEFAULT_PB_ANALYSIS_AJP_PORT),
+                            d.get(ConfigConstants.PB_DB_URI, SystemConfig.DEFAULT_DB_URI),
+                            
+                            d.get(ConfigConstants.ENABLE_AUTH, SystemConfig.DEFAULT_ENABLE_AUTH),
+                            d.get(ConfigConstants.LDAP_BASE_USER_DN),
+                            d.get(ConfigConstants.LDAP_BASE_USER_PASSWORD_FILE),
+                            d.get(ConfigConstants.LDAP_HOST),
+                            d.get(ConfigConstants.LDAP_PORT, SystemConfig.DEFAULT_LDAP_PORT),
+                            d.get(ConfigConstants.LDAP_USERS_DN),
+                            d.get(ConfigConstants.LDAP_USERS_CACHE_SIZE, SystemConfig.DEFAULT_LDAP_USERS_CACHE_SIZE),
+                            d.get(ConfigConstants.LDAP_USERS_USERNAME_ATTR, SystemConfig.DEFAULT_LDAP_USERS_USERNAME_ATTR),
+                            d.get(ConfigConstants.LDAP_USERS_ID_ATTR, SystemConfig.DEFAULT_LDAP_USERS_ID_ATTR),
+                            d.get(ConfigConstants.LDAP_USERS_ID_TYPE, SystemConfig.DEFAULT_LDAP_USERS_ID_TYPE),
+                            d.get(ConfigConstants.LDAP_USERS_EMAIL_ATTR),
+                            d.get(ConfigConstants.LDAP_USERS_FIRST_NAME_ATTR),
+                            d.get(ConfigConstants.LDAP_USERS_LAST_NAME_ATTR),
+                            d.get(ConfigConstants.PB_SMRT_VIEW_PORT, SystemConfig.DEFAULT_PB_SMRT_VIEW_PORT),
+                            d.get(ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MAX, SystemConfig.DEFAULT_PB_SERVICES_ANALYSIS_MEM_MAX),
+                            d.get(ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MIN, SystemConfig.DEFAULT_PB_SERVICES_ANALYSIS_MEM_MIN),
+                            d.get(ConfigConstants.PB_SERVICES_MEM, SystemConfig.DEFAULT_PB_SERVICES_MEM),
+                            d.get(ConfigConstants.PB_MANIFEST_FILE, SystemConfig.DEFAULT_PB_MANIFEST_FILE),
+                            d.get(ConfigConstants.PB_SERVICES_EVENT_URL, SystemConfig.PB_SERVICES_EVENT_URL))
+
+    def to_dict(self):
+        _comment = "Config writer v{v}. Updated at {d}"\
+            .format(d=datetime.datetime.now(), v=__version__)
+
+        _d = {ConfigConstants.HOST: self.host,
+              ConfigConstants.PORT: self.port,
+              ConfigConstants.ANALYSIS_PORT: self.analysis_port,
+              ConfigConstants.ENABLE_HTTPS: self.enable_https,
+              ConfigConstants.PB_SMRTPIPE_PRESET: self.pb_pbsmrtipe_preset_xml,
+              ConfigConstants.PB_SERVICES_NWORKERS: self.service_nworkers,
+              ConfigConstants.PB_TMP_DIR: self.tmp_dir,
+              ConfigConstants.PB_LOG_DIR: self.log_dir,
+              ConfigConstants.PB_JOB_ROOT: self.job_root,
+              ConfigConstants.PB_ANALYSIS_SHUTDOWN_PORT: self.pb_analysis_shutdown_port,
+              ConfigConstants.PB_ANALYSIS_AJP_PORT: self.pb_analysis_ajp_port,
+              ConfigConstants.PB_DB_URI: self.db_uri,
+              ConfigConstants.ENABLE_AUTH: self.enable_auth,
+              ConfigConstants.LDAP_BASE_USER_DN: self.ldap_base_user_dn,
+              ConfigConstants.LDAP_BASE_USER_PASSWORD_FILE: self.ldap_base_user_password_file,
+              ConfigConstants.LDAP_HOST: self.ldap_host,
+              ConfigConstants.LDAP_PORT: self.ldap_port,
+              ConfigConstants.LDAP_USERS_DN: self.ldap_users_dn,
+              ConfigConstants.LDAP_USERS_CACHE_SIZE: self.ldap_users_cache_size,
+              ConfigConstants.LDAP_USERS_USERNAME_ATTR: self.ldap_users_username_attr,
+              ConfigConstants.LDAP_USERS_ID_ATTR: self.ldap_users_id_attr,
+              ConfigConstants.LDAP_USERS_ID_TYPE: self.ldap_users_id_type,
+              ConfigConstants.LDAP_USERS_EMAIL_ATTR: self.ldap_users_email_attr,
+              ConfigConstants.LDAP_USERS_FIRST_NAME_ATTR: self.ldap_users_first_name_attr,
+              ConfigConstants.LDAP_USERS_LAST_NAME_ATTR: self.ldap_users_last_name_attr,
+              ConfigConstants.PB_SMRT_VIEW_PORT: self.pb_smrt_view_port,
+              ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MAX: self.pb_services_analysis_mem_max,
+              ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MIN: self.pb_services_analysis_mem_min,
+              ConfigConstants.PB_SERVICES_MEM: self.pb_services_mem,
+              ConfigConstants.PB_MANIFEST_FILE: self.pb_manifest_file,
+              ConfigConstants.PB_SERVICES_EVENT_URL: self.pbservices_event_url,
+              "_comment": _comment}
+        return _d
+
+
+class ConstantsTemplateVars(object):
+    """Constants used in templates"""
+    ANALYSIS_SERVER_URI = "ANALYSIS_SERVER_URI"
+    TOMCAT_PORT = "TOMCAT_PORT"
+    PB_ANALYSIS_SHUTDOWN_PORT = "PB_ANALYSIS_SHUTDOWN_PORT"
+    PB_ANALYSIS_AJP_PORT = "PB_ANALYSIS_AJP_PORT"
+    SSL_KEYSTORE_FILE = "SSL_KEYSTORE_FILE"
+
+
+class ConstantsTemplateNames(object):
+    """Template Names"""
+    SLINK_UI_SERVICE = "api-server.config.json"
+    TOMCAT_SERVER_XML = "server.xml"
+    TOMCAT_HTTPS_SERVER_XML = "https-server.xml"
+    SSL_KEYSTORE_FILE = ".keystore"
+
+
+class TemplateConstants(object):
+    # Config to update for SMRT Link
+    SLINK_CONFIG = _TOMCAT_VERSION + '/webapps/ROOT/' + ConstantsTemplateNames.SLINK_UI_SERVICE
+    TOMCAT_CONFIG = _TOMCAT_VERSION + '/conf/' + ConstantsTemplateNames.TOMCAT_SERVER_XML
+    SSL_KEYSTORE_FILE = os.path.join(_BUNDLE_ROOT, ConstantsTemplateNames.SSL_KEYSTORE_FILE)
+
+
+def validate_resource(func, path, prefix_msg=None):
+    p = os.path.abspath(path)
+    if not func(p):
+        msg = "Unable to find {f}".format(f=p)
+        if prefix_msg is not None:
+            msg += " {m}".format(m=msg)
+            log.error(msg)
+        raise InvalidConfigOptionResource(msg)
+    return p
+
+validate_file = functools.partial(validate_resource, os.path.isfile)
+validate_dir = functools.partial(validate_resource, os.path.isdir)
+
+
+def load_system_config(path):
+    log.info("Loading config from {p}".format(p=path))
+
+    with open(path, 'r') as f:
+        d = json.loads(f.read())
+
+    logging.info("Loaded raw config")
+    logging.info(pprint.pformat(d))
+
+    return SystemConfig.from_dict(d)
+
+
+def update_system_config(system_config, output_path, comment=None):
+    log.info("attempting to update {c} to {d}".format(d=system_config, c=output_path))
+    _chmod_config()
+    _d = system_config.to_dict()
+    if comment is not None:
+        _d['_comment'] = comment
+    with open(output_path, 'w') as f:
+        f.write(json.dumps(_d, indent=4, sort_keys=True))
+    log.info("successfully updated {d}".format(d=output_path))
+
+
+def _chmod_config():
+    os.chmod(_CONFIG_JSON, 0o644)
+
+
+def _load_template(path):
+    with open(path, 'r') as f:
+        s = f.read()
+    t = Template(s)
+    return t
+
+
+def load_local_template_by_name(name):
+    p = os.path.join(_TEMPLATE_DIR, name)
+    return _load_template(p)
+
+
+def update_by(template_name, template_var, template_value):
+    log.info("Updating {c} to {x}".format(c=template_name, x=template_value))
+    t = load_local_template_by_name(template_name)
+    _d = {template_var: template_value}
+    s = t.substitute(**_d)
+    return s
+
+
+def update_multiple_by(template_name, template_updates):
+    for var, value in template_updates.iteritems():
+        log.info("Updating {k} to {v} in {t}".format(k=var, v=value, t=template_name))
+    t = load_local_template_by_name(template_name)
+    s = t.substitute(template_updates)
+    return s
+
+
+def update_and_write(template_name, template_var, template_value, output_file):
+    log.debug("Updating template {n} {k}->{v} output'ing to {o}".format(n=template_name, k=template_var, v=template_var, o=output_file))
+    s = update_by(template_name, template_var, template_value)
+    with open(output_file, 'w') as w:
+        w.write(s)
+    log.debug("Updated {k}={v} in {o}".format(k=template_var, v=template_value, o=output_file))
+    return s
+
+
+def update_multiple_and_write(template_name, template_updates, output_file):
+    for var, value in template_updates.iteritems():
+        log.debug("Updating template {n} {k}->{v} output'ing to {o}".format(n=template_name, k=var, v=value, o=output_file))
+    s = update_multiple_by(template_name, template_updates)
+    with open(output_file, 'w') as w:
+        w.write(s)
+    for var, value in template_updates.iteritems():
+        log.debug("Updated {k}={v} in {o}".format(k=var, v=value, o=output_file))
+    return s
+
+
+def _to_application_conf(host_interface, port, sqlite_db_file, pb_smrtpipe_preset_xml,
+                         service_nworkers, job_root, tmp_dir, enable_auth, ldap_base_user_dn,
+                         ldap_base_user_password_file, ldap_host, ldap_port, ldap_users_dn,
+                         ldap_users_cache_size, ldap_users_username_attr, ldap_users_id_attr,
+                         ldap_users_id_type, ldap_users_email_attr, ldap_users_first_name_attr,
+                         ldap_users_last_name_attr, pb_manifest_file):
+    """Convert scala application.conf config format"""
+    outs = []
+    _to_application_conf.ind = 0
+
+    def line(s):
+        outs.append("  " * _to_application_conf.ind + s)
+
+    def head(label):
+        line(label + "{")
+        _to_application_conf.ind += 1
+
+    def tail():
+        _to_application_conf.ind -= 1
+        line("}")
+
+    def out(key, value, wrap_quotes=False, lower=False):
+        pair = "{k} = \"{v}\"" if wrap_quotes else "{k} = {v}"
+        val = str.lower(str(value)) if lower else str(value)
+        line(pair.format(k=key, v=val))
+
+    def out_if_not_none(key, value, wrap_quotes=False, lower=False):
+        if value is not None:
+            log.debug("Setting {k} -> {v}".format(k=key, v=value))
+            out(key, value, wrap_quotes, lower)
+        else:
+            log.warn("Skipping setting {k} (Using default)".format(k=key))
+
+    # include application.conf from the jar
+    line("include classpath(\"application.conf\")")
+    
+    head("pb-services")
+    if sqlite_db_file is not None:
+        out("db-uri", os.path.abspath(sqlite_db_file))
+    out("host", host_interface)
+    out("port", port)
+    # this path might have ',' which will create problems
+    out_if_not_none("manifest-file", pb_manifest_file, wrap_quotes=True)
+    tail()
+
+    head("pb-engine")
+    # Don't pass the preset to the application.conf if the preset
+    # is None
+    out_if_not_none("pb-smrtpipe-preset-xml", pb_smrtpipe_preset_xml)
+    out_if_not_none("jobs-root", job_root)
+    out_if_not_none("max-workers", service_nworkers)
+    out_if_not_none("pb-tmp-dir", tmp_dir)
+    tail()
+
+    out_if_not_none("enable-auth", enable_auth, lower=True)
+    head("ldap")
+    out_if_not_none("host", ldap_host)
+    out_if_not_none("port", ldap_port)
+    if ldap_base_user_dn is not None:
+        head("base-user")
+        out("dn", ldap_base_user_dn, wrap_quotes=True)
+        out("password-file", ldap_base_user_password_file)
+        tail()
+    head("users")
+    out_if_not_none("dn", ldap_users_dn, wrap_quotes=True)
+    out_if_not_none("cache-size", ldap_users_cache_size)
+    out_if_not_none("username-attr", ldap_users_username_attr)
+    out_if_not_none("id-attr", ldap_users_id_attr)
+    out_if_not_none("id-type", ldap_users_id_type)
+    out_if_not_none("email-attr", ldap_users_email_attr)
+    out_if_not_none("first-name-attr", ldap_users_first_name_attr)
+    out_if_not_none("last-name-attr", ldap_users_last_name_attr)
+    tail()
+    tail()
+
+    line("# written by config-writer v{v}".format(v=__version__))
+    return "\n".join(outs)
+
+
+def write_application_conf(output_file, host_interface, port, sqlite_db_file, pb_smrtpipe_preset_xml,
+                           service_nworkers, job_root, tmp_dir, enable_auth, ldap_base_user_dn,
+                           ldap_base_user_password_file, ldap_host, ldap_port, ldap_users_dn,
+                           ldap_users_cache_size, ldap_users_username_attr, ldap_users_id_attr,
+                           ldap_users_id_type, ldap_users_email_attr, ldap_users_first_name_attr,
+                           ldap_users_last_name_attr, pb_manifest_file):
+
+    s = _to_application_conf(host_interface, port, sqlite_db_file, pb_smrtpipe_preset_xml,
+                             service_nworkers, job_root, tmp_dir, enable_auth, ldap_base_user_dn,
+                             ldap_base_user_password_file, ldap_host, ldap_port, ldap_users_dn,
+                             ldap_users_cache_size, ldap_users_username_attr, ldap_users_id_attr,
+                             ldap_users_id_type, ldap_users_email_attr, ldap_users_first_name_attr,
+                             ldap_users_last_name_attr, pb_manifest_file)
+
+    with open(output_file, 'w') as w:
+        w.write(s)
+    return s
+
+
+def to_uri(host, port, base_url="", https=False):
+    proto = "https://" if https else "http://"
+    h = host if host.startswith(proto) else "{proto}{h}".format(proto=proto, h=host)
+    u = base_url if (len(base_url) == 0 or base_url.startswith("/")) else ("/" + base_url)
+    return "{h}:{p}{u}".format(h=h, p=port, u=u)
+
+
+def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_url=None):
+    """
+    New Configuration format in 3.1.0
+
+    :param host: Host to use
+    :param services_port: SL/SA services port
+    :param smrtview_port: SV port
+
+    :return: dict conf of SL UI
+    """
+    smrtview_uri = to_uri(host, smrtview_port)
+    services_uri = to_uri(host, 8243, "SMRTLink/1.0.0", https=True)
+    auth_uri = to_uri(host, 8243, https=True)
+
+    d = {"smrt-view": {"default-server": smrtview_uri},
+         "smrt-link": {"default-server": services_uri},
+         "auth": {"default-server": auth_uri},
+         "events-url": {"default-server": service_event_url}
+         }
+
+    return d
+
+
+def write_smrt_link_ui_config(d, file_name):
+    with open(file_name, 'w') as f:
+        f.write(json.dumps(d, sort_keys=True, indent=4))
+    return file_name
+
+
+def to_ui_api_server_config_v1(services_uri):
+    return "window.apiServers = {{\"default-server\": \"{x}\"}};".format(x=services_uri)
+
+
+def write_ui_api_server_config_v1(host, services_port, output_file):
+    sl_uri = to_uri(host, services_port)
+
+    with open(output_file, 'w') as f:
+        f.write(to_ui_api_server_config_v1(sl_uri))
+    log.debug("wrote SL UI config v1 to {o}".format(o=output_file))
+    return sl_uri
+
+
+def update_server_path_in_ui(host, services_port, smrtview_port, event_url):
+
+    output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.SLINK_CONFIG)
+
+    d = to_smrt_link_ui_config_d(host, services_port, smrtview_port, event_url)
+    log.debug("SL UI Config\n" + pprint.pformat(d))
+    _ = write_smrt_link_ui_config(d, output_file)
+    log.debug("Writing SL UI Config to {f}".format(f=output_file))
+
+    return output_file
+
+
+def update_tomcat(port, shutdown_port, ajp_port, enable_https, tomcat_mem):
+    output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.TOMCAT_CONFIG)
+
+    updates = {ConstantsTemplateVars.TOMCAT_PORT               : port,
+               ConstantsTemplateVars.PB_ANALYSIS_SHUTDOWN_PORT : shutdown_port,
+               ConstantsTemplateVars.PB_ANALYSIS_AJP_PORT      : ajp_port,
+               ConstantsTemplateVars.SSL_KEYSTORE_FILE         : TemplateConstants.SSL_KEYSTORE_FILE}
+
+    input_file = ConstantsTemplateNames.TOMCAT_HTTPS_SERVER_XML if enable_https else ConstantsTemplateNames.TOMCAT_SERVER_XML
+    update_multiple_and_write(input_file, updates, output_file)
+
+    with open(_TOMCAT_ENV, 'w') as f:
+        f.write("export CATALINA_OPTS=\"$CATALINA_OPTS -Xmx{tomcat_mem}m -Xms{tomcat_mem}m\"\n".format(tomcat_mem=tomcat_mem))
+    
+    return output_file
+
+
+def write_services_jvm_args(pb_services_analysis_mem_max, pb_services_analysis_mem_min):
+    with open(_SERVICES_JVM_ARGS, 'w') as f:
+        f.write("-Xmx{max}m -Xms{min}m".format(
+            max=pb_services_analysis_mem_max,
+            min=pb_services_analysis_mem_min))
+
+
+def write_services_args(log_dir):
+    with open(_SERVICES_ARGS, 'w') as f:
+        f.write("--log-file {dir}/secondary-smrt-server.log --log-level {level}".format(
+            dir=log_dir,
+            level=_SERVICES_LOG_LEVEL))
+
+
+def validate_system_config(sconf):
+    """
+    Core Validation and Resolving of relative paths of resources in the System Config
+
+
+    :type sconf SystemConfig
+    :raises InvalidConfigOptionResource
+
+    """
+    log.info("Validating Config:")
+    sconf.job_root = validate_dir(sconf.job_root, prefix_msg="Invalid Job Root")
+    sconf.pb_pbsmrtipe_preset_xml = validate_file(sconf.pb_pbsmrtipe_preset_xml, prefix_msg="Invalid pbsmrtpipe preset.xml")
+    sconf.tmp_dir = validate_dir(sconf.tmp_dir, prefix_msg="Invalid tmp dir")
+
+    if sconf.pb_manifest_file is not None:
+        sconf.pb_manifest_file = validate_file(sconf.pb_manifest_file, prefix_msg="Invalid pacbio-manifest.json")
+
+    log.info("Successfully validated config")
+    return sconf
+
+
+def main(argv=sys.argv[1:]):
+    """
+    - load, validate, resolve resource paths in config.json to absolute paths
+    - Update UI config
+    - write new config.json
+
+    :return: exit code
+    :rtype: int
+    """
+    p = get_parser()
+    args = p.parse_args(argv)
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, format=_LOG_FORMAT, stream=sys.stdout)
+        log.debug(args)
+    else:
+        log.addHandler(logging.NullHandler())
+
+    config_json = args.config_json
+
+    log.debug("Running apply-config v{v}".format(v=__version__))
+    try:
+        c = load_system_config(config_json)
+        log.debug(c)
+        validate_system_config(c)
+        if args.validate_only:
+            return 0
+
+        # This assumes the services are launched from the same system,
+        # the host in the config is for other tools to know which host
+        if c.host is None:
+            c.host = socket.getfqdn()
+            log.info("Null host detected. Setting host to FQDN {h}".format(h=c.host))
+            log.info("Updating HOST in config.json")
+            update_system_config(c, _CONFIG_JSON)
+
+        write_application_conf(_PROD_CONF,
+                               c.host,
+                               c.analysis_port,
+                               c.db_uri,
+                               c.pb_pbsmrtipe_preset_xml,
+                               c.service_nworkers,
+                               c.job_root,
+                               c.tmp_dir,
+                               c.enable_auth,
+                               c.ldap_base_user_dn,
+                               c.ldap_base_user_password_file,
+                               c.ldap_host,
+                               c.ldap_port,
+                               c.ldap_users_dn,
+                               c.ldap_users_cache_size,
+                               c.ldap_users_username_attr,
+                               c.ldap_users_id_attr,
+                               c.ldap_users_id_type,
+                               c.ldap_users_email_attr,
+                               c.ldap_users_first_name_attr,
+                               c.ldap_users_last_name_attr,
+                               c.pb_manifest_file)
+
+        write_services_jvm_args(c.pb_services_analysis_mem_max,
+                                c.pb_services_analysis_mem_min)
+
+        write_services_args(c.log_dir)
+
+        update_server_path_in_ui(c.host,
+                                 c.analysis_port,
+                                 c.pb_smrt_view_port,
+                                 c.pbservices_event_url)
+
+        update_tomcat(c.port,
+                      c.pb_analysis_shutdown_port,
+                      c.pb_analysis_ajp_port,
+                      c.enable_https,
+                      c.pb_services_mem)
+
+        rcode = 0
+
+    except InvalidConfigOptionResource as ex:
+        sys.stderr.write("Invalid config.json. {e}".format(e=ex))
+        traceback.print_exc(file=sys.stderr)
+        rcode = 2
+    except Exception as ex:
+        sys.stderr.write("Invalid config.json. Unhandled exception {e}".format(e=ex))
+        traceback.print_exc(file=sys.stderr)
+        rcode = 1
+
+    logging.info("Completed {f} v{v} exit code {r}".format(r=rcode, f=__file__, v=__version__))
+    return rcode
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
