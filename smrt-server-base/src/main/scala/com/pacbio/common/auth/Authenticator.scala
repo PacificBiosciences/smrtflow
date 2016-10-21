@@ -1,6 +1,6 @@
 package com.pacbio.common.auth
 
-import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
+import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.UserRecord
 import spray.routing.directives.AuthMagnet
 import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
@@ -76,37 +76,10 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
 }
 
 /**
- * Implementation of Authenticator that ignores credentials and returns a generic root AuthInfo.
+ * Provides a singleton AuthenticatorImpl. Concrete providers must mixin a JwtUtilsProvider.
  */
-class FakeAuthenticator extends Authenticator {
-  val ROOT = UserRecord("root", None, None, Set("Internal/PbAdmin"))
-
-  override def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
-    ctx: RequestContext => Future { Right(ROOT) }
-  }
-}
-
-trait EnableAuthenticationConfig {
-  final val enableAuthentication: Singleton[Boolean] =
-    TypesafeSingletonReader.fromConfig().getBoolean("enable-auth").orElse(false)
-}
-
-/**
- * Provides a singleton AuthenticatorImpl, if enable-ldap-auth config is set to true.  Otherwise, it provides a
- * FakeAuthenticator.  Concrete providers must mixin a UserDaoProvider and a JwtUtilsProvider.
- */
-trait AuthenticatorImplProvider extends AuthenticatorProvider with EnableAuthenticationConfig {
+trait AuthenticatorImplProvider extends AuthenticatorProvider {
   this: JwtUtilsProvider =>
 
-  override val authenticator: Singleton[Authenticator] = Singleton(() => enableAuthentication() match {
-    case true => new AuthenticatorImpl(jwtUtils())
-    case false => new FakeAuthenticator
-  })
-}
-
-/**
- * Provides a singleton FakeAuthenticator.
- */
-trait FakeAuthenticatorProvider extends AuthenticatorProvider {
-  override val authenticator: Singleton[Authenticator] = Singleton(() => new FakeAuthenticator())
+  override val authenticator: Singleton[Authenticator] = Singleton(() => new AuthenticatorImpl(jwtUtils()))
 }

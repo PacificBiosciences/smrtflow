@@ -8,7 +8,7 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
-import com.pacbio.common.auth.{JwtUtilsImplProvider, FakeAuthenticatorProvider, AuthenticatorImplProvider}
+import com.pacbio.common.auth.{JwtUtilsImplProvider, AuthenticatorImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonReader, Singleton, SetBindings}
@@ -62,8 +62,7 @@ trait CoreProviders extends
   ActorSystemProvider with
   BaseSmrtServerDatabaseConfigProviders with
   JwtUtilsImplProvider with
-  // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
-  FakeAuthenticatorProvider with
+  AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
   SystemClockProvider {
 
