@@ -10,7 +10,7 @@ BUNDLE_VERSION="0.9.2"
 scala_path="${WORKSPACE}/bioinformatics/ext/pi/smrtflow" #services-ui/scala"
 ui_path="${WORKSPACE}/ui"
 BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-nightly"
-BUNDLER_ROOT="${WORKSPACE}/services-ui/pbservice-bundler"
+BUNDLER_ROOT="${WORKSPACE}/bioinformatics/ext/pi/pbsmrtpipe/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
 WS02_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
@@ -74,7 +74,7 @@ pip install ./
 
 pip install fabric
 
-cd $WORKSPACE/bioinformatics/ext/pi/pbsmrtpipe/extras/pbbundler
+cd $BUNDLER_ROOT
 
 rpt_json_path="${WORKSPACE}/resolved-pipeline-templates"
 
