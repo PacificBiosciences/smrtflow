@@ -12,7 +12,9 @@ ui_path="${WORKSPACE}/ui"
 BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-nightly"
 BUNDLER_ROOT="${WORKSPACE}/services-ui/pbservice-bundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
+
 WS02_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
+TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
 set -o errexit
 set -o pipefail
@@ -72,7 +74,7 @@ pip install ./
 
 pip install fabric
 
-cd $WORKSPACE/services-ui/pbservice-bundler
+cd $WORKSPACE/bioinformatics/ext/pi/pbsmrtpipe/extras/pbbundler
 
 rpt_json_path="${WORKSPACE}/resolved-pipeline-templates"
 
@@ -101,21 +103,15 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
     exit 1
   fi
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
-  #JSON_FILES=`find ${rpt_json_path} -name "*.json"`
-  #for JSON in $JSON_FILES; do
-  #  if [ `grep -c '"internal"' ${JSON}` -ne 0 ]; then
-  #    echo "${JSON}"
-  #    python -c "import json ; d = json.load(open('${JSON}')) ; d['tags'].remove('internal'); open('${JSON}', 'w').write(json.dumps(d))"
-  #  fi
-  #done
 fi
 
 python -m pbsmrtpipe.testkit.validate_presets ${scala_path}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
 
 # write a simple text file of workflow options that the smrtlink installer can
-# use to validate command-line arguments
+# use to validate command-line arguments to get the XML or JSON of the workflow level options
+# FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
 OPTS_PATH="${WORKSPACE}/services-ui/pbservice-bundler/smrtlink_services_ui/workflow_options.txt"
 pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${scala_path}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WS02_ZIP}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${scala_path}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WS02_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
