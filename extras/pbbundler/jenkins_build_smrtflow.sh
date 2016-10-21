@@ -13,7 +13,7 @@ BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-nightly"
 BUNDLER_ROOT="${smrtflow_root}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
-WS02_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
+WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
 TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
 set -o errexit
@@ -110,8 +110,9 @@ python -m pbsmrtpipe.testkit.validate_presets ${smrtflow_root}/smrt-server-analy
 # write a simple text file of workflow options that the smrtlink installer can
 # use to validate command-line arguments to get the XML or JSON of the workflow level options
 # FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
-OPTS_PATH="${WORKSPACE}/services-ui/pbservice-bundler/smrtlink_services_ui/workflow_options.txt"
+# Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
+OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
 pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${smrtflow_root}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WS02_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${smrtflow_root}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
