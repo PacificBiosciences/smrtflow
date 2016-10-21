@@ -13,6 +13,7 @@ Specifically,
 
 """
 import sys
+import re
 import logging
 import shutil
 import os
@@ -36,8 +37,6 @@ _ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 _ROOT_BUILT_BUNDLES = os.path.join(_ROOT_DIR, 'built-bundles')
 _RESOURCES_DIR = os.path.join(_ROOT_DIR, 'resources')
 
-_TOMCAT_NAME = "apache-tomcat-8.0.26"
-_TOMCAT_TGZ = os.path.join(_ROOT_DIR, _TOMCAT_NAME + ".tar.gz")
 
 # Nightly build are published here
 _NIGHTLY_ROOT = "/mnt/secondary/Share/smrtserver-bundles-nightly"
@@ -165,19 +164,31 @@ def _raise_if_not_exists(path, custom_message=None):
         raise IOError(msg)
 
 
-def _copy_and_extract_tomcat(output_dir):
+def _copy_and_extract_tomcat(tomcat_tgz, output_dir):
+
+    name = os.path.basename(tomcat_tgz)
+
+    rx = re.compile('apache-tomcat-\d+.\d+.\d+')
+    m = re.match(rx, name)
+
+    if m is None:
+        raise ValueError("Unable to determine tomcat name from {f} using regex {r}".format(f=tomcat_tgz, r=rx.pattern))
+
+    tomcat_output = os.path.join(output_dir, m.group())
+
     with lcd(output_dir):
-        if not os.path.exists(os.path.join(output_dir, _TOMCAT_NAME)):
-            local("tar xvfz {p}".format(p=_TOMCAT_TGZ))
+        if not os.path.exists(tomcat_output):
+            local("tar xvfz {p}".format(p=tomcat_tgz))
         else:
-            log.debug("Tomcat already exists, skipping copying")
+            log.debug("Tomcat already exists {}, skipping copying".format(tomcat_output))
+
+    return tomcat_output
 
 
-def _archive_tomcat_webapp_root(output_dir):
-    webapp_path = os.path.join(output_dir, _TOMCAT_NAME, 'webapps')
-    with lcd(output_dir):
-        shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
-        os.mkdir(os.path.join(webapp_path, 'ROOT'))
+def _archive_tomcat_webapp_root(tomcat_output_dir):
+    webapp_path = os.path.join(tomcat_output_dir, 'webapps')
+    shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
+    os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
 def _copy_bundle_from_template(template_dir, bundle_version_dir):
@@ -281,9 +292,9 @@ def _chmod_on_files(bundle_bin_dir):
         os.chmod(os.path.join(bundle_bin_dir, fname), 0o777)
 
 
-def _update_tomcat_users_xml(bundle_dir):
+def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
     src = os.path.join(bundle_dir, 'templates', PbConstants.TCAT_USERS)
-    dest = os.path.join(bundle_dir, _TOMCAT_NAME, 'conf', PbConstants.TCAT_USERS)
+    dest = os.path.join(tomcat_output_dir, 'conf', PbConstants.TCAT_USERS)
     shutil.copy(src, dest)
     log.info("Copied tomcat-users.xml from {s} to {d}".format(s=src, d=dest))
 
@@ -562,7 +573,8 @@ def build_smrtlink_services_ui(version,
                                publish_to=None,
                                ivy_cache=None,
                                analysis_server="smrt-server-analysis",
-                               wso2_api_manager_zip="wso2am-2.0.0.zip"):
+                               wso2_api_manager_zip="wso2am-2.0.0.zip",
+                               tomcat_tgz="apache-tomcat-8.0.26.tar.gz"):
     """
     Build the SMRT Link UI and copy it into the Tomcat. The bundles will be
     written to ./built-bundles/
@@ -594,12 +606,13 @@ def build_smrtlink_services_ui(version,
     Example of running from the commandline
 
     $> fab build_smrtlink_services_ui:"0.2.2-1234",
-    "/Users/mkocher/workspaces/mk_mb_pbbundler/ui",
+    "/Users/mkocher/workspaces/mk_mb_pbbundler/ui/main/apps/smrtlink",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/resolved-pipeline-templates",
     ivy_cache="~/.ivy-cache-custom",
     analysis_server="smrt-server-analysis",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
+    tomcat_tgz=/path/to/apache-tomcat-8.0.26.tar.gz
 
 
     Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
@@ -613,12 +626,14 @@ def build_smrtlink_services_ui(version,
     smrtlink_ui_dir = to_p(smrtlink_ui_dir)
     resolved_pipeline_templates_dir = to_p(resolved_pipeline_templates_dir)
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
+    tomcat_tgz = to_p(tomcat_tgz)
 
     # Validation to fail early
     _raise_if_not_exists(smrtlink_ui_dir, "SMRTLink UI not found.")
     _raise_if_not_exists(smrtflow_root_dir, "smrtflow services not found.")
     _raise_if_not_exists(resolved_pipeline_templates_dir, "pbsmrtpipe Resources not found.")
     _raise_if_not_exists(wso2_api_manager_zip, "Unable to find ws02 API Manager zip '{}'".format(wso2_api_manager_zip))
+    _raise_if_not_exists(tomcat_tgz, "Unable to find tomcat from '{}'".format(tomcat_tgz))
 
     if publish_to is not None:
         _raise_if_not_exists(publish_to, "Publish directory not Found.")
@@ -644,19 +659,20 @@ def build_smrtlink_services_ui(version,
     _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_dir)
 
     t0 = time.time()
-    log.info("Building UI from {}".format(smrtlink_ui_dir))
+    log.info("Building SMRT Link UI from {}".format(smrtlink_ui_dir))
     with lcd(smrtlink_ui_dir):
         local("npm run build -- --production")
     log.info("Completed building UI in {:.2f} sec".format(time.time() - t0))
 
-    _copy_and_extract_tomcat(output_bundle_dir)
-    _archive_tomcat_webapp_root(output_bundle_dir)
-    _update_tomcat_users_xml(output_bundle_dir)
+    # Tomcat
+    tomcat_output_dir = _copy_and_extract_tomcat(tomcat_tgz, output_bundle_dir)
+    _archive_tomcat_webapp_root(tomcat_output_dir)
+    _update_tomcat_users_xml(output_bundle_dir, tomcat_output_dir)
 
     # Copy new-SL-UI to Tomcat
     # root_app_dir = to_path("curbranch/apps/smrt-link/dist")
     root_app_dir = os.path.join(smrtlink_ui_dir, "dist")
-    root_html_dir = os.path.join(output_bundle_dir, _TOMCAT_NAME, "webapps/ROOT")
+    root_html_dir = os.path.join(tomcat_output_dir, "webapps/ROOT")
     if os.path.exists(root_html_dir):
         shutil.rmtree(root_html_dir)
     shutil.copytree(root_app_dir, root_html_dir)
