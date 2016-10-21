@@ -133,8 +133,6 @@ def load_pacbio_versions(path):
 
 
 class Constants(object):
-    PY_WORLD = "hello_py_world"
-    HELLO_TC = "hello_tomcat"
     # This is not correct. The SLS + UI will be 'minimal' dataset job types
     # not the complete Secondary analysis services
     SLS_UI = "smrtlink_services_ui"
@@ -203,15 +201,6 @@ def _to_build_name(bundle_id, version):
     return name
 
 
-def _build_simple_bundle(bundle_id, version):
-    bundle_template_dir = os.path.join(_ROOT_DIR, bundle_id)
-    name = _to_build_name(Constants.PY_WORLD, version)
-    bundle_dir = os.path.join(_ROOT_BUILT_BUNDLES, name)
-    _copy_bundle_from_template(bundle_template_dir, bundle_dir)
-    log.info("completed building bundle {p}".format(p=bundle_dir))
-    return name, bundle_dir
-
-
 def _create_gzip(bundle_path):
     base_name = os.path.basename(bundle_path)
     gzip_name = base_name + ".tar.gz"
@@ -231,40 +220,6 @@ def _publish_to(bundle_tgz, publish_dir):
         else:
             shutil.copy(bundle_tgz, output_gz)
             log.info("Published {x} to {o}".format(x=name, o=output_gz))
-
-
-def _build_simple_and_publish(bundle_type_id, version, publish_dir=None):
-    name, bundle_dir = _build_simple_bundle(bundle_type_id, version)
-    log.info("Creating bundle {n} -> {d} ".format(n=name, d=bundle_dir))
-    gzip_path = _create_gzip(bundle_dir)
-    _publish_to(gzip_path, publish_dir)
-    log.info("Completed build bundle {b} in {d}".format(b=name, d=bundle_dir))
-    return 0
-
-
-@task
-def build_hello_py_world(version, publish_to=None):
-    """Bundle POC to help define the bundle spec.
-
-     Launches a simple python server and has index.html and status.json
-
-     :param publish_to: Copy the bundle.tgz to output directory. Ignore if not
-     given
-     """
-    return _build_simple_and_publish(Constants.PY_WORLD, version, publish_to)
-
-
-@task
-def build_hello_tomcat(version, publish_to=None):
-    """Bundle that has a simple Hello Tomcat
-
-    Has a simple static html page at /examples/index.html
-
-    :param publish_to: Copy the bundle.tgz to output directory. Ignore if not
-    given
-
-    """
-    return _build_simple_and_publish(Constants.HELLO_TC, version, publish_to)
 
 
 def _find_target_jar(target_dir):
@@ -297,83 +252,6 @@ def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
     dest = os.path.join(tomcat_output_dir, 'conf', PbConstants.TCAT_USERS)
     shutil.copy(src, dest)
     log.info("Copied tomcat-users.xml from {s} to {d}".format(s=src, d=dest))
-
-
-def _build_smrtlink_common_services(services_root_dir, bundle_dir, ivy_cache=None):
-    """
-    Builds all of the Scala Common Services and returns a path to single jar file
-
-    :param services_root_dir: Root directory to the scala common services code
-    :param bundle_dir: Path to output bundle directory
-    :return: Path to self-contained jar file
-    """
-    sbt_cmd = _to_sbt_cmd(ivy_cache)
-
-    # Build Scala Common Services
-    def to_scala_path(x):
-        return os.path.join(services_root_dir, x)
-
-    dir_actions = [
-        ('smrt-server-link', ['clean', 'compile', 'assembly']),
-    ]
-
-    for scala_subdir, sbt_actions in dir_actions:
-        with lcd(services_root_dir):
-            for sbt_action in sbt_actions:
-                local('{s} {m}/{a}'.format(s=sbt_cmd, m=scala_subdir,
-                                           a=sbt_action))
-
-    # Temporary fix. Eventually the services will run within tomcat for 9/1
-    target_dir = to_scala_path('smrt-server-link/target/scala-2.11')
-
-    jar_path = _find_target_jar(target_dir)
-
-    # rename the file in the bundle
-    smrtlink_common_server_jar = os.path.join(bundle_dir, PbConstants.COMMON_JAR_NAME)
-    shutil.copy(jar_path, smrtlink_common_server_jar)
-    return smrtlink_common_server_jar
-
-
-@task
-def build_smrtlink_common_services(version, services_root_dir, publish_to=None, ivy_cache=None):
-    """
-    Build the SMRT Link Common Services and copy into the Tomcat. The bundles will be written to ./built-bundles/
-
-    :param version: Semantic Version string
-    :param services_root_dir: Root Directory to the Services (e.g.,  /Users/mkocher/workspaces/mk_mb_pbbundler/scala)
-    :param publish_to: Copy the bundle.tgz to output directory. Ignore if not given
-
-    :param publish_to: Copy the bundle.tgz to output directory. Ignore if not
-    given
-
-    Example:
-
-    $> fab build_smrtlink_common_services_ui:"0.2.1-1234", "/Users/mkocher/workspaces/mk_mb_pbbundler/ui", "/Users/mkocher/workspaces/mk_mb_pbbundler/scala"
-
-
-    Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
-
-    To copy the tar.gz bundle to the outputdir.
-    """
-    name = _to_build_name(Constants.SLC, version)
-    bundle_dir = os.path.join(_ROOT_BUILT_BUNDLES, name)
-
-    log.info("Creating bundle {n} -> {d} ".format(n=name, d=bundle_dir))
-
-    _copy_bundle_from_template(Constants.SLC, bundle_dir)
-
-    _build_smrtlink_common_services(services_root_dir, bundle_dir, ivy_cache=ivy_cache)
-
-    # Write the PacBio Version file
-    smrtflow_versions = _get_smrtflow_version(services_root_dir)
-    pacbio_version_file = os.path.join(bundle_dir, PbConstants.MANIFEST_FILE)
-    write_pacbio_versions(smrtflow_versions, pacbio_version_file)
-    log.info("Wrote smrtflow versions {v} to {o}".format(v=smrtflow_versions, o=pacbio_version_file))
-
-    gzip_path = _create_gzip(bundle_dir)
-    _publish_to(gzip_path, publish_to)
-    log.info("Completed build bundle {b} in {d}".format(b=name, d=bundle_dir))
-    return 0
 
 
 def __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir):
