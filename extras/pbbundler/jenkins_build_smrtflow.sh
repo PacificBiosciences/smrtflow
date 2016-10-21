@@ -2,15 +2,15 @@
 # Bash3 Boilerplate. Copyright (c) 2014, kvz.io
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.9.2"
+BUNDLE_VERSION="0.10.1"
 
 # All the bundle projects assume that the root level
 # of the services requires /path/to/services-ui/scala
 # and /ui/
-scala_path="${WORKSPACE}/bioinformatics/ext/pi/smrtflow" #services-ui/scala"
+smrtflow_root="${WORKSPACE}/bioinformatics/ext/pi/smrtflow" #services-ui/scala"
 ui_path="${WORKSPACE}/ui"
 BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-nightly"
-BUNDLER_ROOT="${WORKSPACE}/bioinformatics/ext/pi/pbsmrtpipe/extras/pbbundler"
+BUNDLER_ROOT="${smrtflow_root}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
 WS02_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
@@ -36,7 +36,7 @@ if [ ! -z "$arg1" ] && [ "$arg1" = "--internal" ]; then
   SL_ANALYSIS_SERVER="smrt-server-analysis-internal"
 fi
 
-echo "Starting building"
+echo "Starting building ${BUNDLE_VERSION}"
 
 source /mnt/software/Modules/current/init/bash
 
@@ -87,11 +87,11 @@ rm -f ${rpt_json_path}/*.json
 pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
 
 echo "Installing report view rules from pbreports"
-REPORT_RULES="$WORKSPACE/bioinformatics/ext/pi/smrtflow/smrt-server-analysis/src/main/resources/report-view-rules"
+REPORT_RULES="${smrtflow_root}/smrt-server-analysis/src/main/resources/report-view-rules"
 cp ${WORKSPACE}/bioinformatics/ext/pi/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
 echo "Generating pipeline datastore view rules"
-VIEW_RULES="$WORKSPACE/bioinformatics/ext/pi/smrtflow/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
+VIEW_RULES="${smrtflow_root}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
 python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
 
 # giant hack to allow us to display internal pipelines
@@ -105,7 +105,7 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
 fi
 
-python -m pbsmrtpipe.testkit.validate_presets ${scala_path}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
+python -m pbsmrtpipe.testkit.validate_presets ${smrtflow_root}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
 
 # write a simple text file of workflow options that the smrtlink installer can
 # use to validate command-line arguments to get the XML or JSON of the workflow level options
@@ -114,4 +114,4 @@ OPTS_PATH="${WORKSPACE}/services-ui/pbservice-bundler/smrtlink_services_ui/workf
 pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${scala_path}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WS02_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${P4_CHANGELIST}","${ui_path}/curbranch/apps/smrt-link","${smrtflow_root}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WS02_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
