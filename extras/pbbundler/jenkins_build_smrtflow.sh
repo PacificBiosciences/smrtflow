@@ -99,7 +99,7 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
   echo "Making adjustments for internal build..."
   CONFIG_FILE=`find ${ui_path} -name "app-config.json"`
   if [ -z "$CONFIG_FILE" ]; then
-    echo "Can't find app.config.json"
+    echo "Can't find app-config.json"
     exit 1
   fi
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
