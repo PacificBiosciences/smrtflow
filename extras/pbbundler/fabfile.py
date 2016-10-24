@@ -37,12 +37,6 @@ _ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 _ROOT_BUILT_BUNDLES = os.path.join(_ROOT_DIR, 'built-bundles')
 _RESOURCES_DIR = os.path.join(_ROOT_DIR, 'resources')
 
-
-# Nightly build are published here
-_NIGHTLY_ROOT = "/mnt/secondary/Share/smrtserver-bundles-nightly"
-# "Gold" builds are published here
-_GOLD_ROOT = "/mnt/secondary/Share/smrtserver-bundles"
-
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'
 
 
