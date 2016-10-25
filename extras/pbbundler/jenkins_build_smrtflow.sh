@@ -65,6 +65,10 @@ echo "Running sbt $(which sbt)"
 
 cd $SMRTFLOW_ROOT
 ve=${SMRTFLOW_ROOT}/ve
+if [ ! -z "$WORKSPACE" ]; then
+  # FIXME silly hack to avoid extra-long paths
+  ve=${WORKSPACE}/ve
+fi
 
 ## Make ve
 echo "Creating Virtualenv $ve"
