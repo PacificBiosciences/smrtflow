@@ -85,11 +85,15 @@ else
   echo "Can't find pbcore sources!"
   exit 1
 fi
-python setup.py install
+make clean
+pip install .
 cd ${SMRTFLOW_ROOT}/../pbcommand
-python setup.py install
+make clean
+pip install .
 cd ${SMRTFLOW_ROOT}/../pbsmrtpipe
-python setup.py install
+rm -rf *.egg build/ dist/
+find . -name "*.egg-info" | xargs rm -rf
+pip install .
 
 pip install fabric
 
