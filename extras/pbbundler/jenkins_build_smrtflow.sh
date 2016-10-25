@@ -77,7 +77,14 @@ source $ve/bin/activate
 echo "Installing pbsmrtpipe to virtualenv"
 pip install numpy
 pip install Cython
-cd ${SMRTFLOW_ROOT}/../pbcore
+if [ -e "${SMRTFLOW_ROOT}/../pbcore" ]; then
+  cd ${SMRTFLOW_ROOT}/../pbcore
+elif [ -e "${SMRTFLOW_ROOT}/../../../ext-vc/pivc/pbcore" ]; then
+  cd ${SMRTFLOW_ROOT}/../../../ext-vc/pivc/pbcore
+else
+  echo "Can't find pbcore sources!"
+  exit 1
+fi
 python setup.py install
 cd ${SMRTFLOW_ROOT}/../pbcommand
 python setup.py install
