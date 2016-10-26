@@ -42,12 +42,6 @@
           "name": "analysis",
           "key": "analysis",
           "description": "SMRT Analysis Authorization"
-        },
-        {
-          "roles": "Internal/PbAdmin",
-          "name": "admin",
-          "key": "admin",
-          "description": "Global Admin user"
         }
       ]
     }
@@ -1523,25 +1517,6 @@
         "x-scope": "data-management",
         "produces": [
           "text/plain; charset=UTF-8"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/fake-admin": {
-      "get": {
-        "description": "DO NOT use. This is a pseudo-route for getting the admin scope accessible from wso2. This is NOT implemented in SL",
-        "x-scope": "admin",
-        "produces": [
-          "application/json"
         ],
         "x-throttling-tier": "Unlimited",
         "responses": {
