@@ -271,7 +271,8 @@ case class DataStoreServiceFile(
     jobId: Int,
     jobUUID: UUID,
     name: String,
-    description: String)
+    description: String,
+    wasDeleted: Boolean = false)
 
 // Files that have Reports
 case class DataStoreReportFile(

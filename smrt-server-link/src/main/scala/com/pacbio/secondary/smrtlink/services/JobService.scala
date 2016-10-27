@@ -100,6 +100,13 @@ trait JobService
             (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
           }
         }
+      } ~
+      delete {
+        complete {
+          ok {
+            (dbActor ? DeleteJobByUUID(id)).mapTo[EngineJob]
+          }
+        }
       }
     } ~
     path(IntNumber) { id =>
@@ -107,6 +114,13 @@ trait JobService
         complete {
           ok {
             (dbActor ? GetJobById(id)).mapTo[EngineJob]
+          }
+        }
+      } ~
+      delete {
+        complete {
+          ok {
+            (dbActor ? DeleteJobById(id)).mapTo[EngineJob]
           }
         }
       }

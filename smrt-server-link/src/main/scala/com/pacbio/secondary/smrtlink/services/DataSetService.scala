@@ -73,7 +73,7 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
 
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: Int => Any,
+      GetDataSets: (Int, Boolean) => Any,
       schema: String,
       GetDataSetById: Int => Any,
       GetDataSetByUUID: UUID => Any,
@@ -85,11 +85,14 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     pathPrefix(shortName) {
       pathEnd {
         get {
-          complete {
-            ok {
-              (dbActor ? GetDataSets(DS_LIMIT)).mapTo[Seq[R]]
+          //parameter('showAll.?) { showAll =>
+            complete {
+              ok {
+                //(dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined)).mapTo[Seq[R]]
+                (dbActor ? GetDataSets(DS_LIMIT, false)).mapTo[Seq[R]]
+              }
             }
-          }
+          //}
         }
       } ~
       path(SCHEMA_PREFIX) {

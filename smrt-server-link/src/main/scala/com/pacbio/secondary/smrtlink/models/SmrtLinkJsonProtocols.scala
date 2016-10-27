@@ -157,7 +157,7 @@ trait SmrtLinkJsonProtocols
   implicit val consensusAlignmentDataSetFormat: RootJsonFormat[ConsensusAlignmentServiceDataSet] = cachedImplicit
 
   implicit val dataStoreJobFileFormat = jsonFormat2(DataStoreJobFile)
-  implicit val dataStoreServiceFileFormat = jsonFormat12(DataStoreServiceFile)
+  implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
