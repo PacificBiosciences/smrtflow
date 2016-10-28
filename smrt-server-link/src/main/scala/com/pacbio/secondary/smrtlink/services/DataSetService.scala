@@ -13,6 +13,7 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import shapeless.HNil
 import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
@@ -169,6 +170,15 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
           complete {
             ok {
               (dbActor ? id.map(GetDataSetMetaById, GetDataSetMetaByUUID)).mapTo[DataSetMetaDataSet]
+            }
+          }
+        }
+      } ~
+      path(JavaUUID / "jobs") { uuid =>
+        get {
+          complete {
+            ok {
+              (dbActor ? GetDataSetJobsByUUID(uuid)).mapTo[Seq[EngineJob]]
             }
           }
         }

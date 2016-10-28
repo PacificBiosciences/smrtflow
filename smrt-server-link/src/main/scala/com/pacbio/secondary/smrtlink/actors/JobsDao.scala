@@ -736,6 +736,13 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def datasetMetaTypeByUUID(id: UUID) = dsMetaData2.filter(_.uuid === id)
 
+  def getDataSetJobsByUUID(id: UUID): Future[Seq[EngineJob]] = {
+    db.run {
+      val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs.filter(_.isActive) on (_.jobId === _.id)
+      q.result.map(_.map(x => x._2))
+    }
+  }
+
   // util for converting to the old model
   def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
     SubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,

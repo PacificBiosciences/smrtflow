@@ -83,6 +83,8 @@ object JobsDaoActor {
 
   case class GetDataSetMetaByUUID(uuid: UUID) extends DataSetMessage
 
+  case class GetDataSetJobsByUUID(uuid: UUID) extends DataSetMessage
+
   case class DeleteDataSetById(id: Int) extends DataSetMessage
   case class DeleteDataSetByUUID(uuid: UUID) extends DataSetMessage
 
@@ -426,6 +428,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetDataSetMetaByUUID(i: UUID) => pipeWith {
       dao.getDataSetByUUID(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
     }
+
+    case GetDataSetJobsByUUID(i: UUID) => pipeWith(dao.getDataSetJobsByUUID(i))
 
     case DeleteDataSetById(id: Int) => pipeWith(dao.deleteDataSetById(id))
     case DeleteDataSetByUUID(uuid: UUID) => pipeWith(dao.deleteDataSetByUUID(uuid))
