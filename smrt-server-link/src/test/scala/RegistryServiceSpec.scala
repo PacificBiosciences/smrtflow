@@ -179,7 +179,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       }
       val testPath = "/path/foo"
       val expectedResponse = "expected get response"
-      val expectedVia = "test 1.2.3"
+      val expectedVia = IndexedSeq("test 1.2.3")
 
       val mockRequest = mock[HttpRequest]
       mockHttp.apply(any[String]) returns mockRequest
@@ -217,7 +217,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       }
       val testPath = "/path/foo"
       val expectedResponse = "expected get response"
-      val expectedVia = "test 1.2.3"
+      val expectedVia = IndexedSeq("test 1.2.3")
 
       val mockRequest = mock[HttpRequest]
       mockHttp.apply(any[String]) returns mockRequest
