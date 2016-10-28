@@ -39,8 +39,10 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
         get {
-          complete {
-            jobList(dbActor, endpoint)
+          parameter('showAll.?) { showAll =>
+            complete {
+              jobList(dbActor, endpoint, showAll.isDefined)
+            }
           }
         } ~
         post {
