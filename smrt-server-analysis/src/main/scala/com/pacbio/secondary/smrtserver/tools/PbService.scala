@@ -52,6 +52,7 @@ object Modes {
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
   case object TERMINATE_JOB extends Mode { val name = "terminate-job"} // This currently ONLY supports Analysis Jobs
+  case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
@@ -263,6 +264,14 @@ object PbServiceParser {
           c.copy(jobId = p)
         } text "SMRT Link Analysis Job Id"
         ) text "Terminate a SMRT Link Analysis Job By Int Id in the RUNNING state"
+
+    cmd(Modes.DELETE_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.DELETE_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Job") } text "Job ID"
+    ) text "Delete a pbsmrtpipe job (EXPERIMENTAL, does not remove files yet)"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
@@ -911,6 +920,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
     }
   }
+
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
     println(s"Attempting to terminate Analysis Job $jobId")
     // Only Int Job ids are supported
@@ -927,6 +937,14 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
     Try {Await.result(fx, TIMEOUT) } match {
       case Success(m) => println(m.message); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  def runDeleteAnalysisJob(jobId: IdAble): Int = {
+    println(s"Attempting to delete Analysis job $jobId")
+    Try { Await.result(sal.deleteAnalysisJob(jobId), TIMEOUT) } match {
+      case Success(j) => printJobInfo(j)
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
@@ -991,6 +1009,7 @@ object PbService {
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
+        case Modes.DELETE_JOB => ps.runDeleteAnalysisJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
