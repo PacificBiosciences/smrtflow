@@ -109,7 +109,7 @@ with JobServiceConstants {
         val job = responseAs[EngineJob]
         logger.info(s"Response to $url -> $job")
         status.isSuccess must beTrue
-  //      job.isActive must beTrue
+        job.isActive must beTrue
       }
     }
 
@@ -133,12 +133,22 @@ with JobServiceConstants {
         status.isSuccess must beTrue
       }
     }
-    /*"delete job" in new daoSetup {
+    "delete job" in new daoSetup {
+      var njobs = 0
+      Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+        val jobs = responseAs[Seq[EngineJob]]
+        njobs = jobs.size
+        njobs must beGreaterThan(0)
+      }
       Delete(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.isActive must beFalse
       }
-    }*/
+      Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+        val jobs = responseAs[Seq[EngineJob]]
+        jobs.size must beEqualTo(njobs - 1)
+      }
+    }
 
     //    "Create a Job Event" in new daoSetup {
     //      val r = JobEventRecord("RUNNING", "Task x is running")

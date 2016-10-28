@@ -85,14 +85,13 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     pathPrefix(shortName) {
       pathEnd {
         get {
-          //parameter('showAll.?) { showAll =>
+          parameter('showAll.?) { showAll =>
             complete {
               ok {
-                //(dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined)).mapTo[Seq[R]]
-                (dbActor ? GetDataSets(DS_LIMIT, false)).mapTo[Seq[R]]
+                (dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined)).mapTo[Seq[R]]
               }
             }
-          //}
+          }
         }
       } ~
       path(SCHEMA_PREFIX) {

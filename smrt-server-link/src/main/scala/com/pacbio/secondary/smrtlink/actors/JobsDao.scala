@@ -412,13 +412,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  override def getJobs(limit: Int = 100, ignoreInactive: Boolean = false): Future[Seq[EngineJob]] = {
-    if (ignoreInactive) db.run(engineJobs.filter(_.isActive === true).result)
+  override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
+    if (!includeInactive) db.run(engineJobs.filter(_.isActive).result)
     else db.run(engineJobs.result)
   }
 
-  def getJobsByTypeId(jobTypeId: String): Future[Seq[EngineJob]] =
-    db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
+  def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
+    if (!includeInactive) db.run(engineJobs.filter(j => j.isActive && (j.jobTypeId === jobTypeId)).result)
+    else db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
+  }
 
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
@@ -760,10 +762,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
 
-  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[SubreadServiceDataSet]] =
+  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[SubreadServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsSubread2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsSubread2 on (_.id === _.id)
         else dsMetaData2 join dsSubread2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toSds(x._1, x._2)))
@@ -774,10 +776,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[ReferenceServiceDataSet]] =
+  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ReferenceServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsReference2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsReference2 on (_.id === _.id)
         else dsMetaData2 join dsReference2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toR(x._1, x._2)))
@@ -807,10 +809,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[GmapReferenceServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsGmapReference2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsGmapReference2 on (_.id === _.id)
         else dsMetaData2 join dsGmapReference2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toGmapR(x._1, x._2)))
@@ -835,10 +837,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
-  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[HdfSubreadServiceDataSet]] =
+  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsHdfSubread2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsHdfSubread2 on (_.id === _.id)
         else dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toHds(x._1, x._2)))
@@ -884,10 +886,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[AlignmentServiceDataSet]] =
+  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[AlignmentServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsAlignment2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsAlignment2 on (_.id === _.id)
         else dsMetaData2 join dsAlignment2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toA(x._1)))
@@ -910,9 +912,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[ConsensusReadServiceDataSet]] = {
+  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusReadServiceDataSet]] = {
     val query = {
-      if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsCCSread2 on (_.id === _.id)
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsCCSread2 on (_.id === _.id)
       else dsMetaData2 join dsCCSread2 on (_.id === _.id)
     }
     db.run(query.result.map(_.map(x => toCCSread(x._1))))
@@ -947,10 +949,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[ConsensusAlignmentServiceDataSet]] =
+  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusAlignmentServiceDataSet]] =
     db.run {
       val q = {
-        if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsCCSAlignment2 on (_.id === _.id)
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsCCSAlignment2 on (_.id === _.id)
         else dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
       }
       q.result.map(_.map(x => toCCSA(x._1)))
@@ -985,9 +987,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[BarcodeServiceDataSet]] = {
+  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[BarcodeServiceDataSet]] = {
     val query = {
-      if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsBarcode2 on (_.id === _.id)
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsBarcode2 on (_.id === _.id)
       else dsMetaData2 join dsBarcode2 on (_.id === _.id)
     }
     db.run(query.result.map(_.map(x => toB(x._1))))
@@ -1030,9 +1032,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, ignoreInactive: Boolean = true): Future[Seq[ContigServiceDataSet]] = {
+  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ContigServiceDataSet]] = {
     val query = {
-      if (ignoreInactive) dsMetaData2.filter(_.isActive) join dsContig2 on (_.id === _.id)
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsContig2 on (_.id === _.id)
       else dsMetaData2 join dsContig2 on (_.id === _.id)
     }
     db.run(query.result.map(_.map(x => toCtg(x._1))))

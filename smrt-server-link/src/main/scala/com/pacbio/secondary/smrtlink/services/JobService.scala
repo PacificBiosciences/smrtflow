@@ -89,8 +89,8 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
-    (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+  def jobList(dbActor: ActorRef, endpoint: String, includeInactive: Boolean = false)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+    (dbActor ? GetJobsByJobType(endpoint, includeInactive)).mapTo[Seq[EngineJob]]
 
   def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
