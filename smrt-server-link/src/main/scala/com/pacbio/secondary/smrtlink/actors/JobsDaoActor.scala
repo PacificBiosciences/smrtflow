@@ -67,7 +67,8 @@ object JobsDaoActor {
       smrtLinkVersion: Option[String],
       smrtLinkToolsVersion: Option[String]) extends JobMessage
 
-  case class DeleteJobById(jobId: Int) extends JobMessage
+  case class GetJobChildrenByUUID(jobId: UUID) extends JobMessage
+  case class GetJobChildrenById(jobId: Int) extends JobMessage
   case class DeleteJobByUUID(jobId: UUID) extends JobMessage
 
   // Get all DataSet Entry Points
@@ -311,7 +312,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
   }
 
-
   def toMd5(text: String): String =
     MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
 
@@ -414,12 +414,23 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
 
-    case DeleteJobById(jobId: Int) => pipeWith {
-      dao.deleteJobById(jobId).map(_.getOrElse(toE(s"Unable to find job ${jobId.toString}")))
-    }
+    case GetJobChildrenByUUID(jobId: UUID) => dao.getJobChildrenByUUID(jobId) pipeTo sender
+    case GetJobChildrenById(jobId: Int) => dao.getJobChildrenById(jobId) pipeTo sender
+
     case DeleteJobByUUID(jobId: UUID) => pipeWith {
-      dao.deleteJobByUUID(jobId).map(_.getOrElse(toE(s"Unable to find job ${jobId.toString}")))
+      dao.deleteJobByUUID(jobId).map{ j => 
+        j match {
+          case Some(job) =>
+            dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
+              dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
+            }
+            j
+          case None => toE(s"Unable to find job ${jobId.toString}")
+        }
+      }
     }
+
+    case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
     case GetDataSetMetaById(i: Int) => pipeWith {
       dao.getDataSetById(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))

@@ -100,27 +100,22 @@ trait JobService
             (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
           }
         }
-      } ~
+      }/* ~
       delete {
+        // XXX this doesn't actually delete the job, it just returns a list of
+        // jobs that use its datastore files as input.
         complete {
           ok {
-            (dbActor ? DeleteJobByUUID(id)).mapTo[EngineJob]
+            (dbActor ? GetJobChildren(id)).mapTo[Seq[EngineJob]]
           }
         }
-      }
+      }*/
     } ~
     path(IntNumber) { id =>
       get {
         complete {
           ok {
             (dbActor ? GetJobById(id)).mapTo[EngineJob]
-          }
-        }
-      } ~
-      delete {
-        complete {
-          ok {
-            (dbActor ? DeleteJobById(id)).mapTo[EngineJob]
           }
         }
       }
@@ -263,6 +258,20 @@ trait JobService
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
           resolveJobResource((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob], id)
+        }
+      }
+    } ~
+    path(JavaUUID / "children") { jobId =>
+      complete {
+        ok {
+          (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]
+        }
+      }
+    } ~
+    path(IntNumber / "children") { jobId =>
+      complete {
+        ok {
+          (dbActor ? GetJobChildrenById(jobId)).mapTo[Seq[EngineJob]]
         }
       }
     }

@@ -1080,6 +1080,35 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.wasDeleted, f.modifiedAt)).update(true, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to deleted"))
   }
 
+  def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
+    def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
+      // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
+      val deleteDsFile = ds match {
+        case Some(ds) => DBIO.from(deleteDataStoreFile(id))
+        case None => DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found")))
+      }
+      // 2 of 3: insert of the data set, if it is a known/supported file type
+      val optionalDelete = ds match {
+        case Some(ds) => DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+          case Some(_) => DBIO.from(deleteDataSetByUUID(ds.uuid))
+          case None => DBIO.from(Future(MessageResponse(s"File type ${ds.fileTypeId} is not a dataset, so no metadata to delete.")))
+        }
+        case None => DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete")))
+      }
+      // 3 of 3: run the appropriate actions in a transaction
+      val fin = for {
+          _ <- deleteDsFile
+          od <- optionalDelete
+      } yield od
+      db.run(fin.transactionally)
+    }
+
+    // This needed queries un-nested due to SQLite limitations -- see #197
+    db.run(datastoreServiceFiles.filter(_.uuid === id).result.headOption).flatMap{
+      addOptionalDelete(_)
+    }
+  }
+
   override def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =
     db.run {
       val q = for {
@@ -1088,6 +1117,25 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       } yield dsFiles
       q.result.map(_.map(toDataStoreJobFile))
     }
+
+  def getJobChildrenByUUID(jobId: UUID): Future[Seq[EngineJob]] = {
+    val jobDsJoin = for {
+      j <- engineJobs if j.uuid === jobId
+      d <- datastoreServiceFiles if d.jobId === j.id
+      e <- engineJobsDataSets if e.datasetUUID === d.uuid
+      c <- engineJobs if ((c.id === e.jobId) && c.isActive)
+    } yield c
+    db.run(jobDsJoin.result)
+  }
+
+  def getJobChildrenById(jobId: Int): Future[Seq[EngineJob]] = {
+    val jobDsJoin = for {
+      d <- datastoreServiceFiles if d.jobId === jobId
+      e <- engineJobsDataSets if e.datasetUUID === d.uuid
+      c <- engineJobs if ((c.id === e.jobId) && c.isActive)
+    } yield c
+    db.run(jobDsJoin.result)
+  }
 
   def getSystemSummary(header: String = "System Summary"): Future[String] = {
     for {
