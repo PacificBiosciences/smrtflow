@@ -100,16 +100,7 @@ trait JobService
             (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
           }
         }
-      }/* ~
-      delete {
-        // XXX this doesn't actually delete the job, it just returns a list of
-        // jobs that use its datastore files as input.
-        complete {
-          ok {
-            (dbActor ? GetJobChildren(id)).mapTo[Seq[EngineJob]]
-          }
-        }
-      }*/
+      }
     } ~
     path(IntNumber) { id =>
       get {
