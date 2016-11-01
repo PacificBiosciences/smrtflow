@@ -23,7 +23,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
   import JobModels._
   import TableModels._
 
-  val EXPECTED_MIGRATIONS = 17
+  val EXPECTED_MIGRATIONS = 18
 
   object TestProvider extends TestDalProvider with FakeClockProvider {
     override val db: Singleton[Database] = Singleton(() => {
