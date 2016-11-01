@@ -20,24 +20,25 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacificbiosciences.pacbiodatasets._
 
 
-case class DeleteJobDirOptions(path: Path, removeDir: Boolean = true) extends BaseJobOptions {
-  def toJob = new DeleteJobDirJob(this)
+case class DeleteResourcesOptions(path: Path, removeFiles: Boolean = true) extends BaseJobOptions {
+  def toJob = new DeleteResourcesJob(this)
 }
 
 case class DeletedFile(path: String, isDirectory: Boolean, nBytes: Long, wasDeleted: Boolean)
 
-class DeleteJobDirJob(opts: DeleteJobDirOptions)
-    extends BaseCoreJob(opts: DeleteJobDirOptions)
+class DeleteResourcesJob(opts: DeleteResourcesOptions)
+    extends BaseCoreJob(opts: DeleteResourcesOptions)
     with MockJobUtils with timeUtils {
   type Out = PacBioDataStore
   val jobTypeId = JobTypeId("delete_job")
 
   private def deleteFiles(targetDir: File, ignoreFailures: Boolean = true): Seq[DeletedFile] = {
     targetDir.listFiles.map { f =>
-      val size = FileUtils.sizeOf(f)
+      val isDir = f.isDirectory
+      val size = if (isDir) FileUtils.sizeOfDirectory(f) else FileUtils.sizeOf(f)
       val wasDeleted = Try {
-        logger.info(s"Deleting ${f.toString}")
-        if (f.isDirectory) FileUtils.deleteDirectory(f)
+        logger.info(s"Deleting ${f.toString} (${size} bytes, directory = ${isDir}")
+        if (isDir) FileUtils.deleteDirectory(f)
         else f.delete
       } match {
         case Success(_) => true
@@ -45,14 +46,14 @@ class DeleteJobDirJob(opts: DeleteJobDirOptions)
           logger.error(s"ERROR: ${err.getMessage}"); false
         } else throw err
       }
-      DeletedFile(f.toString, f.isDirectory, size, wasDeleted)
+      DeletedFile(f.toString, isDir, size, wasDeleted)
     }
   }
 
   private def toReport(targetPath: Path, deletedFiles: Seq[DeletedFile]): Report = {
     val nErrors = deletedFiles.count(_.wasDeleted == false).toLong
     val nBytesTotal = deletedFiles.map(_.nBytes).sum
-    val tables = if (deletedFiles.size > 0) {
+    val tables = if (deletedFiles.nonEmpty) {
       val paths = ReportTableColumn("path", Some("Path"), deletedFiles.map(_.path))
       val directories = ReportTableColumn("is_dir", Some("Is Directory"), deletedFiles.map(f => if (f.isDirectory) "Y" else "N"))
       val nBytes = ReportTableColumn("n_bytes", Some("Deleted Bytes"), deletedFiles.map(_.nBytes))
@@ -62,7 +63,7 @@ class DeleteJobDirJob(opts: DeleteJobDirOptions)
           paths, directories, nBytes, wasDeleted)))
     } else List()
     Report(
-      "delete_job",
+      "smrtflow_delete_job",
       "Delete Job",
       attributes = List(
         ReportStrAttribute("job_dir", "Directory", targetPath.toString),
@@ -79,17 +80,18 @@ class DeleteJobDirJob(opts: DeleteJobDirOptions)
     val jobDir = opts.path.toFile
     var nFailures = 0
     Try {
-      if (opts.removeDir) {
+      if (! jobDir.isDirectory) throw new Exception(s"The path '${jobDir.toString}' does not exist or is not a directory")
+      if (opts.removeFiles) {
         deleteFiles(jobDir)
       } else {
-        logger.info("removeDir=false, leaving files in place")
+        logger.info("removeFiles=false, leaving files in place")
         Seq[DeletedFile]()
       }
     } match {
       case Success(files) =>
         val now = JodaDateTime.now()
         val r = toReport(opts.path, files)
-        val reportPath = job.path.resolve(r.id + ".json")
+        val reportPath = job.path.resolve("delete_report.json")
         ReportUtils.writeReport(r, reportPath)
         val rptFile = DataStoreFile(
           r.uuid,
@@ -103,7 +105,7 @@ class DeleteJobDirJob(opts: DeleteJobDirOptions)
           "Job Delete Report",
           "Report for job directory deletion")
         val deleteFile = opts.path.resolve("DELETED").toFile
-        val msg = if (opts.removeDir) {
+        val msg = if (opts.removeFiles) {
           s"See ${reportPath.toString} for a report of deleted files"
         } else {
           s"This job has been deleted from the SMRT Link database, but all files have been left in place."

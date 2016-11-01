@@ -922,7 +922,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
-    println(s"Attempting to terminate Analysis Job ${jobId.toString}")
+    println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
     // Only Int Job ids are supported
     def failIfUUID(i: IdAble): Future[Int] = {
       i match {
@@ -946,7 +946,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       if (nChildren == 0) sal.deleteJob(job.uuid)
       else throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
     }
-    println(s"Attempting to delete job ${jobId.toString}")
+    println(s"Attempting to delete job ${jobId.toIdString}")
     val fx = for {
       job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       children <- Try { Await.result(sal.getJobChildren(job.uuid), TIMEOUT) }
@@ -955,7 +955,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     } yield deleteJob
 
     fx match {
-      case Success(j) => println(s"Job ${jobId.toString} deleted."); 0
+      case Success(j) => println(s"Job ${jobId.toIdString} deleted."); 0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }

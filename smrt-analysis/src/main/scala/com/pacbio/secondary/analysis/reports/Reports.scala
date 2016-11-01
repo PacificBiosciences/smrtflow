@@ -146,7 +146,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
         "header" -> c.header.toJson,
         "values" -> JsArray(c.values.map((v) => v match {
               case x: Double => JsNumber(x)
+              case f: Float => JsNumber(f)
               case i: Int => JsNumber(i)
+              case l: Long => JsNumber(l)
               case s: String => JsString(s)
               case b: Boolean => JsBoolean(b)
               case _ => JsNull

@@ -9,11 +9,11 @@ import org.specs2.mutable._
 
 import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, JobModels, AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobtypes.{DeleteJobDirOptions, DeleteJobDirJob}
+import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob}
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
 
 
-class DeleteJobDirSpec extends Specification with LazyLogging{
+class DeleteResourcesSpec extends Specification with LazyLogging{
 
   sequential
 
@@ -34,8 +34,8 @@ class DeleteJobDirSpec extends Specification with LazyLogging{
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
       val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
-      val opts = DeleteJobDirOptions(targetDir, true)
-      val j = new DeleteJobDirJob(opts)
+      val opts = DeleteResourcesOptions(targetDir, true)
+      val j = new DeleteResourcesJob(opts)
       val jobResult = j.run(job, writer)
       logger.info("Running delete job")
       jobResult.isRight must beTrue
@@ -50,8 +50,8 @@ class DeleteJobDirSpec extends Specification with LazyLogging{
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
       val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
-      val opts = DeleteJobDirOptions(targetDir, false)
-      val j = new DeleteJobDirJob(opts)
+      val opts = DeleteResourcesOptions(targetDir, false)
+      val j = new DeleteResourcesJob(opts)
       val jobResult = j.run(job, writer)
       logger.info("Running delete job")
       jobResult.isRight must beTrue

@@ -172,7 +172,7 @@ object SimpleEngineApp extends App with LazyLogging {
   val debug = true
   val c0 = system.scheduler.scheduleOnce(5.second, pipelineTemplateActor, GetAllPipelineTemplates)
   //val c1 = system.scheduler.schedule(1.second, 5.second, engineManagerActor, CheckForRunnableJob)
-  val c4 = system.scheduler.schedule(1.second, 10.second, engineDaoActor, GetSystemJobSummary(true))
+  val c4 = system.scheduler.schedule(1.second, 10.second, engineDaoActor, GetSystemJobSummary)
 
   val cs = Seq(c0, c4)
 

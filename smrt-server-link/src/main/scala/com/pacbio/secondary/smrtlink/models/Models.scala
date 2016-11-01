@@ -498,7 +498,7 @@ case class GmapReferenceServiceDataSet(
 
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
-case class DeleteJobServiceOptions(jobId: UUID, removeDir: Boolean = false)
+case class DeleteJobServiceOptions(jobId: UUID, removeFiles: Boolean = false)
 
 // Project models
 

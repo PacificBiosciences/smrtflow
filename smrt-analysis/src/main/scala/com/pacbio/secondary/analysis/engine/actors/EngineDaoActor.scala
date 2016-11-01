@@ -30,17 +30,12 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
     case GetAllJobs(limit) =>
       sender ! dao.getJobs(limit)
 
-    case GetSystemJobSummary(ignoreDeleted) =>
+    case GetSystemJobSummary =>
       dao.getJobs(1000).map { rs =>
         val states = rs.map(_.state).toSet
         // Summary of job states by type
         val results = states.toList.map(x => (x, rs.count(e => e.state == x)))
         log.debug(s"Results $results")
-        dao.getDataStoreFiles(ignoreDeleted).map { dsJobFiles =>
-          log.debug(s"Number of DataStore files ${dsJobFiles.size}")
-          dsJobFiles.foreach { x => log.debug(s"DS File $x") }
-          rs.foreach { x => log.debug(s"Job result id ${x.id} -> ${x.uuid} ${x.state} ${x.jobTypeId}") }
-        }
       }
 
     case GetJobStatusByUUID(uuid) => dao.getJobByUUID(uuid) pipeTo sender

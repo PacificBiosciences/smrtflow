@@ -46,7 +46,7 @@ object CommonMessages {
 
   case class GetAllJobs(limit: Int)
 
-  case class GetSystemJobSummary(ignoreDeleted: Boolean = true)
+  case object GetSystemJobSummary
 
   case class GetJobStatusByUUID(uuid: UUID)
   case class GetJobStatusById(i: Int)

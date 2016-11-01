@@ -17,7 +17,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.DeleteJobDirOptions
+import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -43,7 +43,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
     val fx = for {
       targetJob <- (dbActor ? GetJobByUUID(sopts.jobId)).mapTo[EngineJob]
-      opts <- Future { DeleteJobDirOptions(Paths.get(targetJob.path), sopts.removeDir) }
+      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles) }
       _ <- (dbActor ? DeleteJobByUUID(targetJob.uuid))
       engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint, CoreJob(uuid, opts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
     } yield engineJob
