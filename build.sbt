@@ -87,7 +87,7 @@ lazy val baseSettings = Seq(
   "org.ini4j" % "ini4j" % "0.5.4",
   "org.joda" % "joda-convert" % "1.6",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-  "org.scalaj" %% "scalaj-http" % "1.1.5",
+  "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
   "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
@@ -108,34 +108,34 @@ def PacBioProject(name: String): Project = (
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
-/**
-  * This might need to be rethought. This is only generated and build time.
-  * MK would like this stored in the repo with the current version.
-  * The build will only consume this via pbbundler, so it's not absolutely necessary to store this in the repo.
-  *
-  * This will current
-  *
-  * @param v Version string of the SMRT Link Analysis Services
-  * @return
-  */
-def pacBioManifest(v: String) =
-s"""
-   |{
-   | "id":"smrtlink_services",
-   | "name": "SMRT Analysis Services",
-   | "version": "$v",
-   | "description":"SMRT Link Analysis Services and Job Orchestration engine",
-   | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
-   | }
-  """.stripMargin
+///**
+//  * This might need to be rethought. This is only generated and build time.
+//  * MK would like this stored in the repo with the current version.
+//  * The build will only consume this via pbbundler, so it's not absolutely necessary to store this in the repo.
+//  *
+//  * This will current
+//  *
+//  * @param v Version string of the SMRT Link Analysis Services
+//  * @return
+//  */
+//def pacBioManifest(v: String) =
+//s"""
+//   |{
+//   | "id":"smrtlink_services",
+//   | "name": "SMRT Analysis Services",
+//   | "version": "$v",
+//   | "description":"SMRT Link Analysis Services and Job Orchestration engine",
+//   | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
+//   | }
+//  """.stripMargin
 
 // Projects in this build
 
-lazy val noPublish = Seq(
-  publish := {},
-  publishLocal := {},
-  publishArtifact := false
-)
+//lazy val noPublish = Seq(
+//  publish := {},
+//  publishLocal := {},
+//  publishArtifact := false
+//)
 
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
@@ -152,7 +152,10 @@ val replImports =
 // Project to use the ammonite repl
 lazy val smrtflow = project.in(file("."))
     .settings(moduleName := "smrtflow")
-    .settings(noPublish)
+    //.settings(noPublish)
+    .settings(publish := {})
+    .settings(publishLocal := {})
+    .settings(publishArtifact := false)
     .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
     .settings(libraryDependencies ++= baseSettings)
     .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
@@ -176,24 +179,32 @@ lazy val database =
 lazy val common = (
     PacBioProject("smrt-common-models")
         settings(
-        makeVersionProperties := {
-          val propFile = (resourceManaged in Compile).value / "version.properties"
-          val content = "version=%s\nsha1=%s" format(version.value, gitHeadCommitSha.value)
-          IO.write(propFile, content)
-          Seq(propFile)
-        },
-        resourceGenerators in Compile <+= makeVersionProperties
+          makeVersionProperties := {
+            val propFile = (resourceManaged in Compile).value / "version.properties"
+            val content = "version=%s\nsha1=%s" format(version.value, gitHeadCommitSha.value)
+            IO.write(propFile, content)
+            Seq(propFile)
+          },
+          resourceGenerators in Compile <+= makeVersionProperties
         )
-
         settings(
-        makePacBioComponentManifest := {
-          val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
-          val sfVersion = version.value.replace("-SNAPSHOT-", "")
-          val pacbioVersion = "%s-%s" format(sfVersion, gitHeadCommitSha.value.take(7))
-          IO.write(propFile, pacBioManifest(pacbioVersion))
-          Seq(propFile)
-        },
-        resourceGenerators in Compile <+= makePacBioComponentManifest
+          makePacBioComponentManifest := {
+            val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
+            val sfVersion = version.value.replace("-SNAPSHOT-", "")
+            val pacbioVersion = "%s-%s" format(sfVersion, gitHeadCommitSha.value.take(7))
+            val manifest = s"""
+              |{
+              | "id":"smrtlink_services",
+              | "name": "SMRT Analysis Services",
+              | "version": "$pacbioVersion",
+              | "description":"SMRT Link Analysis Services and Job Orchestration engine",
+              | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
+              |}
+              """.stripMargin
+            IO.write(propFile, manifest)
+            Seq(propFile)
+          },
+          resourceGenerators in Compile <+= makePacBioComponentManifest
         )
     )
 

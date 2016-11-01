@@ -187,7 +187,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       mockRequest.headers(any[Map[String, String]]) returns mockRequest
       mockRequest.method(any[String]) returns mockRequest
       mockRequest.asBytes returns
-        HttpResponse[Array[Byte]](expectedResponse.getBytes(HttpConstants.utf8), 200, Map("Via" -> expectedVia))
+        HttpResponse[Array[Byte]](expectedResponse.getBytes(HttpConstants.utf8), 200, Map("Via" -> IndexedSeq(expectedVia)))
 
       val paramName = "param"
       val paramVal = "value"
@@ -225,7 +225,7 @@ class RegistryServiceSpec extends Specification with Directives with Specs2Route
       mockRequest.headers(any[Map[String, String]]) returns mockRequest
       mockRequest.method(any[String]) returns mockRequest
       mockRequest.asBytes returns
-        HttpResponse[Array[Byte]](expectedResponse.getBytes(HttpConstants.utf8), 200, Map("Via" -> expectedVia))
+        HttpResponse[Array[Byte]](expectedResponse.getBytes(HttpConstants.utf8), 200, Map("Via" -> IndexedSeq(expectedVia)))
 
       val postData = "post data"
       Post("/smrt-link/registry-service/resources/" + uuid.toString + "/proxy" + testPath, postData) ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
