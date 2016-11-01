@@ -79,7 +79,7 @@ trait ProjectDataStore extends LazyLogging {
     db.run(projects.filter(_.id === projId).result.headOption)
 
   def createProject(projReq: ProjectRequest, ownerLogin: String): Future[Project] = {
-    val owner = ProjectRequestUser(RequestUser(ownerLogin), "OWNER")
+    val owner = ProjectRequestUser(RequestUser(ownerLogin), ProjectUserRole.OWNER)
     val members = projReq.members.getOrElse(List())
     val withOwner = members.filter(_.user.login != ownerLogin) ++ List(owner)
     val requestWithOwner = projReq.copy(members = Some(withOwner))

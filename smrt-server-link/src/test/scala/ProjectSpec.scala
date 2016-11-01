@@ -82,8 +82,8 @@ with SmrtLinkConstants {
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some("ACTIVE"), None, None)
   val newProject3 = ProjectRequest("TestProject3", "Test Description", Some("ACTIVE"), None, None)
 
-  val newUser = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), "Can Write")
-  val newUser2 = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), "Can Read")
+  val newUser = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_EDIT)
+  val newUser2 = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_VIEW)
 
   var newProjId = 0
   var newProjMembers: Seq[ProjectRequestUser] = List()
@@ -139,8 +139,8 @@ with SmrtLinkConstants {
         val proj = responseAs[FullProject]
         proj.id === newProjId
         proj.members.length === 1
-        proj.members(0).login === ADMIN_USER_1_LOGIN
-        proj.members(0).role === "OWNER"
+        proj.members.head.login === ADMIN_USER_1_LOGIN
+        proj.members.head.role === ProjectUserRole.OWNER
       }
     }
 
@@ -151,6 +151,32 @@ with SmrtLinkConstants {
         proj.name === newProject2.name
         proj.state === newProject2.state.get
       }
+    }
+
+    "fail to update a project with an unknown user role" in {
+      import spray.http.{ContentTypes, HttpEntity}
+      import ContentTypes.`application/json`
+      import org.specs2.execute.FailureException
+
+      val newProjectJson =
+        """
+          |{
+          |  "name": "TestProject2",
+          |  "description": "Test Description",
+          |  "state": "ACTIVE",
+          |  "members": [{"user": {"login": "jsnow"}, "role": "BAD_ROLE"}]
+          |}
+        """.stripMargin
+      val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
+
+      try {
+        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+          failure(s"Request should have failed but response was $response")
+        }
+      } catch {
+        case e: FailureException if e.getMessage().contains("MalformedRequestContentRejection") =>
+      }
+      ok
     }
 
     "fail to update a project with a conflicting name" in {
@@ -199,8 +225,8 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser.user.login)
-        user(0).role === newUser.role
+        val user = users.filter(_.login == newUser.user.login).head
+        user.role === newUser.role
       }
 
       Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser2)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
@@ -210,8 +236,8 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser2.user.login)
-        user(0).role === newUser2.role
+        val user = users.filter(_.login == newUser2.user.login).head
+        user.role === newUser2.role
       }
     }
 
@@ -219,7 +245,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
-        movingDsId = proj.datasets(0).id
+        movingDsId = proj.datasets.head.id
         dsCount = proj.datasets.size
         dsCount >= 1
       }
