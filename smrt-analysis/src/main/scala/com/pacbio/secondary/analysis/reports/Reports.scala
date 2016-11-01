@@ -318,7 +318,7 @@ object ReportUtils extends ReportJsonProtocol {
     * @return
     */
   def writeReport(report: Report, path: Path): Report = {
-    FileUtils.writeStringToFile(path.toFile, report.toJson.toString)
+    FileUtils.writeStringToFile(path.toFile, report.toJson.prettyPrint)
     report
   }
 
