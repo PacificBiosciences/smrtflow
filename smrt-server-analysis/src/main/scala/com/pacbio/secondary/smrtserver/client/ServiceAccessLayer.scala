@@ -116,12 +116,14 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString))
   }
 
-  protected def deleteJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] = getJobPipeline {
-    Delete(toJobUrl(jobType, jobId))
+  def deleteJob(jobId: UUID, removeDir: Boolean = true): Future[EngineJob] = getJobPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/delete-job"),
+         DeleteJobServiceOptions(jobId, removeDir))
   }
 
-  def deleteAnalysisJob(jobId: IdAble): Future[EngineJob] =
-    deleteJobByTypeAndId(AnalysisJobTypes.PB_PIPE, jobId)
+  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString + "/children"))
+  }
 
   def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] = getJobPipeline {
     Get(toJobUrl(jobType, jobId))

@@ -922,7 +922,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   }
 
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
-    println(s"Attempting to terminate Analysis Job $jobId")
+    println(s"Attempting to terminate Analysis Job ${jobId.toString}")
     // Only Int Job ids are supported
     def failIfUUID(i: IdAble): Future[Int] = {
       i match {
@@ -941,10 +941,21 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runDeleteAnalysisJob(jobId: IdAble): Int = {
-    println(s"Attempting to delete Analysis job $jobId")
-    Try { Await.result(sal.deleteAnalysisJob(jobId), TIMEOUT) } match {
-      case Success(j) => printJobInfo(j)
+  def runDeleteJob(jobId: IdAble): Int = {
+    def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
+      if (nChildren == 0) sal.deleteJob(job.uuid)
+      else throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
+    }
+    println(s"Attempting to delete job ${jobId.toString}")
+    val fx = for {
+      job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      children <- Try { Await.result(sal.getJobChildren(job.uuid), TIMEOUT) }
+      deleteJob <- Try { Await.result(deleteJob(job, children.size), TIMEOUT) }
+      _ <- sal.pollForJob(deleteJob.uuid, maxTime)
+    } yield deleteJob
+
+    fx match {
+      case Success(j) => println(s"Job ${jobId.toString} deleted."); 0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
@@ -1009,7 +1020,7 @@ object PbService {
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteAnalysisJob(c.jobId)
+        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
