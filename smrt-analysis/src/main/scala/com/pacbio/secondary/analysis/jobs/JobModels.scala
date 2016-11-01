@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.jobs
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 import java.net.URL
 
@@ -195,7 +195,10 @@ object JobModels {
       path: String,
       isChunked: Boolean = false,
       name: String,
-      description: String) extends ImportAble
+      description: String) extends ImportAble {
+
+    def fileExists: Boolean = Paths.get(path).toFile.exists
+  }
 
   // Container for file created from a Job
   case class DataStoreJobFile(

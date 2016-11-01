@@ -36,6 +36,12 @@ class DeleteJobServiceType(dbActor: ActorRef,
   override val endpoint = "delete-job"
   override val description = "Delete a services job and remove files"
 
+  private def confirmIsDeletable(jobId: UUID): Future[Boolean] = {
+    ((dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]).map {
+      jobs => if (jobs.isEmpty) true else throw new Exception("Can't delete this job because it has active children")
+    }
+  }
+
   def createJob(sopts: DeleteJobServiceOptions, createdBy: Option[String]): Future[EngineJob] = {
     val uuid = UUID.randomUUID()
     val desc = s"Deleting job ${sopts.jobId}"
@@ -43,6 +49,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
     val fx = for {
       targetJob <- (dbActor ? GetJobByUUID(sopts.jobId)).mapTo[EngineJob]
+      _ <- confirmIsDeletable(targetJob.uuid)
       opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles) }
       _ <- (dbActor ? DeleteJobByUUID(targetJob.uuid))
       engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint, CoreJob(uuid, opts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]

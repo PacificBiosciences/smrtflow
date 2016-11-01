@@ -1124,8 +1124,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       d <- datastoreServiceFiles if d.jobId === j.id
       e <- engineJobsDataSets if e.datasetUUID === d.uuid
       c <- engineJobs if ((c.id === e.jobId) && c.isActive)
-    } yield c
-    db.run(jobDsJoin.result)
+    } yield (d, c)
+    db.run(jobDsJoin.result).map(_.filter(_._1.fileExists).map(_._2))
   }
 
   def getJobChildrenById(jobId: Int): Future[Seq[EngineJob]] = {
@@ -1133,8 +1133,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       d <- datastoreServiceFiles if d.jobId === jobId
       e <- engineJobsDataSets if e.datasetUUID === d.uuid
       c <- engineJobs if ((c.id === e.jobId) && c.isActive)
-    } yield c
-    db.run(jobDsJoin.result)
+    } yield (d, c)
+    db.run(jobDsJoin.result).map(_.filter(_._1.fileExists).map(_._2))
   }
 
   def getSystemSummary(header: String = "System Summary"): Future[String] = {

@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.models
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
@@ -272,7 +272,10 @@ case class DataStoreServiceFile(
     jobUUID: UUID,
     name: String,
     description: String,
-    wasDeleted: Boolean = false)
+    wasDeleted: Boolean = false) {
+
+  def fileExists: Boolean = Paths.get(path).toFile.exists
+}
 
 // Files that have Reports
 case class DataStoreReportFile(
