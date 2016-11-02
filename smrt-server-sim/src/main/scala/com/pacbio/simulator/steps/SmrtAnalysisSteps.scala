@@ -98,6 +98,14 @@ trait SmrtAnalysisSteps {
     }
   }
 
+  case class GetJobById(jobId: Var[Int]) extends VarStep[EngineJob] {
+    override val name = "GetJobById"
+    override def run: Future[Result] = smrtLinkClient.getJob(jobId.get).map { j =>
+      output(j)
+      SUCCEEDED
+    }
+  }
+
   case class GetPipelineTemplateViewRule(pipelineId: Var[String]) extends VarStep[PipelineTemplateViewRule] {
     override val name = "GetPipelineTemplateViewRule"
     override def run: Future[Result] = smrtLinkClient.getPipelineTemplateViewRule(pipelineId.get).map { r =>
@@ -135,6 +143,22 @@ trait SmrtAnalysisSteps {
     override val name = "GetAnalysisJobEntryPoints"
     override def run: Future[Result] = smrtLinkClient.getAnalysisJobEntryPoints(jobId.get).map { e =>
       output(e)
+      SUCCEEDED
+    }
+  }
+
+  case class GetJobChildren(jobId: Var[UUID]) extends VarStep[Seq[EngineJob]] {
+    override val name = "GetJobChildren"
+    override def run: Future[Result] = smrtLinkClient.getJobChildren(jobId.get).map { e =>
+      output(e)
+      SUCCEEDED
+    }
+  }
+
+  case class DeleteJob(jobId: Var[UUID]) extends VarStep[UUID] {
+    override val name = "DeleteJob"
+    override def run: Future[Result] = smrtLinkClient.deleteJob(jobId.get).map { j =>
+      output(j.uuid)
       SUCCEEDED
     }
   }
