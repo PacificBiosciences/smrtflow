@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.jobs
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 import java.net.URL
 
@@ -127,7 +127,8 @@ object JobModels {
       jsonSettings: String,
       createdBy: Option[String],
       smrtlinkVersion: Option[String],
-      smrtlinkToolsVersion: Option[String]) {
+      smrtlinkToolsVersion: Option[String],
+      isActive: Boolean = true) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -146,12 +147,13 @@ object JobModels {
           jsonSettings: String,
           createdBy: Option[String],
           smrtlinkVersion: Option[String],
-          smrtlinkToolsVersion: Option[String]) = {
+          smrtlinkToolsVersion: Option[String],
+          isActive: Boolean = true) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive)
       }
   }
 
@@ -193,7 +195,10 @@ object JobModels {
       path: String,
       isChunked: Boolean = false,
       name: String,
-      description: String) extends ImportAble
+      description: String) extends ImportAble {
+
+    def fileExists: Boolean = Paths.get(path).toFile.exists
+  }
 
   // Container for file created from a Job
   case class DataStoreJobFile(

@@ -55,5 +55,6 @@ object CommonMessages {
   case class PacBioImportDataSet(datum: ImportAble, jobId: UUID)
   case class ImportDataStoreFile(dataStoreFile: DataStoreFile, jobUUID: UUID)
   case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile, jobId: Int)
+  case class DeleteDataStoreFile(uuid: UUID)
 
 }

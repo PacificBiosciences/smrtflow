@@ -116,6 +116,15 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString))
   }
 
+  def deleteJob(jobId: UUID, removeFiles: Boolean = true): Future[EngineJob] = getJobPipeline {
+    Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/delete-job"),
+         DeleteJobServiceOptions(jobId, removeFiles))
+  }
+
+  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString + "/children"))
+  }
+
   def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] = getJobPipeline {
     Get(toJobUrl(jobType, jobId))
   }
@@ -123,6 +132,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
     getJobByTypeAndId(AnalysisJobTypes.PB_PIPE, jobId)
   }
+
 
   def getAnalysisJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.PB_PIPE, jobId)
   def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(AnalysisJobTypes.CONVERT_FASTA, jobId)

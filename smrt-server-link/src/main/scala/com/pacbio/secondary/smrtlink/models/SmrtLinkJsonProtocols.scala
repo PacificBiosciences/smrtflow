@@ -157,7 +157,7 @@ trait SmrtLinkJsonProtocols
   implicit val consensusAlignmentDataSetFormat: RootJsonFormat[ConsensusAlignmentServiceDataSet] = cachedImplicit
 
   implicit val dataStoreJobFileFormat = jsonFormat2(DataStoreJobFile)
-  implicit val dataStoreServiceFileFormat = jsonFormat12(DataStoreServiceFile)
+  implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
@@ -165,6 +165,7 @@ trait SmrtLinkJsonProtocols
   implicit val resolvedPbSmrtPipeOptionsFormat = jsonFormat5(PbSmrtPipeServiceOptions)
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
   implicit val mergeDataSetOptionFormat = jsonFormat3(MergeDataSetOptions)
+  implicit val deleteJobServiceOptions = jsonFormat2(DeleteJobServiceOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
   implicit val fullProjectFormat: RootJsonFormat[FullProject] = cachedImplicit

@@ -412,13 +412,38 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  override def getJobs(limit: Int = 100): Future[Seq[EngineJob]] = db.run(engineJobs.result)
+  override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
+    if (!includeInactive) db.run(engineJobs.filter(_.isActive).result)
+    else db.run(engineJobs.result)
+  }
 
-  def getJobsByTypeId(jobTypeId: String): Future[Seq[EngineJob]] =
-    db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
+  def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
+    if (!includeInactive) db.run(engineJobs.filter(j => j.isActive && (j.jobTypeId === jobTypeId)).result)
+    else db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
+  }
 
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
+
+  def deleteJobById(jobId: Int): Future[Option[EngineJob]] = {
+    logger.info(s"Setting isActive=false for job-id $jobId")
+    val now = JodaDateTime.now()
+    db.run(
+      for {
+        _ <- engineJobs.filter(_.id === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
+        job <- engineJobs.filter(_.id === jobId).result.headOption
+      } yield job)
+  }
+
+  def deleteJobByUUID(jobId: UUID): Future[Option[EngineJob]] = {
+    logger.info(s"Setting isActive=false for job-id $jobId")
+    val now = JodaDateTime.now()
+    db.run(
+      for {
+        _ <- engineJobs.filter(_.uuid === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
+        job <- engineJobs.filter(_.uuid === jobId).result.headOption
+      } yield job)
+  }
 
 }
 
@@ -561,7 +586,10 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
   }
 
-  def getDataStoreFiles2: Future[Seq[DataStoreServiceFile]] = db.run(datastoreServiceFiles.result)
+  def getDataStoreFiles2(ignoreDeleted: Boolean = true): Future[Seq[DataStoreServiceFile]] = {
+    if (ignoreDeleted) db.run(datastoreServiceFiles.filter(!_.wasDeleted).result)
+    else db.run(datastoreServiceFiles.result)
+  }
 
   def getDataStoreFileByUUID2(uuid: UUID): Future[Option[DataStoreServiceFile]] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
@@ -694,9 +722,26 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   def getDataSetById(id: Int): Future[Option[DataSetMetaDataSet]] =
     db.run(datasetMetaTypeById(id).result.headOption)
 
+  def deleteDataSetById(id: Int): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+  }
+
+  def deleteDataSetByUUID(id: UUID): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+  }
+
   def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)
 
   def datasetMetaTypeByUUID(id: UUID) = dsMetaData2.filter(_.uuid === id)
+
+  def getDataSetJobsByUUID(id: UUID): Future[Seq[EngineJob]] = {
+    db.run {
+      val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs.filter(_.isActive) on (_.jobId === _.id)
+      q.result.map(_.map(x => x._2))
+    }
+  }
 
   // util for converting to the old model
   def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
@@ -724,9 +769,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
     }
 
-  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[SubreadServiceDataSet]] =
+  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[SubreadServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsSubread2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsSubread2 on (_.id === _.id)
+        else dsMetaData2 join dsSubread2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toSds(x._1, x._2)))
     }
 
@@ -735,9 +783,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ReferenceServiceDataSet]] =
+  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ReferenceServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsReference2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsReference2 on (_.id === _.id)
+        else dsMetaData2 join dsReference2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toR(x._1, x._2)))
     }
 
@@ -765,9 +816,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[GmapReferenceServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsGmapReference2 on (_.id === _.id)
+        else dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
@@ -790,9 +844,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
-  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[HdfSubreadServiceDataSet]] =
+  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsHdfSubread2 on (_.id === _.id)
+        else dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toHds(x._1, x._2)))
     }
 
@@ -836,9 +893,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[AlignmentServiceDataSet]] =
+  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[AlignmentServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsAlignment2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsAlignment2 on (_.id === _.id)
+        else dsMetaData2 join dsAlignment2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toA(x._1)))
     }
 
@@ -859,8 +919,11 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ConsensusReadServiceDataSet]] = {
-    val query = dsMetaData2 join dsCCSread2 on (_.id === _.id)
+  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusReadServiceDataSet]] = {
+    val query = {
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsCCSread2 on (_.id === _.id)
+      else dsMetaData2 join dsCCSread2 on (_.id === _.id)
+    }
     db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
@@ -893,9 +956,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ConsensusAlignmentServiceDataSet]] =
+  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusAlignmentServiceDataSet]] =
     db.run {
-      val q = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
+      val q = {
+        if (!includeInactive) dsMetaData2.filter(_.isActive) join dsCCSAlignment2 on (_.id === _.id)
+        else dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
+      }
       q.result.map(_.map(x => toCCSA(x._1)))
     }
 
@@ -928,8 +994,11 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[BarcodeServiceDataSet]] = {
-    val query = dsMetaData2 join dsBarcode2 on (_.id === _.id)
+  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[BarcodeServiceDataSet]] = {
+    val query = {
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsBarcode2 on (_.id === _.id)
+      else dsMetaData2 join dsBarcode2 on (_.id === _.id)
+    }
     db.run(query.result.map(_.map(x => toB(x._1))))
   }
 
@@ -970,8 +1039,11 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT): Future[Seq[ContigServiceDataSet]] = {
-    val query = dsMetaData2 join dsContig2 on (_.id === _.id)
+  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ContigServiceDataSet]] = {
+    val query = {
+      if (!includeInactive) dsMetaData2.filter(_.isActive) join dsContig2 on (_.id === _.id)
+      else dsMetaData2 join dsContig2 on (_.id === _.id)
+    }
     db.run(query.result.map(_.map(x => toCtg(x._1))))
   }
 
@@ -995,11 +1067,47 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(datastoreServiceFiles.filter(_.jobId === i).result.map(_.map(toDataStoreJobFile)))
 
   // Need to clean all this all up. There's inconsistencies all over the place.
-  override def getDataStoreFiles: Future[Seq[DataStoreJobFile]] =
-    db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
+  override def getDataStoreFiles(ignoreDeleted: Boolean = true): Future[Seq[DataStoreJobFile]] = {
+    if (ignoreDeleted) db.run(datastoreServiceFiles.filter(!_.wasDeleted).result.map(_.map(toDataStoreJobFile)))
+    else db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
+  }
 
   override def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption.map(_.map(toDataStoreJobFile)))
+
+  def deleteDataStoreFile(id: UUID): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.wasDeleted, f.modifiedAt)).update(true, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to deleted"))
+  }
+
+  def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
+    def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
+      // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
+      val deleteDsFile = ds match {
+        case Some(ds) => DBIO.from(deleteDataStoreFile(id))
+        case None => DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found")))
+      }
+      // 2 of 3: insert of the data set, if it is a known/supported file type
+      val optionalDelete = ds match {
+        case Some(ds) => DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
+          case Some(_) => DBIO.from(deleteDataSetByUUID(ds.uuid))
+          case None => DBIO.from(Future(MessageResponse(s"File type ${ds.fileTypeId} is not a dataset, so no metadata to delete.")))
+        }
+        case None => DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete")))
+      }
+      // 3 of 3: run the appropriate actions in a transaction
+      val fin = for {
+          _ <- deleteDsFile
+          od <- optionalDelete
+      } yield od
+      db.run(fin.transactionally)
+    }
+
+    // This needed queries un-nested due to SQLite limitations -- see #197
+    db.run(datastoreServiceFiles.filter(_.uuid === id).result.headOption).flatMap{
+      addOptionalDelete(_)
+    }
+  }
 
   override def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =
     db.run {
@@ -1009,6 +1117,25 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       } yield dsFiles
       q.result.map(_.map(toDataStoreJobFile))
     }
+
+  def getJobChildrenByUUID(jobId: UUID): Future[Seq[EngineJob]] = {
+    val jobDsJoin = for {
+      j <- engineJobs if j.uuid === jobId
+      d <- datastoreServiceFiles if d.jobId === j.id
+      e <- engineJobsDataSets if e.datasetUUID === d.uuid
+      c <- engineJobs if ((c.id === e.jobId) && c.isActive)
+    } yield (d, c)
+    db.run(jobDsJoin.result).map(_.filter(_._1.fileExists).map(_._2))
+  }
+
+  def getJobChildrenById(jobId: Int): Future[Seq[EngineJob]] = {
+    val jobDsJoin = for {
+      d <- datastoreServiceFiles if d.jobId === jobId
+      e <- engineJobsDataSets if e.datasetUUID === d.uuid
+      c <- engineJobs if ((c.id === e.jobId) && c.isActive)
+    } yield (d, c)
+    db.run(jobDsJoin.result).map(_.filter(_._1.fileExists).map(_._2))
+  }
 
   def getSystemSummary(header: String = "System Summary"): Future[String] = {
     for {

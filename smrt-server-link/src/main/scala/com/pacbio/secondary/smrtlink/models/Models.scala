@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.models
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
@@ -271,7 +271,11 @@ case class DataStoreServiceFile(
     jobId: Int,
     jobUUID: UUID,
     name: String,
-    description: String)
+    description: String,
+    wasDeleted: Boolean = false) {
+
+  def fileExists: Boolean = Paths.get(path).toFile.exists
+}
 
 // Files that have Reports
 case class DataStoreReportFile(
@@ -497,6 +501,7 @@ case class GmapReferenceServiceDataSet(
 
 // Options used for Merging Datasets
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
+case class DeleteJobServiceOptions(jobId: UUID, removeFiles: Boolean = false)
 
 // Project models
 

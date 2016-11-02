@@ -282,7 +282,7 @@ with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)
-  implicit val engineJobFormat = jsonFormat13(EngineJob)
+  implicit val engineJobFormat = jsonFormat14(EngineJob)
 
   // Pipeline DataStore Rules
   implicit val datastoreFileViewRules = jsonFormat5(DataStoreFileViewRule)

@@ -1,4 +1,17 @@
+
+import java.util.UUID
+
+import scala.concurrent.duration._
+
+import com.typesafe.config.Config
+import org.specs2.mutable.Specification
+import org.specs2.specification.Scope
+import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
+import spray.httpx.SprayJsonSupport._
+import spray.testkit.Specs2RouteTest
+import spray.json._
+
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
@@ -10,20 +23,12 @@ import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
+import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider,DeleteJobServiceTypeProvider}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
-import com.typesafe.config.Config
-import org.specs2.mutable.Specification
-import org.specs2.specification.Scope
-import org.specs2.time.NoTimeConversions
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
-
-import scala.concurrent.duration._
 
 
 class JobExecutorSpec extends Specification
@@ -42,6 +47,7 @@ with JobServiceConstants {
   ServiceComposer with
   JobManagerServiceProvider with
   MockPbsmrtpipeJobTypeProvider with
+  DeleteJobServiceTypeProvider with
   JobsDaoActorProvider with
   StatusGeneratorProvider with
   EngineManagerActorProvider with
@@ -106,9 +112,10 @@ with JobServiceConstants {
     "execute job" in new daoSetup {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
-        val msg = responseAs[EngineJob]
-        logger.info(s"Response to $url -> $msg")
+        val job = responseAs[EngineJob]
+        logger.info(s"Response to $url -> $job")
         status.isSuccess must beTrue
+        job.isActive must beTrue
       }
     }
 
@@ -130,6 +137,30 @@ with JobServiceConstants {
     "access job events by job id" in new daoSetup {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
+      }
+    }
+    "delete job" in new daoSetup {
+      var njobs = 0
+      var uuid = UUID.randomUUID()
+      Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+        val jobs = responseAs[Seq[EngineJob]]
+        njobs = jobs.size
+        uuid = jobs(0).uuid
+        jobs(0).id must beEqualTo(1)
+        njobs must beGreaterThan(0)
+      }
+      val params = DeleteJobServiceOptions(uuid, true)
+      Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
+        val job = responseAs[EngineJob]
+        job.jobTypeId must beEqualTo("delete-job")
+      }
+      Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
+        val job = responseAs[EngineJob]
+        job.isActive must beFalse
+      }
+      Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+        val jobs = responseAs[Seq[EngineJob]]
+        jobs.size must beEqualTo(njobs - 1)
       }
     }
 

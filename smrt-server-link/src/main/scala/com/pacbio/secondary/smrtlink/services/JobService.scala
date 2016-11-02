@@ -89,8 +89,8 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, endpoint: String)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
-    (dbActor ? GetJobsByJobType(endpoint)).mapTo[Seq[EngineJob]]
+  def jobList(dbActor: ActorRef, endpoint: String, includeInactive: Boolean = false)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+    (dbActor ? GetJobsByJobType(endpoint, includeInactive)).mapTo[Seq[EngineJob]]
 
   def sharedJobRoutes(dbActor: ActorRef)(implicit ec: ExecutionContext): Route =
     path(JavaUUID) { id =>
@@ -249,6 +249,20 @@ trait JobService
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
           resolveJobResource((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob], id)
+        }
+      }
+    } ~
+    path(JavaUUID / "children") { jobId =>
+      complete {
+        ok {
+          (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]
+        }
+      }
+    } ~
+    path(IntNumber / "children") { jobId =>
+      complete {
+        ok {
+          (dbActor ? GetJobChildrenById(jobId)).mapTo[Seq[EngineJob]]
         }
       }
     }

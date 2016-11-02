@@ -49,7 +49,7 @@ object JobsDaoActor {
 
   case class GetJobByUUID(jobId: UUID) extends JobMessage
 
-  case class GetJobsByJobType(jobTypeId: String) extends JobMessage
+  case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false) extends JobMessage
 
   case class GetJobEventsByJobId(jobId: Int) extends JobMessage
 
@@ -67,6 +67,9 @@ object JobsDaoActor {
       smrtLinkVersion: Option[String],
       smrtLinkToolsVersion: Option[String]) extends JobMessage
 
+  case class GetJobChildrenByUUID(jobId: UUID) extends JobMessage
+  case class GetJobChildrenById(jobId: Int) extends JobMessage
+  case class DeleteJobByUUID(jobId: UUID) extends JobMessage
 
   // Get all DataSet Entry Points
   case class GetEngineJobEntryPoints(jobId: Int)
@@ -81,8 +84,13 @@ object JobsDaoActor {
 
   case class GetDataSetMetaByUUID(uuid: UUID) extends DataSetMessage
 
+  case class GetDataSetJobsByUUID(uuid: UUID) extends DataSetMessage
+
+  case class DeleteDataSetById(id: Int) extends DataSetMessage
+  case class DeleteDataSetByUUID(uuid: UUID) extends DataSetMessage
+
   // DS Subreads
-  case class GetSubreadDataSets(limit: Int) extends DataSetMessage
+  case class GetSubreadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   case class GetSubreadDataSetById(i: Int) extends DataSetMessage
 
@@ -93,7 +101,7 @@ object JobsDaoActor {
   case class GetSubreadDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // DS Reference
-  case class GetReferenceDataSets(limit: Int) extends DataSetMessage
+  case class GetReferenceDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   case class GetReferenceDataSetById(i: Int) extends DataSetMessage
 
@@ -104,7 +112,7 @@ object JobsDaoActor {
   case class GetReferenceDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // GMAP reference
-  case class GetGmapReferenceDataSets(limit: Int) extends DataSetMessage
+  case class GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   case class GetGmapReferenceDataSetById(i: Int) extends DataSetMessage
 
@@ -119,7 +127,7 @@ object JobsDaoActor {
 
   case class GetAlignmentDataSetByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetAlignmentDataSets(limit: Int)
+  case class GetAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   // Hdf Subreads
   case class GetHdfSubreadDataSetById(i: Int) extends DataSetMessage
@@ -130,24 +138,24 @@ object JobsDaoActor {
 
   case class GetHdfSubreadDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetHdfSubreadDataSets(limit: Int) extends DataSetMessage
+  case class GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   // CCS reads
   case class GetConsensusReadDataSetsById(i: Int) extends DataSetMessage
 
   case class GetConsensusReadDataSetsByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetConsensusReadDataSets(limit: Int) extends DataSetMessage
+  case class GetConsensusReadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   // CCS alignments
   case class GetConsensusAlignmentDataSetsById(i: Int) extends DataSetMessage
 
   case class GetConsensusAlignmentDataSetsByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetConsensusAlignmentDataSets(limit: Int) extends DataSetMessage
+  case class GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   // Barcode DataSets
-  case class GetBarcodeDataSets(limit: Int) extends DataSetMessage
+  case class GetBarcodeDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   case class GetBarcodeDataSetsById(i: Int) extends DataSetMessage
 
@@ -158,7 +166,7 @@ object JobsDaoActor {
   case class GetBarcodeDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // ContigSet
-  case class GetContigDataSets(limit: Int) extends DataSetMessage
+  case class GetContigDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   case class GetContigDataSetsById(i: Int) extends DataSetMessage
 
@@ -192,7 +200,7 @@ object JobsDaoActor {
 
   case class GetDataStoreReportByUUID(uuid: UUID) extends DataStoreMessage
 
-  case class GetDataStoreFiles(limit: Int = 1000) extends DataStoreMessage
+  case class GetDataStoreFiles(limit: Int = 1000, ignoreDeleted: Boolean = true) extends DataStoreMessage
 
   case class GetDataStoreFilesByJobId(i: Int) extends DataStoreMessage
 
@@ -304,7 +312,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
   }
 
-
   def toMd5(text: String): String =
     MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
 
@@ -346,8 +353,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         // Summary of job states by type
         val results = states.toList.map(x => (x, rs.count(e => e.state == x)))
         log.debug(s"Results $results")
-        dao.getDataStoreFiles.map { dsJobFiles =>
-          log.debug(s"Number of DataStore files ${dsJobFiles.size}")
+        dao.getDataStoreFiles(true).map { dsJobFiles =>
+          log.debug(s"Number of active DataStore files ${dsJobFiles.size}")
           dsJobFiles.foreach { x => log.debug(s"DS File $x") }
           rs.foreach { x => log.debug(s"Job result id ${x.id} -> ${x.uuid} ${x.state} ${x.jobTypeId}") }
         }
@@ -395,7 +402,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetAllJobs => pipeWith(dao.getJobs(1000))
 
-    case GetJobsByJobType(jobTypeId) => pipeWith(dao.getJobsByTypeId(jobTypeId))
+    case GetJobsByJobType(jobTypeId, includeInactive: Boolean) => pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive))
 
     case GetJobById(jobId: Int) => pipeWith {
       dao.getJobById(jobId).map(_.getOrElse(toE(s"Unable to find JobId $jobId")))
@@ -407,6 +414,24 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
 
+    case GetJobChildrenByUUID(jobId: UUID) => dao.getJobChildrenByUUID(jobId) pipeTo sender
+    case GetJobChildrenById(jobId: Int) => dao.getJobChildrenById(jobId) pipeTo sender
+
+    case DeleteJobByUUID(jobId: UUID) => pipeWith {
+      dao.deleteJobByUUID(jobId).map{ j => 
+        j match {
+          case Some(job) =>
+            dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
+              dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
+            }
+            j
+          case None => toE(s"Unable to find job ${jobId.toString}")
+        }
+      }
+    }
+
+    case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
+
     case GetDataSetMetaById(i: Int) => pipeWith {
       dao.getDataSetById(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
     }
@@ -414,6 +439,11 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetDataSetMetaByUUID(i: UUID) => pipeWith {
       dao.getDataSetByUUID(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
     }
+
+    case GetDataSetJobsByUUID(i: UUID) => pipeWith(dao.getDataSetJobsByUUID(i))
+
+    case DeleteDataSetById(id: Int) => pipeWith(dao.deleteDataSetById(id))
+    case DeleteDataSetByUUID(uuid: UUID) => pipeWith(dao.deleteDataSetByUUID(uuid))
 
     // DataSet Types
     case GetDataSetTypes => pipeWith(dao.getDataSetTypes)
@@ -423,7 +453,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get Subreads
-    case GetSubreadDataSets(limit: Int) => pipeWith(dao.getSubreadDataSets(limit))
+    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getSubreadDataSets(limit, includeInactive))
 
     case GetSubreadDataSetById(n: Int) => pipeWith {
       dao.getSubreadDataSetById(n).map(_.getOrElse(toE(s"Unable to find subread dataset '$n")))
@@ -442,7 +472,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get References
-    case GetReferenceDataSets(limit: Int) => pipeWith(dao.getReferenceDataSets(limit))
+    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getReferenceDataSets(limit, includeInactive))
 
     case GetReferenceDataSetById(id: Int) => pipeWith {
       dao.getReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
@@ -461,7 +491,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get GMAP References
-    case GetGmapReferenceDataSets(limit: Int) => pipeWith(dao.getGmapReferenceDataSets(limit))
+    case GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getGmapReferenceDataSets(limit, includeInactive))
 
     case GetGmapReferenceDataSetById(id: Int) => pipeWith {
       dao.getGmapReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
@@ -542,7 +572,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // get Alignments
-    case GetAlignmentDataSets(limit: Int) => pipeWith(dao.getAlignmentDataSets(limit))
+    case GetAlignmentDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getAlignmentDataSets(limit, includeInactive))
 
     case GetAlignmentDataSetById(n: Int) => pipeWith {
       dao.getAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find Alignment dataset '$n")))
@@ -553,7 +583,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get HDF Subreads
-    case GetHdfSubreadDataSets(limit: Int) => pipeWith(dao.getHdfDataSets(limit))
+    case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getHdfDataSets(limit, includeInactive))
 
     case GetHdfSubreadDataSetById(n: Int) => pipeWith {
       dao.getHdfDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
@@ -572,7 +602,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get CCS Subreads
-    case GetConsensusReadDataSets(limit: Int) => pipeWith(dao.getCCSDataSets(limit))
+    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getCCSDataSets(limit, includeInactive))
 
     case GetConsensusReadDataSetsById(n: Int) => pipeWith {
       dao.getCCSDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
@@ -583,7 +613,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get CCS Subreads
-    case GetConsensusAlignmentDataSets(limit: Int) => pipeWith(dao.getConsensusAlignmentDataSets(limit))
+    case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive))
 
     case GetConsensusAlignmentDataSetsById(n: Int) => pipeWith {
       dao.getConsensusAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$n")))
@@ -594,7 +624,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get Barcodes
-    case GetBarcodeDataSets(limit: Int) => pipeWith(dao.getBarcodeDataSets(limit))
+    case GetBarcodeDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getBarcodeDataSets(limit, includeInactive))
 
     case GetBarcodeDataSetsById(n: Int) => pipeWith {
       dao.getBarcodeDataSetById(n).map(_.getOrElse(toE(s"Unable to find Barcode dataset '$n")))
@@ -613,7 +643,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Contigs
-    case GetContigDataSets(limit: Int) => pipeWith(dao.getContigDataSets(limit))
+    case GetContigDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getContigDataSets(limit, includeInactive))
 
     case GetContigDataSetsById(n: Int) => pipeWith {
       dao.getContigDataSetById(n).map(_.getOrElse(toE(s"Unable to find Contig dataset '$n")))
@@ -645,7 +675,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // DataStore Files
-    case GetDataStoreFiles(limit) => pipeWith(dao.getDataStoreFiles2)
+    case GetDataStoreFiles(limit: Int, ignoreDeleted: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreDeleted))
 
     case GetDataStoreFileByUUID(uuid: UUID) => pipeWith {
       dao.getDataStoreFileByUUID2(uuid).map(_.getOrElse(toE(s"Unable to find DataStoreFile ${uuid.toString}")))

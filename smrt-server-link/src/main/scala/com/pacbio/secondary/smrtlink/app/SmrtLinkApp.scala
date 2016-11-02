@@ -8,7 +8,7 @@ import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
-import com.pacbio.secondary.smrtlink.services.jobtypes.{ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.{ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider, DeleteJobServiceTypeProvider}
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
@@ -42,6 +42,7 @@ trait SmrtLinkProviders extends
   ImportDataSetServiceTypeProvider with
   MergeDataSetServiceJobTypeProvider with
   MockPbsmrtpipeJobTypeProvider with
+  DeleteJobServiceTypeProvider with
   InMemoryRegistryDaoProvider with
   DataModelParserImplProvider {
   override val actorSystemName = Some("smrtlink-smrt-server")

@@ -98,11 +98,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def smrtLinkToolsVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_tools_version")
 
+    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (EngineJob.tupled, EngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -352,7 +354,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+    def wasDeleted: Rep[Boolean] = column[Boolean]("was_deleted")
+
+    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, wasDeleted) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
   }
 
   implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
