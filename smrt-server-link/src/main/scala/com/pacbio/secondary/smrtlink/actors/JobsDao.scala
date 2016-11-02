@@ -430,7 +430,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val now = JodaDateTime.now()
     db.run(
       for {
-        _ <- engineJobs.filter(_.id === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
+        _ <- engineJobs.filter(_.id === jobId).map(j => (j.isActive, j.updatedAt)).update(Some(false), now)
         job <- engineJobs.filter(_.id === jobId).result.headOption
       } yield job)
   }
@@ -440,7 +440,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     val now = JodaDateTime.now()
     db.run(
       for {
-        _ <- engineJobs.filter(_.uuid === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
+        _ <- engineJobs.filter(_.uuid === jobId).map(j => (j.isActive, j.updatedAt)).update(Some(false), now)
         job <- engineJobs.filter(_.uuid === jobId).result.headOption
       } yield job)
   }
@@ -643,7 +643,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     val modifiedAt = createdAt
     dsMetaData2 returning dsMetaData2.map(_.id) += DataSetMetaDataSet(
       -999, ds.uuid, ds.name, ds.path, createdAt, modifiedAt, ds.numRecords, ds.totalLength, ds.tags, ds.version,
-      ds.comments, ds.md5, ds.userId, ds.jobId, ds.projectId, isActive = true)
+      ds.comments, ds.md5, ds.userId, ds.jobId, ds.projectId, isActive = Some(true))
   }
 
   type U = slick.profile.FixedSqlAction[Int,slick.dbio.NoStream,slick.dbio.Effect.Write]
@@ -724,12 +724,12 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def deleteDataSetById(id: Int): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(Some(false), now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
   }
 
   def deleteDataSetByUUID(id: UUID): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(Some(false), now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
   }
 
   def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)

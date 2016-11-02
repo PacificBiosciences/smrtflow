@@ -38,8 +38,12 @@ trait ClientUtils {
 
   def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
     if (asJson) println(ds.toJson.prettyPrint) else {
-      if (ds.isActive) println("DATASET SUMMARY:")
-      else println("DATASET SUMMARY (INACTIVE/DELETED):")
+      ds.isActive match {
+        case Some(isActive) =>
+          if (isActive) println("DATASET SUMMARY:")
+          else println("DATASET SUMMARY (INACTIVE/DELETED):")
+        case None => println("DATASET SUMMARY:")
+      }
       println(s"  id: ${ds.id}")
       println(s"  uuid: ${ds.uuid}")
       println(s"  name: ${ds.name}")
@@ -61,8 +65,12 @@ trait ClientUtils {
     } else if (asJson) {
       println(job.toJson.prettyPrint)
     } else {
-      if (job.isActive) println("JOB SUMMARY:")
-      else println("JOB SUMMARY (INACTIVE/DELETED):")
+      job.isActive match {
+        case Some(isActive) =>
+          if (isActive) println("JOB SUMMARY:")
+          else println("JOB SUMMARY (INACTIVE/DELETED):")
+        case None => println("JOB SUMMARY:")
+      }
       println(s"  id: ${job.id}")
       println(s"  uuid: ${job.uuid}")
       println(s"  name: ${job.name}")
