@@ -523,7 +523,7 @@ def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_u
     :return: dict conf of SL UI
     """
     smrtview_uri = to_uri(host, smrtview_port)
-    services_uri = to_uri(host, 8243, "SMRTLink/1.0.0", https=True)
+    services_uri = to_uri(host, 8243, "", https=True)
     auth_uri = to_uri(host, 8243, https=True)
 
     d = {"smrt-view": {"default-server": smrtview_uri},
