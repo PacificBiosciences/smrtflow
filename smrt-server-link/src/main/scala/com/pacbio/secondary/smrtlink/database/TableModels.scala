@@ -98,7 +98,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def smrtLinkToolsVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_tools_version")
 
-    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+    def isActive: Rep[Option[Boolean]] = column[Option[Boolean]]("is_active")
 
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
@@ -234,7 +234,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def projectId: Rep[Int] = column[Int]("project_id")
 
-    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+    def isActive: Rep[Option[Boolean]] = column[Option[Boolean]]("is_active")
 
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
   }

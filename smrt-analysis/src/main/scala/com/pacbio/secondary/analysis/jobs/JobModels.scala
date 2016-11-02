@@ -128,7 +128,7 @@ object JobModels {
       createdBy: Option[String],
       smrtlinkVersion: Option[String],
       smrtlinkToolsVersion: Option[String],
-      isActive: Boolean = true) {
+      isActive: Option[Boolean] = Some(true)) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -148,7 +148,7 @@ object JobModels {
           createdBy: Option[String],
           smrtlinkVersion: Option[String],
           smrtlinkToolsVersion: Option[String],
-          isActive: Boolean = true) = {
+          isActive: Option[Boolean] = Some(true)) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
