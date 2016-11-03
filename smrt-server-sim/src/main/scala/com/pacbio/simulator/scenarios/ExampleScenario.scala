@@ -7,6 +7,7 @@ import com.typesafe.config.Config
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 object ExampleScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = ExampleScenario
@@ -40,6 +41,8 @@ object ExampleScenario extends Scenario with BasicSteps with VarSteps with Condi
     (num := SquareNumberStep(num)) IF (num ? (_ < 10)),
 
     // If num != 81, fail
-    fail("Expected 3 ^2 ^2 == 81") IF (num !=? 81)
+    fail("Expected 3 ^2 ^2 == 81") IF (num !=? 81),
+
+    fail("This step should fail") SHOULD_FAIL
   )
 }
