@@ -5,13 +5,14 @@
 package com.pacbio.simulator.scenarios
 
 import java.net.URL
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File,PrintWriter}
 
 import akka.actor.ActorSystem
 import scala.collection._
 import com.typesafe.config.{Config, ConfigException}
+import spray.httpx.UnsuccessfulResponseException
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
@@ -57,6 +58,8 @@ class PbsmrtpipeScenario(host: String, port: Int)
 
   override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
 
+  def fileExists(path: String) = Files.exists(Paths.get(path))
+
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
@@ -96,10 +99,13 @@ class PbsmrtpipeScenario(host: String, port: Int)
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
   val job: Var[EngineJob] = Var()
+  val importJob: Var[EngineJob] = Var()
   val jobReports: Var[Seq[DataStoreReportFile]] = Var()
   val report: Var[Report] = Var()
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
   val entryPoints: Var[Seq[EngineJobEntryPoint]] = Var()
+  val childJobs: Var[Seq[EngineJob]] = Var()
+  val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
   val dsRules: Var[PipelineDataStoreViewRules] = Var()
   val pipelineRules: Var[PipelineTemplateViewRule] = Var()
 
@@ -111,7 +117,11 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    childJobs := GetJobChildren(jobId),
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
+    referenceSets := GetReferenceSets,
+    fail("Expected one reference set") IF referenceSets.mapWith(_.size) !=? 1
   )
   val diagnosticJobTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),
@@ -128,7 +138,26 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
-    fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid)
+    fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid,
+    // try and fail to delete ReferenceSet import
+    referenceSets := GetReferenceSets,
+    importJob := GetJobById(referenceSets.mapWith(_.head.jobId)),
+    DeleteJob(importJob.mapWith(_.uuid)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    // delete pbsmrtpipe job
+    jobId := DeleteJob(jobId),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
+    fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
+    dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
+    fail("Expected wasDeleted=true") IF dataStore.mapWith(_.filter(f => !f.wasDeleted).size) !=? 0,
+    // now delete the ReferenceSet import job
+    jobId := DeleteJob(importJob.mapWith(_.uuid)),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
+    fail("Reference dataset file should not have been deleted") IF referenceSets.mapWith(rs => fileExists(rs.head.path)) !=? true,
+    referenceSets := GetReferenceSets,
+    fail("There should be zero ReferenceSets") IF referenceSets.mapWith(_.size) !=? 0
+  )
   // these are probably overkill...
   val miscTests = Seq(
     dsRules := GetDataStoreViewRules(Var("pbsmrtpipe.pipelines.dev_01")),
