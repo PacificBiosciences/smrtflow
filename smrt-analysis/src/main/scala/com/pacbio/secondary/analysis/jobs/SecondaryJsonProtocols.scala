@@ -7,6 +7,7 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes._
+import com.pacbio.common.models.UUIDJsonProtocol
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
@@ -49,20 +50,6 @@ trait DataSetMetaTypesProtocol extends DefaultJsonProtocol {
 }
 
 
-// These are borrowed from base SMRT Server
-trait UUIDJsonProtocol extends DefaultJsonProtocol {
-
-  implicit object UUIDFormat extends JsonFormat[UUID] {
-    def write(obj: UUID): JsValue = JsString(obj.toString)
-
-    def read(json: JsValue): UUID = json match {
-      case JsString(x) => UUID.fromString(x)
-      case _ => deserializationError("Expected UUID as JsString")
-    }
-  }
-
-}
-
 // These are borrowed from Base SMRT Server
 trait JodaDateTimeProtocol extends DefaultJsonProtocol {
 
@@ -73,6 +60,68 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol {
     def read(json: JsValue): JodaDateTime = json match {
       case JsString(x) => JodaDateTime.parse(x)
       case _ => deserializationError("Expected DateTime as JsString")
+    }
+  }
+
+}
+
+// FIXME backwards compatibility for pbservice and older versions of smrtlink -
+// this should be eliminated in favor of the automatic protocol if and when
+// we can get away with it
+trait EngineJobProtocol
+    extends DefaultJsonProtocol
+    with UUIDJsonProtocol
+    with JodaDateTimeProtocol
+    with JobStatesJsonProtocol {
+
+  implicit object EngineJobFormat extends JsonFormat[EngineJob] {
+    def write(obj: EngineJob): JsObject = {
+      JsObject(
+        "id" -> JsNumber(obj.id),
+        "uuid" -> obj.uuid.toJson,
+        "name" -> JsString(obj.name),
+        "comment" -> JsString(obj.comment),
+        "createdAt" -> obj.createdAt.toJson,
+        "updatedAt" -> obj.updatedAt.toJson,
+        "state" -> obj.state.toJson,
+        "jobTypeId" -> JsString(obj.jobTypeId),
+        "path" -> JsString(obj.path),
+        "jsonSettings" -> JsString(obj.jsonSettings),
+        "createdBy" -> obj.createdBy.toJson,
+        "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
+        "smrtlinkToolsVersion" -> obj.smrtlinkToolsVersion.toJson,
+        "isActive" -> obj.isActive.toJson
+      )
+    }
+
+    def read(value: JsValue): EngineJob = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "jobTypeId", "path", "jsonSettings") match {
+        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
+          val createdBy = jsObj.getFields("createdBy") match {
+            case Seq(JsString(createdBy)) => Some(createdBy)
+            case _ => None
+          }
+          val smrtlinkVersion = jsObj.getFields("smrtlinkVersion") match {
+            case Seq(JsString(version)) => Some(version)
+            case _ => None
+          }
+          val smrtlinkToolsVersion = jsObj.getFields("smrtlinkToolsVersion") match {
+            case Seq(JsString(version)) => Some(version)
+            case _ => None
+          }
+          val isActive = jsObj.getFields("isActive") match {
+            case Seq(JsBoolean(b)) => b
+            case _ => true
+          }
+          EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
+                    JodaDateTime.parse(createdAt),
+                    JodaDateTime.parse(updatedAt),
+                    AnalysisJobStates.toState(state).get, jobTypeId,
+                    path, jsonSettings,  createdBy, smrtlinkVersion,
+                    smrtlinkToolsVersion, isActive)
+        case x => deserializationError(s"Expected EngineJob, got $x")
+      }
     }
   }
 
@@ -244,6 +293,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
 with JodaDateTimeProtocol
 with UUIDJsonProtocol
 with JobStatesJsonProtocol
+with EngineJobProtocol
 with DataSetMetaTypesProtocol
 with PipelineTemplateJsonProtocol
 with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
@@ -282,7 +332,6 @@ with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)
-  implicit val engineJobFormat = jsonFormat14(EngineJob)
 
   // Pipeline DataStore Rules
   implicit val datastoreFileViewRules = jsonFormat5(DataStoreFileViewRule)
