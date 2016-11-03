@@ -45,6 +45,6 @@ object ExampleScenario extends Scenario with BasicSteps with VarSteps with Condi
 
     fail("This step should fail") SHOULD_FAIL,
 
-    exception(new IllegalStateException("This exception should be thrown")) SHOULD_RAISE
+    exception(new IllegalStateException("This exception should be thrown")) SHOULD_RAISE classOf[IllegalStateException]
   )
 }
