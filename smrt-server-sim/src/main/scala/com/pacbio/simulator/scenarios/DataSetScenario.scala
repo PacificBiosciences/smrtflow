@@ -103,6 +103,7 @@ class DataSetScenario(host: String, port: Int)
   val job: Var[EngineJob] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
+  val childJobs: Var[Seq[EngineJob]] = Var()
   val nBytes: Var[Int] = Var()
   val dsMeta: Var[DataSetMetaDataSet] = Var()
   val dsReports: Var[Seq[DataStoreReportFile]] = Var()
@@ -196,6 +197,25 @@ class DataSetScenario(host: String, port: Int)
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
     dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
     fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid),
+    // count number of child jobs
+    job := GetJobById(subreadSets.mapWith(_.head.jobId)),
+    childJobs := GetJobChildren(job.mapWith(_.uuid)),
+    fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
+    childJobs := GetJobChildren(jobId),
+    fail("Expected 0 children for merge job") IF childJobs.mapWith(_.size) !=? 0,
+    // delete the merge job
+    jobId := DeleteJob(jobId),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
+    childJobs := GetJobChildren(job.mapWith(_.uuid)),
+    fail("Expected 0 children after delete job") IF childJobs.mapWith(_.size) !=? 0,
+    dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
+    fail("Expected isActive=false") IF dsMeta.mapWith(_.isActive) !=? false,
+    job := GetJobById(subreadSets.mapWith(_.last.jobId)),
+    dataStore := GetMergeJobDataStore(job.mapWith(_.uuid)),
+    fail("Expected wasDeleted=true") IF dataStore.mapWith(_.filter(f => !f.wasDeleted).size) !=? 0,
+    subreadSets := GetSubreadSets,
+    fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
     // export SubreadSets
     jobId := ExportDataSets(ftSubreads, Var(Seq(1,2)), Var(Paths.get("subreadsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
@@ -258,7 +278,21 @@ class DataSetScenario(host: String, port: Int)
     // export BarcodeSets
     jobId := ExportDataSets(ftBarcodes, barcodeSets.mapWith(_.map(d => d.id)), Var(Paths.get("barcodesets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    // delete all jobs
+    jobId := DeleteJob(jobId),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJobById(barcodeSets.mapWith(_.head.jobId)),
+    jobId := DeleteJob(job.mapWith(_.uuid)),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJobById(barcodeSets.mapWith(_.last.jobId)),
+    jobId := DeleteJob(job.mapWith(_.uuid)),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    barcodeSets := GetBarcodeSets,
+    fail("Expected zero BarcodeSets") IF barcodeSets.mapWith(_.size) !=? 0
   )
   val hdfSubreadTests = Seq(
     hdfSubreadSets := GetHdfSubreadSets,
