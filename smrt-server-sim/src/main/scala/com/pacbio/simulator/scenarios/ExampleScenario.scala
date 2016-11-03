@@ -43,6 +43,8 @@ object ExampleScenario extends Scenario with BasicSteps with VarSteps with Condi
     // If num != 81, fail
     fail("Expected 3 ^2 ^2 == 81") IF (num !=? 81),
 
-    fail("This step should fail") SHOULD_FAIL
+    fail("This step should fail") SHOULD_FAIL,
+
+    exception(new IllegalStateException("This exception should be thrown")) SHOULD_RAISE classOf[IllegalStateException]
   )
 }
