@@ -210,7 +210,7 @@ class DataSetScenario(host: String, port: Int)
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 0 children after delete job") IF childJobs.mapWith(_.size) !=? 0,
     dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
-    fail("Expected isActive=false") IF dsMeta.mapWith(_.isActive.getOrElse(true)) !=? false,
+    fail("Expected isActive=false") IF dsMeta.mapWith(_.isActive) !=? false,
     job := GetJobById(subreadSets.mapWith(_.last.jobId)),
     dataStore := GetMergeJobDataStore(job.mapWith(_.uuid)),
     fail("Expected wasDeleted=true") IF dataStore.mapWith(_.filter(f => !f.wasDeleted).size) !=? 0,
