@@ -1042,6 +1042,41 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "query"
+          }
+        ],
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/job-manager/status": {
       "get": {
         "x-scope": "data-management",
