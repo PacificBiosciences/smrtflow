@@ -25,14 +25,6 @@ trait ReportViewRuleProtocol extends DefaultJsonProtocol {
 
 trait SecondaryAnalysisJsonProtocols extends SmrtLinkJsonProtocols with ReportJsonProtocol with ReportViewRuleProtocol with FamilyFormats {
 
-  // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
-  // of namespace conflicts.
-  implicit val pipelineTemplateFormat = SecondaryJobProtocols.PipelineTemplateFormat
-  implicit val pipelineTemplateViewRule = SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val importDataStoreOptionsFormat = SecondaryJobProtocols.importDataStoreOptionsFormat
-  implicit val importConvertFastaOptionsFormat = SecondaryJobProtocols.importConvertFastaOptionsFormat
-  implicit val movieMetadataToHdfSubreadOptionsFormat = SecondaryJobProtocols.movieMetadataToHdfSubreadOptionsFormat
-
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
 

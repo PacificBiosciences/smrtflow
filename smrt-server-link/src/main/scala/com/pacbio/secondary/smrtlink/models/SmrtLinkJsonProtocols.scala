@@ -5,7 +5,7 @@ import java.nio.file.{Paths, Path}
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobProtocols}
+import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobJsonProtocol}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import spray.json._
@@ -100,7 +100,7 @@ trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
 
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
-  with JobStatesJsonProtocol
+  with SecondaryJobJsonProtocol
   with ServiceTaskOptionProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
@@ -122,20 +122,6 @@ trait SmrtLinkJsonProtocols
   implicit val pbRegistryResourceCreateFormat = jsonFormat3(RegistryResourceCreate)
   implicit val pbRegistryResourceUpdateFormat = jsonFormat2(RegistryResourceUpdate)
   implicit val pbRegistryProxyRequestFormat = jsonFormat5(RegistryProxyRequest)
-
-
-  // TODO(smcclellan): We should fix this by having pacbio-secondary import formats from base-smrt-server.
-  // These should be acquired by mixing in SecondaryJobJsonProtocol, but we can't because of UUIDFormat and
-  // DateTimeFormat collisions.
-  implicit val engineJobFormat = SecondaryJobProtocols.EngineJobFormat
-  implicit val engineConfigFormat = SecondaryJobProtocols.engineConfigFormat
-  implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
-  implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
-  implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
-  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.importDataSetOptionsFormat
-  implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
-  implicit val simpleDevJobOptionsFormat  = SecondaryJobProtocols.simpleDevJobOptionsFormat
-
 
   implicit val jobTypeFormat = jsonFormat2(JobTypeEndPoint)
 

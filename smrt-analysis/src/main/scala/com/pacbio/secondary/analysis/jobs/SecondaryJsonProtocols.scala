@@ -7,7 +7,7 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes._
-import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacbio.common.models.{UUIDJsonProtocol,JodaDateTimeProtocol}
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
@@ -50,21 +50,6 @@ trait DataSetMetaTypesProtocol extends DefaultJsonProtocol {
 }
 
 
-// These are borrowed from Base SMRT Server
-trait JodaDateTimeProtocol extends DefaultJsonProtocol {
-
-  implicit object JodaDateTimeFormat extends JsonFormat[JodaDateTime] {
-    def write(obj: JodaDateTime): JsValue = JsString(obj.toString)
-
-
-    def read(json: JsValue): JodaDateTime = json match {
-      case JsString(x) => JodaDateTime.parse(x)
-      case _ => deserializationError("Expected DateTime as JsString")
-    }
-  }
-
-}
-
 // FIXME backwards compatibility for pbservice and older versions of smrtlink -
 // this should be eliminated in favor of the automatic protocol if and when
 // we can get away with it
@@ -74,7 +59,7 @@ trait EngineJobProtocol
     with JodaDateTimeProtocol
     with JobStatesJsonProtocol {
 
-  implicit object EngineJobFormat extends JsonFormat[EngineJob] {
+  implicit object EngineJobFormat extends RootJsonFormat[EngineJob] {
     def write(obj: EngineJob): JsObject = {
       JsObject(
         "id" -> JsNumber(obj.id),
