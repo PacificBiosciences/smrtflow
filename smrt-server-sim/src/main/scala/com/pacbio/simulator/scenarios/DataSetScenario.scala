@@ -215,7 +215,7 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected isActive=false") IF dsMeta.mapWith(_.isActive) !=? false,
     job := GetJobById(subreadSets.mapWith(_.last.jobId)),
     dataStore := GetMergeJobDataStore(job.mapWith(_.uuid)),
-    fail("Expected wasDeleted=true") IF dataStore.mapWith(_.filter(f => !f.wasDeleted).size) !=? 0,
+    fail("Expected isActive=false") IF dataStore.mapWith(_.filter(f => f.isActive).size) !=? 0,
     subreadSets := GetSubreadSets,
     fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
     // export SubreadSets

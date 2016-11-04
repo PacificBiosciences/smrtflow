@@ -200,7 +200,7 @@ object JobsDaoActor {
 
   case class GetDataStoreReportByUUID(uuid: UUID) extends DataStoreMessage
 
-  case class GetDataStoreFiles(limit: Int = 1000, ignoreDeleted: Boolean = true) extends DataStoreMessage
+  case class GetDataStoreFiles(limit: Int = 1000, ignoreInactive: Boolean = true) extends DataStoreMessage
 
   case class GetDataStoreFilesByJobId(i: Int) extends DataStoreMessage
 
@@ -675,7 +675,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // DataStore Files
-    case GetDataStoreFiles(limit: Int, ignoreDeleted: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreDeleted))
+    case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreInactive))
 
     case GetDataStoreFileByUUID(uuid: UUID) => pipeWith {
       dao.getDataStoreFileByUUID2(uuid).map(_.getOrElse(toE(s"Unable to find DataStoreFile ${uuid.toString}")))

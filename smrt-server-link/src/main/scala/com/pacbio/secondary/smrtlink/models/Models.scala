@@ -272,7 +272,7 @@ case class DataStoreServiceFile(
     jobUUID: UUID,
     name: String,
     description: String,
-    wasDeleted: Boolean = false) {
+    isActive: Boolean = true) {
 
   def fileExists: Boolean = Paths.get(path).toFile.exists
 }

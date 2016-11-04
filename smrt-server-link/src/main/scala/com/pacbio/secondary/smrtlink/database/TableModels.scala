@@ -354,9 +354,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def wasDeleted: Rep[Boolean] = column[Boolean]("was_deleted")
+    def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, wasDeleted) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
   }
 
   implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
