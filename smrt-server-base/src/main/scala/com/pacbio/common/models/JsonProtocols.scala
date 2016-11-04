@@ -1,6 +1,5 @@
 package com.pacbio.common.models
 
-import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -8,19 +7,6 @@ import fommil.sjs.FamilyFormats
 
 import scala.concurrent.duration.Duration
 
-trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
-  import PacBioDateTimeFormat.DATE_TIME_FORMAT
-
-  implicit object JodaDateTimeFormat extends JsonFormat[JodaDateTime] {
-    def write(obj: JodaDateTime): JsValue = JsString(obj.toString(DATE_TIME_FORMAT))
-
-
-    def read(json: JsValue): JodaDateTime = json match {
-      case JsString(x) => JodaDateTime.parse(x, DATE_TIME_FORMAT)
-      case _ => deserializationError("Expected DateTime as JsString")
-    }
-  }
-}
 
 trait HealthProtocols extends DefaultJsonProtocol with FamilyFormats {
 

@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.constants.FileTypes.DataSetBaseType
-import com.pacbio.secondary.analysis.jobs.UUIDJsonProtocol
+import com.pacbio.common.models.UUIDJsonProtocol
 import com.pacificbiosciences.pacbiodatasets.{SubreadSet, HdfSubreadSet, AlignmentSet, BarcodeSet, ConsensusReadSet, ConsensusAlignmentSet, ContigSet, ReferenceSet, GmapReferenceSet}
 import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType}
 

@@ -1,6 +1,7 @@
 package com.pacbio.common.time
 
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.PacBioDateTimeFormat
 import org.joda.time.{DateTime => JodaDateTime, Instant => JodaInstant}
 
 /**
