@@ -17,6 +17,7 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
+import spray.httpx.UnsuccessfulResponseException
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports,CallSaWriterIndex}
@@ -201,6 +202,7 @@ class DataSetScenario(host: String, port: Int)
     job := GetJobById(subreadSets.mapWith(_.head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
+    DeleteJob(job.mapWith(_.uuid)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     childJobs := GetJobChildren(jobId),
     fail("Expected 0 children for merge job") IF childJobs.mapWith(_.size) !=? 0,
     // delete the merge job
@@ -399,12 +401,9 @@ class DataSetScenario(host: String, port: Int)
     // wrong XML
     jobId := ConvertRsMovie(hdfSubreads),
     jobStatus := WaitForJob(jobId),
-    fail("Expected RS Movie import to fail") IF jobStatus !=? EXIT_FAILURE
+    fail("Expected RS Movie import to fail") IF jobStatus !=? EXIT_FAILURE,
     // merge mixed dataset types
-    // FIXME this won't even start a job, which is fine - should we still test?
-    //jobId := MergeDataSets(Var(FileTypes.DS_SUBREADS.fileTypeId), Var(Seq(1,4)), Var("merge-subreads")),
-    //jobStatus := WaitForJob(jobId),
-    //fail("Expected merge job to fail") IF jobStatus !=? EXIT_FAILURE
+    MergeDataSets(Var(FileTypes.DS_SUBREADS.fileTypeId), Var(Seq(1,4)), Var("merge-subreads")) SHOULD_RAISE classOf[UnsuccessfulResponseException]
   )
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests
 }

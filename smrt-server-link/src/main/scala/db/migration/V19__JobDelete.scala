@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 class V19__JobDelete extends JdbcMigration with SlickMigration {
   override def slickMigrate(db: DatabaseDef): Future[Any] = db.run(DBIO.seq(
-    sqlu"alter table engine_jobs add column is_active boolean default 1;",
-    sqlu"alter table datastore_files add column was_deleted boolean default 0;"
+    sqlu"alter table engine_jobs add column is_active boolean not null default 1;",
+    sqlu"alter table datastore_files add column was_deleted boolean not null default 0;"
   ))
 }
