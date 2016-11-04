@@ -149,7 +149,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
-    fail("Expected wasDeleted=true") IF dataStore.mapWith(_.filter(f => !f.wasDeleted).size) !=? 0,
+    fail("Expected isActive=false") IF dataStore.mapWith(_.filter(f => f.isActive).size) !=? 0,
     // now delete the ReferenceSet import job
     jobId := DeleteJob(importJob.mapWith(_.uuid)),
     jobStatus := WaitForJob(jobId),

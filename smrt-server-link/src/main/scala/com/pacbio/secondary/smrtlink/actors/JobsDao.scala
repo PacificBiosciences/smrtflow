@@ -586,8 +586,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
   }
 
-  def getDataStoreFiles2(ignoreDeleted: Boolean = true): Future[Seq[DataStoreServiceFile]] = {
-    if (ignoreDeleted) db.run(datastoreServiceFiles.filter(!_.wasDeleted).result)
+  def getDataStoreFiles2(ignoreInactive: Boolean = true): Future[Seq[DataStoreServiceFile]] = {
+    if (ignoreInactive) db.run(datastoreServiceFiles.filter(_.isActive).result)
     else db.run(datastoreServiceFiles.result)
   }
 
@@ -1067,8 +1067,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(datastoreServiceFiles.filter(_.jobId === i).result.map(_.map(toDataStoreJobFile)))
 
   // Need to clean all this all up. There's inconsistencies all over the place.
-  override def getDataStoreFiles(ignoreDeleted: Boolean = true): Future[Seq[DataStoreJobFile]] = {
-    if (ignoreDeleted) db.run(datastoreServiceFiles.filter(!_.wasDeleted).result.map(_.map(toDataStoreJobFile)))
+  override def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreJobFile]] = {
+    if (ignoreInactive) db.run(datastoreServiceFiles.filter(_.isActive).result.map(_.map(toDataStoreJobFile)))
     else db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
   }
 
@@ -1077,7 +1077,7 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def deleteDataStoreFile(id: UUID): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.wasDeleted, f.modifiedAt)).update(true, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to deleted"))
+    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to deleted"))
   }
 
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
