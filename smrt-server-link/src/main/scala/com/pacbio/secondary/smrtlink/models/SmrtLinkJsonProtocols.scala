@@ -125,9 +125,8 @@ trait SmrtLinkJsonProtocols
 
 
   // TODO(smcclellan): We should fix this by having pacbio-secondary import formats from base-smrt-server.
-  // These should be acquired by mixing in SecondaryJobJsonProtocol, but we can't because of UUIDFormat and
-  // DateTimeFormat collisions.
-  implicit val engineJobFormat = SecondaryJobProtocols.engineJobFormat
+  // These should be acquired by mixing in SecondaryJobJsonProtocol, but we can't because of JodaDateTimeFormat collisions.
+  implicit val engineJobFormat = SecondaryJobProtocols.EngineJobFormat
   implicit val engineConfigFormat = SecondaryJobProtocols.engineConfigFormat
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
