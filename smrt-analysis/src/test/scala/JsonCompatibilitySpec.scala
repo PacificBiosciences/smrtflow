@@ -30,21 +30,21 @@ class JsonCompatibilitySpec extends Specification with SecondaryJobJsonProtocol 
     "Load 3.2.0 model from JSON" in {
       val path = getPath("engine_job_02.json")
       val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion.get must beEqualTo("3.2.0.187627")
+      job.smrtlinkVersion must beSome("3.2.0.187627")
       job.id must beEqualTo(3)
       job.isActive must beEqualTo(true)
     }
     "Load 3.3+ model from JSON" in {
       val path = getPath("engine_job_03.json")
       val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion.get must beEqualTo("3.3.0.187723")
+      job.smrtlinkVersion must beSome("3.3.0.187723")
       job.id must beEqualTo(3)
-      job.createdBy.get must beEqualTo("root")
+      job.createdBy must beSome("root")
       job.isActive must beEqualTo(false)
       val s = job.toJson
       val job2 = s.convertTo[EngineJob]
       job2.isActive must beEqualTo(false)
-      job2.smrtlinkVersion.get must beEqualTo("3.3.0.187723")
+      job2.smrtlinkVersion must beSome("3.3.0.187723")
       job2.createdAt must beEqualTo(job.createdAt)
     }
   }
