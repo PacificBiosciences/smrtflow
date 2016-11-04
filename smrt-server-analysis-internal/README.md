@@ -99,22 +99,31 @@ Note pbinternal2 is currently not in the build. The dev/poc tools are currently 
 
 CSV file format is can be used to as an intermediate format to specify conditions from existing jobs that have been run.
 
-The v1 hyper minimalist form is condition id, SMRT Link host and job id. The job **must** produce an alignmentset.
+The v1 hyper minimalist form is *condition id*, *SMRT Link host* and *job id*.
+
+The job **must** start from SubreadSet and ReferenceSet as entry points and must produce an AlignmentSet. This is referred to as a "Resequencing Condition" CSV format.
 
 ```csv
 condId,host,jobId
 condition_a,smrtlink-alpha,1234
 condition_a,smrtlink-beta,456
-condition_b,smrtlink-beta,789
+condition_b,smrtlink-beta:8081,789
+cond_gamma,smrtlink-release:9091,1234
 ```
 
-The condition id and sub condtion id must be match [A-z0-9_], job_id must be an Int.
+#### Fields of Resequencing Condition CSV
+
+- condId (string) must be match [A-z0-9_]
+- host (string) can be provided as "<host>:<port>" (e.g., "my-smrtlink-host:7777") or only with the host. The default port will be 8081 except for "smrtlink-release" which will use 9091
+- jobId (Int) SMRT Link Job id
+
+A list of deployed list of internal SMRT Link servers is available in [confluence](https://confluence.pacificbiosciences.com/display/SL/On-site+SMRT+Link+servers). This list contains SL server details, such as version, port, and upgrade schedule.
+
 
 ### Creating Condition Job from commandline
 
 
 The job name, description, pipeline id and csv contents are posted to the "conditions" job endpoint.
-
 
 ```javascript
 {
