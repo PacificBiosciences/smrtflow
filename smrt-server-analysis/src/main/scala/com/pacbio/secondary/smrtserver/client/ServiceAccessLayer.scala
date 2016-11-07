@@ -116,9 +116,9 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_JOBS + "/" + jobId.toIdString))
   }
 
-  def deleteJob(jobId: UUID, removeFiles: Boolean = true): Future[EngineJob] = getJobPipeline {
+  def deleteJob(jobId: UUID, removeFiles: Boolean = true, dryRun: Boolean = false): Future[EngineJob] = getJobPipeline {
     Post(toUrl(ServiceEndpoints.ROOT_JOBS + "/delete-job"),
-         DeleteJobServiceOptions(jobId, removeFiles))
+         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun)))
   }
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {

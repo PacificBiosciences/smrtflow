@@ -943,8 +943,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   def runDeleteJob(jobId: IdAble): Int = {
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
-      if (nChildren == 0) sal.deleteJob(job.uuid)
-      else throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
+      if (!job.isComplete) {
+        throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first")
+      } else if (nChildren > 0) {
+        throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
+      } else {
+        sal.deleteJob(job.uuid)
+      }
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
     val fx = for {

@@ -155,9 +155,9 @@ trait SmrtAnalysisSteps {
     }
   }
 
-  case class DeleteJob(jobId: Var[UUID]) extends VarStep[UUID] {
+  case class DeleteJob(jobId: Var[UUID], dryRun: Var[Boolean]) extends VarStep[UUID] {
     override val name = "DeleteJob"
-    override def run: Future[Result] = smrtLinkClient.deleteJob(jobId.get).map { j =>
+    override def run: Future[Result] = smrtLinkClient.deleteJob(jobId.get, dryRun = dryRun.get).map { j =>
       output(j.uuid)
       SUCCEEDED
     }

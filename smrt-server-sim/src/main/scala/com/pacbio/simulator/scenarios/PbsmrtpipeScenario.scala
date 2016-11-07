@@ -97,6 +97,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
       Seq[ServiceTaskOptionBase]()))
 
   val jobId: Var[UUID] = Var()
+  val jobId2: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
   val job: Var[EngineJob] = Var()
   val importJob: Var[EngineJob] = Var()
@@ -142,16 +143,19 @@ class PbsmrtpipeScenario(host: String, port: Int)
     // try and fail to delete ReferenceSet import
     referenceSets := GetReferenceSets,
     importJob := GetJobById(referenceSets.mapWith(_.head.jobId)),
-    DeleteJob(importJob.mapWith(_.uuid)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteJob(importJob.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteJob(importJob.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     // delete pbsmrtpipe job
-    jobId := DeleteJob(jobId),
+    jobId2 := DeleteJob(jobId, Var(true)),
+    fail("Expected original job to be returned") IF jobId2 !=? jobId,
+    jobId := DeleteJob(jobId, Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
     fail("Expected isActive=false") IF dataStore.mapWith(_.filter(f => f.isActive).size) !=? 0,
     // now delete the ReferenceSet import job
-    jobId := DeleteJob(importJob.mapWith(_.uuid)),
+    jobId := DeleteJob(importJob.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     fail("Reference dataset file should not have been deleted") IF referenceSets.mapWith(rs => fileExists(rs.head.path)) !=? true,
