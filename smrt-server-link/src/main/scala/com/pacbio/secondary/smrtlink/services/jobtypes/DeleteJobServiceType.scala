@@ -37,8 +37,12 @@ class DeleteJobServiceType(dbActor: ActorRef,
   override val description = "Delete a services job and remove files"
 
   private def confirmIsDeletable(jobId: UUID): Future[Boolean] = {
-    ((dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]).map {
-      jobs => if (jobs.isEmpty) true else throw new Exception("Can't delete this job because it has active children")
+    ((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob]).flatMap { job =>
+      if (job.isComplete) {
+        ((dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]).map {
+          jobs => if (jobs.isEmpty) true else throw new UnprocessableEntityError("Can't delete this job because it has active children")
+        }
+      } else throw new UnprocessableEntityError("Can't delete this job because it hasn't completed")
     }
   }
 
@@ -58,6 +62,14 @@ class DeleteJobServiceType(dbActor: ActorRef,
     fx
   }
 
+  def dryRun(sopts: DeleteJobServiceOptions): Future[EngineJob] = {
+    val fx = for {
+      targetJob <- (dbActor ? GetJobByUUID(sopts.jobId)).mapTo[EngineJob]
+      _ <- confirmIsDeletable(targetJob.uuid)
+    } yield targetJob
+    fx
+  }
+
   override val routes =
     pathPrefix(endpoint) {
       pathEndOrSingleSlash {
@@ -71,7 +83,11 @@ class DeleteJobServiceType(dbActor: ActorRef,
             entity(as[DeleteJobServiceOptions]) { sopts =>
               complete {
                 created {
-                  createJob(sopts, user.map(_.userId))
+                  if (sopts.dryRun.getOrElse(false)) {
+                    dryRun(sopts)
+                  } else {
+                    createJob(sopts, user.map(_.userId))
+                  }
                 }
               }
             }

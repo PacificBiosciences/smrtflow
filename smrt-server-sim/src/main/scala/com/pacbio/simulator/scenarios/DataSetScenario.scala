@@ -103,6 +103,7 @@ class DataSetScenario(host: String, port: Int)
   val dsFiles: Var[Seq[DataStoreServiceFile]] = Var()
   val job: Var[EngineJob] = Var()
   val jobId: Var[UUID] = Var()
+  val jobId2: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
   val childJobs: Var[Seq[EngineJob]] = Var()
   val nBytes: Var[Int] = Var()
@@ -202,11 +203,14 @@ class DataSetScenario(host: String, port: Int)
     job := GetJobById(subreadSets.mapWith(_.head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
-    DeleteJob(job.mapWith(_.uuid)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     childJobs := GetJobChildren(jobId),
     fail("Expected 0 children for merge job") IF childJobs.mapWith(_.size) !=? 0,
     // delete the merge job
-    jobId := DeleteJob(jobId),
+    jobId2 := DeleteJob(jobId, Var(true)),
+    fail("Expected original job to be returned") IF jobId2 !=? jobId,
+    jobId := DeleteJob(jobId, Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
@@ -282,15 +286,15 @@ class DataSetScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     // delete all jobs
-    jobId := DeleteJob(jobId),
+    jobId := DeleteJob(jobId, Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete export job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJobById(barcodeSets.mapWith(_.head.jobId)),
-    jobId := DeleteJob(job.mapWith(_.uuid)),
+    jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJobById(barcodeSets.mapWith(_.last.jobId)),
-    jobId := DeleteJob(job.mapWith(_.uuid)),
+    jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS,
     barcodeSets := GetBarcodeSets,
