@@ -76,6 +76,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
+    val logPath = job.path.resolve("pbscala-job.stdout")
     resultsWriter.writeLineStdout(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val jobDir = opts.path.toFile
     var nFailures = 0
@@ -91,6 +92,17 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
       case Success(files) =>
         val now = JodaDateTime.now()
         val r = toReport(opts.path, files)
+        val logFile = DataStoreFile(
+          UUID.randomUUID(),
+          s"master.log",
+          FileTypes.LOG.fileTypeId,
+          logPath.toFile.length,
+          startedAt,
+          now,
+          logPath.toString,
+          isChunked = false,
+          "Master Log",
+          "Log file of the details of the delete resources job")
         val reportPath = job.path.resolve("delete_report.json")
         ReportUtils.writeReport(r, reportPath)
         val rptFile = DataStoreFile(
@@ -111,7 +123,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
           s"This job has been deleted from the SMRT Link database, but all files have been left in place."
         }
         FileUtils.writeStringToFile(deleteFile, msg)
-        Right(PacBioDataStore(now, now, "0.2.1", Seq(rptFile)))
+        Right(PacBioDataStore(now, now, "0.2.1", Seq(logFile, rptFile)))
       case Failure(err) =>
         val runTimeSec = computeTimeDeltaFromNow(startedAt)
         Left(ResultFailed(job.jobId, jobTypeId.toString, s"Delete job ${job.jobId} of directory ${opts.path.toString} failed with error '${err.getMessage}", runTimeSec, AnalysisJobStates.FAILED, host))
