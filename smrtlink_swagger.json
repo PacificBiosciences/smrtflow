@@ -767,6 +767,7 @@
     },
     "/secondary-analysis/projects/{id}": {
       "put": {
+        "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
         "responses": {
           "default": {
             "description": "Return value"
@@ -794,6 +795,7 @@
         ]
       },
       "get": {
+        "description": "Retrieve the project with the given ID",
         "responses": {
           "default": {
             "description": "Return value"
@@ -818,6 +820,7 @@
         "x-throttling-tier": "Unlimited"
       },
       "delete": {
+        "description": "Delete the project with the given ID",
         "responses": {
           "default": {
             "description": "Return value"
