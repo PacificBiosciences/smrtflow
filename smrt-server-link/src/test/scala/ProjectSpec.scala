@@ -301,5 +301,45 @@ with SmrtLinkConstants {
         dsets.size === dsCount
       }
     }
+
+    "delete a project" in {
+      // first move a dataset into the project
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+
+      // check that the general project has one fewer dataset
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val dsets = responseAs[FullProject].datasets
+        dsets.size === (dsCount - 1)
+      }
+
+      // check that the project list contains the project we're going to delete
+      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val projs = responseAs[Seq[Project]]
+        projs must contain((p: Project) => p.id === newProjId)
+      }
+
+      // then delete the project
+      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+
+      // check that the project list no longer contains that project
+      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val projs = responseAs[Seq[Project]]
+        projs must not contain((p: Project) => p.id === newProjId)
+      }
+
+      // check that the general project regained a dataset
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val dsets = responseAs[FullProject].datasets
+        dsets.size === dsCount
+      }
+    }
   }
 }

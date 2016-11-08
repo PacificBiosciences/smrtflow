@@ -104,6 +104,19 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
                 }
               }
             }
+          } ~
+          delete {
+            authenticate(authenticator.wso2Auth) { user =>
+              // TODO(mskinner) when we bring back project membership,
+              // only allow authorized users (OWNER, CAN_EDIT?) to
+              // delete a project
+              complete {
+                ok {
+                  jobsDao
+                    .deleteProjectById(projId)
+                }
+              }
+            }
           }
         }
       }

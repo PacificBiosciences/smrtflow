@@ -72,8 +72,8 @@ trait DalComponent {
 trait ProjectDataStore extends LazyLogging {
   this: DalComponent with SmrtLinkConstants =>
 
-  def getProjects(limit: Int = 100): Future[Seq[Project]] =
-    db.run(projects.take(limit).result)
+  def getProjects(limit: Int = 1000): Future[Seq[Project]] =
+    db.run(projects.filter(_.isActive).take(limit).result)
 
   def getProjectById(projId: Int): Future[Option[Project]] =
     db.run(projects.filter(_.id === projId).result.headOption)
@@ -85,7 +85,7 @@ trait ProjectDataStore extends LazyLogging {
     val requestWithOwner = projReq.copy(members = Some(withOwner))
 
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, "CREATED", now, now)
+    val proj = Project(-99, projReq.name, projReq.description, "CREATED", now, now, true)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, requestWithOwner))
     db.run(fullAction.transactionally)
@@ -149,6 +149,24 @@ trait ProjectDataStore extends LazyLogging {
     )
 
     db.run(fullAction.transactionally)
+  }
+
+  def deleteProjectById(projId: Int): Future[Option[Project]] = {
+    logger.info(s"Setting isActive=false for project-id $projId")
+    val now = JodaDateTime.now()
+    db.run(DBIO.seq(
+      projects
+        .filter(_.id === projId)
+        .map(j => (j.isActive, j.updatedAt))
+        .update(false, now),
+      // move the datasets from this project into the general project
+      dsMetaData2
+        .filter(_.projectId === projId)
+        .map(ds => (ds.projectId, ds.updatedAt))
+        .update((GENERAL_PROJECT_ID, now))
+    ).andThen(
+      projects.filter(_.id === projId).result.headOption
+    ))
   }
 
   def getProjectUsers(projId: Int): Future[Seq[ProjectUser]] =
