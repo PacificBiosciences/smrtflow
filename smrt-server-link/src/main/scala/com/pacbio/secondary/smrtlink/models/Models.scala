@@ -514,7 +514,9 @@ case class Project(
     description: String,
     state: String,
     createdAt: JodaDateTime,
-    updatedAt: JodaDateTime) {
+    updatedAt: JodaDateTime,
+    // isActive: false if the project has been deleted, true otherwise
+    isActive: Boolean) {
 
   def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectUserResponse]): FullProject =
     FullProject(
@@ -524,6 +526,7 @@ case class Project(
       state,
       createdAt,
       updatedAt,
+      isActive,
       datasets,
       members)
 }
@@ -537,6 +540,7 @@ case class FullProject(
     state: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    isActive: Boolean,
     datasets: Seq[DataSetMetaDataSet],
     members: Seq[ProjectUserResponse]) {
 

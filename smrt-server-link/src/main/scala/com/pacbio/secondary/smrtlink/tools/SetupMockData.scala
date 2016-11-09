@@ -249,7 +249,7 @@ trait MockUtils extends LazyLogging{
     dao.db.run(
       DBIO.seq(
         projects.filter(_.id > 1).delete,
-        projects += Project(projectId, "Project 2", "Project 2 description", "CREATED", JodaDateTime.now(), JodaDateTime.now()),
+        projects += Project(projectId, "Project 2", "Project 2 description", "CREATED", JodaDateTime.now(), JodaDateTime.now(), true),
         projectsUsers += ProjectUser(projectId, "mkocher", ProjectUserRole.OWNER)
       )
     )

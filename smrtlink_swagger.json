@@ -767,6 +767,7 @@
     },
     "/secondary-analysis/projects/{id}": {
       "put": {
+        "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
         "responses": {
           "default": {
             "description": "Return value"
@@ -794,6 +795,32 @@
         ]
       },
       "get": {
+        "description": "Retrieve the project with the given ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "integer",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
+      "delete": {
+        "description": "Delete the project with the given ID",
         "responses": {
           "default": {
             "description": "Return value"

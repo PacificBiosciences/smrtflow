@@ -149,7 +149,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
-    def * = (id, name, description, state, createdAt, updatedAt) <> (Project.tupled, Project.unapply)
+    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+
+    def * = (id, name, description, state, createdAt, updatedAt, isActive) <> (Project.tupled, Project.unapply)
   }
 
   implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
