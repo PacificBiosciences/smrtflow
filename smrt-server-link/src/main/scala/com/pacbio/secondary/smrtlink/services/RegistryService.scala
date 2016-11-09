@@ -140,7 +140,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
       SprayHttpResponse(
         StatusCodes.getForKey(r.code).get,
         HttpEntity.apply(r.body),
-        r.headers.map { case (n, v) => RawHeader(n, v) } toList
+        r.headers.map { case (n, vs) => vs.map(v => RawHeader(n, v)).toList }.toList.flatten
       )
     }
   }
