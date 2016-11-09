@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Paths, Path}
 
 import com.pacbio.common.models._
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
 import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
@@ -87,13 +86,28 @@ trait PathProtocols extends DefaultJsonProtocol {
 trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
   implicit object EitherIntOrUUIDFormat extends RootJsonFormat[Either[Int,UUID]] {
     def write(id: Either[Int, UUID]): JsValue = id match {
-      case Left(id) => JsNumber(id)
+      case Left(num) => JsNumber(num)
       case Right(uuid) => uuid.toJson
     }
     def read(v: JsValue): Either[Int, UUID] = v match {
       case JsNumber(x) => Left(x.toInt)
       case JsString(s) => Right(UUID.fromString(s))
       case _ => deserializationError("Expected datasetId as either JsString or JsNumber")
+    }
+  }
+}
+
+trait ProjectUserRoleProtocols extends DefaultJsonProtocol {
+  import scala.util.control.Exception._
+
+  val errorHandling: Catch[ProjectUserRole.ProjectUserRole] =
+    handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project user role", ex) }
+
+  implicit object ProjectUserRoleFormat extends RootJsonFormat[ProjectUserRole.ProjectUserRole] {
+    def write(r: ProjectUserRole.ProjectUserRole): JsValue = JsString(r.toString)
+    def read(v: JsValue): ProjectUserRole.ProjectUserRole = v match {
+      case JsString(s) => errorHandling { ProjectUserRole.fromString(s) }
+      case _ => deserializationError("Expected Path as JsString")
     }
   }
 }
@@ -105,6 +119,7 @@ trait SmrtLinkJsonProtocols
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
   with PathProtocols
+  with ProjectUserRoleProtocols
   with EntryPointProtocols
   with FamilyFormats {
 

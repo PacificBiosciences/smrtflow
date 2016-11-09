@@ -154,13 +154,16 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, name, description, state, createdAt, updatedAt, isActive) <> (Project.tupled, Project.unapply)
   }
 
+  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
+    {r => r.toString},
+    {r => ProjectUserRole.fromString(r)}
+  )
   class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
-
     def projectId: Rep[Int] = column[Int]("project_id")
 
     def login: Rep[String] = column[String]("login")
 
-    def role: Rep[String] = column[String]("role")
+    def role: Rep[ProjectUserRole.ProjectUserRole] = column[ProjectUserRole.ProjectUserRole]("role")
 
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
 

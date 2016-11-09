@@ -43,7 +43,7 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
       Files.exists(targetSubFile.toPath) must beFalse
       val deleteFile = targetDir.resolve("DELETED")
       Files.exists(deleteFile) must beTrue
-      val r = ReportUtils.loadReport(Paths.get(jobResult.right.get.files(0).path))
+      val r = ReportUtils.loadReport(Paths.get(jobResult.right.get.files(1).path))
       r.attributes(0).value must beEqualTo(targetDir.toString)
     }
     "Test behavior when delete is turned off" in {

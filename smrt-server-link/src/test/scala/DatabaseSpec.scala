@@ -69,7 +69,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         createdAt = now,
         updatedAt = now,
         true)
-      val projectUser = ProjectUser(projectId = -1, username, "owner")
+      val projectUser = ProjectUser(projectId = -1, username, ProjectUserRole.OWNER)
       val dataset = EngineJobEntryPoint(jobId = -1, UUID.randomUUID(), datasetTypeId)
       val metadata = DataSetMetaDataSet(
         id = -1,

@@ -574,12 +574,24 @@ case class ProjectRequest(
 
 case class RequestId(id: Int)
 case class RequestUser(login: String)
-case class ProjectRequestUser(user: RequestUser, role:String)
 
-case class ProjectUser(projectId: Int, login: String, role: String)
+object ProjectUserRole {
+  sealed trait ProjectUserRole
+  case object OWNER extends ProjectUserRole
+  case object CAN_EDIT extends ProjectUserRole
+  case object CAN_VIEW extends ProjectUserRole
 
-case class ProjectUserResponse(login: String, role: String)
+  def fromString(r: String): ProjectUserRole = {
+    Seq(OWNER, CAN_EDIT, CAN_VIEW)
+      .find(_.toString == r)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+  }
+}
+case class ProjectRequestUser(user: RequestUser, role: ProjectUserRole.ProjectUserRole)
+case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
 
-case class UserProjectResponse(role: Option[String], project: Project)
+case class ProjectUserResponse(login: String, role: ProjectUserRole.ProjectUserRole)
+
+case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], project: Project)
  
-case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[String])
+case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
