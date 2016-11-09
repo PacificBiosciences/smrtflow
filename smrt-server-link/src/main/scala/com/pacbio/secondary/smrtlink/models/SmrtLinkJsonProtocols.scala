@@ -100,14 +100,29 @@ trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
 trait ProjectUserRoleProtocols extends DefaultJsonProtocol {
   import scala.util.control.Exception._
 
-  val errorHandling: Catch[ProjectUserRole.ProjectUserRole] =
+  private val errorHandling: Catch[ProjectUserRole.ProjectUserRole] =
     handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project user role", ex) }
 
   implicit object ProjectUserRoleFormat extends RootJsonFormat[ProjectUserRole.ProjectUserRole] {
     def write(r: ProjectUserRole.ProjectUserRole): JsValue = JsString(r.toString)
     def read(v: JsValue): ProjectUserRole.ProjectUserRole = v match {
       case JsString(s) => errorHandling { ProjectUserRole.fromString(s) }
-      case _ => deserializationError("Expected Path as JsString")
+      case _ => deserializationError("Expected role as JsString")
+    }
+  }
+}
+
+trait ProjectStateProtocols extends DefaultJsonProtocol {
+  import scala.util.control.Exception._
+
+  private val errorHandling: Catch[ProjectState.ProjectState] =
+    handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project state", ex) }
+
+  implicit object ProjectStateFormat extends RootJsonFormat[ProjectState.ProjectState] {
+    def write(s: ProjectState.ProjectState): JsValue = JsString(s.toString)
+    def read(v: JsValue): ProjectState.ProjectState = v match {
+      case JsString(s) => errorHandling { ProjectState.fromString(s) }
+      case _ => deserializationError("Expected state as JsString")
     }
   }
 }
@@ -120,6 +135,7 @@ trait SmrtLinkJsonProtocols
   with SupportedAcquisitionStatesProtocols
   with PathProtocols
   with ProjectUserRoleProtocols
+  with ProjectStateProtocols
   with EntryPointProtocols
   with FamilyFormats {
 

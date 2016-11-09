@@ -78,9 +78,9 @@ with SmrtLinkConstants {
   val totalRoutes = TestProviders.projectService().prefixedRoutes
   val dbURI = TestProviders.dbURI()
 
-  val newProject = ProjectRequest("TestProject", "Test Description", Some("CREATED"), None, None)
-  val newProject2 = ProjectRequest("TestProject2", "Test Description", Some("ACTIVE"), None, None)
-  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some("ACTIVE"), None, None)
+  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None)
+  val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
+  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, None)
 
   val newUser = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_EDIT)
   val newUser2 = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_VIEW)
@@ -115,7 +115,7 @@ with SmrtLinkConstants {
         newProjMembers = proj.members.map(x => ProjectRequestUser(RequestUser(x.login), x.role))
         newProjId = proj.id
         proj.name === proj.name
-        proj.state === "CREATED"
+        proj.state === ProjectState.CREATED
       }
     }
 
@@ -165,6 +165,32 @@ with SmrtLinkConstants {
           |  "description": "Test Description",
           |  "state": "ACTIVE",
           |  "members": [{"user": {"login": "jsnow"}, "role": "BAD_ROLE"}]
+          |}
+        """.stripMargin
+      val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
+
+      try {
+        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+          failure(s"Request should have failed but response was $response")
+        }
+      } catch {
+        case e: FailureException if e.getMessage().contains("MalformedRequestContentRejection") =>
+      }
+      ok
+    }
+
+    "fail to update a project with an unknown state" in {
+      import spray.http.{ContentTypes, HttpEntity}
+      import ContentTypes.`application/json`
+      import org.specs2.execute.FailureException
+
+      val newProjectJson =
+        """
+          |{
+          |  "name": "TestProject2",
+          |  "description": "Test Description",
+          |  "state": "BAD_STATE",
+          |  "members": []
           |}
         """.stripMargin
       val newProjectEntity = HttpEntity(`application/json`, newProjectJson)

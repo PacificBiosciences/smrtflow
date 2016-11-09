@@ -135,6 +135,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
   }
 
+  implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
+    {s => s.toString},
+    {s => ProjectState.fromString(s)}
+  )
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
@@ -143,7 +147,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def state: Rep[String] = column[String]("state")
+    def state: Rep[ProjectState.ProjectState] = column[ProjectState.ProjectState]("state")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
