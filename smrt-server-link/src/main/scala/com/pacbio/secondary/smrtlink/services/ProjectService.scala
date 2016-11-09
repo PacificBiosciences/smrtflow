@@ -85,6 +85,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
               entity(as[ProjectRequest]) { sopts =>
                 complete {
                   ok {
+                    validateUpdates(sopts)
                     jobsDao
                       .updateProject(projId, sopts)
                       .flatMap(maybeFullProject(projId))
@@ -143,6 +144,10 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
         }
       }
     }
+
+  def validateUpdates(updates: ProjectRequest): Unit =
+    if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER)))
+      throw new ConflictError("Requested update would remove all project owners.")
 }
 
 

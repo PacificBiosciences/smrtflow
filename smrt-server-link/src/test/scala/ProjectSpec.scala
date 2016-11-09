@@ -86,7 +86,8 @@ with SmrtLinkConstants {
   val newUser2 = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_VIEW)
 
   var newProjId = 0
-  var newProjMembers: Seq[ProjectRequestUser] = List()
+  var newProjMembers: Seq[ProjectRequestUser] =
+    List(ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.OWNER))
   var dsCount = 0
   var movingDsId = 0
 
@@ -203,6 +204,12 @@ with SmrtLinkConstants {
         case e: FailureException if e.getMessage().contains("MalformedRequestContentRejection") =>
       }
       ok
+    }
+
+    "fail to update a project with a no owners" in {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(Seq()))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status === StatusCodes.Conflict
+      }
     }
 
     "fail to update a project with a conflicting name" in {
