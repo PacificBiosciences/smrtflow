@@ -598,3 +598,5 @@ case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet,
 
 
 case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
+
+case class EulaAcceptance(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)

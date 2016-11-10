@@ -556,7 +556,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val samples = TableQuery[SampleT]
 
   // EULA
-  lazy val eula = TableQuery[EulaRecordT]
+  lazy val eulas = TableQuery[EulaRecordT]
 
   final type SlickTable = TableQuery[_ <: Table[_]]
 
@@ -581,7 +581,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eula)
+    eulas)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)
 }

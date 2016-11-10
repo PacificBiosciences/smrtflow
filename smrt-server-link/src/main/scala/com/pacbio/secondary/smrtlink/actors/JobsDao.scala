@@ -1185,6 +1185,18 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
          |Total DataStoreFiles : $dsFiles
        """.stripMargin
   }
+
+  def addEulaAcceptance(user: String,
+                        smrtlinkVersion: String,
+                        enableInstallMetrics: Boolean,
+                        enableJobMetrics: Boolean): Future[EulaRecord] = {
+    val now = JodaDateTime.now()
+    val rec = EulaRecord(user, now, smrtlinkVersion, enableInstallMetrics, enableJobMetrics)
+    db.run(eulas += rec).map(_ => rec)
+  }
+
+  def getEulaByVersion(version: String): Future[Option[EulaRecord]] =
+    db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
 }
 
 class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore

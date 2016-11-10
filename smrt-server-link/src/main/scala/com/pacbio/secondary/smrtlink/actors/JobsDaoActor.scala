@@ -37,6 +37,8 @@ object MessageTypes {
   abstract class DataSetMessage
 
   abstract class DataStoreMessage
+
+  abstract class AdminMessage
 }
 
 object JobsDaoActor {
@@ -72,7 +74,7 @@ object JobsDaoActor {
   case class DeleteJobByUUID(jobId: UUID) extends JobMessage
 
   // Get all DataSet Entry Points
-  case class GetEngineJobEntryPoints(jobId: Int)
+  case class GetEngineJobEntryPoints(jobId: Int) extends JobMessage
 
   // DataSet
   case object GetDataSetTypes extends DataSetMessage
@@ -205,6 +207,10 @@ object JobsDaoActor {
   case class GetDataStoreFilesByJobId(i: Int) extends DataStoreMessage
 
   case class GetDataStoreFilesByJobUUID(i: UUID) extends DataStoreMessage
+
+  case class GetEulaByVersion(version: String) extends AdminMessage
+
+  case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
 }
 
 class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
@@ -709,6 +715,14 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // Need to consolidate this
     case UpdateJobStatus(uuid, state) =>
       pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state"))
+
+    case GetEulaByVersion(version) => {
+      log.info(s"retrieving EULA for version $version")
+      pipeWith(dao.getEulaByVersion(version).map(_.getOrElse(toE(s"EULA for version $version has not been accepted"))))
+    }
+
+    case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
+      pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
 
     // Testing/Debugging messages
     case "example-test-message" => respondWith("Successfully got example-test-message")
