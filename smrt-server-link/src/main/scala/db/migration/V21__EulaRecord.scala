@@ -12,7 +12,7 @@ class V21__AddEula extends JdbcMigration with SlickMigration{
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(DBIO.seq(
-      sqlu"""CREATE TABLE IF NOT EXISTS "eula_record" ("user" VARCHAR(254) NOT NULL, "os_version" VARCHAR(254) NOT NULL,"accepted_at" INTEGER NOT NULL, "smrtlink_version" VARCHAR(254) PRIMARY_KEY NOT NULL, "state" INTEGER NOT NULL DEFAULT 0)"""
+      sqlu"""CREATE TABLE IF NOT EXISTS "eula_record" ("user" VARCHAR(254) NOT NULL, "accepted_at" INTEGER NOT NULL, "smrtlink_version" VARCHAR(254) PRIMARY_KEY NOT NULL, "enable_install_metrics" BOOLEAN NOT NULL DEFAULT 0, "enable_job_metrics" BOOLEAN NOT NULL DEFAULT 0)"""
     ))
   }
 }

@@ -596,33 +596,5 @@ case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], pr
  
 case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
 
-object EulaStates {
-  trait EulaState {
-    val stateId: Int
-  }
 
-  case object NOT_CONFIRMED extends EulaState {
-    val stateId = 1
-  }
-  case object ALLOW_INSTALL_STATS extends EulaState {
-    val stateId = 2
-  }
-  case object ALLOW_FULL_STATS extends EulaState {
-    val stateId = 3
-  }
-
-  val VALID_STATES = Seq(NOT_CONFIRMED, ALLOW_INSTALL_STATS, ALLOW_FULL_STATS)
-  def intToState(i: Int): Option[EulaState] = VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
-}
-
-case class EulaRecord(user: String, osVersion: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, state: EulaStates.EulaState) {
-  def apply(
-      user: String,
-      osVersion: String,
-      acceptedAt: JodaDateTime,
-      smrtlinkVersion: String,
-      stateId: Int) = {
-    val state = EulaStates.intToState(stateId).getOrElse(EulaStates.NOT_CONFIRMED)
-    EulaRecord(user, osVersion, acceptedAt, smrtlinkVersion, state)
-  }
-}
+case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
