@@ -510,6 +510,20 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
   }
 
+  implicit val eulaStateType = MappedColumnType.base[EulaStates.EulaState, Int](
+    {s => s.stateId},
+    {i => EulaStates.intToState(i).getOrElse(EulaStates.NOT_CONFIRMED)}
+  )
+
+  class EulaRecordT(tag: Tag) extends Table[EulaRecord](tag, "eula_record") {
+    def user: Rep[String] = column[String]("user")
+    def osVersion: Rep[String] = column[String]("os_version")
+    def acceptedAt: Rep[JodaDateTime] = column[JodaDateTime]("accepted_at")
+    def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version")
+    def state: Rep[EulaStates.EulaState] = column[EulaStates.EulaState]("state")
+    def * = (user, osVersion, acceptedAt, smrtlinkVersion, state) <> (EulaRecord.tupled, EulaRecord.unapply)
+  }
+
   // DataSet types
   lazy val dsMetaData2 = TableQuery[DataSetMetaT]
   lazy val dsSubread2 = TableQuery[SubreadDataSetT]
@@ -546,6 +560,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   // Samples
   lazy val samples = TableQuery[SampleT]
 
+  // EULA
+  lazy val eula = TableQuery[EulaRecordT]
+
   final type SlickTable = TableQuery[_ <: Table[_]]
 
   lazy val serviceTables: Set[SlickTable] = Set(
@@ -568,7 +585,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsGmapReference2,
     dsCCSAlignment2,
     dsContig2,
-    datastoreServiceFiles)
+    datastoreServiceFiles,
+    eula)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)
 }
