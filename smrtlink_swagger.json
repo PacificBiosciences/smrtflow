@@ -1591,6 +1591,61 @@
         },
         "x-auth-type": "Application & Application User"
       }
+    },
+    "/smrt-base/eula": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Return value"
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "x-scope": "analysis",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-base/eula/{version}": {
+      "get": {
+        "x-scope": "analysis",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
     }
   }
 }
