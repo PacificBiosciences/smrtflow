@@ -11,6 +11,7 @@ import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
 
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.actors.ActorSystemProvider
@@ -20,7 +21,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.services._
 
 
-class EulaService(dbActor: ActorRef)(implicit val actorSystem: ActorSystem)
+class EulaService(dbActor: ActorRef,  authenticator: Authenticator)//(implicit val actorSystem: ActorSystem)
     extends BaseSmrtService with JobServiceConstants {
 
   import JobsDaoActor._
@@ -68,13 +69,12 @@ class EulaService(dbActor: ActorRef)(implicit val actorSystem: ActorSystem)
 
 trait EulaServiceProvider {
   this: JobsDaoActorProvider
-    with ActorSystemProvider
+    with AuthenticatorProvider
     with ServiceComposer =>
 
   val eulaService: Singleton[EulaService] =
     Singleton { () =>
-      implicit val system = actorSystem()
-      new EulaService(jobsDaoActor())
+      new EulaService(jobsDaoActor(), authenticator())
     }
 
   addService(eulaService)
