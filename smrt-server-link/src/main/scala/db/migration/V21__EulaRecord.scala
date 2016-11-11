@@ -24,7 +24,7 @@ object V21Schema extends PacBioDateTimeDatabaseFormat {
   class EulaRecordT(tag: Tag) extends Table[(String, JodaDateTime, String, Boolean, Boolean)](tag, "eula_record") {
     def user: Rep[String] = column[String]("user")
     def acceptedAt: Rep[JodaDateTime] = column[JodaDateTime]("accepted_at")
-    def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version")
+    def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version", O.PrimaryKey)
     def enableInstallMetrics: Rep[Boolean] = column[Boolean]("enable_install_metrics")
     def enableJobMetrics: Rep[Boolean] = column[Boolean]("enable_job_metrics")
     def * :ProvenShape[(String, JodaDateTime, String, Boolean, Boolean)] = (user, acceptedAt, smrtlinkVersion, enableInstallMetrics, enableJobMetrics)
