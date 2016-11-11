@@ -66,7 +66,7 @@ class EulaServiceSpec extends Specification
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.projectService().prefixedRoutes
+  val totalRoutes = TestProviders.eulaService().prefixedRoutes
   val dbURI = TestProviders.dbURI()
 
   def dbSetup() = {
