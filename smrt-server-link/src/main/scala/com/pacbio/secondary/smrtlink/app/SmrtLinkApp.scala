@@ -29,6 +29,7 @@ trait SmrtLinkProviders extends
   JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
+  EulaServiceProvider with
   ProjectServiceProvider with
   DataSetServiceProvider with
   RunServiceProvider with
