@@ -208,8 +208,8 @@ object JobsDaoActor {
 
   case class GetDataStoreFilesByJobUUID(i: UUID) extends DataStoreMessage
 
+  case object GetEulas extends AdminMessage
   case class GetEulaByVersion(version: String) extends AdminMessage
-
   case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
 }
 
@@ -715,6 +715,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // Need to consolidate this
     case UpdateJobStatus(uuid, state) =>
       pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state"))
+
+    case GetEulas => pipeWith(dao.getEulas)
 
     case GetEulaByVersion(version) => {
       log.info(s"retrieving EULA for version $version")

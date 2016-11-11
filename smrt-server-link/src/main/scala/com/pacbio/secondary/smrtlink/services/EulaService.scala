@@ -39,7 +39,6 @@ class EulaService(dbActor: ActorRef)(implicit val actorSystem: ActorSystem)
         get {
           complete {
             ok {
-            
               (dbActor ? GetEulaByVersion(version)).mapTo[EulaRecord]
             }
           }
@@ -52,6 +51,13 @@ class EulaService(dbActor: ActorRef)(implicit val actorSystem: ActorSystem)
               created {
                 (dbActor ? AcceptEula(sopts.user, sopts.smrtlinkVersion, sopts.enableInstallMetrics, sopts.enableJobMetrics)).mapTo[EulaRecord]
               }
+            }
+          }
+        } ~
+        get {
+          complete {
+            ok {
+              (dbActor ? GetEulas).mapTo[Seq[EulaRecord]]
             }
           }
         }

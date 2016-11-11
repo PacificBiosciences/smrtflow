@@ -1195,6 +1195,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(eulas += rec).map(_ => rec)
   }
 
+  def getEulas: Future[Seq[EulaRecord]] = db.run(eulas.result)
+
   def getEulaByVersion(version: String): Future[Option[EulaRecord]] =
     db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
 }
