@@ -640,6 +640,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="Ready"/>
 			<xs:enumeration value="Initializing"/>
 			<xs:enumeration value="Acquiring"/>
+			<xs:enumeration value="InPrep"/>
 			<xs:enumeration value="SocketDiagnostics"/>
 			<xs:enumeration value="SensorDiagnostics"/>
 			<xs:enumeration value="Aligning"/>
