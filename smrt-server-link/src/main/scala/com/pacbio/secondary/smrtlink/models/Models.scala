@@ -506,13 +506,25 @@ case class DeleteJobServiceOptions(jobId: UUID, removeFiles: Boolean = false,
 
 // Project models
 
+object ProjectState {
+  sealed trait ProjectState
+  case object CREATED extends ProjectState
+  case object ACTIVE extends ProjectState
+
+  def fromString(s: String): ProjectState = {
+    Seq(CREATED, ACTIVE)
+      .find(_.toString == s)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
+  }
+}
+
 // We have a simpler (cheaper to query) project case class for the API
 // response that lists many projects,
 case class Project(
     id: Int,
     name: String,
     description: String,
-    state: String,
+    state: ProjectState.ProjectState,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     // isActive: false if the project has been deleted, true otherwise
@@ -537,7 +549,7 @@ case class FullProject(
     id: Int,
     name: String,
     description: String,
-    state: String,
+    state: ProjectState.ProjectState,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     isActive: Boolean,
@@ -561,7 +573,7 @@ case class ProjectRequest(
     description: String,
     // if any of these are None in a PUT request, the corresponding
     // value will stay the same (i.e., the update will be skipped).
-    state: Option[String],
+    state: Option[ProjectState.ProjectState],
     datasets: Option[Seq[RequestId]],
     members: Option[Seq[ProjectRequestUser]]) {
 
