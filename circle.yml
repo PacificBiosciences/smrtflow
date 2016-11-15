@@ -25,16 +25,16 @@ dependencies:
 
 test:
   override:
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-logging/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-database/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-common-models/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-analysis/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-common-models/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-analysis/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-analysis-internal/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-base/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-database/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-lims/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-link/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-logging/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" smrt-server-sim/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-base/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-link/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-lims/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-analysis/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-analysis-internal/test
+    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-sim/test
   # Copy test reports to Circle test reports dir
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
