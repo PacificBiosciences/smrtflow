@@ -28,7 +28,6 @@ class HealthSpec
 
   import PacBioJsonProtocol._
   import Authenticator._
-  import Roles._
 
   def actorRefFactory = system
 
@@ -99,7 +98,7 @@ class HealthSpec
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
       override def parse(jwt: String): Option[UserRecord] = if (jwt == invalidJwt) None else Some {
-        if (jwt == adminUserLogin) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+        if (jwt == adminUserLogin) UserRecord(jwt, Some("PbAdmin")) else UserRecord(jwt)
       }
     })
   }
