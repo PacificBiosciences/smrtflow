@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -8,21 +8,22 @@ import akka.pattern.ask
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
-import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+
+import scala.util.control.NonFatal
 
 
 class DeleteJobServiceType(dbActor: ActorRef,
@@ -36,11 +37,12 @@ class DeleteJobServiceType(dbActor: ActorRef,
   override val endpoint = "delete-job"
   override val description = "Delete a services job and remove files"
 
-  private def confirmIsDeletable(jobId: UUID): Future[Boolean] = {
-    ((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob]).flatMap { job =>
+  private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
+    (dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob].flatMap { job =>
       if (job.isComplete) {
-        ((dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]]).map {
-          jobs => if (jobs.isEmpty) true else throw new UnprocessableEntityError("Can't delete this job because it has active children")
+        (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]].map {
+          jobs => if (jobs.isEmpty) job else
+            throw new UnprocessableEntityError("Can't delete this job because it has active children")
         }
       } else throw new UnprocessableEntityError("Can't delete this job because it hasn't completed")
     }
@@ -52,23 +54,16 @@ class DeleteJobServiceType(dbActor: ActorRef,
     val name = s"Job $endpoint"
 
     val fx = for {
-      targetJob <- (dbActor ? GetJobByUUID(sopts.jobId)).mapTo[EngineJob]
-      _ <- confirmIsDeletable(targetJob.uuid)
+      targetJob <- confirmIsDeletable(sopts.jobId)
       opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles) }
-      _ <- (dbActor ? DeleteJobByUUID(targetJob.uuid))
+      _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
       engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint, CoreJob(uuid, opts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
     } yield engineJob
 
     fx
   }
 
-  def dryRun(sopts: DeleteJobServiceOptions): Future[EngineJob] = {
-    val fx = for {
-      targetJob <- (dbActor ? GetJobByUUID(sopts.jobId)).mapTo[EngineJob]
-      _ <- confirmIsDeletable(targetJob.uuid)
-    } yield targetJob
-    fx
-  }
+  def dryRun(sopts: DeleteJobServiceOptions): Future[EngineJob] = confirmIsDeletable(sopts.jobId)
 
   override val routes =
     pathPrefix(endpoint) {
@@ -83,11 +78,10 @@ class DeleteJobServiceType(dbActor: ActorRef,
             entity(as[DeleteJobServiceOptions]) { sopts =>
               complete {
                 created {
-                  if (sopts.dryRun.getOrElse(false)) {
+                  if (sopts.dryRun.getOrElse(false))
                     dryRun(sopts)
-                  } else {
+                  else
                     createJob(sopts, user.map(_.userId))
-                  }
                 }
               }
             }

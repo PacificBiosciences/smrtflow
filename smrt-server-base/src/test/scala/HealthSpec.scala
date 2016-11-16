@@ -497,12 +497,6 @@ class HealthSpec
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
-
-      val noAdmin = RawHeader(JWT_HEADER, readUserLogin)
-      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(0.0, Set.empty)) ~> addHeader(noAdmin) ~> routes ~> check {
-        handled must beFalse
-        rejection === AuthorizationFailedRejection
-      }
     }
   }
 }

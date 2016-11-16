@@ -234,12 +234,6 @@ class LogSpec
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
-
-      val noAdmin = RawHeader(JWT_HEADER, readUserLogin)
-      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addHeader(noAdmin) ~> routes ~> check {
-        handled must beFalse
-        rejection === AuthorizationFailedRejection
-      }
     }
   }
 }
