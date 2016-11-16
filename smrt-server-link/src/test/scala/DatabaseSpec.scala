@@ -65,7 +65,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         id = -1,
         "project-name",
         "project-description",
-        "project-state",
+        ProjectState.CREATED,
         createdAt = now,
         updatedAt = now,
         true)

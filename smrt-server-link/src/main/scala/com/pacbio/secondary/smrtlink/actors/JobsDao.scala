@@ -85,7 +85,7 @@ trait ProjectDataStore extends LazyLogging {
     val requestWithOwner = projReq.copy(members = Some(withOwner))
 
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, "CREATED", now, now, true)
+    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, true)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, requestWithOwner))
     db.run(fullAction.transactionally)
@@ -140,11 +140,9 @@ trait ProjectDataStore extends LazyLogging {
     }
 
     val fullAction = update.andThen(
-      projects.filter(_.id === projId).result.headOption.flatMap { maybeProj =>
-        maybeProj match {
-          case Some(proj) => setMembersAndDatasets(proj, projReq).map(Some(_))
-          case None => DBIO.successful(None)
-        }
+      projects.filter(_.id === projId).result.headOption.flatMap {
+        case Some(proj) => setMembersAndDatasets(proj, projReq).map(Some(_))
+        case None => DBIO.successful(None)
       }
     )
 
