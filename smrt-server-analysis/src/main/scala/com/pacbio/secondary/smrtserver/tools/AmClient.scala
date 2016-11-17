@@ -20,7 +20,7 @@ import scopt.OptionParser
 import spray.http._
 import spray.can.Http
 import spray.client.pipelining._
-import spray.httpx
+import spray.httpx.marshalling.BasicMarshallers._
 import spray.json._
 import spray.httpx.SprayJsonSupport
 
@@ -29,6 +29,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 import org.wso2.carbon.apimgt.rest.api.store
+import org.wso2.carbon.apimgt.rest.api.publisher
 
 
 object AmClientModes {
@@ -37,7 +38,8 @@ object AmClientModes {
   }
   case object CREATE_API extends Mode {val name = "create-api"}
   case object CREATE_ROLES extends Mode {val name = "create-roles"}
-  case object SET_KEY extends Mode {val name = "set-key"}
+  case object GET_KEY extends Mode {val name = "get-key"}
+  case object SET_ENDPOINT extends Mode {val name = "set-endpoint"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -56,6 +58,7 @@ object AmClientParser {
     portOffset: Int = 0,
     user: String = "admin",
     pass: String = "admin",
+    apiName: String = "SMRTLink",
     target: String = "http://localhost:8081/",
     roles: String = "Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics",
     swagger: Path = null,
@@ -85,6 +88,7 @@ object AmClientParser {
       c.copy(pass = x)
     } text "API Manager admin password"
 
+
     opt[Unit]("debug") action { (_, c) =>
       c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig]
     } text "Display debugging log output"
@@ -111,13 +115,27 @@ object AmClientParser {
       } text "list of roles"
     ) text "create roles"
 
-    cmd(AmClientModes.SET_KEY.name) action { (_, c) =>
-      c.copy(command = (c) => println(c), mode = AmClientModes.SET_KEY)
+    cmd(AmClientModes.GET_KEY.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = AmClientModes.GET_KEY)
     } children(
-      arg[File]("app-config") action { (p, c) =>
+      opt[File]("app-config") action { (p, c) =>
         c.copy(appConfig = p)
       } text "path to app-config.json file"
-    ) text "take consumer key/secret from app-config.json and add it to DefaultApplication"
+    ) text "get the consumer key/secret from DefaultApplication and write it to the app-config file"
+
+    cmd(AmClientModes.SET_ENDPOINT.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = AmClientModes.SET_ENDPOINT)
+    } children(
+      opt[String]("api-name") action { (a, c) =>
+        c.copy(apiName = a)
+      } text "API Name",
+      opt[String]("target") action { (x, c) =>
+        c.copy(target = x)
+      } text "backend URL",
+      opt[File]("app-config") action { (p, c) =>
+        c.copy(appConfig = p)
+      } text "path to app-config.json file"
+    ) text "update backend target URL"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -126,46 +144,23 @@ object AmClientParser {
   }
 }
 
-case class ClientRegistrationRequest(callbackUrl: String, clientName: String, tokenScope: String = "Production", owner: String, grantType: String = "password refresh_token", saasApp: Boolean)
-
-case class ClientRegistrationResponse(appOwner: Option[String], clientName: Option[String], callBackURL: String, isSaasApplication: Boolean, jsonString: String, clientId: String, clientSecret: String)
-
-case class OauthToken(access_token: String, refresh_token: String, scope: String, token_type: String, expires_in: Int)
 
 case class AppConfig(consumerKey: String, consumerSecret: String)
 
-object AmClientJsonProtocols extends DefaultJsonProtocol {
-  implicit val clientRegistrationRequestFormat = jsonFormat6(ClientRegistrationRequest)
-  implicit val clientRegistrationResponseFormat = jsonFormat7(ClientRegistrationResponse)
-  implicit val oauthTokenFormat = jsonFormat5(OauthToken)
-  implicit val appConfigFormat = jsonFormat2(AppConfig)
-
-  implicit val applicationKeyEnumFormat = new EnumJsonFormat(store.models.ApplicationKeyEnums.KeyType)
-  implicit val applicationKeyGenerateRequestEnumFormat = new EnumJsonFormat(store.models.ApplicationKeyGenerateRequestEnums.KeyType)
-  implicit val documentEnumTypeFormat = new EnumJsonFormat(store.models.DocumentEnums.`Type`)
-  implicit val documentEnumSourceTypeFormat = new EnumJsonFormat(store.models.DocumentEnums.SourceType)
-  implicit val subscriptionEnumFormat = new EnumJsonFormat(store.models.SubscriptionEnums.Status)
-  implicit val tierLevelForomat = new EnumJsonFormat(store.models.TierEnums.TierLevel)
-  implicit val tierEnumFormat = new EnumJsonFormat(store.models.TierEnums.TierPlan)
-
-  implicit val tokenFormat = jsonFormat3(store.models.Token)
-  implicit val applicationInfoFormat = jsonFormat7(store.models.ApplicationInfo)
-  implicit val applicationListFormat = jsonFormat4(store.models.ApplicationList)
-  implicit val applicationKeyFormat = jsonFormat6(store.models.ApplicationKey)
-  implicit val applicationFormat = jsonFormat9(store.models.Application)
-}
 
 class AmClient(host: String, portOffset: Int = 0, user: String, pass: String)(implicit actorSystem: ActorSystem) extends LazyLogging {
 
   import actorSystem.dispatcher
 
-  import AmClientJsonProtocols._
+  import ApiManagerJsonProtocols._
   import SprayJsonSupport._
 
   implicit val timeout: Timeout = 30.seconds
 
   val ADMIN_PORT = 9443
   val API_PORT = 8243
+
+  implicit val appConfigFormat = jsonFormat2(AppConfig)
 
   implicit val sslContext = {
     // Create a trust manager that does not validate certificate chains.
@@ -207,38 +202,25 @@ class AmClient(host: String, portOffset: Int = 0, user: String, pass: String)(im
     1
   }
 
-  def setKey(appConfigFile: File): Int = {
-    val appConfigContents = io.Source.fromFile(appConfigFile).mkString
-    val appConfig = JsonParser(appConfigContents).convertTo[AppConfig]
-
+  def getKey(appConfigFile: File): Int = {
     val futs = for {
-      ci <- register()
-      tok <- login(ci)
+      clientInfo <- register()
+      tok <- login(clientInfo.clientId, clientInfo.clientSecret)
       appList <- searchApplications("DefaultApplication", tok)
       app = appList.list.head
       fullApp <- getApplication(app.applicationId.get, tok)
-    } yield (ci, tok, app, fullApp)
-    val (ci, tok, app, fullApp) = Await.result(futs, 10.seconds)
-    println(ci)
-    println(tok)
-    println(app)
-    println(fullApp)
+    } yield (clientInfo, tok, app, fullApp)
+    val (clientInfo, tok, app, fullApp) = Await.result(futs, 10.seconds)
 
-    val matchingKeys = fullApp.keys.filter(_.consumerKey == appConfig.consumerKey)
-    if (matchingKeys.length > 0) {
-      println("Application already has consumer key")
+    if (fullApp.keys.length > 0) {
+      // TODO: write consumer key/secret to appConfigFile
       0
     } else {
-      val key = store.models.ApplicationKey(appConfig.consumerKey, appConfig.consumerSecret, None, "COMPLETED", store.models.ApplicationKeyEnums.KeyType.PRODUCTION, None)
-      val newApp = fullApp.copy(keys = fullApp.keys ++ List(key))
-      println(newApp)
-      val resp = Await.result(updateApplication(newApp, tok), 10.seconds)
-      println(resp)
-      0
+      1
     }
   }
 
-    def updateApplication(app: store.models.Application, token: OauthToken): Future[HttpResponse] = {
+  def putApplication(app: store.models.Application, token: OauthToken): Future[HttpResponse] = {
     val request = (
       Put(s"/api/am/store/v0.10/applications/${app.applicationId.get}", app)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -262,19 +244,18 @@ class AmClient(host: String, portOffset: Int = 0, user: String, pass: String)(im
     adminPipe.flatMap(_(request)).map(unmarshal[store.models.ApplicationList])
   }
 
-  def login(clientInfo: ClientRegistrationResponse): Future[OauthToken] = {
+  def login(consumerKey: String, consumerSecret: String): Future[OauthToken] = {
     val body = FormData(Map(
       "grant_type" -> "password",
       "username" -> user,
       "password" -> pass,
-      "scope" -> "apim:subscribe"
+      "scope" -> "apim:subscribe apim:api_create apim:api_view"
     ))
 
     val request = (
       Post(s"/token", body)
-        ~> addCredentials(BasicHttpCredentials(clientInfo.clientId, clientInfo.clientSecret))
+        ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
     )
-
     apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
   }
 
@@ -288,6 +269,71 @@ class AmClient(host: String, portOffset: Int = 0, user: String, pass: String)(im
 
     adminPipe.flatMap(_(request)).map(unmarshal[ClientRegistrationResponse])
   }
+
+  // publisher APIs
+  def searchApis(name: String, token: OauthToken): Future[publisher.models.APIList] = {
+    val request = (
+      Get(s"/api/am/publisher/v0.10/apis?query=${name}")
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.APIList])
+  }
+
+  def getApiDetails(id: String, token: OauthToken): Future[publisher.models.API] = {
+    val request = (
+      Get(s"/api/am/publisher/v0.10/apis/${id}")
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+  }
+
+  def putApiDetails(api: publisher.models.API, token: OauthToken): Future[publisher.models.API] = {
+    val request = (
+      Put(s"/api/am/publisher/v0.10/apis/${api.id.get}", api)
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+  }
+
+  def updateEndpoints(api: publisher.models.APIInfo, prodEndpoint: String, devEndpoint: String, token: OauthToken): Future[publisher.models.API] = {
+    val newEndpointConfig = s"""
+{
+  "production_endpoints": {
+    "url": "${prodEndpoint}",
+    "config": null
+  },
+  "sandbox_endpoints\":{
+    "url": "${devEndpoint}",
+    "config": null
+  },
+  "endpoint_type": "http"
+}
+"""
+
+    getApiDetails(api.id.get, token).flatMap({ details =>
+      val updated = details.copy(endpointConfig = newEndpointConfig)
+      putApiDetails(updated, token)
+    })
+  }
+
+  def setEndpoint(apiName: String, appConfigFile: File, target: String): Int = {
+    val appConfigContents = io.Source.fromFile(appConfigFile).mkString
+    val appConfig = JsonParser(appConfigContents).convertTo[AppConfig]
+
+    val futs = for {
+      token <- login(appConfig.consumerKey, appConfig.consumerSecret)
+      apiList <- searchApis(apiName, token)
+      // Note, this assumes there's exactly one API with the given
+      // name.  If we want to manage different versions of this API,
+      // we'll have to do more work here.
+      api = apiList.list.get.head
+      updated <- updateEndpoints(api, target, target, token)
+    } yield (token, apiList, api, updated)
+
+    val (token, apiList, api, fullApi) = Await.result(futs, 10.seconds)
+
+    0
+  }
 }
 
 object AmClient {
@@ -299,7 +345,8 @@ object AmClient {
       c.mode match {
         case AmClientModes.CREATE_API => amcl.createApi(c.swagger, c.target)
         case AmClientModes.CREATE_ROLES => amcl.createRoles(c.roles)
-        case AmClientModes.SET_KEY => amcl.setKey(c.appConfig)
+        case AmClientModes.GET_KEY => amcl.getKey(c.appConfig)
+        case AmClientModes.SET_ENDPOINT => amcl.setEndpoint(c.apiName, c.appConfig, c.target)
         case _ => {
           println("Unsupported action")
           1
