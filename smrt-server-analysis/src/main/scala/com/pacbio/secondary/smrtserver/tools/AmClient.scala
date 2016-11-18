@@ -229,19 +229,6 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   }
 
   def createApi(apiName: String, appConfigFile: File, swagger: String, target: String): Int = {
-    val endpointConfig = s"""
-{
-  "production_endpoints": {
-    "url": "${target}",
-    "config": null
-  },
-  "sandbox_endpoints\":{
-    "url": "${target}",
-    "config": null
-  },
-  "endpoint_type": "http"
-}
-"""
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -277,7 +264,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       visibility = publisher.models.APIEnums.Visibility.PUBLIC,
       visibleRoles = Some(List()),
       visibleTenants = Some(List()),
-      endpointConfig = endpointConfig,
+      endpointConfig = endpointConfig(target),
       endpointSecurity = None,
       gatewayEnvironments = None,
       sequences = Some(List()),
@@ -350,10 +337,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     }
   }
 
-  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API = {
-    targetOpt match {
-      case Some(target) => {
-        val newEndpointConfig = s"""
+  def endpointConfig(target: String): String = {
+    s"""
 {
   "production_endpoints": {
     "url": "${target}",
@@ -366,8 +351,12 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   "endpoint_type": "http"
 }
 """
+  }
 
-        details.copy(endpointConfig = newEndpointConfig)
+  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API = {
+    targetOpt match {
+      case Some(target) => {
+        details.copy(endpointConfig = endpointConfig(target))
       }
       case None => details
     }
