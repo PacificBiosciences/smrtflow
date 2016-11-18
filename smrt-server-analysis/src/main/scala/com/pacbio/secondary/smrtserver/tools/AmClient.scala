@@ -99,15 +99,52 @@ object AmClientParser {
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
+    cmd(AmClientModes.GET_KEY.name)
+      .action((_, c) => c.copy(mode = AmClientModes.GET_KEY))
+      .text("get the consumer key/secret from DefaultApplication and write it to the app-config file")
+      .children(
+        opt[File]("app-config")
+          .required()
+          .action((p, c) => c.copy(appConfig = p))
+          .text("path to app-config.json file"))
 
     cmd(AmClientModes.CREATE_API.name)
       .action((_, c) => c.copy(mode = AmClientModes.CREATE_API))
       .text("create API from swagger")
       .children(
+        opt[String]("api-name")
+          .action((a, c) => c.copy(apiName = a))
+          .text("API Name"),
         opt[String]("target")
           .required()
           .action((x, c) => c.copy(target = Some(x)))
           .text("backend URL"),
+        opt[File]("app-config")
+          .required()
+          .action((p, c) => c.copy(appConfig = p))
+          .text("path to app-config.json file"),
+        opt[File]("swagger-file")
+          .action((f, c) => c.copy(swagger = Some(loadFile(f))))
+          .text("Path to swagger json file"),
+        opt[String]("swagger-resource")
+          .action((p, c) => c.copy(swagger = Some(loadResource(p))))
+          .text("Path to swagger json resource"))
+
+    cmd(AmClientModes.SET_API.name)
+      .action((_, c) => c.copy(mode = AmClientModes.SET_API))
+      .text("update backend target URL")
+      .children(
+        opt[String]("api-name")
+          .action((a, c) => c.copy(apiName = a))
+          .text("API Name"),
+        opt[String]("target")
+          .required()
+          .action((x, c) => c.copy(target = Some(x)))
+          .text("backend URL"),
+        opt[File]("app-config")
+          .required()
+          .action((p, c) => c.copy(appConfig = p))
+          .text("path to app-config.json file"),
         opt[File]("swagger-file")
           .action((f, c) => c.copy(swagger = Some(loadFile(f))))
           .text("Path to swagger json file"),
@@ -124,36 +161,6 @@ object AmClientParser {
           .action((roles, c) => c.copy(roles = roles))
           .text("list of roles"))
 
-    cmd(AmClientModes.GET_KEY.name)
-      .action((_, c) => c.copy(mode = AmClientModes.GET_KEY))
-      .text("get the consumer key/secret from DefaultApplication and write it to the app-config file")
-      .children(
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file"))
-
-    cmd(AmClientModes.SET_API.name)
-      .action((_, c) => c.copy(mode = AmClientModes.SET_API))
-      .text("update backend target URL")
-      .children(
-        opt[String]("api-name")
-          .action((a, c) => c.copy(apiName = a))
-          .text("API Name"),
-        opt[String]("target")
-          .action((x, c) => c.copy(target = Some(x)))
-          .text("backend URL"),
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file"),
-        opt[File]("swagger-file")
-          .action((f, c) => c.copy(swagger = Some(loadFile(f))))
-          .text("Path to swagger json file"),
-        opt[String]("swagger-resource")
-          .action((p, c) => c.copy(swagger = Some(loadResource(p))))
-          .text("Path to swagger json resource"))
-
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -161,8 +168,8 @@ object AmClientParser {
   }
 }
 
-// the actual app config class
-case class AppConfig(consumerKey: String, consumerSecret: String)
+// two keys from the UI app config
+case class ClientInfo(consumerKey: String, consumerSecret: String)
 
 
 class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
@@ -171,14 +178,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   import ApiManagerJsonProtocols._
 
-  implicit val appConfigFormat = jsonFormat2(AppConfig)
+  implicit val clientInfoFormat = jsonFormat2(ClientInfo)
 
-  val scopes = "apim:subscribe apim:api_create apim:api_view"
-
-  def createApi(swagger: String, target: String): Int = {
-    // TODO
-    1
-  }
+  val scopes = "apim:subscribe apim:api_create apim:api_view apim:api_publish"
 
   def createRoles(roles: String): Int = {
     // TODO
@@ -198,6 +200,11 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
     fullApp.keys.headOption match {
       case Some(key) => {
+        // leaving appConfigJson as json (and not converting to a case
+        // class) because we only care about two keys in the app
+        // config file, and creating a case class containing all the
+        // structure from that file increases the coupling between
+        // this code and the UI code.
         val appConfigJson = JsonParser(loadFile(appConfigFile))
 
         val newAttribs = Map(
@@ -221,12 +228,103 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     }
   }
 
-  // update target endpoints for the API with the given name
-  def setApi(apiName: String, appConfigFile: File, target: Option[String], swagger: Option[String]): Int = {
-    val appConfig = JsonParser(loadFile(appConfigFile)).convertTo[AppConfig]
+  def createApi(apiName: String, appConfigFile: File, swagger: String, target: String): Int = {
+    val endpointConfig = s"""
+{
+  "production_endpoints": {
+    "url": "${target}",
+    "config": null
+  },
+  "sandbox_endpoints\":{
+    "url": "${target}",
+    "config": null
+  },
+  "endpoint_type": "http"
+}
+"""
+    val swaggerJson = JsonParser(swagger).asJsObject
+    val apiInfo = swaggerJson.getFields("info").head.asJsObject
+    val description = apiInfo.getFields("description").headOption match {
+      case Some(JsString(desc)) => Some(desc)
+      case _ => None
+    }
+    val version = apiInfo.getFields("version").head match {
+      case JsString(ver) => ver
+      case _ => throw new Exception("swagger info " + apiInfo.toJson.compactPrint + " missing version")
+    }
+
+    val tier = "Unlimited"
+
+    val api = publisher.models.API(
+      id = None,
+      name = apiName,
+      description = description,
+      context = s"/${apiName}",
+      version = version,
+      provider = None,
+      apiDefinition = swagger,
+      wsdlUri = None,
+      status = None,
+      responseCaching = Some("Disabled"),
+      cacheTimeout = None,
+      destinationStatsEnabled = None,
+      isDefaultVersion = true,
+      transport = List("https"),
+      tags = Some(List()),
+      tiers = List(tier),
+      maxTps = None,
+      thumbnailUri = None,
+      visibility = publisher.models.APIEnums.Visibility.PUBLIC,
+      visibleRoles = Some(List()),
+      visibleTenants = Some(List()),
+      endpointConfig = endpointConfig,
+      endpointSecurity = None,
+      gatewayEnvironments = None,
+      sequences = Some(List()),
+      subscriptionAvailability = None,
+      subscriptionAvailableTenants = Some(List()),
+      businessInformation = Some(publisher.models.API_businessInformation(
+        None, None, None, None)),
+      corsConfiguration = Some(publisher.models.API_corsConfiguration(
+        corsConfigurationEnabled = Some(false),
+        accessControlAllowOrigins = Some(List("*")),
+        accessControlAllowCredentials = Some(false),
+        accessControlAllowHeaders = Some(List(
+          "authorization",
+          "Access-Control-Allow-Origin",
+          "Content-Type",
+          "SOAPAction")),
+        accessControlAllowMethods = Some(List(
+          "GET",
+          "PUT",
+          "POST",
+          "DELETE",
+          "PATCH",
+          "OPTIONS")))))
+
+    val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
     val futs = for {
-      token <- am.login(appConfig.consumerKey, appConfig.consumerSecret, scopes)
+      token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
+      created <- am.postApiDetails(api, token)
+      pub <- am.apiChangeLifecycle(created.id.get, am.ApiLifecycleAction.PUBLISH, token)
+      appList <- am.searchApplications("DefaultApplication", token)
+      app = appList.list.head
+      sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
+    } yield sub
+
+    val sub = Await.result(futs, 10.seconds)
+    println(sub.toJson.prettyPrint)
+
+    0
+  }
+
+  // update target endpoints for the API with the given name
+  def setApi(apiName: String, appConfigFile: File, target: Option[String], swagger: Option[String]): Int = {
+    val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
+
+    val futs = for {
+      token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
       apiList <- am.searchApis(apiName, token)
       // Note, this assumes there's exactly one API with the given
       // name.  If we want to manage different versions of this API,
@@ -236,9 +334,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       withEndpoints = setEndpoints(details, target)
       withSwagger = setSwagger(withEndpoints, swagger)
       updated <- am.putApiDetails(withSwagger, token)
-    } yield (updated)
+    } yield updated
 
-    val (updated) = Await.result(futs, 10.seconds)
+    val updated = Await.result(futs, 10.seconds)
 
     0
   }
@@ -284,7 +382,7 @@ object AmClient {
     val amClient = new AmClient(am)
     try {
       c.mode match {
-        case AmClientModes.CREATE_API => amClient.createApi(c.swagger.get, c.target.get)
+        case AmClientModes.CREATE_API => amClient.createApi(c.apiName, c.appConfig, c.swagger.get, c.target.get)
         case AmClientModes.CREATE_ROLES => amClient.createRoles(c.roles)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
         case AmClientModes.SET_API => amClient.setApi(c.apiName, c.appConfig, c.target, c.swagger)

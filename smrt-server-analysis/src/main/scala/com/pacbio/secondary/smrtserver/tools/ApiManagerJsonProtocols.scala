@@ -30,6 +30,7 @@ object ApiManagerJsonProtocols extends DefaultJsonProtocol with FamilyFormats {
   implicit val applicationListFormat = jsonFormat4(store.models.ApplicationList)
   implicit val applicationKeyFormat = jsonFormat6(store.models.ApplicationKey)
   implicit val applicationFormat = jsonFormat9(store.models.Application)
+  implicit val subscriptionFormat = jsonFormat5(store.models.Subscription)
 
   // API Manager publisher
   implicit val visibilityFormat = new EnumJsonFormat(publisher.models.APIEnums.Visibility)

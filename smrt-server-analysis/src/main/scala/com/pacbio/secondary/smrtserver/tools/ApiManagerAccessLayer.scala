@@ -18,7 +18,7 @@ import spray.client.pipelining._
 import spray.http._
 import spray.httpx.marshalling.BasicMarshallers._
 import spray.httpx.SprayJsonSupport
-import spray.json.JsValue
+import spray.json._
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -38,6 +38,20 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
   val ADMIN_PORT = 9443
   val API_PORT = 8243
 
+  // this enum isn't described in the wso2 swagger, so I'm including a
+  // hand-written version here
+  type ApiLifecycleAction = ApiLifecycleAction.Value
+
+  object ApiLifecycleAction extends Enumeration {
+    val PUBLISH = Value("Publish")
+    val DEPLOY_AS_PROTOTYPE = Value("Deploy as a Prototype")
+    val DEMOTE_TO_CREATED = Value("Demote to Created")
+    val DEMOTE_TO_PROTOTYPED = Value("Demote to Prototyped")
+    val BLOCK = Value("Block")
+    val DEPRECATE = Value("Deprecate")
+    val RE_PUBLISH = Value("Re-Publish")
+    val RETIRE = Value("Retire")
+  }
 
   implicit val sslContext = {
     // Create a trust manager that does not validate certificate chains.
@@ -125,6 +139,22 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     adminPipe.flatMap(_(request)).map(unmarshal[store.models.ApplicationList])
   }
 
+  def subscribe(apiId: String, applicationId: String, tier: String, token: OauthToken): Future[store.models.Subscription] = {
+    val subscription = store.models.Subscription(
+      subscriptionId = None,
+      tier = tier,
+      apiIdentifier = apiId,
+      applicationId = applicationId,
+      status = None
+    )
+
+    val request = (
+      Post(s"/api/am/store/v0.10/subscriptions", subscription)
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request)).map(unmarshal[store.models.Subscription])
+  }
+
 
   // publisher APIs
   def searchApis(name: String, token: OauthToken): Future[publisher.models.APIList] = {
@@ -149,5 +179,21 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+  }
+
+  def postApiDetails(api: publisher.models.API, token: OauthToken): Future[publisher.models.API] = {
+    val request = (
+      Post(s"/api/am/publisher/v0.10/apis", api)
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+  }
+
+  def apiChangeLifecycle(apiId: String, action: ApiLifecycleAction, token: OauthToken): Future[HttpResponse] = {
+    val request = (
+      Post(s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}")
+        ~> addHeader("Authorization", s"Bearer ${token.access_token}")
+    )
+    adminPipe.flatMap(_(request))
   }
 }
