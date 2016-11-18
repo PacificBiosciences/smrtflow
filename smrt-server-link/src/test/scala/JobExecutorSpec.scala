@@ -97,9 +97,9 @@ with JobServiceConstants {
 
   trait daoSetup extends Scope {
     println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
+    logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
-    println(s"completed setting up database ${dbURI}.")
+    println(s"completed setting up database $dbURI.")
   }
 
   "Job Execution Service list" should {
@@ -145,11 +145,25 @@ with JobServiceConstants {
       Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
         val jobs = responseAs[Seq[EngineJob]]
         njobs = jobs.size
-        uuid = jobs(0).uuid
-        jobs(0).id must beEqualTo(1)
+        uuid = jobs.head.uuid
+        jobs.head.id must beEqualTo(1)
         njobs must beGreaterThan(0)
       }
-      val params = DeleteJobServiceOptions(uuid, true)
+
+      var complete = false
+      var retry = 0
+      while (!complete) {
+        Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+          complete = responseAs[Seq[EngineJob]].head.isComplete
+          retry = retry + 1
+          Thread.sleep(1000)
+          if (retry >= 10) {
+            failure("Job failed to complete after 10 seconds")
+          }
+        }
+      }
+
+      val params = DeleteJobServiceOptions(uuid, removeFiles = true)
       Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.jobTypeId must beEqualTo("delete-job")

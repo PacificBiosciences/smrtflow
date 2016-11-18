@@ -28,7 +28,6 @@ class HealthSpec
 
   import PacBioJsonProtocol._
   import Authenticator._
-  import Roles._
 
   def actorRefFactory = system
 
@@ -99,7 +98,7 @@ class HealthSpec
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
       override def parse(jwt: String): Option[UserRecord] = if (jwt == invalidJwt) None else Some {
-        if (jwt == adminUserLogin) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+        if (jwt == adminUserLogin) UserRecord(jwt, Some("PbAdmin")) else UserRecord(jwt)
       }
     })
   }
@@ -497,12 +496,6 @@ class HealthSpec
       Get("/smrt-base/health/metrics") ~> addHeader(invalid) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
-      }
-
-      val noAdmin = RawHeader(JWT_HEADER, readUserLogin)
-      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(0.0, Set.empty)) ~> addHeader(noAdmin) ~> routes ~> check {
-        handled must beFalse
-        rejection === AuthorizationFailedRejection
       }
     }
   }

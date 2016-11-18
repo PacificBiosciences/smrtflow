@@ -29,7 +29,6 @@ class LogSpec
 
   import PacBioJsonProtocol._
   import Authenticator._
-  import Roles._
 
   def actorRefFactory = system
 
@@ -56,7 +55,7 @@ class LogSpec
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
       override def parse(jwt: String): Option[UserRecord] = if (jwt == invalidJwt) None else Some {
-        if (jwt == adminUserLogin) UserRecord(jwt, PbAdmin) else UserRecord(jwt)
+        if (jwt == adminUserLogin) UserRecord(jwt, Some("PbAdmin")) else UserRecord(jwt)
       }
     })
     
@@ -234,12 +233,6 @@ class LogSpec
       Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addHeader(invalid) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
-      }
-
-      val noAdmin = RawHeader(JWT_HEADER, readUserLogin)
-      Post("/smrt-base/loggers/" + componentId2 + "/messages", message) ~> addHeader(noAdmin) ~> routes ~> check {
-        handled must beFalse
-        rejection === AuthorizationFailedRejection
       }
     }
   }
