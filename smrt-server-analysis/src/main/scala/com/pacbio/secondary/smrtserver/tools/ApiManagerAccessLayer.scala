@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import java.nio.file.Path
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, X509TrustManager, TrustManager}
@@ -14,11 +13,12 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 
-import spray.http._
 import spray.can.Http
 import spray.client.pipelining._
+import spray.http._
 import spray.httpx.marshalling.BasicMarshallers._
 import spray.httpx.SprayJsonSupport
+import spray.json.JsValue
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -150,26 +150,4 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     )
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
   }
-
-  def updateEndpoints(api: publisher.models.APIInfo, prodEndpoint: String, devEndpoint: String, token: OauthToken): Future[publisher.models.API] = {
-    val newEndpointConfig = s"""
-{
-  "production_endpoints": {
-    "url": "${prodEndpoint}",
-    "config": null
-  },
-  "sandbox_endpoints\":{
-    "url": "${devEndpoint}",
-    "config": null
-  },
-  "endpoint_type": "http"
-}
-"""
-
-    getApiDetails(api.id.get, token).flatMap({ details =>
-      val updated = details.copy(endpointConfig = newEndpointConfig)
-      putApiDetails(updated, token)
-    })
-  }
-
 }
