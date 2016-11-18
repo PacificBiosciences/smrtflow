@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
@@ -22,8 +22,6 @@ import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
-
-import scala.util.control.NonFatal
 
 
 class DeleteJobServiceType(dbActor: ActorRef,

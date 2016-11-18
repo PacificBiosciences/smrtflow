@@ -149,6 +149,20 @@ with JobServiceConstants {
         jobs.head.id must beEqualTo(1)
         njobs must beGreaterThan(0)
       }
+
+      var complete = false
+      var retry = 0
+      while (!complete) {
+        Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+          complete = responseAs[Seq[EngineJob]].head.isComplete
+          retry = retry + 1
+          Thread.sleep(1000)
+          if (retry >= 10) {
+            failure("Job failed to complete after 10 seconds")
+          }
+        }
+      }
+
       val params = DeleteJobServiceOptions(uuid, removeFiles = true)
       Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
