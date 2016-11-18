@@ -99,12 +99,12 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
   // the consumer key and secret can come from the dynamic client
   // registration mechanism (the register() method) or they can come
   // from some existing configuration, like the UI's app-config.json
-  def login(consumerKey: String, consumerSecret: String, scopes: String): Future[OauthToken] = {
+  def login(consumerKey: String, consumerSecret: String, scopes: Set[String]): Future[OauthToken] = {
     val body = FormData(Map(
       "grant_type" -> "password",
       "username" -> user,
       "password" -> pass,
-      "scope" -> scopes
+      "scope" -> scopes.mkString(" ")
     ))
 
     val request = (

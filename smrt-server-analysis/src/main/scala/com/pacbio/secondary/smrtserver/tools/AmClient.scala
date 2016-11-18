@@ -180,7 +180,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   implicit val clientInfoFormat = jsonFormat2(ClientInfo)
 
-  val scopes = "apim:subscribe apim:api_create apim:api_view apim:api_publish"
+  val scopes = Set("apim:subscribe", "apim:api_create", "apim:api_view", "apim:api_publish")
 
   def createRoles(roles: String): Int = {
     // TODO
@@ -196,7 +196,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       app = appList.list.head
       fullApp <- am.getApplication(app.applicationId.get, tok)
     } yield (clientInfo, tok, app, fullApp)
-    val (clientInfo, tok, app, fullApp) = Await.result(futs, 10.seconds)
+    val (clientInfo, tok, app, fullApp) = Await.result(futs, 20.seconds)
 
     fullApp.keys.headOption match {
       case Some(key) => {
@@ -300,8 +300,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
     } yield sub
 
-    val sub = Await.result(futs, 10.seconds)
-    println(sub.toJson.prettyPrint)
+    val sub = Await.result(futs, 20.seconds)
 
     0
   }
@@ -323,19 +322,15 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       updated <- am.putApiDetails(withSwagger, token)
     } yield updated
 
-    val updated = Await.result(futs, 10.seconds)
+    val updated = Await.result(futs, 20.seconds)
 
     0
   }
 
-  def setSwagger(details: publisher.models.API, swaggerOpt: Option[String]): publisher.models.API = {
-    swaggerOpt match {
-      case Some(swagger) => {
-        details.copy(apiDefinition = swagger)
-      }
-      case None => details
-    }
-  }
+  def setSwagger(details: publisher.models.API, swaggerOpt: Option[String]): publisher.models.API =
+    swaggerOpt
+      .map(apiDef => details.copy(apiDefinition = apiDef))
+      .getOrElse(details)
 
   def endpointConfig(target: String): String = {
     s"""
@@ -353,14 +348,10 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 """
   }
 
-  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API = {
-    targetOpt match {
-      case Some(target) => {
-        details.copy(endpointConfig = endpointConfig(target))
-      }
-      case None => details
-    }
-  }
+  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API =
+    targetOpt
+      .map(target => details.copy(endpointConfig = endpointConfig(target)))
+      .getOrElse(details)
 }
 
 object AmClient {
