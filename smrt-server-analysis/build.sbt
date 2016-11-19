@@ -27,5 +27,6 @@ packSettings
 packMain := Map(
   "pbservice" -> "com.pacbio.secondary.smrtserver.tools.PbServiceApp",
   "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.testkit.TestkitRunnerApp",
-  "smrt-db-tool" -> "com.pacbio.secondary.smrtserver.tools.DatabaseToolApp"
+  "smrt-db-tool" -> "com.pacbio.secondary.smrtserver.tools.DatabaseToolApp",
+  "amclient" -> "com.pacbio.secondary.smrtserver.tools.AmClientApp"
 )
