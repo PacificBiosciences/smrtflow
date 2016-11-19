@@ -339,7 +339,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     "url": "${target}",
     "config": null
   },
-  "sandbox_endpoints\":{
+  "sandbox_endpoints":{
     "url": "${target}",
     "config": null
   },
