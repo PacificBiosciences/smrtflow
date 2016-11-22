@@ -609,6 +609,6 @@ case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], pr
 case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
 
 
-case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
+case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
 
 case class EulaAcceptance(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
