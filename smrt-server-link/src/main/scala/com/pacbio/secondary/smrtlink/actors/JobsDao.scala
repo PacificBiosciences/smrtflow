@@ -1197,6 +1197,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def getEulaByVersion(version: String): Future[Option[EulaRecord]] =
     db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
+
+  def removeEula(version: String): Future[Int] =
+    db.run(eulas.filter(_.smrtlinkVersion === version).delete)
 }
 
 class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore
