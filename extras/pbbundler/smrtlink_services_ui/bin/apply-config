@@ -110,6 +110,9 @@ class ConfigConstants(object):
     # Event Server URL Option[URL]
     PB_SERVICES_EVENT_URL = "PB_SERVICES_EVENT_URL"
 
+    # Tech Support Server URL Option[URL]
+    PB_TECH_SUPPORT_URL = "PB_TECH_SUPPORT_URL"
+
 
 class SystemConfig(object):
     DEFAULT_PORT = 8080
@@ -151,6 +154,7 @@ class SystemConfig(object):
     DEFAULT_PB_MANIFEST_FILE = None
 
     PB_SERVICES_EVENT_URL = None
+    PB_TECH_SUPPORT_URL = None
 
     def __init__(self, host, port, analysis_port, enable_https, pb_pbsmrtpipe_preset_xml,
                  service_nworkers, tmp_dir, log_dir, job_root, pb_analysis_shutdown_port,
@@ -158,7 +162,8 @@ class SystemConfig(object):
                  ldap_host, ldap_port, ldap_users_dn, ldap_users_cache_size, ldap_users_username_attr,
                  ldap_users_id_attr, ldap_users_id_type, ldap_users_email_attr, ldap_users_first_name_attr,
                  ldap_users_last_name_attr, smrt_view_port, pb_services_analysis_mem_max,
-                 pb_services_analysis_mem_min, pb_services_mem, pb_manifest_file, pbservices_event_url):
+                 pb_services_analysis_mem_min, pb_services_mem, pb_manifest_file, pbservices_event_url,
+                 pb_tech_support_url):
         # Tomcat host
         self.host = host
         # Tomcat port
@@ -210,6 +215,7 @@ class SystemConfig(object):
         self.pb_manifest_file = pb_manifest_file
 
         self.pbservices_event_url = pbservices_event_url
+        self.pb_tech_support_url = pb_tech_support_url
 
     def __repr__(self):
         _d = dict(k=self.__class__.__name__,
@@ -253,7 +259,8 @@ class SystemConfig(object):
                             d.get(ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MIN, SystemConfig.DEFAULT_PB_SERVICES_ANALYSIS_MEM_MIN),
                             d.get(ConfigConstants.PB_SERVICES_MEM, SystemConfig.DEFAULT_PB_SERVICES_MEM),
                             d.get(ConfigConstants.PB_MANIFEST_FILE, SystemConfig.DEFAULT_PB_MANIFEST_FILE),
-                            d.get(ConfigConstants.PB_SERVICES_EVENT_URL, SystemConfig.PB_SERVICES_EVENT_URL))
+                            d.get(ConfigConstants.PB_SERVICES_EVENT_URL, SystemConfig.PB_SERVICES_EVENT_URL),
+                            d.get(ConfigConstants.PB_TECH_SUPPORT_URL, SystemConfig.PB_TECH_SUPPORT_URL))
 
     def to_dict(self):
         _comment = "Config writer v{v}. Updated at {d}"\
@@ -290,6 +297,7 @@ class SystemConfig(object):
               ConfigConstants.PB_SERVICES_MEM: self.pb_services_mem,
               ConfigConstants.PB_MANIFEST_FILE: self.pb_manifest_file,
               ConfigConstants.PB_SERVICES_EVENT_URL: self.pbservices_event_url,
+              ConfigConstants.PB_TECH_SUPPORT_URL: self.pb_tech_support_url,
               "_comment": _comment}
         return _d
 
@@ -512,7 +520,7 @@ def to_uri(host, port, base_url="", https=False):
     return "{h}:{p}{u}".format(h=h, p=port, u=u)
 
 
-def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_url=None):
+def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_url=None, tech_support_url=None):
     """
     New Configuration format in 3.1.0
 
@@ -529,7 +537,8 @@ def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_u
     d = {"smrt-view": {"default-server": smrtview_uri},
          "smrt-link": {"default-server": services_uri},
          "auth": {"default-server": auth_uri},
-         "events-url": {"default-server": service_event_url}
+         "events-url": {"default-server": service_event_url},
+         "tech-support": {"default-server": tech_support_url}
          }
 
     return d
@@ -554,11 +563,11 @@ def write_ui_api_server_config_v1(host, services_port, output_file):
     return sl_uri
 
 
-def update_server_path_in_ui(host, services_port, smrtview_port, event_url):
+def update_server_path_in_ui(host, services_port, smrtview_port, event_url, tech_support_url):
 
     output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.SLINK_CONFIG)
 
-    d = to_smrt_link_ui_config_d(host, services_port, smrtview_port, event_url)
+    d = to_smrt_link_ui_config_d(host, services_port, smrtview_port, event_url, tech_support_url)
     log.debug("SL UI Config\n" + pprint.pformat(d))
     _ = write_smrt_link_ui_config(d, output_file)
     log.debug("Writing SL UI Config to {f}".format(f=output_file))
@@ -685,7 +694,8 @@ def main(argv=sys.argv[1:]):
         update_server_path_in_ui(c.host,
                                  c.analysis_port,
                                  c.pb_smrt_view_port,
-                                 c.pbservices_event_url)
+                                 c.pbservices_event_url,
+                                 c.pb_tech_support_url)
 
         update_tomcat(c.port,
                       c.pb_analysis_shutdown_port,
