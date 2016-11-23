@@ -23,12 +23,15 @@ import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
+import org.apache.commons.lang.SystemUtils
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
+import scala.io.Source
 import slick.driver.SQLiteDriver.api._
 import org.sqlite.SQLiteErrorCode
 import java.sql.SQLException
@@ -1189,7 +1192,14 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
                         enableInstallMetrics: Boolean,
                         enableJobMetrics: Boolean): Future[EulaRecord] = {
     val now = JodaDateTime.now()
-    val rec = EulaRecord(user, now, smrtlinkVersion, enableInstallMetrics, enableJobMetrics)
+    // FIXME this should probably move somewhere central
+    val osVersion = if (Files.exists(Paths.get("/proc/version"))) {
+      scala.io.Source.fromFile("/proc/version").mkString
+    } else {
+      s"${SystemUtils.OS_NAME}; ${SystemUtils.OS_ARCH}; ${SystemUtils.OS_VERSION}"
+    }
+    logger.info(s"OS version: $osVersion")
+    val rec = EulaRecord(user, now, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics)
     db.run(eulas += rec).map(_ => rec)
   }
 
@@ -1197,6 +1207,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def getEulaByVersion(version: String): Future[Option[EulaRecord]] =
     db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
+
+  def removeEula(version: String): Future[Int] =
+    db.run(eulas.filter(_.smrtlinkVersion === version).delete)
 }
 
 class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore

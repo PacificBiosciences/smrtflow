@@ -211,6 +211,7 @@ object JobsDaoActor {
   case object GetEulas extends AdminMessage
   case class GetEulaByVersion(version: String) extends AdminMessage
   case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
+  case class DeleteEula(version: String) extends AdminMessage
 }
 
 class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
@@ -725,6 +726,13 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
       pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
+
+    case DeleteEula(version) => pipeWith {
+      dao.removeEula(version).map(x =>
+        if (x == 0) SuccessMessage(s"No user agreement for version $version was found")
+        else SuccessMessage(s"Removed user agreement for version $version")
+      )
+    }
 
     // Testing/Debugging messages
     case "example-test-message" => respondWith("Successfully got example-test-message")

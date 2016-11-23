@@ -520,7 +520,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version", O.PrimaryKey)
     def enableInstallMetrics: Rep[Boolean] = column[Boolean]("enable_install_metrics")
     def enableJobMetrics: Rep[Boolean] = column[Boolean]("enable_job_metrics")
-    def * = (user, acceptedAt, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
+    def osVersion: Rep[String] = column[String]("os_version")
+    def * = (user, acceptedAt, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
   }
 
   // DataSet types
