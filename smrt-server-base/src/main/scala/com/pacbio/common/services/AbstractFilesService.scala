@@ -1,6 +1,7 @@
 package com.pacbio.common.services
 
 import java.io.File
+import java.net.URLDecoder
 import java.nio.file.{Paths, Path}
 
 import akka.actor.ActorSystem
@@ -40,7 +41,8 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
   ////////////////////////////////////////
 
   private def resolve(path: Uri.Path): Future[File] = {
-    val absPath = Paths.get("/").resolve(Paths.get(path.toString()))
+    val realPath = java.net.URLDecoder.decode(path.toString(), "UTF-8")
+    val absPath = Paths.get("/").resolve(Paths.get(realPath))
     resolvePath(absPath).map {
       case Some(p) => p.toFile
       case None => throw new ResourceNotFoundError(s"Unable to resolve path: ${path.toString()}")
