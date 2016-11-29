@@ -139,7 +139,7 @@ object IOUtils extends LazyLogging{
       workflowOptions: Seq[PipelineBaseOption],
       serviceUri: Option[URI]) = {
 
-    val e = entryPoints.map(x => s"""-e ${x.entryId}:"${x.path.toString}"""").fold("")((a, b) => s"$a $b")
+    val e = entryPoints.map(x => s"-e '${x.entryId}:${x.path.toString}'").fold("")((a, b) => s"$a $b")
 
     val presetXmlPath = outputDir.resolve("preset.xml")
     writePresetXml(presetXmlPath, toPresetXml(workflowOptions, taskOptions))
