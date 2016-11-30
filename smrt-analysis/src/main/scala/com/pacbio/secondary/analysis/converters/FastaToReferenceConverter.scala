@@ -79,6 +79,7 @@ object FastaToReferenceConverter extends FastaConverterBase[ReferenceSet, Contig
             fastaPath: Path, outputDir: Path,
             inPlace: Boolean = false, mkdir: Boolean = false):
             Either[DatasetConvertError, ReferenceSetIO] = {
+    if (! Files.exists(outputDir)) return Left(DatasetConvertError(s"The output directory '${outputDir.toString}' does not exist; please create it or specify an already existing path."))
     val target = setupTargetDir(name, fastaPath, outputDir, inPlace, mkdir)
     createDataset(target.name, organism, ploidy, target.fastaPath,
                   target.dataDir) match {
