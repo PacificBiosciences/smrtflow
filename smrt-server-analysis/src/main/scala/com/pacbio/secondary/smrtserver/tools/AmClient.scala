@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtserver.tools
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import java.net.URL
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -65,7 +66,7 @@ object AmClientParser {
   val targetx = for {
     host <- Try { conf.getString("pb-services.host") }
     port <- Try { conf.getInt("pb-services.port")}
-  } yield s"http://$host:$port/"
+  } yield new URL(s"http://$host:$port/")
   val target = targetx.toOption
 
   case class CustomConfig(
@@ -75,7 +76,7 @@ object AmClientParser {
     user: String = "admin",
     pass: String = "admin",
     apiName: String = "SMRTLink",
-    target: Option[String] = target,
+    target: Option[URL] = target,
     roles: String = "Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics",
     swagger: Option[String] = None,
     // appConfig is required in the commands that use it, so it's not
@@ -129,7 +130,7 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .action((x, c) => c.copy(target = Some(x)))
+          .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
         opt[File]("app-config")
           .required()
@@ -150,7 +151,7 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .action((x, c) => c.copy(target = Some(x)))
+          .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
         opt[File]("app-config")
           .required()
@@ -241,7 +242,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     }
   }
 
-  def createApi(apiName: String, appConfigFile: File, swagger: String, target: String): Int = {
+  def createApi(apiName: String, appConfigFile: File, swagger: String, target: URL): Int = {
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -321,7 +322,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   }
 
   // update target endpoints for the API with the given name
-  def setApi(apiName: String, appConfigFile: File, target: Option[String], swagger: Option[String]): Int = {
+  def setApi(apiName: String, appConfigFile: File, target: Option[URL], swagger: Option[String]): Int = {
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
     Await.result(am.waitForStart(), 200.seconds)
@@ -349,7 +350,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       .map(apiDef => details.copy(apiDefinition = apiDef))
       .getOrElse(details)
 
-  def endpointConfig(target: String): String = {
+  def endpointConfig(target: URL): String = {
     s"""
 {
   "production_endpoints": {
@@ -365,7 +366,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 """
   }
 
-  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API =
+  def setEndpoints(details: publisher.models.API, targetOpt: Option[URL]): publisher.models.API =
     targetOpt
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
