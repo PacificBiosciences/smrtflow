@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.Try
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
@@ -60,13 +61,12 @@ object AmClientParser {
   // smrt-server-analysis/target/pack/bin/amclient set-api --target http://localhost:8090/ --swagger-resource /smrtlink_swagger.json --app-config ~/p4/ui/main/apps/smrt-link/src/app-config.json --user admin --pass admin --host login14-biofx02 --port-offset 10
 
   val conf = ConfigFactory.load()
-  val target = if (conf.hasPath("pb-services.host") && conf.hasPath("pb-services.port")) {
-    val backendHost = conf.getString("pb-services.host")
-    val backendPort = conf.getString("pb-services.port")
-    Some(s"http://${backendHost}:${backendPort}/")
-  } else {
-    None
-  }
+
+  val targetx = for {
+    host <- Try { conf.getString("pb-services.host") }
+    port <- Try { conf.getInt("pb-services.port")}
+  } yield s"http://$host:$port/"
+  val target = targetx.toOption
 
   case class CustomConfig(
     mode: AmClientModes.Mode = AmClientModes.UNKNOWN,
