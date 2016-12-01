@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.tools
 
-import java.nio.file.Paths
+import java.nio.file.{Paths,Files}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.GmapReferenceConverter
@@ -72,6 +72,7 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
     val organism = Option(c.organism)
 
     Try {
+      if (! Files.exists(outputDir)) throw new Exception(s"The output directory '${outputDir.toString}' does not exist; please create it or specify an already existing path.")
       GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy, c.inPlace)
     } match {
       case Success(x) => x match {
