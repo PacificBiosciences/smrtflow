@@ -194,6 +194,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   val scopes = Set("apim:subscribe", "apim:api_create", "apim:api_view", "apim:api_publish")
 
+  val startupTimeout = 400.seconds
+
   def createRoles(roles: String): Int = {
     // TODO
     1
@@ -201,7 +203,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   // get DefaultApplication key from the server and save it in appConfigFile
   def getKey(appConfigFile: File): Int = {
-    Await.result(am.waitForStart(), 200.seconds)
+    Await.result(am.waitForStart(), startupTimeout)
 
     val futs = for {
       clientInfo <- am.register()
@@ -210,7 +212,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       app = appList.list.head
       fullApp <- am.getApplication(app.applicationId.get, tok)
     } yield (clientInfo, tok, app, fullApp)
-    val (clientInfo, tok, app, fullApp) = Await.result(futs, 20.seconds)
+    val (clientInfo, tok, app, fullApp) = Await.result(futs, 30.seconds)
 
     fullApp.keys.headOption match {
       case Some(key) => {
@@ -305,7 +307,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
-    Await.result(am.waitForStart(), 200.seconds)
+    Await.result(am.waitForStart(), startupTimeout)
 
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
@@ -316,7 +318,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
     } yield sub
 
-    val sub = Await.result(futs, 20.seconds)
+    val sub = Await.result(futs, 30.seconds)
 
     0
   }
@@ -325,7 +327,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   def setApi(apiName: String, appConfigFile: File, target: Option[URL], swagger: Option[String]): Int = {
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
-    Await.result(am.waitForStart(), 200.seconds)
+    Await.result(am.waitForStart(), startupTimeout)
 
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
@@ -340,7 +342,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       updated <- am.putApiDetails(withSwagger, token)
     } yield updated
 
-    val updated = Await.result(futs, 20.seconds)
+    val updated = Await.result(futs, 30.seconds)
 
     0
   }
