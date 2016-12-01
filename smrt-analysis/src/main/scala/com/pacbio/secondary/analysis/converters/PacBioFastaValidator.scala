@@ -10,7 +10,7 @@ import scala.io.Source
 import scala.util.Try
 
 case class InvalidPacBioFastaError(msg: String) extends Exception(msg)
-case class ContigsMetaData(nrecords: Int, totalLength: Int)
+case class ContigsMetaData(nrecords: Int, totalLength: Long)
 
 object PacBioFastaValidator extends LazyLogging{
 
@@ -114,8 +114,8 @@ object PacBioFastaValidator extends LazyLogging{
 
     var error: Option[InvalidPacBioFastaError] = None
     var nrecords: Int = 0
-    var totalLength: Int = 0
-    var allLengths: Set[Int] = Set[Int]()
+    var totalLength: Long = 0
+    var allLengths: Set[Long] = Set[Long]()
 
     var toBreak = false
     while (!toBreak) {
