@@ -20,6 +20,7 @@ import spray.httpx.marshalling.BasicMarshallers._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 
 import org.wso2.carbon.apimgt.rest.api.store
@@ -33,7 +34,7 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
   import ApiManagerJsonProtocols._
   import SprayJsonSupport._
 
-  implicit val timeout: Timeout = 30.seconds
+  implicit val timeout: Timeout = 200.seconds
 
   val ADMIN_PORT = 9443
   val API_PORT = 8243
@@ -94,6 +95,50 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     )
 
     adminPipe.flatMap(_(request)).map(unmarshal[ClientRegistrationResponse])
+  }
+
+  def waitForStart(tries: Int = 20, delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
+    implicit val timeout = tries * delay
+
+    // Wait for token, store, and publisher APIs to start.
+    // Before they're started, there'll be a failed connection attempt,
+    // a 500 status response, or a 404 status response
+    val requests = List(
+      (Get("/token"), apiPipe),
+      (Get("/api/am/store/v0.10/applications"), adminPipe),
+      (Get("/api/am/publisher/v0.10/apis"), adminPipe))
+
+    Future.sequence(requests.map(req => waitForRequest(req._1, req._2, tries, delay)))
+  }
+
+  def waitForRequest(request: HttpRequest, pipeline: Future[SendReceive], tries: Int = 20, delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
+    implicit val timeout: Timeout = tries * delay
+
+    val fut = pipeline.flatMap(_(request))
+    def retry = akka.pattern.after(delay, using = actorSystem.scheduler)(waitForRequest(request, pipeline, tries - 1, delay))
+
+    val expectedStatuses: Set[StatusCode] =
+      Set(StatusCodes.OK, StatusCodes.Unauthorized, StatusCodes.MethodNotAllowed)
+
+    fut.recoverWith({
+      case exc: Http.ConnectionAttemptFailedException => {
+        if (tries > 1) {
+          retry
+        } else {
+          Future.failed(exc)
+        }
+      }
+    }).flatMap(response => {
+      if (expectedStatuses.contains(response.status)) {
+        Future.successful(response)
+      } else {
+        if (tries > 1) {
+          retry
+        } else {
+          Future.failed(new Exception("server didn't come up in time"))
+        }
+      }
+    })
   }
 
   // the consumer key and secret can come from the dynamic client

@@ -8,11 +8,15 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 import akka.actor.ActorSystem
+import akka.util.Timeout
 
 import spray.json._
 
+import com.typesafe.config.ConfigFactory
+
 import scopt.OptionParser
 
+import com.pacbio.common.dependency.TypesafeSingletonReader
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 import org.wso2.carbon.apimgt.rest.api.publisher
@@ -55,6 +59,15 @@ object AmClientParser {
   // Examples:
   // smrt-server-analysis/target/pack/bin/amclient set-api --target http://localhost:8090/ --swagger-resource /smrtlink_swagger.json --app-config ~/p4/ui/main/apps/smrt-link/src/app-config.json --user admin --pass admin --host login14-biofx02 --port-offset 10
 
+  val conf = ConfigFactory.load()
+  val target = if (conf.hasPath("pb-services.host") && conf.hasPath("pb-services.port")) {
+    val backendHost = conf.getString("pb-services.host")
+    val backendPort = conf.getString("pb-services.port")
+    Some(s"http://${backendHost}:${backendPort}/")
+  } else {
+    None
+  }
+
   case class CustomConfig(
     mode: AmClientModes.Mode = AmClientModes.UNKNOWN,
     host: String = "localhost",
@@ -62,7 +75,7 @@ object AmClientParser {
     user: String = "admin",
     pass: String = "admin",
     apiName: String = "SMRTLink",
-    target: Option[String] = None,
+    target: Option[String] = target,
     roles: String = "Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics",
     swagger: Option[String] = None,
     // appConfig is required in the commands that use it, so it's not
@@ -116,7 +129,6 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .required()
           .action((x, c) => c.copy(target = Some(x)))
           .text("backend URL"),
         opt[File]("app-config")
@@ -138,7 +150,6 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .required()
           .action((x, c) => c.copy(target = Some(x)))
           .text("backend URL"),
         opt[File]("app-config")
@@ -189,6 +200,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   // get DefaultApplication key from the server and save it in appConfigFile
   def getKey(appConfigFile: File): Int = {
+    Await.result(am.waitForStart(), 200.seconds)
+
     val futs = for {
       clientInfo <- am.register()
       tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
@@ -291,6 +304,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
+    Await.result(am.waitForStart(), 200.seconds)
+
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
       created <- am.postApiDetails(api, token)
@@ -308,6 +323,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   // update target endpoints for the API with the given name
   def setApi(apiName: String, appConfigFile: File, target: Option[String], swagger: Option[String]): Int = {
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
+
+    Await.result(am.waitForStart(), 200.seconds)
 
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
