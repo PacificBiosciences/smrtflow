@@ -20,7 +20,6 @@ import spray.httpx.marshalling.BasicMarshallers._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 
 import org.wso2.carbon.apimgt.rest.api.store
