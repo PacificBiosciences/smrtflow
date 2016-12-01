@@ -134,4 +134,12 @@ echo "Starting up ENTERPRISE wso2 API Manager"
 bash $ws02_dir/bin/wso2server.sh --start
 echo "started up WSO2 API Manager"
 
+java -cp $__root/$SERVICES_JAR_NAME \
+     -Dconfig.file=$__root/prod.conf \
+     com.pacbio.secondary.smrtserver.tools.AmClientApp \
+     set-api --swagger-resource /smrtlink_swagger.json \
+     --app-config $tomcat_dir/webapps/ROOT/app-config.json \
+     --user admin --pass admin --host localhost \
+     && echo "configured API Manager for smrtlink backend"
+
 echo "Completed starting the SMRT Link services and tomcat UI server"

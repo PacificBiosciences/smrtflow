@@ -3,16 +3,22 @@ package com.pacbio.secondary.smrtserver.tools
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import java.net.URL
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.Try
 
 import akka.actor.ActorSystem
+import akka.util.Timeout
 
 import spray.json._
 
+import com.typesafe.config.ConfigFactory
+
 import scopt.OptionParser
 
+import com.pacbio.common.dependency.TypesafeSingletonReader
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 import org.wso2.carbon.apimgt.rest.api.publisher
@@ -55,6 +61,14 @@ object AmClientParser {
   // Examples:
   // smrt-server-analysis/target/pack/bin/amclient set-api --target http://localhost:8090/ --swagger-resource /smrtlink_swagger.json --app-config ~/p4/ui/main/apps/smrt-link/src/app-config.json --user admin --pass admin --host login14-biofx02 --port-offset 10
 
+  val conf = ConfigFactory.load()
+
+  val targetx = for {
+    host <- Try { conf.getString("pb-services.host") }
+    port <- Try { conf.getInt("pb-services.port")}
+  } yield new URL(s"http://$host:$port/")
+  val target = targetx.toOption
+
   case class CustomConfig(
     mode: AmClientModes.Mode = AmClientModes.UNKNOWN,
     host: String = "localhost",
@@ -62,7 +76,7 @@ object AmClientParser {
     user: String = "admin",
     pass: String = "admin",
     apiName: String = "SMRTLink",
-    target: Option[String] = None,
+    target: Option[URL] = target,
     roles: String = "Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics",
     swagger: Option[String] = None,
     // appConfig is required in the commands that use it, so it's not
@@ -116,8 +130,7 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .required()
-          .action((x, c) => c.copy(target = Some(x)))
+          .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
         opt[File]("app-config")
           .required()
@@ -138,8 +151,7 @@ object AmClientParser {
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
         opt[String]("target")
-          .required()
-          .action((x, c) => c.copy(target = Some(x)))
+          .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
         opt[File]("app-config")
           .required()
@@ -189,6 +201,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   // get DefaultApplication key from the server and save it in appConfigFile
   def getKey(appConfigFile: File): Int = {
+    Await.result(am.waitForStart(), 200.seconds)
+
     val futs = for {
       clientInfo <- am.register()
       tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
@@ -228,7 +242,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     }
   }
 
-  def createApi(apiName: String, appConfigFile: File, swagger: String, target: String): Int = {
+  def createApi(apiName: String, appConfigFile: File, swagger: String, target: URL): Int = {
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -291,6 +305,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
 
+    Await.result(am.waitForStart(), 200.seconds)
+
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
       created <- am.postApiDetails(api, token)
@@ -306,8 +322,10 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   }
 
   // update target endpoints for the API with the given name
-  def setApi(apiName: String, appConfigFile: File, target: Option[String], swagger: Option[String]): Int = {
+  def setApi(apiName: String, appConfigFile: File, target: Option[URL], swagger: Option[String]): Int = {
     val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
+
+    Await.result(am.waitForStart(), 200.seconds)
 
     val futs = for {
       token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
@@ -332,7 +350,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       .map(apiDef => details.copy(apiDefinition = apiDef))
       .getOrElse(details)
 
-  def endpointConfig(target: String): String = {
+  def endpointConfig(target: URL): String = {
     s"""
 {
   "production_endpoints": {
@@ -348,7 +366,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 """
   }
 
-  def setEndpoints(details: publisher.models.API, targetOpt: Option[String]): publisher.models.API =
+  def setEndpoints(details: publisher.models.API, targetOpt: Option[URL]): publisher.models.API =
     targetOpt
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
