@@ -96,7 +96,7 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     adminPipe.flatMap(_(request)).map(unmarshal[ClientRegistrationResponse])
   }
 
-  def waitForStart(tries: Int = 20, delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
+  def waitForStart(tries: Int = 40, delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
     implicit val timeout = tries * delay
 
     // Wait for token, store, and publisher APIs to start.
@@ -110,7 +110,7 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     Future.sequence(requests.map(req => waitForRequest(req._1, req._2, tries, delay)))
   }
 
-  def waitForRequest(request: HttpRequest, pipeline: Future[SendReceive], tries: Int = 20, delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
+  def waitForRequest(request: HttpRequest, pipeline: Future[SendReceive], tries: Int = 40, delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
     implicit val timeout: Timeout = tries * delay
 
     val fut = pipeline.flatMap(_(request))
