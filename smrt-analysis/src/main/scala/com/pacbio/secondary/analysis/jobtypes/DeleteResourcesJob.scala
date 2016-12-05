@@ -76,10 +76,14 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
-    val logPath = job.path.resolve("pbscala-job.stdout")
     resultsWriter.writeLineStdout(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val jobDir = opts.path.toFile
     var nFailures = 0
+
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the delete resources job")
+
+
     Try {
       if (! jobDir.isDirectory) throw new Exception(s"The path '${jobDir.toString}' does not exist or is not a directory")
       if (opts.removeFiles) {
@@ -92,17 +96,6 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
       case Success(files) =>
         val now = JodaDateTime.now()
         val r = toReport(opts.path, files)
-        val logFile = DataStoreFile(
-          UUID.randomUUID(),
-          s"master.log",
-          FileTypes.LOG.fileTypeId,
-          logPath.toFile.length,
-          startedAt,
-          now,
-          logPath.toString,
-          isChunked = false,
-          "Master Log",
-          "Log file of the details of the delete resources job")
         val reportPath = job.path.resolve("delete_report.json")
         ReportUtils.writeReport(r, reportPath)
         val rptFile = DataStoreFile(

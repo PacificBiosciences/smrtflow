@@ -75,6 +75,9 @@ with timeUtils {
       }
     }
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath, "Job Master log of the ConvertImportFasta Job")
+
     val result = Try { validateAndRun(fastaPath )}
 
     val runTime = computeTimeDeltaFromNow(startedAt)
@@ -84,7 +87,7 @@ with timeUtils {
           case Right(barcodeDatasetFileIO) =>
             w(s"completed running conversion in $runTime sec")
             val dsFile = toDataStoreFile(UUID.fromString(barcodeDatasetFileIO.dataset.getUniqueId), barcodeDatasetFileIO.path)
-            val datastore = writeDatastoreToJobDir(Seq(dsFile), job.path)
+            val datastore = writeDatastoreToJobDir(Seq(dsFile, logFile), job.path)
             w(s"successfully generated datastore with ${datastore.files.length} files in $runTime sec.")
             Right(datastore)
           case Left(a) =>

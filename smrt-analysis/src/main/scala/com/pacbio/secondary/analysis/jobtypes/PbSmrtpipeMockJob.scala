@@ -154,6 +154,9 @@ with MockJobUtils {
     val resources = setupJobResourcesAndCreateDirs(job.path)
     val dsFiles = toMockDataStoreFiles(job.path)
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
+
     // This must follow the pbreport id format
     val reportId = "smrtflow_mock_job_report"
 
@@ -174,7 +177,7 @@ with MockJobUtils {
       "Mock Task Report",
       "Mock Task Report for mock pbsmrtpipe job type")
 
-    val dsFiles2 = dsFiles ++ Seq(reportDataStoreFile)
+    val dsFiles2 = dsFiles ++ Seq(reportDataStoreFile, logFile)
 
     val ds = toDatastore(resources, dsFiles2)
     writeDataStore(ds, resources.datastoreJson)

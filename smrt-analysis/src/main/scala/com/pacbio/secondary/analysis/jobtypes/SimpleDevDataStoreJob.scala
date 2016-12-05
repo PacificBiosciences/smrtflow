@@ -18,9 +18,12 @@ class SimpleDevDataStoreJob(opts: SimpleDevDataStoreJobOptions)
   val jobTypeId = JobTypeId("dev_simple_datastore")
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath)
     // Just to have Data to import back into the system
     val resources = setupJobResourcesAndCreateDirs(job.path)
-    val dsFiles = toMockDataStoreFiles(job.path)
+    val dsFiles = toMockDataStoreFiles(job.path) ++ Seq(logFile)
     val ds = toDatastore(resources, dsFiles)
     writeDataStore(ds, resources.datastoreJson)
     // Just to make the jobOptions take longer

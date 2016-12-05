@@ -35,6 +35,9 @@ with MockJobUtils with timeUtils {
     // Just to have Data to import back into the system
     val startedAt = JodaDateTime.now()
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
+
     val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 
     convertMovieOrFofnToHdfSubread(opts.path) match {
@@ -62,12 +65,12 @@ with MockJobUtils with timeUtils {
               "RS movie XML converted to PacBio HdfSubreadSet XML")
 
             val resources = setupJobResourcesAndCreateDirs(job.path)
-            val ds = toDatastore(resources, Seq(dsFile))
+            val ds = toDatastore(resources, Seq(dsFile, logFile))
             writeDataStore(ds, resources.datastoreJson)
             Right(ds)
           case Failure(errorsNel) =>
             val msg = errorsNel.list.mkString("; ")
-            Left(ResultFailed(job.jobId, jobTypeId.toString, s"Failed to convert ${opts.path}. ${msg}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
+            Left(ResultFailed(job.jobId, jobTypeId.toString, s"Failed to convert ${opts.path}. $msg", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
         }
       case Left(ex) =>
         Left(ResultFailed(job.jobId, jobTypeId.toString, s"Failed to convert ${opts.path}. ${ex.msg}", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))

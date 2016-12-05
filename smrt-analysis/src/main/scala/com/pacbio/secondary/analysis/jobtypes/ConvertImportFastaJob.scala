@@ -86,6 +86,9 @@ with timeUtils {
     //createReferenceFromFasta(fastaDest, job.path, Option("Converted-fasta"), organism, ploidy)
     val result = Try { validateAndRun(fastaPath )}
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logFile = toMasterDataStoreFile(logPath)
+
     val runTime = computeTimeDeltaFromNow(startedAt)
     result match {
       case Success(x) =>
@@ -93,7 +96,7 @@ with timeUtils {
           case Right(referenceDatasetFileIO) =>
             w(s"completed running conversion in $runTime sec")
             val dsFile = toDataStoreFile(UUID.fromString(referenceDatasetFileIO.dataset.getUniqueId), referenceDatasetFileIO.path)
-            val datastore = writeDatastoreToJobDir(Seq(dsFile), job.path)
+            val datastore = writeDatastoreToJobDir(Seq(dsFile, logFile), job.path)
             w(s"successfully generated datastore with ${datastore.files.length} files in $runTime sec.")
             Right(datastore)
           case Left(a) =>

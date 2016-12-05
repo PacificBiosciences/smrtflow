@@ -87,22 +87,11 @@ with MockJobUtils with timeUtils {
         val dataStoreFile = toDF(dataset)
         val now = JodaDateTime.now()
 
-        val logPath = job.path.resolve("pbscala-job.stdout")
+        val logPath = job.path.resolve(JobConstants.JOB_STDERR)
 
         val reportFiles = DataSetReports.runAll(outputPath, dst, job.path, jobTypeId, resultsWriter)
-        val logFile = DataStoreFile(
-          UUID.randomUUID(),
-          s"master.log",
-          FileTypes.LOG.fileTypeId,
-          // probably wrong; the file isn't closed yet.  But it won't get
-          // closed until after this method completes.
-          logPath.toFile.length,
-          now,
-          now,
-          logPath.toString,
-          isChunked = false,
-          "Master Log",
-          "Master log of the Merge Dataset job")
+
+        val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Merge Dataset job")
 
         // FIX hardcoded version
         val ds = PacBioDataStore(now, now, "0.2.1", Seq(dataStoreFile, logFile) ++ reportFiles)
