@@ -46,6 +46,9 @@ with SecondaryJobJsonProtocol {
     val reportPath = job.path.resolve(reportId + ".json")
     ReportUtils.writeReport(taskReport, reportPath)
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+    val logFile = toMasterDataStoreFile(logPath)
+
     val reportDataStoreFile = DataStoreFile(
       taskReport.uuid,
       s"pbscala::$reportId",
@@ -66,7 +69,7 @@ with SecondaryJobJsonProtocol {
       val ds = jAst.convertTo[PacBioDataStore]
       val localStorePath = job.path.resolve("datastore.json")
       // Should validate each file in the datastore
-      val dsFiles = ds.files ++ Seq(reportDataStoreFile)
+      val dsFiles = ds.files ++ Seq(reportDataStoreFile, logFile)
       val ds2 = PacBioDataStore(ds.createdAt, ds.updatedAt, ds.version, dsFiles)
       writeDataStore(ds2, localStorePath)
       ds2

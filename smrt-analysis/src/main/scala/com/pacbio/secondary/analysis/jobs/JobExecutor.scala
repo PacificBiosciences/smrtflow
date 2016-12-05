@@ -41,10 +41,18 @@ class PrinterJobResultsWriter extends JobResultWriter {
 }
 
 class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobResultWriter {
-  def writeStdout(msg: String) = stdout.append(msg)
+
+  // This is a temporary hacky logging-ish model.
+  private def toTimeStampMessage(msg: String, level: String = "INFO"): String =
+    s"[$level] [${JodaDateTime.now()}] $msg"
+
+  def writeStdout(msg: String) = stdout.append(toTimeStampMessage(msg))
 
   def writeStderr(msg: String) = {
+    val logMsg = toTimeStampMessage(msg, level = "ERROR")
     stderr.append(msg)
+    // This is to have the errors also be written the "log"
+    stdout.append(logMsg)
     System.err.println(msg)
   }
 }

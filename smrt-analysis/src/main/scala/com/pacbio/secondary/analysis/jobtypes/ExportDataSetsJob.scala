@@ -47,6 +47,10 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
 
     val datastoreJson = job.path.resolve("datastore.json")
 
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+    val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the Export DataSet Job job")
+
+
     val nbytes = ExportDataSets(opts.paths, opts.datasetType, opts.outputPath)
     resultsWriter.writeStdout(s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
     val now = JodaDateTime.now()
@@ -61,21 +65,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
       isChunked = false,
       "ZIP file",
       s"ZIP file containing ${opts.paths.length} datasets")
-    val logPath = job.path.resolve("pbscala-job.stdout")
 
-    val logFile = DataStoreFile(
-      UUID.randomUUID(),
-      s"master.log",
-      FileTypes.LOG.fileTypeId,
-      // probably wrong; the file isn't closed yet.  But it won't get
-      // closed until after this method completes.
-      logPath.toFile.length,
-      now,
-      now,
-      logPath.toString,
-      isChunked = false,
-      "Master Log",
-      "Master log of the Merge Dataset job")
     val ds = PacBioDataStore(now, now, "0.2.1", Seq(dataStoreFile, logFile))
     writeDataStore(ds, datastoreJson)
     resultsWriter.writeStdout(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")

@@ -1,9 +1,13 @@
 package com.pacbio.secondary.analysis.jobs
 
 import java.net.InetAddress
+import java.nio.file.Path
 import java.util.UUID
+
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import org.joda.time.{DateTime => JodaDateTime}
+
 import scala.concurrent.{ExecutionContext, Future}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -33,6 +37,31 @@ trait CoreJobModel extends LazyLogging{
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out]
 
   def host = InetAddress.getLocalHost.getHostName
+
+  /**
+    * Get the fundamental "log" for the job
+    * FIXME(mpkocher)(2016-12-4) Centralizing this duplication. Should reevaluate the fundamental design
+    *
+    * @param path  Path to the Log file
+    * @param description Custom description of the DataStore file
+    * @return
+    */
+  def toMasterDataStoreFile(path: Path, description: String = s"Job Master Log of ${jobTypeId.id}"): DataStoreFile = {
+    val now = JodaDateTime.now()
+    DataStoreFile(
+      UUID.randomUUID(),
+      JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
+      FileTypes.LOG.fileTypeId,
+      // probably wrong; the file isn't closed yet.  But it won't get
+      // closed until after this method completes.
+      path.toFile.length,
+      now,
+      now,
+      path.toString,
+      isChunked = false,
+      "Job Master Log",
+      "Job Master log of the Merge Dataset job")
+  }
 }
 
 abstract class BaseCoreJob(opts: BaseJobOptions) extends CoreJobModel {

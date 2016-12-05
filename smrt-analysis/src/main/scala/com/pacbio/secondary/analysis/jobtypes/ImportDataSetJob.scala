@@ -70,8 +70,6 @@ with MockJobUtils with timeUtils {
       logger.info(s"Loaded dataset and convert to DataStoreFile $dsFile")
       val resources = setupJobResourcesAndCreateDirs(job.path)
 
-      val logPath = job.path.resolve("pbscala-job.stdout")
-
       // This should never stop a dataset from being imported
       val reports = Try { DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter) }
 
@@ -85,19 +83,8 @@ with MockJobUtils with timeUtils {
           Nil
       }
 
-      val logFile = DataStoreFile(
-        UUID.randomUUID(),
-        s"master.log",
-        FileTypes.LOG.fileTypeId,
-        // probably wrong; the file isn't closed yet.  But it won't get
-        // closed until after this method runs.
-        logPath.toFile.length,
-        createdAt,
-        startedAt,
-        logPath.toString,
-        isChunked = false,
-        "Master Log",
-        "Log file of the details of the import dataset job")
+      val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+      val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
 
       val dsFiles = Seq(dsFile, logFile) ++ reportFiles
       val datastore = toDatastore(resources, dsFiles)

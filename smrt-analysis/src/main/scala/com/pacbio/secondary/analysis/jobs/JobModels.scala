@@ -301,4 +301,20 @@ object JobModels {
   case class DataStoreFileViewRule(sourceId: String, fileTypeId: String, isHidden: Boolean, name: Option[String], description: Option[String])
   case class PipelineDataStoreViewRules(pipelineId: String, rules: Seq[DataStoreFileViewRule], smrtlinkVersion: String)
 
+
+  // Constants used across all Job types
+
+  object JobConstants {
+
+    // Default Output job files
+    val JOB_STDERR = "pbscala-job.stderr"
+    val JOB_STDOUT = "pbscala-job.stdout"
+
+    // This is the DataStore File "master" log. The fundamental log file for the
+    // job should be stored here and added to the datastore for downstream consumers
+    val DATASTORE_FILE_MASTER_LOG_ID = "pbsmrtpipe::master.log"
+
+
+  }
+
 }
