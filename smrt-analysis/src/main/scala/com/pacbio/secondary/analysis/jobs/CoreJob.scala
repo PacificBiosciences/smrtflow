@@ -48,7 +48,7 @@ trait CoreJobModel extends LazyLogging{
     */
   def toMasterDataStoreFile(path: Path, description: String = s"Job Master Log of ${jobTypeId.id}"): DataStoreFile = {
     val now = JodaDateTime.now()
-    val logFile = DataStoreFile(
+    DataStoreFile(
       UUID.randomUUID(),
       JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
       FileTypes.LOG.fileTypeId,
