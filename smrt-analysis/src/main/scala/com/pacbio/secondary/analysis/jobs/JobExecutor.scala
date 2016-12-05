@@ -49,7 +49,10 @@ class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobRe
   def writeStdout(msg: String) = stdout.append(toTimeStampMessage(msg))
 
   def writeStderr(msg: String) = {
-    stderr.append(toTimeStampMessage(msg, level = "ERROR"))
+    val logMsg = toTimeStampMessage(msg, level = "ERROR")
+    stderr.append(msg)
+    // This is to have the errors also be written the "log"
+    stdout.append(logMsg)
     System.err.println(msg)
   }
 }
