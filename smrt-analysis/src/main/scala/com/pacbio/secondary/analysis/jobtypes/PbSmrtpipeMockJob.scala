@@ -154,7 +154,7 @@ with MockJobUtils {
     val resources = setupJobResourcesAndCreateDirs(job.path)
     val dsFiles = toMockDataStoreFiles(job.path)
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
 
     // This must follow the pbreport id format

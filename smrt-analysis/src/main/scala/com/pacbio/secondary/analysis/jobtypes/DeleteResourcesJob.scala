@@ -80,7 +80,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
     val jobDir = opts.path.toFile
     var nFailures = 0
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the delete resources job")
 
 

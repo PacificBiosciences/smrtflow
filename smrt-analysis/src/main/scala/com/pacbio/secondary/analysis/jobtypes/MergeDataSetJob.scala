@@ -87,7 +87,7 @@ with MockJobUtils with timeUtils {
         val dataStoreFile = toDF(dataset)
         val now = JodaDateTime.now()
 
-        val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+        val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
 
         val reportFiles = DataSetReports.runAll(outputPath, dst, job.path, jobTypeId, resultsWriter)
 

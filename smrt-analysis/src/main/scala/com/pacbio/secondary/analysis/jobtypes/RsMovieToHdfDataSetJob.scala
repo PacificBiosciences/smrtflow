@@ -35,7 +35,7 @@ with MockJobUtils with timeUtils {
     // Just to have Data to import back into the system
     val startedAt = JodaDateTime.now()
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
 
     val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")

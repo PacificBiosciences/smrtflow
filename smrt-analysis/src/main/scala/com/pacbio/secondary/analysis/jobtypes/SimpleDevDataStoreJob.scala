@@ -19,7 +19,7 @@ class SimpleDevDataStoreJob(opts: SimpleDevDataStoreJobOptions)
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath)
     // Just to have Data to import back into the system
     val resources = setupJobResourcesAndCreateDirs(job.path)

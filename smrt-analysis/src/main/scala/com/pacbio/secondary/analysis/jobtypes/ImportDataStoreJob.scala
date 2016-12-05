@@ -46,7 +46,7 @@ with SecondaryJobJsonProtocol {
     val reportPath = job.path.resolve(reportId + ".json")
     ReportUtils.writeReport(taskReport, reportPath)
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath)
 
     val reportDataStoreFile = DataStoreFile(

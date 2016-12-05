@@ -47,7 +47,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
 
     val datastoreJson = job.path.resolve("datastore.json")
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the Export DataSet Job job")
 
 

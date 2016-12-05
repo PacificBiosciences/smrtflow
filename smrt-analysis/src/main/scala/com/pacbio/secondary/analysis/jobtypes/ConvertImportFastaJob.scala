@@ -86,7 +86,7 @@ with timeUtils {
     //createReferenceFromFasta(fastaDest, job.path, Option("Converted-fasta"), organism, ploidy)
     val result = Try { validateAndRun(fastaPath )}
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDERR)
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath)
 
     val runTime = computeTimeDeltaFromNow(startedAt)
