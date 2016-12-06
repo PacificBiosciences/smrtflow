@@ -87,6 +87,11 @@ If multiple collections are utilizing the same physical plate well, all these co
 								<xs:documentation>The SMRT cell packaging supply information. </xs:documentation>
 							</xs:annotation>
 						</xs:element>
+						<xs:element name="ControlKit" type="pbbase:SupplyKitControl" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Defines the DNA control used for this experiment. </xs:documentation>
+							</xs:annotation>
+						</xs:element>
 						<xs:element name="TemplatePrepKit" type="pbbase:SupplyKitTemplate" minOccurs="0">
 							<xs:annotation>
 								<xs:documentation>Defines the template (sample) prep kit used for this experiment. Can be used to get back to the primary and adapter used. </xs:documentation>
@@ -121,6 +126,20 @@ If multiple collections are utilizing the same physical plate well, all these co
 							<xs:annotation>
 								<xs:documentation>The information on whether consumables were expired. </xs:documentation>
 							</xs:annotation>
+						</xs:element>
+						<xs:element name="ComponentVersions" nillable="true" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Subcomponents involved in the generation of the data</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="VersionInfo" type="pbbase:BaseEntityType" maxOccurs="unbounded">
+										<xs:annotation>
+											<xs:documentation>Each component should list its name and version attribute</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
 						</xs:element>
 					</xs:sequence>
 					<xs:attribute name="Context" type="xs:string">
@@ -429,7 +448,6 @@ This is optional since we will likely not have a link back to samples created in
 													<xs:enumeration value="RSYNC"/>
 													<xs:enumeration value="SRS"/>
 													<xs:enumeration value="NFS"/>
-													<xs:whiteSpace value="replace"/>
 												</xs:restriction>
 											</xs:simpleType>
 										</xs:element>
@@ -441,6 +459,16 @@ This is optional since we will likely not have a link back to samples created in
 										<xs:element name="Description" type="xs:string">
 											<xs:annotation>
 												<xs:documentation>Description of the Transfer Resource</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DestPath" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>Remote Root Destination Path of the Transfer Resource</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="RelativePath" type="xs:string" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Remote Relative Path of the Transfer Resource</xs:documentation>
 											</xs:annotation>
 										</xs:element>
 									</xs:sequence>
@@ -520,6 +548,7 @@ This is optional since we will likely not have a link back to samples created in
 			<xs:enumeration value="Baz"/>
 			<xs:enumeration value="Bam"/>
 			<xs:enumeration value="DarkFrame"/>
+			<xs:enumeration value="StatsH5"/>
 		</xs:restriction>
 	</xs:simpleType>
 </xs:schema>
