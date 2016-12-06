@@ -14,6 +14,11 @@ rm -fr src/main/java/*
 
 # generate the new
 xjc src/main/resources/pb-common-xsds/ -d src/main/java
+
+# Update the XSDs stored within smrtflow
+cp /path/to/xsds/*.xsd smrt-common-models/src/main/resources/pb-common-xsds/
 ````
+FIXME(mpkocher)(2016-12-6) This needs to be automated. 
+
 
 Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L10) and [DATASET_VERSION](src/main/scala/com/pacbio/common/models/Constants.scala#L11).
