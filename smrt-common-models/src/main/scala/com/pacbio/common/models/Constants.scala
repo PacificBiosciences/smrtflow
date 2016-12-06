@@ -3,10 +3,14 @@ package com.pacbio.common.models
 import java.util.Properties
 
 /**
- * Created by mkocher on 10/13/15.
- */
+  *
+  * Created by mkocher on 10/13/15.
+  */
 trait Constants {
+  // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "3.0.1"
+  // Perforce CHANGELIST that was used to generate the XSDs
+  final val XSD_CHANGELIST = "189211"
 
   val SMRTFLOW_VERSION = {
     val files = getClass().getClassLoader().getResources("version.properties")
