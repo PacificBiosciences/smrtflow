@@ -131,6 +131,10 @@ object JobsDaoActor {
 
   case class GetAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
+  case class GetAlignmentDataSetDetailsById(i: Int) extends DataSetMessage
+
+  case class GetAlignmentDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
+
   // Hdf Subreads
   case class GetHdfSubreadDataSetById(i: Int) extends DataSetMessage
 
@@ -143,25 +147,33 @@ object JobsDaoActor {
   case class GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
   // CCS reads
-  case class GetConsensusReadDataSetsById(i: Int) extends DataSetMessage
+  case class GetConsensusReadDataSetById(i: Int) extends DataSetMessage
 
-  case class GetConsensusReadDataSetsByUUID(uuid: UUID) extends DataSetMessage
+  case class GetConsensusReadDataSetByUUID(uuid: UUID) extends DataSetMessage
 
   case class GetConsensusReadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
-  // CCS alignments
-  case class GetConsensusAlignmentDataSetsById(i: Int) extends DataSetMessage
+  case class GetConsensusReadDataSetDetailsById(i: Int) extends DataSetMessage
 
-  case class GetConsensusAlignmentDataSetsByUUID(uuid: UUID) extends DataSetMessage
+  case class GetConsensusReadDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
+
+  // CCS alignments
+  case class GetConsensusAlignmentDataSetById(i: Int) extends DataSetMessage
+
+  case class GetConsensusAlignmentDataSetByUUID(uuid: UUID) extends DataSetMessage
 
   case class GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+
+  case class GetConsensusAlignmentDataSetDetailsById(i: Int) extends DataSetMessage
+
+  case class GetConsensusAlignmentDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // Barcode DataSets
   case class GetBarcodeDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
-  case class GetBarcodeDataSetsById(i: Int) extends DataSetMessage
+  case class GetBarcodeDataSetById(i: Int) extends DataSetMessage
 
-  case class GetBarcodeDataSetsByUUID(uuid: UUID) extends DataSetMessage
+  case class GetBarcodeDataSetByUUID(uuid: UUID) extends DataSetMessage
 
   case class GetBarcodeDataSetDetailsById(i: Int) extends DataSetMessage
 
@@ -170,9 +182,13 @@ object JobsDaoActor {
   // ContigSet
   case class GetContigDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
 
-  case class GetContigDataSetsById(i: Int) extends DataSetMessage
+  case class GetContigDataSetById(i: Int) extends DataSetMessage
 
-  case class GetContigDataSetsByUUID(uuid: UUID) extends DataSetMessage
+  case class GetContigDataSetByUUID(uuid: UUID) extends DataSetMessage
+
+  case class GetContigDataSetDetailsById(i: Int) extends DataSetMessage
+
+  case class GetContigDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // Import a Reference Dataset
   case class ImportReferenceDataSet(ds: ReferenceServiceDataSet) extends DataSetMessage
@@ -589,6 +605,14 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       dao.getAlignmentDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Alignment dataset '$uuid")))
     }
 
+    case GetAlignmentDataSetDetailsByUUID(uuid) => pipeWith {
+      dao.getAlignmentDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Alignment dataset Details for '$uuid")))
+    }
+
+    case GetAlignmentDataSetDetailsById(i) => pipeWith {
+      dao.getAlignmentDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Alignment dataset Details for '$i")))
+    }
+
     // Get HDF Subreads
     case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getHdfDataSets(limit, includeInactive))
 
@@ -609,57 +633,80 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // Get CCS Subreads
-    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getCCSDataSets(limit, includeInactive))
+    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getConsensusReadDataSets(limit, includeInactive))
 
-    case GetConsensusReadDataSetsById(n: Int) => pipeWith {
-      dao.getCCSDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
+    case GetConsensusReadDataSetById(n: Int) => pipeWith {
+      dao.getConsensusReadDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
     }
 
-    case GetConsensusReadDataSetsByUUID(uuid: UUID) => pipeWith {
-      dao.getCCSDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
+    case GetConsensusReadDataSetByUUID(uuid: UUID) => pipeWith {
+      dao.getConsensusReadDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
+    }
+
+    case GetConsensusReadDataSetDetailsByUUID(uuid) => pipeWith {
+      dao.getConsensusReadDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusRead dataset Details for '$uuid")))
+    }
+
+    case GetConsensusReadDataSetDetailsById(i) => pipeWith {
+      dao.getConsensusReadDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find ConsensusRead dataset Details for '$i")))
     }
 
     // Get CCS Subreads
     case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive))
 
-    case GetConsensusAlignmentDataSetsById(n: Int) => pipeWith {
+    case GetConsensusAlignmentDataSetById(n: Int) => pipeWith {
       dao.getConsensusAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$n")))
     }
 
-    case GetConsensusAlignmentDataSetsByUUID(uuid: UUID) => pipeWith {
+    case GetConsensusAlignmentDataSetByUUID(uuid: UUID) => pipeWith {
       dao.getConsensusAlignmentDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$uuid")))
+    }
+
+    case GetConsensusAlignmentDataSetDetailsByUUID(uuid) => pipeWith {
+      dao.getConsensusAlignmentDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusAlignment dataset Details for '$uuid")))
+    }
+
+    case GetConsensusAlignmentDataSetDetailsById(i) => pipeWith {
+      dao.getConsensusAlignmentDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find ConsensusAlignment dataset Details for '$i")))
     }
 
     // Get Barcodes
     case GetBarcodeDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getBarcodeDataSets(limit, includeInactive))
 
-    case GetBarcodeDataSetsById(n: Int) => pipeWith {
+    case GetBarcodeDataSetById(n: Int) => pipeWith {
       dao.getBarcodeDataSetById(n).map(_.getOrElse(toE(s"Unable to find Barcode dataset '$n")))
     }
 
-    case GetBarcodeDataSetsByUUID(uuid: UUID) => pipeWith {
+    case GetBarcodeDataSetByUUID(uuid: UUID) => pipeWith {
       dao.getBarcodeDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Barcode dataset '$uuid")))
     }
 
     case GetBarcodeDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getBarcodeDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$uuid")))
+      dao.getBarcodeDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$uuid")))
     }
 
     case GetBarcodeDataSetDetailsById(i) => pipeWith {
-      dao.getBarcodeDataSetById(i).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$i")))
+      dao.getBarcodeDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$i")))
     }
 
     // Contigs
     case GetContigDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getContigDataSets(limit, includeInactive))
 
-    case GetContigDataSetsById(n: Int) => pipeWith {
+    case GetContigDataSetById(n: Int) => pipeWith {
       dao.getContigDataSetById(n).map(_.getOrElse(toE(s"Unable to find Contig dataset '$n")))
     }
 
-    case GetContigDataSetsByUUID(uuid: UUID) => pipeWith {
+    case GetContigDataSetByUUID(uuid: UUID) => pipeWith {
       dao.getContigDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Contig dataset '$uuid")))
     }
 
+    case GetContigDataSetDetailsByUUID(uuid) => pipeWith {
+      dao.getContigDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Contig dataset Details for '$uuid")))
+    }
+
+    case GetContigDataSetDetailsById(i) => pipeWith {
+      dao.getContigDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Contig dataset Details for '$i")))
+    }
 
     case ConvertReferenceInfoToDataset(path: String, dsPath: Path) => respondWith {
       log.info(s"Converting reference.info.xml to dataset XML $path")

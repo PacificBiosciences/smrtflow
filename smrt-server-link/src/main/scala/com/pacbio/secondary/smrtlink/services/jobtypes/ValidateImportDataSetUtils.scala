@@ -76,10 +76,10 @@ trait ValidateImportDataSetUtils {
         case Some(DataSetMetaTypes.Subread) => (dbActor ? GetSubreadDataSetById(id)).mapTo[SubreadServiceDataSet]
         case Some(DataSetMetaTypes.Reference) => (dbActor ? GetReferenceDataSetById(id)).mapTo[ReferenceServiceDataSet]
         case Some(DataSetMetaTypes.Alignment) => (dbActor ? GetAlignmentDataSetById(id)).mapTo[AlignmentServiceDataSet]
-        case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetsById(id)).mapTo[BarcodeServiceDataSet]
-        case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetsById(id)).mapTo[ConsensusReadServiceDataSet]
-        case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetsById(id)).mapTo[ConsensusAlignmentServiceDataSet]
-        case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetsById(id)).mapTo[ContigServiceDataSet]
+        case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetById(id)).mapTo[BarcodeServiceDataSet]
+        case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetById(id)).mapTo[ConsensusReadServiceDataSet]
+        case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetById(id)).mapTo[ConsensusAlignmentServiceDataSet]
+        case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetById(id)).mapTo[ContigServiceDataSet]
         case Some(DataSetMetaTypes.GmapReference) => (dbActor ? GetGmapReferenceDataSetById(id)).mapTo[GmapReferenceServiceDataSet]
         case _ => Future.failed(new UnprocessableEntityError(s"Unsupported dataset type: $datasetType"))
         }
@@ -98,10 +98,10 @@ trait ValidateImportDataSetUtils {
           case Some(DataSetMetaTypes.Subread) => (dbActor ? GetSubreadDataSetByUUID(uuid)).mapTo[SubreadServiceDataSet]
           case Some(DataSetMetaTypes.Reference) => (dbActor ? GetReferenceDataSetByUUID(uuid)).mapTo[ReferenceServiceDataSet]
           case Some(DataSetMetaTypes.Alignment) => (dbActor ? GetAlignmentDataSetByUUID(uuid)).mapTo[AlignmentServiceDataSet]
-          case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetsByUUID(uuid)).mapTo[BarcodeServiceDataSet]
-          case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetsByUUID(uuid)).mapTo[ConsensusReadServiceDataSet]
-          case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetsByUUID(uuid)).mapTo[ConsensusAlignmentServiceDataSet]
-          case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetsByUUID(uuid)).mapTo[ContigServiceDataSet]
+          case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetByUUID(uuid)).mapTo[BarcodeServiceDataSet]
+          case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetByUUID(uuid)).mapTo[ConsensusReadServiceDataSet]
+          case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetByUUID(uuid)).mapTo[ConsensusAlignmentServiceDataSet]
+          case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetByUUID(uuid)).mapTo[ContigServiceDataSet]
           case Some(DataSetMetaTypes.GmapReference) => (dbActor ? GetGmapReferenceDataSetByUUID(uuid)).mapTo[GmapReferenceServiceDataSet]
           case _ => Future.failed(new UnprocessableEntityError(s"Unsupported dataset type: $datasetType"))
           }

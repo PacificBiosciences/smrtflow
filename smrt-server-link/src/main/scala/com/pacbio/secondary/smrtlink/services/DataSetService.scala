@@ -205,8 +205,8 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         SchemaLoader.alignmentSchema.content,
         GetAlignmentDataSetById,
         GetAlignmentDataSetByUUID,
-        _ => throw new ResourceNotFoundError("Details not supported for AlignmentSet"),
-        _ => throw new ResourceNotFoundError("Details not supported for AlignmentSet")) ~
+        GetAlignmentDataSetDetailsById,
+        GetAlignmentDataSetDetailsByUUID) ~
       datasetRoutes[ReferenceServiceDataSet](
         DataSetMetaTypes.Reference.shortName,
         GetReferenceDataSets,
@@ -227,34 +227,34 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
         DataSetMetaTypes.Barcode.shortName,
         GetBarcodeDataSets,
         SchemaLoader.barcodeSchema.content,
-        GetBarcodeDataSetsById,
-        GetBarcodeDataSetsByUUID,
+        GetBarcodeDataSetById,
+        GetBarcodeDataSetByUUID,
         GetBarcodeDataSetDetailsById,
         GetBarcodeDataSetDetailsByUUID) ~
       datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
         GetConsensusReadDataSets,
         SchemaLoader.ccsReadSchema.content,
-        GetConsensusReadDataSetsById,
-        GetConsensusReadDataSetsByUUID,
-        _ => throw new ResourceNotFoundError("Details not supported for CCS DataSet"),
-        _ => throw new ResourceNotFoundError("Details not supported for CCS DataSet")) ~
+        GetConsensusReadDataSetById,
+        GetConsensusReadDataSetByUUID,
+        GetConsensusReadDataSetDetailsById,
+        GetConsensusReadDataSetDetailsByUUID) ~
       datasetRoutes[ConsensusAlignmentServiceDataSet](
         DataSetMetaTypes.AlignmentCCS.shortName,
         GetConsensusAlignmentDataSets,
         SchemaLoader.ccsAlignmentSchema.content,
-        GetConsensusAlignmentDataSetsById,
-        GetConsensusAlignmentDataSetsByUUID,
-        _ => throw new ResourceNotFoundError("Details not supported for ConsensusAlignmentSet"),
-        _ => throw new ResourceNotFoundError("Details not supported for ConsensusAlignmentSet")) ~
+        GetConsensusAlignmentDataSetById,
+        GetConsensusAlignmentDataSetByUUID,
+        GetConsensusAlignmentDataSetDetailsById,
+        GetConsensusAlignmentDataSetDetailsByUUID) ~
       datasetRoutes[ContigServiceDataSet](
         DataSetMetaTypes.Contig.shortName,
         GetContigDataSets,
         SchemaLoader.contigSchema.content,
-        GetContigDataSetsById,
-        GetContigDataSetsByUUID,
-        _ => throw new ResourceNotFoundError("Details not supported for ContigSet"),
-        _ => throw new ResourceNotFoundError("Details not supported for ContigSet"))
+        GetContigDataSetById,
+        GetContigDataSetByUUID,
+        GetContigDataSetDetailsById,
+        GetContigDataSetDetailsByUUID)
     }
 }
 

@@ -933,12 +933,22 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       q.result.headOption.map(_.map(x => toA(x._1)))
     }
 
+  private def alignmentSetToDetails(ds: Future[Option[AlignmentServiceDataSet]]): Future[Option[String]] = {
+    ds.map(_.map(x => DataSetJsonUtils.alignmentSetToJson(DataSetLoader.loadAlignmentSet(Paths.get(x.path)))))
+  }
+
+  def getAlignmentDataSetDetailsById(id: Int): Future[Option[String]] = alignmentSetToDetails(getAlignmentDataSetById(id))
+
+  def getAlignmentDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = alignmentSetToDetails(getAlignmentDataSetByUUID(uuid))
+
+  /*--- CONSENSUS READS ---*/
+
   def toCCSread(t1: DataSetMetaDataSet) =
     ConsensusReadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getCCSDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusReadServiceDataSet]] = {
+  def getConsensusReadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[ConsensusReadServiceDataSet]] = {
     val query = {
       if (!includeInactive) dsMetaData2.filter(_.isActive) join dsCCSread2 on (_.id === _.id)
       else dsMetaData2 join dsCCSread2 on (_.id === _.id)
@@ -946,17 +956,27 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
-  def getCCSDataSetById(id: Int): Future[Option[ConsensusReadServiceDataSet]] =
+  def getConsensusReadDataSetById(id: Int): Future[Option[ConsensusReadServiceDataSet]] =
     db.run {
       val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
 
-  def getCCSDataSetByUUID(id: UUID): Future[Option[ConsensusReadServiceDataSet]] =
+  def getConsensusReadDataSetByUUID(id: UUID): Future[Option[ConsensusReadServiceDataSet]] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }
+
+  private def consensusReadSetToDetails(ds: Future[Option[ConsensusReadServiceDataSet]]): Future[Option[String]] = {
+    ds.map(_.map(x => DataSetJsonUtils.consensusSetToJson(DataSetLoader.loadConsensusReadSet(Paths.get(x.path)))))
+  }
+
+  def getConsensusReadDataSetDetailsById(id: Int): Future[Option[String]] = consensusReadSetToDetails(getConsensusReadDataSetById(id))
+
+  def getConsensusReadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = consensusReadSetToDetails(getConsensusReadDataSetByUUID(uuid))
+
+  /*--- CONSENSUS ALIGNMENTS ---*/
 
   def toCCSA(t1: DataSetMetaDataSet) = ConsensusAlignmentServiceDataSet(
       t1.id,
@@ -995,6 +1015,16 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       val q = datasetMetaTypeByUUID(id) join dsCCSAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSA(x._1)))
     }
+
+  private def consensusAlignmentSetToDetails(ds: Future[Option[ConsensusAlignmentServiceDataSet]]): Future[Option[String]] = {
+    ds.map(_.map(x => DataSetJsonUtils.consensusAlignmentSetToJson(DataSetLoader.loadConsensusAlignmentSet(Paths.get(x.path)))))
+  }
+
+  def getConsensusAlignmentDataSetDetailsById(id: Int): Future[Option[String]] = consensusAlignmentSetToDetails(getConsensusAlignmentDataSetById(id))
+
+  def getConsensusAlignmentDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = consensusAlignmentSetToDetails(getConsensusAlignmentDataSetByUUID(uuid))
+
+  /*--- BARCODES ---*/
 
   def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
       t1.id,
@@ -1041,6 +1071,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
 
   def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
 
+  /*--- CONTIGS ---*/
+
   def toCtg(t1: DataSetMetaDataSet) = ContigServiceDataSet(
       t1.id,
       t1.uuid,
@@ -1077,6 +1109,16 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       val q = datasetMetaTypeByUUID(id) join dsContig2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCtg(x._1)))
     }
+
+  private def contigSetToDetails(ds: Future[Option[ContigServiceDataSet]]): Future[Option[String]] = {
+    ds.map(_.map(x => DataSetJsonUtils.contigSetToJson(DataSetLoader.loadContigSet(Paths.get(x.path)))))
+  }
+
+  def getContigDataSetDetailsById(id: Int): Future[Option[String]] = contigSetToDetails(getContigDataSetById(id))
+
+  def getContigDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = contigSetToDetails(getContigDataSetByUUID(uuid))
+
+  /*--- DATASTORE ---*/
 
   def toDataStoreJobFile(x: DataStoreServiceFile) =
     // This is has the wrong job uuid
