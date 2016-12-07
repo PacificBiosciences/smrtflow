@@ -39,7 +39,9 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeHdfSubreadSet(mergedDataSet, p)
 
-      mergedDataSet.getVersion must beEqualTo("3.0.1")
+      // Not really clear what the expected behavior is here. The Schema of the HdfSubreadSet has not changed
+      // but the DataSet "version" is across all schemas.
+      mergedDataSet.getVersion must beEqualTo("4.0.0")
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
     }
