@@ -88,6 +88,17 @@
 						</xs:complexType>
 					</xs:element>
 					<xs:element ref="pbbase:ChemistryConfig"/>
+					<xs:element ref="pbbase:Defaults" minOccurs="0"/>
+					<xs:element name="Automations" nillable="true" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Automations that are deemed compatible with this kit.  Parameters specified within an automation will override a parameter with the same name and data type specified in the above Defaults section</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Automation" type="pbbase:AutomationType" maxOccurs="unbounded"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
 				</xs:sequence>
 				<xs:attribute name="ProductCode" type="xs:string"/>
 				<xs:attribute name="PlateType" type="xs:string"/>
@@ -103,6 +114,8 @@
 				<xs:attribute name="ProductCode" type="xs:string" use="required"/>
 				<xs:attribute name="ReagentKey" type="ReagentKey" use="required"/>
 				<xs:attribute name="Volume" type="xs:short" use="required"/>
+				<xs:attribute name="UsageVolume" type="xs:double" use="required"/>
+				<xs:attribute name="UsageKey" type="xs:string" use="required"/>
 				<xs:attribute name="DeadVolume" type="xs:short" use="required"/>
 				<xs:attribute name="ActiveInHour" type="xs:int" use="required"/>
 				<xs:attribute name="TubeWellType" type="TubeSize" use="required"/>

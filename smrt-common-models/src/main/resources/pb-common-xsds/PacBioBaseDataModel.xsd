@@ -299,20 +299,26 @@ Each value is a probability, in the range of [0, 1].</xs:documentation>
 							</xs:sequence>
 						</xs:complexType>
 					</xs:element>
+					<xs:element ref="Defaults" minOccurs="0"/>
 				</xs:sequence>
-				<xs:attribute name="PartNumber" type="xs:string">
+				<xs:attribute name="PartNumber" type="xs:string" use="optional">
 					<xs:annotation>
 						<xs:documentation>Defines a part number, mainly for use in defining incompatibility with other PB kit PNs, if necessary</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
-				<xs:attribute name="IsRestricted" type="xs:boolean" default="false">
+				<xs:attribute name="IsRestricted" type="xs:boolean" use="optional" default="false">
 					<xs:annotation>
 						<xs:documentation>Allows for an automation to be marked for internal use or by admin users only</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
-				<xs:attribute name="IsObsolete" type="xs:boolean" default="false">
+				<xs:attribute name="IsObsolete" type="xs:boolean" use="optional" default="false">
 					<xs:annotation>
 						<xs:documentation>Allows for an automation to be marked as obsolete</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="IsDefault" type="xs:boolean" use="optional" default="false">
+					<xs:annotation>
+						<xs:documentation>Allows for an automation to be marked as a default for a kit with which it's compatible</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
 			</xs:extension>
@@ -344,6 +350,62 @@ By default, any PN is compatible for use with other PNs in the system.  In order
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>
+	<xs:complexType name="AutomationConstraintType">
+		<xs:annotation>
+			<xs:documentation>This data type defines constraints that an automation has.  The information here, along with the availability of an exclusionary list of automations in the PartNumberType, allows for defining a robust compatibility matrix.</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="BaseEntityType">
+				<xs:sequence>
+					<xs:element name="Automations" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Names of automations that are all similarly constrained</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Automation" type="AutomationType" maxOccurs="unbounded"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+				<xs:attribute name="SupportsCellReuse" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Does this automation support cell reuse?</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="SupportsStageStart" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Does this automation support hot-start on the stage?</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="MaxCollectionsPerCell" type="xs:int">
+					<xs:annotation>
+						<xs:documentation>If cell reuse is supported (i.e. above attribute is true) how many times can the cell be reused?</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="MinMovieLength" type="xs:int">
+					<xs:annotation>
+						<xs:documentation>Minimum length of movie acquisition</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="MaxMovieLength" type="xs:int">
+					<xs:annotation>
+						<xs:documentation>Maximum length of movie acquisition</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="MinInsertSize" type="xs:int">
+					<xs:annotation>
+						<xs:documentation>Minimum recommended insert size</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="MaxInsertSize" type="xs:int">
+					<xs:annotation>
+						<xs:documentation>Maximum recommended insert size</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
 	<xs:complexType name="PartNumberType">
 		<xs:annotation>
 			<xs:documentation>Generic representation of a supply kit. 
@@ -352,6 +414,9 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 		</xs:annotation>
 		<xs:complexContent>
 			<xs:extension base="DataEntityType">
+				<xs:sequence>
+					<xs:element ref="Defaults" minOccurs="0"/>
+				</xs:sequence>
 				<xs:attribute name="PartNumber" type="xs:string">
 					<xs:annotation>
 						<xs:documentation>The kit part number</xs:documentation>
@@ -448,6 +513,11 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 							<xs:documentation>The laser power at the input couple, needed to achieve predefined performance requirements based on a median 'golden' SMRT Cell.</xs:documentation>
 						</xs:annotation>
 					</xs:element>
+					<xs:element name="SNRCut" type="xs:float">
+						<xs:annotation>
+							<xs:documentation>The SNRCut is applied in PPA (baz2bam) as a read-quality filter.</xs:documentation>
+						</xs:annotation>
+					</xs:element>
 					<xs:element name="TargetSNR">
 						<xs:complexType>
 							<xs:attribute name="SNR_A" type="xs:float" use="required"/>
@@ -481,10 +551,10 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 						</xs:complexType>
 					</xs:element>
 					<xs:element name="BinWidth" type="xs:float"/>
-					<xs:element name="MinOutlierValue" type="xs:float"/>
-					<xs:element name="MinBinValue" type="xs:float"/>
-					<xs:element name="MaxBinValue" type="xs:float"/>
-					<xs:element name="MaxOutlierValue" type="xs:float"/>
+					<xs:element name="MinOutlierValue" type="xs:float" minOccurs="0"/>
+					<xs:element name="MinBinValue" type="xs:float" minOccurs="0"/>
+					<xs:element name="MaxBinValue" type="xs:float" minOccurs="0"/>
+					<xs:element name="MaxOutlierValue" type="xs:float" minOccurs="0"/>
 					<xs:element name="MetricDescription" type="xs:string"/>
 				</xs:sequence>
 				<xs:attribute name="Channel" type="xs:string"/>
@@ -594,6 +664,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 							<xs:documentation>Defines the internal control name, if any. </xs:documentation>
 						</xs:annotation>
 					</xs:element>
+					<xs:element name="CustomSequence" type="xs:string" nillable="true" minOccurs="0"/>
 				</xs:sequence>
 			</xs:extension>
 		</xs:complexContent>
@@ -639,10 +710,8 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="Ready"/>
 			<xs:enumeration value="Initializing"/>
-			<xs:enumeration value="Acquiring"/>
-			<xs:enumeration value="InPrep"/>
 			<xs:enumeration value="SocketDiagnostics"/>
-			<xs:enumeration value="SensorDiagnostics"/>
+			<xs:enumeration value="Acquiring"/>
 			<xs:enumeration value="Aligning"/>
 			<xs:enumeration value="Aligned"/>
 			<xs:enumeration value="Aborting"/>
@@ -664,6 +733,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="Error"/>
 			<xs:enumeration value="Stopped"/>
 			<xs:enumeration value="TransferFailed"/>
+			<xs:enumeration value="InPrep"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="SupportedDataTypes">
@@ -674,6 +744,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="UInt16"/>
 			<xs:enumeration value="UInt32"/>
 			<xs:enumeration value="UInt64"/>
+			<xs:enumeration value="Boolean"/>
 			<xs:enumeration value="Single"/>
 			<xs:enumeration value="Double"/>
 			<xs:enumeration value="String"/>
@@ -684,6 +755,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="UInt16_1D"/>
 			<xs:enumeration value="UInt32_1D"/>
 			<xs:enumeration value="UInt64_1D"/>
+			<xs:enumeration value="Boolean_1D"/>
 			<xs:enumeration value="Single_1D"/>
 			<xs:enumeration value="Double_1D"/>
 			<xs:enumeration value="String_1D"/>
@@ -694,6 +766,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="UInt16_2D"/>
 			<xs:enumeration value="UInt32_2D"/>
 			<xs:enumeration value="UInt64_2D"/>
+			<xs:enumeration value="Boolean_2D"/>
 			<xs:enumeration value="Single_2D"/>
 			<xs:enumeration value="Double_2D"/>
 			<xs:enumeration value="String_2D"/>
@@ -751,6 +824,8 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 								<xs:attribute name="Name" type="xs:string" use="required"/>
 								<xs:attribute name="Value" type="xs:string" use="required"/>
 								<xs:attribute name="Operator" type="xs:string" use="required"/>
+								<xs:attribute name="Feature" type="xs:string" use="optional"/>
+								<xs:attribute name="Assignment" type="xs:string" use="optional"/>
 							</xs:complexType>
 						</xs:element>
 					</xs:sequence>
@@ -798,4 +873,30 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 		</xs:sequence>
 	</xs:complexType>
 	<xs:element name="ChemistryConfig" type="SequencingChemistryConfig"/>
+    <xs:element name="Defaults" type="DefaultsType" nillable="true">
+        <xs:annotation>
+            <xs:documentation>Default paramaters and filters which may be applied to PartNumber types in order to constrain them via parameterization</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+    <xs:complexType name="DefaultsType">
+        <xs:annotation>
+            <xs:documentation>A data type that allows the definition of default paramaters and filters.  This structure may be applied to PartNumber types in order to constrain them via parameterization</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="AutomationParameters" nillable="true" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element ref="AutomationParameter" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="Filters" nillable="true" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Filter" type="FilterType" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
 </xs:schema>

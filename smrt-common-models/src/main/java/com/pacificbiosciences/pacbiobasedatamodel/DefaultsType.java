@@ -10,50 +10,50 @@ package com.pacificbiosciences.pacbiobasedatamodel;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * Discrete distribution class
+ * A data type that allows the definition of default paramaters and filters.  This structure may be applied to PartNumber types in order to constrain them via parameterization
  * 
- * <p>Java class for StatsDiscreteDistType complex type.
+ * <p>Java class for DefaultsType complex type.
  * 
  * <p>The following schema fragment specifies the expected content contained within this class.
  * 
  * <pre>
- * &lt;complexType name="StatsDiscreteDistType">
+ * &lt;complexType name="DefaultsType">
  *   &lt;complexContent>
- *     &lt;extension base="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}BaseEntityType">
+ *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="NumBins" type="{http://www.w3.org/2001/XMLSchema}int"/>
- *         &lt;element name="BinCounts">
+ *         &lt;element name="AutomationParameters" minOccurs="0">
  *           &lt;complexType>
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                 &lt;sequence>
- *                   &lt;element name="BinCount" type="{http://www.w3.org/2001/XMLSchema}int" maxOccurs="unbounded"/>
+ *                   &lt;element ref="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}AutomationParameter" maxOccurs="unbounded"/>
  *                 &lt;/sequence>
  *               &lt;/restriction>
  *             &lt;/complexContent>
  *           &lt;/complexType>
  *         &lt;/element>
- *         &lt;element name="MetricDescription" type="{http://www.w3.org/2001/XMLSchema}string"/>
- *         &lt;element name="BinLabels">
+ *         &lt;element name="Filters" minOccurs="0">
  *           &lt;complexType>
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                 &lt;sequence>
- *                   &lt;element name="BinLabel" type="{http://www.w3.org/2001/XMLSchema}string" maxOccurs="unbounded"/>
+ *                   &lt;element name="Filter" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}FilterType" maxOccurs="unbounded"/>
  *                 &lt;/sequence>
  *               &lt;/restriction>
  *             &lt;/complexContent>
  *           &lt;/complexType>
  *         &lt;/element>
  *       &lt;/sequence>
- *     &lt;/extension>
+ *     &lt;/restriction>
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
@@ -61,111 +61,63 @@ import javax.xml.bind.annotation.XmlType;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "StatsDiscreteDistType", propOrder = {
-    "numBins",
-    "binCounts",
-    "metricDescription",
-    "binLabels"
+@XmlType(name = "DefaultsType", propOrder = {
+    "automationParameters",
+    "filters"
 })
-public class StatsDiscreteDistType
-    extends BaseEntityType
-{
+public class DefaultsType {
 
-    @XmlElement(name = "NumBins")
-    protected int numBins;
-    @XmlElement(name = "BinCounts", required = true)
-    protected StatsDiscreteDistType.BinCounts binCounts;
-    @XmlElement(name = "MetricDescription", required = true)
-    protected String metricDescription;
-    @XmlElement(name = "BinLabels", required = true)
-    protected StatsDiscreteDistType.BinLabels binLabels;
+    @XmlElementRef(name = "AutomationParameters", namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", type = JAXBElement.class, required = false)
+    protected JAXBElement<DefaultsType.AutomationParameters> automationParameters;
+    @XmlElementRef(name = "Filters", namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", type = JAXBElement.class, required = false)
+    protected JAXBElement<DefaultsType.Filters> filters;
 
     /**
-     * Gets the value of the numBins property.
-     * 
-     */
-    public int getNumBins() {
-        return numBins;
-    }
-
-    /**
-     * Sets the value of the numBins property.
-     * 
-     */
-    public void setNumBins(int value) {
-        this.numBins = value;
-    }
-
-    /**
-     * Gets the value of the binCounts property.
+     * Gets the value of the automationParameters property.
      * 
      * @return
      *     possible object is
-     *     {@link StatsDiscreteDistType.BinCounts }
+     *     {@link JAXBElement }{@code <}{@link DefaultsType.AutomationParameters }{@code >}
      *     
      */
-    public StatsDiscreteDistType.BinCounts getBinCounts() {
-        return binCounts;
+    public JAXBElement<DefaultsType.AutomationParameters> getAutomationParameters() {
+        return automationParameters;
     }
 
     /**
-     * Sets the value of the binCounts property.
+     * Sets the value of the automationParameters property.
      * 
      * @param value
      *     allowed object is
-     *     {@link StatsDiscreteDistType.BinCounts }
+     *     {@link JAXBElement }{@code <}{@link DefaultsType.AutomationParameters }{@code >}
      *     
      */
-    public void setBinCounts(StatsDiscreteDistType.BinCounts value) {
-        this.binCounts = value;
+    public void setAutomationParameters(JAXBElement<DefaultsType.AutomationParameters> value) {
+        this.automationParameters = value;
     }
 
     /**
-     * Gets the value of the metricDescription property.
+     * Gets the value of the filters property.
      * 
      * @return
      *     possible object is
-     *     {@link String }
+     *     {@link JAXBElement }{@code <}{@link DefaultsType.Filters }{@code >}
      *     
      */
-    public String getMetricDescription() {
-        return metricDescription;
+    public JAXBElement<DefaultsType.Filters> getFilters() {
+        return filters;
     }
 
     /**
-     * Sets the value of the metricDescription property.
+     * Sets the value of the filters property.
      * 
      * @param value
      *     allowed object is
-     *     {@link String }
+     *     {@link JAXBElement }{@code <}{@link DefaultsType.Filters }{@code >}
      *     
      */
-    public void setMetricDescription(String value) {
-        this.metricDescription = value;
-    }
-
-    /**
-     * Gets the value of the binLabels property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link StatsDiscreteDistType.BinLabels }
-     *     
-     */
-    public StatsDiscreteDistType.BinLabels getBinLabels() {
-        return binLabels;
-    }
-
-    /**
-     * Sets the value of the binLabels property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link StatsDiscreteDistType.BinLabels }
-     *     
-     */
-    public void setBinLabels(StatsDiscreteDistType.BinLabels value) {
-        this.binLabels = value;
+    public void setFilters(JAXBElement<DefaultsType.Filters> value) {
+        this.filters = value;
     }
 
 
@@ -179,7 +131,7 @@ public class StatsDiscreteDistType
      *   &lt;complexContent>
      *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *       &lt;sequence>
-     *         &lt;element name="BinCount" type="{http://www.w3.org/2001/XMLSchema}int" maxOccurs="unbounded"/>
+     *         &lt;element ref="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}AutomationParameter" maxOccurs="unbounded"/>
      *       &lt;/sequence>
      *     &lt;/restriction>
      *   &lt;/complexContent>
@@ -190,40 +142,40 @@ public class StatsDiscreteDistType
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "binCount"
+        "automationParameter"
     })
-    public static class BinCounts {
+    public static class AutomationParameters {
 
-        @XmlElement(name = "BinCount", type = Integer.class)
-        protected List<Integer> binCount;
+        @XmlElement(name = "AutomationParameter", required = true)
+        protected List<DataEntityType> automationParameter;
 
         /**
-         * Gets the value of the binCount property.
+         * Gets the value of the automationParameter property.
          * 
          * <p>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
-         * This is why there is not a <CODE>set</CODE> method for the binCount property.
+         * This is why there is not a <CODE>set</CODE> method for the automationParameter property.
          * 
          * <p>
          * For example, to add a new item, do as follows:
          * <pre>
-         *    getBinCount().add(newItem);
+         *    getAutomationParameter().add(newItem);
          * </pre>
          * 
          * 
          * <p>
          * Objects of the following type(s) are allowed in the list
-         * {@link Integer }
+         * {@link DataEntityType }
          * 
          * 
          */
-        public List<Integer> getBinCount() {
-            if (binCount == null) {
-                binCount = new ArrayList<Integer>();
+        public List<DataEntityType> getAutomationParameter() {
+            if (automationParameter == null) {
+                automationParameter = new ArrayList<DataEntityType>();
             }
-            return this.binCount;
+            return this.automationParameter;
         }
 
     }
@@ -239,7 +191,7 @@ public class StatsDiscreteDistType
      *   &lt;complexContent>
      *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *       &lt;sequence>
-     *         &lt;element name="BinLabel" type="{http://www.w3.org/2001/XMLSchema}string" maxOccurs="unbounded"/>
+     *         &lt;element name="Filter" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}FilterType" maxOccurs="unbounded"/>
      *       &lt;/sequence>
      *     &lt;/restriction>
      *   &lt;/complexContent>
@@ -250,40 +202,40 @@ public class StatsDiscreteDistType
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "binLabel"
+        "filter"
     })
-    public static class BinLabels {
+    public static class Filters {
 
-        @XmlElement(name = "BinLabel", required = true)
-        protected List<String> binLabel;
+        @XmlElement(name = "Filter", required = true)
+        protected List<FilterType> filter;
 
         /**
-         * Gets the value of the binLabel property.
+         * Gets the value of the filter property.
          * 
          * <p>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
-         * This is why there is not a <CODE>set</CODE> method for the binLabel property.
+         * This is why there is not a <CODE>set</CODE> method for the filter property.
          * 
          * <p>
          * For example, to add a new item, do as follows:
          * <pre>
-         *    getBinLabel().add(newItem);
+         *    getFilter().add(newItem);
          * </pre>
          * 
          * 
          * <p>
          * Objects of the following type(s) are allowed in the list
-         * {@link String }
+         * {@link FilterType }
          * 
          * 
          */
-        public List<String> getBinLabel() {
-            if (binLabel == null) {
-                binLabel = new ArrayList<String>();
+        public List<FilterType> getFilter() {
+            if (filter == null) {
+                filter = new ArrayList<FilterType>();
             }
-            return this.binLabel;
+            return this.filter;
         }
 
     }

@@ -488,6 +488,11 @@
 				<xs:element ref="PauseFractionVsT" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="BaseRateRatioVsT" minOccurs="1" maxOccurs="1"/>
 			</xs:sequence>
+			<xs:attribute name="Version" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>An optional identifier denoting the revision of this particular entity</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
 		</xs:complexType>
 	</xs:element>
 </xs:schema>

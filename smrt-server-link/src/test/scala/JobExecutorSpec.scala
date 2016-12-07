@@ -2,7 +2,6 @@
 import java.util.UUID
 
 import scala.concurrent.duration._
-
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
@@ -11,7 +10,7 @@ import akka.actor.{ActorRefFactory, ActorSystem}
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 import spray.json._
-
+import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
@@ -22,8 +21,9 @@ import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
+import com.pacbio.secondary.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider,DeleteJobServiceTypeProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProvider, MockPbsmrtpipeJobTypeProvider}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
@@ -35,7 +35,7 @@ class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
 with NoTimeConversions
-with JobServiceConstants {
+with JobServiceConstants with timeUtils{
 
   sequential
 
@@ -139,7 +139,7 @@ with JobServiceConstants {
         status.isSuccess must beTrue
       }
     }
-    "delete job" in new daoSetup {
+    "create a delete Job and delete a mock-pbsmrtpipe job" in new daoSetup {
       var njobs = 0
       var uuid = UUID.randomUUID()
       Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
@@ -152,13 +152,15 @@ with JobServiceConstants {
 
       var complete = false
       var retry = 0
+      val maxRetries = 15
+      val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
           complete = responseAs[Seq[EngineJob]].head.isComplete
           retry = retry + 1
           Thread.sleep(1000)
-          if (retry >= 10) {
-            failure("Job failed to complete after 10 seconds")
+          if (retry >= maxRetries) {
+            failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
         }
       }
