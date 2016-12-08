@@ -5,7 +5,6 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -23,13 +22,15 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import slick.driver.SQLiteDriver.api._
+
+import slick.driver.PostgresDriver.api._
+
 
 trait SetupMockData extends MockUtils with InitializeTables {
   def runSetup(dao: JobsDao): Unit = {
 
     createTables
-    println(s"Created database connection from URI ${dao.db.dbUri}")
+    println(s"Created database connection from URI ${dao.db}")
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
       Future.sequence(Seq(
@@ -341,7 +342,7 @@ trait InitializeTables extends MockUtils {
 
   def createTables: Unit = {
     logger.info("Applying migrations")
-    db.migrate()
+    //db.migrate()
     logger.info("Completed applying migrations")
   }
 
@@ -378,11 +379,11 @@ object InsertMockData extends App
 
   def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
 
-  val db = new Database(toURI(conf.getString("pb-services.db-uri")))
+  val db = Database.forURL(conf.getString("pb-services.db-uri"), driver="org.postgresql.Driver")
   val dao = new JobsDao(db, engineConfig, resolver)
 
   def runner(args: Array[String]): Int = {
-    println(s"Loading DB ${dao.db.dbUri}")
+    println(s"Loading DB ${dao.db}")
 
     val startedAt = JodaDateTime.now()
 

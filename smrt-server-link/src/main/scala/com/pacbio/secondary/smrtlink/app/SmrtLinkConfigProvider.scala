@@ -4,7 +4,6 @@ import java.nio.file.Paths
 
 import com.pacbio.common.dependency.{Singleton, TypesafeSingletonReader}
 import com.pacbio.common.loaders.ManifestLoader
-import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}

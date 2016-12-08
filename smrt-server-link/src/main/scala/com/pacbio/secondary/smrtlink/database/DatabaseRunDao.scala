@@ -4,14 +4,14 @@ import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import slick.driver.SQLiteDriver.api._
+
+import slick.driver.PostgresDriver.api._
 
 
 /**

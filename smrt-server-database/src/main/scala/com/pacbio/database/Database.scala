@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 import org.apache.commons.dbcp2.BasicDataSource
 import org.flywaydb.core.Flyway
 import slick.dbio.{DBIOAction, NoStream}
-import slick.driver.SQLiteDriver.api.{Database => SQLiteDatabase}
+import slick.driver.PostgresDriver.api.{Database => PsqlDatabase}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.duration._
@@ -77,7 +77,7 @@ class Database(dbURI: String) {
       cachedConnection
     }
   }
-  connectionPool.setDriverClassName("org.sqlite.JDBC")
+  connectionPool.setDriverClassName("org.postgresql.Driver")
   connectionPool.setUrl(dbUri)
   connectionPool.setInitialSize(1)
   connectionPool.setMaxTotal(1)
@@ -116,7 +116,7 @@ class Database(dbURI: String) {
 
   // keep access to the real database restricted. we don't want atyptical use in the codebase
   // TODO: -1 queueSize means unlimited. This probably needs to be tuned
-  private lazy val db = SQLiteDatabase.forDataSource(
+  private lazy val db = PsqlDatabase.forDataSource(
     connectionPool,
     executor = AsyncExecutor("db-executor", 1, -1))
 

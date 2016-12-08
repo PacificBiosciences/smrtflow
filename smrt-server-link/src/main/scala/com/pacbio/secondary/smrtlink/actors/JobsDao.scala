@@ -6,7 +6,6 @@ import java.util.UUID
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -22,21 +21,20 @@ import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
-
 import org.apache.commons.lang.SystemUtils
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import scala.io.Source
-import slick.driver.SQLiteDriver.api._
-import org.sqlite.SQLiteErrorCode
+
+import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
 
-import scala.concurrent.duration._
+import org.postgresql.util.PSQLException
 
 
 trait DalProvider {
@@ -46,14 +44,15 @@ trait DalProvider {
 trait SmrtLinkDalProvider extends DalProvider {
   this: SmrtLinkConfigProvider =>
 
-  override val db: Singleton[Database] = Singleton(() => new Database(dbURI()))
+  override val db: Singleton[Database] =
+    Singleton(() => Database.forURL("jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1", driver="org.postgresql.Driver"))
 }
 
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
     // in-memory DB for tests
-    new Database(dbURI = "jdbc:sqlite::memory:")
+    Database.forURL("jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1", driver="org.postgresql.Driver")
   })
 }
 
@@ -66,7 +65,10 @@ trait DalComponent {
   def isConstraintViolation(t: Throwable): Boolean = {
     t match {
       case se: SQLException =>
-        se.getErrorCode() == SQLiteErrorCode.SQLITE_CONSTRAINT.code
+        //FIXME(mpkocher)(2016-12-7) Update this to catch the specific
+        // https://www.postgresql.org/docs/9.6/static/errcodes-appendix.html
+        // unique_violation 23505
+        se.getErrorCode == 23505
       case _ => false
     }
   }
@@ -88,7 +90,7 @@ trait ProjectDataStore extends LazyLogging {
     val requestWithOwner = projReq.copy(members = Some(withOwner))
 
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, true)
+    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, requestWithOwner))
     db.run(fullAction.transactionally)

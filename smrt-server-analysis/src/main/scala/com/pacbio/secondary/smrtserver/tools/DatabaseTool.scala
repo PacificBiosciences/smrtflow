@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtserver.tools
 import java.net.URI
 import java.nio.file.Paths
 
-import com.pacbio.database.Database
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.jobs.PacBioIntJobResolver
@@ -14,6 +13,7 @@ import scopt.OptionParser
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import slick.driver.PostgresDriver.api._
 
 
 case class DatabaseToolOptions(uri: URI) extends LoggerConfig
@@ -47,14 +47,14 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     val startedAt = JodaDateTime.now()
 
     val jobResolver = new PacBioIntJobResolver(Paths.get(engineConfig.pbRootJobDir))
-    val db = new Database(c.uri.toString)
+    val db = Database.forURL(c.uri.toString, driver="org.postgresql.Driver")
     // This is not great that engine config and job resolver is
     // required to get the Summary of the database
     val jobsDao = new JobsDao(db, engineConfig, jobResolver)
 
     val result = Await.result(jobsDao.getSystemSummary(), Duration.Inf)
 
-    println(s"Summary for ${db.dbUri}")
+    println(s"Summary for $db")
     println(result)
 
     Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt)))
