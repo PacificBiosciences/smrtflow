@@ -28,6 +28,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
+import com.pacificbiosciences.pacbiodatasets._
 
 /**
  * Example config:
@@ -93,13 +94,21 @@ class DataSetScenario(host: String, port: Int)
 
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   val subreadSet: Var[SubreadServiceDataSet] = Var()
+  val subreadSetDetails: Var[SubreadSet] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+  val referenceSetDetails: Var[ReferenceSet] = Var()
   val barcodeSets: Var[Seq[BarcodeServiceDataSet]] = Var()
+  val barcodeSetDetails: Var[BarcodeSet] = Var()
   val hdfSubreadSets: Var[Seq[HdfSubreadServiceDataSet]] = Var()
+  val hdfSubreadSetDetails: Var[HdfSubreadSet] = Var()
   val alignmentSets: Var[Seq[AlignmentServiceDataSet]] = Var()
+  val alignmentSetDetails: Var[AlignmentSet] = Var()
   val ccsSets: Var[Seq[ConsensusReadServiceDataSet]] = Var()
+  val ccsSetDetails: Var[ConsensusReadSet] = Var()
   val ccsAlignmentSets: Var[Seq[ConsensusAlignmentServiceDataSet]] = Var()
+  val ccsAlignmentSetDetails: Var[ConsensusAlignmentSet] = Var()
   val contigSets: Var[Seq[ContigServiceDataSet]] = Var()
+  val contigSetDetails: Var[ContigSet] = Var()
   val dsFiles: Var[Seq[DataStoreServiceFile]] = Var()
   val job: Var[EngineJob] = Var()
   val jobId: Var[UUID] = Var()
@@ -167,6 +176,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     dsMeta := GetDataSet(subreadsUuid1),
+    subreadSetDetails := GetSubreadSetDetails(subreadsUuid1),
+    fail(s"Wrong UUID") IF subreadSetDetails.mapWith(_.getUniqueId) !=? subreadsUuid1.get.toString,
     dsReports := GetSubreadSetReports(subreadsUuid1),
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
     dataStore := GetImportJobDataStore(jobId),
@@ -199,6 +210,9 @@ class DataSetScenario(host: String, port: Int)
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
     dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
     fail("UUID mismatch") IF subreadSet.mapWith(_.uuid) !=? dsMeta.mapWith(_.uuid),
+    subreadSetDetails := GetSubreadSetDetails(subreadSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF subreadSetDetails.mapWith(_.getUniqueId) !=? subreadSets.mapWith(_.last.uuid.toString),
+    fail("Expected two external resources for merged dataset") IF subreadSetDetails.mapWith(_.getExternalResources.getExternalResource.size) !=? 2,
     // count number of child jobs
     job := GetJobById(subreadSets.mapWith(_.head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
@@ -262,7 +276,9 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     referenceSets := GetReferenceSets,
-    fail("Expected two ReferenceSets") IF referenceSets.mapWith(_.size) !=? 2
+    fail("Expected two ReferenceSets") IF referenceSets.mapWith(_.size) !=? 2,
+    referenceSetDetails := GetReferenceSetDetails(referenceSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF referenceSetDetails.mapWith(_.getUniqueId) !=? referenceSets.mapWith(_.last.uuid.toString)
   ))
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
@@ -275,6 +291,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     barcodeSets := GetBarcodeSets,
     fail("Expected one BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 1,
+    barcodeSetDetails := GetBarcodeSetDetails(barcodeSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF barcodeSetDetails.mapWith(_.getUniqueId) !=? barcodeSets.mapWith(_.last.uuid.toString),
     // import FASTA
     jobId := ImportFastaBarcodes(bcFasta, Var("import-barcodes")),
     jobStatus := WaitForJob(jobId),
@@ -308,6 +326,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Import HdfSubreads job failed") IF jobStatus !=? EXIT_SUCCESS,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected one HdfSubreadSet") IF hdfSubreadSets.mapWith(_.size) !=? 1,
+    hdfSubreadSetDetails := GetHdfSubreadSetDetails(hdfSubreadSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF hdfSubreadSetDetails.mapWith(_.getUniqueId) !=? hdfSubreadSets.mapWith(_.last.uuid.toString),
     // import RSII movie
     jobId := ConvertRsMovie(rsMovie),
     jobStatus := WaitForJob(jobId),
@@ -342,6 +362,8 @@ class DataSetScenario(host: String, port: Int)
     jobId := ExportDataSets(ftContigs, contigSets.mapWith(_.map(d => d.id)), Var(Paths.get("contigsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    contigSetDetails := GetContigSetDetails(contigSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF contigSetDetails.mapWith(_.getUniqueId) !=? contigSets.mapWith(_.last.uuid.toString),
     // AlignmentSet
     alignmentSets := GetAlignmentSets,
     fail(MSG_DS_ERR) IF alignmentSets ? (_.nonEmpty),
@@ -350,6 +372,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     alignmentSets := GetAlignmentSets,
     fail("Expected one AlignmentSet") IF alignmentSets.mapWith(_.size) !=? 1,
+    alignmentSetDetails := GetAlignmentSetDetails(alignmentSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF alignmentSetDetails.mapWith(_.getUniqueId) !=? alignmentSets.mapWith(_.last.uuid.toString),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(alignments2, ftAlign),
     jobStatus := WaitForJob(jobId),
@@ -373,6 +397,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Import ConsensusReadSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     ccsSets := GetConsensusReadSets,
     fail("Expected one ConsensusReadSet") IF ccsSets.mapWith(_.size) !=? 1,
+    ccsSetDetails := GetConsensusReadSetDetails(ccsSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF ccsSetDetails.mapWith(_.getUniqueId) !=? ccsSets.mapWith(_.last.uuid.toString),
     jobId := ExportDataSets(ftCcs, ccsSets.mapWith(_.map(d => d.id)), Var(Paths.get("ccssets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -384,6 +410,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Import ConsensusAlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
     ccsAlignmentSets := GetConsensusAlignmentSets,
     fail("Expected one ConsensusAlignmentSet") IF ccsAlignmentSets.mapWith(_.size) !=? 1,
+    ccsAlignmentSetDetails := GetConsensusAlignmentSetDetails(ccsAlignmentSets.mapWith(_.last.uuid)),
+    fail("Wrong UUID") IF ccsAlignmentSetDetails.mapWith(_.getUniqueId) !=? ccsAlignmentSets.mapWith(_.last.uuid.toString),
     jobId := ExportDataSets(ftCcsAlign, ccsAlignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("ccsalignmentsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS

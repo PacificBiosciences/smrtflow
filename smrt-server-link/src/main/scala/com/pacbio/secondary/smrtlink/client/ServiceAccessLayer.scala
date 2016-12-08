@@ -1,10 +1,12 @@
 package com.pacbio.secondary.smrtlink.client
 
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports._
 import com.pacbio.common.models._
 import com.pacbio.common.client._
+import com.pacificbiosciences.pacbiodatasets._
 
 import akka.actor.ActorSystem
 
@@ -20,7 +22,7 @@ import scala.concurrent.duration._
 import java.net.URL
 import java.util.UUID
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol
+object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols
 
 trait ServiceEndpointsTrait {
   val ROOT_JM = "/secondary-analysis/job-manager"
@@ -121,6 +123,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getConsensusAlignmentSetPipeline = getDataSetPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
 
+  // DATASET DETAILS (full object parsed from XML)
+  private def getDataSetDetailsPipeline[T <: DataSetType](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceiveAuthenticated ~> unmarshal[T]
+  protected def getSubreadSetDetailsPipeline = getDataSetDetailsPipeline[SubreadSet]
+  protected def getHdfSubreadSetDetailsPipeline = getDataSetDetailsPipeline[HdfSubreadSet]
+  protected def getReferenceSetDetailsPipeline = getDataSetDetailsPipeline[ReferenceSet]
+  protected def getGmapReferenceSetDetailsPipeline = getDataSetDetailsPipeline[GmapReferenceSet]
+  protected def getBarcodeSetDetailsPipeline = getDataSetDetailsPipeline[BarcodeSet]
+  protected def getAlignmentSetDetailsPipeline = getDataSetDetailsPipeline[AlignmentSet]
+  protected def getConsensusReadSetDetailsPipeline = getDataSetDetailsPipeline[ConsensusReadSet]
+  protected def getConsensusAlignmentSetDetailsPipeline = getDataSetDetailsPipeline[ConsensusAlignmentSet]
+  protected def getContigSetDetailsPipeline = getDataSetDetailsPipeline[ContigSet]
+
   private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = sendReceiveAuthenticated ~> unmarshal[Seq[T]]
   protected def getSubreadSetsPipeline = getDataSetsPipeline[SubreadServiceDataSet]
   protected def getHdfSubreadSetsPipeline = getDataSetsPipeline[HdfSubreadServiceDataSet]
@@ -160,6 +174,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
   }
 
+  def getSubreadSetDetails(dsId: IdAble): Future[SubreadSet] = getSubreadSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, "details"))
+  }
+
   def getSubreadSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
     Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS))
   }
@@ -172,12 +190,20 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
   }
 
+  def getHdfSubreadSetDetails(dsId: IdAble): Future[HdfSubreadSet] = getHdfSubreadSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.HDFSUBREADS, dsId, "details"))
+  }
+
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.BARCODES))
   }
 
   def getBarcodeSet(dsId: IdAble): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
     Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
+  }
+
+  def getBarcodeSetDetails(dsId: IdAble): Future[BarcodeSet] = getBarcodeSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.BARCODES, dsId, "details"))
   }
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
@@ -188,12 +214,20 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
   }
 
+  def getReferenceSetDetails(dsId: IdAble): Future[ReferenceSet] = getReferenceSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.REFERENCES, dsId, "details"))
+  }
+
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.GMAPREFERENCES))
   }
 
   def getGmapReferenceSet(dsId: IdAble): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
     Get(toDataSetUrl(DataSetTypes.GMAPREFERENCES, dsId))
+  }
+
+  def getGmapReferenceSetDetails(dsId: IdAble): Future[GmapReferenceSet] = getGmapReferenceSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.GMAPREFERENCES, dsId, "details"))
   }
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
@@ -204,12 +238,20 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
   }
 
+  def getAlignmentSetDetails(dsId: IdAble): Future[AlignmentSet] = getAlignmentSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.ALIGNMENTS, dsId, "details"))
+  }
+
   def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] = getConsensusReadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CCSREADS))
   }
 
   def getConsensusReadSet(dsId: IdAble): Future[ConsensusReadServiceDataSet] = getConsensusReadSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
+  }
+
+  def getConsensusReadSetDetails(dsId: IdAble): Future[ConsensusReadSet] = getConsensusReadSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.CCSREADS, dsId, "details"))
   }
 
   def getConsensusAlignmentSets: Future[Seq[ConsensusAlignmentServiceDataSet]] = getConsensusAlignmentSetsPipeline {
@@ -220,12 +262,20 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toDataSetUrl(DataSetTypes.CCSALIGNMENTS, dsId))
   }
 
+  def getConsensusAlignmentSetDetails(dsId: IdAble): Future[ConsensusAlignmentSet] = getConsensusAlignmentSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.CCSALIGNMENTS, dsId, "details"))
+  }
+
   def getContigSets: Future[Seq[ContigServiceDataSet]] = getContigSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.CONTIGS))
   }
 
   def getContigSet(dsId: IdAble): Future[ContigServiceDataSet] = getContigSetPipeline {
     Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
+  }
+
+  def getContigSetDetails(dsId: IdAble): Future[ContigSet] = getContigSetDetailsPipeline {
+    Get(toDataSetResourcesUrl(DataSetTypes.CONTIGS, dsId, "details"))
   }
 
   protected def getJobDataStore(jobType: String, jobId: IdAble) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {

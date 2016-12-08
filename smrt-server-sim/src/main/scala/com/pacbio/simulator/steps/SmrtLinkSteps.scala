@@ -9,6 +9,7 @@ import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
 import com.pacbio.common.models._
+import com.pacificbiosciences.pacbiodatasets._
 
 import scala.concurrent.Future
 
@@ -97,6 +98,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetSubreadSetDetails(dsId: Var[UUID]) extends VarStep[SubreadSet] {
+    override val name = "GetSubreadSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getSubreadSetDetails(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetHdfSubreadSets extends VarStep[Seq[HdfSubreadServiceDataSet]] {
     override val name = "GetHdfSubreadSets"
     override def run: Future[Result] = smrtLinkClient.getHdfSubreadSets.map { s =>
@@ -108,6 +117,14 @@ trait SmrtLinkSteps {
   case class GetHdfSubreadSet(dsId: Var[UUID]) extends VarStep[HdfSubreadServiceDataSet] {
     override val name = "GetHdfSubreadSet"
     override def run: Future[Result] = smrtLinkClient.getHdfSubreadSet(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetHdfSubreadSetDetails(dsId: Var[UUID]) extends VarStep[HdfSubreadSet] {
+    override val name = "GetHdfSubreadSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getHdfSubreadSetDetails(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -129,6 +146,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetReferenceSetDetails(dsId: Var[UUID]) extends VarStep[ReferenceSet] {
+    override val name = "GetReferenceSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getReferenceSetDetails(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetBarcodeSets extends VarStep[Seq[BarcodeServiceDataSet]] {
     override val name = "GetBarcodeSets"
     override def run: Future[Result] = smrtLinkClient.getBarcodeSets.map { s =>
@@ -140,6 +165,14 @@ trait SmrtLinkSteps {
   case class GetBarcodeSet(dsId: Var[UUID]) extends VarStep[BarcodeServiceDataSet] {
     override val name = "GetBarcodeSet"
     override def run: Future[Result] = smrtLinkClient.getBarcodeSet(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetBarcodeSetDetails(dsId: Var[UUID]) extends VarStep[BarcodeSet] {
+    override val name = "GetBarcodeSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getBarcodeSetDetails(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -161,6 +194,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetAlignmentSetDetails(dsId: Var[UUID]) extends VarStep[AlignmentSet] {
+    override val name = "GetAlignmentSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getAlignmentSetDetails(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetConsensusReadSets extends VarStep[Seq[ConsensusReadServiceDataSet]] {
     override val name = "GetConsensusReadSets"
     override def run: Future[Result] = smrtLinkClient.getConsensusReadSets.map { s =>
@@ -172,6 +213,14 @@ trait SmrtLinkSteps {
   case class GetConsensusReadSet(dsId: Var[UUID]) extends VarStep[ConsensusReadServiceDataSet] {
     override val name = "GetConsensusReadSet"
     override def run: Future[Result] = smrtLinkClient.getConsensusReadSet(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetConsensusReadSetDetails(dsId: Var[UUID]) extends VarStep[ConsensusReadSet] {
+    override val name = "GetConsensusReadSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getConsensusReadSetDetails(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
@@ -193,6 +242,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetConsensusAlignmentSetDetails(dsId: Var[UUID]) extends VarStep[ConsensusAlignmentSet] {
+    override val name = "GetConsensusAlignmentSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getConsensusAlignmentSetDetails(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetContigSets extends VarStep[Seq[ContigServiceDataSet]] {
     override val name = "GetContigSets"
     override def run: Future[Result] = smrtLinkClient.getContigSets.map { s =>
@@ -209,6 +266,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetContigSetDetails(dsId: Var[UUID]) extends VarStep[ContigSet] {
+    override val name = "GetContigSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getContigSetDetails(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
   case object GetGmapReferenceSets extends VarStep[Seq[GmapReferenceServiceDataSet]] {
     override val name = "GetGmapReferenceSets"
     override def run: Future[Result] = smrtLinkClient.getGmapReferenceSets.map { s =>
@@ -220,6 +285,14 @@ trait SmrtLinkSteps {
   case class GetGmapReferenceSet(dsId: Var[UUID]) extends VarStep[GmapReferenceServiceDataSet] {
     override val name = "GetGmapReferenceSet"
     override def run: Future[Result] = smrtLinkClient.getGmapReferenceSet(dsId.get).map { d =>
+      output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetGmapReferenceSetDetails(dsId: Var[UUID]) extends VarStep[GmapReferenceSet] {
+    override val name = "GetGmapReferenceSetDetails"
+    override def run: Future[Result] = smrtLinkClient.getGmapReferenceSetDetails(dsId.get).map { d =>
       output(d)
       SUCCEEDED
     }
