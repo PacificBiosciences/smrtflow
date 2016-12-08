@@ -3,7 +3,7 @@ machine:
   java:
     version: oraclejdk8
   python:
-    version: 2.7.6
+    version: 2.7.9
 
 dependencies:
   pre:
