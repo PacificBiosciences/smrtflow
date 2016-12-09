@@ -282,7 +282,18 @@ case class DataStoreReportFile(
     dataStoreFile: DataStoreServiceFile,
     reportTypeId: String)
 
-//DataSet
+/**
+  * Service DataSet metadata
+  *
+  * See http://pacbiofileformats.readthedocs.io for more details
+  *
+  * @param id          dataset unique id (e.g., Pacbio.DataSet.SubreadSet)
+  * @param name        Display name of dataset metadata
+  * @param description Description of dataset metadata
+  * @param createdAt   inserted into the database
+  * @param updatedAt   last updated date in the database
+  * @param shortName   short identifier (e.g., "subreads")
+  */
 case class ServiceDataSetMetaType(
     id: String,
     name: String,
