@@ -76,14 +76,19 @@ abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
         ReportTable("deleted_files", Some("Deleted Paths"), Seq(
           paths, directories, nBytes, wasDeleted)))
     } else List()
+    val attributes = mutable.ListBuffer(
+        ReportStrAttribute("job_dir", "Directory", targetPaths.mkString(", ")),
+        ReportLongAttribute("n_errors", "Number of Errors", nErrors),
+        ReportLongAttribute("n_bytes", "Deleted Bytes", nBytesTotal))
+    val nSkipped = deletedFiles.count(_.nBytes < 0).toLong
+    if (nSkipped > 0) {
+      attributes += ReportLongAttribute("n_skipped", "Skipped Or Missing Files", nSkipped)
+    }
     Report(
       "smrtflow_delete_resources",
       "Delete Resources",
-      attributes = List(
-        ReportStrAttribute("job_dir", "Directory", targetPaths.mkString(", ")),
-        ReportLongAttribute("n_errors", "Number of Errors", nErrors),
-        ReportLongAttribute("n_bytes", "Deleted Bytes", nBytesTotal)),
-      plotGroups = List[ReportPlotGroup](),
+      attributes = attributes.toList,
+      plotGroups = List.empty[ReportPlotGroup],
       tables = tables,
       uuid = UUID.randomUUID())
   }
@@ -173,7 +178,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
       } else {
         logger.info("removeFiles=false, leaving files in place")
         FileUtils.writeStringToFile(deleteFile, msg)
-        Seq[DeletedFile]()
+        Seq.empty[DeletedFile]
       }
     } else {
       throw new Exception(s"The path '${jobDir.toString}' does not exist or is not a directory")
@@ -207,7 +212,11 @@ class DeleteDatasetJob(opts: DeleteDatasetOptions)
     def isChildResource(e: InputOutputDataType): Boolean = {
       if (DataSetMetaTypes.BAM_DATASETS contains dsType) {
         val metaType = e.getMetaType
-        (BAM_RESOURCES contains metaType) || metaType.startsWith("PacBio.SubreadFile")
+        val isChild = (BAM_RESOURCES contains metaType) || metaType.startsWith("PacBio.SubreadFile")
+        if (!isChild) {
+          logger.warn(s"Skipping file ${e.getResourceId} with meta-type $metaType")
+        }
+        isChild
       } else true // XXX are there any exceptions?  do we care about non-BAM?
     }
     Option(externalResources).map { ex =>
@@ -232,10 +241,15 @@ class DeleteDatasetJob(opts: DeleteDatasetOptions)
       val dsId = UUID.fromString(ds.getUniqueId)
       val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
       val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
-      (for {
-        r <- getPaths(dsType, ds.getExternalResources)
-      } yield deleteResource(Paths.get(r))).toList ++
-      Seq(deleteFileOrDirectory(dsPath.toFile))
+      if (!opts.removeFiles) {
+        logger.info("removeFiles=false, leaving files in place")
+        Seq.empty[DeletedFile]
+      } else {
+        (for {
+          r <- getPaths(dsType, ds.getExternalResources)
+        } yield deleteResource(Paths.get(r))).toList ++
+        Seq(deleteFileOrDirectory(dsPath.toFile))
+      }
     }.flatten
   }
 }
