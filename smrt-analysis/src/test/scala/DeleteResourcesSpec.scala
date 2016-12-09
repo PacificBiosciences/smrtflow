@@ -1,5 +1,5 @@
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.io.File
 import java.util.UUID
 
@@ -9,7 +9,7 @@ import org.specs2.mutable._
 
 import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, JobModels, AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob, DeleteDatasetOptions, DeleteDatasetJob}
+import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob, DeleteDatasetsOptions, DeleteDatasetsJob, MockDataSetUtils}
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 
@@ -62,58 +62,79 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
   }
 }
 
-class DeleteDatasetSpec extends Specification with LazyLogging{
+class DeleteDatasetsSpec extends Specification with LazyLogging{
 
-  val NBYTES_BARCODED_SUBREADS = 16729 // this may be a bad idea
+  val NBYTES_MIN_BARCODED_SUBREADS: Long = 16729 // this may be a bad idea
 
   args(skipAll = !PacBioTestData.isAvailable)
   sequential
 
-  val writer = new PrinterJobResultsWriter
-  "DeleteDatasetJob" should {
+  private def runJob(paths: Seq[Path]) = {
+    val writer = new PrinterJobResultsWriter
+    val outputDir = Files.createTempDirectory("delete-job")
+    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+    val opts = DeleteDatasetsOptions(paths, true)
+    val j = new DeleteDatasetsJob(opts)
+    j.run(job, writer)
+  }
+
+  "DeleteDatasetsJob" should {
     "Remove a dataset and external resources" in {
       // dataset setup - need to copy one over from test data repo
-      val pbdata = PacBioTestData()
-      val targetDir = Files.createTempDirectory("dataset-contents")
-      val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
-      val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
-      val subreadsSrc = pbdata.getFile("barcoded-subreadset")
-      val subreadsDir = subreadsSrc.getParent.toFile
-      val barcodesSrc = pbdata.getFile("barcodeset")
-      val barcodesDir = barcodesSrc.getParent.toFile
-      // only copy the files we need for this SubreadSet, that way we can check
-      // for an empty directory
-      for (f <- subreadsDir.listFiles) {
-        val filename = FilenameUtils.getName(f.toString)
-        if (filename.startsWith("barcoded")) {
-          val dest = new File(subreadsDestDir.toString + "/" + filename)
-          FileUtils.copyFile(f, dest)
-        }
-      }
-      FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
-      val subreads = Paths.get(subreadsDestDir.toString + "/" +
-                               FilenameUtils.getName(subreadsSrc.toString))
-      var barcodes = Paths.get(barcodesDestDir.toString + "/" +
-                               FilenameUtils.getName(barcodesSrc.toString))
+      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
       subreads.toFile.exists must beTrue
       barcodes.toFile.exists must beTrue
       // run job
-      val outputDir = Files.createTempDirectory("delete-job")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
-      val opts = DeleteDatasetOptions(Seq(subreads), true)
-      val j = new DeleteDatasetJob(opts)
-      val jobResult = j.run(job, writer)
+      val jobResult = runJob(Seq(subreads))
       logger.info("Running delete job")
       jobResult.isRight must beTrue
       subreads.toFile.exists must beFalse
-      subreadsDestDir.listFiles must beEmpty
+      subreads.getParent.toFile.listFiles must beEmpty
       barcodes.toFile.exists must beTrue
       val rptPath = Paths.get(jobResult.right.get.files(1).path)
       val r = ReportUtils.loadReport(rptPath)
       r.attributes(0).value must beEqualTo(subreads.toString)
       r.attributes(1).value must beEqualTo(0)
-      r.attributes(2).value must beEqualTo(NBYTES_BARCODED_SUBREADS)
+      r.attributes(2).value.asInstanceOf[Long] must beGreaterThanOrEqualTo(NBYTES_MIN_BARCODED_SUBREADS)
       r.tables(0).columns(0).values.size must beEqualTo(5)
+    }
+    "Fail when a dataset path does not exist" in {
+      //val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
+      val targetDir = Files.createTempDirectory("missing-dataset")
+      val targetDs = Paths.get(targetDir.toString + "missing.subreadset.xml")
+      val jobResult = runJob(Seq(targetDs))
+      jobResult.isLeft must beTrue
+    }
+    "Remove a dataset with missing resources" in {
+      val pbdata = PacBioTestData()
+      val targetDsSrc = pbdata.getFile("subreads-sequel")
+      val targetDir = Files.createTempDirectory("missing-resources")
+      val targetDs = Paths.get(targetDir.toString + "/" +
+                               FilenameUtils.getName(targetDsSrc.toString))
+      FileUtils.copyFile(targetDsSrc.toFile, targetDs.toFile)
+      val jobResult = runJob(Seq(targetDs))
+      jobResult.isRight must beTrue
+      targetDs.toFile.exists must beFalse
+      val rptPath = Paths.get(jobResult.right.get.files(1).path)
+      val r = ReportUtils.loadReport(rptPath)
+      r.attributes(1).value must beEqualTo(5)
+      r.attributes(3).value must beEqualTo(5)
+      r.tables(0).columns(0).values.size must beEqualTo(6) // includes sts.xml
+    }
+    "Successfully remove two out of three datasets after failing on the first" in {
+      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
+      val targetDir = Files.createTempDirectory("missing-dataset")
+      val targetDs = Paths.get(targetDir.toString + "missing.subreadset.xml")
+      val jobResult = runJob(Seq(targetDs, subreads, barcodes))
+      jobResult.isRight must beTrue
+      subreads.toFile.exists must beFalse
+      subreads.getParent.toFile.listFiles must beEmpty
+      barcodes.toFile.exists must beFalse // deleting it this time
+      val rptPath = Paths.get(jobResult.right.get.files(1).path)
+      val r = ReportUtils.loadReport(rptPath)
+      r.attributes(1).value must beEqualTo(1)
+      r.attributes(3).value must beEqualTo(1)
+      r.tables(0).columns(0).values.size must beEqualTo(9)
     }
   }
 }

@@ -12,6 +12,7 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 
+import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.pacbio.secondary.analysis.reports.ReportModels._
@@ -31,8 +32,8 @@ case class DeleteResourcesOptions(path: Path, removeFiles: Boolean = true) exten
   def toJob = new DeleteResourcesJob(this)
 }
 
-case class DeleteDatasetOptions(paths: Seq[Path], removeFiles: Boolean = true) extends BaseJobOptions with DeleteResourcesOptionsBase {
-  def toJob = new DeleteDatasetJob(this)
+case class DeleteDatasetsOptions(paths: Seq[Path], removeFiles: Boolean = true) extends BaseJobOptions with DeleteResourcesOptionsBase {
+  def toJob = new DeleteDatasetsJob(this)
 }
 
 // internal result holder
@@ -187,8 +188,8 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 }
 
 
-class DeleteDatasetJob(opts: DeleteDatasetOptions)
-    extends DeleteResourcesBase(opts: DeleteDatasetOptions)
+class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
+    extends DeleteResourcesBase(opts: DeleteDatasetsOptions)
     with MockJobUtils with timeUtils {
   override val jobTypeId = JobTypeId("delete_dataset")
   override val resourceType = "Dataset"
@@ -230,26 +231,73 @@ class DeleteDatasetJob(opts: DeleteDatasetOptions)
   }
 
   override def runDelete(job: JobResourceBase, resultsWriter: JobResultWriter): Seq[DeletedFile] = {
-    val deletedFiles = mutable.MutableList.empty[DeletedFile]
-    opts.paths.map { dsPath =>
+    if (opts.paths.isEmpty) throw new Exception("No paths specified")
+    val deletedFiles: Seq[DeletedFile] = opts.paths.map { dsPath =>
       if (! dsPath.toFile.isFile) {
-        throw new Exception(s"${dsPath.toString} is not a file")
-      }
-      val basePath = dsPath.getParent
-      val dsType = DataSetMetaTypes.fromPath(dsPath).get
-      val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
-      val dsId = UUID.fromString(ds.getUniqueId)
-      val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
-      val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
-      if (!opts.removeFiles) {
-        logger.info("removeFiles=false, leaving files in place")
-        Seq.empty[DeletedFile]
+        logger.warn(s"${dsPath.toString} is missing, skipping")
+        //Seq.empty[DeletedFile]
+        Seq(DeletedFile(dsPath.toString, false, -1, false))
+        //throw new Exception(s"${dsPath.toString} is not a file")
       } else {
-        (for {
-          r <- getPaths(dsType, ds.getExternalResources)
-        } yield deleteResource(Paths.get(r))).toList ++
-        Seq(deleteFileOrDirectory(dsPath.toFile))
+        val basePath = dsPath.getParent
+        val dsType = DataSetMetaTypes.fromPath(dsPath).get
+        val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
+        val dsId = UUID.fromString(ds.getUniqueId)
+        val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
+        val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
+        if (!opts.removeFiles) {
+          logger.info("removeFiles=false, leaving files in place")
+          Seq.empty[DeletedFile]
+        } else {
+          (for {
+            r <- getPaths(dsType, ds.getExternalResources)
+          } yield deleteResource(Paths.get(r))).toList ++
+          Seq(deleteFileOrDirectory(dsPath.toFile))
+        }
       }
     }.flatten
+    /// XXX not sure what the most appropriate behavior here is...
+    if ((deletedFiles.isEmpty || (deletedFiles.count(_.nBytes > 0) == 0)) &&
+         opts.removeFiles) {
+      throw new Exception("No files could be deleted - they may have already been removed from the filesystem")
+    }
+    deletedFiles
+  }
+}
+
+// Utilities for setting up test datasets that can be safely deleted
+object MockDataSetUtils {
+  def makeBarcodedSubreads = {
+    val pbdata = PacBioTestData()
+    val targetDir = Files.createTempDirectory("dataset-contents")
+    val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
+    val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
+    val subreadsSrc = pbdata.getFile("barcoded-subreadset")
+    val subreadsDir = subreadsSrc.getParent.toFile
+    val barcodesSrc = pbdata.getFile("barcodeset")
+    val barcodesDir = barcodesSrc.getParent.toFile
+    // only copy the files we need for this SubreadSet, that way we can check
+    // for an empty directory
+    val prefix = FilenameUtils.getName(subreadsSrc.toString).replaceAll(".subreadset.xml$", "")
+    for (f <- subreadsDir.listFiles) {
+      val filename = FilenameUtils.getName(f.toString)
+      if (filename.startsWith(prefix)) {
+        val dest = new File(subreadsDestDir.toString + "/" + filename)
+        FileUtils.copyFile(f, dest)
+      }
+    }
+    FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
+    val subreads = Paths.get(subreadsDestDir.toString + "/" +
+                             FilenameUtils.getName(subreadsSrc.toString))
+    var barcodes = Paths.get(barcodesDestDir.toString + "/" +
+                             FilenameUtils.getName(barcodesSrc.toString))
+    val dsSubreads = DataSetLoader.loadSubreadSet(subreads)
+    val dsBarcodes = DataSetLoader.loadBarcodeSet(barcodes)
+    // set new UUIDs
+    dsSubreads.setUniqueId(UUID.randomUUID().toString)
+    dsBarcodes.setUniqueId(UUID.randomUUID().toString)
+    DataSetWriter.writeSubreadSet(dsSubreads, subreads)
+    DataSetWriter.writeBarcodeSet(dsBarcodes, barcodes)
+    (subreads, barcodes)
   }
 }
