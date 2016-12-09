@@ -37,6 +37,7 @@ trait SecondaryAnalysisJsonProtocols extends SmrtLinkJsonProtocols with ReportJs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
 
   implicit val exportOptions = jsonFormat3(DataSetExportServiceOptions)
+  implicit val deleteDataSetsOptions = jsonFormat2(DataSetDeleteServiceOptions)
 
   // this is here to break a tie between otherwise-ambiguous implicits;
   // see the spray-json-shapeless documentation

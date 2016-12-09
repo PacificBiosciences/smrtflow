@@ -27,4 +27,6 @@ object SecondaryModels {
 
   case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
                                          outputPath: String)
+  case class DataSetDeleteServiceOptions(ids: Seq[Int],
+                                         removeFiles: Boolean = true)
 }
