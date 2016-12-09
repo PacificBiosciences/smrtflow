@@ -120,21 +120,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * : ProvenShape[(Int, String)] = (id, host)
   }
 
-  class UsersT(tag: Tag) extends Table[(Int, String, String, JodaDateTime, JodaDateTime)](tag, "users") {
-
-    def id: Rep[Int] = column[Int]("user_id", O.PrimaryKey, O.AutoInc)
-
-    def name: Rep[String] = column[String]("name")
-
-    def token: Rep[String] = column[String]("token")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def * : ProvenShape[(Int, String, String, JodaDateTime, JodaDateTime)] = (id, name, token, createdAt, updatedAt)
-  }
-
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
     {s => s.toString},
     {s => ProjectState.fromString(s)}
@@ -539,7 +524,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
   // Users and Projects
-  lazy val users = TableQuery[UsersT]
   lazy val projects = TableQuery[ProjectsT]
   lazy val projectsUsers = TableQuery[ProjectsUsersT]
 
@@ -572,7 +556,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     jobEvents,
     jobTags,
     jobsTags,
-    users,
     projectsUsers,
     projects,
     dsMetaData2,
@@ -589,4 +572,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     eulas)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)
+
+  lazy val allTables: Set[SlickTable] = serviceTables ++ runTables
+
+  lazy val schema = allTables.map(_.schema).reduce(_ ++ _)
 }
