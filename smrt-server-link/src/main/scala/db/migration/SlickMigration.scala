@@ -30,14 +30,17 @@ class UnmanagedDatabase(conn: Connection)
 }
 
 /**
- * By including this trait in your Flyway JdbcMigration, you only
- * need to provide an implementation for this the slick_migrate
- * method, which accepts a Slick session.
- *
- * Given that Session, you can perform any Slick operation, like
- * creating or modifying a table, populating the database, etc.
- *
- */
+  * By including this trait in your Flyway JdbcMigration, you only
+  * need to provide an implementation for this the slick_migrate
+  * method, which accepts a Slick session.
+  *
+  * Given that Session, you can perform any Slick operation, like
+  * creating or modifying a table, populating the database, etc.
+  *
+  *
+  * For Debugging set  <logger name="org.flywaydb" level="DEBUG"/> in logback.xml
+  *
+  */
 trait SlickMigration { self: JdbcMigration =>
 
   // Implement this in your subclass
@@ -46,7 +49,7 @@ trait SlickMigration { self: JdbcMigration =>
   override final def migrate(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      Await.ready(slickMigrate(db), Duration.Inf)
+      Await.result(slickMigrate(db), Duration.Inf)
     } finally {
       db.close()
     }
@@ -60,7 +63,7 @@ trait SlickCallback extends BaseFlywayCallback {
   override final def afterBaseline(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      Await.ready(slickAfterBaseline(db), Duration.Inf)
+      Await.result(slickAfterBaseline(db), Duration.Inf)
     } finally {
       db.close()
     }
