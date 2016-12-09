@@ -65,7 +65,7 @@ trait DalComponent {
   def isConstraintViolation(t: Throwable): Boolean = {
     t match {
       case se: SQLException =>
-        //FIXME(mpkocher)(2016-12-7) Update this to catch the specific
+        //FIXME(mpkocher)(2016-12-7) Need to double check that this works
         // https://www.postgresql.org/docs/9.6/static/errcodes-appendix.html
         // unique_violation 23505
         se.getErrorCode == 23505
