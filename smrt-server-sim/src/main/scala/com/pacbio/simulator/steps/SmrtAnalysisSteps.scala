@@ -162,4 +162,12 @@ trait SmrtAnalysisSteps {
       SUCCEEDED
     }
   }
+
+  case class DeleteDataSets(dsType: Var[String], ids: Var[Seq[Int]], removeFiles: Var[Boolean] = Var(true)) extends VarStep[UUID] {
+    override val name = "DeleteDataSets"
+    override def run: Future[Result] = smrtLinkClient.deleteDataSets(dsType.get, ids.get, removeFiles.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
 }
