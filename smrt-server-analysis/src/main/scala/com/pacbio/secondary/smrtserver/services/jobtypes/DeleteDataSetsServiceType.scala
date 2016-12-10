@@ -18,6 +18,7 @@ import scala.util.{Failure, Success, Try, Properties}
 
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -63,6 +64,9 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
         post {
           optionalAuthenticate(authenticator.wso2Auth) { user =>
             entity(as[DataSetDeleteServiceOptions]) { sopts =>
+              if (sopts.datasetType != DataSetMetaTypes.Subread.dsId) {
+                throw new UnprocessableEntityError("Only SubreadSets may be deleted at present.")
+              }
               val uuid = UUID.randomUUID()
               logger.info(s"attempting to create a delete-datasets job ${uuid.toString} with options $sopts")
               // FIXME too much code duplication here
@@ -72,8 +76,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
               val fx = for {
                 uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
                 resolvedPaths <- Future { uuidPaths.map(x => Paths.get(x._2)) }
-                engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, DataSetMetaTypes.Subread.dsId)) }
-                //engineEntryPoints <- Future { vopts.paths.map(p => EngineJobEntryPointRecord(p, vopts.datasetType.dsId)) }
+                engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
                 coreJob <- Future { CoreJob(uuid, DeleteDatasetsOptions(resolvedPaths, true)) }
                 _ <- Future.sequence(fsx).map { f => f.map(sx => deleteDataSet(sx)) }
                 engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Deleting Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
