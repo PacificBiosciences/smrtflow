@@ -109,10 +109,7 @@ object DataSetMetaTypes {
     Try {
       val ds = scala.xml.XML.loadFile(path.toFile)
       ds.attributes("MetaType").toString
-    } match {
-      case Success(dsType) => toDataSetType(dsType)
-      case Failure(err) => None
-    }
+    }.toOption.flatMap(toDataSetType)
   }
 }
 
