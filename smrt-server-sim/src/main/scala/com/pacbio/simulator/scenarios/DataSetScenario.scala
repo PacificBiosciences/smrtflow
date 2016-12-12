@@ -139,10 +139,10 @@ class DataSetScenario(host: String, port: Int)
   val ccs = Var(testdata.getFile("rsii-ccs"))
   val ccsAligned = Var(testdata.getFile("rsii-ccs-aligned"))
 
-  val (subreadsTmp_, barcodesTmp_) = MockDataSetUtils.makeBarcodedSubreads
-  val subreadsTmp = Var(subreadsTmp_)
-  val barcodesTmp = Var(barcodesTmp_)
-  val subreadsTmpUuid = Var(dsUuidFromPath(subreadsTmp_))
+  val tmpDatasets = (1 to 4).map(_ => MockDataSetUtils.makeBarcodedSubreads)
+  var tmpSubreads = tmpDatasets.map(x => Var(x._1))
+  var tmpBarcodes = tmpDatasets.map(x => Var(x._2))
+  val subreadsTmpUuid = Var(dsUuidFromPath(tmpDatasets(0)._1))
 
   private def getReportUuid(reports: Var[Seq[DataStoreReportFile]], reportId: String): Var[UUID] = {
     reports.mapWith(_.map(r => (r.reportTypeId, r.dataStoreFile.uuid)).toMap.get(reportId).get)
@@ -416,7 +416,7 @@ class DataSetScenario(host: String, port: Int)
     MergeDataSets(ftSubreads, Var(Seq(1,4)), Var("merge-subreads")) SHOULD_RAISE classOf[UnsuccessfulResponseException]
   )
   val deleteTests = Seq(
-    jobId := ImportDataSet(subreadsTmp, ftSubreads),
+    jobId := ImportDataSet(tmpSubreads(0), ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
@@ -424,9 +424,9 @@ class DataSetScenario(host: String, port: Int)
     jobId := DeleteDataSets(ftSubreads, subreadSets.mapWith(ss => Seq(ss.last.id)), Var(true)),
     jobStatus := WaitForJob(jobId),
     fail("Delete SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
-    fail("Expected SubreadSet file to be deleted") IF subreadsTmp.mapWith(_.toFile.exists) !=? false,
+    fail("Expected SubreadSet file to be deleted") IF tmpSubreads(0).mapWith(_.toFile.exists) !=? false,
     fail("Expected directory contents to be deleted") IF subreadSets.mapWith(ss => Paths.get(ss.last.path).getParent.toFile.listFiles.nonEmpty) !=? false,
-    fail("Expected BarcodeSet to be untouched") IF barcodesTmp.mapWith(_.toFile.exists) !=? true,
+    fail("Expected BarcodeSet to be untouched") IF tmpBarcodes(0).mapWith(_.toFile.exists) !=? true,
     // TODO check report?
     // failure modes
     referenceSets := GetReferenceSets,
@@ -436,7 +436,26 @@ class DataSetScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Expected job to fail") IF jobStatus !=? EXIT_FAILURE,
     subreadSets := GetSubreadSets,
-    fail("Expected two SubreadSets") IF subreadSets.mapWith(_.size) !=? 2
+    fail("Expected 2 SubreadSets") IF subreadSets.mapWith(_.size) !=? 2,
+    // delete merged datasets
+    jobId := ImportDataSet(tmpSubreads(1), ftSubreads),
+    jobStatus := WaitForJob(jobId),
+    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    jobId := ImportDataSet(tmpSubreads(2), ftSubreads),
+    jobStatus := WaitForJob(jobId),
+    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    subreadSets := GetSubreadSets,
+    fail("Expected 3 SubreadSets") IF subreadSets.mapWith(_.size) !=? 4,
+    jobId := MergeDataSets(ftSubreads, subreadSets.mapWith(_.takeRight(2).map(ds => ds.id)), Var("merge-subreads")),
+    jobStatus := WaitForJob(jobId),
+    fail("Merge SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    subreadSets := GetSubreadSets,
+    fail("Expected 5 SubreadSets") IF subreadSets.mapWith(_.size) !=? 5,
+    DeleteDataSets(ftSubreads, subreadSets.mapWith(ss => Seq(ss.last.id)), Var(true)),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    subreadSets := GetSubreadSets,
+    fail("Expected 2 SubreadSets") IF subreadSets.mapWith(_.size) !=? 2
   )
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests
 }
