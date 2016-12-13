@@ -66,7 +66,7 @@ abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
   }
 
   protected def toReport(targetPaths: Seq[Path], deletedFiles: Seq[DeletedFile]): Report = {
-    val nErrors = deletedFiles.count(_.wasDeleted == false).toLong
+    val nErrors = deletedFiles.count(_.wasDeleted == false)
     val nBytesTotal = deletedFiles.map(_.nBytes).sum
     val tables = if (deletedFiles.nonEmpty) {
       val paths = ReportTableColumn("path", Some("Path"), deletedFiles.map(_.path))
@@ -81,7 +81,7 @@ abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
         ReportStrAttribute("job_dir", "Directory", targetPaths.mkString(", ")),
         ReportLongAttribute("n_errors", "Number of Errors", nErrors),
         ReportLongAttribute("n_bytes", "Deleted Bytes", nBytesTotal))
-    val nSkipped = deletedFiles.count(_.nBytes < 0).toLong
+    val nSkipped = deletedFiles.count(_.nBytes < 0)
     if (nSkipped > 0) {
       attributes += ReportLongAttribute("n_skipped", "Skipped Or Missing Files", nSkipped)
     }
