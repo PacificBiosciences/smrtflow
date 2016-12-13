@@ -300,7 +300,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
     runningJob match {
       case Some(job) => failIfNotSuccessfulJob(job)
-      case _ => Failure(new Exception(s"Failed to run job $jobId."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
     }
   }
 
