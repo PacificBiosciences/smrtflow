@@ -3,7 +3,6 @@ import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
@@ -15,6 +14,7 @@ import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.testkit.Specs2RouteTest
+import slick.driver.PostgresDriver.api._
 
 import scala.concurrent.duration.FiniteDuration
 

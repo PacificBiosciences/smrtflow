@@ -5,7 +5,6 @@ import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
@@ -21,6 +20,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing.AuthenticationFailedRejection
 import spray.testkit.Specs2RouteTest
+import slick.driver.PostgresDriver.api._
 
 import scala.concurrent.duration._
 

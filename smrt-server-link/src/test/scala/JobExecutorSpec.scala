@@ -18,7 +18,6 @@ import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.analysis.tools.timeUtils
@@ -29,6 +28,7 @@ import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
+import slick.driver.PostgresDriver.api._
 
 
 class JobExecutorSpec extends Specification

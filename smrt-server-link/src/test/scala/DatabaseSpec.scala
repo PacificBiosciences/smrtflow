@@ -4,7 +4,6 @@ import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
@@ -12,8 +11,9 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-import slick.driver.SQLiteDriver.api._
+import slick.driver.PostgresDriver.api._
 import spray.testkit.Specs2RouteTest
+import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -25,24 +25,26 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
   val EXPECTED_MIGRATIONS = 22
 
-  object TestProvider extends TestDalProvider with FakeClockProvider {
-    override val db: Singleton[Database] = Singleton(() => {
-      val file = File.createTempFile("database_spec_", ".db")
-      file.deleteOnExit()
-      val filename = file.getCanonicalPath
-      new Database(s"jdbc:sqlite:$filename")
-    })
-  }
+//  object TestProvider extends TestDalProvider with FakeClockProvider {
+//    override val db: Singleton[Database] = Singleton(() => {
+//      val file = File.createTempFile("database_spec_", ".db")
+//      file.deleteOnExit()
+//      val filename = file.getCanonicalPath
+//      new Database(s"jdbc:sqlite:$filename")
+//    })
+//  }
 
-  val clock = TestProvider.clock()
+  val db = Database.forConfig("smrtflow.db")
+
+  //val clock = TestProvider.clock()
 
   "Database" should {
     "migrate from 0 -> current" in {
-      val db = TestProvider.db()
-      if (db.migrationsApplied() == 0) db.migrate()
-      db.migrationsApplied() === EXPECTED_MIGRATIONS
+//      val db = TestProvider.db()
+//      if (db.migrationsApplied() == 0) db.migrate()
+//      db.migrationsApplied() === EXPECTED_MIGRATIONS
 
-      val now = clock.dateNow()
+      val now = JodaDateTime.now()
       val username = "user-name"
       val datasetTypeId = "dataset-type-id"
 
@@ -68,7 +70,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         ProjectState.CREATED,
         createdAt = now,
         updatedAt = now,
-        true)
+        isActive = true)
       val projectUser = ProjectUser(projectId = -1, username, ProjectUserRole.OWNER)
       val dataset = EngineJobEntryPoint(jobId = -1, UUID.randomUUID(), datasetTypeId)
       val metadata = DataSetMetaDataSet(
@@ -173,7 +175,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val sample = Sample("details", UUID.randomUUID(), "name", username, createdAt = now)
 
       // TODO(smcclellan): JobResults table does not appear to be real?
-      // TODO(smcclellan): Users table does not appear to be real?
+
       val putAll = db.run(
         for {
           jid <- engineJobs returning engineJobs.map(_.id) += job
@@ -201,7 +203,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         } yield ()
       )
 
-      Await.ready(putAll, 10.seconds)
+      Await.result(putAll, 10.seconds)
 
       val ej = Await.result(db.run(engineJobs.result.head), 1.second)
       val je = Await.result(db.run(jobEvents.result.head), 1.second)

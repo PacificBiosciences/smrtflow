@@ -13,17 +13,14 @@ import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider, EulaServiceProvider}
-import com.pacbio.secondary.smrtlink.tools.SetupMockData
-import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
+import slick.driver.PostgresDriver.api._
 
 class EulaServiceSpec extends Specification
     with Specs2RouteTest
@@ -67,17 +64,6 @@ class EulaServiceSpec extends Specification
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.eulaService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
-
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
-    runSetup(dao)
-    println(s"completed setting up database ${dbURI}")
-  }
-
-  textFragment("creating database tables")
-  step(dbSetup())
 
   "EULA service" should {
     "return an empty list of EULAs" in {
@@ -87,7 +73,7 @@ class EulaServiceSpec extends Specification
       }
     }
     "accept the EULA" in {
-      val params = EulaAcceptance("smrtlinktest", "4.0.0", true, false)
+      val params = EulaAcceptance("smrtlinktest", "4.0.0", enableInstallMetrics = true, enableJobMetrics = false)
       Post("/smrt-base/eula", params) ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
         eula.user must beEqualTo("smrtlinktest")
