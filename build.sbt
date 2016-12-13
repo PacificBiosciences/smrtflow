@@ -227,3 +227,6 @@ lazy val smrtServerSim = (
         dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
         settings()
     )
+
+lazy val root = (project in file(".")).
+  aggregate(common, database, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)

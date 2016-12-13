@@ -64,6 +64,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     val CONVERT_BARCODES = "convert-fasta-barcodes"
     val CONVERT_MOVIE = "convert-rs-movie"
     val EXPORT_DS = "export-datasets"
+    val DELETE_DS = "delete-datasets"
     val PB_PIPE = "pbsmrtpipe"
   }
 
@@ -200,6 +201,11 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
          DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
   }
 
+  def deleteDataSets(datasetType: String, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
+    Post(toUrl(AnalysisServiceEndpoints.ROOT_JOBS + "/" + AnalysisJobTypes.DELETE_DS),
+         DataSetDeleteServiceOptions(datasetType, ids, removeFiles))
+  }
+
   def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
   }
@@ -294,7 +300,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
     runningJob match {
       case Some(job) => failIfNotSuccessfulJob(job)
-      case _ => Failure(new Exception(s"Failed to run job $jobId."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
     }
   }
 
