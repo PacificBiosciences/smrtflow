@@ -191,7 +191,7 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
     with timeUtils {
   override val jobTypeId = JobTypeId("delete_dataset")
   override val resourceType = "Dataset"
-  private val BAM_RESOURCES = Seq(FileTypes.BAM_ALN, FileTypes.BAM_SUB, FileTypes.BAM_CCS, FileTypes.BAM_ALN, FileTypes.I_PBI, FileTypes.I_BAI, FileTypes.STS_XML, FileTypes.STS_H5).map(x => x.fileTypeId).toSet
+  private val DEFAULT_BAM_FILTER_METATYPES = FileTypes.BAM_RESOURCES.map(x => x.fileTypeId).toSet
 
   protected def deleteResource(path: Path): DeletedFile = {
     val f = path.toFile
@@ -206,21 +206,21 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
   override def makeReport(files: Seq[DeletedFile]): Report =
     toReport(opts.paths, files)
 
-  private def getPaths(dsType: DataSetMetaTypes.DataSetMetaType,
-                       externalResources: ExternalResources): Seq[String] = {
-    def isChildResource(e: InputOutputDataType): Boolean = {
-      if (DataSetMetaTypes.BAM_DATASETS contains dsType) {
-        val metaType = e.getMetaType
-        val isChild = (BAM_RESOURCES contains metaType) || metaType.startsWith("PacBio.SubreadFile")
-        if (!isChild) {
-          logger.warn(s"Skipping file ${e.getResourceId} with meta-type $metaType")
-        }
-        isChild
-      } else true // XXX are there any exceptions?  do we care about non-BAM?
+  private def isBamResource(e: InputOutputDataType): Boolean = {
+    val metaType = e.getMetaType
+    val isChild = (DEFAULT_BAM_FILTER_METATYPES contains metaType)
+    if (!isChild) {
+      logger.warn(s"Skipping file ${e.getResourceId} with meta-type $metaType")
     }
+    isChild
+  }
+
+  private def getPaths(dsType: DataSetMetaTypes.DataSetMetaType,
+                       externalResources: ExternalResources,
+                       filterResource: InputOutputDataType => Boolean): Seq[String] = {
     Option(externalResources).map { ex =>
-      ex.getExternalResource.filter(isChildResource).flatMap { e =>
-        Seq(e.getResourceId) ++ getPaths(dsType, e.getExternalResources) ++
+      ex.getExternalResource.filter(filterResource(_)).flatMap { e =>
+        Seq(e.getResourceId) ++ getPaths(dsType, e.getExternalResources, filterResource) ++
         Option(e.getFileIndices).map { fi =>
           fi.getFileIndex.flatMap { i => Seq(i.getResourceId) }
         }.getOrElse(Seq.empty[String])
@@ -243,13 +243,16 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
         val dsId = UUID.fromString(ds.getUniqueId)
         val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
         val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
+        def filterResource(e: InputOutputDataType): Boolean = {
+          if (DataSetMetaTypes.BAM_DATASETS contains dsType) isBamResource(e)
+          else true
+        }
         if (!opts.removeFiles) {
           logger.info("removeFiles=false, leaving files in place")
           Seq.empty[DeletedFile]
         } else {
-          (for {
-            r <- getPaths(dsType, ds.getExternalResources)
-          } yield deleteResource(Paths.get(r))).toList ++
+          getPaths(dsType, ds.getExternalResources, filterResource).map(p =>
+            deleteResource(Paths.get(p))).toList ++
           Seq(deleteFileOrDirectory(dsPath.toFile))
         }
       }

@@ -126,10 +126,6 @@ object FileTypes {
   // fasta.contig.index index file used by SMRT View
   final val I_FCI = IndexFileBaseType("PacBio.Index.FastaContigIndex", "file", "fasta.contig.index", "text/plain")
 
-  // Other DataSet accessories
-  final val STS_XML = FileBaseType("PacBio.SubreadFile.ChipStatsFile", "file", "sts.xml", "application/xml")
-  final val STS_H5 = FileBaseType("PacBio.SubreadFile.ChipStatsH5File", "file", "sts.h5", "application/octet-stream")
-
   // Only Supported RS era Reference Index file types, which are used to
   // convert to ReferenceSet
   final val RS_I_SAM_INDEX = IndexFileBaseType("sam_idx", "file", "fasta.fai", "text/plain")
@@ -137,4 +133,19 @@ object FileTypes {
   final val RS_I_FCI = IndexFileBaseType("fasta_contig_index", "file", "fasta.contig.index", "text/plain")
   final val RS_I_SAW = IndexFileBaseType("sawriter", "file", "fasta.sa", "text/plain")
 
+  // Various other file types specific to SubreadSet
+  def toSF(x: String) = toI("SubreadFile", x)
+  final val STS_XML = FileBaseType(toSF("ChipStatsFile"), "file", "sts.xml", "application/xml")
+  final val STS_H5 = FileBaseType(toSF("ChipStatsH5File"), "file", "sts.h5", "application/octet-stream")
+  final val BAM_SCRAPS = FileBaseType(toSF("ScrapsBamFile"), "file", ".scraps.bam", "application/octet-stream")
+  final val BAM_HQ_REGION = FileBaseType(toSF("HqRegionBamFile"), "file", ".bam", "application/octet-stream")
+  final val BAM_SCRAPS_HQ = FileBaseType(toSF("HqScrapsBamFile"), "file", ".scraps.bam", "application/octet-stream")
+  final val BAM_LQ_REGION = FileBaseType(toSF("LqRegionBamFile"), "file", ".bam", "application/octet-stream")
+  final val BAM_SCRAPS_LQ = FileBaseType(toSF("LqScrapsBamFile"), "file", ".scraps.bam", "application/octet-stream")
+  final val BAM_ZMW = FileBaseType(toSF("PolymeraseBamFile"), "file", ".bam", "application/octet-stream")
+  final val BAM_P_SCRAPS = FileBaseType(toSF("PolymeraseScrapsBamFile"), "file", ".scraps.bam", "application/octet-stream")
+  final val FASTA_ADAPTER = FileBaseType(toSF("AdapterFastaFile"), "adapter", ".fasta", "text/plain")
+  final val FASTA_CONTROL = FileBaseType(toSF("ControlFastaFile"), "control", ".fasta", "text/plain")
+
+  final val BAM_RESOURCES = Seq(BAM_ALN, BAM_SUB, BAM_CCS, BAM_ALN, I_PBI, I_BAI, STS_XML, STS_H5, BAM_SCRAPS, BAM_HQ_REGION, BAM_SCRAPS_HQ, BAM_LQ_REGION, BAM_SCRAPS_LQ, BAM_ZMW, BAM_P_SCRAPS, FASTA_ADAPTER, FASTA_CONTROL).toSet
 }
