@@ -10,7 +10,6 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -40,11 +39,13 @@ case class DeleteDatasetsOptions(paths: Seq[Path], removeFiles: Boolean = true) 
 case class DeletedFile(path: String, isDirectory: Boolean, nBytes: Long, wasDeleted: Boolean)
 
 
-/*--- Base class for resource deletion (path-agnostic) ---*/
+/** Base trait for resource deletion (path-agnostic)
+ *
+ * This handles the mechanics of job setup, file deletion, and reporting.
+ */
+trait DeleteResourcesBase {
+  this: BaseCoreJob with timeUtils =>
 
-abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
-    extends BaseCoreJob(opts: DeleteResourcesOptionsBase)
-    with MockJobUtils with timeUtils {
   type Out = PacBioDataStore
   val jobTypeId = JobTypeId("delete_resources")
   val resourceType = "Unknown Path"
@@ -77,18 +78,18 @@ abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
         ReportTable("deleted_files", Some("Deleted Paths"), Seq(
           paths, directories, nBytes, wasDeleted)))
     } else List()
-    val attributes = mutable.ListBuffer(
+    val attrs = Seq(
         ReportStrAttribute("job_dir", "Directory", targetPaths.mkString(", ")),
         ReportLongAttribute("n_errors", "Number of Errors", nErrors),
         ReportLongAttribute("n_bytes", "Deleted Bytes", nBytesTotal))
     val nSkipped = deletedFiles.count(_.nBytes < 0)
-    if (nSkipped > 0) {
-      attributes += ReportLongAttribute("n_skipped", "Skipped Or Missing Files", nSkipped)
+    val reportAttributes = if (nSkipped == 0) attrs else {
+      attrs ++ Seq(ReportLongAttribute("n_skipped", "Skipped Or Missing Files", nSkipped))
     }
     Report(
       "smrtflow_delete_resources",
       "Delete Resources",
-      attributes = attributes.toList,
+      attributes = reportAttributes.toList,
       plotGroups = List.empty[ReportPlotGroup],
       tables = tables,
       uuid = UUID.randomUUID())
@@ -131,29 +132,18 @@ abstract class DeleteResourcesBase(opts: DeleteResourcesOptionsBase)
   }
 }
 
-
+/** Job type for deleting the entire contents of a single directory.
+ *
+ */
 class DeleteResourcesJob(opts: DeleteResourcesOptions)
-    extends DeleteResourcesBase(opts: DeleteResourcesOptions)
-    with MockJobUtils with timeUtils {
+    extends BaseCoreJob(opts: DeleteResourcesOptions)
+    with DeleteResourcesBase
+    with timeUtils {
   override val jobTypeId = JobTypeId("delete_job")
   override val resourceType = "Job"
 
   private def deleteDirFiles(targetDir: File, ignoreFailures: Boolean = true): Seq[DeletedFile] = {
-    targetDir.listFiles.map { f =>
-      val isDir = f.isDirectory
-      val size = if (isDir) FileUtils.sizeOfDirectory(f) else FileUtils.sizeOf(f)
-      val wasDeleted = Try {
-        logger.info(s"Deleting ${f.toString} (${size} bytes, directory = ${isDir}")
-        if (isDir) FileUtils.deleteDirectory(f)
-        else f.delete
-      } match {
-        case Success(_) => true
-        case Failure(err) => if (ignoreFailures) {
-          logger.error(s"ERROR: ${err.getMessage}"); false
-        } else throw err
-      }
-      DeletedFile(f.toString, isDir, size, wasDeleted)
-    }
+    targetDir.listFiles.map(f => deleteFileOrDirectory(f, ignoreFailures))
   }
 
   override def makeReport(files: Seq[DeletedFile]): Report =
@@ -188,9 +178,17 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 }
 
 
+/** Job type for deleting a list of datasets, including external resources
+ *
+ * Currently this is intended to be used primarily for SubreadSets and other
+ * BAM-based datasets; external resources subject to deletion are whitelisted
+ * based on file type, which allows us to exclude any references or barcodes
+ * (etc.) that may be shared with other datasets.
+ */
 class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
-    extends DeleteResourcesBase(opts: DeleteDatasetsOptions)
-    with MockJobUtils with timeUtils {
+    extends BaseCoreJob(opts: DeleteDatasetsOptions)
+    with DeleteResourcesBase
+    with timeUtils {
   override val jobTypeId = JobTypeId("delete_dataset")
   override val resourceType = "Dataset"
   private val BAM_RESOURCES = Seq(FileTypes.BAM_ALN, FileTypes.BAM_SUB, FileTypes.BAM_CCS, FileTypes.BAM_ALN, FileTypes.I_PBI, FileTypes.I_BAI, FileTypes.STS_XML, FileTypes.STS_H5).map(x => x.fileTypeId).toSet
@@ -265,7 +263,9 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
   }
 }
 
-// Utilities for setting up test datasets that can be safely deleted
+/** Utilities for setting up test datasets that can be safely deleted
+ *
+ */
 object MockDataSetUtils {
   def makeBarcodedSubreads = {
     val pbdata = PacBioTestData()
