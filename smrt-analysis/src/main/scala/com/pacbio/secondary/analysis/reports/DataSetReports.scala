@@ -156,6 +156,6 @@ object DataSetReports extends ReportJsonProtocol {
 
     val reportPath = jobPath.resolve(simple + ".json")
     ReportUtils.writeReport(rpt, reportPath)
-    toDataStoreFile(reportPath, s"pbscala::${jobTypeId.id}")
+    toDataStoreFile(reportPath, s"pbscala::dataset_report")
   }
 }
