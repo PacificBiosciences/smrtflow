@@ -51,8 +51,7 @@ trait SmrtLinkDalProvider extends DalProvider {
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
-    // in-memory DB for tests
-    Database.forURL("jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1", driver="org.postgresql.Driver")
+    Database.forConfig("smrtflow.db")
   })
 }
 
