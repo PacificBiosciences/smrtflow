@@ -14,6 +14,12 @@
     "apim": {
       "x-wso2-scopes": [
         {
+          "roles": "Internal/PbAdmin",
+          "name": "smrtlink-admin",
+          "key": "smrtlink-admin",
+          "description": "Admin Authorization"
+        },
+        {
           "roles": "Internal/PbAdmin,Internal/PbLabTech",
           "name": "run-design",
           "key": "run-design",
@@ -355,6 +361,59 @@
           "application/json"
         ],
         "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/delete-datasets": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Return value"
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "smrtlink-admin",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
