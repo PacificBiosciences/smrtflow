@@ -15,8 +15,8 @@
       "x-wso2-scopes": [
         {
           "roles": "Internal/PbAdmin",
-          "name": "smrtlink-admin",
-          "key": "smrtlink-admin",
+          "name": "smrtlink:admin",
+          "key": "smrtlink:admin",
           "description": "Admin Authorization"
         },
         {
@@ -394,6 +394,7 @@
     },
     "/secondary-analysis/job-manager/jobs/delete-datasets": {
       "post": {
+        "description": "Delete a list of datasets (by UUID) of a specific type, including all applicable external resources",
         "responses": {
           "201": {
             "description": "Return value"
@@ -413,7 +414,7 @@
         "produces": [
           "application/json"
         ],
-        "x-scope": "smrtlink-admin",
+        "x-scope": "smrtlink:admin",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
