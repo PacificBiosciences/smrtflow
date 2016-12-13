@@ -6,7 +6,6 @@ import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
@@ -20,6 +19,7 @@ import org.specs2.specification.Scope
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
+import slick.driver.PostgresDriver.api._
 
 
 class SecondaryJobSpec extends Specification
@@ -69,13 +69,9 @@ with JobServiceConstants {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
 
   trait daoSetup extends Scope {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri '$dbURI'")
     runSetup(dao)
-    println(s"completed setting up database '$dbURI'")
   }
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
