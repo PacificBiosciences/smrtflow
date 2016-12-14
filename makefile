@@ -32,6 +32,13 @@ tools-smrt-analysis-internal:
 tools-smrt-server-analysis:
 	sbt smrt-server-analysis/pack
 
+tools-tarball:
+	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
+	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
+	cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
+	rm -rf smrt-analysis/target/pack/bin/*.bat
+	cd smrt-analysis && tar cvfz ../pbscala-packed.tar.gz target/pack
+
 repl:
 	sbt smrtflow/test:console
 
