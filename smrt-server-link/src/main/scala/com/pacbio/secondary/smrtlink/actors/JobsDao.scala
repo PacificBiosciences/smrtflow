@@ -45,13 +45,13 @@ trait SmrtLinkDalProvider extends DalProvider {
   this: SmrtLinkConfigProvider =>
 
   override val db: Singleton[Database] =
-    Singleton(() => Database.forURL("jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1", driver="org.postgresql.Driver"))
+    Singleton(() => Database.forConfig("smrtflow.db"))
 }
 
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
   override val db: Singleton[Database] = Singleton(() => {
-    Database.forConfig("smrtflow.db")
+    Database.forConfig("smrtflow.test-db")
   })
 }
 
