@@ -33,9 +33,7 @@ tools-smrt-server-analysis:
 	sbt smrt-server-analysis/pack
 
 tools-tarball:
-	sbt smrt-analysis/clean smrt-analysis/compile smrt-analysis/pack
-	sbt smrt-server-base/clean smrt-server-base/compile smrt-server-base/pack
-	sbt smrt-server-analysis/clean smrt-server-analysis/compile smrt-server-analysis/pack
+	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
 	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
 	cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
 	rm -rf smrt-analysis/target/pack/bin/*.bat
