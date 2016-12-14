@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SubreadSet CreatedAt="2016-12-14T11:41:39" MetaType="PacBio.DataSet.SubreadSet" Name="pacbio_dataset_subreadset-160724_015358012 (barcoded)" Tags="" TimeStampedName="pacbio_dataset_subreadset-161214_114139764" UniqueId="ec9c21ca-ce97-5fef-29cd-bd676786841c" Version="3.0.1" xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:ns4="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pacificbiosciences.com/PacBioDatasets.xsd">
+	<pbbase:ExternalResources>
+		<pbbase:ExternalResource Description="Points to the subreads bam file." MetaType="PacBio.SubreadFile.SubreadBamFile" Name="subreads bam" ResourceId="barcode-1/barcoded.subreads.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-161214_11411072" UniqueId="f0bd5ea2-3c78-4e50-9c1a-fe3baae0565a" Version="">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="barcode-1/barcoded.subreads.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-161214_11411072" UniqueId="ee9a2526-84cc-4939-b66f-5e63779146b6" Version=""/>
+			</pbbase:FileIndices>
+			<pbbase:ExternalResources>
+				<pbbase:ExternalResource Description="Points to the scraps bam file." MetaType="PacBio.SubreadFile.ScrapsBamFile" Name="scraps bam" ResourceId="barcode-1/barcoded.scraps.bam" TimeStampedName="pacbio_subreadfile_scrapsbamfile-161214_11411089" UniqueId="80f4f203-cc55-4a57-9e2e-bb8a25689766" Version="">
+					<pbbase:FileIndices>
+						<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="barcode-1/barcoded.scraps.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-161214_11411089" UniqueId="5d5a91ff-8e6c-42a1-96f9-00ecbb2203a4" Version=""/>
+					</pbbase:FileIndices>
+				</pbbase:ExternalResource>
+				<pbbase:ExternalResource Description="Points to the barcodeset.xml file." MetaType="PacBio.DataSet.BarcodeSet" Name="Barcodes dataset" ResourceId="BarcodeSet/example_barcodes.barcodeset.xml" TimeStampedName="pacbio_dataset_barcodeset-161214_11411089" UniqueId="3d53d121-51cb-a761-f813-5cf5dec2b7a6" Version=""/>
+			</pbbase:ExternalResources>
+		</pbbase:ExternalResource>
+		<pbbase:ExternalResource Description="Points to the subreads bam file." MetaType="PacBio.SubreadFile.SubreadBamFile" Name="subreads bam" ResourceId="barcode-2/barcoded.subreads.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-161214_114110133" UniqueId="035e219f-59aa-4aba-a47b-9b6d6528980e" Version="">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="barcode-2/barcoded.subreads.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-161214_114110133" UniqueId="c685ff78-1e04-4caf-b6d0-1f1b77c7ff2f" Version=""/>
+			</pbbase:FileIndices>
+			<pbbase:ExternalResources>
+				<pbbase:ExternalResource Description="Points to the scraps bam file." MetaType="PacBio.SubreadFile.ScrapsBamFile" Name="scraps bam" ResourceId="barcode-2/barcoded.scraps.bam" TimeStampedName="pacbio_subreadfile_scrapsbamfile-161214_114110148" UniqueId="0e30d62f-eaf3-410a-ae39-92bfbdcb0d79" Version="">
+					<pbbase:FileIndices>
+						<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="barcode-2/barcoded.scraps.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-161214_114110148" UniqueId="6462943a-f768-4e3f-b72a-06d5b3766ba2" Version=""/>
+					</pbbase:FileIndices>
+				</pbbase:ExternalResource>
+				<pbbase:ExternalResource Description="Points to the barcodeset.xml file." MetaType="PacBio.DataSet.BarcodeSet" Name="Barcodes dataset" ResourceId="BarcodeSet/example_barcodes.barcodeset.xml" TimeStampedName="pacbio_dataset_barcodeset-161214_114110148" UniqueId="3d53d121-51cb-a761-f813-5cf5dec2b7a6" Version=""/>
+			</pbbase:ExternalResources>
+		</pbbase:ExternalResource>
+	</pbbase:ExternalResources>
+	<DataSetMetadata>
+		<TotalLength>12224151</TotalLength>
+		<NumRecords>6888</NumRecords>
+	</DataSetMetadata>
+</SubreadSet>

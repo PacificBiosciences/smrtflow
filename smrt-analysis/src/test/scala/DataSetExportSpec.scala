@@ -1,9 +1,11 @@
 
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
+import java.io.File
 import java.util.UUID
 
 import scala.util.Try
 
+import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
@@ -11,7 +13,7 @@ import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, AnalysisJobStat
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.analysis.datasets.io.ExportDataSets
+import com.pacbio.secondary.analysis.datasets.io._
 import com.pacbio.secondary.analysis.datasets._
 import com.pacbio.secondary.analysis.constants.FileTypes
 
@@ -125,6 +127,40 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
       val datasets = getData(Seq("contigset"))
       val zipPath = Files.createTempFile("contigs", ".zip")
       val n = ExportDataSets(datasets, DataSetMetaTypes.Contig, zipPath)
+      n must beGreaterThan(0)
+    }
+    "Export two SubreadSets that reference the same BarcodeSet" in {
+      val pbdata = PacBioTestData()
+      val tmpDir = Files.createTempDirectory("dataset-contents")
+      println(tmpDir)
+      val barcodesSrc = pbdata.getFile("barcodeset")
+      val barcodesDir = barcodesSrc.getParent.toFile
+      val barcodesDestDir = new File(tmpDir.toString + "/BarcodeSet")
+      FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
+      val subreadsDir = pbdata.getFile("barcoded-subreadset").getParent.toFile
+      Seq("barcode-1", "barcode-2").foreach { d =>
+        val subreadsDestDir = new File(tmpDir.toString + "/" + d)
+        subreadsDestDir.mkdir
+        val prefix = "barcoded"
+        subreadsDir.listFiles.foreach { f=>
+          val filename = FilenameUtils.getName(f.toString)
+          if (filename.startsWith(prefix)) {
+            val dest = new File(subreadsDestDir.toString + "/" + filename)
+            println(dest)
+            FileUtils.copyFile(f, dest)
+          }
+        }
+      }
+      val url = getClass.getResource("/dataset-subreads/gathered_barcoded.subreadset.xml")
+      val subreadsSrc = Paths.get(url.getPath)
+      val subreadsTmp = Paths.get(tmpDir.toString + "/" +
+                                  FilenameUtils.getName(subreadsSrc.toString))
+      FileUtils.copyFile(subreadsSrc.toFile, subreadsTmp.toFile)
+      val dsSubreads = DataSetLoader.loadAndResolveSubreadSet(subreadsTmp)
+      val datasets = Seq(subreadsTmp)
+      val zipPath = Files.createTempFile("subreadsets", ".zip")
+      println(zipPath)
+      val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
       n must beGreaterThan(0)
     }
   }

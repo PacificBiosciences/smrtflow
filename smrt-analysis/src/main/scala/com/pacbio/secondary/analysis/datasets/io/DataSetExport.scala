@@ -7,6 +7,8 @@ import java.net.URI
 import java.util.UUID
 import java.util.zip._
 
+import scala.collection.mutable.Set
+
 import com.typesafe.scalalogging.LazyLogging
 import collection.JavaConversions._
 import collection.JavaConverters._
@@ -23,6 +25,7 @@ class ExportDataSets(
 
   val dest = new FileOutputStream(zipPath.toFile)
   val out = new ZipOutputStream(new BufferedOutputStream(dest))
+  private val haveFiles = Set.empty[String]
 
   private def writeFile(path: Path, zipOutPath: String): Int = {
     val ze = new ZipEntry(zipOutPath)
@@ -46,8 +49,15 @@ class ExportDataSets(
         throw new Exception(msg)
       }
     } else {
-      logger.info(s"writing $resourcePath")
-      writeFile(resourcePath, s"${dsId}/${res.getResourceId}")
+      val destPath = s"${dsId}/${res.getResourceId}"
+      if (haveFiles contains destPath) {
+        logger.info(s"skipping duplicate file $destPath")
+        0
+      } else {
+        logger.info(s"writing $resourcePath")
+        haveFiles += destPath
+        writeFile(resourcePath, destPath)
+      }
     }
   }
 
