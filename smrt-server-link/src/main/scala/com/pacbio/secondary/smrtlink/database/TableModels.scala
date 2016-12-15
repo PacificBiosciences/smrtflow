@@ -132,6 +132,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
+    def nameUnique = index("project_name_unique", name, unique = true)
+
     def description: Rep[String] = column[String]("description")
 
     def state: Rep[ProjectState.ProjectState] = column[ProjectState.ProjectState]("state")
@@ -167,7 +169,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag) extends Table[ServiceDataSetMetaType](tag, "dataset_types") {
+  class DataSetTypesT(tag: Tag) extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
 
     def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
 
@@ -536,7 +538,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val jobsTags = TableQuery[JobsTags]
 
   // DataSet types
-  lazy val datasetTypes = TableQuery[DataSetTypesT]
+  lazy val datasetMetaTypes = TableQuery[DataSetTypesT]
 
   // Runs
   lazy val runSummaries = TableQuery[RunSummariesT]
@@ -553,7 +555,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   lazy val serviceTables: Set[SlickTable] = Set(
     engineJobs,
-    datasetTypes,
+    datasetMetaTypes,
     engineJobsDataSets,
     jobEvents,
     jobTags,
@@ -573,7 +575,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     datastoreServiceFiles,
     eulas)
 
-  lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata)
+  lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata, samples)
 
   lazy val allTables: Set[SlickTable] = serviceTables ++ runTables
 
