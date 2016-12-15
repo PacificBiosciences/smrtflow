@@ -61,14 +61,19 @@ trait TestDalProvider extends DalProvider {
 trait DalComponent {
   val db: Database
 
+  // https://www.postgresql.org/docs/9.6/static/errcodes-appendix.html
+  // There's probably a better way to do this
+  final private val integrityConstraintViolationErrorCodes =
+    Set(23000, 230001, 23502, 23503, 23505, 23514)
+
   def isConstraintViolation(t: Throwable): Boolean = {
     t match {
       case se: SQLException =>
-        //FIXME(mpkocher)(2016-12-7) Need to double check that this works
-        // https://www.postgresql.org/docs/9.6/static/errcodes-appendix.html
-        // unique_violation 23505
-        se.getErrorCode == 23505
-      case _ => false
+        //println(s"Is Violation constraint ${se.getErrorCode} ${se.getMessage}")
+        integrityConstraintViolationErrorCodes contains se.getErrorCode
+      case e =>
+        //println(s"Unknown error ${e.getMessage}")
+        false
     }
   }
 }
@@ -731,9 +736,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       (id) => { dsContig2 forceInsert ContigServiceSet(id, ds.uuid) })
 
   def getDataSetTypeById(typeId: String): Future[Option[ServiceDataSetMetaType]] =
-    db.run(datasetTypes.filter(_.id === typeId).result.headOption)
+    db.run(datasetMetaTypes.filter(_.id === typeId).result.headOption)
 
-  def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] = db.run(datasetTypes.result)
+  def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] = db.run(datasetMetaTypes.result)
 
   // Get All DataSets mixed in type. Only metadata
   def getDataSetByUUID(id: UUID): Future[Option[DataSetMetaDataSet]] =
