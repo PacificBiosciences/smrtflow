@@ -25,7 +25,9 @@ import scala.concurrent.Future
   */
 class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLogging {
 
-  val project = Project(1, "Project 1", "Project 1 description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true)
+  // Note, the project name is a unique identifier
+  val project = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true)
+  // This is "admin" from the wso2 model
   val projectUser = ProjectUser(project.id, "admin", ProjectUserRole.OWNER)
 
   // Is this even used?
@@ -56,7 +58,7 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
 
     db.run(DBIO.seq(
       TableModels.schema.create,
-      TableModels.datasetTypes ++= datasetTypeDatum.map(ServiceDataSetMetaType.tupled),
+      TableModels.datasetMetaTypes ++= datasetTypeDatum.map(ServiceDataSetMetaType.tupled),
       // TableModels.jobStates ++= finalJobStates
       TableModels.projects += project,
       TableModels.projectsUsers += projectUser
