@@ -7,6 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, PipelineBaseOption}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
@@ -73,6 +74,10 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
                 smrtLinkVersion,
                 smrtLinkToolsVersion
               )).mapTo[EngineJob]
+
+              fx.onSuccess {
+                case _ => dbActor ! CheckForRunnableJob
+              }
 
               complete {
                 created {
