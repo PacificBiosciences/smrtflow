@@ -1,15 +1,15 @@
 package com.pacbio.secondary.smrtserver.tools
 
-import java.net.URI
 import java.nio.file.Paths
 
+import scala.collection.JavaConversions._
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.jobs.PacBioIntJobResolver
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.database.Migrator
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
@@ -40,25 +40,7 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
   // database name is the username ($USER)
   // Need to think about how to connect this with the application.conf IO layer that
   // loads the db configuration
-  val defaults = DatabaseToolOptions("postgres", "", "smrtlinkdb", "localhost")
-
-  def toS(opt: DatabaseToolOptions): String =
-    s"""
-      |smrtflow {
-      |  db {
-      |    dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
-      |    properties = {
-      |      databaseName = ${opt.dbName}
-      |      user = ${opt.username}
-      |      password = "${opt.password}"
-      |      port = ${opt.port}
-      |    }
-      |    numThreads = 10
-      |  }
-      |}
-    """.stripMargin
-
-  def toConfig(opt: DatabaseToolOptions) = ConfigFactory.load(toS(opt))
+  val defaults = DatabaseToolOptions("smrtlink_user", "password", "smrtlink", "localhost")
 
   def toDefault(s: String) = s"(default: '$s')"
 
@@ -90,7 +72,10 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     //FIXME(mpkocher)(2016-12-13) Requiring the JobsDao to have the jobResolver is not awesome
     val jobResolver = new PacBioIntJobResolver(Paths.get(engineConfig.pbRootJobDir))
 
-    val db = Database.forConfig("smrtflow.db", config = toConfig(c))
+    val dbURL = s"jdbc:postgresql://${c.server}:${c.port}/${c.dbName}?user=${c.username}&password=${c.password}"
+
+    println(s"Postgres URL '$dbURL'")
+    val db = Database.forURL(dbURL, driver = "org.postgresql.Driver")
 
     // This is not great that engine config and job resolver is
     // required to get the Summary of the database
