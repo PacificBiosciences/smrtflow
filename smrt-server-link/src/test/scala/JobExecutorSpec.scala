@@ -153,13 +153,13 @@ with JobServiceConstants with timeUtils{
 
       var complete = false
       var retry = 0
-      val maxRetries = 15
+      val maxRetries = 50
       val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
           complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
           retry = retry + 1
-          Thread.sleep(2000)
+          Thread.sleep(10000)
           if (retry >= maxRetries) {
             failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
