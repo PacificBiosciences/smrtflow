@@ -22,6 +22,11 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api._
 
+/**
+  * This spec has been updated to support multiple runs (i.e.,
+  * not necessary to drop and create+migrate the db) This should be re-evaluated.
+  *
+  */
 class EulaServiceSpec extends Specification
     with Specs2RouteTest
     with SetupMockData
@@ -65,30 +70,40 @@ class EulaServiceSpec extends Specification
   override val db: Database = dao.db
   val totalRoutes = TestProviders.eulaService().prefixedRoutes
 
+  // This is a hacky workaround to make the tests not have a dep on
+  // the previous tests. Generate a random version string for the Eula
+  val r = scala.util.Random
+  val eulaVersion = (0 until 3)
+      .map(_ => r.nextInt(100).toString)
+      .reduce(_ + "." + _)
+
   "EULA service" should {
     "return an empty list of EULAs" in {
       Get("/smrt-base/eula") ~> totalRoutes ~> check {
         val eulas = responseAs[Seq[EulaRecord]]
-        eulas must beEmpty
+        //eulas must beEmpty
+        status.isSuccess must beTrue
       }
     }
     "accept the EULA" in {
-      val params = EulaAcceptance("smrtlinktest", "4.0.0", enableInstallMetrics = true, enableJobMetrics = false)
+      val params = EulaAcceptance("smrtlinktest", eulaVersion, enableInstallMetrics = true, enableJobMetrics = false)
       Post("/smrt-base/eula", params) ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
         eula.user must beEqualTo("smrtlinktest")
+        eula.smrtlinkVersion must beEqualTo(eulaVersion)
       }
     }
     "retrieve the list of EULAs again" in {
       Get("/smrt-base/eula") ~> totalRoutes ~> check {
         val eulas = responseAs[Seq[EulaRecord]]
-        eulas.size must beEqualTo(1)
+        val eula = eulas.filter(_.smrtlinkVersion == eulaVersion)
+        eula.size must beEqualTo(1)
       }
     }
     "retrieve the new EULA directly" in {
-      Get("/smrt-base/eula/4.0.0") ~> totalRoutes ~> check {
+      Get(s"/smrt-base/eula/$eulaVersion") ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
-        eula.smrtlinkVersion must beEqualTo("4.0.0")
+        eula.smrtlinkVersion must beEqualTo(eulaVersion)
         eula.user must beEqualTo("smrtlinktest")
         eula.enableInstallMetrics must beTrue
         eula.enableJobMetrics must beFalse
