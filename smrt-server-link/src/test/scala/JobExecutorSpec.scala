@@ -1,10 +1,6 @@
-
-import java.util.UUID
-
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
 import spray.httpx.SprayJsonSupport._
@@ -151,7 +147,7 @@ with JobServiceConstants with timeUtils{
       Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
         val jobs = responseAs[Seq[EngineJob]]
         njobs = jobs.size
-        jobs.filter(_.id == newJob.get.id).size must beGreaterThan(0)
+        jobs.count(_.id == newJob.get.id) must beGreaterThan(0)
         njobs must beGreaterThan(0)
       }
 
@@ -163,7 +159,7 @@ with JobServiceConstants with timeUtils{
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
           complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
           retry = retry + 1
-          Thread.sleep(1000)
+          Thread.sleep(2000)
           if (retry >= maxRetries) {
             failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
