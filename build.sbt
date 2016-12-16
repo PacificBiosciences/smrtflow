@@ -138,6 +138,7 @@ lazy val smrtflow = project.in(file("."))
     .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
     .settings(libraryDependencies ++= baseSettings)
     .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
+    .settings(parallelExecution in Test := false) // run each Spec sequentially
     .settings(initialCommands in (Test, console) :=
     s"""
        |val welcomeBanner = Some("Welcome to the smrtflow REPL")
@@ -145,8 +146,10 @@ lazy val smrtflow = project.in(file("."))
        |import ammonite.ops._
        |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
        |""".stripMargin)
-    .dependsOn(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
-    .aggregate(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .dependsOn(
+      logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis,
+      smrtServerLims, smrtServerAnalysisInternal, smrtServerSim)
+    .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis)
 
 
 lazy val logging = PacBioProject("smrt-server-logging")
