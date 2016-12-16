@@ -1,9 +1,10 @@
 
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
-import org.specs2.mutable.Specification
+import org.specs2.mutable.{BeforeAfter, Specification}
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
@@ -29,13 +30,14 @@ import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FileUtils
 import slick.driver.PostgresDriver.api._
 
 
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with NoTimeConversions
-with JobServiceConstants with timeUtils with LazyLogging{
+with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
 
   sequential
 
@@ -78,7 +80,7 @@ with JobServiceConstants with timeUtils with LazyLogging{
     override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
   }
 
-  //override val dao: JobsDao = TestProviders.jobsDao()
+  val dao: JobsDao = TestProviders.jobsDao()
   //override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
@@ -98,13 +100,40 @@ with JobServiceConstants with timeUtils with LazyLogging{
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  trait daoSetup extends Scope {}
+  val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+
+  def setupJobDir(path: Path) = {
+    if (!Files.exists(path)) {
+      logger.info(s"Creating job directory $path")
+      Files.createDirectories(path)
+    }
+    path
+  }
+
+  def cleanUpJobDir(path: Path) = {
+    logger.info(s"Deleting job directory $rootJobDir")
+    FileUtils.deleteDirectory(rootJobDir.toFile)
+    path
+  }
+
+  override def before = {
+    // I Don't think this plays well with the provider model
+    // The work around is to just use step()
+    logger.info("Running Before Spec")
+    //setupJobDir(rootJobDir)
+  }
+  override def after = {
+    logger.info("Running After Spec")
+    //cleanUpJobDir(rootJobDir)
+  }
 
   var createdJob: EngineJob = null // This must updated after the initial job is created
 
+  step(setupJobDir(rootJobDir))
+
   "Job Execution Service list" should {
 
-    "return status" in new daoSetup {
+    "return status" in {
       Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
@@ -120,27 +149,27 @@ with JobServiceConstants with timeUtils with LazyLogging{
       }
     }
 
-    "access job by id" in new daoSetup {
+    "access job by id" in {
       Get(toJobTypeById("mock-pbsmrtpipe", createdJob.uuid)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job datastore" in new daoSetup {
+    "access job datastore" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.uuid, "datastore")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job reports" in new daoSetup {
+    "access job reports" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.uuid, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job events by job id" in new daoSetup {
+    "access job events by job id" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.id, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "create a delete Job and delete a mock-pbsmrtpipe job" in new daoSetup {
+    "create a delete Job and delete a mock-pbsmrtpipe job" in {
 
       var complete = false
       var retry = 0
@@ -176,4 +205,6 @@ with JobServiceConstants with timeUtils with LazyLogging{
       }
     }
   }
+
+  step(cleanUpJobDir(rootJobDir))
 }
