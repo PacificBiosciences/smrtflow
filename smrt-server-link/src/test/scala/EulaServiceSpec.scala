@@ -1,6 +1,4 @@
 
-import scala.concurrent.duration.FiniteDuration
-
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
@@ -32,7 +30,8 @@ class EulaServiceSpec extends Specification
     with SetupMockData
     with PacBioServiceErrors
     with JobServiceConstants
-    with SmrtLinkConstants {
+    with SmrtLinkConstants
+    with TestUtils{
 
   import SmrtLinkJsonProtocols._
 
@@ -77,6 +76,8 @@ class EulaServiceSpec extends Specification
       .map(_ => r.nextInt(100).toString)
       .reduce(_ + "." + _)
 
+  step(setupDb(TestProviders.dbConfig))
+
   "EULA service" should {
     "return an empty list of EULAs" in {
       Get("/smrt-base/eula") ~> totalRoutes ~> check {
@@ -96,8 +97,7 @@ class EulaServiceSpec extends Specification
     "retrieve the list of EULAs again" in {
       Get("/smrt-base/eula") ~> totalRoutes ~> check {
         val eulas = responseAs[Seq[EulaRecord]]
-        val eula = eulas.filter(_.smrtlinkVersion == eulaVersion)
-        eula.size must beEqualTo(1)
+        eulas.size must beEqualTo(1)
       }
     }
     "retrieve the new EULA directly" in {
