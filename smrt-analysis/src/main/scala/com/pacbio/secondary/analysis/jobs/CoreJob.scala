@@ -60,7 +60,7 @@ trait CoreJobModel extends LazyLogging{
       path.toString,
       isChunked = false,
       "Job Master Log",
-      "Job Master log of the Merge Dataset job")
+      description)
   }
 }
 

@@ -5,7 +5,8 @@ import ch.qos.logback.classic.{Level, LoggerContext, PatternLayout}
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.ConsoleAppender
-import ch.qos.logback.core.rolling.{FixedWindowRollingPolicy, RollingFileAppender, SizeBasedTriggeringPolicy}
+import ch.qos.logback.core.rolling.{RollingFileAppender, SizeAndTimeBasedRollingPolicy, SizeBasedTriggeringPolicy}
+import ch.qos.logback.core.util.FileSize
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConversions._
@@ -116,10 +117,10 @@ trait LoggerConfig {
     patternLayout.setContext(lc)
     patternLayout.start()
     appender.setLayout(patternLayout)
-    val rollingPolicy = new FixedWindowRollingPolicy()
+    val rollingPolicy = new SizeAndTimeBasedRollingPolicy()
     rollingPolicy.setParent(appender)
-    rollingPolicy.setMinIndex(1)
-    rollingPolicy.setMaxIndex(9)
+    rollingPolicy.setMaxFileSize("100MB")
+    rollingPolicy.setTotalSizeCap(FileSize.valueOf("1GB"))
     rollingPolicy.setFileNamePattern(file + fileRollingPosfix)
     appender.setRollingPolicy(rollingPolicy)
     val triggeringPolicy = new SizeBasedTriggeringPolicy[ILoggingEvent]()
