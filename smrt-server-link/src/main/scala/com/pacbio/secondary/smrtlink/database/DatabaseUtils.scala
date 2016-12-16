@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.database
 
 import java.sql.{Connection, SQLException}
+import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.Flyway
@@ -20,10 +21,11 @@ case class DatabaseConfig(dbName: String,
 
   val jdbcURI = s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
 
+  // Who should be responsible for calling .close() on the datasource ?
   def toDataSource: PGPoolingDataSource = {
     val source = new PGPoolingDataSource()
 
-    source.setDataSourceName("SMRT Link Server Database")
+    source.setDataSourceName(s"smrtlink-db-${UUID.randomUUID()}")
     // Localhost
     source.setServerName(server)
     source.setPortNumber(port)
@@ -35,7 +37,7 @@ case class DatabaseConfig(dbName: String,
     source
   }
 
-  def toDatabase:Database = Database.forURL(jdbcURI, driver = "org.postgresql.Driver")
+  def toDatabase = Database.forURL(jdbcURI, driver = "org.postgresql.Driver")
 }
 
 trait DatabaseUtils extends LazyLogging{
