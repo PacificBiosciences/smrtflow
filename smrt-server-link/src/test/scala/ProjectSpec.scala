@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import akka.actor.ActorRefFactory
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.auth._
@@ -30,7 +32,7 @@ with Specs2RouteTest
 with SetupMockData
 with PacBioServiceErrors
 with JobServiceConstants
-with SmrtLinkConstants {
+with SmrtLinkConstants with TestUtils{
 
   sequential
 
@@ -91,15 +93,10 @@ with SmrtLinkConstants {
   var dsCount = 0
   var movingDsId = 0
 
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
-    runSetup(dao)
-    println(s"completed setting up database ${dbURI}")
-  }
+  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
 
-  textFragment("creating database tables")
-  step(dbSetup())
+  step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
 
   "Project list" should {
     "reject unauthorized users" in {
@@ -130,7 +127,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must contain((p: Project) => p.name === newProject.name)
+        projs.map(_.name) must contain(newProject.name)
       }
     }
 
@@ -312,8 +309,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/user-projects/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
-        results.size === 3 // the general project from dbSetup, plus
-                           // the two projects from earlier tests
+        results.size must beGreaterThanOrEqualTo(3) // the general project from dbSetup and the two projects from earlier tests
       }
     }
 
