@@ -166,6 +166,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId.toIdString))
   }
 
+  def deleteDataSet(datasetId: IdAble): Future[MessageResponse] = getMessageResponsePipeline {
+    Put(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId.toIdString),
+        DataSetUpdateRequest(false))
+  }
+
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
     Get(toDataSetsUrl(DataSetTypes.SUBREADS))
   }

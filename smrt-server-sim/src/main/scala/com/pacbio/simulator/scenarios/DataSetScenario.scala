@@ -121,6 +121,7 @@ class DataSetScenario(host: String, port: Int)
   val dsReports: Var[Seq[DataStoreReportFile]] = Var()
   val dsReport: Var[Report] = Var()
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
+  val resp: Var[String] = Var()
 
   val ftSubreads = Var(FileTypes.DS_SUBREADS.fileTypeId)
   val ftHdfSubreads = Var(FileTypes.DS_HDF_SUBREADS.fileTypeId)
@@ -420,7 +421,10 @@ class DataSetScenario(host: String, port: Int)
     fail("Wrong UUID") IF ccsAlignmentSetDetails.mapWith(_.getUniqueId) !=? ccsAlignmentSets.mapWith(_.last.uuid.toString),
     jobId := ExportDataSets(ftCcsAlign, ccsAlignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("ccsalignmentsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
+    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    resp := DeleteDataSet(ccsAlignmentSets.mapWith(_.last.uuid)),
+    ccsAlignmentSets := GetConsensusAlignmentSets,
+    fail(MSG_DS_ERR) IF ccsAlignmentSets ? (_.nonEmpty)
   )
   // FAILURE MODES
   val failureTests = Seq(

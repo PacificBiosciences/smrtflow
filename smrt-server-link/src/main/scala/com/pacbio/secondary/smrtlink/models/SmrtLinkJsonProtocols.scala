@@ -205,6 +205,8 @@ trait SmrtLinkJsonProtocols
 
   implicit val eulaFormat = jsonFormat6(EulaRecord)
   implicit val eulaAcceptanceFormat = jsonFormat4(EulaAcceptance)
+
+  implicit val datasetUpdateFormat = jsonFormat1(DataSetUpdateRequest)
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

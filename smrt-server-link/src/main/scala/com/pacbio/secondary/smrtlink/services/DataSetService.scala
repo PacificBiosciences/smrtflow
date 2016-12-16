@@ -7,8 +7,9 @@ import akka.pattern.ask
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,MethodNotImplementedError}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
@@ -112,6 +113,19 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
                 (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
               }
             }
+          } ~
+          put {
+            entity(as[DataSetUpdateRequest]) { sopts =>
+              complete {
+                ok {
+                  if (sopts.isActive) {
+                    throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
+                  } else {
+                    (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                  }
+                }
+              }
+            }
           }
         } ~
         path(DETAILS_PREFIX) {
@@ -170,6 +184,19 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
           complete {
             ok {
               (dbActor ? id.map(GetDataSetMetaById, GetDataSetMetaByUUID)).mapTo[DataSetMetaDataSet]
+            }
+          }
+        } ~
+        put {
+          entity(as[DataSetUpdateRequest]) { sopts =>
+            complete {
+              ok {
+                if (sopts.isActive) {
+                  throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
+                } else {
+                  (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                }
+              }
             }
           }
         }
