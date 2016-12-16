@@ -55,6 +55,7 @@ object Modes {
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
+  case object DELETE_DATASET extends Mode {val name = "delete-dataset"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
@@ -335,6 +336,15 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+
+    cmd(Modes.DELETE_DATASET.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.DELETE_DATASET)
+    } children(
+      arg[String]("dataset-id") required() action { (i, c) =>
+        c.copy(datasetId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Dataset") } text "Dataset ID"
+    ) text "Soft-delete of a dataset (won't remove files)"
+
     cmd(Modes.MANIFESTS.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
     } text "Get a List of SMRT Link PacBio sComponent Versions"
@@ -718,6 +728,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
+  def runDeleteDataSet(datasetId: IdAble): Int = {
+    Try { Await.result(sal.deleteDataSet(datasetId), TIMEOUT) } match {
+      case Success(response) => printMsg(s"${response.message}")
+      case Failure(err) => errorExit(s"Couldn't delete dataset: ${err.getMessage}")
+    }
+  }
+
   protected def getProjectIdByName(projectName: Option[String]): Int = {
     if (! projectName.isDefined) return 0
     Try { Await.result(sal.getProjects, TIMEOUT) } match {
@@ -1028,6 +1045,7 @@ object PbService {
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/

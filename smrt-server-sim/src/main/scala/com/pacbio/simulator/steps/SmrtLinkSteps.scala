@@ -82,6 +82,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class DeleteDataSet(dsId: Var[UUID]) extends VarStep[String] {
+    override val name = "DeleteDataSet"
+    override def run: Future[Result] = smrtLinkClient.deleteDataSet(dsId.get).map { m =>
+      output(m.message)
+      SUCCEEDED
+    }
+  }
+
   case object GetSubreadSets extends VarStep[Seq[SubreadServiceDataSet]] {
     override val name = "GetSubreadSets"
     override def run: Future[Result] = smrtLinkClient.getSubreadSets.map { s =>
