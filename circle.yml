@@ -4,6 +4,8 @@ machine:
     version: oraclejdk8
   python:
     version: 2.7.9
+  services:
+    - postgresql
 
 dependencies:
   pre:
@@ -28,7 +30,6 @@ test:
     - psql -p 5432 --username=postgres -w -f extras/test-db-init.sql
   override:
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-logging/test
-    - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-database/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-common-models/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-analysis/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-base/test
