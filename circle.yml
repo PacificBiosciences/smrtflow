@@ -24,6 +24,8 @@ dependencies:
     - sbt test:compile
 
 test:
+  pre:
+    - psql -p 5432 --username=postgres -w -f extras/test-db-init.sql
   override:
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-logging/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-database/test
