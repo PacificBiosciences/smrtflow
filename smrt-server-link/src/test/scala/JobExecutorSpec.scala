@@ -5,7 +5,6 @@ import java.util.UUID
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.{BeforeAfter, Specification}
-import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
 import spray.httpx.SprayJsonSupport._
@@ -30,14 +29,14 @@ import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.FileUtils
+
 import slick.driver.PostgresDriver.api._
 
 
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with NoTimeConversions
-with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
+with JobServiceConstants with timeUtils with LazyLogging with TestUtils with BeforeAfter {
 
   sequential
 
@@ -81,7 +80,6 @@ with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
   }
 
   val dao: JobsDao = TestProviders.jobsDao()
-  //override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
@@ -100,21 +98,7 @@ with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
-
-  def setupJobDir(path: Path) = {
-    if (!Files.exists(path)) {
-      logger.info(s"Creating job directory $path")
-      Files.createDirectories(path)
-    }
-    path
-  }
-
-  def cleanUpJobDir(path: Path) = {
-    logger.info(s"Deleting job directory $rootJobDir")
-    FileUtils.deleteDirectory(rootJobDir.toFile)
-    path
-  }
+  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
 
   override def before = {
     // I Don't think this plays well with the provider model
@@ -130,6 +114,7 @@ with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
   var createdJob: EngineJob = null // This must updated after the initial job is created
 
   step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
 
   "Job Execution Service list" should {
 
@@ -205,6 +190,4 @@ with JobServiceConstants with timeUtils with LazyLogging with BeforeAfter {
       }
     }
   }
-
-  step(cleanUpJobDir(rootJobDir))
 }
