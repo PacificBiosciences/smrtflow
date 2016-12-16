@@ -30,10 +30,10 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
 
+import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
 
 
@@ -50,9 +50,14 @@ trait SmrtLinkDalProvider extends DalProvider {
 
 @VisibleForTesting
 trait TestDalProvider extends DalProvider {
-  override val db: Singleton[Database] = Singleton(() => {
-    Database.forConfig("smrtflow.test-db")
-  })
+
+  // I'm having trouble initializing this within the Specs
+  // This should be initialized from the application.conf so that
+  // setting configuration via env vars
+  lazy final val dbConfig: DatabaseConfig =
+    DatabaseConfig("smrtlink_test", "smrtlink_test_user", "password", "localhost")
+
+  override val db: Singleton[Database] = Singleton(() => { dbConfig.toDatabase })
 }
 
 /**
