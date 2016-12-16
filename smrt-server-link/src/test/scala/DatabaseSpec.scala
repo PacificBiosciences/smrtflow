@@ -2,6 +2,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
@@ -29,12 +30,16 @@ import scala.concurrent.duration._
   * entity (often by uuid) that has been inserted into the db.
   *
   */
-class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions {
+class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with TestDalProvider with TestUtils{
   import JobModels._
   import TableModels._
 
-  val db = Database.forConfig("smrtflow.test-db")
   val rx = scala.util.Random
+
+  // There's friction here with loading from config, versus the Datasource
+  // which is required for the Migrations to be applied.
+  val testdb = dbConfig.toDatabase
+  step(setupDb(dbConfig))
 
   "Database" should {
     "Sanity test for inserting and querying the db" in {
@@ -175,7 +180,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       // TODO(smcclellan): JobResults table does not appear to be real?
 
-      val putAll = db.run(
+      val putAll = testdb.run(
         for {
           jid <- engineJobs returning engineJobs.map(_.id) += job
           _   <- jobEvents += event.copy(jobId = jid)
@@ -210,31 +215,31 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       //[error] slick.jdbc.Invoker$class.first(Invoker.scala:34)
       //[error] slick.jdbc.StatementInvoker.first(StatementInvoker.scala:16)
 
-      val ej = Await.result(db.run(engineJobs.filter(_.uuid === job.uuid).result.head), 1.second)
-      val je = Await.result(db.run(jobEvents.filter(_.jobId === ej.id).result.head), 1.second)
-      val ta = Await.result(db.run(jobTags.result.head), 1.second)
-      val jt = Await.result(db.run(jobsTags.result.head), 1.second)
-      val gp = Await.result(db.run(projects.filter(_.name === "General Project").result.head), 1.second)
+      val ej = Await.result(testdb.run(engineJobs.filter(_.uuid === job.uuid).result.head), 1.second)
+      val je = Await.result(testdb.run(jobEvents.filter(_.jobId === ej.id).result.head), 1.second)
+      val ta = Await.result(testdb.run(jobTags.result.head), 1.second)
+      val jt = Await.result(testdb.run(jobsTags.result.head), 1.second)
+      val gp = Await.result(testdb.run(projects.filter(_.name === "General Project").result.head), 1.second)
       // Get the Project that this spec imported
-      val pr = Await.result(db.run(projects.filter(_.name === projectName).result.head), 1.second)
-      val pu = Await.result(db.run(projectsUsers.result.head), 1.second)
-      val rt = Await.result(db.run(datasetMetaTypes.filter(_.shortName === "references").result.head), 1.second)
-      val ds = Await.result(db.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head), 1.second)
-      val md = Await.result(db.run(dsMetaData2.filter(_.jobId === ej.id).filter(_.projectId === pr.id).result.head), 1.second)
-      val su = Await.result(db.run(dsSubread2.filter(_.uuid === subread.uuid).result.head), 1.second)
-      val hd = Await.result(db.run(dsHdfSubread2.filter(_.uuid === hdf.uuid).result.head), 1.second)
-      val re = Await.result(db.run(dsReference2.filter(_.uuid === reference.uuid).result.head), 1.second)
-      val gm = Await.result(db.run(dsGmapReference2.filter(_.uuid === gmap.uuid).result.head), 1.second)
-      val al = Await.result(db.run(dsAlignment2.filter(_.uuid === alignment.uuid).result.head), 1.second)
-      val ba = Await.result(db.run(dsBarcode2.filter(_.uuid === barcode.uuid).result.head), 1.second)
-      val cc = Await.result(db.run(dsCCSread2.filter(_.uuid === ccs.uuid).result.head), 1.second)
-      val ca = Await.result(db.run(dsCCSAlignment2.filter(_.uuid === consensus.uuid).result.head), 1.second)
-      val co = Await.result(db.run(dsContig2.filter(_.uuid === contig.uuid).result.head), 1.second)
-      val df = Await.result(db.run(datastoreServiceFiles.filter(_.jobId === ej.id).result.head), 1.second)
-      val rs = Await.result(db.run(runSummaries.filter(_.uniqueId === runSummary.uniqueId).result.head), 1.second)
-      val dm = Await.result(db.run(dataModels.filter(_.uniqueId === runDataModel.uniqueId).result.head), 1.second)
-      val cm = Await.result(db.run(collectionMetadata.filter(_.uniqueId === collection.uniqueId).result.head), 1.second)
-      val sa = Await.result(db.run(samples.filter(_.uniqueId === sample.uniqueId).result.head), 1.second)
+      val pr = Await.result(testdb.run(projects.filter(_.name === projectName).result.head), 1.second)
+      val pu = Await.result(testdb.run(projectsUsers.result.head), 1.second)
+      val rt = Await.result(testdb.run(datasetMetaTypes.filter(_.shortName === "references").result.head), 1.second)
+      val ds = Await.result(testdb.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head), 1.second)
+      val md = Await.result(testdb.run(dsMetaData2.filter(_.jobId === ej.id).filter(_.projectId === pr.id).result.head), 1.second)
+      val su = Await.result(testdb.run(dsSubread2.filter(_.uuid === subread.uuid).result.head), 1.second)
+      val hd = Await.result(testdb.run(dsHdfSubread2.filter(_.uuid === hdf.uuid).result.head), 1.second)
+      val re = Await.result(testdb.run(dsReference2.filter(_.uuid === reference.uuid).result.head), 1.second)
+      val gm = Await.result(testdb.run(dsGmapReference2.filter(_.uuid === gmap.uuid).result.head), 1.second)
+      val al = Await.result(testdb.run(dsAlignment2.filter(_.uuid === alignment.uuid).result.head), 1.second)
+      val ba = Await.result(testdb.run(dsBarcode2.filter(_.uuid === barcode.uuid).result.head), 1.second)
+      val cc = Await.result(testdb.run(dsCCSread2.filter(_.uuid === ccs.uuid).result.head), 1.second)
+      val ca = Await.result(testdb.run(dsCCSAlignment2.filter(_.uuid === consensus.uuid).result.head), 1.second)
+      val co = Await.result(testdb.run(dsContig2.filter(_.uuid === contig.uuid).result.head), 1.second)
+      val df = Await.result(testdb.run(datastoreServiceFiles.filter(_.jobId === ej.id).result.head), 1.second)
+      val rs = Await.result(testdb.run(runSummaries.filter(_.uniqueId === runSummary.uniqueId).result.head), 1.second)
+      val dm = Await.result(testdb.run(dataModels.filter(_.uniqueId === runDataModel.uniqueId).result.head), 1.second)
+      val cm = Await.result(testdb.run(collectionMetadata.filter(_.uniqueId === collection.uniqueId).result.head), 1.second)
+      val sa = Await.result(testdb.run(samples.filter(_.uniqueId === sample.uniqueId).result.head), 1.second)
 
       val jobId = ej.id
       val tagId = ta._1
