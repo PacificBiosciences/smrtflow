@@ -234,7 +234,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
   import JobsDaoActor._
 
-  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+  final val QUICK_TASK_IDS = Set("import_dataset", "merge_dataset", "mock-pbsmrtpipe").map(JobTypeId)
 
   implicit val timeout = Timeout(5.second)
 
@@ -243,7 +243,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   //MK Probably want to have better model for this
   val checkForWorkInterval = 5.seconds
 
-  val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
+  val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -295,7 +295,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case Success(_) =>
           val worker = workerQueue.dequeue()
           val outputDir = resolver.resolve(runnableJobWithId)
-          worker ! RunJob(runnableJobWithId.job, outputDir)
+          val rjob = RunJob(runnableJobWithId.job, outputDir)
+          log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
+          worker ! rjob
         case Failure(ex) =>
           log.error(s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}")
           self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
@@ -753,7 +755,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
     case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion) =>
-      pipeWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion))
+      val fx = dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
+      fx onSuccess { case _ => self ! CheckForRunnableJob}
+      //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
+      pipeWith(fx)
 
     case UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) =>
       pipeWith(dao.updateJobState(jobId, state, message))
