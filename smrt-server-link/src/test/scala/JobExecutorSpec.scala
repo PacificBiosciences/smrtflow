@@ -1,3 +1,5 @@
+import java.nio.file.{Files, Paths}
+
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
@@ -92,6 +94,12 @@ with JobServiceConstants with timeUtils{
   val url = toJobType("mock-pbsmrtpipe")
 
   def dbSetup() = {
+    val p = Paths.get(TestProviders.engineConfig.pbRootJobDir)
+    if (!Files.exists(p)) {
+      logger.info(s"Creating root job dir $p")
+      Files.createDirectories(p)
+    }
+
     println("Running db setup")
     logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
