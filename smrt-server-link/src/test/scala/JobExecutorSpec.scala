@@ -165,9 +165,7 @@ with JobServiceConstants with timeUtils{
       val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
-          val myJob = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head
-          println(s"TEST TEST - job = $myJob")
-          complete = myJob.isComplete
+          complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
           if (!complete && retry < maxRetries) {
             retry = retry + 1
             Thread.sleep(10000)
