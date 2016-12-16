@@ -1,10 +1,8 @@
-
-import java.util.UUID
+import java.nio.file.{Files, Paths}
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
 import spray.httpx.SprayJsonSupport._
@@ -95,58 +93,69 @@ with JobServiceConstants with timeUtils{
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  trait daoSetup extends Scope {
+  def dbSetup() = {
+    val p = Paths.get(TestProviders.engineConfig.pbRootJobDir)
+    if (!Files.exists(p)) {
+      logger.info(s"Creating root job dir $p")
+      Files.createDirectories(p)
+    }
+
     println("Running db setup")
     logger.info(s"Running tests from db-uri $dbURI")
     runSetup(dao)
     println(s"completed setting up database $dbURI.")
   }
 
+  textFragment("creating database tables")
+  step(dbSetup())
+
   "Job Execution Service list" should {
 
-    "return status" in new daoSetup {
+    "return status" in {
       Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "execute job" in new daoSetup {
+
+    var newJob: Option[EngineJob] = None
+
+    "execute job" in {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
-        val job = responseAs[EngineJob]
-        logger.info(s"Response to $url -> $job")
+        newJob = Some(responseAs[EngineJob])
+        logger.info(s"Response to $url -> $newJob")
+
         status.isSuccess must beTrue
-        job.isActive must beTrue
+        newJob.get.isActive must beTrue
       }
     }
 
-    "access job by id" in new daoSetup {
+    "access job by id" in {
       Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job datastore" in new daoSetup {
+    "access job datastore" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job reports" in new daoSetup {
+    "access job reports" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "access job events by job id" in new daoSetup {
+    "access job events by job id" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "create a delete Job and delete a mock-pbsmrtpipe job" in new daoSetup {
+    "create a delete Job and delete a mock-pbsmrtpipe job" in {
       var njobs = 0
-      var uuid = UUID.randomUUID()
       Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
         val jobs = responseAs[Seq[EngineJob]]
         njobs = jobs.size
-        uuid = jobs.head.uuid
-        jobs.head.id must beEqualTo(1)
+        jobs.count(_.id == newJob.get.id) must beGreaterThan(0)
         njobs must beGreaterThan(0)
       }
 
@@ -156,21 +165,22 @@ with JobServiceConstants with timeUtils{
       val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
-          complete = responseAs[Seq[EngineJob]].head.isComplete
-          retry = retry + 1
-          Thread.sleep(1000)
-          if (retry >= maxRetries) {
+          complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
+          if (!complete && retry < maxRetries) {
+            retry = retry + 1
+            Thread.sleep(2000)
+          } else if (!complete && retry >= maxRetries) {
             failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
         }
       }
 
-      val params = DeleteJobServiceOptions(uuid, removeFiles = true)
+      val params = DeleteJobServiceOptions(newJob.get.uuid, removeFiles = true)
       Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.jobTypeId must beEqualTo("delete-job")
       }
-      Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
+      Get(toJobTypeById("mock-pbsmrtpipe", newJob.get.id)) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.isActive must beFalse
       }
@@ -180,7 +190,7 @@ with JobServiceConstants with timeUtils{
       }
     }
 
-    //    "Create a Job Event" in new daoSetup {
+    //    "Create a Job Event" in {
     //      val r = JobEventRecord("RUNNING", "Task x is running")
     //      Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 2, "events"), r) ~> totalRoutes ~> check {
     //        status.isSuccess must beTrue
