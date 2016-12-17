@@ -63,11 +63,9 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
     pathPrefix(serviceBaseId) {
       path(RestPath) { path =>
         get {
-          onSuccess(resolve(path)) { file =>
-            complete {
-              ok {
-                getResource(file)
-              }
+          complete {
+            ok {
+              resolve(path).map(getResource)
             }
           }
         }
