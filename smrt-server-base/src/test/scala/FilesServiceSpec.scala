@@ -1,8 +1,8 @@
-
 import com.pacbio.common.services.CommonFilesServiceProvider
 import com.pacbio.common.actors.InMemoryLogDaoProvider
 import com.pacbio.common.app.{BaseApi, CoreProviders}
-import com.pacbio.common.models.{PacBioJsonProtocol, DirectoryResource}
+import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus, DirectoryResource}
+import com.pacbio.common.services.PacBioServiceErrors
 
 import org.specs2.mutable.Specification
 import org.apache.commons.io.FileUtils
@@ -31,29 +31,26 @@ class FilesServiceSpec extends Specification with Directives with Specs2RouteTes
       }
     }
     "include a FileResource for a new temporary file" in {
-      //FIXME, these two tests are identical except for the file name.
-      val fileName = "data.txt"
       val tmpDir = Files.createTempDirectory("files-test")
-      val tmpFile = tmpDir.resolve(fileName).toFile
+      val tmpFile = tmpDir.resolve("data.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files" + URLEncoder.encode(tmpDir.toString(), "UTF-8")
+      val url = "/smrt-base/files" + tmpDir.toString()
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
         dirRes.files.size must beEqualTo(1)
-        dirRes.files.headOption.map(_.name) must beSome(fileName)
+        dirRes.files(0).name must beEqualTo("data.txt")
       }
     }
     "decode a path containing spaces" in {
-      val fileName = "data with spaces.txt"
       val tmpDir = Files.createTempDirectory("path with spaces")
-      val tmpFile = tmpDir.resolve(fileName).toFile
+      val tmpFile = tmpDir.resolve("data with spaces.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files" + URLEncoder.encode(tmpDir.toString(), "UTF-8")
+      val url = "/smrt-base/files/" + URLEncoder.encode(tmpDir.toString(), "UTF-8")
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
         dirRes.fullPath must beEqualTo(tmpDir.toString())
         Files.exists(Paths.get(dirRes.fullPath)) must beTrue
-        dirRes.files.headOption.map(_.name) must beSome(fileName)
+        dirRes.files(0).name must beEqualTo("data with spaces.txt")
       }
     }
   }
