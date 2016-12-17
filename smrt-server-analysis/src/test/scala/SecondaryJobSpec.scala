@@ -81,7 +81,7 @@ with JobServiceConstants with TestUtils {
 
   step(setupJobDir(rootJobDir))
   step(setupDb(TestProviders.dbConfig))
-  step(runSetup(dao))
+  step(runInsertAllMockData(dao))
 
 
   "Service list" should {

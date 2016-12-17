@@ -98,6 +98,8 @@ with SmrtLinkConstants with TestUtils{
 
   step(setupJobDir(rootJobDir))
   step(setupDb(TestProviders.dbConfig))
+  //FIXME(mpkocher)(2016-12-16) I believe this only needs to import a few SubreadSets.
+  step(runInsertAllMockData(dao))
 
   "Project list" should {
     "reject unauthorized users" in {
