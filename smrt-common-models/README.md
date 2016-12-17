@@ -1,8 +1,8 @@
-# Common Models (aka "smrt-commson-models")
+# Common Models (aka "smrt-common-models")
 
 See [smrtflow.readthedocs.io](http://smrtflow.readthedocs.io/) for full docs and [smrtflow](../README.md) for the base multi-project's README. 
 
-These are all the shared Java object models that are generated via [xjc](https://jaxb.java.net) from [XSD definitions in `src/main/resources/com/pacificbiosciences/pb-common-xsds`](src/main/resources/com/pacificbiosciences/pb-common-xsds).
+These are all the shared Java object models that are generated via [xjc](https://jaxb.java.net) from [XSD definitions in `src/main/resources/pb-common-xsds`](src/main/resources/pb-common-xsds).
 
 ## Rebuild java classes from XSDs
 
