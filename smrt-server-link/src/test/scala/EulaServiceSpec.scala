@@ -4,7 +4,6 @@ import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import akka.actor.ActorRefFactory
 import spray.json._
-
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.{SetBindings, Singleton}
@@ -15,8 +14,9 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider, EulaServiceProvider}
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, EulaServiceProvider, JobRunnerProvider, ProjectServiceProvider}
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api._
 

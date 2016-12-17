@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
@@ -12,6 +14,7 @@ import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
@@ -25,7 +28,7 @@ import slick.driver.PostgresDriver.api._
 class SecondaryJobSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants with TestUtils {
 
   sequential
 
@@ -70,40 +73,38 @@ with JobServiceConstants {
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
-  trait daoSetup extends Scope {
-    runSetup(dao)
-  }
-
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"
   def toJobTypeByIdWithRest(x: String, i: Int, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 
+  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+
+  step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
+  step(runSetup(dao))
+
+
   "Service list" should {
-    "Secondary analysis access job by id" in new daoSetup {
+    "Secondary analysis access job by id" in {
       Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "Secondary analysis access job datastore" in new daoSetup {
+    "Secondary analysis access job datastore" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "Secondary analysis access job reports" in new daoSetup {
+    "Secondary analysis access job reports" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "Secondary analysis access job events by job id" in new daoSetup {
+    "Secondary analysis access job events by job id" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
-//    "Create a Job Event" in new daoSetup {
-//      val r = JobEventRecord("RUNNING", "Task x is running")
-//      Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 2, "events"), r) ~> totalRoutes ~> check {
-//        status.isSuccess must beTrue
-//      }
-//    }
   }
+
 }

@@ -1,3 +1,5 @@
+package com.pacbio.secondary.smrtlink.testkit
+
 import java.nio.file.{Files, Path}
 import java.sql.SQLException
 
@@ -5,9 +7,9 @@ import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -36,9 +38,9 @@ trait TestUtils extends DatabaseUtils with LazyLogging{
 
     val runner = for {
       _ <- Future { TestConnection(config.toDataSource) }
-      m1 <- dropTables(db).recoverWith(ignoreWithMessage("Warning unable to drop smrtlink tables"))
-      m2 <- dropFlywayTable(db).recoverWith(ignoreWithMessage("Warning unable to delete flyway table"))
-      m3 <- Future { Migrator(config.toDataSource) }.map(n => s"$n migrations applied")
+      m1 <- dropTables(db).recoverWith(ignoreWithMessage("Warning unable to drop smrtlink tables "))
+      m2 <- dropFlywayTable(db).recoverWith(ignoreWithMessage("Warning unable to delete flyway table "))
+      m3 <- Future { Migrator(config.toDataSource) }.map(n => s"$n migrations applied ")
     } yield Seq(m1, m2, m3).reduce(_ ++ _)
 
     try {

@@ -5,6 +5,7 @@ import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
