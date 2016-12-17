@@ -9,3 +9,5 @@ ALTER ROLE smrtlink_test_user WITH LOGIN;
 CREATE DATABASE smrtlink_test WITH OWNER smrtlink_test_user;
 
 GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA smrtlink_test.public TO smrtlink_test_user;
+
+GRANT CREATE, CONNECT ON DATABASE smrtlink_test TO smrtlink_test_user;
