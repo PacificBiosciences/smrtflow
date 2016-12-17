@@ -255,8 +255,8 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser.user.login).head
-        user.role === newUser.role
+        val user = users.find(_.login == newUser.user.login)
+        user.map(_.role) must beSome(newUser.role)
       }
 
       Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser2)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
@@ -266,16 +266,19 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser2.user.login).head
-        user.role === newUser2.role
+        val user = users.find(_.login == newUser2.user.login)
+        user.map(_.role) must beSome(newUser2.role)
       }
     }
 
-    "return a list of datasets in a project" in {
+    "return a non-empty list of datasets in a project" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
-        movingDsId = proj.datasets.head.id
+        // avoid a messy NoSuchElementException stacktrace that is not very useful
+        if (proj.datasets.nonEmpty) {
+          movingDsId = proj.datasets.head.id
+        }
         dsCount = proj.datasets.size
         dsCount >= 1
       }
@@ -347,7 +350,7 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
-        dsets.size === 0
+        dsets must beEmpty
       }
 
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
@@ -374,7 +377,7 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must contain((p: Project) => p.id === newProjId)
+        projs.map(_.id) must contain(newProjId)
       }
 
       // then delete the project
@@ -386,7 +389,7 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must not contain((p: Project) => p.id === newProjId)
+        projs.map(_.id) must not contain(newProjId)
       }
 
       // check that the general project regained a dataset
