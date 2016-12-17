@@ -63,22 +63,19 @@ trait TestDalProvider extends DalProvider {
 /**
  * SQL Datastore backend configuration and db connection
  */
-trait DalComponent {
+trait DalComponent extends LazyLogging{
   val db: Database
 
   // https://www.postgresql.org/docs/9.6/static/errcodes-appendix.html
-  // There's probably a better way to do this
-  final private val integrityConstraintViolationErrorCodes =
-    Set(23000, 230001, 23502, 23503, 23505, 23514)
+  final private val integrityConstraintViolationSqlStateCodes =
+    Set("23000", "230001", "23502", "23503", "23505", "23514", "23P01")
 
   def isConstraintViolation(t: Throwable): Boolean = {
     t match {
       case se: SQLException =>
-        //println(s"Is Violation constraint ${se.getErrorCode} ${se.getMessage}")
-        integrityConstraintViolationErrorCodes contains se.getErrorCode
-      case e =>
-        //println(s"Unknown error ${e.getMessage}")
-        false
+        //logger.debug(s"Is Violation constraint error-code:'${se.getErrorCode}' state:'${se.getSQLState}' ${se.getMessage}")
+        integrityConstraintViolationSqlStateCodes contains se.getSQLState
+      case _ => false
     }
   }
 }
