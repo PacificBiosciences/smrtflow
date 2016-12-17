@@ -46,25 +46,23 @@ trait SetupMockData extends MockUtils with InitializeTables {
     */
   def runInsertAllMockData(dao: JobsDao): Unit = {
 
-    val f = Future(println("Inserting mock data")).flatMap { _ =>
-      Future.sequence(Seq(
-        insertMockProject(),
-        insertMockSubreadDataSetsFromDir(),
-        insertMockHdfSubreadDataSetsFromDir(),
-        insertMockReferenceDataSetsFromDir(),
-        insertMockAlignmentDataSets(),
+    // This must be done sequentially because of
+    // foreign key constraints
+    val f = for {
+      _ <- insertMockProject()
+      _ <- insertMockSubreadDataSetsFromDir()
+      _ <- insertMockHdfSubreadDataSetsFromDir()
+      _ <- insertMockReferenceDataSetsFromDir()
+      _ <- insertMockAlignmentDataSets()
+      // Jobs
+      _ <- insertMockJobs()
+      _ <- insertMockJobEvents()
+      //insertMockJobsTags(),
+      _ <- insertMockDataStoreFiles()
+    } yield "Successfully inserted Mock Data"
 
-        // Jobs
-        insertMockJobs(),
-        insertMockJobEvents(),
-        //insertMockJobsTags(),
-
-        // datastore
-        insertMockDataStoreFiles()
-      ))
-    }.andThen { case _ => println("Completed inserting mock data.") }
-
-    Await.result(f, 2.minute)
+    val results = Await.result(f, 3.minute)
+    println(results)
   }
 }
 
