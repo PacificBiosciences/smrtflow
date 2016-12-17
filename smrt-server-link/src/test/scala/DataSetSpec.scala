@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
 class DataSetSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants with TestUtils{
 
   sequential
 
@@ -51,15 +51,9 @@ with JobServiceConstants {
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
   val dbURI = TestProviders.dbURI()
 
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri $dbURI")
-    runSetup(dao)
-    println(s"completed setting up database $dbURI")
-  }
 
-  textFragment("creating database tables")
-  step(dbSetup())
+  step(setupDb(TestProviders.dbConfig))
+  step(runSetup(dao))
 
   "Service list" should {
     "Secondary analysis DataSets Types resources" in {

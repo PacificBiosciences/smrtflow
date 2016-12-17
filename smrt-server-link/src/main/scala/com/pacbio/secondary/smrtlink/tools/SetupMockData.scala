@@ -27,10 +27,24 @@ import slick.driver.PostgresDriver.api._
 
 
 trait SetupMockData extends MockUtils with InitializeTables {
-  def runSetup(dao: JobsDao): Unit = {
 
-    createTables
-    println(s"Created database connection from URI ${dao.db}")
+  /**
+    * Hacky Inserts Mock data for
+    *
+    * - Projects
+    * - SubreadsSets
+    * - HdfSubreadSets
+    * - ReferenceSets
+    * - AlignmentSets
+    * - Mock Jobs (mock-pbsmrtpipe type)
+    * - Job Events
+    * - DataStore files
+    *
+    * This is motivated by Stress testing.
+    *
+    * @param dao Jobs Dao
+    */
+  def runSetup(dao: JobsDao): Unit = {
 
     val f = Future(println("Inserting mock data")).flatMap { _ =>
       Future.sequence(Seq(
@@ -43,7 +57,7 @@ trait SetupMockData extends MockUtils with InitializeTables {
         // Jobs
         insertMockJobs(),
         insertMockJobEvents(),
-        insertMockJobsTags(),
+        //insertMockJobsTags(),
 
         // datastore
         insertMockDataStoreFiles()
