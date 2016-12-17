@@ -54,7 +54,7 @@ with JobServiceConstants with TestUtils{
 
 
   step(setupDb(TestProviders.dbConfig))
-  step(runSetup(dao))
+  step(runInsertAllMockData(dao))
 
   "Service list" should {
     "Secondary analysis DataSets Types resources" in {
