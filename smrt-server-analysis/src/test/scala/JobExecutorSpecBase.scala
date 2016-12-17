@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
@@ -16,6 +18,7 @@ import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRun
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.services.jobtypes.SimpleServiceJobTypeProvider
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
@@ -27,9 +30,8 @@ import slick.driver.PostgresDriver.api._
 abstract class JobExecutorSpecBase extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants with TestUtils{
 
-  // TODO(smcclellan): This test succeeds when run on its own, but fails when run with other tests, even though parallelExecution is disabled???
   sequential
 
   import SecondaryAnalysisJsonProtocols._
@@ -84,16 +86,17 @@ with JobServiceConstants {
     val taskOptions = Seq[ServiceTaskOptionBase]()
     val workflowOptions = Seq[ServiceTaskOptionBase]()
     PbSmrtPipeServiceOptions(
-      "My-job-name",
+      "My-smrt-server-analysis-job-name",
       "pbsmrtpipe.pipelines.mock_dev01",
       eps,
       taskOptions,
       workflowOptions)
   }
 
-  def dbSetup() = {
-    runSetup(dao)
-  }
+  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
 
-  step(dbSetup())
+  step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
+  step(runSetup(dao))
+
 }
