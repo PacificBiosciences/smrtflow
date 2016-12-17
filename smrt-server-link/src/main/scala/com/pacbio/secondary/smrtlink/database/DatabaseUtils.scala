@@ -60,7 +60,7 @@ trait DatabaseUtils extends LazyLogging{
       flyway.setDataSource(dataSource)
 
       // does this close the connection to datasource if an exception is raised?
-      println(s"Attempting to apply migrations to $flyway")
+      println(s"Attempting to apply migrations to $flyway with datasource ${dataSource.getUrl}")
       val numMigrations = flyway.migrate()
       println(s"Applied $numMigrations")
       numMigrations
