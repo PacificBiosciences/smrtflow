@@ -21,4 +21,4 @@ cp /path/to/xsds/*.xsd smrt-common-models/src/main/resources/pb-common-xsds/
 FIXME(mpkocher)(2016-12-6) This needs to be automated. 
 
 
-Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L10) and [DATASET_VERSION](src/main/scala/com/pacbio/common/models/Constants.scala#L11).
+Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L13) and [DATASET_VERSION](src/main/scala/com/pacbio/common/models/Constants.scala#L11).
