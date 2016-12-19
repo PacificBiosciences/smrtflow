@@ -192,10 +192,9 @@ package object services {
     implicit def actorRefFactory = context
 
     def showRequest(req: HttpRequest): LogEntry = {
-      var asString: String = req.entity.toOption match {
-        case Some(data) => s"request: ${req.method} ${req.uri} ${data}"
-        case None => s"request: ${req.method} ${req.uri}"
-      }
+      var asString: String = req.entity.toOption.map(
+          data => s"request: ${req.method} ${req.uri} ${data}"
+        ).getOrElse(s"request: ${req.method} ${req.uri}")
       LogEntry(asString, akka.event.Logging.InfoLevel)
     }
 
