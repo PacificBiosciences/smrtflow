@@ -46,7 +46,7 @@ trait SlickMigration { self: JdbcMigration =>
   override final def migrate(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      Await.ready(slickMigrate(db), Duration.Inf)
+      Await.result(slickMigrate(db), Duration.Inf)
     } finally {
       db.close()
     }
@@ -60,7 +60,7 @@ trait SlickCallback extends BaseFlywayCallback {
   override final def afterBaseline(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
     try {
-      Await.ready(slickAfterBaseline(db), Duration.Inf)
+      Await.result(slickAfterBaseline(db), Duration.Inf)
     } finally {
       db.close()
     }
