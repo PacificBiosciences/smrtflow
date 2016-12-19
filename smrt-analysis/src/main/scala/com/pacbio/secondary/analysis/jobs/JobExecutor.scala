@@ -124,7 +124,7 @@ class SimpleJobRunner extends JobRunner with timeUtils {
  */
 class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUtils{
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(30.seconds)
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[String] = {
     if (ds.isChunked) {

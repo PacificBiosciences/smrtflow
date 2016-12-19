@@ -251,7 +251,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     var exitFlag = true
     var nIterations = 0
     val sleepTime = 5000
-    val requestTimeOut = 10.seconds
+    val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
 

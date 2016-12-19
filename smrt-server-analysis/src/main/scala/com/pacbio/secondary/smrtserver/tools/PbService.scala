@@ -384,7 +384,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   import CommonModels._
   import CommonModelImplicits._
 
-  protected val TIMEOUT = 10 seconds
+  protected val TIMEOUT = 30 seconds
   private lazy val entryPointsLookup = Map(
     "PacBio.DataSet.SubreadSet" -> "eid_subread",
     "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
