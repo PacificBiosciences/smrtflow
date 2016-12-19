@@ -31,6 +31,7 @@ import scala.util.control.ControlThrowable
 object BaseSmrtServerApp
 
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
+// avm - removing dependencies related to cleanup and logging, they are causing pa-xfer to freeze due to singleton errors
 trait CoreProviders extends
     SetBindings with
     DefaultConfigProvider with
@@ -40,16 +41,16 @@ trait CoreProviders extends
     HealthServiceProvider with
     HealthServiceActorRefProvider with
     InMemoryHealthDaoProvider with
-    LogServiceProvider with
+    /*LogServiceProvider with
     LogServiceActorRefProvider with
-    DatabaseLogDaoProvider with
+    DatabaseLogDaoProvider with*/
     UserServiceProvider with
     UserServiceActorRefProvider with
     LdapUserDaoProvider with
-    CleanupServiceProvider with
+   /* CleanupServiceProvider with
     CleanupServiceActorRefProvider with
     InMemoryCleanupDaoProvider with
-    CleanupSchedulerProvider with
+    CleanupSchedulerProvider with*/
     StatusServiceProvider with
     StatusServiceActorRefProvider with
     ConfigServiceProvider with
@@ -63,7 +64,7 @@ trait CoreProviders extends
     JwtUtilsImplProvider with
     // TODO(smcclellan): Switch to AuthenticatorImplProvider when clients are ready to provide credentials
     FakeAuthenticatorProvider with
-    LoggerFactoryImplProvider with
+    //LoggerFactoryImplProvider with
     SystemClockProvider {
   val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
   val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
@@ -74,11 +75,11 @@ trait CoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
+ /* override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
     override val databaseConfigPath = Singleton("log")
   }
 
-  override val logback: Singleton[Boolean] = Singleton(true)
+  override val logback: Singleton[Boolean] = Singleton(true)*/
 }
 
 trait AuthenticatedCoreProviders extends
