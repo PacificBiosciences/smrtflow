@@ -11,6 +11,7 @@ import spray.http._
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import spray.httpx.SprayJsonSupport
 import spray.httpx.marshalling._
+import spray.routing.directives.LogEntry
 import spray.util.LoggingContext
 
 import scala.util.control.NonFatal
@@ -190,8 +191,15 @@ package object services {
 
     implicit def actorRefFactory = context
 
+    def showRequest(req: HttpRequest): LogEntry = {
+      var asString: String = req.entity.toOption.map(
+          data => s"request: ${req.method} ${req.uri} ${data}"
+        ).getOrElse(s"request: ${req.method} ${req.uri}")
+      LogEntry(asString, akka.event.Logging.InfoLevel)
+    }
+
     def receive: Receive = runRoute(compressResponseIfRequested() {
-      logRequest("request", akka.event.Logging.InfoLevel) {
+      logRequest(showRequest _) {
         route
       }
     })(
