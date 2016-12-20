@@ -194,7 +194,7 @@ class Database(dbURI: String) {
             case x => Future { listeners.foreach(_.success(code, stacktrace, x)) }
           }
         }
-        val toreturn = Await.result(f, 12345 milliseconds) // TODO: config via param
+        val toreturn = Await.result(f, 23456 milliseconds) // TODO: config via param
         // track RDBMS execution timing
         val endRDMS: Long = if (dbug) System.currentTimeMillis() else 0
         if (dbug) Future { listeners.foreach(_.dbDone(startRDMS, endRDMS, code, stacktrace)) }

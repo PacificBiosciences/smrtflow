@@ -21,7 +21,7 @@ import Scalaz._
 
 trait ValidateImportDataSetUtils {
 
-  implicit val timeout = Timeout(8.seconds)
+  implicit val timeout = Timeout(12.seconds)
 
   type ValidationErrorMsg = String
 

@@ -282,13 +282,14 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
     _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
-      case Some(job) =>
+      case Some(job) => {
+        _runnableJobs.remove(job.job.uuid)
         getJobById(job.id).map {
           case Some(j) =>
-            _runnableJobs.remove(j.uuid)
             Right(RunnableJob(job.job, j.state))
           case None => Left(noWork)
         }
+      }
       case None => Future(Left(noWork))
     }
   }
@@ -298,13 +299,14 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     _runnableJobs.values.find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
-      case Some(job) =>
+      case Some(job) => {
+        _runnableJobs.remove(job.job.uuid)
         getJobById(job.id).map {
           case Some(j) =>
-            _runnableJobs.remove(j.uuid)
             Right(RunnableJobWithId(job.id, job.job, j.state))
           case None => Left(noWork)
         }
+      }
       case None => Future(Left(noWork))
     }
   }
