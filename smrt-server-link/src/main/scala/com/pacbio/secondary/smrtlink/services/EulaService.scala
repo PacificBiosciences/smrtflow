@@ -33,7 +33,7 @@ class EulaService(dbActor: ActorRef,  authenticator: Authenticator)//(implicit v
     "EULA Service",
     "0.1.0", "End-User License Agreement Service")
 
-  implicit val timeout = Timeout(20.seconds)
+  implicit val timeout = Timeout(30.seconds)
 
   override val routes =
     pathPrefix("eula") {
