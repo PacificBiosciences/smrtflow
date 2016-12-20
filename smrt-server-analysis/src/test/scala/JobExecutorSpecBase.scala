@@ -75,7 +75,6 @@ with JobServiceConstants with TestUtils{
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val db: Database = Database.forURL("")
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
