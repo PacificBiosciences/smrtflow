@@ -403,14 +403,6 @@
             "description": "Return value"
           }
         },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          }
-        ],
         "produces": [
           "application/json"
         ],
@@ -430,14 +422,6 @@
             "description": "Return value"
           }
         },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          }
-        ],
         "produces": [
           "application/json"
         ],
