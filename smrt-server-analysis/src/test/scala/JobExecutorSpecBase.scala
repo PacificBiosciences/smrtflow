@@ -75,6 +75,7 @@ with JobServiceConstants with TestUtils{
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
+  override val db = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
@@ -92,7 +93,7 @@ with JobServiceConstants with TestUtils{
       workflowOptions)
   }
 
-  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
   step(setupJobDir(rootJobDir))
   step(setupDb(TestProviders.dbConfig))

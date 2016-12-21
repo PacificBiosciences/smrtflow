@@ -56,8 +56,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
               val entryPoints = ropts.entryPoints.map(x => BoundEntryPoint(x.entryId, "/tmp/file.fasta"))
               val taskOptions = Seq[PipelineBaseOption]()
               val workflowOptions = Seq[PipelineBaseOption]()
-              val envPath = ""
-              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
+              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions)
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")
               val jsonSettings = ropts.toJson.toString()

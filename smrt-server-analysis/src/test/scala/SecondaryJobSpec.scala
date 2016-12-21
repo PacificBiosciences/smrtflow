@@ -1,5 +1,3 @@
-import java.nio.file.Paths
-
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
@@ -18,7 +16,6 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.specification.Scope
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
@@ -77,7 +74,7 @@ with JobServiceConstants with TestUtils {
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"
   def toJobTypeByIdWithRest(x: String, i: Int, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 
-  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
   step(setupJobDir(rootJobDir))
   step(setupDb(TestProviders.dbConfig))

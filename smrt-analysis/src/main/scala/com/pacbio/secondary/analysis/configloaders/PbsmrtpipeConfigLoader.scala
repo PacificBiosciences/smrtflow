@@ -14,13 +14,13 @@ object PbsmrtpipeConfigConstants extends EngineCoreConfigConstants {
   // pbsmrtpipe Preset that will be used in all pipelines for the
   // pbsmrtpipe 'workflow engine' level options. The tasks options
   // will be taken from the Resolved Pipeline Templates
-  val PB_SMRTPIPE_PRESET_XML = "pb-engine.pb-smrtpipe-preset-xml"
+  val PB_SMRTPIPE_PRESET_XML = "smrtflow.engine.pb-smrtpipe-preset-xml"
 
   // the pbsmrtpipe exe can be wrapped in a specific wrapper that
   // uses the similar "cluster" template interface as the pbsmrtpipe
   // If no value is given, bash is called directly (which is the same as
   // setting the template to "bash ${CMD}"
-  val PB_ENGINE_CMD_TEMPLATE = "pb-engine.pb-cmd-template"
+  val PB_ENGINE_CMD_TEMPLATE = "smrtflow.engine.pb-cmd-template"
 }
 
 /**
@@ -88,9 +88,8 @@ trait PbsmrtpipeConfigLoader extends EngineCoreConfigLoader with LazyLogging {
     fx match {
       case Success(x) => Option(x)
       case Failure(ex) =>
-        val emsg = s"[WARNING] Unable to load CMD template from ${PbsmrtpipeConfigConstants.PB_ENGINE_CMD_TEMPLATE} Error ${ex.getMessage}"
+        val emsg = s"Unable to load CMD template from ${PbsmrtpipeConfigConstants.PB_ENGINE_CMD_TEMPLATE} Error ${ex.getMessage}"
         logger.warn(emsg)
-        System.err.println(emsg)
         None
     }
   }

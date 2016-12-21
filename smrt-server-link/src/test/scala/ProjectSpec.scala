@@ -79,7 +79,6 @@ with SmrtLinkConstants with TestUtils{
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
 
   val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None)
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
@@ -94,7 +93,7 @@ with SmrtLinkConstants with TestUtils{
   var dsCount = 0
   var movingDsId = 0
 
-  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
   step(setupJobDir(rootJobDir))
   step(setupDb(TestProviders.dbConfig))

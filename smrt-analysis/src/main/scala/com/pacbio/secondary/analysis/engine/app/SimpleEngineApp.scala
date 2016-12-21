@@ -1,22 +1,22 @@
 package com.pacbio.secondary.analysis.engine.app
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor._
 import akka.util.Timeout
 import com.pacbio.secondary.analysis.bio.FastaMockUtils
-import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
+import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.EngineDao.JobEngineDao
 import com.pacbio.secondary.analysis.engine.actors.PipelineTemplateDaoActor.GetAllPipelineTemplates
 import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.engine.actors.{PipelineTemplateDaoActor, EngineManagerActor, EngineDaoActor}
-import com.pacbio.secondary.analysis.engine.CommonMessages.{GetSystemJobSummary, AddNewJob, CheckForRunnableJob, GetAllJobs}
+import com.pacbio.secondary.analysis.engine.actors.{EngineDaoActor, EngineManagerActor, PipelineTemplateDaoActor}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{AddNewJob, CheckForRunnableJob, GetAllJobs, GetSystemJobSummary}
 import com.pacbio.secondary.analysis.jobs._
 import JobModels._
 import com.pacbio.secondary.analysis.jobtypes._
-import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions, IOUtils}
+import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, IOUtils, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.analysis.pipelines.PipelineTemplateDao
 import com.typesafe.scalalogging.LazyLogging
 
@@ -66,7 +66,8 @@ object PbSmrtPipeMockDemoJobs extends DemoJobs {
 
     val taskOptions = Seq[PipelineIntOptionBase]()
     val workflowOptions = Seq[PipelineIntOptionBase]()
-    val jobConfig = MockPbSmrtPipeJobOptions(pipelineId, boundEntryPoints, taskOptions, workflowOptions, "")
+    val envPath: Option[Path] = None
+    val jobConfig = MockPbSmrtPipeJobOptions(pipelineId, boundEntryPoints, taskOptions, workflowOptions, envPath)
 
     CoreJob(UUID.randomUUID(), jobConfig)
   }
@@ -112,15 +113,15 @@ object DemoConvertImportFastaJob extends DemoJobs {
 /**
  * Demo Example of using the JobExecution layer
  */
-object SimpleEngineApp extends App with LazyLogging {
+object SimpleEngineApp extends App
+    with LazyLogging
+    with EngineCoreConfigLoader{
 
-  val outputDir = Paths.get(System.getProperty("user.dir")).resolve("jobs-root")
-  if (!Files.exists(outputDir)) {
+  if (!Files.exists(engineConfig.pbRootJobDir)) {
     println("Creating root directory for job output.")
-    Files.createDirectory(outputDir)
+    Files.createDirectory(engineConfig.pbRootJobDir)
   }
 
-  val engineConfig = PbsmrtpipeConfigLoader.loadFromAppConf
   val pbsmrtpipeEngineConfig = PbsmrtpipeConfigLoader.loadPbsmrtpipeEngineConfigOrDefaults
   val cmdTemplate = PbsmrtpipeConfigLoader.loadCmdTemplate
   println(s"Custom cmd template $cmdTemplate")

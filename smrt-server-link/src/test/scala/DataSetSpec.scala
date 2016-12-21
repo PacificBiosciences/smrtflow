@@ -50,8 +50,6 @@ with JobServiceConstants with TestUtils{
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.dataSetService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
-
 
   step(setupDb(TestProviders.dbConfig))
   step(runInsertAllMockData(dao))

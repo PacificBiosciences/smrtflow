@@ -98,7 +98,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils with Bef
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  lazy val rootJobDir = Paths.get(TestProviders.jobEngineConfig().pbRootJobDir).toAbsolutePath
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
   override def before = {
     // I Don't think this plays well with the provider model

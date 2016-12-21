@@ -1,8 +1,9 @@
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.UUID
-import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineBaseOption, PipelineStrOption, BoundEntryPoint, JobResource}
-import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, CoreJob, AnalysisJobStates, SecondaryJobJsonProtocol}
-import com.pacbio.secondary.analysis.jobtypes.{PbSmrtPipeJobOptions, MockPbSmrtPipeJobOptions, PbSmrtpipeMockJob}
+
+import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, PipelineBaseOption, PipelineStrOption}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob, PrinterJobResultsWriter, SecondaryJobJsonProtocol}
+import com.pacbio.secondary.analysis.jobtypes.{MockPbSmrtPipeJobOptions, PbSmrtPipeJobOptions, PbSmrtpipeMockJob}
 import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
@@ -19,7 +20,7 @@ with SecondaryJobJsonProtocol {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
       val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
       // Path to source path.stuff.sh
-      val envPath = ""
+      val envPath:Option[Path] = None
       val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
       val taskOptions = Seq[PipelineBaseOption]()
       val opts = MockPbSmrtPipeJobOptions("pbscala.pipelines.mock_dev_01", entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions, envPath)

@@ -26,9 +26,8 @@ class JobExecutorSpec extends Specification with LazyLogging{
       val outputDir = Files.createTempDirectory("mock-pbsmrtpipe-jobOptions")
       val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
       val pipelineId = "pbscala.job_types.mock_pbsmrtpipe"
-      val env = ""
-      val taskOptions = Seq[PipelineBaseOption]()
-      val opts = MockPbSmrtPipeJobOptions(pipelineId, entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions, env)
+      val taskOptions = Seq.empty[PipelineBaseOption]
+      val opts = MockPbSmrtPipeJobOptions(pipelineId, entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions)
       logger.info(s"Running mock-pbsmrtpipe-jobOptions in ${outputDir.toString}")
       val pbJob = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
         val jobResult = jobRunner.runJobFromOpts(opts, pbJob, resultsWriter)
