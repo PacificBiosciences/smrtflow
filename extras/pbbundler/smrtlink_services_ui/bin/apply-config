@@ -271,8 +271,6 @@ class ConstantsTemplateVars(object):
     """Constants used in templates"""
     ANALYSIS_SERVER_URI = "ANALYSIS_SERVER_URI"
     TOMCAT_PORT = "TOMCAT_PORT"
-    PB_ANALYSIS_SHUTDOWN_PORT = "PB_ANALYSIS_SHUTDOWN_PORT"
-    PB_ANALYSIS_AJP_PORT = "PB_ANALYSIS_AJP_PORT"
     SSL_KEYSTORE_FILE = "SSL_KEYSTORE_FILE"
 
 
@@ -423,7 +421,7 @@ def _to_application_conf(c):
     # include application.conf from the jar
     line("include classpath(\"application.conf\")")
     
-    head("smrtflow.services")
+    head("smrtflow.server")
     out("port", c.analysis_port)
     # this path might have ',' which will create problems
     out_if_not_none("manifest-file", c.pb_manifest_file, wrap_quotes=True)
