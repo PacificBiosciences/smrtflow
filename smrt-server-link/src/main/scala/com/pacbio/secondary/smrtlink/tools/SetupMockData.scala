@@ -378,28 +378,25 @@ object InsertMockData extends App
   val maxJobs = 20000
 
   // Number of chunks to batch up commits for events and datastore files
-  val numChunks = conf.getInt("mock.nchunks")
+  val numChunks = conf.getInt("smrtflow.mock.nchunks")
 
   // Jobs
-  val maxPbsmrtpipeJobs = conf.getInt("mock.pbsmrtpipe-jobs")
-  val maxImportDataSetJobs = conf.getInt("mock.import-dataset-jobs")
+  val maxPbsmrtpipeJobs = conf.getInt("smrtflow.mock.pbsmrtpipe-jobs")
+  val maxImportDataSetJobs = conf.getInt("smrtflow.mock.import-dataset-jobs")
 
   // DataSets
-  val numSubreadSets = conf.getInt("mock.subreadsets")
-  val numAlignmentSets = conf.getInt("mock.alignmentsets")
-  val numReferenceSets = conf.getInt("mock.referencesets")
+  val numSubreadSets = conf.getInt("smrtflow.mock.subreadsets")
+  val numAlignmentSets = conf.getInt("smrtflow.mock.alignmentsets")
+  val numReferenceSets = conf.getInt("smrtflow.mock.referencesets")
 
-  def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+  val db = Database.forConfig("smrtflow.db")
 
-  val db = Database.forURL(conf.getString("pb-services.db-uri"), driver="org.postgresql.Driver")
   val dao = new JobsDao(db, engineConfig, resolver)
 
   def runner(args: Array[String]): Int = {
     println(s"Loading DB ${dao.db}")
 
     val startedAt = JodaDateTime.now()
-
-    createTables
 
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")
