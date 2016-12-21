@@ -21,7 +21,7 @@ import scala.util.Try
  */
 case class EngineConfig(
     maxWorkers: Int,
-    pbToolsEnv: String,
-    pbRootJobDir: String,
+    pbToolsEnv: Option[Path],
+    pbRootJobDir: Path,
     debugMode: Boolean)
 

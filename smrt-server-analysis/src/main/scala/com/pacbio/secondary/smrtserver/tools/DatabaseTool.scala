@@ -73,7 +73,7 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     println(s"Number of successfully applied migrations $result")
 
     //FIXME(mpkocher)(2016-12-13) Requiring the JobsDao to have the jobResolver is not awesome
-    val jobResolver = new PacBioIntJobResolver(Paths.get(engineConfig.pbRootJobDir))
+    val jobResolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
     val dbURI = dbConfig.jdbcURI
     println(s"Postgres URL '$dbURI'")

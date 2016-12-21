@@ -98,7 +98,7 @@ class DirectPbsmrtpipeJobType(
 
                 logger.info(s"Pbsmrtpipe Service Opts $ropts")
                 val jsonSettings = ropts.toJson
-                val envPath = ""
+                val envPath:Option[Path] = None
                 val serviceUri = toURL(rootUpdateURL, uuid)
 
                 val opts = PbSmrtPipeJobOptions(

@@ -167,13 +167,10 @@ object IOUtils extends LazyLogging{
    * @param path Path to write jobOptions.sh wrapper script to
    * @return
    */
-  def writeJobShellWrapper(path: Path, cmd: String, env: Option[String]): Path = {
+  def writeJobShellWrapper(path: Path, cmd: String, env: Option[Path]): Path = {
     val bw = new BufferedWriter(new FileWriter(path.toFile))
 
-    val envStr = env match {
-      case Some(e) if !e.isEmpty => s"source $e"
-      case _ => "# no custom ENV defined"
-    }
+    val envStr = env.map(sx => s"source $sx").getOrElse("# no custom ENV defined")
 
     bw.write(envStr + "\n")
     bw.write(cmd + "\n")

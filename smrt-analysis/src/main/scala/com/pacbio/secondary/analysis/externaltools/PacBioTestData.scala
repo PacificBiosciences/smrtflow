@@ -35,7 +35,7 @@ object PacBioTestData extends TestDataJsonProtocol {
 
   lazy val conf = ConfigFactory.load()
 
-  private def getFilesJson = Paths.get(conf.getString("pb-test.test-files"))
+  private def getFilesJson = Paths.get(conf.getString("smrtflow.test.test-files"))
 
   def isAvailable: Boolean = Files.isRegularFile(getFilesJson)
 

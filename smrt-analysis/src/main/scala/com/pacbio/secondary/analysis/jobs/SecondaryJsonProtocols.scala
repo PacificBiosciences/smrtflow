@@ -1,6 +1,7 @@
 package com.pacbio.secondary.analysis.jobs
 
 import java.net.URI
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -63,6 +64,16 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol {
     }
   }
 
+}
+
+trait PathProtocols extends DefaultJsonProtocol {
+  implicit object PathFormat extends RootJsonFormat[Path] {
+    def write(p: Path): JsValue = JsString(p.toString)
+    def read(v: JsValue): Path = v match {
+      case JsString(s) => Paths.get(s)
+      case _ => deserializationError("Expected Path as JsString")
+    }
+  }
 }
 
 // FIXME backwards compatibility for pbservice and older versions of smrtlink -
@@ -295,7 +306,9 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
     with EngineJobProtocol
     with DataSetMetaTypesProtocol
     with PipelineTemplateJsonProtocol
-    with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
+    with PipelineTemplatePresetJsonProtocol
+    with URIJsonProtocol
+    with PathProtocols {
 
 
   import JobModels._

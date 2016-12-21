@@ -78,7 +78,6 @@ object PbSmrtPipeDemoJobs extends DemoJobs with LazyLogging {
     val pipelineId = "pbsmrtpipe.pipelines.dev_01"
     // Write mock input files here. Output files will be written via the Resolver
     val outputDir = Files.createTempDirectory("pbsmrtpipe-demo-inputs")
-    val envShellWrapper = engineConfig.pbToolsEnv
 
     val taskOptions = Seq[PipelineIntOptionBase]()
     val workflowOptions = Seq[PipelineIntOptionBase]()
@@ -87,7 +86,7 @@ object PbSmrtPipeDemoJobs extends DemoJobs with LazyLogging {
     IOUtils.writeMockBoundEntryPoints(epath)
 
     val serviceUri = None
-    PbSmrtPipeJobOptions(pipelineId, entryPoints, taskOptions, workflowOptions, envShellWrapper, serviceUri)
+    PbSmrtPipeJobOptions(pipelineId, entryPoints, taskOptions, workflowOptions, engineConfig.pbToolsEnv, serviceUri)
   }
 
   def toJob(engineConfig: EngineConfig) = {
@@ -134,7 +133,7 @@ object SimpleEngineApp extends App with LazyLogging {
     PbSmrtPipeMockDemoJobs,
     PbSmrtPipeDemoJobs,
     DemoConvertImportFastaJob,
-    ImportDataSetDemoJobs).map(x => x.toJobs(njobs, engineConfig)).flatMap(x => x)
+    ImportDataSetDemoJobs).flatMap(x => x.toJobs(njobs, engineConfig))
 
 
   //Pbsmrtpie jobs with custom engine options
@@ -151,7 +150,7 @@ object SimpleEngineApp extends App with LazyLogging {
   logger.info(s"Wrote mock fasta to $p")
 
   //val resolver = new SimpleUUIDJobResolver(Paths.get(engineConfig.pbRootJobDir))
-  val resolver = new PacBioIntJobResolver(Paths.get(engineConfig.pbRootJobDir))
+  val resolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
   val dao = new JobEngineDao(resolver)
 

@@ -20,7 +20,7 @@ trait SmrtLinkConfigProvider {
   val pbsmrtpipeEngineOptions: Singleton[PbsmrtpipeEngineOptions] =
     Singleton(() => loadPbsmrtpipeEngineConfigOrDefaults)
   val jobResolver: Singleton[JobResourceResolver] =
-    Singleton(() => new PacBioIntJobResolver(Paths.get(jobEngineConfig().pbRootJobDir)))
+    Singleton(() => new PacBioIntJobResolver(jobEngineConfig().pbRootJobDir))
 
   // Unfortunately this is duplicated in the Manifest service
   val smrtLinkVersion: Singleton[Option[String]] =

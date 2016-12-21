@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.configloaders
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.typesafe.config.{Config, ConfigFactory}
@@ -39,10 +39,11 @@ trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging{
   private lazy val defaultEngineDebugMode = conf.getBoolean(EngineCoreConfigConstants.DEBUG_MODE)
   private lazy val defaultEngineMaxWorkers = conf.getInt(EngineCoreConfigConstants.MAX_WORKERS)
   private lazy val defaultEngineJobsRoot = loadJobRoot(conf.getString(EngineCoreConfigConstants.PB_ROOT_JOB_DIR))
+  private lazy val defaultPbToolsEnv = loadPbToolsEnv(conf)
 
   lazy val defaultEngineConfig = EngineConfig(
     defaultEngineMaxWorkers,
-    "",
+    defaultPbToolsEnv,
     defaultEngineJobsRoot,
     debugMode = defaultEngineDebugMode)
 
@@ -51,33 +52,23 @@ trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging{
    * @param sx
    * @return
    */
-  def loadJobRoot(sx: String): String = {
+  def loadJobRoot(sx: String): Path = {
     val p = Paths.get(sx)
     if (!p.isAbsolute) {
       //Assume relative to launched directory
       //println(s"Warning. Assuming relative path ${System.getProperty("user.dir")}/$sx")
-      Paths.get(System.getProperty("user.dir")).toAbsolutePath.resolve(sx).toString
+      Paths.get(System.getProperty("user.dir")).toAbsolutePath.resolve(sx)
     } else {
-      p.toAbsolutePath.toString
+      p.toAbsolutePath
     }
   }
 
   // FIXME. Convert this to Option[Path]
-  private def loadPbToolsEnv(conf: Config): String = {
-    Try { conf.getString(EngineCoreConfigConstants.PB_TOOLS_ENV) } match {
-      case Success(p) =>
-        logger.info(s"Loaded ${EngineCoreConfigConstants.PB_TOOLS_ENV} -> $p")
-        p
-      case Failure(ex) =>
-        logger.warn(s"Failed to find or load ${EngineCoreConfigConstants.PB_TOOLS_ENV}. Using default value")
-        ""
-    }
-  }
+  private def loadPbToolsEnv(conf: Config): Option[Path] =
+    Try { Paths.get(conf.getString(EngineCoreConfigConstants.PB_TOOLS_ENV)).toAbsolutePath }.toOption
 
   def loadFromAppConf: EngineConfig = {
-    val pbRootJobDir = loadJobRoot(conf.getString(EngineCoreConfigConstants.PB_ROOT_JOB_DIR))
-    val pbToolsEnv = loadPbToolsEnv(conf)
-    val c = defaultEngineConfig.copy(pbRootJobDir = pbRootJobDir, pbToolsEnv = pbToolsEnv)
+    val c = defaultEngineConfig
     logger.info(s"Loaded Engine config $c")
     c
   }

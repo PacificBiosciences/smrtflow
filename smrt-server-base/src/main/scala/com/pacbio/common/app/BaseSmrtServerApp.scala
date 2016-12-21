@@ -67,8 +67,8 @@ trait CoreProviders extends
   LoggerFactoryImplProvider with
   SystemClockProvider with ConfigLoader{
 
-  val serverHost: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.services.port"))
-  val serverPort: Singleton[String] = Singleton(() => conf.getString("smrtflow.services.host"))
+  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.services.port"))
+  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.services.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 
@@ -112,8 +112,8 @@ trait AuthenticatedCoreProviders extends
   LoggerFactoryImplProvider with
   SystemClockProvider with ConfigLoader{
 
-  val serverHost: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.services.port"))
-  val serverPort: Singleton[String] = Singleton(() => conf.getString("smrtflow.services.host"))
+  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.services.port"))
+  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.services.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 

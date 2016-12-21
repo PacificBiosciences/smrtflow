@@ -57,7 +57,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging {
   override def startup(): Unit = {
     super.startup()
 
-    val p = Paths.get(providers.engineConfig.pbRootJobDir)
+    val p = providers.engineConfig.pbRootJobDir
     if (!Files.exists(p)) {
       logger.info(s"Creating root job dir $p")
       Files.createDirectories(p)

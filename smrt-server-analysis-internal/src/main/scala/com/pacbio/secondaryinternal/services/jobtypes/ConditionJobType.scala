@@ -79,8 +79,7 @@ class ConditionJobType(dbActor: ActorRef,
 
     val entryPoints = Seq(BoundEntryPoint(PIPELINE_ENTRY_POINT_ID, conditionPath.toString))
 
-    // FIXME. this should be Option[Path] or Option[Map[String, String]]
-    val envPath = ""
+    val envPath:Option[Path] = None
     PbSmrtPipeJobOptions(pipelineId, entryPoints, Seq.empty[PipelineBaseOption], Seq.empty[PipelineBaseOption], envPath, serviceURI)
 
   }

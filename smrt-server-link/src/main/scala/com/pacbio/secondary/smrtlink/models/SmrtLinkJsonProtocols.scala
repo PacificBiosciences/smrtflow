@@ -1,12 +1,12 @@
 package com.pacbio.secondary.smrtlink.models
 
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobProtocols}
+import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, PathProtocols, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import spray.json._
 import fommil.sjs.FamilyFormats
 import shapeless.cachedImplicit
@@ -73,15 +73,6 @@ trait SupportedAcquisitionStatesProtocols extends DefaultJsonProtocol {
   }
 }
 
-trait PathProtocols extends DefaultJsonProtocol {
-  implicit object PathFormat extends RootJsonFormat[Path] {
-    def write(p: Path): JsValue = JsString(p.toString)
-    def read(v: JsValue): Path = v match {
-      case JsString(s) => Paths.get(s)
-      case _ => deserializationError("Expected Path as JsString")
-    }
-  }
-}
 
 trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
   implicit object EitherIntOrUUIDFormat extends RootJsonFormat[Either[Int,UUID]] {

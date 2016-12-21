@@ -34,9 +34,8 @@ with SecondaryJobJsonProtocol {
       val entryPoints = Seq(BoundEntryPoint("e_01", "/path/to/file.txt"))
       val taskOptions = Seq(PipelineStrOption("option_01", "My Opt 01", "value_01", "Desc"))
       val workflowOptions = Seq(PipelineStrOption("option_02", "My Opt 02", "value_02", "desc"))
-      val envPath = "/path/to/env.sh"
       val serviceUri = None
-      val x = PbSmrtPipeJobOptions("pipeline-id", entryPoints, taskOptions, workflowOptions, envPath, serviceUri)
+      val x = PbSmrtPipeJobOptions("pipeline-id", entryPoints, taskOptions, workflowOptions, None, serviceUri)
 
       //val j = x.toJson
       //logger.info(s"JSON converted to $j")

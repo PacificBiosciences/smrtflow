@@ -1,21 +1,18 @@
 package com.pacbio.secondary.analysis.jobtypes
 
-import java.io.File
 import java.net.URI
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
+import java.nio.file.Path
 
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
 
 import scala.util.Try
-import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, BaseCoreJob, BaseJobOptions, CoreJobModel}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, BaseCoreJob, BaseJobOptions}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.pbsmrtpipe._
-import sun.misc.Signal
+
 
 // Contain for all SmrtpipeJob 'type' options
 case class PbSmrtPipeJobOptions(
@@ -23,7 +20,7 @@ case class PbSmrtPipeJobOptions(
     entryPoints: Seq[BoundEntryPoint],
     taskOptions: Seq[PipelineBaseOption],
     workflowOptions: Seq[PipelineBaseOption],
-    envPath: String, serviceUri: Option[URI],
+    envPath: Option[Path], serviceUri: Option[URI],
     commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
 
   def toJob = new PbSmrtPipeJob(this)
@@ -102,11 +99,11 @@ with ExternalToolsUtils {
       val execCustomCmd = "eval \"" + customCmd + "\""
       writer(s"Custom command Job $commandJob")
       writer(s"Resolved Custom command template 'pb-cmd-template' to '$execCustomCmd'")
-      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH), execCustomCmd, Some(opts.envPath))
+      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH), execCustomCmd, opts.envPath)
       writer(s"Writing custom wrapper to ${sh.toAbsolutePath.toString}'")
       Seq("bash", sh.toAbsolutePath.toString)
     } getOrElse {
-      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH), cmd, Some(opts.envPath))
+      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH), cmd, opts.envPath)
       Seq("bash", sh.toAbsolutePath.toString)
     }
 
