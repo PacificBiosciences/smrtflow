@@ -49,8 +49,8 @@ smrtflow {
       databaseName = ${db_name}
       user = ${user}
       password = ${password}
-      port = ${port}
-      host = ${host}
+      portNumber = ${port}
+      serverName = ${host}
     }
     numThreads = 10
   }
