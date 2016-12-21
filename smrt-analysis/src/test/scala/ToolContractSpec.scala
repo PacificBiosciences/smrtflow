@@ -20,7 +20,7 @@ class ToolContractSpec extends Specification with SecondaryJobJsonProtocol with 
   val name = "resolved-tool-contracts/smrtflow.tasks.example_tool_resolved_tool_contract.avro"
 
   "Loading avro tool contract" should {
-    "Smoke test to load a pbocommand dev test Avro file" in {
+    "Smoke test to load a pbcommand dev test Avro file" in {
       val path = getClass.getResource(name)
       val p = Paths.get(path.toURI)
       true must beEqualTo(Files.exists(p))
