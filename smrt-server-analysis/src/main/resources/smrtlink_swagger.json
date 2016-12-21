@@ -339,44 +339,6 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/delete-datasets": {
-      "post": {
-        "description": "Delete a list of datasets (by UUID) of a specific type, including all applicable external resources",
-        "responses": {
-          "201": {
-            "description": "Return value"
-          },
-          "default": {
-            "description": "Return value"
-          }
-        },
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "smrtlink-admin",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
     "/secondary-analysis/job-manager/jobs/{type}": {
       "post": {
         "responses": {
