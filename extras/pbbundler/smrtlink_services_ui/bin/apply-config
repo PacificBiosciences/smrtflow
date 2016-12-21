@@ -21,7 +21,7 @@ import traceback
 import argparse
 
 __author__ = "M. Kocher"
-__version__ = '0.5.2'
+__version__ = '0.6.0'
 
 
 log = logging.getLogger(__name__)
@@ -110,9 +110,6 @@ class ConfigConstants(object):
     PB_JOB_ROOT = "PB_JOB_ROOT"
     PB_TMP_DIR = "PB_TMP_DIR"
 
-    PB_ANALYSIS_SHUTDOWN_PORT = "PB_ANALYSIS_SHUTDOWN_PORT"
-    PB_ANALYSIS_AJP_PORT = "PB_ANALYSIS_AJP_PORT"
-
     # Memory, in MB
     PB_SERVICES_ANALYSIS_MEM_MAX = "PB_SERVICES_ANALYSIS_MEM_MAX"
     PB_SERVICES_ANALYSIS_MEM_MIN = "PB_SERVICES_ANALYSIS_MEM_MIN"
@@ -149,9 +146,6 @@ class SystemConfig(object):
     PB_TMP_DIR = None
     PB_LOG_DIR = "."
 
-    PB_ANALYSIS_SHUTDOWN_PORT = 8005
-    PB_ANALYSIS_AJP_PORT = 8009
-
     PB_SMRT_VIEW_PORT = 8084
 
     PB_SERVICES_NWORKERS = 50
@@ -167,8 +161,7 @@ class SystemConfig(object):
     PB_TECH_SUPPORT_URL = None
 
     def __init__(self, host, port, analysis_port, enable_https, pb_pbsmrtpipe_preset_xml,
-                 service_nworkers, tmp_dir, log_dir, job_root, pb_analysis_shutdown_port,
-                 pb_analysis_ajp_port, smrt_view_port,
+                 service_nworkers, tmp_dir, log_dir, job_root, smrt_view_port,
                  db_host, db_port, db_name, db_user, db_password,
                  pb_services_analysis_mem_max,
                  pb_services_analysis_mem_min, pb_services_mem, pb_manifest_file, pbservices_event_url,
@@ -193,11 +186,6 @@ class SystemConfig(object):
         self.job_root = job_root
 
         self.pb_smrt_view_port = smrt_view_port
-
-        # Tomcat server port
-        self.pb_analysis_shutdown_port = pb_analysis_shutdown_port
-        # Tomcat AJP port
-        self.pb_analysis_ajp_port = pb_analysis_ajp_port
 
         # Smrtlink server Database
         self.db_host = db_host
@@ -237,8 +225,6 @@ class SystemConfig(object):
                             f(ConfigConstants.PB_TMP_DIR, SystemConfig.PB_TMP_DIR),
                             f(ConfigConstants.PB_LOG_DIR, SystemConfig.PB_LOG_DIR),
                             f(ConfigConstants.PB_JOB_ROOT, SystemConfig.PB_JOB_ROOT),
-                            f(ConfigConstants.PB_ANALYSIS_SHUTDOWN_PORT, SystemConfig.PB_ANALYSIS_SHUTDOWN_PORT),
-                            f(ConfigConstants.PB_ANALYSIS_AJP_PORT, SystemConfig.PB_ANALYSIS_AJP_PORT),
                             f(ConfigConstants.PB_SMRT_VIEW_PORT, SystemConfig.PB_SMRT_VIEW_PORT),
                             f(ConfigConstants.SMRTFLOW_DB_HOST, SystemConfig.SMRTFLOW_DB_HOST),
                             f(ConfigConstants.SMRTFLOW_DB_PORT, SystemConfig.SMRTFLOW_DB_PORT),
@@ -265,8 +251,6 @@ class SystemConfig(object):
               ConfigConstants.PB_TMP_DIR: self.tmp_dir,
               ConfigConstants.PB_LOG_DIR: self.log_dir,
               ConfigConstants.PB_JOB_ROOT: self.job_root,
-              ConfigConstants.PB_ANALYSIS_SHUTDOWN_PORT: self.pb_analysis_shutdown_port,
-              ConfigConstants.PB_ANALYSIS_AJP_PORT: self.pb_analysis_ajp_port,
               ConfigConstants.SMRTFLOW_DB_HOST: self.db_host,
               ConfigConstants.SMRTFLOW_DB_PORT: self.db_port,
               ConfigConstants.SMRTFLOW_DB_NAME: self.db_name,
@@ -339,7 +323,7 @@ def load_system_config(path):
 
 def update_system_config(system_config, output_path, comment=None):
     log.info("attempting to update {c} to {d}".format(d=system_config, c=output_path))
-    _chmod_config(system_config)
+    _chmod_config(output_path)
     _d = system_config.to_dict()
     if comment is not None:
         _d['_comment'] = comment
@@ -439,14 +423,15 @@ def _to_application_conf(c):
     # include application.conf from the jar
     line("include classpath(\"application.conf\")")
     
-    head("pb-services")
+    head("smrtflow.services")
+    out("port", c.analysis_port)
     # this path might have ',' which will create problems
     out_if_not_none("manifest-file", c.pb_manifest_file, wrap_quotes=True)
     tail()
 
     outs.append(_to_db_application_config(c.db_host, c.db_port, c.db_name, c.db_user, c.db_password))
 
-    head("pb-engine")
+    head("smrtflow.engine")
     # Don't pass the preset to the application.conf if the preset
     # is None
     out_if_not_none("pb-smrtpipe-preset-xml", c.pb_pbsmrtipe_preset_xml)
@@ -473,19 +458,19 @@ def to_uri(host, port, base_url="", https=False):
     return "{h}:{p}{u}".format(h=h, p=port, u=u)
 
 
-def to_smrt_link_ui_config_d(host, services_port, smrtview_port, service_event_url=None, tech_support_url=None):
+def to_smrt_link_ui_config_d(host, wso2_https_port, smrtview_port, service_event_url=None, tech_support_url=None):
     """
     New Configuration format in 3.1.0
 
     :param host: Host to use
-    :param services_port: SL/SA services port
+    :param wso2_https_port: SL/SA services port using WSO2
     :param smrtview_port: SV port
 
     :return: dict conf of SL UI
     """
     smrtview_uri = to_uri(host, smrtview_port)
-    services_uri = to_uri(host, 8243, "", https=True)
-    auth_uri = to_uri(host, 8243, https=True)
+    services_uri = to_uri(host, wso2_https_port, "", https=True)
+    auth_uri = to_uri(host, wso2_https_port, https=True)
 
     d = {"smrt-view": {"default-server": smrtview_uri},
          "smrt-link": {"default-server": services_uri},
@@ -503,11 +488,11 @@ def write_smrt_link_ui_config(d, file_name):
     return file_name
 
 
-def update_server_path_in_ui(host, services_port, smrtview_port, event_url, tech_support_url):
+def update_server_path_in_ui(host, wso2_https_port, smrtview_port, event_url, tech_support_url):
 
     output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.SLINK_CONFIG)
 
-    d = to_smrt_link_ui_config_d(host, services_port, smrtview_port, event_url, tech_support_url)
+    d = to_smrt_link_ui_config_d(host, wso2_https_port, smrtview_port, event_url, tech_support_url)
     log.debug("SL UI Config\n" + pprint.pformat(d))
     _ = write_smrt_link_ui_config(d, output_file)
     log.debug("Writing SL UI Config to {f}".format(f=output_file))
@@ -515,12 +500,10 @@ def update_server_path_in_ui(host, services_port, smrtview_port, event_url, tech
     return output_file
 
 
-def update_tomcat(port, shutdown_port, ajp_port, enable_https, tomcat_mem):
+def update_tomcat(port, enable_https, tomcat_mem):
     output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.TOMCAT_CONFIG)
 
     updates = {ConstantsTemplateVars.TOMCAT_PORT               : port,
-               ConstantsTemplateVars.PB_ANALYSIS_SHUTDOWN_PORT : shutdown_port,
-               ConstantsTemplateVars.PB_ANALYSIS_AJP_PORT      : ajp_port,
                ConstantsTemplateVars.SSL_KEYSTORE_FILE         : TemplateConstants.SSL_KEYSTORE_FILE}
 
     input_file = ConstantsTemplateNames.TOMCAT_HTTPS_SERVER_XML if enable_https else ConstantsTemplateNames.TOMCAT_SERVER_XML
@@ -612,15 +595,14 @@ def main(argv=sys.argv[1:]):
 
         write_services_args(c.log_dir)
 
+        wso2_https_port = 8243
         update_server_path_in_ui(c.host,
-                                 c.analysis_port,
+                                 wso2_https_port,
                                  c.pb_smrt_view_port,
                                  c.pbservices_event_url,
                                  c.pb_tech_support_url)
 
         update_tomcat(c.port,
-                      c.pb_analysis_shutdown_port,
-                      c.pb_analysis_ajp_port,
                       SystemConfig.ENABLE_HTTPS,
                       c.pb_services_mem)
 
