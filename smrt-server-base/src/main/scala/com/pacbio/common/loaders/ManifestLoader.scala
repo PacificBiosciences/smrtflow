@@ -20,7 +20,7 @@ trait ManifestLoader extends LazyLogging{
 
   // Putting these constants here for now
   // application.conf id
-  val CONFIG_KEY = "pb-services.manifest-file"
+  val CONFIG_KEY = "smrtflow.server.manifest-file"
   // SL Tools component id
   val SMRT_LINK_TOOLS_ID = "smrttools"
   // SL "component" id (this is a bit unclear. This should be the "system" component id and version and shouldn't
