@@ -6,10 +6,9 @@
 
 package com.pacbio.secondary.analysis.externaltools
 
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{Files, Path, Paths}
 
-import com.typesafe.config.{Config, ConfigFactory}
-
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import spray.json._
 
 import scala.io.Source
@@ -23,7 +22,7 @@ trait TestDataJsonProtocol extends DefaultJsonProtocol {
 }
 
 class PacBioTestData(files: Seq[TestDataFile], base: Path) {
-  val fileLookup = files.map(f => (f.id, f)).toMap
+  private val fileLookup = files.map(f => (f.id, f)).toMap
 
   def getFile(id: String): Path = {
     val relPath = fileLookup(id).path
@@ -31,13 +30,19 @@ class PacBioTestData(files: Seq[TestDataFile], base: Path) {
   }
 }
 
-object PacBioTestData extends TestDataJsonProtocol {
+object PacBioTestData extends TestDataJsonProtocol with ConfigLoader{
 
-  lazy val conf = ConfigFactory.load()
+  //Can be set via export PB_TEST_DATA_FILES=$(readlink -f PacBioTestData/data/files.json)
+  final val PB_TEST_ID = "smrtflow.test.test-files"
 
-  private def getFilesJson = Paths.get(conf.getString("smrtflow.test.test-files"))
+  final lazy val testFileDir = conf.getString(PB_TEST_ID)
+
+  // This is the file.json manifest of the Test files. PacBioTestData/data/files.json
+  private def getFilesJson = Paths.get(testFileDir)
 
   def isAvailable: Boolean = Files.isRegularFile(getFilesJson)
+
+  val errorMessage = s"Unable to find PacbioTestData files.json from $testFileDir. Set $PB_TEST_ID to /path/PacBioTestData/data/files.json"
 
   def apply() = {
     val filesJson = getFilesJson

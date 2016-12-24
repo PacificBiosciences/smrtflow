@@ -11,16 +11,14 @@
 
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 import spray.httpx.UnsuccessfulResponseException
-
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports,CallSaWriterIndex}
+import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
@@ -42,7 +40,7 @@ import com.pacificbiosciences.pacbiodatasets._
 object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for DataSetScenario")
-    require(PacBioTestData.isAvailable, "PacBioTestData must be configured for DataSetScenario")
+    require(PacBioTestData.isAvailable, s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
     val c: Config = config.get
 
     // Resolve overrides with String
@@ -53,9 +51,10 @@ object DataSetScenarioLoader extends ScenarioLoader {
         case e: ConfigException.WrongType => c.getString(key).trim.toInt
       }
 
+    // Should this be in smrtflow.test.* ?
     new DataSetScenario(
-      c.getString("smrt-link-host"),
-      getInt("smrt-link-port"))
+      c.getString("smrtflow.server.host"),
+      getInt("smrtflow.server.port"))
   }
 }
 
@@ -70,7 +69,7 @@ class DataSetScenario(host: String, port: Int)
 
   override val name = "DataSetScenario"
 
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new AnalysisServiceAccessLayer(host, port)
 
   val MSG_DS_ERR = "DataSet database should be initially empty"
   val EXIT_SUCCESS: Var[Int] = Var(0)

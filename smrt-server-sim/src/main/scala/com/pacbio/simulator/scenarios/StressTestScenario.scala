@@ -37,10 +37,10 @@ object StressTestScenarioLoader extends ScenarioLoader {
       }
 
     new StressTestScenario(
-      c.getString("smrt-link-host"),
-      getInt("smrt-link-port"),
-      getInt("njobs"),
-      getInt("max-time"))
+      c.getString("smrtflow.server.host"),
+      getInt("smrtflow.server.port"),
+      getInt("smrtflow.test.njobs"),
+      getInt("smrtflow.test.max-time"))
   }
 }
 
