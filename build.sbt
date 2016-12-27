@@ -26,7 +26,9 @@ parallelExecution in ThisBuild := false
 fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
+
 javaOptions in ThisBuild += "-Xmx4g"
+
 // tmp files are written during testing; cannot be mounted noexec because of sqlite
 javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP").isDefined) sys.env("TMP") else "/tmp")
 
@@ -43,6 +45,7 @@ val akkaV = "2.3.6"
 val sprayV = "1.3.3"
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 publishTo in ThisBuild := {
   val nexus = "http://ossnexus.pacificbiosciences.com/repository/"
   if (isSnapshot.value) Some("Nexus snapshots" at nexus + "maven-snapshots")
