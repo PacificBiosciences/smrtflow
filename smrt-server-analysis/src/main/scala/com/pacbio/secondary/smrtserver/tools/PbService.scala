@@ -884,12 +884,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
     Try {
+      logger.debug("Getting pipeline options from server")
       Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
     } match {
       case Success(pipelineJson) => {
         val presetOptionsLookup = presets.taskOptions.map(opt => (opt.id, opt.value.toString)).toMap
         // FIXME unmarshalling is broken, so this is a little hacky
-        val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
+        val tOpts = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject
+        val jtaskOptions = tOpts.getFields("properties") match {
+          case Seq(x) => x.asJsObject.fields
+          case _ => Seq.empty[(String, JsObject)]
+        }
         val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
           val template = templateOpt.asJsObject.fields
           val optionValue = presetOptionsLookup.getOrElse(id,
@@ -906,6 +911,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
           }
         }).toList
+        logger.debug(s"Task options: $taskOptions")
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)
@@ -934,7 +940,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
     tx match {
       case Success(job) => if (block) waitForJob(job.uuid) else printJobInfo(job)
-      case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
+      case Failure(err) => errorExit(s"Failed to run pipeline: ${err}")//.getMessage}")
     }
   }
 
