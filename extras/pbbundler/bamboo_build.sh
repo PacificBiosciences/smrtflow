@@ -69,11 +69,12 @@ source $ve/bin/activate
 # FIXME too much overhead here - we have to install many bulky dependencies to
 # use these modules
 echo "Installing pbsmrtpipe to virtualenv"
-pip install numpy
-pip install Cython
-(cd ${SMRTFLOW_ROOT}/repos/pbcore && make clean && make install)
-(cd ${SMRTFLOW_ROOT}/repos/pbcommand && make clean && make install)
-(cd ${SMRTFLOW_ROOT}/repos/pbsmrtpipe && make clean && make install)
+cd ${SMRTFLOW_ROOT}/repos/pbcore
+pip install -r requirements.txt
+python setup.py install
+cd ${SMRTFLOW_ROOT}
+(cd ${SMRTFLOW_ROOT}/repos/pbcommand && make clean && python setup.py install)
+(cd ${SMRTFLOW_ROOT}/repos/pbsmrtpipe && make clean && python setup.py install)
 
 pip install fabric
 
