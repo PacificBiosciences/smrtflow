@@ -3,13 +3,13 @@
 # this will be in the name of output tar.gz file
 BUNDLE_VERSION="0.11.0"
 
-# All the bundle projects assume that the root level
-# of the services requires /path/to/services-ui/scala
-# and /ui/
+# this script assumes that the directory containing the smrtflow repo also
+# contains ui and the python repos
 g_progdir=$(dirname "$0");
 g_progdir_abs=$(readlink -f "$g_progdir");
 SMRTFLOW_ROOT=$(readlink -f "$g_progdir"/../..);
-UI_ROOT="${SMRTFLOW_ROOT}/repos/ui"
+SRC=$(readlink -f "$SMRTFLOW_ROOT"/..);
+UI_ROOT="${SRC}/ui"
 BUNDLE_DEST="${PBBUNDLER_DEST}"
 if [ -z "$BUNDLE_DEST" ]; then
   BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-mainline"
@@ -58,8 +58,8 @@ module load python/2.7.9
 echo "Running java version $(java -version)"
 echo "Running sbt $(which sbt)"
 
-cd $SMRTFLOW_ROOT
-ve=${SMRTFLOW_ROOT}/ve
+cd $SRC
+ve=${SRC}/ve
 echo "Creating Virtualenv $ve"
 
 /opt/python-2.7.9/bin/python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
@@ -68,18 +68,18 @@ source $ve/bin/activate
 # FIXME too much overhead here - we have to install many bulky dependencies to
 # use these modules
 echo "Installing pbsmrtpipe to virtualenv"
-cd ${SMRTFLOW_ROOT}/repos/pbcore
+cd ${SRC}/pbcore
 pip install -r requirements.txt
 python setup.py install
-cd ${SMRTFLOW_ROOT}
-(cd ${SMRTFLOW_ROOT}/repos/pbcommand && make clean && python setup.py install)
-(cd ${SMRTFLOW_ROOT}/repos/pbsmrtpipe && make clean && python setup.py install)
+cd ..
+(cd ${SRC}/pbcommand && make clean && python setup.py install)
+(cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
 
 pip install fabric
 
 cd $BUNDLER_ROOT
 
-rpt_json_path="${SMRTFLOW_ROOT}/repos/resolved-pipeline-templates"
+rpt_json_path="${SRC}/resolved-pipeline-templates"
 
 if [ ! -d ${rpt_json_path} ]; then
   mkdir ${rpt_json_path}
@@ -91,7 +91,7 @@ pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
 
 echo "Installing report view rules from pbreports"
 REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/report-view-rules"
-cp ${SMRTFLOW_ROOT}/repos/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
+cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
 echo "Generating pipeline datastore view rules"
 VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
