@@ -157,6 +157,8 @@ lazy val smrtflow = project.in(file("."))
 
 lazy val logging = PacBioProject("smrt-server-logging")
 
+lazy val database = PacBioProject("smrt-server-database") dependsOn logging
+
 lazy val common = (
     PacBioProject("smrt-common-models")
         settings(
