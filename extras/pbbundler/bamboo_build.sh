@@ -18,8 +18,7 @@ fi
 
 cd $SMRTFLOW_ROOT
 if [ -z "$GIT_SHA" ]; then
-  GIT_SHA="`git rev-parse HEAD`"
-  GIT_SHA="`git rev-parse --short $GIT_SHA`"
+  GIT_SHA="`git rev-parse --short HEAD`"
 fi
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
