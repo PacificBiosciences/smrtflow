@@ -55,6 +55,7 @@ object Modes {
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
+  case object DELETE_DATASET extends Mode {val name = "delete-dataset"}
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
@@ -335,6 +336,15 @@ object PbServiceParser {
         c.copy(maxItems = m)
       } text "Max number of Datasets to show"
     )
+
+    cmd(Modes.DELETE_DATASET.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.DELETE_DATASET)
+    } children(
+      arg[String]("dataset-id") required() action { (i, c) =>
+        c.copy(datasetId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Dataset") } text "Dataset ID"
+    ) text "Soft-delete of a dataset (won't remove files)"
+
     cmd(Modes.MANIFESTS.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
     } text "Get a List of SMRT Link PacBio sComponent Versions"
@@ -374,7 +384,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
   import CommonModels._
   import CommonModelImplicits._
 
-  protected val TIMEOUT = 10 seconds
+  protected val TIMEOUT = 30 seconds
   private lazy val entryPointsLookup = Map(
     "PacBio.DataSet.SubreadSet" -> "eid_subread",
     "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
@@ -718,6 +728,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
+  def runDeleteDataSet(datasetId: IdAble): Int = {
+    Try { Await.result(sal.deleteDataSet(datasetId), TIMEOUT) } match {
+      case Success(response) => printMsg(s"${response.message}")
+      case Failure(err) => errorExit(s"Couldn't delete dataset: ${err.getMessage}")
+    }
+  }
+
   protected def getProjectIdByName(projectName: Option[String]): Int = {
     if (! projectName.isDefined) return 0
     Try { Await.result(sal.getProjects, TIMEOUT) } match {
@@ -867,12 +884,17 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
     Try {
+      logger.debug("Getting pipeline options from server")
       Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
     } match {
       case Success(pipelineJson) => {
         val presetOptionsLookup = presets.taskOptions.map(opt => (opt.id, opt.value.toString)).toMap
         // FIXME unmarshalling is broken, so this is a little hacky
-        val jtaskOptions = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject.getFields("properties")(0).asJsObject.fields
+        val tOpts = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject
+        val jtaskOptions = tOpts.getFields("properties") match {
+          case Seq(x) => x.asJsObject.fields
+          case _ => Seq.empty[(String, JsObject)]
+        }
         val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
           val template = templateOpt.asJsObject.fields
           val optionValue = presetOptionsLookup.getOrElse(id,
@@ -889,6 +911,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
             case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
           }
         }).toList
+        logger.debug(s"Task options: $taskOptions")
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)
@@ -917,7 +940,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
     tx match {
       case Success(job) => if (block) waitForJob(job.uuid) else printJobInfo(job)
-      case Failure(err) => errorExit(s"Failed to run pipeline: ${err.getMessage}")
+      case Failure(err) => errorExit(s"Failed to run pipeline: ${err}")//.getMessage}")
     }
   }
 
@@ -1028,6 +1051,7 @@ object PbService {
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/

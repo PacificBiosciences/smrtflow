@@ -25,6 +25,7 @@ trait SecondaryAnalysisProviders
   with RsConvertMovieToDataSetServiceTypeProvider
   with SimpleServiceJobTypeProvider
   with ExportDataSetsServiceJobTypeProvider
+  with DeleteDataSetsServiceJobTypeProvider
   with LoggerFactoryProvider {
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")

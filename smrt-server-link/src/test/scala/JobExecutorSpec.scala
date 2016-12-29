@@ -1,10 +1,8 @@
-
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
+import java.nio.file.{Files, Paths}
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
-import org.specs2.mutable.{BeforeAfter, Specification}
+import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
 import spray.httpx.SprayJsonSupport._
@@ -36,7 +34,7 @@ import slick.driver.PostgresDriver.api._
 class JobExecutorSpec extends Specification
 with Specs2RouteTest
 with NoTimeConversions
-with JobServiceConstants with timeUtils with LazyLogging with TestUtils with BeforeAfter {
+with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   sequential
 
@@ -98,23 +96,18 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils with Bef
 
   val url = toJobType("mock-pbsmrtpipe")
 
-  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
+  def setup() = {
+    val p = TestProviders.engineConfig.pbRootJobDir
+    if (!Files.exists(p)) {
+      logger.info(s"Creating root job dir $p")
+      Files.createDirectories(p)
+    }
 
-  override def before = {
-    // I Don't think this plays well with the provider model
-    // The work around is to just use step()
-    logger.info("Running Before Spec")
-    //setupJobDir(rootJobDir)
-  }
-  override def after = {
-    logger.info("Running After Spec")
-    //cleanUpJobDir(rootJobDir)
+    setupJobDir(p)
+    setupDb(TestProviders.dbConfig)
   }
 
-  var createdJob: EngineJob = null // This must updated after the initial job is created
-
-  step(setupJobDir(rootJobDir))
-  step(setupDb(TestProviders.dbConfig))
+  step(setup())
 
   "Job Execution Service list" should {
 
@@ -123,61 +116,71 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils with Bef
         status.isSuccess must beTrue
       }
     }
-    "execute job" in  {
+
+    var newJob: Option[EngineJob] = None
+
+    "execute job" in {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {
-        val job = responseAs[EngineJob]
-        createdJob = job.copy()
-        logger.info(s"Response to $url -> $job")
+        newJob = Some(responseAs[EngineJob])
+        logger.info(s"Response to $url -> $newJob")
+
         status.isSuccess must beTrue
-        job.isActive must beTrue
+        newJob.get.isActive must beTrue
       }
     }
 
     "access job by id" in {
-      Get(toJobTypeById("mock-pbsmrtpipe", createdJob.uuid)) ~> totalRoutes ~> check {
+      Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "access job datastore" in {
-      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.uuid, "datastore")) ~> totalRoutes ~> check {
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "access job reports" in {
-      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.uuid, "reports")) ~> totalRoutes ~> check {
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "access job events by job id" in {
-      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", createdJob.id, "events")) ~> totalRoutes ~> check {
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "create a delete Job and delete a mock-pbsmrtpipe job" in {
+      var njobs = 0
+      Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+        val jobs = responseAs[Seq[EngineJob]]
+        njobs = jobs.size
+        jobs.count(_.id == newJob.get.id) must beGreaterThan(0)
+        njobs must beGreaterThan(0)
+      }
 
       var complete = false
       var retry = 0
       val maxRetries = 30
       val startedAt = JodaDateTime.now()
       while (!complete) {
-        Get(toJobTypeById("mock-pbsmrtpipe", createdJob.uuid)) ~> totalRoutes ~> check {
-          val job = responseAs[EngineJob]
-          complete = job.isComplete
-          retry = retry + 1
-          Thread.sleep(1000)
-          if (retry >= maxRetries) {
-            failure(s"mock-pbsmrtpipe Job id:${job.id} uuid:${job.uuid} state:${job.state} name:${job.name} failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
+        Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
+          complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
+          if (!complete && retry < maxRetries) {
+            retry = retry + 1
+            Thread.sleep(2000)
+          } else if (!complete && retry >= maxRetries) {
+            failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
         }
       }
 
-      val params = DeleteJobServiceOptions(createdJob.uuid, removeFiles = true)
+      val params = DeleteJobServiceOptions(newJob.get.uuid, removeFiles = true)
       Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.jobTypeId must beEqualTo("delete-job")
       }
-      Get(toJobTypeById("mock-pbsmrtpipe", createdJob.uuid)) ~> totalRoutes ~> check {
+      Get(toJobTypeById("mock-pbsmrtpipe", newJob.get.id)) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.isActive must beFalse
       }
@@ -189,5 +192,14 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils with Bef
         status.isSuccess must beTrue
       }
     }
+
+    //    "Create a Job Event" in {
+    //      val r = JobEventRecord("RUNNING", "Task x is running")
+    //      Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 2, "events"), r) ~> totalRoutes ~> check {
+    //        status.isSuccess must beTrue
+    //      }
+    //    }
   }
+
+  step(cleanUpJobDir(TestProviders.engineConfig.pbRootJobDir))
 }

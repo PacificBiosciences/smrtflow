@@ -290,13 +290,14 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
     _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
-      case Some(job) =>
+      case Some(job) => {
+        _runnableJobs.remove(job.job.uuid)
         getJobById(job.id).map {
           case Some(j) =>
-            _runnableJobs.remove(j.uuid)
             Right(RunnableJob(job.job, j.state))
           case None => Left(noWork)
         }
+      }
       case None => Future(Left(noWork))
     }
   }
@@ -306,13 +307,14 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     _runnableJobs.values.find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
-      case Some(job) =>
+      case Some(job) => {
+        _runnableJobs.remove(job.job.uuid)
         getJobById(job.id).map {
           case Some(j) =>
-            _runnableJobs.remove(j.uuid)
             Right(RunnableJobWithId(job.id, job.job, j.state))
           case None => Left(noWork)
         }
+      }
       case None => Future(Left(noWork))
     }
   }
@@ -749,14 +751,14 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   def getDataSetById(id: Int): Future[Option[DataSetMetaDataSet]] =
     db.run(datasetMetaTypeById(id).result.headOption)
 
-  def deleteDataSetById(id: Int): Future[MessageResponse] = {
+  def deleteDataSetById(id: Int, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
   }
 
-  def deleteDataSetByUUID(id: UUID): Future[MessageResponse] = {
+  def deleteDataSetByUUID(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully deleted dataset $id"))
+    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
   }
 
   def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)
@@ -1144,9 +1146,9 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
   override def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption.map(_.map(toDataStoreJobFile)))
 
-  def deleteDataStoreFile(id: UUID): Future[MessageResponse] = {
+  def deleteDataStoreFile(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(false, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to deleted"))
+    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
   }
 
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {

@@ -1,6 +1,7 @@
 SHELL=/bin/bash
 STRESS_RUNS=1
 SOURCE_DB=test-data/smrtserver-testdata/database/latest
+STRESS_NAME=run
 
 clean:
 	rm -f secondary-smrt-server*.log 
@@ -28,6 +29,13 @@ tools-smrt-analysis-internal:
 
 tools-smrt-server-analysis:
 	sbt smrt-server-analysis/pack
+
+tools-tarball:
+	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
+	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
+	cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
+	rm -rf smrt-analysis/target/pack/bin/*.bat
+	cd smrt-analysis && tar cvfz ../pbscala-packed.tar.gz target/pack
 
 repl:
 	sbt smrtflow/test:console
@@ -105,7 +113,7 @@ validate-resources: validate-report-view-rules validate-pipeline-view-rules
 # e.g., make full-stress-run STRESS_RUNS=2 SOURCE_DB=~/analysis_services_beta_3.1.1.db
 full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	@for i in `seq 1 $(STRESS_RUNS)`; do \
-	    RUN=run-$$(date +%s) && \
+	    RUN=$(STRESS_NAME)-$$(date +%F-%T) && \
 	    RUNDIR=test-output/stress-runs && \
 	    OUTDIR=$$RUNDIR/$$RUN && \
 	    mkdir -p $$OUTDIR && \
@@ -113,8 +121,8 @@ full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	    ln -s $$RUN $$RUNDIR/latest && \
 	    sbt smrt-server-analysis/compile && \
 	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-analysis/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & echo \$$!") && \
-	    sleep 30 && \
-	    ./stress.py --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
+	    sleep 360 && \
+	    ./stress.py -x 10 --nprocesses 20 --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
 	    sleep 2 ; \
 	    pkill -g $$SERVERPID ; \
 	    sleep 2 ; \

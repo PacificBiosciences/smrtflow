@@ -3,6 +3,9 @@ package com.pacbio.secondary.analysis.datasets
 import java.nio.file.Path
 import java.util.UUID
 
+import scala.xml.XML
+import scala.util.{Try,Success,Failure}
+
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.constants.FileTypes.DataSetBaseType
 import com.pacbio.common.models.UUIDJsonProtocol
@@ -76,6 +79,7 @@ object DataSetMetaTypes {
 
   // FIXME. The order is important. Will reuse this in the db
   val ALL = Set(Subread, HdfSubread, Alignment, Barcode, CCS, Contig, Reference, AlignmentCCS, GmapReference)
+  val BAM_DATASETS = Set(Subread, CCS, Alignment, AlignmentCCS)
 
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString
@@ -101,6 +105,12 @@ object DataSetMetaTypes {
     ALL.map(x => (typeToIdString(x), x)).toMap.get(dsType)
   }
 
+  def fromPath(path: Path): Option[DataSetMetaType] = {
+    Try {
+      val ds = scala.xml.XML.loadFile(path.toFile)
+      ds.attributes("MetaType").toString
+    }.toOption.flatMap(toDataSetType)
+  }
 }
 
 // Small General Container for Dataset

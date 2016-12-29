@@ -135,6 +135,7 @@ bash $ws02_dir/bin/wso2server.sh --start
 echo "started up WSO2 API Manager"
 
 java -cp $__root/$SERVICES_JAR_NAME \
+     -Xmx256m -Xms256m \
      -Dconfig.file=$__root/prod.conf \
      com.pacbio.secondary.smrtserver.tools.AmClientApp \
      set-api --swagger-resource /smrtlink_swagger.json \

@@ -14,6 +14,12 @@
     "apim": {
       "x-wso2-scopes": [
         {
+          "roles": "Internal/PbAdmin",
+          "name": "smrtlink-admin",
+          "key": "smrtlink-admin",
+          "description": "Admin Authorization"
+        },
+        {
           "roles": "Internal/PbAdmin,Internal/PbLabTech",
           "name": "run-design",
           "key": "run-design",

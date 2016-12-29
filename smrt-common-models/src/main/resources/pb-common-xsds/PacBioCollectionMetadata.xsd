@@ -198,6 +198,11 @@ If multiple collections are utilizing the same physical plate well, all these co
 						<xs:documentation>Date and time of when the overall run was started. </xs:documentation>
 					</xs:annotation>
 				</xs:element>
+                <xs:element name="WhenCompleted" type="xs:dateTime" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Date and time of when the run was completed. </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
