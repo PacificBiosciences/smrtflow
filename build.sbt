@@ -149,13 +149,11 @@ lazy val smrtflow = project.in(file("."))
        |import ammonite.ops._
        |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
        |""".stripMargin)
-    .dependsOn(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
-    .aggregate(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .dependsOn(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .aggregate(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
 
 
 lazy val logging = PacBioProject("smrt-server-logging")
-
-lazy val database = PacBioProject("smrt-server-database") dependsOn logging
 
 lazy val common = (
     PacBioProject("smrt-common-models")
@@ -192,19 +190,19 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
     PacBioProject("smrt-analysis")
-        dependsOn(logging, database, common)
+        dependsOn(logging, common)
         settings()
     )
 
 lazy val smrtServerBase = (
     PacBioProject("smrt-server-base")
-        dependsOn(logging, database, common, smrtAnalysis)
+        dependsOn(logging, common, smrtAnalysis)
         settings()
     )
 
 lazy val smrtServerLink = (
     PacBioProject("smrt-server-link")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase)
         settings()
     )
 
@@ -216,21 +214,21 @@ lazy val smrtServerLims = (
 
 lazy val smrtServerAnalysis = (
     PacBioProject("smrt-server-analysis")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
         settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
     )
 
 lazy val smrtServerAnalysisInternal = (
     PacBioProject("smrt-server-analysis-internal")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
         settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
     )
 
 lazy val smrtServerSim = (
     PacBioProject("smrt-server-sim")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
+        dependsOn(logging, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
         settings()
     )
 
 //lazy val root = (project in file(".")).
-//  aggregate(common, database, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)
+//  aggregate(common, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)
