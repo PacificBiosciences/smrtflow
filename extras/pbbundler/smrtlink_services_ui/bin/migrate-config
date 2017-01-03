@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+"""
+Migrates config.json files from v. 4.0.0 to v. 4.1.0
+
+"""
+import os
+import sys
+import json
+import argparse
+import logging
+from string import Template
+
+__author__ = "smcclellan"
+__version__ = '0.1.0'
+
+_BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'config.json')
+
+_REMOVE_KEYS = ['PB_DB_URI', 'PB_ANALYSIS_SHUTDOWN_PORT', 'PB_ANALYSIS_AJP_PORT', 'ENABLE_AUTH',
+                'LDAP_BASE_USER_DN', 'LDAP_BASE_USER_PASSWORD_FILE', 'LDAP_HOST', 'LDAP_USERS_DN',
+                'LDAP_PORT', 'LDAP_USERS_CACHE_SIZE', 'LDAP_USERS_EMAIL_ATTR', 'LDAP_USERS_FIRST_NAME_ATTR',
+                'LDAP_USERS_LAST_NAME_ATTR', 'LDAP_USERS_USERNAME_ATTR', 'LDAP_USERS_ID_ATTR',
+                'LDAP_USERS_ID_TYPE']
+_VERSION_KEY = '_version'
+_FROM_VERSION = "4.0.0"
+_TO_VERSION = "4.1.0"
+
+def get_parser():
+    p = argparse.ArgumentParser(version=__version__,
+                                description=__doc__,
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    f = p.add_argument
+    f('--config-json', default=_CONFIG_JSON, help="Path to Config.json")
+    return p
+
+def remove_keys(conf, keys):
+    for key in keys:
+        if key in conf:
+            del conf[key]
+
+def main(argv=sys.argv[1:]):
+    p = get_parser()
+    args = p.parse_args(argv)
+    config_json = args.config_json
+
+    logging.info("Reading config from {c}".format(c = config_json))
+    with open(config_json, 'r') as f:
+        conf = json.loads(f.read())
+  
+    if _VERSION_KEY in conf:
+        if conf[_VERSION_KEY] != _FROM_VERSION:
+            logging.error("Expected config version {f} but was {v}".format(f = _FROM_VERSION, v = conf[_VERSION_KEY]))
+            return 1
+
+    backup = config_json + ".bak"
+    logging.info("Backing up config.json to {b}".format(b = backup))
+    os.rename(config_json, backup)
+
+    remove_keys(conf, _REMOVE_KEYS)
+
+    conf['SMRTFLOW_DB_HOST'] = "localhost"
+    conf['SMRTFLOW_DB_NAME'] = "smrtlink"
+    conf['SMRTFLOW_DB_PASSWORD'] = "password"
+    conf['SMRTFLOW_DB_PORT'] = 5432
+    conf['SMRTFLOW_DB_USER'] = "smrtlink_user"
+    conf['_version'] = _TO_VERSION
+    conf['_comment'] = "Migrated from v. {f} to v. {t} by migrate-version v. {v}".format(f = _FROM_VERSION, t = _TO_VERSION, v = __version__)
+    
+    logging.info("Writing updated config to {c}".format(c = config_json))
+    with open(config_json, 'w') as f:
+        json.dump(conf, f, sort_keys=True, indent=4, separators=(',', ': '))
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
