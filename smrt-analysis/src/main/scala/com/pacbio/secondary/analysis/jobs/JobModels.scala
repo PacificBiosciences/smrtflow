@@ -289,7 +289,7 @@ object JobModels {
 
 
   // View Rules Models
-  case class PipelineOptionViewRule(id: String, hidden: Boolean)
+  case class PipelineOptionViewRule(id: String, hidden: Boolean, advanced: Boolean)
 
   case class PipelineTemplateViewRule(
       id: String,

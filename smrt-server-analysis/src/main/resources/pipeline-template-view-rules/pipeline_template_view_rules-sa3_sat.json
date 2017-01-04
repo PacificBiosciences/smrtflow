@@ -3,7 +3,7 @@
   "name": "Override Pipeline Display Name",
   "description": "Override Description",
   "taskOptions": [
-    {"id": "pbreports.task_options.max_contigs", "hidden": true},
-    {"id": "pbcommand.task_options.dev_hello", "hidden": true}
+    {"id": "pbreports.task_options.max_contigs", "hidden": true, "advanced": true},
+    {"id": "pbcommand.task_options.dev_hello", "hidden": true, "advanced": true}
   ]
 }
