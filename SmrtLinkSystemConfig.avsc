@@ -1,0 +1,193 @@
+{
+  "namespace": "com.pacbio.secondary.smrtserver.models.config",
+  "type": "record",
+  "name": "RootSmrtflowConfig",
+  "doc": "SMRT Link System Bundle Configuration for SMRT Link Analysis Server, SMRT View and Tomcat",
+  "fields": [
+    {
+      "name": "smrtflow",
+      "doc": "Root Namespace for smrtflow HCON config",
+      "type": {
+        "type": "record",
+        "doc": "SMRT Flow root namespace (hcon-key smrtflow)",
+        "name": "SmrtflowConfig",
+        "fields": [
+          {
+            "name": "server",
+            "doc": "Root Smrtflow Server Namespace (e.g., smrtflow.server)",
+            "type": {
+              "type": "record",
+              "name": "SmrtflowServerConfig",
+              "doc": " SMRT Flow Server root namespace (e.g. smrtflow.server)",
+              "fields": [
+                {
+                  "name": "port",
+                  "doc": "SMRT Link Services Port to listen to (smrtflow.server.port)",
+                  "default": 8081,
+                  "type": "int"
+                },
+                {
+                  "name": "manifestFile",
+                  "doc": "Absolute path to PacBio Manifest JSON file to load on startup. Will enable setting the SMRT Link System and SMRT Tool Version (hcon-key: smrtflow.server.manifestFile)",
+                  "default": null,
+                  "type": ["string", "null"]
+                },
+                {
+                  "name": "eventUrl",
+                  "doc": "External Event URL to send messages to. (example, \"http://my-event-server:8888/events\", hcon-kkey: smrtflow.server.eventUrl)",
+                  "default": null,
+                  "type": ["string", "null"]
+                },
+                {
+                  "name": "dnsName",
+                  "doc": "Host name that is accessible externally by the SL UI and pbsmrtpipe during Analyis jobs. If null, the FDQN of the host will be used. The port will be pulled from smrtflow.server.port (e.g., \"http://my-event-server\") to construct the full URL. (hcon-key: smrtflow.server.dnsName)",
+                  "type": ["string", "null"],
+                  "default": null
+                }
+              ]
+            }
+          },
+          {
+            "name": "engine",
+            "doc": "Smrtflow Engine configuration namespace (smrtflow.engine)",
+            "type": {
+              "type": "record",
+              "doc": "Smrtflow Engine job engine configuration",
+              "name": "SmrtflowEngineConfig",
+              "fields": [
+                {
+                  "name": "maxWorkers",
+                  "doc": "Maximum number of workers to run jobs within SMRT Link. This can be used to throttle the resource usage on the host (hcon-key smrtflow.engine.maxWorkers)",
+                  "type": "int",
+                  "default": 32
+                },
+                {
+                  "name": "jobRootDir",
+                  "doc": "Root path to the output job directory. If the directory isn't absolute, it will be assumed relative to the cwd. If the supplied directory doesn't exist, it will be created (hcon-key smrtflow.engine.jobRootDir)",
+                  "type": "string",
+                  "default": "job-root"
+                },
+                {
+                  "name": "pbsmrtpipePresetXml",
+                  "doc": "Root path to the pbsmrtpipe Preset XML. (hcon-key smrtflow.engine.pbsmrtpipePresetXml)",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "db",
+            "doc": "SMRT Link PostgreSQL database configuration (hcon-key: smrtflow.db)",
+            "type": {
+              "type": "record",
+              "doc": "SMRT Link database Configuration container",
+              "name": "SmrtflowDbConfig",
+              "fields": [
+                {
+                  "name": "properties",
+                  "doc": "Properties for PostgreSQL Database",
+                  "type": {
+                    "type": "record",
+                    "name": "SmrtflowDbPropertiesConfig",
+                    "doc": "",
+                    "fields": [
+                      {
+                        "name": "databaseName",
+                        "doc": "SMRT Link PostgreSQL Database Name (hcon-key: smrtflow.db.properties.databaseName)",
+                        "type": "string",
+                        "default": "smrtlink"
+                      },
+                      {
+                        "name": "user",
+                        "doc": "SMRT Link PostgreSQL user name. User must have read+write access (hcon-key: smrtflow.db.properties.user)",
+                        "type": "string",
+                        "default": "smrtlink_user"
+                      },
+                      {
+                        "name": "password",
+                        "doc": "SMRT Link PostgreSQL user password. User must have read+write access. (hcon-key: smrtflow.db.properties.password)",
+                        "type": "string",
+                        "default": "password"
+                      },
+                      {
+                        "name": "portNumber",
+                        "doc": "SMRT Link PostgreSQL port (hcon-key: smrtflow.db.properties.portNumber)",
+                        "type": "int",
+                        "default": 5432
+                      },
+                      {
+                        "name": "serverName",
+                        "doc": "SMRT Link PostgreSQL server host name (hcon-key: smrtflow.db.properties.serverName)",
+                        "type": "string",
+                        "default": "localhost"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "pacBioSystem",
+      "doc": "Root PacBio System hcon namespace (hcon-key smrtflow.pbsystem)",
+      "type": {
+        "type": "record",
+        "doc": "PacBio System configuration settings, such as UI tomcat webserver, SL Analysis server memory, SMRT View Port, temporary directory and log output directory",
+        "name": "SmrtflowPacBioSystemConfig",
+        "fields": [
+          {
+            "doc": "Tomcat Port to run the SMRT Link UI on (hcon-key smrtflow.pacbiosystem.tomcatPort)",
+            "name": "tomcatPort",
+            "type": "int",
+            "default": 8080
+          },
+          {
+            "doc": "Maximum and Minimum memory to launch tomcat (hcon-key smrtflow.pacbiosystem.tomcatMemory)",
+            "name": "tomcatMemory",
+            "type": "int",
+            "default": 1024
+          },
+          {
+            "doc": "Minimum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacbiosystem.smrtLinkServerMemoryMin)",
+            "name": "smrtLinkServerMemoryMin",
+            "type": "int",
+            "default": 4096
+          },
+          {
+            "doc": "Maximum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacbiosystem.smrtLinkServerMemoryMax)",
+            "name": "smrtLinkServerMemoryMax",
+            "type": "int",
+            "default": 4096
+          },
+          {
+            "doc": "SMRT View Port (hcon-key smrtflow.pacbiosystem.smrtViewPort)",
+            "name": "smrtViewPort",
+            "type": "int",
+            "default": 8084
+          },
+          {
+            "doc": "Temporary directory to write to write files to. See pbsmrtpipe preset XML for configuration the remote compute node Temp Directory  (hcon-key smrtflow.pacbiosystem.tmpDir)",
+            "name": "tmpDir",
+            "type": "string",
+            "default": "/tmp"
+          },
+          {
+            "doc": "Directory to write to write files to. Log files will rotate above a specific file size. (hcon-key smrtflow.pacbiosystem.tmpDir)",
+            "name": "logDir",
+            "type": "string",
+            "default": "./"
+          }
+        ]
+      }
+    },
+    {
+      "name": "comment",
+      "doc": "Optional Comment for file JSON writers to use",
+      "type": ["string", "null"],
+      "default": null
+    }
+  ]
+}
