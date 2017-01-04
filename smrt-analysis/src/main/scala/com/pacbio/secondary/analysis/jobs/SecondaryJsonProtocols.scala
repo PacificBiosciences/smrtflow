@@ -1,6 +1,6 @@
 package com.pacbio.secondary.analysis.jobs
 
-import java.net.URI
+import java.net.{URI, URL}
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
@@ -72,6 +72,15 @@ trait PathProtocols extends DefaultJsonProtocol {
     def read(v: JsValue): Path = v match {
       case JsString(s) => Paths.get(s)
       case _ => deserializationError("Expected Path as JsString")
+    }
+  }
+}
+trait UrlProtocol extends DefaultJsonProtocol {
+  implicit object UrlFormat extends RootJsonFormat[URL] {
+    def write(u: URL): JsValue = JsString(u.toString)
+    def read(v: JsValue): URL = v match {
+      case JsString(sx) => new URL(sx)
+      case _ => deserializationError("Expected URL as JsString")
     }
   }
 }
