@@ -316,7 +316,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val pipelineIntOptionFormat = jsonFormat4(PipelineIntOption)
   implicit val pipelineStrOptionFormat = jsonFormat4(PipelineStrOption)
 
-  implicit val pipelineOptionViewRule = jsonFormat2(PipelineOptionViewRule)
+  implicit val pipelineOptionViewRule = jsonFormat3(PipelineOptionViewRule)
   implicit val pipelineTemplateViewRule = jsonFormat4(PipelineTemplateViewRule)
 
   // Job Options

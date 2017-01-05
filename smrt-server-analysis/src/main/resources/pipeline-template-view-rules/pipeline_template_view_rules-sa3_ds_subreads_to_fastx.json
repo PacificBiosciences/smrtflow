@@ -3,6 +3,6 @@
   "name": "Convert BAM to FASTX",
   "description": "Override Description",
   "taskOptions": [
-    {"id": "pbsmrtpipe.task_options.min_subread_length", "hidden": false}
+    {"id": "pbsmrtpipe.task_options.min_subread_length", "hidden": false, "advanced": false}
   ]
 }

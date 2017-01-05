@@ -3,6 +3,6 @@
   "name": "Override Pipeline Display Name",
   "description": "Override Description",
   "taskOptions": [
-    {"id": "pblaa.task_options.min_length",        "hidden": false}
+    {"id": "pblaa.task_options.min_length",        "hidden": false, "advanced": false}
   ]
 }
