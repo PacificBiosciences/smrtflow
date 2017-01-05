@@ -68,7 +68,6 @@ object PbServiceParser {
 
   val VERSION = "0.1.0"
   var TOOL_ID = "pbscala.tools.pbservice"
-  private val MAX_FASTA_SIZE = 100.0 // megabytes
 
   private def getSizeMb(fileObj: File): Double = {
     fileObj.length / 1024.0 / 1024.0
@@ -192,12 +191,6 @@ object PbServiceParser {
     } children(
       arg[File]("fasta-path") required() action { (p, c) =>
         c.copy(path = p.toPath)
-      } validate { p => {
-        val size = getSizeMb(p)
-        // it's great that we can do this, but it would be more awesome if
-        // scopt didn't have to print the --help output after it
-        if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
-        }
       } text "FASTA path",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
