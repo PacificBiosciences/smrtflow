@@ -16,6 +16,7 @@ import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
+import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
@@ -32,6 +33,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 class ImportFastaServiceType(
     dbActor: ActorRef,
     authenticator: Authenticator,
+    pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
     serviceStatusHost: String,
     port: Int,
     smrtLinkVersion: Option[String],
@@ -74,7 +76,7 @@ class ImportFastaServiceType(
 
     // FIXME. this should be Option[Path] or Option[Map[String, String]]
     val envPath = ""
-    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, Seq.empty[PipelineBaseOption], envPath, serviceURI)
+    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, pbsmrtpipeEngineOptions.toPipelineOptions, envPath, serviceURI)
 
   }
 
@@ -137,7 +139,7 @@ trait ImportFastaServiceTypeProvider {
     with JobManagerServiceProvider =>
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
-    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
+    Singleton(() => new ImportFastaServiceType(jobsDaoActor(), authenticator(), pbsmrtpipeEngineOptions(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port(), smrtLinkVersion(), smrtLinkToolsVersion()))
       .bindToSet(JobTypes)
 }
