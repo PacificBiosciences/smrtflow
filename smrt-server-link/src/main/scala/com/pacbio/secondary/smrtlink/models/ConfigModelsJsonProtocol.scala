@@ -9,6 +9,10 @@ import ConfigModels._
   *
   * There's an annoying bug in Avro that doesn't support union types in JSON as expected
   *
+  * https://issues.apache.org/jira/browse/AVRO-1582
+  *
+  * http://stackoverflow.com/questions/27485580/how-to-fix-expected-start-union-got-value-number-int-when-converting-json-to-av
+  *
   * From the commandline, you should be able to validate JSON with this avro-tools 1.8.1
   *
   * avro-tools fromjson --schema-file my-schema.avsc config.json
