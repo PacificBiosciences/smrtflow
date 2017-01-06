@@ -1,7 +1,7 @@
 machine:
   environment:
     SBT_OPTS: "-Xms512M -Xmx1536M -Xss1M -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=256M"
-    SMRTFLOW_TEST_DB_PORT: 5432
+    SMRTFLOW_TEST_DB_PORT: 5433
   timezone: UTC
   java:
     version: oraclejdk8
@@ -32,7 +32,7 @@ test:
   pre:
     - psql --version
     - sbt sbt-version
-    - psql --echo-all -v ON_ERROR_STOP=1 -p 5432 --username=postgres -w -f extras/test-db-init.sql
+    - psql --echo-all -v ON_ERROR_STOP=1 -p 5433 --username=postgres -w -f extras/test-db-init.sql
   override:
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-server-logging/test
     - env PB_TEST_DATA_FILES="`pbdata path`" sbt smrt-common-models/test
