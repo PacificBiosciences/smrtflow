@@ -57,6 +57,22 @@ object AnalysisJobStates {
 
 }
 
+// mirrors pbcommand.models.common.TaskOptionTypes
+object OptionTypes {
+  sealed trait OptionType {
+    val optionTypeId: String
+  }
+  private def toI(sx: String) = s"pbsmrtpipe.option_types.$sx"
+
+  case object STR extends OptionType { val optionTypeId = toI("string") }
+  case object INT extends OptionType { val optionTypeId = toI("integer") }
+  case object FLOAT extends OptionType { val optionTypeId = toI("float") }
+  case object BOOL extends OptionType { val optionTypeId = toI("boolean") }
+  case object CHOICE extends OptionType { val optionTypeId = toI("choice_str") }
+  case object CHOICE_INT extends OptionType { val optionTypeId = toI("choice_int") }
+  case object CHOICE_FLOAT extends OptionType { val optionTypeId = toI("choice_float") }
+}
+
 object JobModels {
 
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
@@ -215,14 +231,16 @@ object JobModels {
   // Used in pipeline Templates. Name is the display name
   case class EntryPoint(entryId: String, fileTypeId: String, name: String)
 
+
   trait PipelineBaseOption {
     type In
     val id: String
     val name: String
     val value: In
     val description: String
+    val pbOption: OptionTypes.OptionType
 
-    def pbOptionId: String // PacBio Option type
+    def pbOptionId: String = pbOption.optionTypeId // PacBio Option type
   }
 
   trait PipelineIntOptionBase extends PipelineBaseOption {
@@ -241,25 +259,33 @@ object JobModels {
     type In = Boolean
   }
 
-  //The option types are currently defined in pbsmrtpipe.contants which should
-  // be migrated to pbcommand
-  private def toI(sx: String) = s"pbsmrtpipe.option_types.$sx"
-
   case class PipelineStrOption(id: String, name: String, value: String, description: String) extends PipelineStrOptionBase {
-    def pbOptionId = toI("string")
+    val pbOption = OptionTypes.STR
   }
 
 
   case class PipelineIntOption(id: String, name: String, value: Int, description: String) extends PipelineIntOptionBase {
-    def pbOptionId = toI("integer")
+    val pbOption = OptionTypes.INT
   }
 
   case class PipelineDoubleOption(id: String, name: String, value: Double, description: String) extends PipelineDoubleOptionBase {
-    def pbOptionId = toI("float")
+    val pbOption = OptionTypes.FLOAT
   }
 
   case class PipelineBooleanOption(id: String, name: String, value: Boolean, description: String) extends PipelineBooleanOptionBase {
-    def pbOptionId = toI("boolean")
+    val pbOption = OptionTypes.BOOL
+  }
+
+  case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase {
+    val pbOption = OptionTypes.CHOICE
+  }
+
+  case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase {
+    val pbOption = OptionTypes.CHOICE_INT
+  }
+
+  case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase {
+    val pbOption = OptionTypes.CHOICE_FLOAT
   }
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe

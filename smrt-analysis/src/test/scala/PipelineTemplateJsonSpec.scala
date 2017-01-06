@@ -1,9 +1,12 @@
 import java.nio.file.Paths
-import com.pacbio.secondary.analysis.pipelines.JsonPipelineTemplatesLoader
+
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
 import spray.json._
+
+import com.pacbio.secondary.analysis.pipelines.JsonPipelineTemplatesLoader
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
 
 /**
@@ -25,6 +28,9 @@ class PipelineTemplateJsonSpec extends Specification with SecondaryJobJsonProtoc
       logger.info(s"Pipeline template $pipelineTemplate")
 
       pipelineTemplate.id.toString mustEqual "pbsmrtpipe.pipelines.sa3_ds_resequencing_fat"
+      val j = pipelineTemplate.toJson
+      val ptFromJson = j.convertTo[PipelineTemplate]
+      ptFromJson.id.toString mustEqual pipelineTemplate.id.toString
     }
     "Load json templates from dir" in {
       val name = "pipeline-templates"
