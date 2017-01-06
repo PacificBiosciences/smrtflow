@@ -485,6 +485,8 @@ def build_smrtlink_services_ui(version,
 
     t0 = time.time()
     log.info("Building SMRT Link UI from {}".format(smrtlink_ui_dir))
+    local("npm --version")
+    local("node --version")
     with lcd(smrtlink_ui_dir):
         local("npm run build -- --production")
     log.info("Completed building UI in {:.2f} sec".format(time.time() - t0))
