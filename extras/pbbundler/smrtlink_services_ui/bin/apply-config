@@ -21,7 +21,7 @@ import traceback
 import argparse
 
 __author__ = "M. Kocher"
-__version__ = '0.6.0'
+__version__ = '0.7.1'
 
 
 log = logging.getLogger(__name__)
@@ -29,37 +29,19 @@ log = logging.getLogger(__name__)
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _TOMCAT_VERSION = "apache-tomcat-8.0.26"
 _BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'config.json')
-_SERVICES_JVM_ARGS = os.path.join(_BUNDLE_ROOT, "services-jvm-args")
-_SERVICES_ARGS = os.path.join(_BUNDLE_ROOT, "services-args")
 _TOMCAT_ENV = os.path.join(_BUNDLE_ROOT, _TOMCAT_VERSION, "bin", "setenv.sh")
 _SERVICES_LOG_LEVEL = "INFO"
+# Note, changes here, will require changes in bin/start
+_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'smrtlink-system-config.json')
+_SERVICES_JVM_ARGS = os.path.join(_BUNDLE_ROOT, "services-jvm-args")
+_SERVICES_ARGS = os.path.join(_BUNDLE_ROOT, "services-log-args")
 
 # These are Internal
-_PROD_CONF = os.path.join(_BUNDLE_ROOT, 'prod.conf')
 _TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
-
-# Template to generate the smrtflow db application.conf string
-_DB_APP_CONFIG_TEMPLATE = """
-smrtflow {
-  // Core SMRT Link DB
-  db {
-    dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
-    properties = {
-      databaseName = ${db_name}
-      user = ${user}
-      password = ${password}
-      portNumber = ${port}
-      serverName = ${host}
-    }
-    numThreads = 10
-  }
-}
-"""
 
 
 class InvalidConfigOptionResource(IOError):
-    """Resource that are not found"""
+    """Resource that are not found, or invalid values"""
     pass
 
 
@@ -68,55 +50,10 @@ def get_parser():
                                 description=__doc__,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     f = p.add_argument
-    f('--config-json', default=_CONFIG_JSON, help="Path to Config.json")
-    f('--debug', action='store_true', default=False, help="Enable DEBUG logging")
-    f('--validate-only', action='store_true', default=False, help="Validate the config.json")
+    f('--config-json', default=_CONFIG_JSON, help="Path to SMRT Link System Config HOCON JSON file")
+    f('--debug', action='store_true', default=False, help="Enable DEBUG logging.")
+    f('--validate-only', action='store_true', default=False, help="Validate the SMRT Link System Config HOCON JSON file")
     return p
-
-
-class ConfigConstants(object):
-    """Constants used in config.json"""
-
-    # SMRT Link Services System config
-    # host address to bind to
-    HOST = "HOST"
-    # Tomcat web server Address Port for the UI static files
-    PORT = "PB_SERVICES_PORT"
-
-    ENABLE_HTTPS = "ENABLE_HTTPS"
-    # SMRT Link Analysis Services PORT
-    ANALYSIS_PORT = "PB_SERVICES_ANALYSIS_PORT"
-    PB_LOG_DIR = "PB_LOG_DIR"
-
-    # Option[Path] to pacbio-manifest.json File
-    PB_MANIFEST_FILE = "PB_MANIFEST_FILE"
-
-    # Event Server URL Option[URL]
-    PB_SERVICES_EVENT_URL = "PB_SERVICES_EVENT_URL"
-
-    # Tech Support Server URL Option[URL]
-    PB_TECH_SUPPORT_URL = "PB_TECH_SUPPORT_URL"
-
-    # SMRTFLOW Database
-    SMRTFLOW_DB_NAME = "SMRTFLOW_DB_NAME"
-    SMRTFLOW_DB_USER = "SMRTFLOW_DB_USER"
-    SMRTFLOW_DB_PASSWORD = "SMRTFLOW_DB_PASSWORD"
-    SMRTFLOW_DB_PORT = "SMRTFLOW_DB_PORT"
-    SMRTFLOW_DB_HOST = "SMRTFLOW_DB_HOST"
-
-    # SMRTFLOW Engine
-    PB_SMRTPIPE_PRESET = "PB_SMRTPIPE_PRESET_XML"
-    PB_SERVICES_NWORKERS = "PB_SERVICES_NWORKERS"
-    PB_JOB_ROOT = "PB_JOB_ROOT"
-    PB_TMP_DIR = "PB_TMP_DIR"
-
-    # Memory, in MB
-    PB_SERVICES_ANALYSIS_MEM_MAX = "PB_SERVICES_ANALYSIS_MEM_MAX"
-    PB_SERVICES_ANALYSIS_MEM_MIN = "PB_SERVICES_ANALYSIS_MEM_MIN"
-    PB_SERVICES_MEM = "PB_SERVICES_MEM"
-
-    # SMRT VIEW PORT
-    PB_SMRT_VIEW_PORT = "PB_SMRT_VIEW_PORT"
 
 
 class SystemConfig(object):
@@ -213,58 +150,59 @@ class SystemConfig(object):
 
     @staticmethod
     def from_dict(d):
-        enable_https = d.get(ConfigConstants.ENABLE_HTTPS, SystemConfig.ENABLE_HTTPS)
-        default_port = SystemConfig.HTTPS_PORT if enable_https else SystemConfig.PORT
-        f = d.get
-        return SystemConfig(d[ConfigConstants.HOST],
-                            f(ConfigConstants.PORT, default_port),
-                            f(ConfigConstants.ANALYSIS_PORT, SystemConfig.ANALYSIS_PORT),
-                            enable_https,
-                            f(ConfigConstants.PB_SMRTPIPE_PRESET, SystemConfig.PB_SMRTPIPE_PRESET_XML),
-                            f(ConfigConstants.PB_SERVICES_NWORKERS, SystemConfig.PB_SERVICES_NWORKERS),
-                            f(ConfigConstants.PB_TMP_DIR, SystemConfig.PB_TMP_DIR),
-                            f(ConfigConstants.PB_LOG_DIR, SystemConfig.PB_LOG_DIR),
-                            f(ConfigConstants.PB_JOB_ROOT, SystemConfig.PB_JOB_ROOT),
-                            f(ConfigConstants.PB_SMRT_VIEW_PORT, SystemConfig.PB_SMRT_VIEW_PORT),
-                            f(ConfigConstants.SMRTFLOW_DB_HOST, SystemConfig.SMRTFLOW_DB_HOST),
-                            f(ConfigConstants.SMRTFLOW_DB_PORT, SystemConfig.SMRTFLOW_DB_PORT),
-                            f(ConfigConstants.SMRTFLOW_DB_NAME, SystemConfig.SMRTFLOW_DB_NAME),
-                            f(ConfigConstants.SMRTFLOW_DB_USER, SystemConfig.SMRTFLOW_DB_USER),
-                            f(ConfigConstants.SMRTFLOW_DB_PASSWORD, SystemConfig.SMRTFLOW_DB_PASSWORD),
-                            f(ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MAX, SystemConfig.PB_SERVICES_ANALYSIS_MEM_MAX),
-                            f(ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MIN, SystemConfig.PB_SERVICES_ANALYSIS_MEM_MIN),
-                            f(ConfigConstants.PB_SERVICES_MEM, SystemConfig.PB_SERVICES_MEM),
-                            f(ConfigConstants.PB_MANIFEST_FILE, SystemConfig.PB_MANIFEST_FILE),
-                            f(ConfigConstants.PB_SERVICES_EVENT_URL, SystemConfig.PB_SERVICES_EVENT_URL),
-                            f(ConfigConstants.PB_TECH_SUPPORT_URL, SystemConfig.PB_TECH_SUPPORT_URL))
+
+        smrtflow = d['smrtflow']
+        server = smrtflow['server']
+        engine = smrtflow['engine']
+        dbp = smrtflow['db']['properties']
+        pb = d['pacBioSystem']
+
+        dns_name = server['dnsName']
+        sl_port = server['port']
+        event_url = server['eventUrl']
+        manifest_file = server['manifestFile']
+
+        max_workers = engine['maxWorkers']
+        job_root = engine['jobRootDir']
+        pbsmrtpipe_preset_xml = engine['pbsmrtpipePresetXml']
+
+        db_name = dbp['databaseName']
+        db_user = dbp['user']
+        db_password = dbp['password']
+        db_port = dbp['portNumber']
+        db_host = dbp['serverName']
+
+        tomcat_port = pb['tomcatPort']
+        tomcat_memory = pb['tomcatMemory']
+        sl_min_memory = pb['smrtLinkServerMemoryMin']
+        sl_max_memory = pb['smrtLinkServerMemoryMax']
+        smrtview_port = pb['smrtViewPort']
+        tmp_dir = pb['tmpDir']
+        log_dir = pb['logDir']
+
+        # FIXME
+        enable_https = False
+
+        return SystemConfig(dns_name, tomcat_port, sl_port, enable_https, pbsmrtpipe_preset_xml, max_workers, tmp_dir,
+                            log_dir, job_root, smrtview_port, db_host, db_port, db_name, db_user, db_password,
+                            sl_max_memory, sl_min_memory, tomcat_memory, manifest_file, event_url, event_url)
 
     def to_dict(self):
         _comment = "Config writer v{v}. Updated at {d}"\
             .format(d=datetime.datetime.now(), v=__version__)
 
-        _d = {ConfigConstants.HOST: self.host,
-              ConfigConstants.PORT: self.port,
-              ConfigConstants.ANALYSIS_PORT: self.analysis_port,
-              ConfigConstants.ENABLE_HTTPS: self.enable_https,
-              ConfigConstants.PB_SMRTPIPE_PRESET: self.pb_pbsmrtipe_preset_xml,
-              ConfigConstants.PB_SERVICES_NWORKERS: self.service_nworkers,
-              ConfigConstants.PB_TMP_DIR: self.tmp_dir,
-              ConfigConstants.PB_LOG_DIR: self.log_dir,
-              ConfigConstants.PB_JOB_ROOT: self.job_root,
-              ConfigConstants.SMRTFLOW_DB_HOST: self.db_host,
-              ConfigConstants.SMRTFLOW_DB_PORT: self.db_port,
-              ConfigConstants.SMRTFLOW_DB_NAME: self.db_name,
-              ConfigConstants.SMRTFLOW_DB_USER: self.db_user,
-              ConfigConstants.SMRTFLOW_DB_PASSWORD: self.db_password,
-              ConfigConstants.PB_SMRT_VIEW_PORT: self.pb_smrt_view_port,
-              ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MAX: self.pb_services_analysis_mem_max,
-              ConfigConstants.PB_SERVICES_ANALYSIS_MEM_MIN: self.pb_services_analysis_mem_min,
-              ConfigConstants.PB_SERVICES_MEM: self.pb_services_mem,
-              ConfigConstants.PB_MANIFEST_FILE: self.pb_manifest_file,
-              ConfigConstants.PB_SERVICES_EVENT_URL: self.pbservices_event_url,
-              ConfigConstants.PB_TECH_SUPPORT_URL: self.pb_tech_support_url,
-              "_comment": _comment}
-        return _d
+        server = dict(dnsName=self.host, manifestFile=self.pb_manifest_file, eventUrl=self.pbservices_event_url, port=self.analysis_port)
+        engine = dict(maxWorkers=self.service_nworkers, jobRootDir=self.job_root, pbsmrtpipePresetXml=self.pb_pbsmrtipe_preset_xml)
+        dbp = dict(databaseName=self.db_name, user=self.db_user, password=self.db_password, portNumber=self.db_port, serverName=self.db_host)
+        db = dict(properties=dbp)
+        pb = dict(tomcatPort=self.port, tomcatMemory=self.pb_services_mem,
+                  smrtLinkServerMemoryMin=self.pb_services_analysis_mem_min,
+                  smrtLinkServerMemoryMax=self.pb_services_analysis_mem_max,
+                  smrtViewPort=self.pb_smrt_view_port, tmpDir=self.tmp_dir, logDir=self.log_dir)
+
+        smrtflow = dict(server=server, engine=engine, db=db)
+
+        return dict(smrtflow=smrtflow, pacBioSystem=pb, comment=_comment)
 
 
 class ConstantsTemplateVars(object):
@@ -308,7 +246,7 @@ def render_template(sx, **kwargs):
 
 
 def load_system_config(path):
-    log.info("Loading config from {p}".format(p=path))
+    log.info("Loading config from HOCON json file {p}".format(p=path))
 
     with open(path, 'r') as f:
         d = json.loads(f.read())
@@ -319,12 +257,10 @@ def load_system_config(path):
     return SystemConfig.from_dict(d)
 
 
-def update_system_config(system_config, output_path, comment=None):
-    log.info("attempting to update {c} to {d}".format(d=system_config, c=output_path))
+def write_system_config(system_config, output_path):
+    log.info("attempting to write SL System config {c} to {d}".format(d=system_config, c=output_path))
     _chmod_config(output_path)
     _d = system_config.to_dict()
-    if comment is not None:
-        _d['_comment'] = comment
     with open(output_path, 'w') as f:
         f.write(json.dumps(_d, indent=4, sort_keys=True))
     log.info("successfully updated {d}".format(d=output_path))
@@ -379,73 +315,6 @@ def update_multiple_and_write(template_name, template_updates, output_file):
         w.write(s)
     for var, value in template_updates.iteritems():
         log.debug("Updated {k}={v} in {o}".format(k=var, v=value, o=output_file))
-    return s
-
-
-def _to_db_application_config(host, port, db_name, user, password):
-    _d = dict(host=host, port=port, db_name=db_name, password=password, user=user)
-    return render_template(_DB_APP_CONFIG_TEMPLATE, **_d)
-
-
-def _to_application_conf(c):
-    """Convert scala application.conf config format
-
-    :type c: SystemConfig
-    """
-    outs = []
-    _to_application_conf.ind = 0
-
-    def line(s):
-        outs.append("  " * _to_application_conf.ind + s)
-
-    def head(label):
-        line(label + " {")
-        _to_application_conf.ind += 1
-
-    def tail():
-        _to_application_conf.ind -= 1
-        line("}")
-
-    def out(key, value, wrap_quotes=False, lower=False):
-        pair = "{k} = \"{v}\"" if wrap_quotes else "{k} = {v}"
-        val = str.lower(str(value)) if lower else str(value)
-        line(pair.format(k=key, v=val))
-
-    def out_if_not_none(key, value, wrap_quotes=False, lower=False):
-        if value is not None:
-            log.debug("Setting {k} -> {v}".format(k=key, v=value))
-            out(key, value, wrap_quotes, lower)
-        else:
-            log.warn("Skipping setting {k} (Using default)".format(k=key))
-
-    # include application.conf from the jar
-    line("include classpath(\"application.conf\")")
-    
-    head("smrtflow.server")
-    out("port", c.analysis_port)
-    # this path might have ',' which will create problems
-    out_if_not_none("manifest-file", c.pb_manifest_file, wrap_quotes=True)
-    tail()
-
-    outs.append(_to_db_application_config(c.db_host, c.db_port, c.db_name, c.db_user, c.db_password))
-
-    head("smrtflow.engine")
-    # Don't pass the preset to the application.conf if the preset
-    # is None
-    out_if_not_none("pb-smrtpipe-preset-xml", c.pb_pbsmrtipe_preset_xml)
-    out_if_not_none("jobs-root", c.job_root)
-    out_if_not_none("max-workers", c.service_nworkers)
-    out_if_not_none("pb-tmp-dir", c.tmp_dir)
-    tail()
-
-    line("# written by config-writer v{v} on {d}".format(v=__version__, d=datetime.datetime.now()))
-    return "\n".join(outs) + "\n"
-
-
-def write_application_conf(output_file, c):
-    s = _to_application_conf(c)
-    with open(output_file, 'w') as w:
-        w.write(s)
     return s
 
 
@@ -536,7 +405,7 @@ def validate_system_config(sconf):
     :raises InvalidConfigOptionResource
 
     """
-    log.info("Validating Config:")
+    log.info("Validating SMRT Link System Config:")
     sconf.job_root = validate_dir(sconf.job_root, prefix_msg="Invalid Job Root")
     sconf.pb_pbsmrtipe_preset_xml = validate_file(sconf.pb_pbsmrtipe_preset_xml, prefix_msg="Invalid pbsmrtpipe preset.xml")
     sconf.tmp_dir = validate_dir(sconf.tmp_dir, prefix_msg="Invalid tmp dir")
@@ -578,15 +447,11 @@ def main(argv=sys.argv[1:]):
         if args.validate_only:
             return 0
 
-        # This assumes the services are launched from the same system,
-        # the host in the config is for other tools to know which host
-        if c.host is None:
-            c.host = socket.getfqdn()
-            log.info("Null host detected. Setting host to FQDN {h}".format(h=c.host))
-            log.info("Updating HOST in config.json")
-            update_system_config(c, _CONFIG_JSON)
+        host = c.host
 
-        write_application_conf(_PROD_CONF, c)
+        if c.host is None:
+            host = socket.getfqdn()
+            log.warn("Null host detected. using FQDN {h} for host".format(h=host))
 
         write_services_jvm_args(c.pb_services_analysis_mem_max,
                                 c.pb_services_analysis_mem_min)
@@ -594,7 +459,7 @@ def main(argv=sys.argv[1:]):
         write_services_args(c.log_dir)
 
         wso2_https_port = 8243
-        update_server_path_in_ui(c.host,
+        update_server_path_in_ui(host,
                                  wso2_https_port,
                                  c.pb_smrt_view_port,
                                  c.pbservices_event_url,
@@ -607,11 +472,11 @@ def main(argv=sys.argv[1:]):
         rcode = 0
 
     except InvalidConfigOptionResource as ex:
-        sys.stderr.write("Invalid config.json. {e}".format(e=ex))
+        sys.stderr.write("Invalid SL System config {c}. {e}".format(e=ex, c=config_json))
         traceback.print_exc(file=sys.stderr)
         rcode = 2
     except Exception as ex:
-        sys.stderr.write("Invalid config.json. Unhandled exception {e}".format(e=ex))
+        sys.stderr.write("Invalid SL System config {c}. Unhandled exception {e}".format(e=ex, c=config_json))
         traceback.print_exc(file=sys.stderr)
         rcode = 1
 
