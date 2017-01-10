@@ -102,4 +102,18 @@ trait ClientUtils {
     table.foreach(row => println(mkline(row).mkString(" ")))
     0
   }
+
+  def getPipelineServiceOptions(taskOpts: Seq[PipelineBaseOption]): Seq[ServiceTaskOptionBase] = {
+    taskOpts.map {
+      t => t match {
+        case o: PipelineStrOption => ServiceTaskStrOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineIntOption => ServiceTaskIntOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineDoubleOption => ServiceTaskDoubleOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineBooleanOption => ServiceTaskBooleanOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineChoiceStrOption => ServiceTaskStrOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineChoiceIntOption => ServiceTaskIntOption(o.id, o.value, o.pbOptionId)
+        case o: PipelineChoiceDoubleOption => ServiceTaskDoubleOption(o.id, o.value, o.pbOptionId)
+      }
+    }.toList
+  }
 }
