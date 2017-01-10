@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Paths, Path}
 
 import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.jobs.OptionTypes
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
 import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
@@ -16,6 +17,8 @@ import java.util.UUID
 trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
 
   implicit object ServiceTaskOptionFormat extends RootJsonFormat[ServiceTaskOptionBase] {
+
+    import OptionTypes._
 
     def write(p: ServiceTaskOptionBase): JsObject = {
 
@@ -40,14 +43,15 @@ trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
       value.asJsObject.getFields("optionId", "value", "optionTypeId") match {
         case Seq(JsString(id), JsNumber(value_), JsString(optionTypeId)) =>
           optionTypeId match {
-            case "pbsmrtpipe.option_types.integer" =>  ServiceTaskIntOption(id, value_.toInt, optionTypeId)
-            case "pbsmrtpipe.option_types.double" =>  ServiceTaskDoubleOption(id, value_.toDouble, optionTypeId)
-            case "pbsmrtpipe.option_types.float" =>  ServiceTaskFloatOption(id, value_.toFloat, optionTypeId)
+            case INT.optionTypeId => ServiceTaskIntOption(id, value_.toInt, optionTypeId)
+            case FLOAT.optionTypeId => ServiceTaskDoubleOption(id, value_.toDouble, optionTypeId)
+            case CHOICE_INT.optionTypeId => ServiceTaskIntOption(id, value_.toInt, optionTypeId)
+            case CHOICE_FLOAT.optionTypeId => ServiceTaskDoubleOption(id, value_.toDouble, optionTypeId)
             case x => deserializationError(s"Unknown number type '$x'")
           }
-        case Seq(JsString(id), JsBoolean(value_), JsString(optionTypeId)) => ServiceTaskBooleanOption(id, value_, optionTypeId)
-        case Seq(JsString(id), JsString(value_), JsString(optionTypeId)) => ServiceTaskStrOption(id, value_, optionTypeId)
-        case _ => deserializationError("Expected Task Option")
+        case Seq(JsString(id), JsBoolean(value_), JsString(BOOL.optionTypeId)) => ServiceTaskBooleanOption(id, value_, BOOL.optionTypeId)
+        case Seq(JsString(id), JsString(value_), JsString(STR.optionTypeId)) => ServiceTaskStrOption(id, value_, STR.optionTypeId)
+        case x => deserializationError(s"Expected Task Option, got $x")
       }
     }
   }

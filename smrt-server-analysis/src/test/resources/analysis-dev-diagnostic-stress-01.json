@@ -14,7 +14,7 @@
     {
       "optionId": "pbsmrtpipe.task_options.dev_sleep_time_sec",
       "value": 5,
-      "optionTypeId":"pbsmrtpipe.option_types.integer"
+      "optionTypeId":"integer"
     }
   ],
   "workflowOptions": []

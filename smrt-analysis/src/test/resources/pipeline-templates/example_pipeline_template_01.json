@@ -35,28 +35,28 @@
       "id": "pbsmrtpipe.task_options.alpha",
       "name": "String Option",
       "default": "123456",
-      "optionTypeId": "pbsmrtpipe.option_types.string",
+      "optionTypeId": "string",
       "description": "My Value"
     },
     {
       "id": "pbsmrtpipe.task_options.beta",
       "name": "Boolean Option",
       "default": true,
-      "optionTypeId": "pbsmrtpipe.option_types.boolean",
+      "optionTypeId": "boolean",
       "description": "My Value"
     },
     {
       "id": "pbsmrtpipe.task_options.gamma",
       "name": "Int Option",
       "default": 123456,
-      "optionTypeId": "pbsmrtpipe.option_types.integer",
+      "optionTypeId": "integer",
       "description": "My Value"
     },
     {
       "id": "pbsmrtpipe.task_options.delta",
       "name": "Float Option",
       "default": 1234.56,
-      "optionTypeId": "pbsmrtpipe.option_types.float",
+      "optionTypeId": "float",
       "description": "My Value"
     },
     {
@@ -64,7 +64,7 @@
       "name": "String Choice Option",
       "default": "A",
       "choices": ["A", "B", "C"],
-      "optionTypeId": "pbsmrtpipe.option_types.choice_string",
+      "optionTypeId": "choice_string",
       "description": "My Value"
     },
     {
@@ -72,7 +72,7 @@
       "name": "Int Choice Option",
       "default": 2,
       "choices": [1,2,3],
-      "optionTypeId": "pbsmrtpipe.option_types.choice_integer",
+      "optionTypeId": "choice_integer",
       "description": "My Value"
     },
     {
@@ -80,7 +80,7 @@
       "name": "Float Choice Option",
       "default": 0.1,
       "choices": [0.01, 0.1, 1.0],
-      "optionTypeId": "pbsmrtpipe.option_types.choice_float",
+      "optionTypeId": "choice_float",
       "description": "My Value"
     }
   ],
@@ -89,7 +89,7 @@
       "id": "max_nchunks",
       "name": "Max #Chunks",
       "default": 7,
-      "optionTypeId": "pbsmrtpipe.option_types.integer",
+      "optionTypeId": "integer",
       "description": "Max Number of Chunks"
     }
   ]

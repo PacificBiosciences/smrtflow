@@ -172,27 +172,27 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
 
     def read(value: JsValue): PipelineBaseOption = {
       value.asJsObject.getFields("id", "name", "default", "description", "optionTypeId") match {
-        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString("pbsmrtpipe.option_types.string")) =>
+        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString(OptionTypes.STR.optionTypeId)) =>
           PipelineStrOption(id, name, default, description)
-        case Seq(JsString(id), JsString(name), JsBoolean(default), JsString(description), JsString("pbsmrtpipe.option_types.boolean")) =>
+        case Seq(JsString(id), JsString(name), JsBoolean(default), JsString(description), JsString(OptionTypes.BOOL.optionTypeId)) =>
           PipelineBooleanOption(id, name, default, description)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.integer")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.INT.optionTypeId)) =>
           PipelineIntOption(id, name, default.toInt, description)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.float")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.FLOAT.optionTypeId)) =>
           PipelineDoubleOption(id, name, default.toDouble, description)
-        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString("pbsmrtpipe.option_types.choice_string")) =>
+        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString(OptionTypes.CHOICE.optionTypeId)) =>
           val choices = value.asJsObject.getFields("choices") match {
             case Seq(JsArray(jsChoices)) => jsChoices.map(_.convertTo[String]).toList
             case x => deserializationError(s"Expected list of choices for $id, got $x")
           }
           PipelineChoiceStrOption(id, name, default, description, choices)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.choice_integer")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.CHOICE_INT.optionTypeId)) =>
           val choices = value.asJsObject.getFields("choices") match {
             case Seq(jsChoices) => jsChoices.convertTo[Seq[Int]]
             case x => deserializationError(s"Expected list of choices for $id, got $x")
           }
           PipelineChoiceIntOption(id, name, default.toInt, description, choices)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.choice_float")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.CHOICE_FLOAT.optionTypeId)) =>
           val choices = value.asJsObject.getFields("choices") match {
             case Seq(jsChoices) => jsChoices.convertTo[Seq[Double]]
             case x => deserializationError(s"Expected list of choices for $id, got $x")

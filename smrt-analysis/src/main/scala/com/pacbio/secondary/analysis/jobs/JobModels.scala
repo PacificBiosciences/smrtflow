@@ -62,15 +62,14 @@ object OptionTypes {
   sealed trait OptionType {
     val optionTypeId: String
   }
-  private def toI(sx: String) = s"pbsmrtpipe.option_types.$sx"
 
-  case object STR extends OptionType { val optionTypeId = toI("string") }
-  case object INT extends OptionType { val optionTypeId = toI("integer") }
-  case object FLOAT extends OptionType { val optionTypeId = toI("float") }
-  case object BOOL extends OptionType { val optionTypeId = toI("boolean") }
-  case object CHOICE extends OptionType { val optionTypeId = toI("choice_string") }
-  case object CHOICE_INT extends OptionType { val optionTypeId = toI("choice_integer") }
-  case object CHOICE_FLOAT extends OptionType { val optionTypeId = toI("choice_float") }
+  case object STR extends OptionType { val optionTypeId = "string" }
+  case object INT extends OptionType { val optionTypeId = "integer" }
+  case object FLOAT extends OptionType { val optionTypeId = "float" }
+  case object BOOL extends OptionType { val optionTypeId = "boolean" }
+  case object CHOICE extends OptionType { val optionTypeId = "choice_string" }
+  case object CHOICE_INT extends OptionType { val optionTypeId = "choice_integer" }
+  case object CHOICE_FLOAT extends OptionType { val optionTypeId = "choice_float" }
 }
 
 object JobModels {
