@@ -637,14 +637,14 @@
             "description": "Option dev_diagnostic_strict description", 
             "id": "pbsmrtpipe.task_options.dev_diagnostic_strict", 
             "name": "Option dev_diagnostic_strict", 
-            "optionTypeId": "pbsmrtpipe.option_types.boolean"
+            "optionTypeId": "boolean"
         }, 
         {
             "default": 0, 
             "description": "Option dev_sleep_time_sec description", 
             "id": "pbsmrtpipe.task_options.dev_sleep_time_sec", 
             "name": "Option dev_sleep_time_sec", 
-            "optionTypeId": "pbsmrtpipe.option_types.integer"
+            "optionTypeId": "integer"
         }
     ], 
     "version": "0.1.0"

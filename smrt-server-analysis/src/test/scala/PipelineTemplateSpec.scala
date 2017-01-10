@@ -1,17 +1,24 @@
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtserver.services.{PipelineTemplateProvider, ResolvedPipelineTemplateServiceProvider}
+import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.{SecondaryJobJsonProtocol,SecondaryJobProtocols}
+
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
+import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.duration.FiniteDuration
 
 
 class PipelineTemplateSpec extends Specification
-with Specs2RouteTest
-with JobServiceConstants {
+    with Specs2RouteTest
+    with SecondaryJobJsonProtocol
+    with JobServiceConstants {
 
   sequential
+
+  //import SecondaryJobProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
@@ -32,16 +39,16 @@ with JobServiceConstants {
     "Get workflow Templates" in {
       Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-        //val pipelineTemplates = responseAs[List[PipelineTemplate]]
-        //pipelineTemplates.length must beGreaterThan(0)
+        val pipelineTemplates = responseAs[List[PipelineTemplate]]
+        pipelineTemplates.length must beGreaterThan(0)
         status.isSuccess must beTrue
       }
     }
     "Get Workflow template by id" in {
       Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix/$mockPipelineId") ~> totalRoutes ~> check {
-        //val status = responseAs[PipelineTemplate]
-        //status.id must beEqualTo(mockPipelineId)
         status.isSuccess must beTrue
+        val rpt = responseAs[PipelineTemplate]
+        rpt.id must beEqualTo(mockPipelineId)
       }
     }
     //    "Get Error from bad Workflow template by id" in {

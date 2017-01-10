@@ -30,7 +30,7 @@
             "description": "Option dev_diagnostic_strict description", 
             "id": "pbsmrtpipe.task_options.dev_diagnostic_strict", 
             "name": "Option dev_diagnostic_strict", 
-            "optionTypeId": "pbsmrtpipe.option_types.boolean"
+            "optionTypeId": "boolean"
         }
     ], 
     "version": "0.1.0"

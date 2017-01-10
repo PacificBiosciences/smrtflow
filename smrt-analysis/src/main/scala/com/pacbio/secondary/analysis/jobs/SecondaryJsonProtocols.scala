@@ -126,87 +126,94 @@ trait EngineJobProtocol
   }
 }
 
-trait PipelineTemplateJsonSchemaUtils {
-
-  private def toJ(opts: Seq[PipelineBaseOption]): JsObject = {
-    val options = opts map {
-      case p @ PipelineIntOption(id, name, value, description) => id -> JsObject("id" -> JsString(id), "title" -> JsString(name), "default" -> JsNumber(value), "description" -> JsString(description), "type" -> JsString("number"), "optionTypeId" -> JsString(p.pbOptionId))
-      case p @ PipelineDoubleOption(id, name, value, description) => id -> JsObject("id" -> JsString(id), "title" -> JsString(name), "default" -> JsNumber(value), "description" -> JsString(description), "type" -> JsString("number"), "optionTypeId" -> JsString(p.pbOptionId))
-      case p @ PipelineStrOption(id, name, value, description) => id -> JsObject("id" -> JsString(id), "title" -> JsString(name), "default" -> JsString(value), "description" -> JsString(description), "type" -> JsString("string"), "optionTypeId" -> JsString(p.pbOptionId))
-      case p @ PipelineBooleanOption(id, name, value, description) => id -> JsObject("id" -> JsString(id), "title" -> JsString(name), "default" -> JsBoolean(value), "description" -> JsString(description), "type" -> JsString("boolean"), "optionTypeId" -> JsString(p.pbOptionId))
-    }
-
-    if (options.isEmpty) {
-      JsObject()
-    } else {
-      val optionProperties = options.map { case (k, v) => k -> v }.toMap
-      JsObject(optionProperties)
-    }
-  }
-
-  def toSchema(options: Seq[PipelineBaseOption]): JsObject = {
-    val requiredOptions = JsArray(options.map(x => JsString(x.id)).toVector)
-    val optionProperties = toJ(options)
-    if (options.isEmpty) {
-      JsObject()
-    } else {
-      JsObject(
-        "$schema" -> JsString("http://json-schema.org/draft-04/schema#"),
-        "type" -> JsString("object"),
-        "properties" -> optionProperties,
-        "required" -> requiredOptions
-      )
-    }
-  }
-}
-
 trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
 
   implicit object PipelineTemplateOptionFormat extends RootJsonFormat[PipelineBaseOption] {
 
     def write(p: PipelineBaseOption): JsObject = {
 
-      val x = p match {
+      val default: JsValue = p match {
         case PipelineBooleanOption(_, _, v, _) => JsBoolean(v)
         case PipelineStrOption(_, _, v, _) => JsString(v)
         case PipelineIntOption(_, _, v, _) => JsNumber(v)
         case PipelineDoubleOption(_, _, v, _) => JsNumber(v)
+        case PipelineChoiceStrOption(_, _, v, _, c) => JsString(v)
+        case PipelineChoiceIntOption(_, _, v, _, c) => JsNumber(v)
+        case PipelineChoiceDoubleOption(_, _, v, _, c) => JsNumber(v)
       }
 
-      JsObject(
-      "id" -> JsString(p.id),
-      "name" -> JsString(p.name),
-      "value" -> x,
-      "description" -> JsString(p.description)
-      )
+      val choices: Option[Seq[JsValue]] = p match {
+        case PipelineChoiceStrOption(_, _, v, _, c) => Some(c.map(JsString(_)))
+        case PipelineChoiceIntOption(_, _, v, _, c) => Some(c.map(JsNumber(_)))
+        case PipelineChoiceDoubleOption(_, _, v, _, c) => Some(c.map(JsNumber(_)))
+        case _ => None
+      }
+
+      choices match {
+        case Some(choices_) =>
+          JsObject(
+            "id" -> JsString(p.id),
+            "name" -> JsString(p.name),
+            "default" -> default,
+            "description" -> JsString(p.description),
+            "optionTypeId" -> JsString(p.pbOptionId),
+            "choices" -> JsArray(choices_.toVector)
+          )
+        case None =>
+          JsObject(
+            "id" -> JsString(p.id),
+            "name" -> JsString(p.name),
+            "default" -> default,
+            "description" -> JsString(p.description),
+            "optionTypeId" -> JsString(p.pbOptionId)
+          )
+      }
     }
 
     def read(value: JsValue): PipelineBaseOption = {
       value.asJsObject.getFields("id", "name", "default", "description", "optionTypeId") match {
-        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString("pbsmrtpipe.option_types.string")) =>
+        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString(OptionTypes.STR.optionTypeId)) =>
           PipelineStrOption(id, name, default, description)
-        case Seq(JsString(id), JsString(name), JsBoolean(default), JsString(description), JsString("pbsmrtpipe.option_types.boolean")) =>
+        case Seq(JsString(id), JsString(name), JsBoolean(default), JsString(description), JsString(OptionTypes.BOOL.optionTypeId)) =>
           PipelineBooleanOption(id, name, default, description)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.integer")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.INT.optionTypeId)) =>
           PipelineIntOption(id, name, default.toInt, description)
-        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.float")) =>
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.FLOAT.optionTypeId)) =>
           PipelineDoubleOption(id, name, default.toDouble, description)
-        case _ => deserializationError("Expected PipelineOption")
+        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString(OptionTypes.CHOICE.optionTypeId)) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(JsArray(jsChoices)) => jsChoices.map(_.convertTo[String]).toList
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceStrOption(id, name, default, description, choices)
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.CHOICE_INT.optionTypeId)) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(jsChoices) => jsChoices.convertTo[Seq[Int]]
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceIntOption(id, name, default.toInt, description, choices)
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString(OptionTypes.CHOICE_FLOAT.optionTypeId)) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(jsChoices) => jsChoices.convertTo[Seq[Double]]
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceDoubleOption(id, name, default.toDouble, description, choices)
+        case x => deserializationError(s"Expected PipelineOption, got $x")
       }
     }
   }
 }
 
 
-trait PipelineTemplateJsonProtocol extends DefaultJsonProtocol with PipelineTemplateJsonSchemaUtils with PipelineTemplateOptionProtocol{
+trait PipelineTemplateJsonProtocol extends DefaultJsonProtocol with PipelineTemplateOptionProtocol {
 
   implicit object PipelineTemplateFormat extends RootJsonFormat[PipelineTemplate] {
     def write(p: PipelineTemplate): JsObject = {
 
       implicit val entryPointFormat = jsonFormat3(EntryPoint)
 
-      val jobOptsSchema = toSchema(p.options)
-      val taskOptsSchema = toSchema(p.taskOptions)
+      val jobOptsSchema = JsArray(p.options.map(_.toJson).toVector)
+      val taskOptsSchema = JsArray(p.taskOptions.map(_.toJson).toVector)
       val entryPoints = p.entryPoints.toJson
       val tags = p.tags.toJson
 
@@ -241,23 +248,17 @@ trait PipelineTemplateJsonProtocol extends DefaultJsonProtocol with PipelineTemp
 }
 
 
-trait PipelineTemplatePresetJsonProtocol extends DefaultJsonProtocol with PipelineTemplateJsonSchemaUtils {
+trait PipelineTemplatePresetJsonProtocol extends DefaultJsonProtocol with PipelineTemplateOptionProtocol {
 
   implicit object PipelineTemplatePresetFormat extends RootJsonFormat[PipelineTemplatePreset] {
-    def write(p: PipelineTemplatePreset): JsObject = {
-
-      val jobOptsSchema = toSchema(p.options)
-      val taskOptsScheam = toSchema(p.taskOptions)
-
-      JsObject(
+    def write(p: PipelineTemplatePreset): JsObject = JsObject(
         "title" -> JsString(s"Options for Pipeline Preset Template ${p.presetId}"),
         "id" -> JsString(p.presetId),
         "templateId" -> JsString(p.templateId),
         "name" -> JsString(s"Pipeline Preset name ${p.presetId}"),
-        "options" -> jobOptsSchema,
-        "taskOptions" -> taskOptsScheam
+        "options" -> JsArray(p.options.map(_.toJson).toVector),
+        "taskOptions" -> JsArray(p.taskOptions.map(_.toJson).toVector)
       )
-    }
 
     // This is wrong
     def read(value: JsValue) = {
@@ -311,10 +312,6 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val jobResultSuccesFormat = jsonFormat6(ResultSuccess)
   implicit val jobResultFailureFormat = jsonFormat6(ResultFailed)
   implicit val jobResultFormat = jsonFormat2(JobCompletedResult)
-
-  implicit val pipelineDoubleOptionFormat = jsonFormat4(PipelineDoubleOption)
-  implicit val pipelineIntOptionFormat = jsonFormat4(PipelineIntOption)
-  implicit val pipelineStrOptionFormat = jsonFormat4(PipelineStrOption)
 
   implicit val pipelineOptionViewRule = jsonFormat3(PipelineOptionViewRule)
   implicit val pipelineTemplateViewRule = jsonFormat4(PipelineTemplateViewRule)
