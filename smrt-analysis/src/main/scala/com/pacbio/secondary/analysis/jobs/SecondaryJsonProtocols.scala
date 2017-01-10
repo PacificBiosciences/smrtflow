@@ -132,23 +132,42 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
 
     def write(p: PipelineBaseOption): JsObject = {
 
-      val x = p match {
+      val default: JsValue = p match {
         case PipelineBooleanOption(_, _, v, _) => JsBoolean(v)
         case PipelineStrOption(_, _, v, _) => JsString(v)
         case PipelineIntOption(_, _, v, _) => JsNumber(v)
         case PipelineDoubleOption(_, _, v, _) => JsNumber(v)
-        case PipelineChoiceStrOption(_, _, v, _, _) => JsString(v)
-        case PipelineChoiceIntOption(_, _, v, _, _) => JsNumber(v)
-        case PipelineChoiceDoubleOption(_, _, v, _, _) => JsNumber(v)
+        case PipelineChoiceStrOption(_, _, v, _, c) => JsString(v)
+        case PipelineChoiceIntOption(_, _, v, _, c) => JsNumber(v)
+        case PipelineChoiceDoubleOption(_, _, v, _, c) => JsNumber(v)
       }
 
-      JsObject(
-        "id" -> JsString(p.id),
-        "name" -> JsString(p.name),
-        "default" -> x,
-        "description" -> JsString(p.description),
-        "optionTypeId" -> JsString(p.pbOptionId)
-      )
+      val choices: Option[Seq[JsValue]] = p match {
+        case PipelineChoiceStrOption(_, _, v, _, c) => Some(c.map(JsString(_)))
+        case PipelineChoiceIntOption(_, _, v, _, c) => Some(c.map(JsNumber(_)))
+        case PipelineChoiceDoubleOption(_, _, v, _, c) => Some(c.map(JsNumber(_)))
+        case _ => None
+      }
+
+      choices match {
+        case Some(choices_) =>
+          JsObject(
+            "id" -> JsString(p.id),
+            "name" -> JsString(p.name),
+            "default" -> default,
+            "description" -> JsString(p.description),
+            "optionTypeId" -> JsString(p.pbOptionId),
+            "choices" -> JsArray(choices_.toVector)
+          )
+        case None =>
+          JsObject(
+            "id" -> JsString(p.id),
+            "name" -> JsString(p.name),
+            "default" -> default,
+            "description" -> JsString(p.description),
+            "optionTypeId" -> JsString(p.pbOptionId)
+          )
+      }
     }
 
     def read(value: JsValue): PipelineBaseOption = {
@@ -161,7 +180,25 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
           PipelineIntOption(id, name, default.toInt, description)
         case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.float")) =>
           PipelineDoubleOption(id, name, default.toDouble, description)
-        case _ => deserializationError("Expected PipelineOption")
+        case Seq(JsString(id), JsString(name), JsString(default), JsString(description), JsString("pbsmrtpipe.option_types.choice_string")) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(JsArray(jsChoices)) => jsChoices.map(_.convertTo[String]).toList
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceStrOption(id, name, default, description, choices)
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.choice_integer")) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(jsChoices) => jsChoices.convertTo[Seq[Int]]
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceIntOption(id, name, default.toInt, description, choices)
+        case Seq(JsString(id), JsString(name), JsNumber(default:BigDecimal), JsString(description), JsString("pbsmrtpipe.option_types.choice_float")) =>
+          val choices = value.asJsObject.getFields("choices") match {
+            case Seq(jsChoices) => jsChoices.convertTo[Seq[Double]]
+            case x => deserializationError(s"Expected list of choices for $id, got $x")
+          }
+          PipelineChoiceDoubleOption(id, name, default.toDouble, description, choices)
+        case x => deserializationError(s"Expected PipelineOption, got $x")
       }
     }
   }

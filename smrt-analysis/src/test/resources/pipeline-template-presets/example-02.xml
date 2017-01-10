@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<pipeline-template-preset id="pbsmrtpipe.pipeline_presets.preset_02" pipeline-id="pbsmrtpipe.pipelines.sa3_fetch">
+
+    <!-- These should not be used -->
+    <options />
+
+    <task-options>
+        <option id="pbsmrtpipe.task_options.alpha">
+            <value>Hello world</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.beta">
+            <value>False</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.gamma">
+            <value>987654</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.delta">
+            <value>3.14</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.a">
+            <value>C</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.b">
+            <value>1</value>
+        </option>
+        <option id="pbsmrtpipe.task_options.c">
+            <value>0.01</value>
+        </option>
+    </task-options>
+
+</pipeline-template-preset>

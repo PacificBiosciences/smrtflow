@@ -68,8 +68,8 @@ object OptionTypes {
   case object INT extends OptionType { val optionTypeId = toI("integer") }
   case object FLOAT extends OptionType { val optionTypeId = toI("float") }
   case object BOOL extends OptionType { val optionTypeId = toI("boolean") }
-  case object CHOICE extends OptionType { val optionTypeId = toI("choice_str") }
-  case object CHOICE_INT extends OptionType { val optionTypeId = toI("choice_int") }
+  case object CHOICE extends OptionType { val optionTypeId = toI("choice_string") }
+  case object CHOICE_INT extends OptionType { val optionTypeId = toI("choice_integer") }
   case object CHOICE_FLOAT extends OptionType { val optionTypeId = toI("choice_float") }
 }
 
@@ -278,14 +278,29 @@ object JobModels {
 
   case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase {
     val pbOption = OptionTypes.CHOICE
+
+    def applyValue(v: String) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
   }
 
   case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase {
     val pbOption = OptionTypes.CHOICE_INT
+
+    def applyValue(v: Int) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
   }
 
   case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase {
     val pbOption = OptionTypes.CHOICE_FLOAT
+
+    def applyValue(v: Double) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
   }
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
@@ -304,7 +319,8 @@ object JobModels {
       options: Seq[PipelineBaseOption],
       taskOptions: Seq[PipelineBaseOption],
       entryPoints: Seq[EntryPoint],
-      tags: Seq[String], presets: Seq[PipelineTemplatePreset])
+      tags: Seq[String],
+      presets: Seq[PipelineTemplatePreset])
 
   // templateId refers to the PipelineTemplate Id
   case class PipelineTemplatePreset(
