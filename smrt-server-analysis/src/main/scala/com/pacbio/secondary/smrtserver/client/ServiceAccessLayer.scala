@@ -206,11 +206,6 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
          DataSetDeleteServiceOptions(datasetType, ids, removeFiles))
   }
 
-  def getPipelineTemplateJson(pipelineId: String): Future[String] = rawJsonPipeline {
-    Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
-  }
-
-  // FIXME this doesn't quite work...
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
     Get(toUrl(AnalysisServiceEndpoints.ROOT_PT + "/" + pipelineId))
   }

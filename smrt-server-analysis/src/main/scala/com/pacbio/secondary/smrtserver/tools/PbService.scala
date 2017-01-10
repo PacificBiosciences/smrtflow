@@ -798,7 +798,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def validatePipelineId(pipelineId: String): Int = {
     Try {
-      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(x) => printMsg(s"Found pipeline template ${pipelineId}")
       case Failure(err) => errorExit(s"Can't find pipeline template ${pipelineId}: ${err.getMessage}\nUse 'pbsmrtpipe show-templates' to display a list of available pipelines")
@@ -863,13 +863,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  protected object OptionTypes {
-    val FLOAT = "pbsmrtpipe.option_types.float"
-    val INTEGER = "pbsmrtpipe.option_types.integer"
-    val STRING = "pbsmrtpipe.option_types.string"
-    val BOOLEAN = "pbsmrtpipe.option_types.boolean"
-  }
-
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
@@ -878,32 +871,11 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
     Try {
       logger.debug("Getting pipeline options from server")
-      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
-      case Success(pipelineJson) => {
-        val presetOptionsLookup = presets.taskOptions.map(opt => (opt.id, opt.value.toString)).toMap
-        // FIXME unmarshalling is broken, so this is a little hacky
-        val tOpts = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject
-        val jtaskOptions = tOpts.getFields("properties") match {
-          case Seq(x) => x.asJsObject.fields
-          case _ => Seq.empty[(String, JsObject)]
-        }
-        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
-          val template = templateOpt.asJsObject.fields
-          val optionValue = presetOptionsLookup.getOrElse(id,
-            template("default") match {
-              case JsString(x) => x
-              case JsNumber(x) => x.toString
-              case JsBoolean(x) => x.toString
-            })
-          template("optionTypeId").asInstanceOf[JsString].value match {
-            case OptionTypes.STRING => ServiceTaskStrOption(id, optionValue,
-                                                            OptionTypes.STRING)
-            case OptionTypes.INTEGER => ServiceTaskIntOption(id, optionValue.toInt, OptionTypes.INTEGER)
-            case OptionTypes.FLOAT => ServiceTaskDoubleOption(id, optionValue.toDouble, OptionTypes.FLOAT)
-            case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
-          }
-        }).toList
+      case Success(pipeline) => {
+        val presetOpts = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
+        val taskOptions = getPipelineServiceOptions(presetOpts)
         logger.debug(s"Task options: $taskOptions")
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
