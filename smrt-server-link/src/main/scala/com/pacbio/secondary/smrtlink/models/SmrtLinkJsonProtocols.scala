@@ -51,6 +51,7 @@ trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
           }
         case Seq(JsString(id), JsBoolean(value_), JsString(BOOL.optionTypeId)) => ServiceTaskBooleanOption(id, value_, BOOL.optionTypeId)
         case Seq(JsString(id), JsString(value_), JsString(STR.optionTypeId)) => ServiceTaskStrOption(id, value_, STR.optionTypeId)
+        case Seq(JsString(id), JsString(value_), JsString(CHOICE.optionTypeId)) => ServiceTaskStrOption(id, value_, CHOICE.optionTypeId)
         case x => deserializationError(s"Expected Task Option, got $x")
       }
     }
