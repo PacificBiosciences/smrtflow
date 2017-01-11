@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.{JobModels, OptionTypes}
 import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -54,8 +54,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
     with SmrtAnalysisSteps
     with ClientUtils {
 
-  override val name = "PbsmrtpipeScenario"
+  import OptionTypes._
+  import JobModels._
 
+  override val name = "PbsmrtpipeScenario"
   override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
 
   def fileExists(path: String) = Files.exists(Paths.get(path))
@@ -70,6 +72,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   val subreads = Var(testdata.getFile("subreads-xml"))
   val subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
+  def toI(name: String) = s"pbsmrtpipe.task_options.$name"
   val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "diagnostic-test",
@@ -77,7 +80,16 @@ class PbsmrtpipeScenario(host: String, port: Int)
       Seq(BoundServiceEntryPoint("eid_ref_dataset",
                                  "PacBio.DataSet.ReferenceSet",
                                  Right(refUuid.get))),
-      Seq[ServiceTaskOptionBase](),
+      Seq(
+        ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
+                                 BOOL.optionTypeId),
+        ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
+        ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
+        ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
+        ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
+        ServiceTaskFloatOption(toI("test_choice_float"), 1.0f, CHOICE_FLOAT.optionTypeId),
+        ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
+      ),
       Seq[ServiceTaskOptionBase]()))
   val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
@@ -89,12 +101,12 @@ class PbsmrtpipeScenario(host: String, port: Int)
           BoundServiceEntryPoint("eid_subread",
                                  "PacBio.DataSet.SubreadSet",
                                  Right(subreadsUuid.get))),
+      Seq[ServiceTaskOptionBase](),
       Seq(
         ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true,
-                                 "pbsmrtpipe.option_types.boolean"),
+                                 BOOL.optionTypeId),
         ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2,
-                             "pbsmrtpipe.option_types.integer")),
-      Seq[ServiceTaskOptionBase]()))
+                             INT.optionTypeId))))
 
   val jobId: Var[UUID] = Var()
   val jobId2: Var[UUID] = Var()
