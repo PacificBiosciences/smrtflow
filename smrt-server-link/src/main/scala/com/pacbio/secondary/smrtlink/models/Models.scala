@@ -3,9 +3,10 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 
 object Models
@@ -163,13 +164,15 @@ case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
 
-
-// Keep everything as strings. Let pbsmrtpipe sort it out
+// FIXME there is some nasty duplication w.r.t. the PipelineBaseOption model
+// and children in smrt-analysis. this trait (and the service option types)
+// really needs to be pushed down and make everything else subclass from it.
 trait ServiceTaskOptionBase {
   type In
   val id: String
   val optionTypeId: String
   val value: In
+  def toPipelineOption: PipelineBaseOption
 }
 
 trait ServiceTaskStrOptionBase extends ServiceTaskOptionBase{ type In = String }
@@ -178,11 +181,26 @@ trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase{ type In = Bool
 trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase{ type In = Double }
 trait ServiceTaskFloatOptionBase extends ServiceTaskOptionBase{ type In = Float }
 
-case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String) extends ServiceTaskStrOptionBase
-case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String) extends ServiceTaskIntOptionBase
-case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String) extends ServiceTaskBooleanOptionBase
-case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String) extends ServiceTaskDoubleOptionBase
-case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String) extends ServiceTaskFloatOptionBase
+case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String)
+    extends ServiceTaskStrOptionBase {
+ def toPipelineOption = PipelineStrOption(id, s"Name $id", value, s"Description $id")
+}
+case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String)
+    extends ServiceTaskIntOptionBase {
+ def toPipelineOption = PipelineIntOption(id, s"Name $id", value, s"Description $id")
+}
+case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String)
+    extends ServiceTaskBooleanOptionBase {
+ def toPipelineOption = PipelineBooleanOption(id, s"Name $id", value, s"Description $id")
+}
+case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String)
+    extends ServiceTaskDoubleOptionBase {
+ def toPipelineOption = PipelineDoubleOption(id, s"Name $id", value, s"Description $id")
+}
+case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String) 
+    extends ServiceTaskFloatOptionBase {
+  def toPipelineOption = PipelineDoubleOption(id, s"Name $id", value.toDouble, s"Description $id")
+}
 
 // "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
 // These are also used by the mock-pbsmrtpipe job options

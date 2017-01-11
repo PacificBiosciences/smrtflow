@@ -118,7 +118,7 @@ class PbsmrtpipeServiceJobType(
               logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
               val fx = for {
-                taskOptions <- Future { ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}")) }
+                taskOptions <- Future { ropts.taskOptions.map(_.toPipelineOption) }
                 xs <- Future.sequence(ropts.entryPoints.map(resolveEntry))
                 boundEntryPoints <- Future { xs.map(_._2) }
                 engineJobPoints <- Future { xs.map(_._1) }
