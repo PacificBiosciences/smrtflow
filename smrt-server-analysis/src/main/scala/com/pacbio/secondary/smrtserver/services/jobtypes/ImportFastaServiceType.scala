@@ -67,7 +67,7 @@ class ImportFastaServiceType(
 
   def toPbsmrtPipeJobOptions(opts: ConvertImportFastaOptions, serviceURI: Option[URI]): PbSmrtPipeJobOptions = {
 
-    def toPipelineOption(id: String, value: String) = PipelineStrOption(id, id, value, s"$id description $value")
+    def toPipelineOption(id: String, value: String) = ServiceTaskStrOption(id, value)
 
     val tOpts = Seq((OPT_NAME, opts.name), (OPT_ORGANISM, opts.organism), (OPT_PLOIDY, opts.ploidy))
 
@@ -76,7 +76,7 @@ class ImportFastaServiceType(
 
     // FIXME. this should be Option[Path] or Option[Map[String, String]]
     val envPath = ""
-    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, pbsmrtpipeEngineOptions.toPipelineOptions, envPath, serviceURI)
+    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption), envPath, serviceURI)
 
   }
 

@@ -21,11 +21,11 @@ import spray.json._
  */
 trait PipelineUtils extends LazyLogging{
 
-  def getPresetTaskOptions(p: PipelineTemplate, taskOptions: Seq[PipelineBaseOption]): Seq[PipelineBaseOption] = {
+  def getPresetTaskOptions(p: PipelineTemplate, taskOptions: Seq[ServiceTaskOptionBase]): Seq[ServiceTaskOptionBase] = {
     val presetOptsMap = taskOptions.map(x => (x.id, x)).toMap
     p.taskOptions.map {opt =>
       presetOptsMap.get(opt.id).map (pOpt => (pOpt, opt)) match {
-        case Some((presetOpt:PipelineStrOption, _)) =>
+        case Some((presetOpt:ServiceTaskStrOption, _)) =>
           // Need to do ugly casting here. The 'raw' options defined in XML are treated as PipelineStringOption
           // and cast to the type consistent with what is defined in the Pipeline
           opt match {
@@ -38,15 +38,14 @@ trait PipelineUtils extends LazyLogging{
             case t: PipelineChoiceDoubleOption => t.applyValue(presetOpt.value.toDouble)
           }
         // If the non-raw XML values are provided, just default to the correct values
-        case Some((presetOpt: PipelineIntOption, opt: PipelineIntOption)) => opt.copy(value = presetOpt.value)
-        case Some((presetOpt: PipelineDoubleOption, opt: PipelineDoubleOption)) => opt.copy(value = presetOpt.value)
-        case Some((presetOpt: PipelineBooleanOption, opt: PipelineBooleanOption)) => opt.copy(value = presetOpt.value)
-        case Some((presetOpt: PipelineChoiceStrOption, opt: PipelineChoiceStrOption)) => opt.applyValue(presetOpt.value)
-        case Some((presetOpt: PipelineChoiceIntOption, opt: PipelineChoiceIntOption)) => opt.applyValue(presetOpt.value)
-        case Some((presetOpt: PipelineChoiceDoubleOption, opt: PipelineChoiceDoubleOption)) => opt.applyValue(presetOpt.value)
+        case Some((presetOpt: ServiceTaskBooleanOption, opt: PipelineBooleanOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskIntOption, opt: PipelineIntOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskIntOption, opt: PipelineChoiceIntOption)) => opt.applyValue(presetOpt.value)
+        case Some((presetOpt: ServiceTaskDoubleOption, opt: PipelineDoubleOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskDoubleOption, opt: PipelineChoiceDoubleOption)) => opt.applyValue(presetOpt.value)
         case _ => opt
       }
-    }
+    } map (_.asServiceOption)
   }
 
   /**
@@ -65,7 +64,7 @@ trait PipelineUtils extends LazyLogging{
     // options (and or presets) will be filtered out.
 
     // Filter all presets that don't reference the fundamental pipeline of interest
-    val processedPresets = presets.filter(_.templateId == p.id).map { preset =>
+    val processedPresets = presets.filter(_.pipelineId == p.id).map { preset =>
       val presetTaskOptions = getPresetTaskOptions(p, preset.taskOptions)
       preset.copy(taskOptions = presetTaskOptions)
     }

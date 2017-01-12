@@ -18,6 +18,7 @@ import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._

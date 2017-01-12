@@ -2,7 +2,8 @@ package com.pacbio.secondary.analysis.configloaders
 
 import java.nio.file.{Path, Files, Paths}
 
-import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions, IOUtils}
+import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
+import com.pacbio.secondary.analysis.pipelines.PipelineTemplatePresetLoader
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 
@@ -65,9 +66,9 @@ trait PbsmrtpipeConfigLoader extends EngineCoreConfigLoader with LazyLogging {
   def loadPbsmrtpipeEngineConfigFrom(config: Config): Option[PbsmrtpipeEngineOptions] = {
     pbsmrtpipePresetXML.map { x =>
       logger.info(s"Loading pbsmrtpipe preset.xml from $x")
-      val (engineOpts, taskOptions) = IOUtils.parsePresetXml(x)
-      logger.info(s"Loaded pbsmrtpipe Engine Opts $engineOpts")
-      PbsmrtpipeEngineOptions(engineOpts)
+      val presets = PipelineTemplatePresetLoader.loadFrom(x)
+      logger.info(s"Loaded pbsmrtpipe Engine Opts ${presets.options}")
+      PbsmrtpipeEngineOptions(presets.options)
     }
   }
 

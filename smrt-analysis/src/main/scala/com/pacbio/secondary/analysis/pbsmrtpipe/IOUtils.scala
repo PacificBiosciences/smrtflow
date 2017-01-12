@@ -11,138 +11,35 @@ import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.analysis.tools.CommandLineUtils
+import com.pacbio.secondary.analysis.pipelines.PipelineTemplatePresetLoader
 
 /**
  *
  * Created by mkocher on 9/26/15.
  */
-object IOUtils extends LazyLogging{
+object IOUtils
+    extends SecondaryJobJsonProtocol
+    with PipelineTemplatePresetLoader
+    with LazyLogging{
 
   val pbsmrtpipeExe = CommandLineUtils.which("pbsmrtpipe") getOrElse {
     logger.warn(s"Unable to find pbsmrtpipe exe")
     "pbsmrtpipe"
   }
 
-  /**
-   * Parses and converts the pipeline engine level "options"
-   *
-   * @param rnode
-   * @return
-   */
-  private def parseEngineOptions(rnode: scala.xml.Elem): Seq[PipelineBaseOption] = {
-
-    /**
-     * Cast String to bool. Default to false if can't parse value.
-     *
-     * (False|false) and {True|true) are supported.
-     *
-     * @param sx
-     * @return
-     */
-    def castInt(sx: String): Boolean = {
-      sx.replace("\n", "").replace(" ", "").toLowerCase match {
-        case "true" => true
-        case "false" => false
-        case _ => false
-      }
-    }
-
-    // Convert the Raw values and Cast to correct type
-    def toV(optionId: String, optionValue: String): Option[PipelineBaseOption] = {
-      PbsmrtpipeEngineOptions().getPipelineOptionById(optionId).map {
-        case o: PipelineBooleanOption => o.copy(value = castInt(optionValue))
-        case o: PipelineIntOption => o.copy(value = optionValue.toInt)
-        case o: PipelineDoubleOption => o.copy(value = optionValue.toDouble)
-        case o: PipelineStrOption => o.copy(value = optionValue)
-      }
-    }
-
-    (rnode \ "options" \ "option")
-      .map(x => ((x \ "@id").text, (x \ "value").text))
-      .flatMap(x => toV(x._1, x._2))
-  }
-
-  /**
-   * Parse the pbsmrtpipe Preset XML
-   *
-   * @param path
-   * @return
-   */
-  def parsePresetXml(path: Path): (Seq[PipelineBaseOption], Seq[PipelineBaseOption]) = {
-    val x = scala.xml.XML.loadFile(path.toFile)
-    val engineOptions = parseEngineOptions(x)
-    // FIXME The Pipeline Level Options are not supported in the preset.xml yet
-    val defaultTaskOptions = Seq[PipelineBaseOption]()
-    (engineOptions, defaultTaskOptions)
-  }
-
-  // FIXME this is super hacky - pbcommand/pbsmrtpipe currently expect the
-  // preset options to be supplied as dictionaries rather than serialized
-  // models.  We should consolidate on something similar to the service task
-  // options in smrt-server-link.
   def writePresetJson(
       path: Path,
       pipelineId: String,
-      workflowOptions: Seq[PipelineBaseOption],
-      taskOptions: Seq[PipelineBaseOption]): Path = {
-    logger.info(s"Engine opts: $workflowOptions")
-    logger.info(s"Task   opts: $taskOptions")
-    val jsPresets = JsObject(
-      "pipelineId" -> JsString(pipelineId),
-      "presetId" -> JsString("smrtlink-job"),
-      "name" -> JsString("smrtlink-job-settings"),
-      "description" -> JsString("Pipeline settings from SMRT Link"),
-      "options" -> JsObject(workflowOptions.map(o =>
-        o match {
-          case PipelineStrOption(id,_,value,_) => (id, JsString(value))
-          case PipelineIntOption(id,_,value,_) => (id, JsNumber(value))
-          case PipelineDoubleOption(id,_,value,_) => (id, JsNumber(value))
-          case PipelineBooleanOption(id,_,value,_) => (id, JsBoolean(value))
-          case PipelineChoiceStrOption(id,_,value,_,_) => (id, JsString(value))
-          case PipelineChoiceIntOption(id,_,value,_,_) => (id, JsNumber(value))
-          case PipelineChoiceDoubleOption(id,_,value,_,_) => (id, JsNumber(value))
-        }).toMap),
-      "taskOptions" -> JsObject(taskOptions.map(o =>
-        o match {
-          case PipelineStrOption(id,_,value,_) => (id, JsString(value))
-          case PipelineIntOption(id,_,value,_) => (id, JsNumber(value))
-          case PipelineDoubleOption(id,_,value,_) => (id, JsNumber(value))
-          case PipelineBooleanOption(id,_,value,_) => (id, JsBoolean(value))
-          case PipelineChoiceStrOption(id,_,value,_,_) => (id, JsString(value))
-          case PipelineChoiceIntOption(id,_,value,_,_) => (id, JsNumber(value))
-          case PipelineChoiceDoubleOption(id,_,value,_,_) => (id, JsNumber(value))
-        }).toMap))
+      workflowOptions: Seq[ServiceTaskOptionBase],
+      taskOptions: Seq[ServiceTaskOptionBase]): Path = {
     val pw = new PrintWriter(path.toFile)
+    val jsPresets = PipelineTemplatePreset("smrtlink-job-settings", pipelineId, workflowOptions, taskOptions).toJson
     pw.write(jsPresets.prettyPrint)
     pw.close
     path.toAbsolutePath
-  }
-
-  // FIXME even hackier!
-  def parsePresetJson(path: Path): (Seq[PipelineBaseOption], Seq[PipelineBaseOption]) = {
-    val jsonSrc = Source.fromFile(path.toFile).getLines.mkString
-    val jsonAst = jsonSrc.parseJson
-    def toV(optionId: String, jsValue: JsValue): Option[PipelineBaseOption] = {
-      PbsmrtpipeEngineOptions().getPipelineOptionById(optionId).map {
-        case o: PipelineBooleanOption => o.copy(value = jsValue.asInstanceOf[JsBoolean].value)
-        case o: PipelineIntOption => o.copy(value = jsValue.asInstanceOf[JsNumber].value.toInt)
-        case o: PipelineDoubleOption => o.copy(value = jsValue.asInstanceOf[JsNumber].value.toDouble)
-        case o: PipelineStrOption => o.copy(value = jsValue.asInstanceOf[JsString].value)
-      }
-    }
-    val engineOptions: Seq[PipelineBaseOption] = jsonAst.asJsObject.getFields("options") match {
-      case Seq(JsObject(options)) =>
-        (for {
-          (optionId, jsValue) <- options
-          opt <- toV(optionId, jsValue)
-        } yield opt).toList
-      case x => throw new Exception(s"Can't process $x")
-    }
-    // FIXME The Pipeline Level Options are not supported in the preset.json yet
-    val defaultTaskOptions = Seq[PipelineBaseOption]()
-    (engineOptions, defaultTaskOptions)
-  }
+  } 
 
   /**
    * Convert the require value to pbsmrtpipe commandline exe
@@ -153,8 +50,8 @@ object IOUtils extends LazyLogging{
       entryPoints: Seq[BoundEntryPoint],
       pipelineId: String,
       outputDir: Path,
-      taskOptions: Seq[PipelineBaseOption],
-      workflowOptions: Seq[PipelineBaseOption],
+      taskOptions: Seq[ServiceTaskOptionBase],
+      workflowOptions: Seq[ServiceTaskOptionBase],
       serviceUri: Option[URI]) = {
 
     val e = entryPoints.map(x => s"-e '${x.entryId}:${x.path.toString}'").fold("")((a, b) => s"$a $b")
