@@ -1,5 +1,7 @@
-import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineTemplatePreset, EntryPoint, PipelineBaseOption, PipelineTemplate}
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.pipelines.PipelineTemplateDao
+import com.pacbio.secondary.analysis.constants.FileTypes
+
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
@@ -17,9 +19,13 @@ class PipelineSpec extends Specification with SecondaryJobJsonProtocol with Lazy
   val ROOT_PIPELINE_TEMPLATES = "pipeline-templates"
 
   val rsPipelineTemplate = {
-      val engineOptions = Seq[PipelineBaseOption]()
-      val taskOptions = Seq[PipelineBaseOption]()
-      val entryPoints = Seq[EntryPoint]()
+      val engineOptions = Seq(
+        PipelineIntOption("max_nchunks", "Max chunks", 24, "Max chunks"))
+      val taskOptions = Seq(
+        PipelineBooleanOption("id-a", "Boolean", true, "Boolean Option"),
+        PipelineIntOption("id-b", "Int", 2001, "Integer Option"))
+      val entryPoints = Seq(
+        EntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, "Reference"))
       val tags = Seq("dev", "example")
       val presets = Seq[PipelineTemplatePreset]()
       PipelineTemplate("pbsmrtpipe.pipelines.sa3_resequencing", "Name", "Desc", "0.1.0", engineOptions, taskOptions, entryPoints, tags, presets)
