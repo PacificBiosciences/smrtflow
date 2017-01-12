@@ -1,16 +1,22 @@
 
-import com.pacbio.secondary.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols}
+import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols,AnalysisJobStates}
 
 import org.specs2.mutable.Specification
+import org.joda.time.{DateTime => JodaDateTime}
 
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
+import scala.io.Source
+
+import java.nio.file.Paths
+import java.util.UUID
 
 
-class JsonProtocolsSpec extends Specification  {
+class JobModelsSpec extends Specification  {
 
   import JobModels._
   import OptionTypes._
@@ -18,7 +24,16 @@ class JsonProtocolsSpec extends Specification  {
 
   sequential
 
-  "Test serialization of models" should {
+  val o1 = PipelineBooleanOption("id-a", "Boolean", true, "Boolean Option")
+  val o2 = PipelineIntOption("id-b", "Int", 2001, "Integer Option")
+  val o3 = PipelineDoubleOption("id-c", "Double", 3.14, "Double  Option")
+  val o4 = PipelineStrOption("id-d", "String", "asdf", "String Option")
+  val o5 = PipelineChoiceStrOption("id-e", "String Choice", "B", "String Choice Option", Seq("A", "B", "C"))
+  val o6 = PipelineChoiceIntOption("id-f", "Int Choice", 2, "Int Choice Option", Seq(1,2,3))
+  val o7 = PipelineChoiceDoubleOption("id-g", "Double", 0.1, "Double Choice Option", Seq(0.01, 0.1, 1.0))
+  val pipelineTaskOpts = Seq(o1, o2, o3, o4, o5, o6, o7)
+
+  "Test basic functionality and serialization of job models" should {
     "Service task options" in {
       var serviceOpts = Seq(
         ServiceTaskBooleanOption("id-a", true, BOOL.optionTypeId),
@@ -54,18 +69,9 @@ class JsonProtocolsSpec extends Specification  {
       opt7.value must beEqualTo(0.1)
     }
     "Pipeline options" in {
-      val o1 = PipelineBooleanOption("id-a", "Boolean", true, "Boolean Option")
-      val o2 = PipelineIntOption("id-b", "Int", 2001, "Integer Option")
-      val o3 = PipelineDoubleOption("id-c", "Double", 3.14, "Double  Option")
-      val o4 = PipelineStrOption("id-d", "String", "asdf", "String Option")
-      val o5 = PipelineChoiceStrOption("id-e", "String Choice", "B", "String Choice Option", Seq("A", "B", "C"))
-      val o6 = PipelineChoiceIntOption("id-f", "Int Choice", 2, "Int Choice Option", Seq(1,2,3))
-      val o7 = PipelineChoiceDoubleOption("id-g", "Double", 0.1, "Double Choice Option", Seq(0.01, 0.1, 1.0))
-      val taskOpts = Seq(o1, o2, o3, o4, o5, o6, o7)
       // boolean
       // we have to do a lot of type conversion for this to even compile
       var j = o1.asInstanceOf[PipelineBaseOption].toJson
-      println(j)
       val oj1 = j.convertTo[PipelineBaseOption].asInstanceOf[PipelineBooleanOption]
       oj1.value must beTrue
       j = o1.asServiceOption.asInstanceOf[ServiceTaskOptionBase].toJson
@@ -111,22 +117,102 @@ class JsonProtocolsSpec extends Specification  {
       oj7b.value must beEqualTo(1.0)
       oj7.applyValue(0.9) must throwA[UnsupportedOperationException]
     }
-    "Pipeline presets" in {
-      var opts = Seq(
+    "PipelineTemplatePreset" in {
+      val opts = Seq(
         ServiceTaskBooleanOption("id-a", true, BOOL.optionTypeId),
         ServiceTaskIntOption("id-b", 2001, INT.optionTypeId))
-      var taskOpts = Seq(
+      val taskOpts = Seq(
         ServiceTaskDoubleOption("id-c", 3.14, FLOAT.optionTypeId),
         ServiceTaskStrOption("id-d", "Hello, world", STR.optionTypeId),
         ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId))
-      var pp = PipelineTemplatePreset("preset-id-01", "pipeline-id-01", opts, taskOpts)
-      var j = pp.toJson
-      var ppp = j.convertTo[PipelineTemplatePreset]
+      val pp = PipelineTemplatePreset("preset-id-01", "pipeline-id-01", opts, taskOpts)
+      val j = pp.toJson
+      val ppp = j.convertTo[PipelineTemplatePreset]
       //ppp must beEqualTo(pp)
       pp.presetId must beEqualTo(ppp.presetId)
       pp.pipelineId must beEqualTo(ppp.pipelineId)
       ppp.options.toList must beEqualTo(opts)
       ppp.taskOptions.toList must beEqualTo(taskOpts)
+    }
+    "PipelineDirectJobOptions" in {
+      val opts = Seq(
+        ServiceTaskBooleanOption("id-a", true, BOOL.optionTypeId),
+        ServiceTaskIntOption("id-b", 2001, INT.optionTypeId))
+      val taskOpts = Seq(
+        ServiceTaskDoubleOption("id-c", 3.14, FLOAT.optionTypeId),
+        ServiceTaskStrOption("id-d", "Hello, world", STR.optionTypeId),
+        ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId))
+      val entryPoints = Seq(
+        BoundEntryPoint("eid_ref_dataset", "/var/tmp/referenceset.xml"),
+        BoundEntryPoint("eid_subread", "/var/tmp/subreadset.xml"))
+      val jobOpts = PbsmrtpipeDirectJobOptions("pipeline-id-01",
+        entryPoints, taskOpts, opts)
+      val jobOpts2 = jobOpts.toJson.convertTo[PbsmrtpipeDirectJobOptions]
+      jobOpts2 must beEqualTo(jobOpts)
+    }
+    "PipelineTemplate" in {
+      val opts = Seq(
+        PipelineIntOption("max_nchunks", "Max chunks", 24, "Max chunks"))
+      val epts = Seq(
+        EntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, "Reference"))
+      val p = PipelineTemplate("pipeline-id-1", "Pipeline 1", "Pipeline 1",
+        "0.1.0", opts, pipelineTaskOpts, epts, Seq("dev"),
+        Seq.empty[PipelineTemplatePreset])
+      val pp = p.toJson.convertTo[PipelineTemplate]
+      p must beEqualTo(pp)
+    }
+  }
+
+  "Testing EngineJob serialization including previous versions" should {
+    def getPath(name: String) = {
+      Paths.get(getClass.getResource(s"misc-json/$name").toURI)
+    }
+
+    "Serialize model to JSON and recycle" in {
+      val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
+        JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
+        "pbsmrtpipe", "/tmp/0001",
+        "{}", Some("smrtlinktest"), Some("4.0.0"), Some("4.0.0"))
+      val job2 = job.toJson.convertTo[EngineJob]
+      job2.toString must beEqualTo(job.toString)
+      job2.isRunning must beFalse
+      job2.isSuccessful must beFalse
+      job2.isComplete must beFalse
+      val job3 = job2.copy(state = AnalysisJobStates.RUNNING)
+      job3.isRunning must beTrue
+      val job4 = job2.copy(state = AnalysisJobStates.SUCCESSFUL)
+      job4.isSuccessful must beTrue
+    }
+    "Load 3.1.1 model from JSON" in {
+      val path = getPath("engine_job_01.json")
+      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
+      job.smrtlinkVersion must beEqualTo(None)
+      job.id must beEqualTo(3)
+      job.isActive must beEqualTo(true)
+      val s = job.toJson
+      val job2 = s.convertTo[EngineJob]
+      job2.isActive must beEqualTo(true)
+      job2.createdBy must beNone
+    }
+    "Load 3.2.0 model from JSON" in {
+      val path = getPath("engine_job_02.json")
+      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
+      job.smrtlinkVersion must beSome("3.2.0.187627")
+      job.id must beEqualTo(3)
+      job.isActive must beEqualTo(true)
+    }
+    "Load 3.3+ model from JSON" in {
+      val path = getPath("engine_job_03.json")
+      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
+      job.smrtlinkVersion must beSome("3.3.0.187723")
+      job.id must beEqualTo(3)
+      job.createdBy must beSome("root")
+      job.isActive must beEqualTo(false)
+      val s = job.toJson
+      val job2 = s.convertTo[EngineJob]
+      job2.isActive must beEqualTo(false)
+      job2.smrtlinkVersion must beSome("3.3.0.187723")
+      job2.createdAt must beEqualTo(job.createdAt)
     }
   }
 }
