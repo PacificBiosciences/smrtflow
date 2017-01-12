@@ -16,6 +16,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 
+// XXX note that PipelineTemplate is tested in PipelineSpec.scala
 class JobModelsSpec extends Specification  {
 
   import JobModels._
@@ -150,16 +151,31 @@ class JobModelsSpec extends Specification  {
       val jobOpts2 = jobOpts.toJson.convertTo[PbsmrtpipeDirectJobOptions]
       jobOpts2 must beEqualTo(jobOpts)
     }
-    "PipelineTemplate" in {
-      val opts = Seq(
-        PipelineIntOption("max_nchunks", "Max chunks", 24, "Max chunks"))
-      val epts = Seq(
-        EntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, "Reference"))
-      val p = PipelineTemplate("pipeline-id-1", "Pipeline 1", "Pipeline 1",
-        "0.1.0", opts, pipelineTaskOpts, epts, Seq("dev"),
-        Seq.empty[PipelineTemplatePreset])
-      val pp = p.toJson.convertTo[PipelineTemplate]
-      p must beEqualTo(pp)
+    "DataStore models" in {
+      val dsf = DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.JSON.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), "/var/tmp/report.json", false, "JSON file", "JSON file")
+      val dsf2 = dsf.toJson.convertTo[DataStoreFile]
+      dsf.toString must beEqualTo(dsf2.toString)
+      val dsjf = DataStoreJobFile(UUID.randomUUID(), dsf)
+      val dsjf2 = dsjf.toJson.convertTo[DataStoreJobFile]
+      dsjf.toString must beEqualTo(dsjf2.toString)
+      val ds = PacBioDataStore(JodaDateTime.now(), JodaDateTime.now(), "0.1.0",Seq(dsf))
+      val ds2 = ds.toJson.convertTo[PacBioDataStore]
+      ds2.toString must beEqualTo(ds.toString)
+    }
+    "PipelineTemplateViewRule" in {
+      val rules = Seq(
+        PipelineOptionViewRule("pbsmrtpipe.task_options.a", false, false),
+        PipelineOptionViewRule("pbsmrtpipe.task_options.b", true, true))
+      val rule = PipelineTemplateViewRule("pipeline-1", "Rules", "My rules",
+                                          rules)
+      rule.toJson.convertTo[PipelineTemplateViewRule] must beEqualTo(rule)
+    }
+    "PipelineDataStoreRules" in {
+      val rules = Seq(
+        DataStoreFileViewRule("pbsmrtpipe.tasks.task1-out-0", FileTypes.DS_REFERENCE.fileTypeId, false, None, None),
+        DataStoreFileViewRule("pbsmrtpipe.tasks.task1-out-1", FileTypes.JSON.fileTypeId, true, Some("A file"), Some("Hidden file")))
+      val prule = PipelineDataStoreViewRules("pbsmrtpipe.pipelines.id-1", rules, "4.0.0")
+      prule.toJson.convertTo[PipelineDataStoreViewRules] must beEqualTo(prule)
     }
   }
 
