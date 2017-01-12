@@ -139,7 +139,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   val diagnosticJobTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),
     jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
     dataStore := GetAnalysisJobDataStore(jobId),
     fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
     jobReports := GetAnalysisJobReports(jobId),

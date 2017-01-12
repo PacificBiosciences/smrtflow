@@ -21,8 +21,8 @@ import sun.misc.Signal
 case class PbSmrtPipeJobOptions(
     pipelineId: String,
     entryPoints: Seq[BoundEntryPoint],
-    taskOptions: Seq[PipelineBaseOption],
-    workflowOptions: Seq[PipelineBaseOption],
+    taskOptions: Seq[ServiceTaskOptionBase],
+    workflowOptions: Seq[ServiceTaskOptionBase],
     envPath: String, serviceUri: Option[URI],
     commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
 

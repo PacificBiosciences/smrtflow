@@ -3,7 +3,7 @@ package com.pacbio.secondary.analysis.pbsmrtpipe
 import java.nio.file.{Paths, Path}
 import scala.language.postfixOps
 
-import com.pacbio.secondary.analysis.jobs.JobModels.{PipelineBooleanOption, PipelineStrOption, PipelineIntOption, PipelineBaseOption}
+import com.pacbio.secondary.analysis.jobs.JobModels._
 
 import scala.util.Try
 
@@ -55,7 +55,7 @@ object PbsmrtpipeEngineOptions {
 
   The Seq[PipelineBaseOption] should eventually be removed.
    */
-  def apply(opts: Seq[PipelineBaseOption]):PbsmrtpipeEngineOptions = {
+  def apply(opts: Seq[ServiceTaskOptionBase]):PbsmrtpipeEngineOptions = {
     val mx = opts.map(x => (x.id, x)) toMap
 
     def getBy[T](sx: String, defaultValue: T): T =
@@ -63,14 +63,14 @@ object PbsmrtpipeEngineOptions {
 
     def getTmp(sx: String): Path = {
       mx.get(sx) match {
-        case Some(x:PipelineStrOption) => Paths.get(x.value)
+        case Some(x:ServiceTaskStrOption) => Paths.get(x.value)
         case _ => defaults.tmpDir
       }
     }
 
     def getClusterTmpl(sx: String): Option[String] = {
       mx.get(sx) match {
-        case Some(x:PipelineStrOption) => Option(x.value)
+        case Some(x:ServiceTaskStrOption) => Option(x.value)
         case _ => None
       }
     }

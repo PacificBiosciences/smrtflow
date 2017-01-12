@@ -26,8 +26,8 @@ object PbSmrtpipeHackyTest extends App with LazyLogging {
 
   println(s"Command template $cmdTemplate")
   val x = IOUtils.parsePresetXml(Paths.get(f))
-  val taskOpts = x._2
-  val workflowOpts = x._1
+  val taskOpts = x.taskOptions
+  val workflowOpts = x.options
 
   val epath = outputDir.resolve("my-file.txt")
   val ePoints = Seq(BoundEntryPoint("e_01", epath.toString))

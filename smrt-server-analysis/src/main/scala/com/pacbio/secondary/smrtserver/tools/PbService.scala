@@ -386,8 +386,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
     "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
   private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
-    Seq[PipelineBaseOption](),
-    Seq[PipelineBaseOption]())
+    Seq[ServiceTaskOptionBase](),
+    Seq[ServiceTaskOptionBase]())
   private lazy val rsMovieName = """m([0-9]{6})_([0-9a-z]{5,})_([0-9a-z]{5,})_c([0-9]{16,})_(\w\d)_(\w\d)""".r
 
   private def matchRsMovieName(file: File): Boolean =
@@ -874,9 +874,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(pipeline) => {
-        val presetOpts = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
-        val taskOptions = getPipelineServiceOptions(presetOpts)
-        logger.debug(s"Task options: $taskOptions")
+        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)
