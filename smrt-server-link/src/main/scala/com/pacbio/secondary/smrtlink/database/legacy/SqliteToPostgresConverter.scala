@@ -1,22 +1,146 @@
-package com.pacbio.secondary.smrtlink.database
+package com.pacbio.secondary.smrtlink.database.legacy
 
+import java.io.{PrintWriter, StringWriter}
 import java.nio.file.{Paths, Path}
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import com.pacbio.logging.{LoggerOptions, LoggerConfig}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.tools.{ToolSuccess, ToolFailure, CommandLineToolRunner}
+import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
-
-import slick.driver.PostgresDriver.api._
+import scopt.OptionParser
 import slick.lifted.ProvenShape
-// This must be added otherwise an PSQLException: ERROR: integer out of range will occur
-import com.github.tototoshi.slick.PostgresJodaSupport._
 
+import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.util.control.NonFatal
 
-object TableModels extends PacBioDateTimeDatabaseFormat {
+object SqliteToPostgresConverterApp extends App {
+  import SqliteToPostgresConverter._
+
+  runner(args)
+}
+
+case class SqliteToPostgresConverterOptions(legacyUri: String,
+                                            pgUsername: String,
+                                            pgPassword: String,
+                                            pgDbName: String,
+                                            pgServer: String,
+                                            pgPort: Int = 5432) extends LoggerConfig
+
+object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresConverterOptions] {
+  import DatabaseUtils._
+
+  val toolId = "pbscala.tools.sqlite_to_postgres_converter"
+  val VERSION = "0.1.0"
+  val DESCRIPTION =
+    """
+      |Migrate legacy SQLite db to Postgres
+    """.stripMargin
+
+  val defaults = SqliteToPostgresConverterOptions(
+    "jdbc:sqlite:db/analysis_services.db",
+    "smrtlink_user",
+    "password",
+    "smrtlink",
+    "localhost")
+
+  def toDefault(s: String) = s"(default: '$s')"
+
+  val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
+    head("")
+    note(DESCRIPTION)
+    opt[String]('l', "legacy").action { (x, c) => c.copy(legacyUri = x)}.text(s"Legacy SQLite URI ${toDefault(defaults.legacyUri)}")
+    opt[String]('u', "user").action { (x, c) => c.copy(pgUsername = x)}.text(s"Postgres user name ${toDefault(defaults.pgUsername)}")
+    opt[String]('p', "password").action {(x, c) => c.copy(pgPassword = x)}.text(s"Postgres Password ${toDefault(defaults.pgPassword)}")
+    opt[String]('s', "server").action {(x, c) => c.copy(pgServer = x)}.text(s"Postgres server ${toDefault(defaults.pgServer)}")
+    opt[String]('n', "db-name").action {(x, c) => c.copy(pgDbName = x)}.text(s"Postgres Name ${toDefault(defaults.pgDbName)}")
+    opt[Int]("port").action {(x, c) => c.copy(pgPort = x)}.text(s"Postgres port ${toDefault(defaults.pgPort.toString)}")
+
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+  }
+
+  override def run(c: SqliteToPostgresConverterOptions): Either[ToolFailure, ToolSuccess] = {
+
+    val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
+    val startedAt = JodaDateTime.now()
+
+    TestConnection(dbConfig.toDataSource)
+
+    println(s"Attempting to connect to postgres db with $dbConfig")
+    val message = TestConnection(dbConfig.toDataSource)
+    println(message)
+
+    val dbURI = dbConfig.jdbcURI
+    println(s"Postgres URL '$dbURI'")
+
+    val db = dbConfig.toDatabase
+
+    val res = new PostgresWriter(db)
+      .write(new LegacySqliteReader(c.legacyUri).read())
+      .andThen { case _ => db.close() }
+      .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
+      .recover {
+        case NonFatal(e) => Left(ToolFailure(toolId, computeTimeDelta(JodaDateTime.now(), startedAt), exceptionString(e)))
+      }
+
+    Await.result(res, Duration.Inf)
+  }
+
+  def exceptionString(e: Throwable): String = {
+    val sw = new StringWriter
+    e.printStackTrace(new PrintWriter(sw))
+    sw.toString
+  }
+}
+
+class PostgresWriter(db: slick.driver.PostgresDriver.api.Database) {
+  import slick.driver.PostgresDriver.api._
+  import TableModels._
+
+  // This must be added otherwise an PSQLException: ERROR: integer out of range will occur
+  import com.github.tototoshi.slick.PostgresJodaSupport._
+
+  def write(f: Future[Seq[Any]]): Future[Unit] = f.map { v =>
+    println(s"TEST TEST - ${v.size}")
+    db.run {
+      schema.create >>
+        (engineJobs            ++= v(0).asInstanceOf[Seq[EngineJob]]) >>
+        (engineJobsDataSets    ++= v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
+        (jobEvents             ++= v(2).asInstanceOf[Seq[JobEvent]]) >>
+        (jobTags               ++= v(3).asInstanceOf[Seq[(Int, String)]]) >>
+        (jobsTags              ++= v(4).asInstanceOf[Seq[(Int, Int)]]) >>
+        (projectsUsers         ++= v(5).asInstanceOf[Seq[ProjectUser]]) >>
+        (projects              ++= v(6).asInstanceOf[Seq[Project]]) >>
+        (dsMetaData2           ++= v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
+        (dsSubread2            ++= v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
+        (dsHdfSubread2         ++= v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
+        (dsReference2          ++= v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
+        (dsAlignment2          ++= v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
+        (dsBarcode2            ++= v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
+        (dsCCSread2            ++= v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
+        (dsGmapReference2      ++= v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
+        (dsCCSAlignment2       ++= v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
+        (dsContig2             ++= v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
+        (datastoreServiceFiles ++= v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
+        (eulas                 ++= v(18).asInstanceOf[Seq[EulaRecord]]) >>
+        (runSummaries          ++= v(19).asInstanceOf[Seq[RunSummary]]) >>
+        (dataModels            ++= v(20).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
+        (collectionMetadata    ++= v(21).asInstanceOf[Seq[CollectionMetadata]]) >>
+        (samples               ++= v(22).asInstanceOf[Seq[Sample]])
+    }
+  }
+}
+
+class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseFormat {
+  import slick.driver.SQLiteDriver.api._
 
   implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
     {s => s.toString},
@@ -24,101 +148,56 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
-
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
-
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
-
     def jobId: Rep[Int] = column[Int]("job_id")
-
     def message: Rep[String] = column[String]("message")
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-
     def jobJoin = engineJobs.filter(_.id === jobId)
-
     def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
     def id: Rep[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
-
     def name: Rep[String] = column[String]("name")
-
     def * : ProvenShape[(Int, String)] = (id, name)
   }
 
-  /**
-   * Many-to-Many table for tags for Jobs
-   * @param tag General Tags for Jobs
-   */
   class JobsTags(tag: Tag) extends Table[(Int, Int)](tag, "jobs_tags") {
     def jobId: Rep[Int] = column[Int]("job_id")
-
     def tagId: Rep[Int] = column[Int]("job_tag_id")
-
     def * : ProvenShape[(Int, Int)] = (jobId, tagId)
-
     def jobJoin = engineJobs.filter(_.id === jobId)
-
     def jobTagFK = foreignKey("job_tag_fk", tagId, jobTags)(a => a.id)
-
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
   }
 
-
   class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
-
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
-
-    // FIXME. The process engine only uses UUID
     def uuid: Rep[UUID] = column[UUID]("uuid")
-
-    // this is really comment
     def pipelineId: Rep[String] = column[String]("pipeline_id")
-
     def name: Rep[String] = column[String]("name")
-
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
-
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
-
     def jsonSettings: Rep[String] = column[String]("json_settings")
-
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
-
     def smrtLinkVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_version")
-
     def smrtLinkToolsVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_tools_version")
-
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
-
     def findById(i: Int) = engineJobs.filter(_.id === i)
-
     def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (EngineJob.tupled, EngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
-
     def id: Rep[Int] = column[Int]("job_result_id")
-
     def host: Rep[String] = column[String]("host_name")
-
     def jobId: Rep[Int] = column[Int]("job_id")
-
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-
     def * : ProvenShape[(Int, String)] = (id, host)
   }
 
@@ -127,23 +206,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => ProjectState.fromString(s)}
   )
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
-
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
-
     def name: Rep[String] = column[String]("name")
-
     def nameUnique = index("project_name_unique", name, unique = true)
-
     def description: Rep[String] = column[String]("description")
-
     def state: Rep[ProjectState.ProjectState] = column[ProjectState.ProjectState]("state")
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-
     def * = (id, name, description, state, createdAt, updatedAt, isActive) <> (Project.tupled, Project.unapply)
   }
 
@@ -153,49 +223,18 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   )
   class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
     def projectId: Rep[Int] = column[Int]("project_id")
-
     def login: Rep[String] = column[String]("login")
-
     def role: Rep[ProjectUserRole.ProjectUserRole] = column[ProjectUserRole.ProjectUserRole]("role")
-
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
-
     def * = (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
   }
 
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
     def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
-
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag) extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
-
-    def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
-
-    def idx = index("index_id", id, unique = true)
-
-    def name: Rep[String] = column[String]("name")
-
-    def description: Rep[String] = column[String]("description")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def shortName: Rep[String] = column[String]("short_name")
-
-    def * = (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
-  }
-
-  /*
-  Table to capture the DataSet Entry points of a EngineJob
-
-  - Job has many datasets
-  - DataSet may belong to one or many jobs
-   */
   class EngineJobDataSetT(tag: Tag) extends Table[EngineJobEntryPoint](tag, "engine_jobs_datasets") {
-
     def jobId: Rep[Int] = column[Int]("job_id")
     def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
     def datasetType: Rep[String] = column[String]("dataset_type")
@@ -203,105 +242,60 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
-
-    //def indexUUID = index("index_uuid", uuid, unique = true)
-
     def name: Rep[String] = column[String]("name")
-
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
     def numRecords: Rep[Long] = column[Long]("num_records")
-
     def totalLength: Rep[Long] = column[Long]("total_length")
-
     def tags: Rep[String] = column[String]("tags")
-
     def version: Rep[String] = column[String]("version")
-
     def comments: Rep[String] = column[String]("comments")
-
     def md5: Rep[String] = column[String]("md5")
-
     def userId: Rep[Int] = column[Int]("user_id")
-
     def jobId: Rep[Int] = column[Int]("job_id")
-
     def projectId: Rep[Int] = column[Int]("project_id")
-
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
   }
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
-
     def cellId: Rep[String] = column[String]("cell_id")
-
     def metadataContextId: Rep[String] = column[String]("metadata_context_id")
-
     def wellSampleName: Rep[String] = column[String]("well_sample_name")
-
     def wellName: Rep[String] = column[String]("well_name")
-
     def bioSampleName: Rep[String] = column[String]("bio_sample_name")
-
     def cellIndex: Rep[Int] = column[Int]("cell_index")
-
     def instrumentId: Rep[String] = column[String]("instrument_id")
-
     def instrumentName: Rep[String] = column[String]("instrument_name")
-
     def runName: Rep[String] = column[String]("run_name")
-
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
-
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(SubreadServiceSet.tupled, SubreadServiceSet.unapply)
   }
 
   class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
-
     def cellId: Rep[String] = column[String]("cell_id")
-
     def metadataContextId: Rep[String] = column[String]("metadata_context_id")
-
     def wellSampleName: Rep[String] = column[String]("well_sample_name")
-
     def wellName: Rep[String] = column[String]("well_name")
-
     def bioSampleName: Rep[String] = column[String]("bio_sample_name")
-
     def cellIndex: Rep[Int] = column[Int]("cell_index")
-
     def instrumentId: Rep[String] = column[String]("instrument_id")
-
     def instrumentName: Rep[String] = column[String]("instrument_name")
-
     def runName: Rep[String] = column[String]("run_name")
-
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
-
     def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
   }
 
   class ReferenceDataSetT(tag: Tag) extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
-
     def ploidy: Rep[String] = column[String]("ploidy")
-
     def organism: Rep[String] = column[String]("organism")
-
     def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
   }
 
   class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
-
     def ploidy: Rep[String] = column[String]("ploidy")
-
     def organism: Rep[String] = column[String]("organism")
-
     def * = (id, uuid, ploidy, organism) <>(GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
   }
 
@@ -327,33 +321,18 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
-
     def fileTypeId: Rep[String] = column[String]("file_type_id")
-
     def sourceId: Rep[String] = column[String]("source_id")
-
     def fileSize: Rep[Long] = column[Long]("file_size")
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
     def modifiedAt: Rep[JodaDateTime] = column[JodaDateTime]("modified_at")
-
     def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
-
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
-
-    // job id output datastore. Perhaps need to define input for jobs that have datastore's as input
-    // This needs to be rethought.
     def jobId: Rep[Int] = column[Int]("job_id")
-
     def jobUUID: Rep[UUID] = column[UUID]("job_uuid")
-
     def name: Rep[String] = column[String]("name")
-
     def description: Rep[String] = column[String]("description")
-
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-
     def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
   }
 
@@ -362,75 +341,52 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => SupportedRunStates.fromValue(s)}
   )
   class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
-
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
-
     def name: Rep[String] = column[String]("NAME")
-
     def summary: Rep[Option[String]] = column[Option[String]]("SUMMARY")
-
     def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
-
     def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
-
     def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
-
     def transfersCompletedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("TRANSFERS_COMPLETED_AT")
-
     def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
-
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("STATUS")
-
     def totalCells: Rep[Int] = column[Int]("TOTAL_CELLS")
-
     def numCellsCompleted: Rep[Int] = column[Int]("NUM_CELLS_COMPLETED")
-
     def numCellsFailed: Rep[Int] = column[Int]("NUM_CELLS_FAILED")
-
     def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
-
     def instrumentSerialNumber: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SERIAL_NUMBER")
-
     def instrumentSwVersion: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SW_VERSION")
-
     def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("PRIMARY_ANALYSIS_SW_VERSION")
-
     def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
-
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
-
     def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
-
     def * = (
-        uniqueId,
-        name,
-        summary,
-        createdBy,
-        createdAt,
-        startedAt,
-        transfersCompletedAt,
-        completedAt,
-        status,
-        totalCells,
-        numCellsCompleted,
-        numCellsFailed,
-        instrumentName,
-        instrumentSerialNumber,
-        instrumentSwVersion,
-        primaryAnalysisSwVersion,
-        context,
-        terminationInfo,
-        reserved) <>(RunSummary.tupled, RunSummary.unapply)
+      uniqueId,
+      name,
+      summary,
+      createdBy,
+      createdAt,
+      startedAt,
+      transfersCompletedAt,
+      completedAt,
+      status,
+      totalCells,
+      numCellsCompleted,
+      numCellsFailed,
+      instrumentName,
+      instrumentSerialNumber,
+      instrumentSwVersion,
+      primaryAnalysisSwVersion,
+      context,
+      terminationInfo,
+      reserved) <>(RunSummary.tupled, RunSummary.unapply)
   }
 
-  case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
+  import TableModels.DataModelAndUniqueId
   class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
-
-    def dataModel: Rep[String] = column[String]("DATA_MODEL", O.SqlType("TEXT"))
-
+    def dataModel: Rep[String] = column[String]("DATA_MODEL")
     def * = (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
-
     def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
   }
 
@@ -440,62 +396,42 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
-
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
-
     def well: Rep[String] = column[String]("WELL")
-
     def name: Rep[String] = column[String]("NAME")
-
     def summary: Rep[Option[String]] = column[Option[String]]("COLUMN")
-
     def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
-
     def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("COLLECTION_PATH_URI")
-
     def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
-
     def instrumentId: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_ID")
-
     def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
-
     def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
-
     def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
-
     def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
-
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
-
     def * = (
-        runId,
-        uniqueId,
-        name,
-        well,
-        summary,
-        context,
-        collectionPathUri,
-        status,
-        instrumentId,
-        instrumentName,
-        movieMinutes,
-        startedAt,
-        completedAt,
-        terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
+      runId,
+      uniqueId,
+      name,
+      well,
+      summary,
+      context,
+      collectionPathUri,
+      status,
+      instrumentId,
+      instrumentName,
+      movieMinutes,
+      startedAt,
+      completedAt,
+      terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
   }
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
-
     def details: Rep[String] = column[String]("DETAILS")
-
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
-
     def name: Rep[String] = column[String]("NAME")
-
     def createdBy: Rep[String] = column[String]("CREATED_BY")
-
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
-
     def * = (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
   }
 
@@ -533,9 +469,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val jobTags = TableQuery[JobTags]
   lazy val jobsTags = TableQuery[JobsTags]
 
-  // DataSet types
-  lazy val datasetMetaTypes = TableQuery[DataSetTypesT]
-
   // Runs
   lazy val runSummaries = TableQuery[RunSummariesT]
   lazy val dataModels = TableQuery[DataModelsT]
@@ -549,31 +482,44 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   final type SlickTable = TableQuery[_ <: Table[_]]
 
-  lazy val serviceTables: Set[SlickTable] = Set(
-    engineJobs,
-    datasetMetaTypes,
-    engineJobsDataSets,
-    jobEvents,
-    jobTags,
-    jobsTags,
-    projectsUsers,
-    projects,
-    dsMetaData2,
-    dsSubread2,
-    dsHdfSubread2,
-    dsReference2,
-    dsAlignment2,
-    dsBarcode2,
-    dsCCSread2,
-    dsGmapReference2,
-    dsCCSAlignment2,
-    dsContig2,
-    datastoreServiceFiles,
-    eulas)
+  // DBCP for connection pooling and caching prepared statements for use in SQLite
+  private val connectionPool = new BasicDataSource()
+  connectionPool.setDriverClassName("org.sqlite.JDBC")
+  connectionPool.setUrl(legacyDbUri)
+  connectionPool.setInitialSize(1)
+  connectionPool.setMaxTotal(1)
+  connectionPool.setPoolPreparedStatements(true)
 
-  lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata, samples)
+  private val db = Database.forDataSource(
+    connectionPool,
+    executor = AsyncExecutor("db-executor", 1, -1))
 
-  lazy val allTables: Set[SlickTable] = serviceTables ++ runTables
-
-  lazy val schema = allTables.map(_.schema).reduce(_ ++ _)
+  def read(): Future[Seq[Any]] = {
+    val action = for {
+      ej  <- engineJobs.result
+      ejd <- engineJobsDataSets.result
+      je  <- jobEvents.result
+      jt  <- jobTags.result
+      jst <- jobsTags.result
+      psu <- projectsUsers.result
+      ps  <- projects.result
+      dmd <- dsMetaData2.result
+      dsu <- dsSubread2.result
+      dhs <- dsHdfSubread2.result
+      dre <- dsReference2.result
+      dal <- dsAlignment2.result
+      dba <- dsBarcode2.result
+      dcc <- dsCCSread2.result
+      dgr <- dsGmapReference2.result
+      dca <- dsCCSAlignment2.result
+      dco <- dsContig2.result
+      dsf <- datastoreServiceFiles.result
+      eu  <- eulas.result
+      rs  <- runSummaries.result
+      dm  <- dataModels.result
+      cm  <- collectionMetadata.result
+      sa  <- samples.result
+    } yield Seq(ej, /* dmt, */ ejd, je, jt, jst, psu, ps, dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, eu, rs, dm, cm, sa)
+    db.run(action).andThen { case _ => db.close() }
+  }
 }
