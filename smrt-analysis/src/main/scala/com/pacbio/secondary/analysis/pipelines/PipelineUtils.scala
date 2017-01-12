@@ -21,6 +21,33 @@ import spray.json._
  */
 trait PipelineUtils extends LazyLogging{
 
+  def getPresetTaskOptions(p: PipelineTemplate, taskOptions: Seq[ServiceTaskOptionBase]): Seq[ServiceTaskOptionBase] = {
+    val presetOptsMap = taskOptions.map(x => (x.id, x)).toMap
+    p.taskOptions.map {opt =>
+      presetOptsMap.get(opt.id).map (pOpt => (pOpt, opt)) match {
+        case Some((presetOpt:ServiceTaskStrOption, _)) =>
+          // Need to do ugly casting here. The 'raw' options defined in XML are treated as PipelineStringOption
+          // and cast to the type consistent with what is defined in the Pipeline
+          opt match {
+            case t: PipelineBooleanOption => t.copy(value = presetOpt.value.toBoolean)
+            case t: PipelineIntOption => t.copy(value = presetOpt.value.toInt)
+            case t: PipelineDoubleOption => t.copy(value = presetOpt.value.toDouble)
+            case t: PipelineStrOption => t.copy(value = presetOpt.value)
+            case t: PipelineChoiceStrOption => t.applyValue(presetOpt.value)
+            case t: PipelineChoiceIntOption => t.applyValue(presetOpt.value.toInt)
+            case t: PipelineChoiceDoubleOption => t.applyValue(presetOpt.value.toDouble)
+          }
+        // If the non-raw XML values are provided, just default to the correct values
+        case Some((presetOpt: ServiceTaskBooleanOption, opt: PipelineBooleanOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskIntOption, opt: PipelineIntOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskIntOption, opt: PipelineChoiceIntOption)) => opt.applyValue(presetOpt.value)
+        case Some((presetOpt: ServiceTaskDoubleOption, opt: PipelineDoubleOption)) => opt.copy(value = presetOpt.value)
+        case Some((presetOpt: ServiceTaskDoubleOption, opt: PipelineChoiceDoubleOption)) => opt.applyValue(presetOpt.value)
+        case _ => opt
+      }
+    } map (_.asServiceOption)
+  }
+
   /**
    * Will override any presets in the pipeline and translate any "raw" task options to the correct taskOption
    * The pbsmrtpipe preset XML only has the K-V pairs as Str-Str.
@@ -37,28 +64,8 @@ trait PipelineUtils extends LazyLogging{
     // options (and or presets) will be filtered out.
 
     // Filter all presets that don't reference the fundamental pipeline of interest
-    val processedPresets = presets.filter(_.templateId == p.id).map { preset =>
-
-      val presetOptsMap = preset.taskOptions.map(x => (x.id, x)).toMap
-
-      val presetTaskOptions = p.taskOptions.map {opt =>
-        presetOptsMap.get(opt.id).map (pOpt => (pOpt, opt)) match {
-          case Some((presetOpt:PipelineStrOption, _)) =>
-            // Need to do ugly casting here. The 'raw' options defined in XML are treated as PipelineStringOption
-            // and cast to the type consistent with what is defined in the Pipeline
-            opt match {
-              case t: PipelineBooleanOption => t
-              case t: PipelineIntOption => t.copy(value = presetOpt.value.toInt)
-              case t: PipelineDoubleOption => t.copy(value = presetOpt.value.toDouble)
-              case t: PipelineStrOption => t.copy(value = presetOpt.value)
-            }
-          // If the non-raw XML values are provided, just default to the correct values
-          case Some((presetOpt: PipelineIntOption, opt: PipelineIntOption)) => opt.copy(value = presetOpt.value)
-          case Some((presetOpt: PipelineDoubleOption, opt: PipelineDoubleOption)) => opt.copy(value = presetOpt.value)
-          case Some((presetOpt: PipelineBooleanOption, opt: PipelineBooleanOption)) => opt.copy(value = presetOpt.value)
-          case _ => opt
-        }
-      }
+    val processedPresets = presets.filter(_.pipelineId == p.id).map { preset =>
+      val presetTaskOptions = getPresetTaskOptions(p, preset.taskOptions)
       preset.copy(taskOptions = presetTaskOptions)
     }
 

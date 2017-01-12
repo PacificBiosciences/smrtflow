@@ -3,9 +3,9 @@
   "name": "CCS with Barcoding",
   "description": "Override Description",
   "taskOptions": [
-    {"id": "pbccs.task_options.min_passes", "hidden": false},
-    {"id": "pbccs.task_options.min_predicted_accuracy", "hidden": false},
-    {"id": "pbccs.task_options.model_path", "hidden": true},
-    {"id": "pbccs.task_options.model_spec", "hidden": true}
+    {"id": "pbccs.task_options.min_passes", "hidden": false, "advanced": false},
+    {"id": "pbccs.task_options.min_predicted_accuracy", "hidden": false, "advanced": false},
+    {"id": "pbccs.task_options.model_path", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true}
   ]
 }

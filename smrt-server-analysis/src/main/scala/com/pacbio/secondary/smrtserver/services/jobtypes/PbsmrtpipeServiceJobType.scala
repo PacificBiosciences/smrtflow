@@ -118,12 +118,11 @@ class PbsmrtpipeServiceJobType(
               logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
 
               val fx = for {
-                taskOptions <- Future { ropts.taskOptions.map(x => PipelineStrOption(x.id, s"Name ${x.id}", x.value.toString, s"Description ${x.id}")) }
                 xs <- Future.sequence(ropts.entryPoints.map(resolveEntry))
                 boundEntryPoints <- Future { xs.map(_._2) }
                 engineJobPoints <- Future { xs.map(_._1) }
-                workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions }
-                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
+                workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption) }
+                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, ropts.taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
                 coreJob <- Future { CoreJob(uuid, opts)}
                 engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob

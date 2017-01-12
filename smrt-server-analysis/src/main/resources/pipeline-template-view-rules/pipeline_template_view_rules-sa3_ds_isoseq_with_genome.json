@@ -1,0 +1,9 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_ds_isoseq_with_genome",
+  "name": "Iso-Seq with Mapping",
+  "description": "Override Description",
+  "taskOptions": [
+    {"id": "pbccs.task_options.model_path", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true}
+  ]
+}

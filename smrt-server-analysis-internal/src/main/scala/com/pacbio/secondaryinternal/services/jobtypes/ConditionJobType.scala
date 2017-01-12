@@ -27,7 +27,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
-import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption}
+import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, PipelineBaseOption, PipelineStrOption, ServiceTaskOptionBase}
 import com.pacbio.secondary.analysis.jobtypes.{ConvertImportFastaOptions, PbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
@@ -80,8 +80,7 @@ class ConditionJobType(dbActor: ActorRef,
     val entryPoints = Seq(BoundEntryPoint(PIPELINE_ENTRY_POINT_ID, conditionPath.toString))
 
     val envPath:Option[Path] = None
-    PbSmrtPipeJobOptions(pipelineId, entryPoints, Seq.empty[PipelineBaseOption], Seq.empty[PipelineBaseOption], envPath, serviceURI)
-
+    PbSmrtPipeJobOptions(pipelineId, entryPoints, Seq.empty[ServiceTaskOptionBase], Seq.empty[ServiceTaskOptionBase], envPath, serviceURI)
   }
 
   val validateConditionRunRoute =

@@ -337,10 +337,12 @@ def to_smrt_link_ui_config_d(host, wso2_https_port, smrtview_port, service_event
     """
     smrtview_uri = to_uri(host, smrtview_port)
     services_uri = to_uri(host, wso2_https_port, "", https=True)
+    services_backend_uri = to_uri(host, services_port)
     auth_uri = to_uri(host, wso2_https_port, https=True)
 
     d = {"smrt-view": {"default-server": smrtview_uri},
          "smrt-link": {"default-server": services_uri},
+         "smrt-link-backend": {"default-server": services_backend_uri},
          "auth": {"default-server": auth_uri},
          "events-url": {"default-server": service_event_url},
          "tech-support": {"default-server": tech_support_url}

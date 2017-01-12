@@ -57,6 +57,22 @@ object AnalysisJobStates {
 
 }
 
+// mirrors pbcommand.models.common.TaskOptionTypes
+object OptionTypes {
+  sealed trait OptionType {
+    val optionTypeId: String
+  }
+
+  case object STR extends OptionType { val optionTypeId = "string" }
+  case object INT extends OptionType { val optionTypeId = "integer" }
+  case object FLOAT extends OptionType { val optionTypeId = "float" }
+  case object BOOL extends OptionType { val optionTypeId = "boolean" }
+  case object CHOICE extends OptionType { val optionTypeId = "choice_string" }
+  case object CHOICE_INT extends OptionType { val optionTypeId = "choice_integer" }
+  case object CHOICE_FLOAT extends OptionType { val optionTypeId = "choice_float" }
+
+}
+
 object JobModels {
 
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
@@ -215,14 +231,18 @@ object JobModels {
   // Used in pipeline Templates. Name is the display name
   case class EntryPoint(entryId: String, fileTypeId: String, name: String)
 
-  trait PipelineBaseOption {
+  trait PacBioBaseOption {
     type In
     val id: String
-    val name: String
     val value: In
+    val optionTypeId: String
+  }
+
+  trait PipelineBaseOption extends PacBioBaseOption {
+    val name: String
     val description: String
 
-    def pbOptionId: String // PacBio Option type
+    def asServiceOption: ServiceTaskOptionBase
   }
 
   trait PipelineIntOptionBase extends PipelineBaseOption {
@@ -241,33 +261,78 @@ object JobModels {
     type In = Boolean
   }
 
-  //The option types are currently defined in pbsmrtpipe.contants which should
-  // be migrated to pbcommand
-  private def toI(sx: String) = s"pbsmrtpipe.option_types.$sx"
-
   case class PipelineStrOption(id: String, name: String, value: String, description: String) extends PipelineStrOptionBase {
-    def pbOptionId = toI("string")
+    val optionTypeId = OptionTypes.STR.optionTypeId
+    def asServiceOption = ServiceTaskStrOption(id, value, optionTypeId)
   }
 
 
   case class PipelineIntOption(id: String, name: String, value: Int, description: String) extends PipelineIntOptionBase {
-    def pbOptionId = toI("integer")
+    val optionTypeId = OptionTypes.INT.optionTypeId
+    def asServiceOption = ServiceTaskIntOption(id, value, optionTypeId)
   }
 
   case class PipelineDoubleOption(id: String, name: String, value: Double, description: String) extends PipelineDoubleOptionBase {
-    def pbOptionId = toI("float")
+    val optionTypeId = OptionTypes.FLOAT.optionTypeId
+    def asServiceOption = ServiceTaskDoubleOption(id, value, optionTypeId)
   }
 
   case class PipelineBooleanOption(id: String, name: String, value: Boolean, description: String) extends PipelineBooleanOptionBase {
-    def pbOptionId = toI("boolean")
+    val optionTypeId = OptionTypes.BOOL.optionTypeId
+    def asServiceOption = ServiceTaskBooleanOption(id, value, optionTypeId)
   }
+
+  case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase {
+    val optionTypeId = OptionTypes.CHOICE.optionTypeId
+
+    def applyValue(v: String) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
+    def asServiceOption = ServiceTaskStrOption(id, value, optionTypeId)
+  }
+
+  case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase {
+    val optionTypeId = OptionTypes.CHOICE_INT.optionTypeId
+
+    def applyValue(v: Int) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
+    def asServiceOption = ServiceTaskIntOption(id, value, optionTypeId)
+  }
+
+  case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase {
+    val optionTypeId = OptionTypes.CHOICE_FLOAT.optionTypeId
+
+    def applyValue(v: Double) = {
+      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      copy(value = v)
+    }
+    def asServiceOption = ServiceTaskDoubleOption(id, value, optionTypeId)
+  }
+
+  trait ServiceTaskOptionBase extends PacBioBaseOption {
+  }
+
+  trait ServiceTaskStrOptionBase extends ServiceTaskOptionBase{ type In = String }
+  trait ServiceTaskIntOptionBase extends ServiceTaskOptionBase{ type In = Int }
+  trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase{ type In = Boolean }
+  trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase{ type In = Double }
+  trait ServiceTaskFloatOptionBase extends ServiceTaskOptionBase{ type In = Float }
+
+  case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String = OptionTypes.STR.optionTypeId) extends ServiceTaskStrOptionBase
+  case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String = OptionTypes.INT.optionTypeId) extends ServiceTaskIntOptionBase
+  case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String = OptionTypes.BOOL.optionTypeId) extends ServiceTaskBooleanOptionBase
+  case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String = OptionTypes.FLOAT.optionTypeId) extends ServiceTaskDoubleOptionBase
+  case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String = OptionTypes.FLOAT.optionTypeId) extends ServiceTaskFloatOptionBase
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
   case class PbsmrtpipeDirectJobOptions(
       pipelineId: String,
       entryPoints: Seq[BoundEntryPoint],
-      taskOptions: Seq[PipelineBaseOption],
-      workflowOptions: Seq[PipelineBaseOption])
+      taskOptions: Seq[ServiceTaskOptionBase],
+      workflowOptions: Seq[ServiceTaskOptionBase])
 
   // pbsmrtpipe/smrtflow Pipelines
   case class PipelineTemplate(
@@ -278,18 +343,19 @@ object JobModels {
       options: Seq[PipelineBaseOption],
       taskOptions: Seq[PipelineBaseOption],
       entryPoints: Seq[EntryPoint],
-      tags: Seq[String], presets: Seq[PipelineTemplatePreset])
+      tags: Seq[String],
+      presets: Seq[PipelineTemplatePreset])
 
   // templateId refers to the PipelineTemplate Id
   case class PipelineTemplatePreset(
       presetId: String,
-      templateId: String,
-      options: Seq[PipelineBaseOption],
-      taskOptions: Seq[PipelineBaseOption])
+      pipelineId: String,
+      options: Seq[ServiceTaskOptionBase],
+      taskOptions: Seq[ServiceTaskOptionBase])
 
 
   // View Rules Models
-  case class PipelineOptionViewRule(id: String, hidden: Boolean)
+  case class PipelineOptionViewRule(id: String, hidden: Boolean, advanced: Boolean)
 
   case class PipelineTemplateViewRule(
       id: String,

@@ -3,8 +3,13 @@ package com.pacbio.secondary.analysis.pipelines
 import java.nio.file.Path
 
 import scala.xml
+import scala.io.Source
+
+import org.apache.commons.io.FilenameUtils
+import spray.json._
 
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 
 /**
@@ -16,7 +21,7 @@ import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
  *
  * Created by mkocher on 10/21/15.
  */
-trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
+trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with SecondaryJobJsonProtocol {
 
   val extFilter = Seq("xml")
 
@@ -25,12 +30,12 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    * @param x XML node
    * @return
    */
-  private def parseTaskOptions(x: xml.Elem, optionsTag: String = "options"): Seq[PipelineBaseOption] = {
+  private def parseTaskOptions(x: xml.Elem, optionsTag: String = "task-options"): Seq[ServiceTaskOptionBase] = {
     // pbsmrtpipe Task Options don't have the proper type, or other metadata
     // So all options are converted to String opts
-    val taskOptions: Seq[PipelineBaseOption] = (x \ optionsTag \ "option")
+    val taskOptions: Seq[ServiceTaskOptionBase] = (x \ optionsTag \ "option")
       .map(i => ((i \ "@id").text, (i \ "value").text))
-      .map(z => PipelineStrOption(z._1, s"Name ${z._1}", z._2, s"Description ${z._1}"))
+      .map(z => ServiceTaskStrOption(z._1, z._2))
     taskOptions
   }
 
@@ -43,13 +48,8 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    * @return
    */
   def loadFrom(path: Path): PipelineTemplatePreset = {
-    val x = scala.xml.XML.loadFile(path.toFile)
-    val engineOptions = parseTaskOptions(x, "options")
-    val taskOptions = parseTaskOptions(x, "task-options")
-    val presetId = (x \ "@id").text
-    val pipelineId = (x \ "@pipeline-id").text
-
-    PipelineTemplatePreset(presetId, pipelineId, engineOptions, taskOptions)
+    if (FilenameUtils.getExtension(path.toString) == "xml") parsePresetXml(path)
+    else parsePresetJson(path)
   }
 
   /**
@@ -57,7 +57,7 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    * @param rnode
    * @return
    */
-  private def parseEngineOptions(rnode: scala.xml.Elem): Seq[PipelineBaseOption] = {
+  private def parseEngineOptions(rnode: scala.xml.Elem): Seq[ServiceTaskOptionBase] = {
 
     /**
      * Cast String to bool. Default to false if can't parse value.
@@ -76,13 +76,13 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
     }
 
     // Convert the Raw values and Cast to correct type
-    def toV(optionId: String, optionValue: String): Option[PipelineBaseOption] = {
+    def toV(optionId: String, optionValue: String): Option[ServiceTaskOptionBase] = {
       PbsmrtpipeEngineOptions().getPipelineOptionById(optionId).map {
         case o: PipelineBooleanOption => o.copy(value = castInt(optionValue))
         case o: PipelineIntOption => o.copy(value = optionValue.toInt)
         case o: PipelineDoubleOption => o.copy(value = optionValue.toDouble)
         case o: PipelineStrOption => o.copy(value = optionValue)
-      }
+      } map (_.asServiceOption)
     }
 
     (rnode \ "options" \ "option")
@@ -95,12 +95,20 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] {
    * @param path
    * @return
    */
-  def parsePresetXml(path: Path): (Seq[PipelineBaseOption], Seq[PipelineBaseOption]) = {
+  def parsePresetXml(path: Path): PipelineTemplatePreset = {
     val x = scala.xml.XML.loadFile(path.toFile)
+    val presetId = (x \ "@id").text
+    val pipelineId = (x \ "@pipeline-id").text
     val engineOptions = parseEngineOptions(x)
     val taskOptions = parseTaskOptions(x)
-    (engineOptions, taskOptions)
+    PipelineTemplatePreset(presetId, pipelineId, engineOptions, taskOptions)
   }
+
+  def parsePresetJson(path: Path): PipelineTemplatePreset = {
+    val jsonSrc = Source.fromFile(path.toFile).getLines.mkString
+    jsonSrc.parseJson.convertTo[PipelineTemplatePreset]
+  }
+
 }
 
 object PipelineTemplatePresetLoader extends PipelineTemplatePresetLoader

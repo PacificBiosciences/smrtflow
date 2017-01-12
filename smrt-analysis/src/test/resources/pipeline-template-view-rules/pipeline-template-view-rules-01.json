@@ -5,11 +5,13 @@
   "taskOptions": [
     {
       "id": "pbalign.task_options.pbalign",
-      "hidden": true
+      "hidden": true,
+      "advanced": true
     },
     {
       "id": "pbcommand.task_options.dev_hello",
-      "hidden": true
+      "hidden": true,
+      "advanced": true
     }
   ]
 }

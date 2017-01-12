@@ -10,7 +10,11 @@ class PipelineUtilsSpec extends Specification{
     val taskOptions: Seq[PipelineBaseOption] = Seq(
       PipelineIntOption("id-a", "name-a", 1234, "Description-A"),
       PipelineStrOption("id-b", "name-b", "value-b", "Description-B"),
-      PipelineDoubleOption("id-c", "name-c", 4567.89, "Description-C"))
+      PipelineDoubleOption("id-c", "name-c", 4567.89, "Description-C"),
+      PipelineBooleanOption("id-d", "name-d", true, "Description-D"),
+      PipelineChoiceIntOption("id-e", "name-e", 1, "Description-E", Seq(1,2,3)),
+      PipelineChoiceStrOption("id-f", "name-f", "b", "Description-F", Seq("a", "b", "c")),
+      PipelineChoiceDoubleOption("id-g", "name-g", 0.1, "Description-G", Seq(0.01, 0.1, 1.0)))
 
     val entryPoints = Seq[EntryPoint]()
     val tags = Seq("dev", "example")
@@ -19,27 +23,109 @@ class PipelineUtilsSpec extends Specification{
       defaultEngineOptions, taskOptions, entryPoints, tags, presets)
   }
 
-  // Loaded from a preset xml with a correctly typed option ('id-c')
+  // Correctly typed
   val preset1 = {
-    val taskOptions = Seq(PipelineStrOption("id-a", "name-a", "99999", "Description-A"),
+    val taskOptions = Seq(
+      PipelineIntOption("id-a", "name-a", 99999, "Description-A"),
       PipelineStrOption("id-b", "name-b", "value-preset-b", "Description-B"),
-      PipelineDoubleOption("id-c", "new-name-c", 9999.99, "Descrption-new-C")
-    )
-      PipelineTemplatePreset("preset-01", rsPipelineTemplate.id, defaultEngineOptions, taskOptions)
+      PipelineDoubleOption("id-c", "new-name-c", 9999.99, "Descrption-new-C"),
+      PipelineBooleanOption("id-d", "new-name-c", false, "Descrption-new-D"),
+      PipelineChoiceIntOption("id-e", "new-name-c", 1, "Descrption-new-E", Seq(1,2,3)),
+      PipelineChoiceStrOption("id-f", "new-name-c", "a", "Descrption-new-F", Seq("a","b","c")),
+      PipelineChoiceDoubleOption("id-g", "new-name-c", 0.01, "Descrption-new-G", Seq(0.01, 0.1, 1.0))
+    ).map(_.asServiceOption)
+    PipelineTemplatePreset("preset-01", rsPipelineTemplate.id, defaultEngineOptions.map(_.asServiceOption), taskOptions)
   }
+
+  // Loaded from XML
+  val preset2 = {
+    val taskOptions = Seq(
+      PipelineStrOption("id-a", "name-a", "99999", "Description-A"),
+      PipelineStrOption("id-b", "name-b", "value-preset-b", "Description-B"),
+      PipelineStrOption("id-c", "new-name-c", "9999.99", "Descrption-new-C"),
+      PipelineStrOption("id-d", "new-name-d", "false", "Descrption-new-D"),
+      PipelineStrOption("id-e", "new-name-e", "2", "Descrption-new-E"),
+      PipelineStrOption("id-f", "new-name-f", "a", "Descrption-new-F"),
+      PipelineStrOption("id-g", "new-name-g", "0.01", "Descrption-new-G")
+    ).map(_.asServiceOption)
+    PipelineTemplatePreset("preset-02", rsPipelineTemplate.id, defaultEngineOptions.map(_.asServiceOption), taskOptions)
+  }
+
+  // Empty options
+  val preset3 = {
+    val taskOptions = Seq()
+    PipelineTemplatePreset("preset-03", rsPipelineTemplate.id, defaultEngineOptions.map(_.asServiceOption), taskOptions)
+  }
+
+  // wrong options
+  val preset4 = {
+    val taskOptions = Seq(
+      PipelineStrOption("id-h", "name-h", "99999", "Description-H"),
+      PipelineStrOption("id-i", "name-i", "value-preset-i", "Description-I")
+    ).map(_.asServiceOption)
+    PipelineTemplatePreset("preset-04", rsPipelineTemplate.id, defaultEngineOptions.map(_.asServiceOption), taskOptions)
+  }
+
+  // wrong pipeline
+  val preset5 = {
+    val taskOptions = Seq(
+      PipelineStrOption("id-a", "name-a", "99999", "Description-A"),
+      PipelineStrOption("id-b", "name-b", "value-preset-b", "Description-B")
+    ).map(_.asServiceOption)
+    PipelineTemplatePreset("preset-05", "other_pipeline_id", defaultEngineOptions.map(_.asServiceOption), taskOptions)
+  }
+
+  def getOpt(p: PipelineTemplate, id: String): Option[ServiceTaskOptionBase] =
+    p.presets.headOption.map(x => x.taskOptions.filter(_.id == id)).get.headOption
 
   "Test " should {
     "Simple load/merge Pipeline Presets" in {
-
       val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset1))
-//      println("Processed Pipeline")
-//      println(pipelineTemplate)
-//      println("Preset")
-//      println(pipelineTemplate.presets)
-
-      val px = pipelineTemplate.presets.headOption.map(x => x.taskOptions.filter(_.id == "id-a"))
-//      println(px)
-      px must beSome[Seq[PipelineBaseOption]]
+      val px2 = getOpt(pipelineTemplate, "id-a")
+      px2 must beSome[ServiceTaskOptionBase]
+      px2.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(99999))
+      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      n must beEqualTo(Some(7))
+    }
+    "Convert from string values" in {
+      val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset2))
+      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      n must beEqualTo(Some(7))
+      var px = getOpt(pipelineTemplate, "id-a")
+      px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(99999))
+      val px2 = getOpt(pipelineTemplate, "id-b")
+      px2.map(x => x.asInstanceOf[ServiceTaskStrOption].value) must beEqualTo(Some("value-preset-b"))
+      val px3 = getOpt(pipelineTemplate, "id-c")
+      px3.map(x => x.asInstanceOf[ServiceTaskDoubleOption].value) must beEqualTo(Some(9999.99))
+      val px4 = getOpt(pipelineTemplate, "id-d")
+      px4.map(x => x.asInstanceOf[ServiceTaskBooleanOption].value) must beEqualTo(Some(false))
+      val px5 = getOpt(pipelineTemplate, "id-e")
+      px5.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(2))
+      val px6 = getOpt(pipelineTemplate, "id-f")
+      px6.map(x => x.asInstanceOf[ServiceTaskStrOption].value) must beEqualTo(Some("a"))
+      val px7 = getOpt(pipelineTemplate, "id-g")
+      px7.map(x => x.asInstanceOf[ServiceTaskDoubleOption].value) must beEqualTo(Some(0.01))
+    }
+    "Process empty presets" in {
+      val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset3))
+      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      n must beEqualTo(Some(7))
+      // still default
+      var px = getOpt(pipelineTemplate, "id-a")
+      px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(1234))
+    }
+    "Process inappropriate options" in {
+      val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset4))
+      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      n must beEqualTo(Some(7))
+      // still default
+      var px = getOpt(pipelineTemplate, "id-a")
+      px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(1234))
+    }
+    "Process presets for incorrect pipeline" in { // but correct option IDs!
+      val pipelineTemplate = PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset5))
+      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      n must beEqualTo(None)
     }
   }
 }

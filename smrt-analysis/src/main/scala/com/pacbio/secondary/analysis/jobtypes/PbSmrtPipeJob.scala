@@ -18,8 +18,8 @@ import com.pacbio.secondary.analysis.pbsmrtpipe._
 case class PbSmrtPipeJobOptions(
     pipelineId: String,
     entryPoints: Seq[BoundEntryPoint],
-    taskOptions: Seq[PipelineBaseOption],
-    workflowOptions: Seq[PipelineBaseOption],
+    taskOptions: Seq[ServiceTaskOptionBase],
+    workflowOptions: Seq[ServiceTaskOptionBase],
     envPath: Option[Path], serviceUri: Option[URI],
     commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
 

@@ -3,8 +3,9 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Path, Paths}
 
 import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.jobs.OptionTypes
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, PathProtocols, SecondaryJobProtocols}
+import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, PathProtocols, SecondaryJobProtocols, SecondaryJobProtocols, PipelineTemplateOptionProtocol}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import spray.json._
@@ -12,46 +13,6 @@ import fommil.sjs.FamilyFormats
 import shapeless.cachedImplicit
 import java.util.UUID
 
-
-trait ServiceTaskOptionProtocols extends DefaultJsonProtocol {
-
-  implicit object ServiceTaskOptionFormat extends RootJsonFormat[ServiceTaskOptionBase] {
-
-    def write(p: ServiceTaskOptionBase): JsObject = {
-
-      def toV(px: ServiceTaskOptionBase): JsValue = {
-        px match {
-          case ServiceTaskIntOption(_, v, _) => JsNumber(v)
-          case ServiceTaskBooleanOption(_, v, _) => JsBoolean(v)
-          case ServiceTaskStrOption(_, v, _) => JsString(v)
-          case ServiceTaskDoubleOption(_, v, _) => JsNumber(v)
-          case ServiceTaskFloatOption(_, v, _) => JsNumber(v)
-        }
-      }
-
-      JsObject(
-        "optionId" -> JsString(p.id),
-        "value" -> toV(p),
-        "optionTypeId" -> JsString(p.optionTypeId)
-      )
-    }
-
-    def read(value: JsValue): ServiceTaskOptionBase = {
-      value.asJsObject.getFields("optionId", "value", "optionTypeId") match {
-        case Seq(JsString(id), JsNumber(value_), JsString(optionTypeId)) =>
-          optionTypeId match {
-            case "pbsmrtpipe.option_types.integer" =>  ServiceTaskIntOption(id, value_.toInt, optionTypeId)
-            case "pbsmrtpipe.option_types.double" =>  ServiceTaskDoubleOption(id, value_.toDouble, optionTypeId)
-            case "pbsmrtpipe.option_types.float" =>  ServiceTaskFloatOption(id, value_.toFloat, optionTypeId)
-            case x => deserializationError(s"Unknown number type '$x'")
-          }
-        case Seq(JsString(id), JsBoolean(value_), JsString(optionTypeId)) => ServiceTaskBooleanOption(id, value_, optionTypeId)
-        case Seq(JsString(id), JsString(value_), JsString(optionTypeId)) => ServiceTaskStrOption(id, value_, optionTypeId)
-        case _ => deserializationError("Expected Task Option")
-      }
-    }
-  }
-}
 
 trait SupportedRunStatesProtocols extends DefaultJsonProtocol {
   implicit object SupportedRunStatesFormat extends RootJsonFormat[SupportedRunStates] {
@@ -121,7 +82,7 @@ trait ProjectStateProtocols extends DefaultJsonProtocol {
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
-  with ServiceTaskOptionProtocols
+  with PipelineTemplateOptionProtocol
   with SupportedRunStatesProtocols
   with SupportedAcquisitionStatesProtocols
   with PathProtocols

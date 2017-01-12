@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -8,7 +9,7 @@ import akka.util.Timeout
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, PipelineBaseOption}
+import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, ServiceTaskOptionBase}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -54,9 +55,10 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
               // 3. Submit CoreJob to manager
               val uuid = UUID.randomUUID()
               val entryPoints = ropts.entryPoints.map(x => BoundEntryPoint(x.entryId, "/tmp/file.fasta"))
-              val taskOptions = Seq[PipelineBaseOption]()
-              val workflowOptions = Seq[PipelineBaseOption]()
-              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions)
+              val taskOptions = Seq[ServiceTaskOptionBase]()
+              val workflowOptions = Seq[ServiceTaskOptionBase]()
+              val envPath = Paths.get("")
+              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")
               val jsonSettings = ropts.toJson.toString()

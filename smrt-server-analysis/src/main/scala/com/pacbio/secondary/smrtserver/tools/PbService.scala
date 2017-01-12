@@ -68,7 +68,6 @@ object PbServiceParser {
 
   val VERSION = "0.1.0"
   var TOOL_ID = "pbscala.tools.pbservice"
-  private val MAX_FASTA_SIZE = 100.0 // megabytes
 
   private def getSizeMb(fileObj: File): Double = {
     fileObj.length / 1024.0 / 1024.0
@@ -192,12 +191,6 @@ object PbServiceParser {
     } children(
       arg[File]("fasta-path") required() action { (p, c) =>
         c.copy(path = p.toPath)
-      } validate { p => {
-        val size = getSizeMb(p)
-        // it's great that we can do this, but it would be more awesome if
-        // scopt didn't have to print the --help output after it
-        if (size < MAX_FASTA_SIZE) success else failure(s"Fasta file is too large ${size} MB > ${MAX_FASTA_SIZE} MB. Create a ReferenceSet using fasta-to-reference, then import using `pbservice import-dataset /path/to/referenceset.xml")
-        }
       } text "FASTA path",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
@@ -393,8 +386,8 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
     "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
   private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
-    Seq[PipelineBaseOption](),
-    Seq[PipelineBaseOption]())
+    Seq[ServiceTaskOptionBase](),
+    Seq[ServiceTaskOptionBase]())
   private lazy val rsMovieName = """m([0-9]{6})_([0-9a-z]{5,})_([0-9a-z]{5,})_c([0-9]{16,})_(\w\d)_(\w\d)""".r
 
   private def matchRsMovieName(file: File): Boolean =
@@ -805,7 +798,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   protected def validatePipelineId(pipelineId: String): Int = {
     Try {
-      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(x) => printMsg(s"Found pipeline template ${pipelineId}")
       case Failure(err) => errorExit(s"Can't find pipeline template ${pipelineId}: ${err.getMessage}\nUse 'pbsmrtpipe show-templates' to display a list of available pipelines")
@@ -870,13 +863,6 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  protected object OptionTypes {
-    val FLOAT = "pbsmrtpipe.option_types.float"
-    val INTEGER = "pbsmrtpipe.option_types.integer"
-    val STRING = "pbsmrtpipe.option_types.string"
-    val BOOLEAN = "pbsmrtpipe.option_types.boolean"
-  }
-
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
@@ -885,33 +871,10 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
     Try {
       logger.debug("Getting pipeline options from server")
-      Await.result(sal.getPipelineTemplateJson(pipelineId), TIMEOUT)
+      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
-      case Success(pipelineJson) => {
-        val presetOptionsLookup = presets.taskOptions.map(opt => (opt.id, opt.value.toString)).toMap
-        // FIXME unmarshalling is broken, so this is a little hacky
-        val tOpts = pipelineJson.parseJson.asJsObject.getFields("taskOptions")(0).asJsObject
-        val jtaskOptions = tOpts.getFields("properties") match {
-          case Seq(x) => x.asJsObject.fields
-          case _ => Seq.empty[(String, JsObject)]
-        }
-        val taskOptions: Seq[ServiceTaskOptionBase] = (for ((id,templateOpt) <- jtaskOptions) yield {
-          val template = templateOpt.asJsObject.fields
-          val optionValue = presetOptionsLookup.getOrElse(id,
-            template("default") match {
-              case JsString(x) => x
-              case JsNumber(x) => x.toString
-              case JsBoolean(x) => x.toString
-            })
-          template("optionTypeId").asInstanceOf[JsString].value match {
-            case OptionTypes.STRING => ServiceTaskStrOption(id, optionValue,
-                                                            OptionTypes.STRING)
-            case OptionTypes.INTEGER => ServiceTaskIntOption(id, optionValue.toInt, OptionTypes.INTEGER)
-            case OptionTypes.FLOAT => ServiceTaskDoubleOption(id, optionValue.toDouble, OptionTypes.FLOAT)
-            case OptionTypes.BOOLEAN => ServiceTaskBooleanOption(id, optionValue.toBoolean, OptionTypes.BOOLEAN)
-          }
-        }).toList
-        logger.debug(s"Task options: $taskOptions")
+      case Success(pipeline) => {
+        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)

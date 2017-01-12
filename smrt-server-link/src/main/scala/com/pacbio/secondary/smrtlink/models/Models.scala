@@ -3,9 +3,10 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 
 object Models
@@ -162,27 +163,6 @@ case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
-
-
-// Keep everything as strings. Let pbsmrtpipe sort it out
-trait ServiceTaskOptionBase {
-  type In
-  val id: String
-  val optionTypeId: String
-  val value: In
-}
-
-trait ServiceTaskStrOptionBase extends ServiceTaskOptionBase{ type In = String }
-trait ServiceTaskIntOptionBase extends ServiceTaskOptionBase{ type In = Int }
-trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase{ type In = Boolean }
-trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase{ type In = Double }
-trait ServiceTaskFloatOptionBase extends ServiceTaskOptionBase{ type In = Float }
-
-case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String) extends ServiceTaskStrOptionBase
-case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String) extends ServiceTaskIntOptionBase
-case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String) extends ServiceTaskBooleanOptionBase
-case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String) extends ServiceTaskDoubleOptionBase
-case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String) extends ServiceTaskFloatOptionBase
 
 // "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
 // These are also used by the mock-pbsmrtpipe job options

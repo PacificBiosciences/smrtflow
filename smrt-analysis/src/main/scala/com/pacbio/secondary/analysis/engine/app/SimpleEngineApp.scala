@@ -80,8 +80,8 @@ object PbSmrtPipeDemoJobs extends DemoJobs with LazyLogging {
     // Write mock input files here. Output files will be written via the Resolver
     val outputDir = Files.createTempDirectory("pbsmrtpipe-demo-inputs")
 
-    val taskOptions = Seq[PipelineIntOptionBase]()
-    val workflowOptions = Seq[PipelineIntOptionBase]()
+    val taskOptions = Seq[ServiceTaskOptionBase]()
+    val workflowOptions = Seq[ServiceTaskOptionBase]()
     val epath = outputDir.resolve("my-file.txt")
     val entryPoints = Seq(BoundEntryPoint("e_01", epath.toString))
     IOUtils.writeMockBoundEntryPoints(epath)
@@ -97,7 +97,7 @@ object PbSmrtPipeDemoJobs extends DemoJobs with LazyLogging {
 
   def toCustomJob(engineConfig: EngineConfig, pbsmrtpipeEngineConfig: PbsmrtpipeEngineOptions, cmdTemplate: Option[CommandTemplate]) = {
     val opts = toOpts(engineConfig)
-    val customOpts = opts.copy(workflowOptions = pbsmrtpipeEngineConfig.toPipelineOptions, commandTemplate = cmdTemplate)
+    val customOpts = opts.copy(workflowOptions = pbsmrtpipeEngineConfig.toPipelineOptions.map(_.asServiceOption), commandTemplate = cmdTemplate)
     CoreJob(UUID.randomUUID(), customOpts)
   }
 }

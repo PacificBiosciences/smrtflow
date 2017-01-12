@@ -32,8 +32,8 @@ import scala.util.Random
 case class MockPbSmrtPipeJobOptions(
     pipelineId: String,
     entryPoints: Seq[BoundEntryPoint],
-    taskOptions: Seq[PipelineBaseOption],
-    workflowOptions: Seq[PipelineBaseOption],
+    taskOptions: Seq[ServiceTaskOptionBase],
+    workflowOptions: Seq[ServiceTaskOptionBase],
     envPath: Option[Path] = None) extends BaseJobOptions {
 
   def toJob = new PbSmrtpipeMockJob(this)
