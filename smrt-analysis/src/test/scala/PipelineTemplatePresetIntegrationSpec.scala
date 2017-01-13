@@ -56,11 +56,9 @@ class PipelineTemplatePresetIntegrationSpec extends Specification with LazyLoggi
       px = getOpt(pt, "pbsmrtpipe.task_options.c")
       px.map(x => x.asInstanceOf[ServiceTaskDoubleOption].value) must beEqualTo(Some(0.01))
     }
-    "Working JSON presets for all types" in {
-      // this is identical to the XML file above
-      val preset = loadPreset("pipeline-template-presets/example-03.json")
+    def testPreset(name: String) = {
+      val preset = loadPreset(name)
       preset.taskOptions.size must beEqualTo(7)
-      preset.taskOptions(1).asInstanceOf[ServiceTaskBooleanOption].value must beFalse
       logger.info(s"Loaded $preset")
       val p = loadPipeline
       preset.pipelineId must beEqualTo(p.id)
@@ -83,6 +81,15 @@ class PipelineTemplatePresetIntegrationSpec extends Specification with LazyLoggi
       px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(Some(1))
       px = getOpt(pt, "pbsmrtpipe.task_options.c")
       px.map(x => x.asInstanceOf[ServiceTaskDoubleOption].value) must beEqualTo(Some(0.01))
+    }
+    "Working JSON presets for all types (full schema)" in {
+      // this is identical to the XML file above
+      testPreset("pipeline-template-presets/example-03.json")
+    }
+    "Working JSON presets for all types (shorthand syntax)" in {
+      // this is identical to the first JSON file (and the XML), but specifies
+      // options as dictionaries
+      testPreset("pipeline-template-presets/example-04.json")
     }
   }
 }
