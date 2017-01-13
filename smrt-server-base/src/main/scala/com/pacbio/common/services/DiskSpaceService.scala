@@ -6,6 +6,7 @@ import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import DefaultJsonProtocol._
@@ -14,7 +15,7 @@ import scala.concurrent.duration._
 
 // TODO(smcclellan): Unit tests
 
-class DiskSpaceService extends BaseSmrtService {
+class DiskSpaceService extends BaseSmrtService with EngineCoreConfigLoader {
 
   import PacBioJsonProtocol._
 
@@ -25,7 +26,10 @@ class DiskSpaceService extends BaseSmrtService {
     "Disk Space Service",
     "0.1.0", "Disk Space Service")
 
-  private val idsToPaths: Map[String, Path] = Map("smrtlink.resources.root" -> Paths.get("/"))
+  private val idsToPaths: Map[String, Path] = Map(
+    "smrtlink.resources.root" -> Paths.get("/"),
+    "smrtlink.resources.jobs_root" -> Paths.get(engineConfig.pbRootJobDir)
+  )
 
   private def toResource(id: String): DiskSpaceResource = {
     idsToPaths.get(id).map { p =>
