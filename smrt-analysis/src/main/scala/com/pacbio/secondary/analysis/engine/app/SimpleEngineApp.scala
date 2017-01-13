@@ -64,8 +64,9 @@ object PbSmrtPipeMockDemoJobs extends DemoJobs {
       BoundEntryPoint("e_01", "/path/to/file.txt"),
       BoundEntryPoint("e_02", "/path/to/file2.txt"))
 
-    val taskOptions = Seq[PipelineIntOptionBase]()
-    val workflowOptions = Seq[PipelineIntOptionBase]()
+    val workflowOptions = Seq.empty[ServiceTaskIntOption]
+    val taskOptions = Seq.empty[ServiceTaskIntOption]
+
     val envPath: Option[Path] = None
     val jobConfig = MockPbSmrtPipeJobOptions(pipelineId, boundEntryPoints, taskOptions, workflowOptions, envPath)
 

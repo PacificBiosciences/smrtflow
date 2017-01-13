@@ -1,11 +1,8 @@
 package com.pacbio.secondary.smrtlink.models
 
-import java.nio.file.{Path, Paths}
-
 import com.pacbio.common.models._
-import com.pacbio.secondary.analysis.jobs.OptionTypes
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, PathProtocols, SecondaryJobProtocols, SecondaryJobProtocols, PipelineTemplateOptionProtocol}
+import com.pacbio.secondary.analysis.jobs.{JobStatesJsonProtocol, PathProtocols, SecondaryJobProtocols, PipelineTemplateOptionProtocol}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import spray.json._
