@@ -162,7 +162,6 @@ trait SmrtLinkJsonProtocols
   implicit val fullProjectFormat: RootJsonFormat[FullProject] = cachedImplicit
   implicit val projectRequestFormat: RootJsonFormat[ProjectRequest] = cachedImplicit
   implicit val projectUserRequestFormat: RootJsonFormat[ProjectRequestUser] = cachedImplicit
-  implicit val projectUserResponseFormat: RootJsonFormat[ProjectUserResponse] = cachedImplicit
 
   implicit val eulaFormat = jsonFormat6(EulaRecord)
   implicit val eulaAcceptanceFormat = jsonFormat4(EulaAcceptance)

@@ -82,12 +82,12 @@ with SmrtLinkConstants {
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
   val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, None)
 
-  val newUser = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_EDIT)
-  val newUser2 = ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.CAN_VIEW)
+  val newUser = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_EDIT)
+  val newUser2 = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_VIEW)
 
   var newProjId = 0
   var newProjMembers: Seq[ProjectRequestUser] =
-    List(ProjectRequestUser(RequestUser(ADMIN_USER_2_LOGIN), ProjectUserRole.OWNER))
+    List(ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.OWNER))
   var dsCount = 0
   var movingDsId = 0
 
@@ -113,7 +113,7 @@ with SmrtLinkConstants {
       Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
-        newProjMembers = proj.members.map(x => ProjectRequestUser(RequestUser(x.login), x.role))
+        newProjMembers = proj.members.map(x => ProjectRequestUser(x.login, x.role))
         newProjId = proj.id
         proj.name === proj.name
         proj.state === ProjectState.CREATED
@@ -258,7 +258,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser.user.login).head
+        val user = users.filter(_.login == newUser.login).head
         user.role === newUser.role
       }
 
@@ -269,7 +269,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
-        val user = users.filter(_.login == newUser2.user.login).head
+        val user = users.filter(_.login == newUser2.login).head
         user.role === newUser2.role
       }
     }

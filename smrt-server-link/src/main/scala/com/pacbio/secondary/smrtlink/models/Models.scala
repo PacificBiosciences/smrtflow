@@ -510,7 +510,7 @@ case class Project(
     // isActive: false if the project has been deleted, true otherwise
     isActive: Boolean) {
 
-  def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectUserResponse]): FullProject =
+  def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
     FullProject(
       id,
       name,
@@ -534,7 +534,7 @@ case class FullProject(
     updatedAt: JodaDateTime,
     isActive: Boolean,
     datasets: Seq[DataSetMetaDataSet],
-    members: Seq[ProjectUserResponse]) {
+    members: Seq[ProjectRequestUser]) {
 
   def asRequest: ProjectRequest =
     ProjectRequest(
@@ -542,7 +542,7 @@ case class FullProject(
       description,
       Some(state),
       Some(datasets.map(ds => RequestId(ds.id))),
-      Some(members.map(u => ProjectRequestUser(RequestUser(u.login), u.role))))
+      Some(members.map(u => ProjectRequestUser(u.login, u.role))))
 }
 
 // the json structures required in client requests are a subset of the
@@ -565,7 +565,6 @@ case class ProjectRequest(
 }
 
 case class RequestId(id: Int)
-case class RequestUser(login: String)
 
 object ProjectUserRole {
   sealed trait ProjectUserRole
@@ -579,13 +578,11 @@ object ProjectUserRole {
       .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
   }
 }
-case class ProjectRequestUser(user: RequestUser, role: ProjectUserRole.ProjectUserRole)
+case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
 case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
 
-case class ProjectUserResponse(login: String, role: ProjectUserRole.ProjectUserRole)
-
 case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], project: Project)
- 
+
 case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
 
 
