@@ -34,7 +34,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     for {
       datasets <- jobsDao.getDatasetsByProject(proj.id)
       dbUsers <- jobsDao.getProjectUsers(proj.id)
-      userResponses <- Future(dbUsers.map(u => ProjectUserResponse(u.login, u.role)))
+      userResponses <- Future(dbUsers.map(u => ProjectRequestUser(u.login, u.role)))
     } yield proj.makeFull(datasets, userResponses)
 
   def maybeFullProject(projId: Int): Option[Project] => Future[FullProject] = {
