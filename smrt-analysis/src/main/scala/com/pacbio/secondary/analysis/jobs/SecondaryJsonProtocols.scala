@@ -215,7 +215,6 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
           case ServiceTaskBooleanOption(_, v, _) => JsBoolean(v)
           case ServiceTaskStrOption(_, v, _) => JsString(v)
           case ServiceTaskDoubleOption(_, v, _) => JsNumber(v)
-          case ServiceTaskFloatOption(_, v, _) => JsNumber(v)
         }
       }
 
@@ -327,28 +326,62 @@ trait PipelineTemplatePresetJsonProtocol extends DefaultJsonProtocol with Pipeli
         "taskOptions" -> JsArray(p.taskOptions.map(_.toJson).toVector)
       )
 
+    /*
+      Extract options from presets object.  This is slightly involved because
+      we allow two different formats.  The preferred version looks exactly
+      like the ServiceTaskOptionBase model:
+
+        "options": [
+            {
+              "id": "pbsmrtpipe.options.max_nchunks",
+              "value": 1,
+              "optionTypeId": "integer"
+            }
+        ]
+
+      But for the convenience of pbsmrtpipe users, we also permit this:
+
+        "options": {
+           "pbsmrtpipe.options.max_nchunks": 1
+        }
+
+      This isn't really an ideal solution, but it's much easier for humans to
+      read and edit.  The preset.json that is eventually written and passed to
+      pbsmrtpipe jobs will always use the full format, however.
+    */
+    private def convertServiceTaskOptions(jsOptions: JsValue): Seq[ServiceTaskOptionBase] = {
+      jsOptions match {
+        case JsArray(opts) => opts.map(_.convertTo[ServiceTaskOptionBase])
+        case JsObject(opts) =>
+          opts.map { case(optionId: String, jsValue: JsValue) =>
+            jsValue match {
+              case JsNumber(value) =>
+                if (value.isValidInt) ServiceTaskIntOption(optionId, value.toInt)
+                else ServiceTaskDoubleOption(optionId, value.toDouble)
+              case JsBoolean(value) => ServiceTaskBooleanOption(optionId, value)
+              case JsString(value) => ServiceTaskStrOption(optionId, value)
+              case x => deserializationError(s"Can't convert to option from $x")
+            }
+          }.toList
+        case x => deserializationError(s"Can't convert to options from $x")
+      }
+    }
+
     def read(value: JsValue) = {
       val nullEngineOptions = Seq[ServiceTaskOptionBase]()
       val entryPoints = Seq[EntryPoint]()
       val tags = Seq("fake", "tags")
-      value.asJsObject.getFields("presetId", "pipelineId", "options", "taskOptions") match {
-        case Seq(JsString(id), JsString(name), JsArray(jsOptions), JsArray(jsTaskOptions)) =>
-          val options = jsOptions.map(_.convertTo[ServiceTaskOptionBase])
-          val taskOptions = jsTaskOptions.map(_.convertTo[ServiceTaskOptionBase])
+      value.asJsObject.getFields("presetId", "pipelineId") match {
+        case Seq(JsString(id), JsString(name)) =>
+          val options = value.asJsObject.getFields("options") match {
+            case Seq(opts: JsValue) => convertServiceTaskOptions(opts)
+            case x => deserializationError(s"Can't convert to options from $x")
+          }
+          val taskOptions = value.asJsObject.getFields("taskOptions") match {
+            case Seq(opts: JsValue) => convertServiceTaskOptions(opts)
+            case x => deserializationError(s"Can't convert to options from $x")
+          }
           PipelineTemplatePreset(id, name, options, taskOptions)
-          /*val options = value.asJsObject.getFields("options") match {
-            case Seq(JsArray(jsOpts)) => jsOpts.convertTo[Seq[ServiceTaskOptionBase]]
-            case Seq(JsObject(jsOpts)) =>
-              (for ((optionId, jsValue) <- jsOpts) {
-                jsValue match {
-                  case JsString(value) => ServiceTaskStrOption(optionId, value)
-                  case JsBoolean(value) => ServiceTaskBooleanOption(optionId, value)
-                  case JsNumber(value) =>
-                    if (value.isValidInt) ServiceTaskIntOption(optionId, value.toInt)
-                    else ServiceTaskIntOption(optionId, value.toDouble)
-                  case x => deserializationError(s"Can't convert to task option from $x")
-                }
-              }).toList*/
         case _ => deserializationError("Expected Pipeline template preset")
       }
     }

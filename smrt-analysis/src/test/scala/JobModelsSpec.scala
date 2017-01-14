@@ -101,6 +101,8 @@ class JobModelsSpec extends Specification  {
       val oj5b = oj5.applyValue("C")
       oj5b.value must beEqualTo("C")
       oj5.applyValue("D") must throwA[UnsupportedOperationException]
+      // failure mode
+      PipelineChoiceStrOption("id-1", "Name 1", "asdf", "Desc 1", Seq("A","B","C")) must throwA[UnsupportedOperationException]
       // int choice
       j = o6.asInstanceOf[PipelineBaseOption].toJson
       val oj6 = j.convertTo[PipelineBaseOption].asInstanceOf[PipelineChoiceIntOption]
@@ -109,6 +111,7 @@ class JobModelsSpec extends Specification  {
       val oj6b = oj6.applyValue(3)
       oj6b.value must beEqualTo(3)
       oj6.applyValue(0) must throwA[UnsupportedOperationException]
+      PipelineChoiceIntOption("id-1", "Name 1", 4, "Desc 1", Seq(1,2,3)) must throwA[UnsupportedOperationException]
       // double choice
       j = o7.asInstanceOf[PipelineBaseOption].toJson
       val oj7 = j.convertTo[PipelineBaseOption].asInstanceOf[PipelineChoiceDoubleOption]
@@ -117,6 +120,7 @@ class JobModelsSpec extends Specification  {
       val oj7b = oj7.applyValue(1.0)
       oj7b.value must beEqualTo(1.0)
       oj7.applyValue(0.9) must throwA[UnsupportedOperationException]
+      PipelineChoiceDoubleOption("id-1", "Name 1", 10.0, "Desc 1", Seq(0.01,0.1,1.0)) must throwA[UnsupportedOperationException]
     }
     "PipelineTemplatePreset" in {
       val opts = Seq(
