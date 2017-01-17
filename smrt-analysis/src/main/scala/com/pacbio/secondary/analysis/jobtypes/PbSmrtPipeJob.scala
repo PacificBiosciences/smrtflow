@@ -78,7 +78,7 @@ with ExternalToolsUtils {
     val engineOpts = PbsmrtpipeEngineOptions(opts.workflowOptions)
 
     // 'Raw' pbsmrtpipe Command without stderr/stdout
-    // And will write the preset.xml
+    // And will write the preset.json
     val cmd = IOUtils.toCmd(
       opts.entryPoints,
       opts.pipelineId,
