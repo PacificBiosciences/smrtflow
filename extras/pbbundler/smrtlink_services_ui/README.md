@@ -36,6 +36,7 @@ Executables in [BUNDLE_ROOT]/tools
 - *pbservice* Interface to the SL Analysis web services. Get status of services, jobs, import datasets, etc...
 - *smrt-db-tool* TODO(mpkocher)(Rename this tool) Db Run PostgreSQL database migrations, get the database connection status
 - *amclient* Tool to access WSO2 API manager
+- *bundle-config* Validate Bundler SL System config JSON format (schema version 2 format)
 
 
 ##### Legacy Tools
