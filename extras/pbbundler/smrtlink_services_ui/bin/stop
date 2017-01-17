@@ -14,14 +14,14 @@ __base="$(basename ${__file} .sh)"
 
 arg1="${1:-}"
 
-JAVA_PID=$__root/java.pid
+SL_ANALYSIS_PID=$__root/sl-analysis.pid
 
-if [ -f $JAVA_PID ]; then
-   PID=`cat $JAVA_PID`
-   echo Killing Java PID: $JAVA_PID
+if [ -f ${SL_ANALYSIS_PID} ]; then
+   PID=`cat ${SL_ANALYSIS_PID}`
+   echo Killing Java PID: ${SL_ANALYSIS_PID}
    kill $PID || true
-   rm $JAVA_PID
-elif [ ! -f $JAVA_PID ]; then
+   rm ${SL_ANALYSIS_PID}
+elif [ ! -f ${SL_ANALYSIS_PID} ]; then
    echo No java process currently running
 fi
 

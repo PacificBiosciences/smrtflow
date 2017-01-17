@@ -17,11 +17,11 @@ Note, SMRT View is started up and managed by the SL installer
 
 ### SL System bundle Commandline Tools
 
-Several tools are included in the SL System bundle. There are internal or admin exes in "<BUNDLE_ROOT>/tools" and exes in "<BUNDLE_ROOT>/bin" that are configured to have specific defaults for getting the starting the bundle and getting the status of the bundle in <BUNDLE_DIR>. 
+Several tools are included in the SL System bundle. There are internal or admin exes in *[BUNDLE_ROOT]/tools* and exes in *[BUNDLE_ROOT]/bin* that are configured to have specific defaults for getting the starting the bundle and getting the status of the bundle in [BUNDLE_ROOT]. 
 
 #### Bin
 
-Executables in <BUNDLE_ROOT>/bin/
+Executables in [BUNDLE_ROOT]/bin/
 
 - *start* Start the SL System
 - *stop* Stop the SL System
@@ -31,7 +31,7 @@ Executables in <BUNDLE_ROOT>/bin/
 
 #### Tools
 
-Executables in <BUNDLE_ROOT>/tools
+Executables in [BUNDLE_ROOT]/tools
 
 - *pbservice* Interface to the SL Analysis web services. Get status of services, jobs, import datasets, etc...
 - *smrt-db-tool* TODO(mpkocher)(Rename this tool) Db Run PostgreSQL database migrations, get the database connection status
@@ -40,20 +40,20 @@ Executables in <BUNDLE_ROOT>/tools
 
 ##### Legacy Tools
 
-- <BUNDLE_ROOT>/tools/migrate-legacy-migrate *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
-- <BUNDLE_ROOT>/bin/migrate-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
+- [BUNDLE_ROOT]/tools/migrate-legacy-migrate *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
+- [BUNDLE_ROOT]/bin/migrate-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
   
 
 ### Configuration
 
-The public interface for configuration is the `smrtlink-system-config.json` in the <BUNDLE_ROOT> directory.
+The public interface for configuration is the `smrtlink-system-config.json` in the [BUNDLE_ROOT] directory.
 
 The configuration is split into two root structures, "smrtflow.server" and "smrtflow.pacBioSystem". 
 
 - smrtflow.server contains configuration for the SL Analysis subcomponent system 
 - smrtflow.pacBioSystem contains shared subcomponent configuration (e.g., tmp directory) as well as subcomponent configuration for the SMRT View Port and the SL UI Tomcat Port. 
 
-Please see the Avro Schema defined in the root of the bundle directory (e.g., <BUNDLE_ROOT>/SmrtLinkSystemConfig.avsc) for details on the allowed values of the keys. 
+Please see the Avro Schema defined in the root of the bundle directory (e.g., [BUNDLE_ROOT]/SmrtLinkSystemConfig.avsc) for details on the allowed values of the keys. 
 
 Generate documentation via `avrodoc SmrtLinkSystemConfig.avsc -o index.html` (avrodoc, not included in the bundle but [is available here](https://www.npmjs.com/package/avrodoc))
 
@@ -98,11 +98,11 @@ Example:
 
 ### SMRT Link System Subcomponent Logging and Output
 
-- *SL Analysis Services* java.pid will contain the process id of the SMRT Link Analysis web services
-- *SL Analysis Services* java.std{out|err} has the SMRT Link Analysis standard out and error. If there are errors starting the webservices, the stdout and stderr is the first place to look. The SL Analysis log file will contain further details.
+- *SL Analysis Services* sl-analysis.pid will contain the process id of the SMRT Link Analysis web services
+- *SL Analysis Services* sl-analysis.std{out|err} has the SMRT Link Analysis standard out and error. If there are errors starting the webservices, the stdout and stderr is the first place to look. The SL Analysis log file will contain further details.
 - *SL Analysis log* file is configured in the "smrtflow.pacBioSystem.logDir" key
-- *Tomcat UI Logs* file is in <BUNDLE_ROOT>/apache-tomcat-8.0.26/logs/
-- *WSO2 API Manager logs* are in <BUNDLE_ROOT>/wso2am-2.0.0/repository/logs
+- *Tomcat UI Logs* file is in [BUNDLE_ROOT]/apache-tomcat-8.0.26/logs/
+- *WSO2 API Manager logs* are in [BUNDLE_ROOT]/wso2am-2.0.0/repository/logs
 
 
 ### Change Log
