@@ -33,6 +33,7 @@ import scala.util.control.NonFatal
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
 
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
 
@@ -41,21 +42,52 @@ trait DalProvider {
   val db: Singleton[Database]
 }
 
-trait SmrtLinkDalProvider extends DalProvider {
+trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
   this: SmrtLinkConfigProvider =>
+
+  /**
+    * Database config to be used within the specs
+    *
+    * There's a bit of duplication here because the interface for flyway requires a PG Datasource
+    * while slick requires a Database.forConfig model.
+    * Provided, the root key doesn't change (e.g., smrtflow.test-db), this should be
+    * too much of a problem.
+    *
+    */
+  lazy final val dbConfig: DatabaseConfig = {
+    val dbName = conf.getString("smrtflow.db.properties.databaseName")
+    val user = conf.getString("smrtflow.db.properties.user")
+    val password = conf.getString("smrtflow.db.properties.password")
+    val port = conf.getInt("smrtflow.db.properties.portNumber")
+    val server = conf.getString("smrtflow.db.properties.serverName")
+    val maxConnections = conf.getInt("smrtflow.db.numThreads")
+
+    DatabaseConfig(dbName, user, password, server, port, maxConnections)
+  }
 
   override val db: Singleton[Database] =
     Singleton(() => Database.forConfig("smrtflow.db"))
 }
 
 @VisibleForTesting
-trait TestDalProvider extends DalProvider {
+trait TestDalProvider extends DalProvider with ConfigLoader{
 
-  // I'm having trouble initializing this within the Specs
-  // This should be initialized from the application.conf so that
-  // setting configuration via env vars
-  lazy final val dbConfig: DatabaseConfig =
-    DatabaseConfig("smrtlink_test", "smrtlink_test_user", "password", "localhost")
+
+  /**
+    * This Single configuration will be used in all the specs.
+    *
+    * See comments above about duplication.
+    */
+  lazy final val dbConfig: DatabaseConfig = {
+    val dbName = conf.getString("smrtflow.test-db.properties.databaseName")
+    val user = conf.getString("smrtflow.test-db.properties.user")
+    val password = conf.getString("smrtflow.test-db.properties.password")
+    val port = conf.getInt("smrtflow.test-db.properties.portNumber")
+    val server = conf.getString("smrtflow.test-db.properties.serverName")
+    val maxConnections = conf.getInt("smrtflow.test-db.numThreads")
+
+    DatabaseConfig(dbName, user, password, server, port, maxConnections)
+  }
 
   override val db: Singleton[Database] = Singleton(() => { dbConfig.toDatabase })
 }
