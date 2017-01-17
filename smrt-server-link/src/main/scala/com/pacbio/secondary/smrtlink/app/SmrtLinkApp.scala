@@ -1,20 +1,20 @@
 package com.pacbio.secondary.smrtlink.app
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider}
+import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider, DatabaseUtils}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
-import com.pacbio.secondary.smrtlink.services.jobtypes.{ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider, DeleteJobServiceTypeProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProvider, ImportDataSetServiceTypeProvider, MergeDataSetServiceJobTypeProvider, MockPbsmrtpipeJobTypeProvider}
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.typesafe.scalalogging.LazyLogging
 import spray.servlet.WebBoot
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
@@ -50,26 +50,49 @@ trait SmrtLinkProviders extends
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }
 
-trait SmrtLinkApi extends BaseApi with LazyLogging {
+trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
   override val providers = new SmrtLinkProviders {}
 
   override def startup(): Unit = {
     super.startup()
 
-    val p = providers.engineConfig.pbRootJobDir
-    if (!Files.exists(p)) {
-      logger.info(s"Creating root job dir $p")
-      Files.createDirectories(p)
+    val dataSource = providers.dbConfig.toDataSource
+
+    def createJobDir(path: Path): Path = {
+      if (!Files.exists(path)) {
+        logger.info(s"Creating root job dir $path")
+        Files.createDirectories(path)
+      }
+      path.toAbsolutePath
     }
 
-    val dbTest = providers.jobsDao().getSystemSummary("Database Test")
-    dbTest.onFailure {
+    // Start Up validation
+    val startUpValidation = for {
+      connMessage <- Future { TestConnection(dataSource)}
+      migrationMessage <- Future { Migrator(dataSource)}
+      summary <- providers.jobsDao().getSystemSummary("Database Startup Test")
+      jobDir <- Future { createJobDir(providers.engineConfig.pbRootJobDir)}
+    } yield s"$connMessage\n$migrationMessage\n$summary\nCreated Job Root $jobDir"
+
+    startUpValidation.andThen { case _ => dataSource.close()}
+
+    startUpValidation.onFailure {
       case NonFatal(e) =>
-        logger.error("Database connection broken", e)
+        val emsg = s"Failed to connect or perform migration on database"
+        logger.error(emsg, e)
+        System.err.println(emsg + e.getMessage)
         System.exit(1)
     }
-    logger.info(Await.result(dbTest, Duration.Inf))
+
+    startUpValidation.onSuccess {
+      case summary:String =>
+        logger.info(summary)
+        println(summary)
+    }
+
+    logger.info(Await.result(startUpValidation, Duration.Inf))
+
   }
 
   sys.addShutdownHook(system.shutdown())

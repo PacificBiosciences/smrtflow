@@ -21,8 +21,13 @@ case class DatabaseConfig(dbName: String,
 
   val jdbcURI = s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
 
-  // Who should be responsible for calling .close() on the datasource ?
+  /**
+    * Util to create a new PG datasource instance. The caller should explicitly call .close() when the
+    * datasource is no longer needed.
+    * @return
+    */
   def toDataSource: PGPoolingDataSource = {
+    // Who should be responsible for calling .close() on the datasource ?
     val source = new PGPoolingDataSource()
 
     source.setDataSourceName(s"smrtlink-db-${UUID.randomUUID()}")
