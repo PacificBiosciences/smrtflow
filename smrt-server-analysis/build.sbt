@@ -29,7 +29,8 @@ packMain := Map(
   "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtserver.testkit.TestkitRunnerApp",
   "smrt-db-tool" -> "com.pacbio.secondary.smrtserver.tools.DatabaseToolApp",
   "amclient" -> "com.pacbio.secondary.smrtserver.tools.AmClientApp",
-  "migrate-legacy-db" -> "com.pacbio.secondary.smrtlink.database.legacy.SqliteToPostgresConverterApp"
+  "migrate-legacy-db" -> "com.pacbio.secondary.smrtlink.database.legacy.SqliteToPostgresConverterApp",
+  "bundler-config" -> "com.pacbio.secondary.smrtserver.tools.BundlerConfigApp"
 )
 
 packGenerateWindowsBatFile := false
