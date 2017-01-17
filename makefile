@@ -37,6 +37,9 @@ tools-tarball:
 	rm -rf smrt-analysis/target/pack/bin/*.bat
 	cd smrt-analysis && tar cvfz ../pbscala-packed.tar.gz target/pack
 
+generate-test-pipeline-json:
+	pbsmrtpipe show-templates --output-templates-json smrt-server-analysis/src/main/resources/resolved-pipeline-templates
+
 repl:
 	sbt smrtflow/test:console
 
