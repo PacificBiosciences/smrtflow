@@ -1,0 +1,13 @@
+{
+  "pipelineId": "pbsmrtpipe.pipelines.sa3_ds_align",
+  "presetId": "pbsmrtpipe.pipeline_presets.sa3_ds_align_unrolled",
+  "name": "Unrolled mapping",
+  "description": "Modified settings for mapping to unrolled templates",
+  "options": {},
+  "taskOptions": {
+    "pbalign.task_options.no_split_subreads": true,
+    "pbalign.task_options.hit_policy": "leftmost",
+    "pbalign.task_options.concordant": false,
+    "pbalign.task_options.algorithm_options": "--bestn 1 --forwardOnly --fastMaxInterval --maxAnchorsPerPosition 30000 --ignoreHQRegions --minPctIdentity 60"
+  }
+}
