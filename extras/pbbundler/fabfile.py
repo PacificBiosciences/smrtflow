@@ -31,11 +31,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 __author__ = "M. Kocher"
 
-# Root directory of the project, location of the bundle templates
+# Root directory of the project, location of the bundle directory templates
 _ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Location of installed bundles
 _ROOT_BUILT_BUNDLES = os.path.join(_ROOT_DIR, 'built-bundles')
 _RESOURCES_DIR = os.path.join(_ROOT_DIR, 'resources')
+_SL_ROOT = os.path.dirname(os.path.dirname(os.path.join(_ROOT_DIR)))
+_SL_SYSTEM_AVSC = os.path.join(_SL_ROOT, "SmrtLinkSystemConfig.avsc")
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'
 
@@ -310,7 +312,7 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
 
     def to_bp(r):
         # output path relative to templates-wso2 dir in the bundle output dir
-        return os.path.join(output_bundle_root_dir, 'templates-wso2', r)
+        return os.path.join(output_bundle_root_dir, 'templates', 'templates-wso2', r)
 
     def copy_template_to_wso2(template_name, output_rel_to_wso2):
         src = to_bp(template_name)
@@ -356,6 +358,8 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     :param resolved_pipeline_templates_dir: Path to directory containing
     resolved pipeline template JSON files
     :param ivy_cache: Custom ivy-cache location
+    :param analysis_server: sbt smrt-server subproject name
+
     :return: Path to self-contained jar file
 
     """
@@ -372,7 +376,7 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 
     sbt_cmd = _to_sbt_cmd(ivy_cache)
 
-    cmds = ["{s}/assembly".format(s=analysis_server)]
+    cmds = [analysis_server + "/{assembly,pack}"]
 
     with lcd(services_root_dir):
         for cmd in cmds:
@@ -385,6 +389,12 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     # rename the file in the bundle
     analysis_jar = os.path.join(output_bundle_dir, PbConstants.SECONDARY_JAR_NAME)
     shutil.copy(jar_path, analysis_jar)
+
+    # Copy built SL Analysis tools into bundle tools dir
+    output_tools_root = os.path.join(output_bundle_dir, 'tools')
+    tools_root = to_scala_path("smrt-server-analysis/target/pack")
+    log.info("Copying {i} to {o}".format(i=tools_root, o=output_tools_root))
+    shutil.copytree(tools_root, output_tools_root)
 
     log.debug("Completed building in SL Services in {:.2f} sec.".format(time.time() - t0))
     return analysis_jar
@@ -471,6 +481,8 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
+    log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
+    shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
     # Change Permissions
     _chmod_on_files(os.path.join(output_bundle_dir, 'bin'))
