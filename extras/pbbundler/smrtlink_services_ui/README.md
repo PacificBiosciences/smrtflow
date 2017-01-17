@@ -12,7 +12,7 @@ Note, SMRT View is started up and managed by the SL installer
 
 - vanilla python 2.7.x (for config parsing and processing)
 - java 1.8 (oracle recommended)
-- PostgreSQL 9.6.1 (SL Analysis Web services require)
+- PostgreSQL 9.6.1 (SL Analysis Web services require). For stability and performance, the location of the database files *MUST* be stored on local disk (e.g., not on NFS).
 - TODO (minimum recommended memory and number of cores)
 
 ### SL System bundle Commandline Tools
@@ -46,7 +46,7 @@ Executables in [BUNDLE_ROOT]/tools
 
 ### Configuration
 
-The public interface for configuration is the `smrtlink-system-config.json` in the [BUNDLE_ROOT] directory.
+The public interface for configuration is the `smrtlink-system-config.json` in the [BUNDLE_ROOT] directory. This config file is *READ ONLY* from SL System.
 
 The configuration is split into two root structures, "smrtflow.server" and "smrtflow.pacBioSystem". 
 
@@ -56,6 +56,8 @@ The configuration is split into two root structures, "smrtflow.server" and "smrt
 Please see the Avro Schema defined in the root of the bundle directory (e.g., [BUNDLE_ROOT]/SmrtLinkSystemConfig.avsc) for details on the allowed values of the keys. 
 
 Generate documentation via `avrodoc SmrtLinkSystemConfig.avsc -o index.html` (avrodoc, not included in the bundle but [is available here](https://www.npmjs.com/package/avrodoc))
+
+Special note, "smrtflow.server.dnsName" must be a externally accessible domain to enable *pbsmrtpipe* to communicate job status back to the SL Analysis Services and for *SL UI* to communicate with the SL Analysis Services via the WSO2 API Manager. If "smrtflow.server.dnsName" is None, the FQDN will be used.
 
 Example:
 
