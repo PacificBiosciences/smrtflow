@@ -4,6 +4,24 @@
 
 """
 Wrapper script to start the analysis server and run a simulator scenario.
+
+This should be called from that makefile via test-sim.
+
+Assumptions:
+
+- The working directory is assumed to be the root smrtflow repo directory.
+- PB_TEST_DATA_DIR env var exists, or the PacBioTestData package is installed
+- pbreports (optional) install
+- Database is completely EMPTY
+
+Drop Database using
+
+$> dropdb smrtlink
+
+Create Database using
+
+$> createdb smrtlink
+
 """
 
 import subprocess
@@ -24,7 +42,7 @@ SIM_RUNNER = ROOT_DIR + "/smrt-server-sim/target/pack/bin/scenario-runner"
 
 log = logging.getLogger(__name__)
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 MANIFEST = """
 [{
@@ -96,7 +114,8 @@ def _alarm_handler(signum, frame):
 def get_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument("scenario")
+    p.add_argument("scenario", help="Pacbio Scenario id (example, DataSetScenario)")
+
     p.add_argument("--local", action="store_true",
                    help="Run in current directory instead of tmp dir")
     p.add_argument("--stay-alive", action="store_true",
@@ -111,6 +130,8 @@ def get_parser():
                    help="Kill simulator after X seconds if not finished")
     p.add_argument("--debug", action="store_true", default=False,
                    help="Enable debug mode and not delete temp resources")
+
+    p.add_argument("--port", default=8071, type=int, help="Port to launch SL Analysis services on")
     return p
 
 
@@ -131,9 +152,10 @@ def get_pb_test_files():
         import pbtestdata
         return pbtestdata.get_path()
     except ImportError:
+        log.info("Attempting to get PacBioTestData files.json path from ENV var {}".format(x))
         path = os.environ.get(x)
         if path is None:
-            raise RuntimeError("Missing {} or pbtestdata module".format(x))
+            raise RuntimeError("Unable to determine PacBioTestData files.json path. ENV var {} is not defined and pbtestdata module is not installed.".format(x))
         resolved_path = op.abspath(path)
         if op.isfile(resolved_path):
             return resolved_path
@@ -145,6 +167,7 @@ def run(argv):
     p = get_parser()
     args = p.parse_args(argv)
 
+    port = args.port
     debug = args.debug
     delete_on_exit = not debug
 
@@ -159,7 +182,7 @@ def run(argv):
 
     test_conf = tempfile.NamedTemporaryFile(suffix="_conf.json", delete=delete_on_exit).name
     # this should probably try to use as many non-default values as possible to make sure they're set correctly
-    conf_d = to_conf_d("localhost", 8071, args.njobs, args.max_wait, args.max_workers, manifest, pb_test_files_json)
+    conf_d = to_conf_d("localhost", port, args.njobs, args.max_wait, args.max_workers, manifest, pb_test_files_json)
 
     log.info("application_conf.json for Sim {}".format(test_conf))
     log.info(conf_d)
