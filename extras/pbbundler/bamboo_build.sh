@@ -17,9 +17,11 @@ if [ -z "$BUNDLE_DEST" ]; then
 fi
 
 cd $SMRTFLOW_ROOT
-if [ -z "$GIT_SHA" ]; then
-  GIT_SHA="`git rev-parse --short HEAD`"
-fi
+SMRTFLOW_SHA="`git rev-parse --short HEAD`"
+cd $UI_ROOT
+UI_SHA="`git rev-parse --short HEAD`"
+echo "smrtflow revision: $SMRTFLOW_SHA ; UI revision: $UI_SHA"
+
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
@@ -118,4 +120,4 @@ OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
 pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${GIT_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
