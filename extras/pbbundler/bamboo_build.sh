@@ -76,7 +76,6 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   (cd ${SRC}/pbcommand && make clean && python setup.py install)
   (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
 
-  cd $BUNDLER_ROOT
   rpt_json_path="${SRC}/resolved-pipeline-templates"
   if [ ! -d ${rpt_json_path} ]; then
     mkdir ${rpt_json_path}
@@ -118,5 +117,6 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
 fi
 
+cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
 fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
