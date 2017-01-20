@@ -67,6 +67,7 @@ echo "Creating Virtualenv $ve"
 source $ve/bin/activate
 pip install fabric
 
+RPT_JSON_PATH="${SRC}/resolved-pipeline-templates"
 if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   echo "Installing pbsmrtpipe to virtualenv"
   cd ${SRC}/pbcore
@@ -76,14 +77,13 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   (cd ${SRC}/pbcommand && make clean && python setup.py install)
   (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
 
-  rpt_json_path="${SRC}/resolved-pipeline-templates"
-  if [ ! -d ${rpt_json_path} ]; then
-    mkdir ${rpt_json_path}
+  if [ ! -d ${RPT_JSON_PATH} ]; then
+    mkdir ${RPT_JSON_PATH}
   fi
 
-  echo "Generating resolved pipeline templates in ${rpt_json_path}"
-  rm -f ${rpt_json_path}/*.json
-  pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
+  echo "Generating resolved pipeline templates in ${RPT_JSON_PATH}"
+  rm -f ${RPT_JSON_PATH}/*.json
+  pbsmrtpipe show-templates --output-templates-json ${RPT_JSON_PATH}
 
   echo "Generating pipeline datastore view rules"
   VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
@@ -119,4 +119,4 @@ fi
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
