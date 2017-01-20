@@ -502,8 +502,12 @@ object ProjectState {
   case object CREATED extends ProjectState
   case object ACTIVE extends ProjectState
 
+  // LEGACY STATES
+  // TODO(smcclellan): Clean/delete rows with UPDATED state?
+  case object UPDATED extends ProjectState
+
   def fromString(s: String): ProjectState = {
-    Seq(CREATED, ACTIVE)
+    Seq(CREATED, ACTIVE, UPDATED)
       .find(_.toString == s)
       .getOrElse(throw new IllegalArgumentException(s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
   }

@@ -83,7 +83,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
     val db = dbConfig.toDatabase
 
-    val res = new PostgresWriter(db)
+    val res = new PostgresWriter(db, c.pgUsername)
       .write(new LegacySqliteReader(c.legacyUri).read())
       .andThen { case _ => db.close() }
       .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
@@ -101,41 +101,78 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   }
 }
 
-class PostgresWriter(db: slick.driver.PostgresDriver.api.Database) {
+class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String) {
   import slick.driver.PostgresDriver.api._
   import TableModels._
 
-  // This must be added otherwise an PSQLException: ERROR: integer out of range will occur
-  import com.github.tototoshi.slick.PostgresJodaSupport._
+  case class FlywayRow(installed_rank: Int,
+                       version: Option[String],
+                       description: String,
+                       typ: String,
+                       script: String,
+                       checksum: Option[Int],
+                       installed_by: String,
+                       installed_on: String,
+                       execution_time: Int,
+                       success: Boolean)
 
-  def write(f: Future[Seq[Any]]): Future[Unit] = f.map { v =>
-    println(s"TEST TEST - ${v.size}")
-    db.run {
-      schema.create >>
-        (engineJobs            ++= v(0).asInstanceOf[Seq[EngineJob]]) >>
-        (engineJobsDataSets    ++= v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
-        (jobEvents             ++= v(2).asInstanceOf[Seq[JobEvent]]) >>
-        (jobTags               ++= v(3).asInstanceOf[Seq[(Int, String)]]) >>
-        (jobsTags              ++= v(4).asInstanceOf[Seq[(Int, Int)]]) >>
-        (projectsUsers         ++= v(5).asInstanceOf[Seq[ProjectUser]]) >>
-        (projects              ++= v(6).asInstanceOf[Seq[Project]]) >>
-        (dsMetaData2           ++= v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
-        (dsSubread2            ++= v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
-        (dsHdfSubread2         ++= v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
-        (dsReference2          ++= v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
-        (dsAlignment2          ++= v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
-        (dsBarcode2            ++= v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
-        (dsCCSread2            ++= v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
-        (dsGmapReference2      ++= v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
-        (dsCCSAlignment2       ++= v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
-        (dsContig2             ++= v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
-        (datastoreServiceFiles ++= v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
-        (eulas                 ++= v(18).asInstanceOf[Seq[EulaRecord]]) >>
-        (runSummaries          ++= v(19).asInstanceOf[Seq[RunSummary]]) >>
-        (dataModels            ++= v(20).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
-        (collectionMetadata    ++= v(21).asInstanceOf[Seq[CollectionMetadata]]) >>
-        (samples               ++= v(22).asInstanceOf[Seq[Sample]])
-    }
+  class FlywayT(tag: Tag) extends Table[FlywayRow](tag, "schema_version") {
+    def installed_rank: Rep[Int] = column[Int]("installed_rank", O.PrimaryKey)
+    def version: Rep[Option[String]] = column[Option[String]]("version", O.SqlType("VARCHAR"), O.Length(50))
+    def description: Rep[String] = column[String]("description", O.SqlType("VARCHAR"), O.Length(200))
+    def typ: Rep[String] = column[String]("type", O.SqlType("VARCHAR"), O.Length(20))
+    def script: Rep[String] = column[String]("script", O.SqlType("VARCHAR"), O.Length(1000))
+    def checksum: Rep[Option[Int]] = column[Option[Int]]("checksum")
+    def installed_by: Rep[String] = column[String]("installed_by", O.SqlType("VARCHAR"), O.Length(100))
+    def installed_on: Rep[String] = column[String]("installed_on", O.SqlType("TEXT NOT NULL DEFAULT (to_char(LOCALTIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS'))")) // E.g.: 2016-04-28 23:32:09.294
+    def execution_time: Rep[Int] = column[Int]("execution_time")
+    def success: Rep[Boolean] = column[Boolean]("success")
+    def schema_version_s_idx = index("schema_version_s_idx", success, unique = false)
+    def * = (installed_rank, version, description, typ, script, checksum, installed_by, installed_on, execution_time, success) <>(FlywayRow.tupled, FlywayRow.unapply)
+  }
+
+  lazy val flyway = TableQuery[FlywayT]
+
+  val flywayBaselineRow = FlywayRow(
+    installed_rank = 1,
+    version = Some("1"),
+    description = "<< Flyway Baseline >>",
+    typ = "BASELINE",
+    script = "<< Flyway Baseline >>",
+    checksum = None,
+    installed_by = pgUsername,
+    installed_on = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS"),
+    execution_time = 0,
+    success = true)
+
+  def write(f: Future[Seq[Any]]): Future[Unit] = f.flatMap { v =>
+    val w = (schema ++ flyway.schema).create >>
+      (engineJobs            forceInsertAll v(0).asInstanceOf[Seq[EngineJob]]) >>
+      (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
+      (jobEvents             forceInsertAll v(2).asInstanceOf[Seq[JobEvent]]) >>
+      (jobTags               forceInsertAll v(3).asInstanceOf[Seq[(Int, String)]]) >>
+      (jobsTags              forceInsertAll v(4).asInstanceOf[Seq[(Int, Int)]]) >>
+      (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
+      (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
+      (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
+      (dsSubread2            forceInsertAll v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
+      (dsHdfSubread2         forceInsertAll v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
+      (dsReference2          forceInsertAll v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
+      (dsAlignment2          forceInsertAll v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
+      (dsBarcode2            forceInsertAll v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
+      (dsCCSread2            forceInsertAll v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
+      (dsGmapReference2      forceInsertAll v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
+      (dsCCSAlignment2       forceInsertAll v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
+      (dsContig2             forceInsertAll v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
+      (datastoreServiceFiles forceInsertAll v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
+      /* (eulas                 forceInsertAll v(18).asInstanceOf[Seq[EulaRecord]]) >> */
+      (runSummaries          forceInsertAll v(18).asInstanceOf[Seq[RunSummary]]) >>
+      (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
+      (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
+      (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
+      (flyway                +=  flywayBaselineRow )
+
+    db.run(w.transactionally).map { _ => () }
   }
 }
 
@@ -498,11 +535,11 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     val action = for {
       ej  <- engineJobs.result
       ejd <- engineJobsDataSets.result
-      je  <- jobEvents.result
+      je  <- (jobEvents join engineJobs on (_.jobId === _.id)).result
       jt  <- jobTags.result
-      jst <- jobsTags.result
-      psu <- projectsUsers.result
+      jst <- (jobsTags join engineJobs on (_.jobId === _.id) join jobTags on (_._1.tagId === _.id)).result
       ps  <- projects.result
+      psu <- (projectsUsers join projects on (_.projectId === _.id)).result
       dmd <- dsMetaData2.result
       dsu <- dsSubread2.result
       dhs <- dsHdfSubread2.result
@@ -514,12 +551,12 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dca <- dsCCSAlignment2.result
       dco <- dsContig2.result
       dsf <- datastoreServiceFiles.result
-      eu  <- eulas.result
+      /* eu  <- eulas.result */
       rs  <- runSummaries.result
-      dm  <- dataModels.result
-      cm  <- collectionMetadata.result
+      dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
+      cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej, /* dmt, */ ejd, je, jt, jst, psu, ps, dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, eu, rs, dm, cm, sa)
+    } yield Seq(ej, ejd, je.map(_._1), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }
