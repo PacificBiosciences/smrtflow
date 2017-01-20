@@ -63,41 +63,49 @@ echo "Running sbt $(which sbt)"
 cd $SRC
 ve=${SRC}/ve
 echo "Creating Virtualenv $ve"
-
 /opt/python-2.7.9/bin/python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
 source $ve/bin/activate
-
-# FIXME too much overhead here - we have to install many bulky dependencies to
-# use these modules
-echo "Installing pbsmrtpipe to virtualenv"
-cd ${SRC}/pbcore
-pip install -r requirements.txt
-python setup.py install
-cd ..
-(cd ${SRC}/pbcommand && make clean && python setup.py install)
-(cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
-
 pip install fabric
 
-cd $BUNDLER_ROOT
+if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
+  echo "Installing pbsmrtpipe to virtualenv"
+  cd ${SRC}/pbcore
+  pip install -r requirements.txt
+  python setup.py install
+  cd ..
+  (cd ${SRC}/pbcommand && make clean && python setup.py install)
+  (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
 
-rpt_json_path="${SRC}/resolved-pipeline-templates"
+  cd $BUNDLER_ROOT
+  rpt_json_path="${SRC}/resolved-pipeline-templates"
+  if [ ! -d ${rpt_json_path} ]; then
+    mkdir ${rpt_json_path}
+  fi
 
-if [ ! -d ${rpt_json_path} ]; then
-  mkdir ${rpt_json_path}
+  echo "Generating resolved pipeline templates in ${rpt_json_path}"
+  rm -f ${rpt_json_path}/*.json
+  pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
+
+  echo "Generating pipeline datastore view rules"
+  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
+  python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
+
+  # FIXME this won't be run if we use build artifacts - need some other way
+  # to run validation
+  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
+
+  # write a simple text file of workflow options that the smrtlink installer can
+  # use to validate command-line arguments to get the XML or JSON of the workflow level options
+  # FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
+  # Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
+  OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
+  pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 fi
 
-echo "Generating resolved pipeline templates in ${rpt_json_path}"
-rm -f ${rpt_json_path}/*.json
-pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
-
+# don't need to do any building for this
 echo "Installing report view rules from pbreports"
 REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/report-view-rules"
 cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
-
-echo "Generating pipeline datastore view rules"
-VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
-python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
 
 # giant hack to allow us to display internal pipelines
 if [ $INTERNAL_BUILD -eq 1 ]; then
@@ -109,15 +117,6 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
   fi
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
 fi
-
-python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
-
-# write a simple text file of workflow options that the smrtlink installer can
-# use to validate command-line arguments to get the XML or JSON of the workflow level options
-# FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
-# Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
-OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
-pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 
 # Build Secondary Analysis Services + SMRT Link UI
 fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
