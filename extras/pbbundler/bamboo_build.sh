@@ -17,9 +17,11 @@ if [ -z "$BUNDLE_DEST" ]; then
 fi
 
 cd $SMRTFLOW_ROOT
-if [ -z "$GIT_SHA" ]; then
-  GIT_SHA="`git rev-parse --short HEAD`"
-fi
+SMRTFLOW_SHA="`git rev-parse --short HEAD`"
+cd $UI_ROOT
+UI_SHA="`git rev-parse --short HEAD`"
+echo "smrtflow revision: $SMRTFLOW_SHA ; UI revision: $UI_SHA"
+
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
@@ -61,41 +63,48 @@ echo "Running sbt $(which sbt)"
 cd $SRC
 ve=${SRC}/ve
 echo "Creating Virtualenv $ve"
-
 /opt/python-2.7.9/bin/python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
 source $ve/bin/activate
-
-# FIXME too much overhead here - we have to install many bulky dependencies to
-# use these modules
-echo "Installing pbsmrtpipe to virtualenv"
-cd ${SRC}/pbcore
-pip install -r requirements.txt
-python setup.py install
-cd ..
-(cd ${SRC}/pbcommand && make clean && python setup.py install)
-(cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
-
 pip install fabric
 
-cd $BUNDLER_ROOT
+RPT_JSON_PATH="${SRC}/resolved-pipeline-templates"
+if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
+  echo "Installing pbsmrtpipe to virtualenv"
+  cd ${SRC}/pbcore
+  pip install -r requirements.txt
+  python setup.py install
+  cd ..
+  (cd ${SRC}/pbcommand && make clean && python setup.py install)
+  (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
 
-rpt_json_path="${SRC}/resolved-pipeline-templates"
+  if [ ! -d ${RPT_JSON_PATH} ]; then
+    mkdir ${RPT_JSON_PATH}
+  fi
 
-if [ ! -d ${rpt_json_path} ]; then
-  mkdir ${rpt_json_path}
+  echo "Generating resolved pipeline templates in ${RPT_JSON_PATH}"
+  rm -f ${RPT_JSON_PATH}/*.json
+  pbsmrtpipe show-templates --output-templates-json ${RPT_JSON_PATH}
+
+  echo "Generating pipeline datastore view rules"
+  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
+  python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
+
+  # FIXME this won't be run if we use build artifacts - need some other way
+  # to run validation
+  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
+
+  # write a simple text file of workflow options that the smrtlink installer can
+  # use to validate command-line arguments to get the XML or JSON of the workflow level options
+  # FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
+  # Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
+  OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
+  pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 fi
 
-echo "Generating resolved pipeline templates in ${rpt_json_path}"
-rm -f ${rpt_json_path}/*.json
-pbsmrtpipe show-templates --output-templates-json ${rpt_json_path}
-
+# don't need to do any building for this
 echo "Installing report view rules from pbreports"
 REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/report-view-rules"
 cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
-
-echo "Generating pipeline datastore view rules"
-VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
-python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
 
 # giant hack to allow us to display internal pipelines
 if [ $INTERNAL_BUILD -eq 1 ]; then
@@ -108,14 +117,6 @@ if [ $INTERNAL_BUILD -eq 1 ]; then
   sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
 fi
 
-python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
-
-# write a simple text file of workflow options that the smrtlink installer can
-# use to validate command-line arguments to get the XML or JSON of the workflow level options
-# FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
-# Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
-OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
-pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
-
+cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${GIT_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${rpt_json_path}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"

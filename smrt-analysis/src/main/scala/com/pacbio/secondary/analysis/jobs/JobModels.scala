@@ -65,6 +65,7 @@ object OptionTypes {
 
   case object STR extends OptionType { val optionTypeId = "string" }
   case object INT extends OptionType { val optionTypeId = "integer" }
+  // XXX this is a little sloppy, as internally we use Double
   case object FLOAT extends OptionType { val optionTypeId = "float" }
   case object BOOL extends OptionType { val optionTypeId = "boolean" }
   case object CHOICE extends OptionType { val optionTypeId = "choice_string" }
@@ -245,6 +246,15 @@ object JobModels {
     def asServiceOption: ServiceTaskOptionBase
   }
 
+  trait PipelineChoiceOption extends PipelineBaseOption {
+    val choices: Seq[In]
+    def validate(v: In): In = {
+      if (choices.toSet contains v) v
+      else throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+    }
+    def applyValue(v: In): PipelineChoiceOption
+  }
+
   trait PipelineIntOptionBase extends PipelineBaseOption {
     type In = Int
   }
@@ -282,33 +292,27 @@ object JobModels {
     def asServiceOption = ServiceTaskBooleanOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase {
+  case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE.optionTypeId
+    val _ = validate(value)
 
-    def applyValue(v: String) = {
-      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
-      copy(value = v)
-    }
+    def applyValue(v: String): PipelineChoiceStrOption = copy(value=validate(v))
     def asServiceOption = ServiceTaskStrOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase {
+  case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE_INT.optionTypeId
+    val _ = validate(value)
 
-    def applyValue(v: Int) = {
-      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
-      copy(value = v)
-    }
+    def applyValue(v: Int): PipelineChoiceIntOption = copy(value=validate(v))
     def asServiceOption = ServiceTaskIntOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase {
+  case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE_FLOAT.optionTypeId
+    val _ = validate(value)
 
-    def applyValue(v: Double) = {
-      if (! (choices.toSet contains v)) throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
-      copy(value = v)
-    }
+    def applyValue(v: Double): PipelineChoiceDoubleOption = copy(value=validate(v))
     def asServiceOption = ServiceTaskDoubleOption(id, value, optionTypeId)
   }
 
@@ -319,13 +323,11 @@ object JobModels {
   trait ServiceTaskIntOptionBase extends ServiceTaskOptionBase{ type In = Int }
   trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase{ type In = Boolean }
   trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase{ type In = Double }
-  trait ServiceTaskFloatOptionBase extends ServiceTaskOptionBase{ type In = Float }
 
   case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String = OptionTypes.STR.optionTypeId) extends ServiceTaskStrOptionBase
   case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String = OptionTypes.INT.optionTypeId) extends ServiceTaskIntOptionBase
   case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String = OptionTypes.BOOL.optionTypeId) extends ServiceTaskBooleanOptionBase
   case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String = OptionTypes.FLOAT.optionTypeId) extends ServiceTaskDoubleOptionBase
-  case class ServiceTaskFloatOption(id: String, value: Float, optionTypeId: String = OptionTypes.FLOAT.optionTypeId) extends ServiceTaskFloatOptionBase
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
   case class PbsmrtpipeDirectJobOptions(

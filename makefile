@@ -31,11 +31,14 @@ tools-smrt-server-analysis:
 	sbt smrt-server-analysis/pack
 
 tools-tarball:
+	$(eval SHA := "`git rev-parse --short HEAD`")
+	@echo SHA is ${SHA}
+	rm -f pbscala*.tar.gz
 	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
 	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
 	cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
 	rm -rf smrt-analysis/target/pack/bin/*.bat
-	cd smrt-analysis && tar cvfz ../pbscala-packed.tar.gz target/pack
+	cd smrt-analysis && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 generate-test-pipeline-json:
 	pbsmrtpipe show-templates --output-templates-json smrt-server-analysis/src/main/resources/resolved-pipeline-templates
