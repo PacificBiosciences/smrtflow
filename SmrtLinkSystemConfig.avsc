@@ -70,7 +70,7 @@
                 {
                   "name": "pbsmrtpipePresetXml",
                   "doc": "Root path to the pbsmrtpipe Preset XML. (hcon-key smrtflow.engine.pbsmrtpipePresetXml)",
-                  "type": "string"
+                  "type": ["null", "string"]
                 }
               ]
             }
