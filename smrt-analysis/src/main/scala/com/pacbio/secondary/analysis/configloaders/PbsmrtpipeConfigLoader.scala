@@ -15,7 +15,7 @@ object PbsmrtpipeConfigConstants extends EngineCoreConfigConstants {
   // pbsmrtpipe Preset that will be used in all pipelines for the
   // pbsmrtpipe 'workflow engine' level options. The tasks options
   // will be taken from the Resolved Pipeline Templates
-  val PB_SMRTPIPE_PRESET_XML = "smrtflow.engine.pb-smrtpipe-preset-xml"
+  val PB_SMRTPIPE_PRESET_XML = "smrtflow.engine.pbsmrtpipePresetXml"
 
   // the pbsmrtpipe exe can be wrapped in a specific wrapper that
   // uses the similar "cluster" template interface as the pbsmrtpipe
