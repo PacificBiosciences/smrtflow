@@ -117,7 +117,7 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
             sys.exit(rcode)
         }
       case _ =>
-        val rcode = -1
+        val rcode = 2
         val runTimeSec = computeTimeDeltaFromNow(startedAt)
         val errorMessage = s"Failed to parse options for tool $toolId"
         logger.error(errorMessage)
