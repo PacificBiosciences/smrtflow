@@ -16,10 +16,6 @@ arg1="${1:-}"
 
 SERVICES_JAR_NAME="secondary-analysis-services.jar"
 
-echo "Attempting to apply-config"
-python ${__dir}/apply-config
-echo "completed applying config"
-
 SL_PREFIX=sl-analysis
 SL_SERVICES_PID=${__root}/${SL_PREFIX}.pid
 SL_SERVICES_STDOUT=${__root}/${SL_PREFIX}.stdout
@@ -34,6 +30,16 @@ export PATH=${SL_SERVICES_TOOLS_DIR}/bin:$PATH
 
 TOMCAT_DIR="$__dir/../apache-tomcat-8.0.26"
 WSO2_DIR="$__dir/../wso2am-2.0.0"
+
+
+# TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" SL_SERVICES_CONF)
+logStartFile=${logDir}/bundle-start.log
+
+
+echo "Attempting to apply-config"
+python ${__dir}/apply-config
+echo "completed applying config"
 
 
 check_port() {
