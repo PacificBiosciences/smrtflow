@@ -37,11 +37,11 @@ trait TestUtils extends DatabaseUtils with LazyLogging{
     }
 
     val runner = for {
-      _ <- Future { TestConnection(config.toDataSource) }
+      m0 <- Future { TestConnection(config.toDataSource) }
       m1 <- dropTables(db).recoverWith(ignoreWithMessage("Warning unable to drop smrtlink tables "))
       m2 <- dropFlywayTable(db).recoverWith(ignoreWithMessage("Warning unable to delete flyway table "))
-      m3 <- Future { Migrator(config.toDataSource) }.map(n => s"$n migrations applied ")
-    } yield Seq(m1, m2, m3).reduce(_ ++ _)
+      m3 <- Future { Migrator(config.toDataSource) }.map(n => s"Successfully ran $n migration(s)")
+    } yield Seq(m0, m1, m2, m3).reduce {(acc, v) => s"$acc.\n$v"}
 
     try {
       val results = Await.result(runner, defaultTimeOut)
