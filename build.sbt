@@ -27,7 +27,7 @@ fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
 
-javaOptions in ThisBuild += "-Xmx4g"
+javaOptions in ThisBuild += "-Xmx8g"
 
 // tmp files are written during testing; cannot be mounted noexec because of sqlite
 javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP").isDefined) sys.env("TMP") else "/tmp")
