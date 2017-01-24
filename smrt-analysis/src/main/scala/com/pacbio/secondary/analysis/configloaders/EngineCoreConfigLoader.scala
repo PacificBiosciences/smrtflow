@@ -19,9 +19,9 @@ import scala.util.{Failure, Success, Try}
  * Created by mkocher on 10/8/15.
  */
 trait EngineCoreConfigConstants {
-  val MAX_WORKERS = "smrtflow.engine.max-workers"
+  val MAX_WORKERS = "smrtflow.engine.maxWorkers"
   val PB_TOOLS_ENV = "smrtflow.engine.pb-tools-env"
-  val PB_ROOT_JOB_DIR = "smrtflow.engine.jobs-root"
+  val PB_ROOT_JOB_DIR = "smrtflow.engine.jobRootDir"
   val DEBUG_MODE = "smrtflow.engine.debug-mode"
 }
 
