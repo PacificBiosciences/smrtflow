@@ -31,14 +31,14 @@ object PbsmrtpipeConfigConstants extends EngineCoreConfigConstants {
 trait PbsmrtpipeConfigLoader extends EngineCoreConfigLoader with LazyLogging {
 
   /**
-   * Loads the pbsmrtpipe PRESET XML config which is used as the base layer for pipelines run in pbsmrtipe
+   * Loads the pbsmrtpipe presets config which is used as the base layer for pipelines run in pbsmrtipe
    *
    *
    *
    * @param config
    * @return
    */
-  private def loadPresetXmlFrom(config: Config): Option[Path] = {
+  private def loadPresetFrom(config: Config): Option[Path] = {
     val px = for {
       p <- Try {conf.getString(PbsmrtpipeConfigConstants.PB_SMRTPIPE_PRESET_XML)}
       presetPath <- Try {Paths.get(p)}
@@ -55,17 +55,17 @@ trait PbsmrtpipeConfigLoader extends EngineCoreConfigLoader with LazyLogging {
     }
   }
 
-  lazy val pbsmrtpipePresetXML: Option[Path] = loadPresetXmlFrom(conf)
+  lazy val pbsmrtpipePresets: Option[Path] = loadPresetFrom(conf)
 
   /**
-   * Loads the preset XML and converts into Pbsmrtipe Engine Options or returns
-   * the default options
+   * Loads the preset JSON or XML and converts into Pbsmrtipe Engine Options
+   * or returns the default options
    * @param config
    * @return
    */
   def loadPbsmrtpipeEngineConfigFrom(config: Config): Option[PbsmrtpipeEngineOptions] = {
-    pbsmrtpipePresetXML.map { x =>
-      logger.info(s"Loading pbsmrtpipe preset.xml from $x")
+    pbsmrtpipePresets.map { x =>
+      logger.info(s"Loading pbsmrtpipe presets from $x")
       val presets = PipelineTemplatePresetLoader.loadFrom(x)
       logger.info(s"Loaded pbsmrtpipe Engine Opts ${presets.options}")
       PbsmrtpipeEngineOptions(presets.options)

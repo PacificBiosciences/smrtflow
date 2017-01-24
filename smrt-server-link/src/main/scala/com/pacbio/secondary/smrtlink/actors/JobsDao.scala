@@ -122,9 +122,9 @@ trait ProjectDataStore extends LazyLogging {
     db.run(projects.filter(_.id === projId).result.headOption)
 
   def createProject(projReq: ProjectRequest, ownerLogin: String): Future[Project] = {
-    val owner = ProjectRequestUser(RequestUser(ownerLogin), ProjectUserRole.OWNER)
+    val owner = ProjectRequestUser(ownerLogin, ProjectUserRole.OWNER)
     val members = projReq.members.getOrElse(List())
-    val withOwner = members.filter(_.user.login != ownerLogin) ++ List(owner)
+    val withOwner = members.filter(_.login != ownerLogin) ++ List(owner)
     val requestWithOwner = projReq.copy(members = Some(withOwner))
 
     val now = JodaDateTime.now()
@@ -147,7 +147,7 @@ trait ProjectDataStore extends LazyLogging {
   def setProjectMembers(projId: Int, members: Seq[ProjectRequestUser]): DBIO[Unit] =
     DBIO.seq(
       projectsUsers.filter(_.projectId === projId).delete,
-      projectsUsers ++= members.map(m => ProjectUser(projId, m.user.login, m.role))
+      projectsUsers ++= members.map(m => ProjectUser(projId, m.login, m.role))
     )
 
   def setProjectDatasets(projId: Int, ids: Seq[RequestId]): DBIO[Unit] = {

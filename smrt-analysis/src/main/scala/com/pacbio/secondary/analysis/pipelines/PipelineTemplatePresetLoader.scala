@@ -23,7 +23,7 @@ import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
  */
 trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with SecondaryJobJsonProtocol {
 
-  val extFilter = Seq("xml")
+  val extFilter = Seq("json", "xml")
 
   /**
    * Parses XML to extract the pbsmrtpipe TaskOptions

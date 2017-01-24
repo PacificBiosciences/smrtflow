@@ -41,7 +41,6 @@ class PbsmrtpipeEngineOptionsSpec extends Specification{
       val tmpFile = File.createTempFile("presets", ".json").toPath
       IOUtils.writePresetJson(tmpFile, "pipeline-id-1", options, taskOptions)
       val jsonSrc = Source.fromFile(tmpFile.toFile).getLines.mkString
-      println(jsonSrc)
       val p = IOUtils.parsePresetJson(tmpFile)
       val eopts = PbsmrtpipeEngineOptions(p.options)
       eopts.maxNproc must beEqualTo(7)
@@ -55,6 +54,28 @@ class PbsmrtpipeEngineOptionsSpec extends Specification{
       val eopts = PbsmrtpipeEngineOptions(preset.options)
       eopts.maxNproc must beEqualTo(7)
       eopts.distributedMode must beFalse
+    }
+    "Read presets.json written by installer and validate engine options" in {
+      val name = "pipeline-template-presets/site-presets.json"
+      val path = getClass.getResource(name)
+      val p = Paths.get(path.toURI)
+      val preset = IOUtils.parsePresetJson(p)
+      val opts = PbsmrtpipeEngineOptions(preset.options)
+      // convert back to service option models
+      val eopts = opts.toPipelineOptions.map(_.asServiceOption)
+      val valsById = eopts.map(x => (x.id, x)).toMap
+      valsById("pbsmrtpipe.options.chunk_mode").asInstanceOf[ServiceTaskBooleanOption].value must beTrue
+      valsById("pbsmrtpipe.options.distributed_mode").asInstanceOf[ServiceTaskBooleanOption].value must beTrue
+      valsById("pbsmrtpipe.options.max_total_nproc").asInstanceOf[ServiceTaskIntOption].value must beEqualTo(9999)
+      valsById("pbsmrtpipe.options.max_nproc").asInstanceOf[ServiceTaskIntOption].value must beEqualTo(23)
+      valsById("pbsmrtpipe.options.max_nchunks").asInstanceOf[ServiceTaskIntOption].value must beEqualTo(23)
+      valsById("pbsmrtpipe.options.max_nworkers").asInstanceOf[ServiceTaskIntOption].value must beEqualTo(100)
+      valsById("pbsmrtpipe.options.cluster_manager").asInstanceOf[ServiceTaskStrOption].value must beEqualTo("/opt/smrtlink/userdata/generated/config/jms_templates")
+      valsById("pbsmrtpipe.options.tmp_dir").asInstanceOf[ServiceTaskStrOption].value must beEqualTo("/opt/smrtlink/userdata/tmp_dir")
+      //XXX this is written by the installer but not recognized
+      //valsById("pbsmrtpipe.options.progress_status_url").asInstanceOf[ServiceTaskStrOption].value must beEqualTo("")
+      valsById("pbsmrtpipe.options.exit_on_failure").asInstanceOf[ServiceTaskBooleanOption].value must beFalse
+      valsById("pbsmrtpipe.options.debug_mode").asInstanceOf[ServiceTaskBooleanOption].value must beFalse
     }
   }
 }

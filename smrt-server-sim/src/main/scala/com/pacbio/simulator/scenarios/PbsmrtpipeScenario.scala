@@ -87,7 +87,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
         ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
         ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
         ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
-        ServiceTaskFloatOption(toI("test_choice_float"), 1.0f, CHOICE_FLOAT.optionTypeId),
+        ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
         ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
       ),
       Seq[ServiceTaskOptionBase]()))
