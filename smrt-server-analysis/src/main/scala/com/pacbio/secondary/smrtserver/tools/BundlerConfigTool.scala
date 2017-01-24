@@ -10,7 +10,6 @@ import com.pacbio.secondary.smrtlink.models._
 import scopt.OptionParser
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.smrtserver.tools.DatabaseTool.computeTimeDelta
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Try,Success,Failure}
@@ -27,7 +26,7 @@ object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
   import ConfigModelsJsonProtocol._
 
   val toolId = "smrtflow.tools.bundler_config"
-  val VERSION = "0.1.1"
+  val VERSION = "0.1.2"
   val DESCRIPTION =
     """
       |Load and Validate SMRT Link System JSON Config
@@ -77,7 +76,8 @@ object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
     tx match {
       case Success(smrtflowConfig) =>
         logger.info(s"Successfully loaded ${c.file}")
-        logger.info(s"$smrtflowConfig")
+        logger.debug(s"$smrtflowConfig")
+        println(s"Successfully validated config ${c.file}")
         Right(ToolSuccess(toolId, runTime))
       case Failure(ex) =>
         val msg = s"Failed to valid ${c.file} ${ex.getMessage}"

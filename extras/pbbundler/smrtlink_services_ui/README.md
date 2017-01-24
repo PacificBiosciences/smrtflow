@@ -36,13 +36,13 @@ Executables in [BUNDLE_ROOT]/tools
 - *pbservice* Interface to the SL Analysis web services. Get status of services, jobs, import datasets, etc...
 - *smrt-db-tool* TODO(mpkocher)(Rename this tool) Db Run PostgreSQL database migrations, get the database connection status
 - *amclient* Tool to access WSO2 API manager
-- *bundle-config* Validate Bundler SL System config JSON format (schema version 2 format)
+- *bundler-validate-config* Validate Bundler SL System config JSON format (schema version 2 format)
 
 
 ##### Legacy Tools
 
-- [BUNDLE_ROOT]/tools/migrate-legacy-migrate *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
-- [BUNDLE_ROOT]/bin/migrate-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
+- [BUNDLE_ROOT]/tools/bundler-migrate-legacy-db *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
+- [BUNDLE_ROOT]/tools/bundler-migrate-legacy-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
   
 
 ### Configuration

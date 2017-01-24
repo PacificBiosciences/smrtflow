@@ -35,7 +35,7 @@ object ConfigModels {
 
   case class SmrtflowEngineConfig(maxWorkers: Int = 35,
                                   jobRootDir: Path,
-                                  pbsmrtpipePresetXml: Path)
+                                  pbsmrtpipePresetXml: Option[Path])
 
   case class SmrtflowConfig(server: SmrtflowServerConfig,
                             engine: SmrtflowEngineConfig,
