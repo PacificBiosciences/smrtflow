@@ -145,32 +145,50 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
     execution_time = 0,
     success = true)
 
+  def setAutoInc(tableName: String, idName: String, max: Option[Int]): DBIO[Int] = {
+    val sequenceName = s"${tableName}_${idName}_seq"
+    sql"SELECT setval($sequenceName, ${max.getOrElse(0) + 1});".as[Int].map(_.head)
+  }
+
   def write(f: Future[Seq[Any]]): Future[Unit] = f.flatMap { v =>
     val w = (schema ++ flyway.schema).create >>
       (engineJobs            forceInsertAll v(0).asInstanceOf[Seq[EngineJob]]) >>
+      engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
       (jobEvents             forceInsertAll v(2).asInstanceOf[Seq[JobEvent]]) >>
       (jobTags               forceInsertAll v(3).asInstanceOf[Seq[(Int, String)]]) >>
+      jobTags.map(_.id).max.result.flatMap(m => setAutoInc(jobTags.baseTableRow.tableName, "job_tag_id", m)) >>
       (jobsTags              forceInsertAll v(4).asInstanceOf[Seq[(Int, Int)]]) >>
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
+      projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
       (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
       (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
+      dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
       (dsSubread2            forceInsertAll v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
+      dsSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsSubread2.baseTableRow.tableName, "id", m)) >>
       (dsHdfSubread2         forceInsertAll v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
+      dsHdfSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsHdfSubread2.baseTableRow.tableName, "id", m)) >>
       (dsReference2          forceInsertAll v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
+      dsReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsReference2.baseTableRow.tableName, "id", m)) >>
       (dsAlignment2          forceInsertAll v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
+      dsAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsAlignment2.baseTableRow.tableName, "id", m)) >>
       (dsBarcode2            forceInsertAll v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
+      dsBarcode2.map(_.id).max.result.flatMap(m => setAutoInc(dsBarcode2.baseTableRow.tableName, "id", m)) >>
       (dsCCSread2            forceInsertAll v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
+      dsCCSread2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSread2.baseTableRow.tableName, "id", m)) >>
       (dsGmapReference2      forceInsertAll v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
+      dsGmapReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsGmapReference2.baseTableRow.tableName, "id", m)) >>
       (dsCCSAlignment2       forceInsertAll v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
+      dsCCSAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSAlignment2.baseTableRow.tableName, "id", m)) >>
       (dsContig2             forceInsertAll v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
+      dsContig2.map(_.id).max.result.flatMap(m => setAutoInc(dsContig2.baseTableRow.tableName, "id", m)) >>
       (datastoreServiceFiles forceInsertAll v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
       /* (eulas                 forceInsertAll v(18).asInstanceOf[Seq[EulaRecord]]) >> */
       (runSummaries          forceInsertAll v(18).asInstanceOf[Seq[RunSummary]]) >>
       (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
       (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
       (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
-      (flyway                +=  flywayBaselineRow )
+      (flyway                +=  flywayBaselineRow)
 
     db.run(w.transactionally).map { _ => () }
   }
