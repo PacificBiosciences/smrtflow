@@ -145,7 +145,8 @@ object JobModels {
       createdBy: Option[String],
       smrtlinkVersion: Option[String],
       smrtlinkToolsVersion: Option[String],
-      isActive: Boolean = true) {
+      isActive: Boolean = true,
+      errorMessage: Option[String] = None) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -165,14 +166,38 @@ object JobModels {
           createdBy: Option[String],
           smrtlinkVersion: Option[String],
           smrtlinkToolsVersion: Option[String],
-          isActive: Boolean = true) = {
+          isActive: Boolean = true,
+          errorMessage: Option[String] = None) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
       }
   }
+
+  /**
+    * A Single Engine Job has many subcomputational units of work. These are a Task.
+    *
+    * @param uuid         Globally unique id of the Task
+    * @param jobId        Job Id
+    * @param taskId       task id (unique in the context of a single job)
+    * @param taskTypeId   Tool Contract Id
+    * @param name         Display name of task
+    * @param state        state of the Task
+    * @param createdAt    when the task was created (Note, this is not necessarily when the task started to run
+    * @param updatedAt    last time the task state was updated
+    * @param errorMessage error message (if state in error state)
+    */
+  case class JobTask(uuid: UUID,
+                     jobId: Int,
+                     taskId: String,
+                     taskTypeId: String,
+                     name: String,
+                     state: String,
+                     createdAt: JodaDateTime,
+                     updatedAt: JodaDateTime,
+                     errorMessage: Option[String])
 
 
   // This is too pbsmtpipe-centric. This should be generalized or defined a base trait
