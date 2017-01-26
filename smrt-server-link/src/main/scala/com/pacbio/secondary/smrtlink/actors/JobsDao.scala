@@ -992,24 +992,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     HdfSubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
 
-  def getHdfDataSetById(id: Int): Future[Option[HdfSubreadServiceDataSet]] =
+  def getHdfDataSetById(id: Int): Future[HdfSubreadServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsHdfSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find HdfSubreadSet with id `$id`"))
 
-  private def hdfsubreadToDetails(ds: Future[Option[HdfSubreadServiceDataSet]]): Future[Option[String]] =
-    ds.map(_.map(x => DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(x.path)))))
+  private def hdfsubreadToDetails(ds: HdfSubreadServiceDataSet): String =
+    DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(ds.path)))
 
-  def getHdfDataSetDetailsById(id: Int): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetById(id))
+  def getHdfDataSetDetailsById(id: Int): Future[String] =
+    getHdfDataSetById(id).map(hdfsubreadToDetails)
 
-  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = hdfsubreadToDetails(getHdfDataSetByUUID(uuid))
+  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getHdfDataSetByUUID(uuid).map(hdfsubreadToDetails)
 
-  def getHdfDataSetByUUID(id: UUID): Future[Option[HdfSubreadServiceDataSet]] =
+  def getHdfDataSetByUUID(id: UUID): Future[HdfSubreadServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsHdfSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find HdfSubreadSet with uuid `$id`"))
 
   def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
       t1.id,
@@ -1037,25 +1039,27 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toA(x._1)))
     }
 
-  def getAlignmentDataSetById(id: Int): Future[Option[AlignmentServiceDataSet]] =
+  def getAlignmentDataSetById(id: Int): Future[AlignmentServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toA(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
 
-  def getAlignmentDataSetByUUID(id: UUID): Future[Option[AlignmentServiceDataSet]] =
+  def getAlignmentDataSetByUUID(id: UUID): Future[AlignmentServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toA(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
 
-  private def alignmentSetToDetails(ds: Future[Option[AlignmentServiceDataSet]]): Future[Option[String]] = {
-    ds.map(_.map(x => DataSetJsonUtils.alignmentSetToJson(DataSetLoader.loadAlignmentSet(Paths.get(x.path)))))
+  private def alignmentSetToDetails(ds: AlignmentServiceDataSet): String = {
+    DataSetJsonUtils.alignmentSetToJson(DataSetLoader.loadAlignmentSet(Paths.get(ds.path)))
   }
 
-  def getAlignmentDataSetDetailsById(id: Int): Future[Option[String]] = alignmentSetToDetails(getAlignmentDataSetById(id))
+  def getAlignmentDataSetDetailsById(id: Int): Future[String] =
+    getAlignmentDataSetById(id).map(alignmentSetToDetails)
 
-  def getAlignmentDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = alignmentSetToDetails(getAlignmentDataSetByUUID(uuid))
+  def getAlignmentDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getAlignmentDataSetByUUID(uuid).map(alignmentSetToDetails)
 
   /*--- CONSENSUS READS ---*/
 
@@ -1072,25 +1076,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(query.result.map(_.map(x => toCCSread(x._1))))
   }
 
-  def getConsensusReadDataSetById(id: Int): Future[Option[ConsensusReadServiceDataSet]] =
+  def getConsensusReadDataSetById(id: Int): Future[ConsensusReadServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ConsensusReadSet with id `$id`"))
 
-  def getConsensusReadDataSetByUUID(id: UUID): Future[Option[ConsensusReadServiceDataSet]] =
+  def getConsensusReadDataSetByUUID(id: UUID): Future[ConsensusReadServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ConsensusReadSet with uuid `$id`"))
 
-  private def consensusReadSetToDetails(ds: Future[Option[ConsensusReadServiceDataSet]]): Future[Option[String]] = {
-    ds.map(_.map(x => DataSetJsonUtils.consensusSetToJson(DataSetLoader.loadConsensusReadSet(Paths.get(x.path)))))
-  }
+  private def consensusReadSetToDetails(ds: ConsensusReadServiceDataSet): String =
+    DataSetJsonUtils.consensusSetToJson(DataSetLoader.loadConsensusReadSet(Paths.get(ds.path)))
 
-  def getConsensusReadDataSetDetailsById(id: Int): Future[Option[String]] = consensusReadSetToDetails(getConsensusReadDataSetById(id))
+  def getConsensusReadDataSetDetailsById(id: Int): Future[String] =
+    getConsensusReadDataSetById(id).map(consensusReadSetToDetails)
 
-  def getConsensusReadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = consensusReadSetToDetails(getConsensusReadDataSetByUUID(uuid))
+  def getConsensusReadDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getConsensusReadDataSetByUUID(uuid).map(consensusReadSetToDetails)
 
   /*--- CONSENSUS ALIGNMENTS ---*/
 
@@ -1120,25 +1125,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toCCSA(x._1)))
     }
 
-  def getConsensusAlignmentDataSetById(id: Int): Future[Option[ConsensusAlignmentServiceDataSet]] =
+  def getConsensusAlignmentDataSetById(id: Int): Future[ConsensusAlignmentServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsCCSAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSA(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid `$id`"))
 
-  def getConsensusAlignmentDataSetByUUID(id: UUID): Future[Option[ConsensusAlignmentServiceDataSet]] =
+  def getConsensusAlignmentDataSetByUUID(id: UUID): Future[ConsensusAlignmentServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsCCSAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSA(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid `$id`"))
 
-  private def consensusAlignmentSetToDetails(ds: Future[Option[ConsensusAlignmentServiceDataSet]]): Future[Option[String]] = {
-    ds.map(_.map(x => DataSetJsonUtils.consensusAlignmentSetToJson(DataSetLoader.loadConsensusAlignmentSet(Paths.get(x.path)))))
-  }
+  private def consensusAlignmentSetToDetails(ds: ConsensusAlignmentServiceDataSet): String =
+    DataSetJsonUtils.consensusAlignmentSetToJson(DataSetLoader.loadConsensusAlignmentSet(Paths.get(ds.path)))
 
-  def getConsensusAlignmentDataSetDetailsById(id: Int): Future[Option[String]] = consensusAlignmentSetToDetails(getConsensusAlignmentDataSetById(id))
+  def getConsensusAlignmentDataSetDetailsById(id: Int): Future[String] =
+    getConsensusAlignmentDataSetById(id).map(consensusAlignmentSetToDetails)
 
-  def getConsensusAlignmentDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = consensusAlignmentSetToDetails(getConsensusAlignmentDataSetByUUID(uuid))
+  def getConsensusAlignmentDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getConsensusAlignmentDataSetByUUID(uuid).map(consensusAlignmentSetToDetails)
 
   /*--- BARCODES ---*/
 
@@ -1167,25 +1173,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(query.result.map(_.map(x => toB(x._1))))
   }
 
-  def getBarcodeDataSetById(id: Int): Future[Option[BarcodeServiceDataSet]] =
+  def getBarcodeDataSetById(id: Int): Future[BarcodeServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsBarcode2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toB(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find BarcodeSet with id `$id`"))
 
-  def getBarcodeDataSetByUUID(id: UUID): Future[Option[BarcodeServiceDataSet]] =
+  def getBarcodeDataSetByUUID(id: UUID): Future[BarcodeServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsBarcode2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toB(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find BarcodeSet with uuid `$id`"))
 
-  private def barcodeSetToDetails(ds: Future[Option[BarcodeServiceDataSet]]): Future[Option[String]] = {
-    ds.map(_.map(x => DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(x.path)))))
-  }
+  private def barcodeSetToDetails(ds: BarcodeServiceDataSet): String =
+    DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(ds.path)))
 
-  def getBarcodeDataSetDetailsById(id: Int): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetById(id))
+  def getBarcodeDataSetDetailsById(id: Int): Future[String] =
+    getBarcodeDataSetById(id).map(barcodeSetToDetails)
 
-  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = barcodeSetToDetails(getBarcodeDataSetByUUID(uuid))
+  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getBarcodeDataSetByUUID(uuid).map(barcodeSetToDetails)
 
   /*--- CONTIGS ---*/
 
@@ -1214,25 +1221,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(query.result.map(_.map(x => toCtg(x._1))))
   }
 
-  def getContigDataSetById(id: Int): Future[Option[ContigServiceDataSet]] =
+  def getContigDataSetById(id: Int): Future[ContigServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsContig2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCtg(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ContigSet with id `$id`"))
 
-  def getContigDataSetByUUID(id: UUID): Future[Option[ContigServiceDataSet]] =
+  def getContigDataSetByUUID(id: UUID): Future[ContigServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsContig2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCtg(x._1)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ContigSet with uuid `$id`"))
 
-  private def contigSetToDetails(ds: Future[Option[ContigServiceDataSet]]): Future[Option[String]] = {
-    ds.map(_.map(x => DataSetJsonUtils.contigSetToJson(DataSetLoader.loadContigSet(Paths.get(x.path)))))
-  }
+  private def contigSetToDetails(ds: ContigServiceDataSet): String =
+    DataSetJsonUtils.contigSetToJson(DataSetLoader.loadContigSet(Paths.get(ds.path)))
 
-  def getContigDataSetDetailsById(id: Int): Future[Option[String]] = contigSetToDetails(getContigDataSetById(id))
+  def getContigDataSetDetailsById(id: Int): Future[String] =
+    getContigDataSetById(id).map(contigSetToDetails)
 
-  def getContigDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = contigSetToDetails(getContigDataSetByUUID(uuid))
+  def getContigDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getContigDataSetByUUID(uuid).map(contigSetToDetails)
 
   /*--- DATASTORE ---*/
 
@@ -1249,6 +1257,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     else db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
   }
 
+  //FIXME(mpkocher)(1-27-2017) This needs to migrated to Future[T]
   override def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption.map(_.map(toDataStoreJobFile)))
 
@@ -1260,18 +1269,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
-      val deleteDsFile = ds match {
-        case Some(ds) => DBIO.from(deleteDataStoreFile(id))
-        case None => DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found")))
-      }
+      val deleteDsFile = ds
+          .map(dsFile => DBIO.from(deleteDataStoreFile(dsFile.jobUUID)))
+          .getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found"))))
+
       // 2 of 3: insert of the data set, if it is a known/supported file type
-      val optionalDelete = ds match {
-        case Some(ds) => DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-          case Some(_) => DBIO.from(deleteDataSetByUUID(ds.uuid))
-          case None => DBIO.from(Future(MessageResponse(s"File type ${ds.fileTypeId} is not a dataset, so no metadata to delete.")))
-        }
-        case None => DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete")))
-      }
+      val optionalDelete = ds.map { dsFile =>
+          DataSetMetaTypes.toDataSetType(dsFile.fileTypeId)
+              .map(_ => DBIO.from(deleteDataSetByUUID(dsFile.uuid)))
+              .getOrElse(DBIO.from(Future(MessageResponse(s"File type ${dsFile.fileTypeId} is not a dataset, so no metadata to delete."))))
+        }.getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete"))))
+
       // 3 of 3: run the appropriate actions in a transaction
       val fin = for {
           _ <- deleteDsFile
