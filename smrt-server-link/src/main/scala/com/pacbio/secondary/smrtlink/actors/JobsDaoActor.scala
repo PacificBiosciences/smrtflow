@@ -71,6 +71,9 @@ object JobsDaoActor {
                            state: String,
                            createdAt: JodaDateTime) extends JobMessage
 
+  // Update a Job Task status
+  case class UpdateJobTaskStatus(uuid: UUID, jobId: Int, state: String, message: String, errorMessage: Option[String])
+
   case class CreateJobType(
       uuid: UUID,
       name: String,
@@ -450,6 +453,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, state, createdAt, createdAt, None))
       } yield jobTask
     }
+
+    case UpdateJobTaskStatus(taskUUID, jobId, state, message, errorMessage) =>
+      pipeWith {dao.updateJobTask(UpdateJobTask(jobId, taskUUID, state, message, errorMessage))}
 
     case GetJobChildrenByUUID(jobId: UUID) => dao.getJobChildrenByUUID(jobId) pipeTo sender
     case GetJobChildrenById(jobId: Int) => dao.getJobChildrenById(jobId) pipeTo sender

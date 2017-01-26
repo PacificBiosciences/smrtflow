@@ -252,9 +252,21 @@ object JobModels {
                      updatedAt: JodaDateTime,
                      errorMessage: Option[String])
 
-  // Need to update pbsmrtpipe to use the same (or a subset) of the allowed
-  // task states as the EngineJob
-  case class UpdateJobTask(jobId: Int, uuid: UUID, state: String, errorMessage: Option[String])
+  /**
+    * Update the state and status message of Task of a Job. If the task is in
+    * the error state, the detailed error message will be propagated.
+    *
+    * @param jobId        Job id the task belongs to
+    * @param uuid         Globally unique Task identifier
+    * @param state        state of the Task (this needs to be consistent with the allowed analysis job states)
+    * @param message      status Message
+    * @param errorMessage Detailed Error Message of Job Task
+    */
+  case class UpdateJobTask(jobId: Int,
+                           uuid: UUID,
+                           state: String,
+                           message: String,
+                           errorMessage: Option[String])
 
   // This is too pbsmtpipe-centric. This should be generalized or defined a base trait
   case class AnalysisJobResources(

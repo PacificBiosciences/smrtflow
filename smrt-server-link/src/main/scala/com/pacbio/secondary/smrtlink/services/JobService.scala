@@ -154,6 +154,45 @@ trait JobService
                 }
               }
         } ~
+        path(JavaUUID / JOB_TASK_PREFIX / JavaUUID) { (jobId, taskUUID) =>
+          get {
+            complete {
+              ok {
+                (dbActor ? GetJobTasks(jobId)).mapTo[Seq[JobTask]]
+              }
+            }
+          } ~
+              put {
+                entity(as[UpdateJobTaskRecord]) { r =>
+                  complete {
+                    created {
+                      for {
+                        job <- (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob]
+                        jobTask <-  (dbActor ? UpdateJobTaskStatus(r.uuid, job.id, r.state, r.message, r.errorMessage)).mapTo[JobTask]
+                      } yield jobTask
+                    }
+                  }
+                }
+              }
+        } ~
+        path(IntNumber / JOB_TASK_PREFIX / JavaUUID) { (jobId, taskUUID) =>
+          get {
+            complete {
+              ok {
+                (dbActor ? GetJobTasks(jobId)).mapTo[Seq[JobTask]]
+              }
+            }
+          } ~
+              put {
+                entity(as[UpdateJobTaskRecord]) { r =>
+                  complete {
+                    created {
+                        (dbActor ? UpdateJobTaskStatus(r.uuid, jobId, r.state, r.message, r.errorMessage)).mapTo[JobTask]
+                    }
+                  }
+                }
+              }
+        } ~
     path(IntNumber / JOB_REPORT_PREFIX) { jobId =>
       get {
         complete {

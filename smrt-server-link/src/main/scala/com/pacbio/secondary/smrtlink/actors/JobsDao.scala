@@ -505,16 +505,16 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     // Need to sync the pbsmrtpipe task states with the allowed JobStates
     val taskState = AnalysisJobStates.toState(update.state).getOrElse(AnalysisJobStates.UNKNOWN)
     val now = JodaDateTime.now()
-    val msg = s"Updated task state to $taskState"
-    val errorMessage = s"Unable to find JobTask uuid:${update.uuid} for Job id ${update.jobId}"
+
+    val futureFailMessage = s"Unable to find JobTask uuid:${update.uuid} for Job id ${update.jobId}"
 
     val fx = for {
       _ <- jobTasks.filter(_.uuid === update.uuid).filter(_.jobId === update.jobId ).map((x) => (x.state, x.errorMessage, x.updatedAt)).update((update.state, update.errorMessage, now))
-      _ <- jobEvents += JobEvent(UUID.randomUUID(), update.jobId, taskState, msg, now, JobConstants.EVENT_TYPE_JOB_TASK_STATUS)
+      _ <- jobEvents += JobEvent(UUID.randomUUID(), update.jobId, taskState, update.message, now, JobConstants.EVENT_TYPE_JOB_TASK_STATUS)
       jobTask <- jobTasks.filter(_.uuid === update.uuid).result
     } yield jobTask
 
-    db.run(fx.transactionally).map(_.headOption).flatMap(failIfNone(errorMessage))
+    db.run(fx.transactionally).map(_.headOption).flatMap(failIfNone(futureFailMessage))
   }
 
   /**

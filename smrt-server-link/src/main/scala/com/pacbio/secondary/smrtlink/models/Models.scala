@@ -171,6 +171,8 @@ case class CreateJobTaskRecord(uuid: UUID,
                                state: String,
                                createdAt: JodaDateTime)
 
+case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])
+
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
 
