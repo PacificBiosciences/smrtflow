@@ -123,7 +123,8 @@ object PbServiceParser {
       project: Option[String] = None,
       description: String = "",
       authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
-      manifestId: String = "smrtlink"
+      manifestId: String = "smrtlink",
+      showReports: Boolean = false
   ) extends LoggerConfig
 
 
@@ -300,7 +301,10 @@ object PbServiceParser {
       } validate { i => validateId(i, "Job") } text "Job ID",
       opt[Unit]("show-settings") action { (_, c) =>
         c.copy(dumpJobSettings = true)
-      } text "Print JSON settings for job, suitable for input to 'pbservice run-analysis'"
+      } text "Print JSON settings for job, suitable for input to 'pbservice run-analysis'",
+      opt[Unit]("show-reports") action { (_, c) =>
+        c.copy(showReports = true)
+      } text "Display job report attributes"
     ) text "Show job details"
 
     cmd(Modes.JOBS.name) action { (_, c) =>
@@ -499,9 +503,27 @@ class PbService (val sal: AnalysisServiceAccessLayer,
 
   def runGetJobInfo(jobId: IdAble,
                     asJson: Boolean = false,
-                    dumpJobSettings: Boolean = false): Int = {
+                    dumpJobSettings: Boolean = false,
+                    showReports: Boolean = false): Int = {
     Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
-      case Success(job) => printJobInfo(job, asJson, dumpJobSettings)
+      case Success(job) =>
+        var rc = printJobInfo(job, asJson, dumpJobSettings)
+        if (showReports && (rc == 0)) {
+          rc = Try {
+            Await.result(sal.getAnalysisJobReports(job.uuid), TIMEOUT)
+          } match {
+            case Success(rpts) => rpts.map { dsr =>
+              Try {
+                Await.result(sal.getAnalysisJobReport(job.uuid, dsr.dataStoreFile.uuid), TIMEOUT)
+              } match {
+                case Success(rpt) => showReportAttributes(rpt)
+                case Failure(err) => errorExit(s"Couldn't retrieve report ${dsr.dataStoreFile.uuid} for job ${job.uuid}: $err")
+              }
+            }.reduceLeft(_ max _)
+            case Failure(err) => errorExit(s"Could not retrieve reports: $err")
+          }
+        }
+        rc
       case Failure(err) => errorExit(s"Could not retrieve job record: $err")
     }
   }
@@ -1008,7 +1030,7 @@ object PbService {
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
                                               c.jobTitle, c.presetXml, c.block)
-        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings)
+        case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
