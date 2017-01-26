@@ -578,7 +578,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
  *
  * Mixin the Job Component because the files depended on the job
  */
-trait DataSetStore extends DataStoreComponent with LazyLogging {
+trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLogging {
   this: JobDataStore with DalComponent =>
 
   val DEFAULT_PROJECT_ID = 1
@@ -835,17 +835,20 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     insertDataSetSafe[ContigServiceDataSet](ds, "ContigSet",
       (id) => { dsContig2 forceInsert ContigServiceSet(id, ds.uuid) })
 
-  def getDataSetTypeById(typeId: String): Future[Option[ServiceDataSetMetaType]] =
+  def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =
     db.run(datasetMetaTypes.filter(_.id === typeId).result.headOption)
+        .flatMap(failIfNone(s"Unable to find dataSet type `$typeId`"))
 
   def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] = db.run(datasetMetaTypes.result)
 
   // Get All DataSets mixed in type. Only metadata
-  def getDataSetByUUID(id: UUID): Future[Option[DataSetMetaDataSet]] =
-    db.run(datasetMetaTypeByUUID(id).result.headOption)
+  def getDataSetByUUID(id: UUID): Future[DataSetMetaDataSet] =
+    db.run(datasetMetaTypeByUUID(id).result.headOption).
+        flatMap(failIfNone(s"Unable to find dataSet with UUID `$id`"))
 
-  def getDataSetById(id: Int): Future[Option[DataSetMetaDataSet]] =
+  def getDataSetById(id: Int): Future[DataSetMetaDataSet] =
     db.run(datasetMetaTypeById(id).result.headOption)
+        .flatMap(failIfNone(s"Unable to find dataSet with id `$id`"))
 
   def deleteDataSetById(id: Int, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
@@ -874,25 +877,29 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
 
   // FIXME. REALLY, REALLY need to generalize this.
-  def getSubreadDataSetById(id: Int): Future[Option[SubreadServiceDataSet]] =
+  def getSubreadDataSetById(id: Int): Future[SubreadServiceDataSet] = {
     db.run {
       val q = datasetMetaTypeById(id) join dsSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find SubreadSet with id `$id`"))
+  }
 
-  private def subreadToDetails(ds: Future[Option[SubreadServiceDataSet]]): Future[Option[String]] =
-    ds.map(_.map(x => DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(x.path)))))
+  // This might be wrapped in a Try to fail the future downstream with a better HTTP error code
+  private def subreadToDetails(ds: SubreadServiceDataSet): String =
+    DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(ds.path)))
 
 
-  def getSubreadDataSetDetailsById(id: Int): Future[Option[String]] = subreadToDetails(getSubreadDataSetById(id))
+  def getSubreadDataSetDetailsById(id: Int): Future[String] =
+    getSubreadDataSetById(id).map(subreadToDetails)
 
-  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] = subreadToDetails(getSubreadDataSetByUUID(uuid))
+  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getSubreadDataSetByUUID(uuid).map(subreadToDetails)
 
-  def getSubreadDataSetByUUID(id: UUID): Future[Option[SubreadServiceDataSet]] =
+  def getSubreadDataSetByUUID(id: UUID): Future[SubreadServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find SubreadSet with UUID `$id`"))
 
   def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[SubreadServiceDataSet]] =
     db.run {
@@ -1271,9 +1278,8 @@ trait DataSetStore extends DataStoreComponent with LazyLogging {
     }
 
     // This needed queries un-nested due to SQLite limitations -- see #197
-    db.run(datastoreServiceFiles.filter(_.uuid === id).result.headOption).flatMap{
-      addOptionalDelete(_)
-    }
+    db.run(datastoreServiceFiles.filter(_.uuid === id).result.headOption)
+        .flatMap(addOptionalDelete)
   }
 
   override def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =

@@ -472,13 +472,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
-    case GetDataSetMetaById(i: Int) => pipeWith {
-      dao.getDataSetById(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
-    }
+    case GetDataSetMetaById(i: Int) => pipeWith { dao.getDataSetById(i) }
 
-    case GetDataSetMetaByUUID(i: UUID) => pipeWith {
-      dao.getDataSetByUUID(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
-    }
+    case GetDataSetMetaByUUID(i: UUID) => pipeWith { dao.getDataSetByUUID(i) }
 
     case GetDataSetJobsByUUID(i: UUID) => pipeWith(dao.getDataSetJobsByUUID(i))
 
@@ -488,31 +484,27 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // DataSet Types
     case GetDataSetTypes => pipeWith(dao.getDataSetTypes)
 
-    case GetDataSetTypeById(n: String) => pipeWith {
-      dao.getDataSetTypeById(n).map(_.getOrElse(toE(s"Unable to find dataset type '$n")))
-    }
+    case GetDataSetTypeById(n: String) => pipeWith { dao.getDataSetTypeById(n) }
 
     // Get Subreads
-    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getSubreadDataSets(limit, includeInactive))
+    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getSubreadDataSets(limit, includeInactive))
 
-    case GetSubreadDataSetById(n: Int) => pipeWith {
-      dao.getSubreadDataSetById(n).map(_.getOrElse(toE(s"Unable to find subread dataset '$n")))
-    }
+    case GetSubreadDataSetById(n: Int) =>
+      pipeWith {dao.getSubreadDataSetById(n) }
 
-    case GetSubreadDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getSubreadDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find subread dataset '$uuid")))
-    }
+    case GetSubreadDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getSubreadDataSetByUUID(uuid)}
 
-    case GetSubreadDataSetDetailsById(n: Int) => pipeWith {
-      dao.getSubreadDataSetDetailsById(n).map(_.getOrElse(toE(s"Unable to find subread dataset '$n")))
-    }
+    case GetSubreadDataSetDetailsById(n: Int) =>
+      pipeWith { dao.getSubreadDataSetDetailsById(n)}
 
-    case GetSubreadDataSetDetailsByUUID(uuid: UUID) => pipeWith {
-      dao.getSubreadDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find subread dataset ${uuid.toString}")))
-    }
+    case GetSubreadDataSetDetailsByUUID(uuid: UUID) =>
+      pipeWith {dao.getSubreadDataSetDetailsByUUID(uuid)}
 
     // Get References
-    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getReferenceDataSets(limit, includeInactive))
+    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getReferenceDataSets(limit, includeInactive))
 
     case GetReferenceDataSetById(id: Int) => pipeWith {
       dao.getReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
