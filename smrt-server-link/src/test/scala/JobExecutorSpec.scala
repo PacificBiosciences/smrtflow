@@ -170,7 +170,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "tasks")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTasks = responseAs[Seq[JobTask]]
-        jobTasks.filter(_.uuid === mockTaskRecord.uuid).headOption.map(_.uuid) must beSome(mockTaskRecord.uuid)
+        jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.uuid) must beSome(mockTaskRecord.uuid)
       }
     }
     "create a delete Job and delete a mock-pbsmrtpipe job" in {
