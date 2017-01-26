@@ -924,25 +924,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toR(x._1, x._2)))
     }
 
-  def getReferenceDataSetById(id: Int): Future[Option[ReferenceServiceDataSet]] =
+  def getReferenceDataSetById(id: Int): Future[ReferenceServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ReferenceSet with id `$id`"))
 
-  private def referenceToDetails(ds: Future[Option[ReferenceServiceDataSet]]): Future[Option[String]] =
-    ds.map(_.map(x => DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(x.path)))))
+  private def referenceToDetails(ds: ReferenceServiceDataSet): String =
+    DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(ds.path)))
 
-  def getReferenceDataSetDetailsById(id: Int): Future[Option[String]] = referenceToDetails(getReferenceDataSetById(id))
+  def getReferenceDataSetDetailsById(id: Int): Future[String] =
+    getReferenceDataSetById(id).map(referenceToDetails)
 
-  def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
-    referenceToDetails(getReferenceDataSetByUUID(uuid))
+  def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getReferenceDataSetByUUID(uuid).map(referenceToDetails)
 
-  def getReferenceDataSetByUUID(id: UUID): Future[Option[ReferenceServiceDataSet]] =
+  def getReferenceDataSetByUUID(id: UUID): Future[ReferenceServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find ReferenceSet with uuid `$id`"))
 
   def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
@@ -957,24 +958,26 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
-  def getGmapReferenceDataSetById(id: Int): Future[Option[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceDataSetById(id: Int): Future[GmapReferenceServiceDataSet] =
     db.run {
       val q = datasetMetaTypeById(id) join dsGmapReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
-    }
-  private def gmapReferenceToDetails(ds: Future[Option[GmapReferenceServiceDataSet]]): Future[Option[String]] =
-    ds.map(_.map(x => DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(x.path)))))
+    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid `$id`"))
 
-  def getGmapReferenceDataSetDetailsById(id: Int): Future[Option[String]] = gmapReferenceToDetails(getGmapReferenceDataSetById(id))
+  private def gmapReferenceToDetails(ds: GmapReferenceServiceDataSet): String =
+    DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(ds.path)))
 
-  def getGmapReferenceDataSetDetailsByUUID(uuid: UUID): Future[Option[String]] =
-    gmapReferenceToDetails(getGmapReferenceDataSetByUUID(uuid))
+  def getGmapReferenceDataSetDetailsById(id: Int): Future[String] =
+    getGmapReferenceDataSetById(id).map(gmapReferenceToDetails)
 
-  def getGmapReferenceDataSetByUUID(id: UUID): Future[Option[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceDataSetDetailsByUUID(uuid: UUID): Future[String] =
+    getGmapReferenceDataSetByUUID(uuid).map(gmapReferenceToDetails)
+
+  def getGmapReferenceDataSetByUUID(id: UUID): Future[GmapReferenceServiceDataSet] =
     db.run {
       val q = datasetMetaTypeByUUID(id) join dsGmapReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
-    }
+    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid `$id`"))
 
   def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {

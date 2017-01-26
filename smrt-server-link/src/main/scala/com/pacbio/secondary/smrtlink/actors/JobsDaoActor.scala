@@ -506,40 +506,32 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetReferenceDataSets(limit: Int, includeInactive: Boolean) =>
       pipeWith(dao.getReferenceDataSets(limit, includeInactive))
 
-    case GetReferenceDataSetById(id: Int) => pipeWith {
-      dao.getReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
-    }
+    case GetReferenceDataSetById(id: Int) =>
+      pipeWith {dao.getReferenceDataSetById(id) }
 
-    case GetReferenceDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getReferenceDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find reference dataset '$uuid")))
-    }
+    case GetReferenceDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getReferenceDataSetByUUID(uuid)}
 
-    case GetReferenceDataSetDetailsById(id: Int) => pipeWith {
-      dao.getReferenceDataSetDetailsById(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetReferenceDataSetDetailsById(id: Int) =>
+      pipeWith {dao.getReferenceDataSetDetailsById(id)}
 
-    case GetReferenceDataSetDetailsByUUID(id: UUID) => pipeWith {
-      dao.getReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetReferenceDataSetDetailsByUUID(id: UUID) =>
+      pipeWith {dao.getReferenceDataSetDetailsByUUID(id)}
 
     // Get GMAP References
     case GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getGmapReferenceDataSets(limit, includeInactive))
 
-    case GetGmapReferenceDataSetById(id: Int) => pipeWith {
-      dao.getGmapReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
-    }
+    case GetGmapReferenceDataSetById(id: Int) =>
+      pipeWith {dao.getGmapReferenceDataSetById(id)}
 
-    case GetGmapReferenceDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getGmapReferenceDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find reference dataset '$uuid")))
-    }
+    case GetGmapReferenceDataSetByUUID(uuid: UUID) =>
+      pipeWith { dao.getGmapReferenceDataSetByUUID(uuid) }
 
-    case GetGmapReferenceDataSetDetailsById(id: Int) => pipeWith {
-      dao.getGmapReferenceDataSetDetailsById(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetGmapReferenceDataSetDetailsById(id: Int) =>
+      pipeWith { dao.getGmapReferenceDataSetDetailsById(id)}
 
-    case GetGmapReferenceDataSetDetailsByUUID(id: UUID) => pipeWith {
-      dao.getGmapReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetGmapReferenceDataSetDetailsByUUID(id: UUID) =>
+      pipeWith {dao.getGmapReferenceDataSetDetailsByUUID(id)}
 
     case ImportReferenceDataSet(ds: ReferenceServiceDataSet) => pipeWith {
       log.debug("creating reference dataset")
