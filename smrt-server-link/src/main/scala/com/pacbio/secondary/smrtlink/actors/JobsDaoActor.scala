@@ -207,12 +207,8 @@ object JobsDaoActor {
   // Import a Reference Dataset
   case class ImportReferenceDataSet(ds: ReferenceServiceDataSet) extends DataSetMessage
 
-  case class ImportReferenceDataSetFromFile(path: String) extends DataSetMessage
-
   // Import a GMAP reference
   case class ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) extends DataSetMessage
-
-  case class ImportGmapReferenceDataSetFromFile(path: String) extends DataSetMessage
 
   // This should probably be a different actor
   // Convert a Reference to a Dataset and Import
@@ -534,64 +530,12 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getGmapReferenceDataSetDetailsByUUID(id)}
 
     case ImportReferenceDataSet(ds: ReferenceServiceDataSet) => pipeWith {
-      log.debug("creating reference dataset")
-      dao.insertReferenceDataSet(ds)
-    }
-
-    case ImportReferenceDataSetFromFile(path: String) => pipeWith {
-      // FIXME. This should be removed
-      val createdAt = JodaDateTime.now()
-      val r = DataSetLoader.loadReferenceSet(Paths.get(path))
-      val uuid = UUID.fromString(r.getUniqueId)
-      val ds = ReferenceServiceDataSet(
-        -99,
-        uuid,
-        r.getName,
-        path,
-        createdAt, createdAt,
-        r.getDataSetMetadata.getNumRecords,
-        r.getDataSetMetadata.getTotalLength,
-        "0.5.0",
-        "reference comments",
-        "reference-tags",
-        toMd5(uuid.toString),
-        1,
-        1,
-        1,
-        r.getDataSetMetadata.getPloidy,
-        r.getDataSetMetadata.getOrganism)
-
+      log.debug("inserting reference dataset")
       dao.insertReferenceDataSet(ds)
     }
 
     case ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) => pipeWith {
-      log.debug("creating reference dataset")
-      dao.insertGmapReferenceDataSet(ds)
-    }
-
-    case ImportGmapReferenceDataSetFromFile(path: String) => pipeWith {
-      // FIXME. This should be removed
-      val createdAt = JodaDateTime.now()
-      val r = DataSetLoader.loadGmapReferenceSet(Paths.get(path))
-      val uuid = UUID.fromString(r.getUniqueId)
-      val ds = GmapReferenceServiceDataSet(
-        -99,
-        uuid,
-        r.getName,
-        path,
-        createdAt, createdAt,
-        r.getDataSetMetadata.getNumRecords,
-        r.getDataSetMetadata.getTotalLength,
-        "0.5.0",
-        "reference comments",
-        "reference-tags",
-        toMd5(uuid.toString),
-        1,
-        1,
-        1,
-        r.getDataSetMetadata.getPloidy,
-        r.getDataSetMetadata.getOrganism)
-
+      log.debug("inserting reference dataset")
       dao.insertGmapReferenceDataSet(ds)
     }
 
@@ -764,7 +708,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       )
     }
 
-    case x => log.error(s"Unhandled message $x to database actor.")
+    case x => log.warning(s"Unhandled message $x to database actor.")
   }
 }
 
