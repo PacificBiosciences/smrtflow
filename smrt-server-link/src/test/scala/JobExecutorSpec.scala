@@ -1,4 +1,5 @@
 import java.nio.file.{Files, Paths}
+import java.util.UUID
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
@@ -18,7 +19,7 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob,JobTask}
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProvider, MockPbsmrtpipeJobTypeProvider}
@@ -94,6 +95,11 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     Nil,
     Nil)
 
+  val jobId = 1
+  val taskUUID = UUID.randomUUID()
+  val taskTypeId = "smrtflow.tasks.mock_task"
+  val mockTaskRecord = CreateJobTaskRecord(taskUUID, jobId, s"$taskTypeId-0",  taskTypeId, s"task-name-${taskUUID}", "CREATED", JodaDateTime.now())
+
   val url = toJobType("mock-pbsmrtpipe")
 
   def setup() = {
@@ -148,6 +154,23 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     "access job events by job id" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
+      }
+    }
+    "access job tasks" in {
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "tasks")) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "create a job task" in {
+      Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "tasks"), mockTaskRecord) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "validate job task was added" in {
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "tasks")) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val jobTasks = responseAs[Seq[JobTask]]
+        jobTasks.filter(_.uuid === mockTaskRecord.uuid).headOption.map(_.uuid) must beSome(mockTaskRecord.uuid)
       }
     }
     "create a delete Job and delete a mock-pbsmrtpipe job" in {

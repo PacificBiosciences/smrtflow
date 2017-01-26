@@ -9,6 +9,7 @@ import akka.pattern.pipe
 import akka.util.Timeout
 import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
@@ -19,7 +20,7 @@ import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ReferenceServiceDataSet, GmapReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ProjectRequest, ReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
@@ -44,18 +45,31 @@ object MessageTypes {
 object JobsDaoActor {
   import MessageTypes._
 
-  // Job
+  // All Job Message Protocols
   case object GetAllJobs extends JobMessage
 
-  case class GetJobById(jobId: Int) extends JobMessage
-
-  case class GetJobByUUID(jobId: UUID) extends JobMessage
+  case class GetJobByIdAble(ix: IdAble) extends JobMessage
 
   case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false) extends JobMessage
 
   case class GetJobEventsByJobId(jobId: Int) extends JobMessage
 
+  case class GetJobTasks(jobId: IdAble) extends JobMessage
+
   case class UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) extends JobMessage
+
+  // createdAt is when the task was created, not when the Service has
+  // created the record. This is attempting to defer to the layer that
+  // has defined how tasks are created and not to create duplicate, and
+  // potentially inconsistent state (i.e., the database has createdAt that
+  // is different from the pbmsrtpipe createdAt datetime)
+  case class CreateJobTask(uuid: UUID,
+                           jobId: IdAble,
+                           taskId: String,
+                           taskTypeId: String,
+                           name: String,
+                           state: String,
+                           createdAt: JodaDateTime) extends JobMessage
 
   case class CreateJobType(
       uuid: UUID,
@@ -429,31 +443,32 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetJobsByJobType(jobTypeId, includeInactive: Boolean) => pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive))
 
-    case GetJobById(jobId: Int) => pipeWith {
-      dao.getJobById(jobId).map(_.getOrElse(toE(s"Unable to find JobId $jobId")))
-    }
-
-    case GetJobByUUID(uuid) => pipeWith {
-      dao.getJobByUUID(uuid).map(_.getOrElse(toE(s"Unable to find job ${uuid.toString}")))
-    }
+    case GetJobByIdAble(ix) => pipeWith { dao.getJobByIdAble(ix) }
 
     case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
+
+    // Job Task related message
+    case CreateJobTask(uuid, jobId, taskId, taskTypeId, name, state, createdAt) => pipeWith {
+      for {
+        job <- dao.getJobByIdAble(jobId)
+        jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, state, createdAt, createdAt, None))
+      } yield jobTask
+    }
 
     case GetJobChildrenByUUID(jobId: UUID) => dao.getJobChildrenByUUID(jobId) pipeTo sender
     case GetJobChildrenById(jobId: Int) => dao.getJobChildrenById(jobId) pipeTo sender
 
+    // This needs to be refactored and/or pushed into the Dao
     case DeleteJobByUUID(jobId: UUID) => pipeWith {
-      dao.deleteJobByUUID(jobId).map{ j => 
-        j match {
-          case Some(job) =>
-            dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
-              dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
-            }
-            j
-          case None => toE(s"Unable to find job ${jobId.toString}")
+      dao.deleteJobByUUID(jobId).map { job =>
+        dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
+          dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
         }
+        job
       }
     }
+
+    case GetJobTasks(ix: IdAble) => pipeWith { dao.getJobTasks(ix) }
 
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 

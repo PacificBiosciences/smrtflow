@@ -192,6 +192,16 @@ object LegacyModels {
                           smrtlinkVersion: Option[String],
                           smrtlinkToolsVersion: Option[String],
                           isActive: Boolean = true)
+
+
+
+  case class LegacyJobEvent(
+                         eventId: UUID,
+                         jobId: Int,
+                         state: AnalysisJobStates.JobStates,
+                         message: String,
+                         createdAt: JodaDateTime)
+
 }
 
 
@@ -205,7 +215,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
   )
 
 
-  class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
+  class JobEventsT(tag: Tag) extends Table[LegacyJobEvent](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
     def jobId: Rep[Int] = column[Int]("job_id")
@@ -213,7 +223,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
     def jobJoin = engineJobs.filter(_.id === jobId)
-    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+    def * = (id, jobId, state, message, createdAt) <> (LegacyJobEvent.tupled, LegacyJobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {

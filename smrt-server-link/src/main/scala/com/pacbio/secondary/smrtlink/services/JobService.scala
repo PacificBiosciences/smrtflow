@@ -11,6 +11,7 @@ import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -58,6 +59,7 @@ trait JobService
   implicit val timeout = Timeout(30.seconds)
 
   import SmrtLinkJsonProtocols._
+  import CommonModelImplicits._
 
   private def resolveContentType(path: Path): ContentType = {
     val mimeType = MimeTypeProperties.fromFile(path.toFile)
@@ -97,7 +99,7 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetJobByUUID(id)).mapTo[EngineJob]
+            (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob]
           }
         }
       }
@@ -106,7 +108,7 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetJobById(id)).mapTo[EngineJob]
+            (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob]
           }
         }
       }
@@ -118,6 +120,40 @@ trait JobService
         }
       }
     } ~
+    path(IntNumber / JOB_TASK_PREFIX) { jobId =>
+      get {
+        complete {
+          ok { (dbActor ? GetJobTasks(jobId)).mapTo[Seq[JobTask]]}
+        }
+      } ~
+          post {
+            entity(as[CreateJobTaskRecord]) { r =>
+              complete {
+                created {
+                  (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.state, r.createdAt)).mapTo[JobTask]
+                }
+              }
+            }
+          }
+    } ~
+        path(JavaUUID / JOB_TASK_PREFIX) { jobId =>
+          get {
+            complete {
+              ok {
+                (dbActor ? GetJobTasks(jobId)).mapTo[Seq[JobTask]]
+              }
+            }
+          } ~
+              post {
+                entity(as[CreateJobTaskRecord]) { r =>
+                  complete {
+                    created {
+                      (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.state, r.createdAt)).mapTo[JobTask]
+                    }
+                  }
+                }
+              }
+        } ~
     path(IntNumber / JOB_REPORT_PREFIX) { jobId =>
       get {
         complete {
@@ -181,7 +217,7 @@ trait JobService
       get {
         complete {
           ok {
-            (dbActor ? GetJobById(id)).mapTo[EngineJob].map(_.jsonSettings)
+            (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob].map(_.jsonSettings)
           }
         }
       }
@@ -240,7 +276,7 @@ trait JobService
       parameter('id) { id =>
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
-          resolveJobResource((dbActor ? GetJobById(jobId)).mapTo[EngineJob], id)
+          resolveJobResource((dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob], id)
         }
       }
     } ~
@@ -248,7 +284,7 @@ trait JobService
       parameter('id) { id =>
         logger.info(s"Attempting to resolve resource $id from $jobId")
         complete {
-          resolveJobResource((dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob], id)
+          resolveJobResource((dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob], id)
         }
       }
     } ~

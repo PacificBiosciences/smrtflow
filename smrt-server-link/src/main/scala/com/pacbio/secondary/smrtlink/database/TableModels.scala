@@ -27,6 +27,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
+    def eventTypeId: Rep[String] = column[String]("event_type_id")
+
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
 
     def jobId: Rep[Int] = column[Int]("job_id")
@@ -39,7 +41,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def jobJoin = engineJobs.filter(_.id === jobId)
 
-    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+    def * = (id, jobId, state, message, createdAt, eventTypeId) <> (JobEvent.tupled, JobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {

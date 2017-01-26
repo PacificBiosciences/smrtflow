@@ -3,9 +3,9 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import com.pacbio.common.models.CommonModels.IdAble
 import org.joda.time.{DateTime => JodaDateTime}
-
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 
@@ -160,6 +160,16 @@ case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: Strin
 
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
+// Service related Job Tasks
+
+//
+case class CreateJobTaskRecord(uuid: UUID,
+                               jobId: IdAble,
+                               taskId: String,
+                               taskTypeId: String,
+                               name: String,
+                               state: String,
+                               createdAt: JodaDateTime)
 
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)

@@ -6,6 +6,7 @@ import java.util.UUID
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -33,6 +34,7 @@ import scala.util.control.NonFatal
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
 
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
@@ -109,6 +111,14 @@ trait DalComponent extends LazyLogging{
         integrityConstraintViolationSqlStateCodes contains se.getSQLState
       case _ => false
     }
+  }
+}
+
+// Need to find a central home for these util funcs
+trait DaoFutureUtils {
+  def failIfNone[T](message: String): (Option[T] => Future[T]) = {
+    case Some(value) => Future { value}
+    case _ => Future.failed(new ResourceNotFoundError(message))
   }
 }
 
@@ -262,8 +272,10 @@ trait ProjectDataStore extends LazyLogging {
 /**
  * SQL Driven JobEngine datastore Backend
  */
-trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
+trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFutureUtils{
   this: DalComponent =>
+
+  import CommonModelImplicits._
 
   final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
 
@@ -275,7 +287,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   var _runnableJobs: mutable.LinkedHashMap[UUID, RunnableJobWithId]
 
   /**
-   * This is the pbscala engine required interface. The `createJob` method is the prefered method to add new jobs
+   * This is the pbscala engine required interface. The `createJob` method is the preferred method to add new jobs
    * to the job manager queue.
    */
   override def addRunnableJob(runnableJob: RunnableJob): Future[EngineJob] = {
@@ -313,11 +325,21 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
     db.run(update.transactionally)
   }
 
+  //FIXME(mpkocher)(1-25-2017) Remove this Future[Option[T]] usage
+  // it introduces a lot of duplication on the caller side.
   override def getJobByUUID(jobId: UUID): Future[Option[EngineJob]] =
     db.run(engineJobs.filter(_.uuid === jobId).result.headOption)
 
   override def getJobById(jobId: Int): Future[Option[EngineJob]] =
     db.run(engineJobs.filter(_.id === jobId).result.headOption)
+
+  def getJobByIdAble(ix: IdAble): Future[EngineJob] = {
+    val fx = ix match {
+      case IntIdAble(i) => getJobById(i)
+      case UUIDIdAble(uuid) => getJobByUUID(uuid)
+    }
+    fx.flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
+  }
 
   def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
@@ -356,7 +378,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
 
   /**
-   * Get all the Job Events accosciated with a specific job
+   * Get all the Job Events associated with a specific job
    */
   override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     db.run(jobEvents.filter(_.jobId === jobId).result)
@@ -471,8 +493,49 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
 
   def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
 
+  def addJobTask(jobTask: JobTask): Future[JobTask] = db.run(jobTasks += jobTask).map(_ => jobTask)
 
-  // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
+  /**
+    * Update the state of a Job Task and create an JobEvent
+    *
+    * @param update
+    * @return
+    */
+  def updateJobTask(update: UpdateJobTask): Future[JobTask] = {
+    // Need to sync the pbsmrtpipe task states with the allowed JobStates
+    val taskState = AnalysisJobStates.toState(update.state).getOrElse(AnalysisJobStates.UNKNOWN)
+    val now = JodaDateTime.now()
+    val msg = s"Updated task state to $taskState"
+    val errorMessage = s"Unable to find JobTask uuid:${update.uuid} for Job id ${update.jobId}"
+
+    val fx = for {
+      _ <- jobTasks.filter(_.uuid === update.uuid).filter(_.jobId === update.jobId ).map((x) => (x.state, x.errorMessage, x.updatedAt)).update((update.state, update.errorMessage, now))
+      _ <- jobEvents += JobEvent(UUID.randomUUID(), update.jobId, taskState, msg, now, JobConstants.EVENT_TYPE_JOB_TASK_STATUS)
+      jobTask <- jobTasks.filter(_.uuid === update.uuid).result
+    } yield jobTask
+
+    db.run(fx.transactionally).map(_.headOption).flatMap(failIfNone(errorMessage))
+  }
+
+  /**
+    * Get all tasks associated with a specific EngineJob
+    *
+    * Will fail if the job is not found, or will return an empty
+    * list of Tasks if none are found.
+    *
+    * @param ix Int or UUID of Engine Job
+    * @return
+    */
+  def getJobTasks(ix: IdAble): Future[Seq[JobTask]] = {
+    ix match {
+      case IntIdAble(i) =>
+        db.run(jobTasks.filter(_.jobId === i).result)
+      case UUIDIdAble(uuid) =>
+        getJobByIdAble(uuid).flatMap(job => db.run(jobTasks.filter(_.jobId === job.id).result))
+    }
+  }
+
+  // TODO(smcclellan): limit is never used. add `.take(limit)`?
   override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
     if (!includeInactive) db.run(engineJobs.filter(_.isActive).result)
     else db.run(engineJobs.result)
@@ -486,24 +549,25 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging {
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
 
-  def deleteJobById(jobId: Int): Future[Option[EngineJob]] = {
+  //FIXME(mpkocher)(1-25-2017) Convert to use IdAble to remove code duplication
+  def deleteJobById(jobId: Int): Future[EngineJob] = {
     logger.info(s"Setting isActive=false for job-id $jobId")
     val now = JodaDateTime.now()
     db.run(
       for {
         _ <- engineJobs.filter(_.id === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
         job <- engineJobs.filter(_.id === jobId).result.headOption
-      } yield job)
+      } yield job).flatMap(failIfNone(s"Unable to Delete job. Unable to find job id $jobId"))
   }
 
-  def deleteJobByUUID(jobId: UUID): Future[Option[EngineJob]] = {
-    logger.info(s"Setting isActive=false for job-id $jobId")
+  def deleteJobByUUID(jobId: UUID): Future[EngineJob] = {
+    logger.info(s"Attempting to set isActive=false for job-id $jobId")
     val now = JodaDateTime.now()
     db.run(
       for {
         _ <- engineJobs.filter(_.uuid === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
         job <- engineJobs.filter(_.uuid === jobId).result.headOption
-      } yield job)
+      } yield job).flatMap(failIfNone(s"Unable to Delete job. Unable to find job $jobId"))
   }
 
 }
