@@ -587,16 +587,16 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   /**
    * Importing of DataStore File by Job Int Id
    */
-  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[MessageResponse] = getJobById(jobId).flatMap {
-    case Some(job) => insertDataStoreByJob(job, ds)
+  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[MessageResponse] =
+    getJobById(jobId)
+        .flatMap(failIfNone(s"Failed to find Job id $jobId for DataStore File ${ds.uniqueId}"))
+        .flatMap(job => insertDataStoreByJob(job, ds))
 
-    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
-  }
 
-  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[MessageResponse] = getJobByUUID(jobId).flatMap {
-    case Some(job) => insertDataStoreByJob(job, ds)
-    case None => throw new ResourceNotFoundError(s"Failed to import $ds Failed to find job id $jobId")
-  }
+  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[MessageResponse] =
+    getJobByUUID(jobId)
+        .flatMap(failIfNone(s"Failed to find Job id $jobId for DataStore File ${ds.uniqueId}"))
+        .flatMap(job => insertDataStoreByJob(job, ds))
 
   override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
     logger.info(s"adding datastore file for $ds")
@@ -716,8 +716,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     else db.run(datastoreServiceFiles.result)
   }
 
-  def getDataStoreFileByUUID2(uuid: UUID): Future[Option[DataStoreServiceFile]] =
+  def getDataStoreFileByUUID2(uuid: UUID): Future[DataStoreServiceFile] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
+        .flatMap(failIfNone(s"Unable to find DataStore File with uuid `$uuid`"))
 
   def getDataStoreServiceFilesByJobId(i: Int): Future[Seq[DataStoreServiceFile]] =
     db.run(datastoreServiceFiles.filter(_.jobId === i).result)
@@ -1370,8 +1371,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getEulas: Future[Seq[EulaRecord]] = db.run(eulas.result)
 
-  def getEulaByVersion(version: String): Future[Option[EulaRecord]] =
+  def getEulaByVersion(version: String): Future[EulaRecord] =
     db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
+        .flatMap(failIfNone(s"Unable to find Eula version `$version`"))
 
   def removeEula(version: String): Future[Int] =
     db.run(eulas.filter(_.smrtlinkVersion === version).delete)

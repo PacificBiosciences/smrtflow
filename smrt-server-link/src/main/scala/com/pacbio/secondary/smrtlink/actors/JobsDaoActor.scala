@@ -714,9 +714,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // DataStore Files
     case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreInactive))
 
-    case GetDataStoreFileByUUID(uuid: UUID) => pipeWith {
-      dao.getDataStoreFileByUUID2(uuid).map(_.getOrElse(toE(s"Unable to find DataStoreFile ${uuid.toString}")))
-    }
+    case GetDataStoreFileByUUID(uuid: UUID) =>
+      pipeWith {dao.getDataStoreFileByUUID2(uuid)}
 
     case GetDataStoreFilesByJobId(jobId) => pipeWith(dao.getDataStoreFilesByJobId(jobId))
 
@@ -752,10 +751,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetEulas => pipeWith(dao.getEulas)
 
-    case GetEulaByVersion(version) => {
-      log.info(s"retrieving EULA for version $version")
-      pipeWith(dao.getEulaByVersion(version).map(_.getOrElse(toE(s"EULA for version $version has not been accepted"))))
-    }
+    case GetEulaByVersion(version) =>
+      pipeWith {dao.getEulaByVersion(version) }
 
     case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
       pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
@@ -766,9 +763,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         else SuccessMessage(s"Removed user agreement for version $version")
       )
     }
-
-    // Testing/Debugging messages
-    case "example-test-message" => respondWith("Successfully got example-test-message")
 
     case x => log.error(s"Unhandled message $x to database actor.")
   }
