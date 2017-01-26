@@ -74,6 +74,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def uuid: Rep[UUID] = column[UUID]("task_uuid", O.PrimaryKey)
 
+    def idx = index("index_uuid", uuid, unique = true)
+
     def jobId: Rep[Int] = column[Int]("job_id")
 
     // Both the taskId and uuid should really be in the Resolved Tool Contract
