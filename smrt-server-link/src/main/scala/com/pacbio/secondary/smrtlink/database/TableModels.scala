@@ -40,6 +40,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def jobJoin = engineJobs.filter(_.id === jobId)
 
     def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+
+    def idx = index("job_events_job_id", jobId)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -107,6 +109,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
     def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (EngineJob.tupled, EngineJob.unapply)
+
+    def uuidIdx = index("engine_jobs_uuid", uuid)
+
+    def typeIdx = index("engine_jobs_job_type", jobTypeId)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -132,7 +138,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    def nameUnique = index("project_name_unique", name, unique = true)
+    // Because slick does not support partial indexes, we index this table manually like so:
+    // sqlu"create unique index project_name_unique on projects (name) where is_active;"
 
     def description: Rep[String] = column[String]("description")
 
@@ -161,6 +168,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
 
     def * = (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
+
+    def loginIdx = index("projects_users_login", login)
+
+    def projectIdIdx = index("projects_users_project_id", projectId)
   }
 
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
@@ -200,11 +211,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
     def datasetType: Rep[String] = column[String]("dataset_type")
     def * = (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
+    def idx = index("engine_jobs_datasets_job_id", jobId)
   }
 
   class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
-
-    //def indexUUID = index("index_uuid", uuid, unique = true)
 
     def name: Rep[String] = column[String]("name")
 
@@ -235,6 +245,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+
+    def uuidIdx = index("dataset_metadata_uuid", uuid)
+
+    def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
@@ -355,6 +369,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
     def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+
+    def uuidIdx = index("datastore_files_uuid", uuid)
+
+    def jobIdIdx = index("datastore_files_job_id", jobId)
+
+    def jobUuidIdx = index("datastore_files_job_uuid", jobUUID)
   }
 
   implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
@@ -482,6 +502,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         startedAt,
         completedAt,
         terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
+
+    def idx = index("collection_metadata_run_id", runId)
   }
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
