@@ -129,6 +129,7 @@
     },
     "/secondary-analysis/dataset-types": {
       "get": {
+        "description": "Get a list of Job Types that are registered to the SL system. The job types can be used to get a list of jobs of specific type, such as pbsmrtpipe, job-manager/jobs/pbsmrtpipe",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -956,8 +957,86 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
+      "get": {
+        "description": "Get a list of sub-computation units (i.e., a task)",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return a list of JobTask instances"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
+      "put": {
+        "description": "Update the state of Job subtask",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "Return updated JobTask"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "description": "Task Globally unique identifier as a UUID",
+            "required": true,
+            "type": "string",
+            "name": "task-uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/dataset-types/{type}": {
       "get": {
+        "description": "Get details for a specific job type by id (e.g., pbsmrtpipe, merge-datasets)",
         "responses": {
           "default": {
             "description": "Return value"
@@ -968,6 +1047,7 @@
         },
         "parameters": [
           {
+            "description": "Job Type (e.g., pbsmrtpipe, merge-datasets)",
             "required": true,
             "type": "string",
             "name": "type",
@@ -1650,6 +1730,15 @@
             "description": "Return value"
           }
         },
+        "parameters": [
+          {
+            "description": "Version of the EULA that was accepted",
+            "required": true,
+            "type": "string",
+            "name": "version",
+            "in": "path"
+          }
+        ],
         "x-auth-type": "Application & Application User"
       }
     }

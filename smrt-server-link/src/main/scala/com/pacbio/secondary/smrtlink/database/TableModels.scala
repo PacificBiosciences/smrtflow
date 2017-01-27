@@ -1,13 +1,13 @@
 package com.pacbio.secondary.smrtlink.database
 
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import slick.driver.PostgresDriver.api._
@@ -27,6 +27,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
+    def eventTypeId: Rep[String] = column[String]("event_type_id")
+
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
 
     def jobId: Rep[Int] = column[Int]("job_id")
@@ -39,7 +41,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def jobJoin = engineJobs.filter(_.id === jobId)
 
-    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+    def * = (id, jobId, state, message, createdAt, eventTypeId) <> (JobEvent.tupled, JobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -68,6 +70,45 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
   }
 
+  class JobTasks(tag: Tag) extends Table[JobTask](tag, "job_tasks") {
+
+    def uuid: Rep[UUID] = column[UUID]("task_uuid", O.PrimaryKey)
+
+    def idx = index("index_uuid", uuid, unique = true)
+
+    def jobId: Rep[Int] = column[Int]("job_id")
+
+    // Both the taskId and uuid should really be in the Resolved Tool Contract
+    // This is only unique to the Job
+    def taskId: Rep[String] = column[String]("task_id")
+
+    // This is the ToolContract Id
+    def taskTypeId: Rep[String] = column[String]("task_type_id")
+
+    // Ideally, this should use the states defined here AnalysisJobStates.JobStates for tasks
+    def state: Rep[String] = column[String]("task_state")
+
+    // Display Name of the Task
+    def name: Rep[String] = column[String]("task_name")
+
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+
+    // Should there be a runTime ? Because a task created, doesn't necessarily
+    // mean the task has started to run. It can be waiting in the Scheduler (e.g., SGE) queue
+
+    // Optional Error Message
+    def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
+
+    def * = (uuid, jobId, taskId, taskTypeId, name, state, createdAt, updatedAt, errorMessage) <> (JobTask.tupled, JobTask.unapply)
+
+    def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
+
+    def jobJoin = engineJobs.filter(_.id === jobId)
+
+
+  }
 
   class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
 
@@ -102,11 +143,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
+    // Optional Error Message
+    def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage) <> (EngineJob.tupled, EngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -532,6 +576,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val jobEvents = TableQuery[JobEventsT]
   lazy val jobTags = TableQuery[JobTags]
   lazy val jobsTags = TableQuery[JobsTags]
+  lazy val jobTasks = TableQuery[JobTasks]
 
   // DataSet types
   lazy val datasetMetaTypes = TableQuery[DataSetTypesT]
@@ -556,6 +601,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     jobEvents,
     jobTags,
     jobsTags,
+    jobTasks,
     projectsUsers,
     projects,
     dsMetaData2,

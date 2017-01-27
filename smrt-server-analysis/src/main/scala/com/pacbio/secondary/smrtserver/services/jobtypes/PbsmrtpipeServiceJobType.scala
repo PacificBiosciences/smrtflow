@@ -11,6 +11,7 @@ import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.LogMessageRecord
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -57,6 +58,7 @@ class PbsmrtpipeServiceJobType(
 
   import SecondaryAnalysisJsonProtocols._
   import SmrtServerConstants._
+  import CommonModelImplicits._
 
   val endpoint = "pbsmrtpipe"
   val description = "Run a secondary analysis pbsmrtpipe job."
@@ -159,7 +161,7 @@ class PbsmrtpipeServiceJobType(
           respondWithMediaType(MediaTypes.`application/json`) {
             complete {
               created {
-                (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob].map { engineJob =>
                   val sourceId = s"job::${engineJob.id}::${m.sourceId}"
                   loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
                   // an "ok" message should
@@ -176,7 +178,7 @@ class PbsmrtpipeServiceJobType(
         complete {
           ok {
             for {
-              engineJob <- (dbActor ? GetJobById(id)).mapTo[EngineJob]
+              engineJob <- (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob]
               message <- terminatePbsmrtpipeJob(engineJob)
             } yield message
           }

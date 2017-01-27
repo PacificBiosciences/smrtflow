@@ -194,15 +194,46 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
   }
 }
 
+object LegacyModels {
+  case class LegacyEngineJob(
+                          id: Int,
+                          uuid: UUID,
+                          name: String,
+                          comment: String,
+                          createdAt: JodaDateTime,
+                          updatedAt: JodaDateTime,
+                          state: AnalysisJobStates.JobStates,
+                          jobTypeId: String,
+                          path: String,
+                          jsonSettings: String,
+                          createdBy: Option[String],
+                          smrtlinkVersion: Option[String],
+                          smrtlinkToolsVersion: Option[String],
+                          isActive: Boolean = true)
+
+
+
+  case class LegacyJobEvent(
+                         eventId: UUID,
+                         jobId: Int,
+                         state: AnalysisJobStates.JobStates,
+                         message: String,
+                         createdAt: JodaDateTime)
+
+}
+
+
 class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseFormat {
   import slick.driver.SQLiteDriver.api._
+  import LegacyModels._
 
   implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
     {s => s.toString},
     {s => AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
   )
 
-  class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
+
+  class JobEventsT(tag: Tag) extends Table[LegacyJobEvent](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
     def jobId: Rep[Int] = column[Int]("job_id")
@@ -210,7 +241,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
     def jobJoin = engineJobs.filter(_.id === jobId)
-    def * = (id, jobId, state, message, createdAt) <> (JobEvent.tupled, JobEvent.unapply)
+    def * = (id, jobId, state, message, createdAt) <> (LegacyJobEvent.tupled, LegacyJobEvent.unapply)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -228,7 +259,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
   }
 
-  class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
+  class EngineJobsT(tag: Tag) extends Table[LegacyEngineJob](tag, "engine_jobs") {
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
     def uuid: Rep[UUID] = column[UUID]("uuid")
     def pipelineId: Rep[String] = column[String]("pipeline_id")
@@ -245,7 +276,8 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
     def findById(i: Int) = engineJobs.filter(_.id === i)
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (EngineJob.tupled, EngineJob.unapply)
+
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (LegacyEngineJob.tupled, LegacyEngineJob.unapply)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {

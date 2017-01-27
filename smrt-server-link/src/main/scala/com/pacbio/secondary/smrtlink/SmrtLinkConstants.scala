@@ -15,6 +15,8 @@ trait JobServiceConstants {
   val JOB_ROOT_PREFIX = "jobs"
   // Per Job Option/Settings
   val JOB_OPTIONS = "options"
+  // Job tasks
+  val JOB_TASK_PREFIX = "tasks"
   // Blurring the lines between the job and engine
   val ENGINE_CONFIG_PREFIX = "config"
   // Enum of Job Types
