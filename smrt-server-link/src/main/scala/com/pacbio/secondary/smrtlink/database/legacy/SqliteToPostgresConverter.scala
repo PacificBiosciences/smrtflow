@@ -162,33 +162,33 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
       sqlu"create unique index project_name_unique on projects (name) where is_active;" >>
-      (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
-      (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
-      dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
-      (dsSubread2            forceInsertAll v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
-      dsSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsSubread2.baseTableRow.tableName, "id", m)) >>
-      (dsHdfSubread2         forceInsertAll v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
-      dsHdfSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsHdfSubread2.baseTableRow.tableName, "id", m)) >>
-      (dsReference2          forceInsertAll v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
-      dsReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsReference2.baseTableRow.tableName, "id", m)) >>
-      (dsAlignment2          forceInsertAll v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
-      dsAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsAlignment2.baseTableRow.tableName, "id", m)) >>
-      (dsBarcode2            forceInsertAll v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
-      dsBarcode2.map(_.id).max.result.flatMap(m => setAutoInc(dsBarcode2.baseTableRow.tableName, "id", m)) >>
-      (dsCCSread2            forceInsertAll v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
-      dsCCSread2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSread2.baseTableRow.tableName, "id", m)) >>
-      (dsGmapReference2      forceInsertAll v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
-      dsGmapReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsGmapReference2.baseTableRow.tableName, "id", m)) >>
-      (dsCCSAlignment2       forceInsertAll v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
-      dsCCSAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSAlignment2.baseTableRow.tableName, "id", m)) >>
-      (dsContig2             forceInsertAll v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
-      dsContig2.map(_.id).max.result.flatMap(m => setAutoInc(dsContig2.baseTableRow.tableName, "id", m)) >>
-      (datastoreServiceFiles forceInsertAll v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
-      /* (eulas                 forceInsertAll v(18).asInstanceOf[Seq[EulaRecord]]) >> */
-      (runSummaries          forceInsertAll v(18).asInstanceOf[Seq[RunSummary]]) >>
-      (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
-      (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
-      (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
+//      (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
+//      (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
+//      dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
+//      (dsSubread2            forceInsertAll v(8).asInstanceOf[Seq[SubreadServiceSet]]) >>
+//      dsSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsSubread2.baseTableRow.tableName, "id", m)) >>
+//      (dsHdfSubread2         forceInsertAll v(9).asInstanceOf[Seq[HdfSubreadServiceSet]]) >>
+//      dsHdfSubread2.map(_.id).max.result.flatMap(m => setAutoInc(dsHdfSubread2.baseTableRow.tableName, "id", m)) >>
+//      (dsReference2          forceInsertAll v(10).asInstanceOf[Seq[ReferenceServiceSet]]) >>
+//      dsReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsReference2.baseTableRow.tableName, "id", m)) >>
+//      (dsAlignment2          forceInsertAll v(11).asInstanceOf[Seq[AlignmentServiceSet]]) >>
+//      dsAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsAlignment2.baseTableRow.tableName, "id", m)) >>
+//      (dsBarcode2            forceInsertAll v(12).asInstanceOf[Seq[BarcodeServiceSet]]) >>
+//      dsBarcode2.map(_.id).max.result.flatMap(m => setAutoInc(dsBarcode2.baseTableRow.tableName, "id", m)) >>
+//      (dsCCSread2            forceInsertAll v(13).asInstanceOf[Seq[ConsensusReadServiceSet]]) >>
+//      dsCCSread2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSread2.baseTableRow.tableName, "id", m)) >>
+//      (dsGmapReference2      forceInsertAll v(14).asInstanceOf[Seq[GmapReferenceServiceSet]]) >>
+//      dsGmapReference2.map(_.id).max.result.flatMap(m => setAutoInc(dsGmapReference2.baseTableRow.tableName, "id", m)) >>
+//      (dsCCSAlignment2       forceInsertAll v(15).asInstanceOf[Seq[ConsensusAlignmentServiceSet]]) >>
+//      dsCCSAlignment2.map(_.id).max.result.flatMap(m => setAutoInc(dsCCSAlignment2.baseTableRow.tableName, "id", m)) >>
+//      (dsContig2             forceInsertAll v(16).asInstanceOf[Seq[ContigServiceSet]]) >>
+//      dsContig2.map(_.id).max.result.flatMap(m => setAutoInc(dsContig2.baseTableRow.tableName, "id", m)) >>
+//      (datastoreServiceFiles forceInsertAll v(17).asInstanceOf[Seq[DataStoreServiceFile]]) >>
+//      /* (eulas                 forceInsertAll v(18).asInstanceOf[Seq[EulaRecord]]) >> */
+//      (runSummaries          forceInsertAll v(18).asInstanceOf[Seq[RunSummary]]) >>
+//      (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
+//      (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
+//      (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
       (flyway                +=  flywayBaselineRow)
 
     db.run(w.transactionally).map { _ => () }
@@ -210,7 +210,24 @@ object LegacyModels {
                           createdBy: Option[String],
                           smrtlinkVersion: Option[String],
                           smrtlinkToolsVersion: Option[String],
-                          isActive: Boolean = true)
+                          isActive: Boolean = true) {
+    def toEngineJob: EngineJob = EngineJob(
+      id,
+      uuid,
+      name,
+      comment,
+      createdAt,
+      updatedAt,
+      state,
+      jobTypeId,
+      path,
+      jsonSettings,
+      createdBy,
+      smrtlinkVersion,
+      smrtlinkToolsVersion,
+      isActive,
+      errorMessage = None)
+  }
 
 
 
@@ -219,7 +236,9 @@ object LegacyModels {
                          jobId: Int,
                          state: AnalysisJobStates.JobStates,
                          message: String,
-                         createdAt: JodaDateTime)
+                         createdAt: JodaDateTime) {
+    def toJobEvent: JobEvent = JobEvent(eventId, jobId, state, message, createdAt)
+  }
 
 }
 
@@ -601,24 +620,24 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       jt  <- jobTags.result
       jst <- (jobsTags join engineJobs on (_.jobId === _.id) join jobTags on (_._1.tagId === _.id)).result
       ps  <- projects.result
-      psu <- (projectsUsers join projects on (_.projectId === _.id)).result
-      dmd <- dsMetaData2.result
-      dsu <- dsSubread2.result
-      dhs <- dsHdfSubread2.result
-      dre <- dsReference2.result
-      dal <- dsAlignment2.result
-      dba <- dsBarcode2.result
-      dcc <- dsCCSread2.result
-      dgr <- dsGmapReference2.result
-      dca <- dsCCSAlignment2.result
-      dco <- dsContig2.result
-      dsf <- datastoreServiceFiles.result
-      /* eu  <- eulas.result */
-      rs  <- runSummaries.result
-      dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
-      cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
-      sa  <- samples.result
-    } yield Seq(ej, ejd, je.map(_._1), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa)
+//      psu <- (projectsUsers join projects on (_.projectId === _.id)).result
+//      dmd <- dsMetaData2.result
+//      dsu <- dsSubread2.result
+//      dhs <- dsHdfSubread2.result
+//      dre <- dsReference2.result
+//      dal <- dsAlignment2.result
+//      dba <- dsBarcode2.result
+//      dcc <- dsCCSread2.result
+//      dgr <- dsGmapReference2.result
+//      dca <- dsCCSAlignment2.result
+//      dco <- dsContig2.result
+//      dsf <- datastoreServiceFiles.result
+//      /* eu  <- eulas.result */
+//      rs  <- runSummaries.result
+//      dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
+//      cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
+//      sa  <- samples.result
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps /*, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa */)
     db.run(action).andThen { case _ => db.close() }
   }
 }
