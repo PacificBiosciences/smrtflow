@@ -17,6 +17,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 import spray.httpx.UnsuccessfulResponseException
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
 import com.pacbio.secondary.smrtlink.client.ClientUtils
@@ -71,6 +72,8 @@ class DataSetScenario(host: String, port: Int)
   override val name = "DataSetScenario"
 
   override val smrtLinkClient = new AnalysisServiceAccessLayer(host, port)
+
+  import CommonModelImplicits._
 
   val MSG_DS_ERR = "DataSet database should be initially empty"
   val EXIT_SUCCESS: Var[Int] = Var(0)

@@ -76,6 +76,25 @@ object OptionTypes {
 
 object JobModels {
 
+  // Constants used across all Job types
+
+  object JobConstants {
+
+    // Default Output job files
+    val JOB_STDERR = "pbscala-job.stderr"
+    val JOB_STDOUT = "pbscala-job.stdout"
+
+    // This is the DataStore File "master" log. The fundamental log file for the
+    // job should be stored here and added to the datastore for downstream consumers
+    val DATASTORE_FILE_MASTER_LOG_ID = "pbsmrtpipe::master.log"
+
+    // Event that means the Job state has been changed
+    val EVENT_TYPE_JOB_STATUS = "smrtlink_job_status"
+    // Event that means the Job Task has changed state
+    val EVENT_TYPE_JOB_TASK_STATUS = "smrtlink_job_task_status"
+
+  }
+
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
   // the 'id' is the short name
   case class JobTypeId(id: String) {
@@ -119,18 +138,52 @@ object JobModels {
   // This should only have the "completed" jobOptions states
   case class JobCompletedResult(uuid: UUID, state: AnalysisJobStates.JobStates)
 
+
+  /**
+    * General Job Event data model.
+    *
+    * This can communicate finer granularity of
+    *
+    * @param eventId     Globally Unique id for the event.
+    * @param jobId       Job Id
+    * @param state       state of computational unit (either EngineJob or JobTask)
+    * @param message     status message of event
+    * @param createdAt   When the message was created
+    * @param eventTypeId event type id
+    */
   case class JobEvent(
       eventId: UUID,
       jobId: Int,
       state: AnalysisJobStates.JobStates,
       message: String,
-      createdAt: JodaDateTime)
+      createdAt: JodaDateTime,
+      eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
 
-  // Generic Container for a "Job"
-  // id is system locally unique human friendly id,
-  // whereas UUID is the globally unique id
-  // The jsonSettings are the Json serialized settings of the Job Options
-  // This is used to persist to the db. Not completely thrilled with this.
+
+  /**
+    * Core "Engine" Job data model
+    *
+    * Note, the jobTypeId should map to a unique schema for the jsonSettings provided.
+    * For example, for jobTypeId, "pbsmrtpipe", the jsonSettings JSON must have a pipelineId key
+    * that is a String.
+    *
+    *
+    * @param id id of the Job (unique relative to the SL System)
+    * @param uuid Globally unique job identifier
+    * @param name Display name of task
+    * @param comment User comment
+    * @param createdAt when the Job was created
+    * @param updatedAt when the job was last updated
+    * @param state current state of the job
+    * @param jobTypeId job type id
+    * @param path path to job output directory
+    * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
+    * @param createdBy user that created the Job
+    * @param smrtlinkVersion SL System version
+    * @param smrtlinkToolsVersion SL tools version
+    * @param isActive if the job is active. Not Active jobs will not be displayed by default
+    * @param errorMessage error message if the job is an Error state.
+    */
   case class EngineJob(
       id: Int,
       uuid: UUID,
@@ -145,7 +198,8 @@ object JobModels {
       createdBy: Option[String],
       smrtlinkVersion: Option[String],
       smrtlinkToolsVersion: Option[String],
-      isActive: Boolean = true) {
+      isActive: Boolean = true,
+      errorMessage: Option[String] = None) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -165,15 +219,54 @@ object JobModels {
           createdBy: Option[String],
           smrtlinkVersion: Option[String],
           smrtlinkToolsVersion: Option[String],
-          isActive: Boolean = true) = {
+          isActive: Boolean = true,
+          errorMessage: Option[String] = None) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
       }
   }
 
+  /**
+    * A Single Engine Job has many sub-computational units of work. These are a JobTask.
+    *
+    * @param uuid         Globally unique id of the Task
+    * @param jobId        Job Id
+    * @param taskId       task id (unique in the context of a single job)
+    * @param taskTypeId   Tool Contract Id
+    * @param name         Display name of task
+    * @param state        state of the Task
+    * @param createdAt    when the task was created (Note, this is not necessarily when the task started to run
+    * @param updatedAt    last time the task state was updated
+    * @param errorMessage error message (if state in error state)
+    */
+  case class JobTask(uuid: UUID,
+                     jobId: Int,
+                     taskId: String,
+                     taskTypeId: String,
+                     name: String,
+                     state: String,
+                     createdAt: JodaDateTime,
+                     updatedAt: JodaDateTime,
+                     errorMessage: Option[String])
+
+  /**
+    * Update the state and status message of Task of a Job. If the task is in
+    * the error state, the detailed error message will be propagated.
+    *
+    * @param jobId        Job id the task belongs to
+    * @param uuid         Globally unique Task identifier
+    * @param state        state of the Task (this needs to be consistent with the allowed analysis job states)
+    * @param message      status Message
+    * @param errorMessage Detailed Error Message of Job Task
+    */
+  case class UpdateJobTask(jobId: Int,
+                           uuid: UUID,
+                           state: String,
+                           message: String,
+                           errorMessage: Option[String])
 
   // This is too pbsmtpipe-centric. This should be generalized or defined a base trait
   case class AnalysisJobResources(
@@ -368,21 +461,5 @@ object JobModels {
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
   case class DataStoreFileViewRule(sourceId: String, fileTypeId: String, isHidden: Boolean, name: Option[String], description: Option[String])
   case class PipelineDataStoreViewRules(pipelineId: String, rules: Seq[DataStoreFileViewRule], smrtlinkVersion: String)
-
-
-  // Constants used across all Job types
-
-  object JobConstants {
-
-    // Default Output job files
-    val JOB_STDERR = "pbscala-job.stderr"
-    val JOB_STDOUT = "pbscala-job.stdout"
-
-    // This is the DataStore File "master" log. The fundamental log file for the
-    // job should be stored here and added to the datastore for downstream consumers
-    val DATASTORE_FILE_MASTER_LOG_ID = "pbsmrtpipe::master.log"
-
-
-  }
 
 }
