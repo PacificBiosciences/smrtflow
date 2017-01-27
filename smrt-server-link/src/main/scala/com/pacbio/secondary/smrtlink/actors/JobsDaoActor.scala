@@ -68,7 +68,6 @@ object JobsDaoActor {
                            taskId: String,
                            taskTypeId: String,
                            name: String,
-                           state: String,
                            createdAt: JodaDateTime) extends JobMessage
 
   // Update a Job Task status
@@ -447,10 +446,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
 
     // Job Task related message
-    case CreateJobTask(uuid, jobId, taskId, taskTypeId, name, state, createdAt) => pipeWith {
+    case CreateJobTask(uuid, jobId, taskId, taskTypeId, name, createdAt) => pipeWith {
       for {
         job <- dao.getJobByIdAble(jobId)
-        jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, state, createdAt, createdAt, None))
+        jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, AnalysisJobStates.CREATED.toString, createdAt, createdAt, None))
       } yield jobTask
     }
 

@@ -162,13 +162,19 @@ case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
 // Service related Job Tasks
 
-//
+/**
+  * Service Request Format to create a TaskJob
+  *
+  * @param uuid Globally Unique Task UUID
+  * @param taskId task id which is lo
+  * @param taskTypeId task type (i.e., tool contract type id)
+  * @param name Display name of the task
+  * @param createdAt Time when the task was created
+  */
 case class CreateJobTaskRecord(uuid: UUID,
-                               jobId: IdAble,
                                taskId: String,
                                taskTypeId: String,
                                name: String,
-                               state: String,
                                createdAt: JodaDateTime)
 
 case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])

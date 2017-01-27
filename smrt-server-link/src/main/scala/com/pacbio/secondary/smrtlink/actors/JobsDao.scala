@@ -493,7 +493,28 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   def getJobEvents: Future[Seq[JobEvent]] = db.run(jobEvents.result)
 
-  def addJobTask(jobTask: JobTask): Future[JobTask] = db.run(jobTasks += jobTask).map(_ => jobTask)
+  def addJobTask(jobTask: JobTask): Future[JobTask] = {
+    // when pbsmrtpipe has parity with the AnalysisJobStates, JobTask should have state:AnalysisJobState
+    val state = AnalysisJobStates.toState(jobTask.state).getOrElse(AnalysisJobStates.UNKNOWN)
+    val errorMessage = s"Failed to insert JobEvent from JobTask $jobTask"
+    val message = s"Creating task ${jobTask.name} id:${jobTask.taskId} type:${jobTask.taskTypeId} State:${jobTask.state}"
+
+    val jobEvent = JobEvent(
+      jobTask.uuid,
+      jobTask.jobId,
+      state,
+      message,
+      jobTask.createdAt,
+      eventTypeId = JobConstants.EVENT_TYPE_JOB_TASK_STATUS)
+
+    val fx = for {
+      _ <- jobTasks += jobTask
+      _ <- jobEvents += jobEvent
+      task <- jobTasks.filter(_.uuid === jobTask.uuid).result
+    } yield task
+
+    db.run(fx.transactionally).map(_.headOption).flatMap(failIfNone(errorMessage))
+  }
 
   /**
     * Update the state of a Job Task and create an JobEvent
