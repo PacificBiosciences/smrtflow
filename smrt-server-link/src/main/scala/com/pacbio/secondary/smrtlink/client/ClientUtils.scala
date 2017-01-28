@@ -11,6 +11,7 @@ import spray.json._
 
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.reports.ReportModels._
 import com.pacbio.common.client._
 
 trait ClientUtils {
@@ -54,7 +55,8 @@ trait ClientUtils {
     0
   }
 
-  def printJobInfo(job: EngineJob, asJson: Boolean = false,
+  def printJobInfo(job: EngineJob,
+                   asJson: Boolean = false,
                    dumpJobSettings: Boolean = false): Int = {
     if (dumpJobSettings) {
       println(job.jsonSettings.parseJson.prettyPrint)
@@ -100,6 +102,14 @@ trait ClientUtils {
     val mkline = (row: Seq[String]) => (row zip widths).map{ case (c,w) => c.padTo(w, ' ') }
     println(mkline(headers).mkString(" "))
     table.foreach(row => println(mkline(row).mkString(" ")))
+    0
+  }
+
+  def showReportAttributes(r: Report, prefix: String = ""): Int = {
+    println(s"${prefix}${r.title}:")
+    r.attributes.foreach { a =>
+      println(s"  ${prefix}${a.name} = ${a.value}")
+    }
     0
   }
 }
