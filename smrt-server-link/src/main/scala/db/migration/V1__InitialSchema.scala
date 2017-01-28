@@ -58,6 +58,7 @@ class V1__InitialSchema extends JdbcMigration with SlickMigration with LazyLoggi
 
     db.run(DBIO.seq(
       TableModels.schema.create,
+      sqlu"create unique index project_name_unique on projects (name) where is_active;",
       TableModels.datasetMetaTypes ++= datasetTypeDatum.map(ServiceDataSetMetaType.tupled),
       // TableModels.jobStates ++= finalJobStates
       TableModels.projects += project,

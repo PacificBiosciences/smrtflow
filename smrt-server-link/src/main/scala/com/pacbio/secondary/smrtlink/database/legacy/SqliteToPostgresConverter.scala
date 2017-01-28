@@ -161,6 +161,7 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (jobsTags              forceInsertAll v(4).asInstanceOf[Seq[(Int, Int)]]) >>
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
+      sqlu"create unique index project_name_unique on projects (name) where is_active;" >>
       (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
       (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
       dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
@@ -209,7 +210,24 @@ object LegacyModels {
                           createdBy: Option[String],
                           smrtlinkVersion: Option[String],
                           smrtlinkToolsVersion: Option[String],
-                          isActive: Boolean = true)
+                          isActive: Boolean = true) {
+    def toEngineJob: EngineJob = EngineJob(
+      id,
+      uuid,
+      name,
+      comment,
+      createdAt,
+      updatedAt,
+      state,
+      jobTypeId,
+      path,
+      jsonSettings,
+      createdBy,
+      smrtlinkVersion,
+      smrtlinkToolsVersion,
+      isActive,
+      errorMessage = None)
+  }
 
 
 
@@ -218,7 +236,9 @@ object LegacyModels {
                          jobId: Int,
                          state: AnalysisJobStates.JobStates,
                          message: String,
-                         createdAt: JodaDateTime)
+                         createdAt: JodaDateTime) {
+    def toJobEvent: JobEvent = JobEvent(eventId, jobId, state, message, createdAt)
+  }
 
 }
 
@@ -242,6 +262,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
     def jobJoin = engineJobs.filter(_.id === jobId)
     def * = (id, jobId, state, message, createdAt) <> (LegacyJobEvent.tupled, LegacyJobEvent.unapply)
+    def idx = index("job_events_job_id", jobId)
   }
 
   class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
@@ -273,11 +294,12 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
     def smrtLinkVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_version")
     def smrtLinkToolsVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_tools_version")
-    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+    def isActive: Rep[Boolean] = column[Boolean]("is_active", O.Default(true))
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
     def findById(i: Int) = engineJobs.filter(_.id === i)
-
     def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (LegacyEngineJob.tupled, LegacyEngineJob.unapply)
+    def uuidIdx = index("engine_jobs_uuid", uuid)
+    def typeIdx = index("engine_jobs_job_type", jobTypeId)
   }
 
   class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
@@ -314,6 +336,8 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def role: Rep[ProjectUserRole.ProjectUserRole] = column[ProjectUserRole.ProjectUserRole]("role")
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
     def * = (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
+    def loginIdx = index("projects_users_login", login)
+    def projectIdIdx = index("projects_users_project_id", projectId)
   }
 
   abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
@@ -326,6 +350,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
     def datasetType: Rep[String] = column[String]("dataset_type")
     def * = (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
+    def idx = index("engine_jobs_datasets_job_id", jobId)
   }
 
   class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
@@ -344,6 +369,8 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def projectId: Rep[Int] = column[Int]("project_id")
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+    def uuidIdx = index("dataset_metadata_uuid", uuid)
+    def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
 
   class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
@@ -419,8 +446,11 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def jobUUID: Rep[UUID] = column[UUID]("job_uuid")
     def name: Rep[String] = column[String]("name")
     def description: Rep[String] = column[String]("description")
-    def isActive: Rep[Boolean] = column[Boolean]("is_active")
+    def isActive: Rep[Boolean] = column[Boolean]("is_active", O.Default(true))
     def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+    def uuidIdx = index("datastore_files_uuid", uuid)
+    def jobIdIdx = index("datastore_files_job_id", jobId)
+    def jobUuidIdx = index("datastore_files_job_uuid", jobUUID)
   }
 
   implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
@@ -511,6 +541,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       startedAt,
       completedAt,
       terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
+    def idx = index("collection_metadata_run_id", runId)
   }
 
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
@@ -606,7 +637,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej, ejd, je.map(_._1), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }
