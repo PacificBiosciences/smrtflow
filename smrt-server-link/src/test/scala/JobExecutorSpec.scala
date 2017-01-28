@@ -98,7 +98,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   val jobId = 1
   val taskUUID = UUID.randomUUID()
   val taskTypeId = "smrtflow.tasks.mock_task"
-  val mockTaskRecord = CreateJobTaskRecord(taskUUID, jobId, s"$taskTypeId-0",  taskTypeId, s"task-name-${taskUUID}", "CREATED", JodaDateTime.now())
+  val mockTaskRecord = CreateJobTaskRecord(taskUUID, s"$taskTypeId-0",  taskTypeId, s"task-name-${taskUUID}", JodaDateTime.now())
   val mockUpdateTaskRecord = UpdateJobTaskRecord(taskUUID, "RUNNING", "Updating state to Running", None)
 
   val url = toJobType("mock-pbsmrtpipe")
@@ -166,7 +166,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       Post(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "tasks"), mockTaskRecord) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTask = responseAs[JobTask]
-        jobTask.state === mockTaskRecord.state
+        jobTask.state === "CREATED"
       }
     }
     "validate job task by Int Job Id from job tasks endpoint" in {

@@ -130,7 +130,7 @@ trait JobService
             entity(as[CreateJobTaskRecord]) { r =>
               complete {
                 created {
-                  (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.state, r.createdAt)).mapTo[JobTask]
+                  (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.createdAt)).mapTo[JobTask]
                 }
               }
             }
@@ -148,7 +148,7 @@ trait JobService
                 entity(as[CreateJobTaskRecord]) { r =>
                   complete {
                     created {
-                      (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.state, r.createdAt)).mapTo[JobTask]
+                      (dbActor ? CreateJobTask(r.uuid, jobId, r.taskId, r.taskTypeId, r.name, r.createdAt)).mapTo[JobTask]
                     }
                   }
                 }
