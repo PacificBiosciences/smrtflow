@@ -4,6 +4,7 @@ import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.PacBioServiceErrors.{ConflictError, ResourceNotFoundError}
+import com.pacbio.common.services.utils.FutureSecurityDirectives
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoProvider, JobsDao}
@@ -19,6 +20,7 @@ import scala.concurrent.Future
  */
 class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
   extends JobsBaseMicroService
+  with FutureSecurityDirectives
   with SmrtLinkConstants {
 
   // import serialzation protocols
@@ -51,6 +53,28 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     }
   }
 
+  private val readRoles: Set[ProjectUserRole.ProjectUserRole] =
+    Set(ProjectUserRole.OWNER, ProjectUserRole.CAN_EDIT, ProjectUserRole.CAN_VIEW)
+
+  private val writeRoles: Set[ProjectUserRole.ProjectUserRole] =
+    Set(ProjectUserRole.OWNER, ProjectUserRole.CAN_EDIT)
+
+  private val ownerRole: Set[ProjectUserRole.ProjectUserRole] =
+    Set(ProjectUserRole.OWNER)
+
+  private def userCanRead(login: String, projectId: Int) =
+    if (projectId == GENERAL_PROJECT_ID) {
+      Future.successful(true)
+    } else {
+      jobsDao.userHasProjectRole(login, projectId, readRoles)
+    }
+
+  private def userCanWrite(login: String, projectId: Int) =
+    jobsDao.userHasProjectRole(login, projectId, writeRoles)
+
+  private def userIsOwner(login: String, projectId: Int) =
+    jobsDao.userHasProjectRole(login, projectId, ownerRole)
+
   val routes =
     pathPrefix("projects") {
       pathEndOrSingleSlash {
@@ -58,9 +82,10 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           authenticate(authenticator.wso2Auth) { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
+                validateUpdates(sopts)
                 created {
                   jobsDao
-                    .createProject(sopts, user.userId)
+                    .createProject(sopts)
                     .flatMap(fullProject)
                     .recoverWith(translateConflict(sopts))
                 }
@@ -72,7 +97,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           authenticate(authenticator.wso2Auth) { user =>
             complete {
               ok {
-                jobsDao.getProjects(1000)
+                jobsDao.getUserProjects(user.userId).map(_.map(_.project))
               }
             }
           }
@@ -83,13 +108,15 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           put {
             authenticate(authenticator.wso2Auth) { user =>
               entity(as[ProjectRequest]) { sopts =>
-                complete {
-                  ok {
-                    validateUpdates(sopts)
-                    jobsDao
-                      .updateProject(projId, sopts)
-                      .flatMap(maybeFullProject(projId))
-                      .recoverWith(translateConflict(sopts))
+                futureAuthorize(userCanWrite(user.userId, projId)) {
+                  complete {
+                    ok {
+                      validateUpdates(sopts)
+                      jobsDao
+                        .updateProject(projId, sopts)
+                        .flatMap(maybeFullProject(projId))
+                        .recoverWith(translateConflict(sopts))
+                    }
                   }
                 }
               }
@@ -97,24 +124,25 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           } ~
           get {
             authenticate(authenticator.wso2Auth) { user =>
-              complete {
-                ok {
-                  jobsDao
-                    .getProjectById(projId)
-                    .flatMap(maybeFullProject(projId))
+              futureAuthorize(userCanRead(user.userId, projId)) {
+                complete {
+                  ok {
+                    jobsDao
+                      .getProjectById(projId)
+                      .flatMap(maybeFullProject(projId))
+                  }
                 }
               }
             }
           } ~
           delete {
             authenticate(authenticator.wso2Auth) { user =>
-              // TODO(mskinner) when we bring back project membership,
-              // only allow authorized users (OWNER, CAN_EDIT?) to
-              // delete a project
-              complete {
-                ok {
-                  jobsDao
-                    .deleteProjectById(projId)
+              futureAuthorize(userIsOwner(user.userId, projId)) {
+                complete {
+                  ok {
+                    jobsDao
+                      .deleteProjectById(projId)
+                  }
                 }
               }
             }

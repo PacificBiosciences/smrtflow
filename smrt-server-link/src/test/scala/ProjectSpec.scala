@@ -21,7 +21,7 @@ import spray.http.HttpHeaders.RawHeader
 import spray.http.StatusCodes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import spray.routing.AuthenticationFailedRejection
+import spray.routing.{AuthenticationFailedRejection, AuthorizationFailedRejection}
 import spray.testkit.Specs2RouteTest
 import slick.driver.PostgresDriver.api._
 
@@ -80,9 +80,9 @@ with SmrtLinkConstants with TestUtils{
   override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
 
-  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None)
+  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
-  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, None)
+  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
 
   val newUser = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_EDIT)
   val newUser2 = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_VIEW)
@@ -119,17 +119,45 @@ with SmrtLinkConstants with TestUtils{
       }
     }
 
+    "read the new project as the owner" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+
+    "fail to read the new project as a non-member" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
+      }
+    }
+
+    "fail to delete the new project as a non-member" in {
+      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
+      }
+    }
+
     "fail to create a project with a conflicting name" in {
       Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status === StatusCodes.Conflict
       }
     }
 
-    "return a list of all projects" in {
+    "return a list of user 1 projects" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs.map(_.name) must contain(newProject.name)
+        projs.map(_.id) must contain(newProjId)
+      }
+    }
+
+    "return a list of user 2 projects" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val projs = responseAs[Seq[Project]]
+        projs.map(_.id) must not contain(newProjId)
       }
     }
 
@@ -150,6 +178,13 @@ with SmrtLinkConstants with TestUtils{
         val proj = responseAs[FullProject]
         proj.name === newProject2.name
         proj.state === newProject2.state.get
+      }
+    }
+
+    "fail to update a project as a non-member" in {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
       }
     }
 
@@ -249,7 +284,7 @@ with SmrtLinkConstants with TestUtils{
       }
     }
 
-    "add a user and change change their role in a project" in {
+    "add a user and change their role in a project" in {
       Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
