@@ -134,6 +134,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getReportPipeline: HttpRequest => Future[Report] = sendReceiveAuthenticated ~> unmarshal[Report]
   protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] = sendReceiveAuthenticated ~> unmarshal[Seq[JobTask]]
   protected def getJobTaskPipeline: HttpRequest => Future[JobTask] = sendReceiveAuthenticated ~> unmarshal[JobTask]
+  protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] = sendReceiveAuthenticated ~> unmarshal[Seq[JobEvent]]
+  protected def getJobOptionsPipeline: HttpRequest => Future[PipelineTemplatePreset] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplatePreset]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceiveAuthenticated ~> unmarshal[Seq[RunSummary]]
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceiveAuthenticated ~> unmarshal[RunSummary]
@@ -303,6 +305,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   protected def getJobTask(jobType: String, jobId: IdAble, taskId: UUID): Future[JobTask] = getJobTaskPipeline {
     Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX + "/" + taskId.toString))
+  }
+
+  protected def getJobEvents(jobType: String, jobId: IdAble): Future[Seq[JobEvent]] = getJobEventsPipeline {
+    Get(toJobResourceUrl(jobType, jobId, JOB_EVENT_PREFIX))
+  }
+
+  protected def getJobOptions(jobType: String, jobId: IdAble): Future[PipelineTemplatePreset] = getJobOptionsPipeline {
+    Get(toJobResourceUrl(jobType, jobId, JOB_OPTIONS))
   }
 
   protected def createJobTask(jobType: String, jobId: IdAble, task: CreateJobTaskRecord): Future[JobTask] = getJobTaskPipeline {

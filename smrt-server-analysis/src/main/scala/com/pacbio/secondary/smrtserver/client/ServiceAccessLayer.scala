@@ -158,8 +158,10 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(PB_PIPE, jobId, reportId)
-
   def getAnalysisJobTasks(jobId: IdAble): Future[Seq[JobTask]] = getJobTasks(PB_PIPE, jobId)
+  def getAnalysisJobTask(jobId: IdAble, taskId: UUID): Future[JobTask] = getJobTask(PB_PIPE, jobId, taskId)
+  def getAnalysisJobEvents(jobId: IdAble): Future[Seq[JobEvent]] = getJobEvents(PB_PIPE, jobId)
+  def getAnalysisJobOptions(jobId: IdAble): Future[PipelineTemplatePreset] = getJobOptions(PB_PIPE, jobId)
 
   def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
     getMessageResponsePipeline { Post(toJobResourceUrl(PB_PIPE, jobId, TERMINATE_JOB))}

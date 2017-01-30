@@ -147,6 +147,30 @@ trait SmrtAnalysisSteps {
     }
   }
 
+  case class GetAnalysisJobEvents(jobId: Var[UUID]) extends VarStep[Seq[JobEvent]] {
+    override val name = "GetAnalysisJobEvents"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobEvents(jobId.get).map { e =>
+      output(e)
+      SUCCEEDED
+    }
+  }
+
+  case class GetAnalysisJobTasks(jobId: Var[UUID]) extends VarStep[Seq[JobTask]] {
+    override val name = "GetAnalysisJobTasks"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobTasks(jobId.get).map { e =>
+      output(e)
+      SUCCEEDED
+    }
+  }
+
+  case class GetAnalysisJobOptions(jobId: Var[UUID]) extends VarStep[PipelineTemplatePreset] {
+    override val name = "GetAnalysisJobOptions"
+    override def run: Future[Result] = smrtLinkClient.getAnalysisJobOptions(jobId.get).map { e =>
+      output(e)
+      SUCCEEDED
+    }
+  }
+
   case class GetJobChildren(jobId: Var[UUID]) extends VarStep[Seq[EngineJob]] {
     override val name = "GetJobChildren"
     override def run: Future[Result] = smrtLinkClient.getJobChildren(jobId.get).map { e =>
