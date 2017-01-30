@@ -1,8 +1,11 @@
 package com.pacbio.secondary.smrtlink.client
 
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.jobs.{JobModels,SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.reports._
 import com.pacbio.common.models._
 import com.pacbio.common.client._
@@ -24,57 +27,36 @@ import java.util.UUID
 
 object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols
 
-trait ServiceEndpointsTrait {
-  val ROOT_JM = "/secondary-analysis/job-manager"
-  val ROOT_JOBS = ROOT_JM + "/jobs"
-  val ROOT_DS = "/secondary-analysis/datasets"
+trait ServiceEndpointConstants extends JobServiceConstants {
+  val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX"
+  val ROOT_JOBS = s"$ROOT_JM/$JOB_ROOT_PREFIX"
+  val ROOT_DS = s"/$ROOT_SERVICE_PREFIX/datasets"
   val ROOT_RUNS = "/smrt-link/runs"
-  val ROOT_DATASTORE = "/secondary-analysis/datastore-files"
-  val ROOT_PROJECTS = "/secondary-analysis/projects"
+  val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"
+  val ROOT_PROJECTS = s"/$ROOT_SERVICE_PREFIX/projects"
   val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
 }
 
-trait ServiceResourceTypesTrait {
-  val REPORTS = "reports"
-  val DATASTORE = "datastore"
-  val ENTRY_POINTS = "entry-points"
-}
-
-trait JobTypesTrait {
+trait JobTypesConstants {
   val IMPORT_DS = "import-dataset"
   val MERGE_DS = "merge-datasets"
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
 }
 
-// FIXME this for sure needs to be somewhere else
-trait DataSetTypesTrait {
-  val SUBREADS = "subreads"
-  val HDFSUBREADS = "hdfsubreads"
-  val REFERENCES = "references"
-  val BARCODES = "barcodes"
-  val GMAPREFERENCES = "gmapreferences"
-  val CCSREADS = "ccsreads"
-  val ALIGNMENTS = "alignments"
-  val CONTIGS = "contigs"
-  val CCSALIGNMENTS = "ccsalignments"
-}
-
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     (implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem)  {
+    extends ServiceAccessLayer(baseUrl)(actorSystem)
+    with ServiceEndpointConstants
+    with JobTypesConstants {
 
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
   import CommonModels._
   import CommonModelImplicits._
   import ReportModels._
+  import JobModels._
 
-  object ServiceEndpoints extends ServiceEndpointsTrait
-  object ServiceResourceTypes extends ServiceResourceTypesTrait
-  object JobTypes extends JobTypesTrait
-  object DataSetTypes extends DataSetTypesTrait
-
-  private def jobRoot(jobType: String) = s"${ServiceEndpoints.ROOT_JOBS}/${jobType}"
+  private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
   protected def toJobUrl(jobType: String, jobId: IdAble): String =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}")
   protected def toJobResourceUrl(jobType: String, jobId: IdAble,
@@ -83,7 +65,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def toJobResourceIdUrl(jobType: String, jobId: IdAble,
                                    resourceType: String, resourceId: UUID) =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}/$resourceType/$resourceId")
-  private def dsRoot(dsType: String) = s"${ServiceEndpoints.ROOT_DS}/${dsType}"
+  private def dsRoot(dsType: String) = s"${ROOT_DS}/${dsType}"
   protected def toDataSetsUrl(dsType: String): String = toUrl(dsRoot(dsType))
   protected def toDataSetUrl(dsType: String, dsId: IdAble): String =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}")
@@ -95,11 +77,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType/$resourceId")
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
-      ServiceEndpoints.ROOT_JOBS + "/" + JobTypes.IMPORT_DS,
-      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.SUBREADS,
-      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.HDFSUBREADS,
-      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.REFERENCES,
-      ServiceEndpoints.ROOT_DS + "/" + DataSetTypes.BARCODES)
+      ROOT_JOBS + "/" + IMPORT_DS,
+      ROOT_DS + "/" + DataSetMetaTypes.Subread.shortName,
+      ROOT_DS + "/" + DataSetMetaTypes.HdfSubread.shortName,
+      ROOT_DS + "/" + DataSetMetaTypes.Reference.shortName,
+      ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName)
 
 
   // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
@@ -150,6 +132,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceiveAuthenticated ~> unmarshal[Seq[EngineJobEntryPoint]]
   protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceiveAuthenticated ~> unmarshal[Seq[DataStoreReportFile]]
   protected def getReportPipeline: HttpRequest => Future[Report] = sendReceiveAuthenticated ~> unmarshal[Report]
+  protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] = sendReceiveAuthenticated ~> unmarshal[Seq[JobTask]]
+  protected def getJobTaskPipeline: HttpRequest => Future[JobTask] = sendReceiveAuthenticated ~> unmarshal[JobTask]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceiveAuthenticated ~> unmarshal[Seq[RunSummary]]
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceiveAuthenticated ~> unmarshal[RunSummary]
@@ -163,164 +147,180 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceiveAuthenticated ~> unmarshal[MessageResponse]
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId.toIdString))
+    Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
   }
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] = getMessageResponsePipeline {
-    Put(toUrl(ServiceEndpoints.ROOT_DS + "/" + datasetId.toIdString),
+    Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
         DataSetUpdateRequest(false))
   }
 
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.SUBREADS))
+    Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName))
   }
 
   def getSubreadSet(dsId: IdAble): Future[SubreadServiceDataSet] = getSubreadSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.SUBREADS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId))
   }
 
   def getSubreadSetDetails(dsId: IdAble): Future[SubreadSet] = getSubreadSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName, dsId, "details"))
   }
 
   def getSubreadSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.SUBREADS, dsId, ServiceResourceTypes.REPORTS))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName, dsId, JOB_REPORT_PREFIX))
   }
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.HDFSUBREADS))
+    Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName))
   }
 
   def getHdfSubreadSet(dsId: IdAble): Future[HdfSubreadServiceDataSet] = getHdfSubreadSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.HDFSUBREADS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.HdfSubread.shortName, dsId))
   }
 
   def getHdfSubreadSetDetails(dsId: IdAble): Future[HdfSubreadSet] = getHdfSubreadSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.HDFSUBREADS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.HdfSubread.shortName, dsId, "details"))
   }
 
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.BARCODES))
+    Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName))
   }
 
   def getBarcodeSet(dsId: IdAble): Future[BarcodeServiceDataSet] = getBarcodeSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.BARCODES, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.Barcode.shortName, dsId))
   }
 
   def getBarcodeSetDetails(dsId: IdAble): Future[BarcodeSet] = getBarcodeSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.BARCODES, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Barcode.shortName, dsId, "details"))
   }
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.REFERENCES))
+    Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName))
   }
 
   def getReferenceSet(dsId: IdAble): Future[ReferenceServiceDataSet] = getReferenceSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.REFERENCES, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.Reference.shortName, dsId))
   }
 
   def getReferenceSetDetails(dsId: IdAble): Future[ReferenceSet] = getReferenceSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.REFERENCES, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Reference.shortName, dsId, "details"))
   }
 
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.GMAPREFERENCES))
+    Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName))
   }
 
   def getGmapReferenceSet(dsId: IdAble): Future[GmapReferenceServiceDataSet] = getGmapReferenceSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.GMAPREFERENCES, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.GmapReference.shortName, dsId))
   }
 
   def getGmapReferenceSetDetails(dsId: IdAble): Future[GmapReferenceSet] = getGmapReferenceSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.GMAPREFERENCES, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.GmapReference.shortName, dsId, "details"))
   }
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.ALIGNMENTS))
+    Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName))
   }
 
   def getAlignmentSet(dsId: IdAble): Future[AlignmentServiceDataSet] = getAlignmentSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.ALIGNMENTS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.Alignment.shortName, dsId))
   }
 
   def getAlignmentSetDetails(dsId: IdAble): Future[AlignmentSet] = getAlignmentSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.ALIGNMENTS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Alignment.shortName, dsId, "details"))
   }
 
   def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] = getConsensusReadSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.CCSREADS))
+    Get(toDataSetsUrl(DataSetMetaTypes.CCS.shortName))
   }
 
   def getConsensusReadSet(dsId: IdAble): Future[ConsensusReadServiceDataSet] = getConsensusReadSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.CCSREADS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.CCS.shortName, dsId))
   }
 
   def getConsensusReadSetDetails(dsId: IdAble): Future[ConsensusReadSet] = getConsensusReadSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.CCSREADS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName, dsId, "details"))
   }
 
   def getConsensusAlignmentSets: Future[Seq[ConsensusAlignmentServiceDataSet]] = getConsensusAlignmentSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.CCSALIGNMENTS))
+    Get(toDataSetsUrl(DataSetMetaTypes.AlignmentCCS.shortName))
   }
 
   def getConsensusAlignmentSet(dsId: IdAble): Future[ConsensusAlignmentServiceDataSet] = getConsensusAlignmentSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.CCSALIGNMENTS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId))
   }
 
   def getConsensusAlignmentSetDetails(dsId: IdAble): Future[ConsensusAlignmentSet] = getConsensusAlignmentSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.CCSALIGNMENTS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId, "details"))
   }
 
   def getContigSets: Future[Seq[ContigServiceDataSet]] = getContigSetsPipeline {
-    Get(toDataSetsUrl(DataSetTypes.CONTIGS))
+    Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName))
   }
 
   def getContigSet(dsId: IdAble): Future[ContigServiceDataSet] = getContigSetPipeline {
-    Get(toDataSetUrl(DataSetTypes.CONTIGS, dsId))
+    Get(toDataSetUrl(DataSetMetaTypes.Contig.shortName, dsId))
   }
 
   def getContigSetDetails(dsId: IdAble): Future[ContigSet] = getContigSetDetailsPipeline {
-    Get(toDataSetResourcesUrl(DataSetTypes.CONTIGS, dsId, "details"))
+    Get(toDataSetResourcesUrl(DataSetMetaTypes.Contig.shortName, dsId, "details"))
   }
 
   protected def getJobDataStore(jobType: String, jobId: IdAble) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
-    Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.DATASTORE))
+    Get(toJobResourceUrl(jobType, jobId, DATASTORE_FILES_PREFIX))
   }
 
-  def getImportDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.IMPORT_DS, jobId)
-  def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(JobTypes.MERGE_DS, jobId)
+  def getImportDatasetJobDataStore(jobId: IdAble) = getJobDataStore(IMPORT_DS, jobId)
+  def getMergeDatasetJobDataStore(jobId: IdAble) = getJobDataStore(MERGE_DS, jobId)
 
   // FIXME how to convert to String?
   def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/download"))
+    Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }
 
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/download"))
+    Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }*/
 
   def getReport(reportId: UUID): Future[Report] = getReportPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${reportId}/download"))
+    Get(toUrl(ROOT_DATASTORE + s"/${reportId}/download"))
   }
 
   protected def getJobReports(jobId: IdAble, jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
-    Get(toJobResourceUrl(jobType, jobId, ServiceResourceTypes.REPORTS))
+    Get(toJobResourceUrl(jobType, jobId, JOB_REPORT_PREFIX))
   }
 
-  def getImportJobReports(jobId: IdAble) = getJobReports(jobId, JobTypes.IMPORT_DS)
+  def getImportJobReports(jobId: IdAble) = getJobReports(jobId, IMPORT_DS)
 
   def getDataStoreFileResource(fileId: UUID, relpath: String): Future[HttpResponse] = respPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
+    Get(toUrl(ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
+  }
+
+  protected def getJobTasks(jobType: String, jobId: IdAble): Future[Seq[JobTask]] = getJobTasksPipeline {
+    Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX))
+  }
+
+  protected def getJobTask(jobType: String, jobId: IdAble, taskId: UUID): Future[JobTask] = getJobTaskPipeline {
+    Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX + "/" + taskId.toString))
+  }
+
+  protected def createJobTask(jobType: String, jobId: IdAble, task: CreateJobTaskRecord): Future[JobTask] = getJobTaskPipeline {
+    Post(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX), task)
+  }
+
+  protected def updateJobTask(jobType: String, jobId: IdAble, update: UpdateJobTaskRecord): Future[JobTask] = getJobTaskPipeline {
+    Put(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX + "/" + update.uuid.toString), update)
   }
 
   // Runs
 
-  protected def getRunUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId")
-  protected def getCollectionsUrl(runId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections")
-  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String = toUrl(s"${ServiceEndpoints.ROOT_RUNS}/$runId/collections/$collectionId")
+  protected def getRunUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId")
+  protected def getCollectionsUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId/collections")
+  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId/collections/$collectionId")
 
   def getRuns: Future[Seq[RunSummary]] = getRunsPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_RUNS))
+    Get(toUrl(ROOT_RUNS))
   }
 
   def getRun(runId: UUID): Future[Run] = getRunPipeline {
@@ -336,7 +336,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   }
 
   def createRun(dataModel: String): Future[RunSummary] = getRunSummaryPipeline {
-    Post(toUrl(ServiceEndpoints.ROOT_RUNS), RunCreate(dataModel))
+    Post(toUrl(ROOT_RUNS), RunCreate(dataModel))
   }
 
   def updateRun(runId: UUID, dataModel: Option[String] = None, reserved: Option[Boolean] = None): Future[RunSummary] = getRunSummaryPipeline {
@@ -350,19 +350,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   // FIXME(nechols)(2016-09-21) these are currently broken pending fixes to
   // authentication
   def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_PROJECTS))
+    Get(toUrl(ROOT_PROJECTS))
   }
 
   def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"))
+    Get(toUrl(ROOT_PROJECTS + s"/$projectId"))
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ServiceEndpoints.ROOT_PROJECTS),
+    Post(toUrl(ROOT_PROJECTS),
          ProjectRequest(name, description, None, None, None))
   }
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
-    Put(toUrl(ServiceEndpoints.ROOT_PROJECTS + s"/$projectId"), request)
+    Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
   }
 }

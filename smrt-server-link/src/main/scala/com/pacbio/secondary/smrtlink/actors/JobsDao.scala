@@ -556,6 +556,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     }
   }
 
+  def getJobTask(taskId: UUID): Future[JobTask] = {
+    val errorMessage = s"Can't find job task $taskId"
+    db.run(jobTasks.filter(_.uuid === taskId).result).map(_.headOption).flatMap(failIfNone(errorMessage))
+  }
+
   // TODO(smcclellan): limit is never used. add `.take(limit)`?
   override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
     if (!includeInactive) db.run(engineJobs.filter(_.isActive).result)
