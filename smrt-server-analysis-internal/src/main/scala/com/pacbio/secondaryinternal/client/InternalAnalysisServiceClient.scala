@@ -39,7 +39,7 @@ class InternalAnalysisServiceClient(baseUrl: URL, authToken: Option[String] = No
 
   val conditionJobTypeId = "conditions"
 
-  val conditionJobURL = toUrl(s"${ServiceEndpoints.ROOT_JOBS}/$conditionJobTypeId")
+  val conditionJobURL = toUrl(s"${ROOT_JOBS}/$conditionJobTypeId")
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)
