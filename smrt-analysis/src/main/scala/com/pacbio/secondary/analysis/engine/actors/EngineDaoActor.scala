@@ -45,9 +45,9 @@ class EngineDaoActor(dao: JobEngineDataStore, listeners: Seq[ActorRef]) extends 
 
     case HasNextRunnableJobWithId => dao.getNextRunnableJobWithId pipeTo sender
 
-    case UpdateJobStatus(uuid, state) =>
+    case UpdateJobStatus(uuid, state, msg) =>
       dao.updateJobStateByUUID(uuid, state).map { _ =>
-        listeners.foreach(x => x ! UpdateJobStatus(uuid, state))
+        listeners.foreach(x => x ! UpdateJobStatus(uuid, state, msg))
         SuccessMessage(s"Successfully updated state of job ${uuid.toString} to ${state.toString}")
       } pipeTo sender
 

@@ -843,7 +843,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       Await.result(sal.runAnalysisPipeline(analysisOptions), TIMEOUT)
     } match {
       case Success(jobInfo) => {
-        println(s"Job ${jobInfo.uuid} started")
+        println(s"Job ${jobInfo.id} UUID ${jobInfo.uuid} started")
         printJobInfo(jobInfo)
         if (block) waitForJob(jobInfo.uuid) else 0
       }

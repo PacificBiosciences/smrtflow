@@ -42,15 +42,16 @@ with timeUtils {
       log.info(s"Worker $self running job type ${jobTypeId.id} Job: $job")
 
       val pJob = JobResource(job.uuid, outputDir, AnalysisJobStates.RUNNING)
-      sender ! UpdateJobStatus(job.uuid, AnalysisJobStates.RUNNING)
+      sender ! UpdateJobStatus(job.uuid, AnalysisJobStates.RUNNING, None)
+
+      val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
+      val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
+      val jobResultsWriter = new FileJobResultsWriter(stdoutFw, stderrFw)
 
       // This will block
       // This should only return Either[Failure, Success]
       // and then update the Job State. The JobRunner abstraction
       // should handle everything else (e.g., write task-report.json)
-      val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
-      val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
-      val jobResultsWriter = new FileJobResultsWriter(stdoutFw, stderrFw)
       val result = jobRunner.runJobFromOpts(job.jobOptions, pJob, jobResultsWriter)
 
       val message = result match {

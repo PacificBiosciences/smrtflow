@@ -383,6 +383,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     db.run(jobEvents.filter(_.jobId === jobId).result)
 
+  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob and be parameterized by an IdAble to avoid duplication
   def updateJobState(
       jobId: Int,
       state: AnalysisJobStates.JobStates,
@@ -397,6 +398,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     }.map(_ => MessageResponse(s"Successfully updated job $jobId to $state"))
   }
 
+  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob
   override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
     logger.info(s"attempting db update of job $uuid state to $state")
     val f = db.run(engineJobs
@@ -411,16 +413,17 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     f
   }
 
+  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob
   def updateJobStateByUUID(
       jobId: UUID,
       state: AnalysisJobStates.JobStates,
-      message: String): Future[MessageResponse] =
+      message: String, errorMessage: Option[String] = None): Future[MessageResponse] =
     db.run {
       val now = JodaDateTime.now()
       engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
         case Some(job) =>
           DBIO.seq(
-            engineJobs.filter(_.uuid === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
+            engineJobs.filter(_.uuid === jobId).map(j => (j.state, j.updatedAt, j.errorMessage)).update(state, now, errorMessage),
             jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
           )
         case None =>
@@ -563,8 +566,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   // TODO(smcclellan): limit is never used. add `.take(limit)`?
   override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
-    if (!includeInactive) db.run(engineJobs.filter(_.isActive).result)
-    else db.run(engineJobs.result)
+    if (!includeInactive) db.run(engineJobs.filter(_.isActive).sortBy(_.id.desc).result)
+    else db.run(engineJobs.sortBy(_.id.desc).result)
   }
 
   def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {

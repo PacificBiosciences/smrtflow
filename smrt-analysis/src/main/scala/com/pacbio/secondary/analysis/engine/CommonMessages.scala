@@ -42,7 +42,9 @@ object CommonMessages {
 
   case object AllJobsCompleted
 
-  case class UpdateJobStatus(uuid: UUID, state: AnalysisJobStates.JobStates)
+  case class UpdateJobStatus(uuid: UUID,
+                             state: AnalysisJobStates.JobStates,
+                             message: Option[String])
 
   case class GetAllJobs(limit: Int)
 

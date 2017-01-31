@@ -96,7 +96,7 @@ class EngineManagerActor(val daoActor: ActorRef,
       log.debug(s"Checking for work. Number of available Workers ${workerQueue.size}")
       log.debug(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
-      val fx = daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED)
+      val fx = daoActor ? UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, None)
 
       fx onComplete {
         case Success(_) =>
@@ -104,8 +104,9 @@ class EngineManagerActor(val daoActor: ActorRef,
           val outputDir = resolver.resolve(runnableJobWithId)
           worker ! RunJob(runnableJobWithId.job, outputDir)
         case Failure(ex) =>
-          log.error(s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}")
-          daoActor ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+          val msg = s"Failed to update job state of ${runnableJobWithId.job} with ${runnableJobWithId.job.uuid.toString}"
+          log.error(msg)
+          daoActor ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(msg))
       }
     }
   }
@@ -164,13 +165,21 @@ class EngineManagerActor(val daoActor: ActorRef,
       // This should have a success/failure
       result.state match {
         case x: Completed =>
-          daoActor ! UpdateJobStatus(result.uuid, result.state)
+
+          // Only propagate messages from Failed Jobs
+          val msg = x match {
+            case AnalysisJobStates.FAILED => Some(result.message)
+            case _  => None
+          }
+
+          daoActor ! UpdateJobStatus(result.uuid, result.state, msg)
+
           workerType match {
             case QuickWorkType => quickWorkers.enqueue(sender)
             case StandardWorkType => workers.enqueue(sender)
           }
           self ! CheckForRunnableJob
-        case x => log.error(s"state must be a completed state. Got $result")
+        case sx => log.error(s"state $sx MUST be a completed state. Got $result")
           workerType match {
             case QuickWorkType => quickWorkers.enqueue(sender)
             case StandardWorkType => workers.enqueue(sender)

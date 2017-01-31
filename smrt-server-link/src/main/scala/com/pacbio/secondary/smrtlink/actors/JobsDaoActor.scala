@@ -313,8 +313,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
           log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
           worker ! rjob
         case Failure(ex) =>
-          log.error(s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}")
-          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+          val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
+          log.error(emsg)
+          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
       }
     }
   }
@@ -375,7 +376,12 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case StandardWorkType => workers.enqueue(sender)
       }
 
-      val f = dao.updateJobStateByUUID(result.uuid, result.state, s"Updated to ${result.state}")
+      val errorMessage = result.state match {
+        case AnalysisJobStates.FAILED => Some(result.message)
+        case _ => None
+      }
+
+      val f = dao.updateJobStateByUUID(result.uuid, result.state, s"Updated to ${result.state}", errorMessage)
 
       f onComplete {
         case Success(_) =>
@@ -699,8 +705,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetEngineJobEntryPoints(jobId) => pipeWith(dao.getJobEntryPoints(jobId))
 
     // Need to consolidate this
-    case UpdateJobStatus(uuid, state) =>
-      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state"))
+    case UpdateJobStatus(uuid, state, errorMessage) =>
+      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state", errorMessage))
 
     case GetEulas => pipeWith(dao.getEulas)
 
