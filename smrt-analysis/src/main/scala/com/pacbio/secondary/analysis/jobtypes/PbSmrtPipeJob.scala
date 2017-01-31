@@ -125,6 +125,8 @@ with ExternalToolsUtils {
       PacBioDataStore(startedAt, startedAt, "0.2.1", Seq.empty[DataStoreFile])
     }
 
+    //FIXME(mpkocher)(1-27-2017) These error messages are not great. Try to parse the pbsmrtpipe LOG (or a structure
+    // data of the output to get a better error message)
     exitCode match {
       case 0 => Right(ds)
       case 7 => Left(ResultFailed(job.jobId, jobTypeId.toString, s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). $errorMessage", runTimeSec, AnalysisJobStates.TERMINATED, host))
