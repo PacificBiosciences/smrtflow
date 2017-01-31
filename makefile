@@ -98,6 +98,9 @@ test-int-run-analysis:
 test-int-run-analysis-stress:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json
 
+test-int-run-analysis-trigger-failure:
+	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
+
 test-int-get-status:
 	pbservice status --debug --port=8070 
 
