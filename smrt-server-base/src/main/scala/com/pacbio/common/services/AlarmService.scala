@@ -1,7 +1,7 @@
 package com.pacbio.common.services
 
 import akka.util.Timeout
-import com.pacbio.common.actors.{HealthDaoProvider, HealthDao}
+import com.pacbio.common.actors.{AlarmDaoProvider, AlarmDao}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
@@ -12,7 +12,7 @@ import spray.json._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class HealthService(healthDao: HealthDao, authenticator: Authenticator)
+class AlarmService(alarmDao: AlarmDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
@@ -21,20 +21,20 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
   implicit val timeout = Timeout(10.seconds)
 
   val manifest = PacBioComponentManifest(
-    toServiceId("health"),
-    "Health Service",
-    "1.0.0", "Subsystem Health Service")
+    toServiceId("alarm"),
+    "Alarm Service",
+    "1.0.0", "Subsystem Alarm Service")
 
-  val healthServiceName = "health"
+  val alarmServiceName = "alarm"
 
   val routes =
-    pathPrefix(healthServiceName) {
+    pathPrefix(alarmServiceName) {
       authenticate(authenticator.wso2Auth) { user =>
         pathEnd {
           get {
             complete {
               ok {
-                healthDao.getUnhealthyMetrics
+                alarmDao.getUnhealthyMetrics
               }
             }
           }
@@ -44,16 +44,16 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
             get {
               complete {
                 ok {
-                  healthDao.getAllHealthMetrics
+                  alarmDao.getAllAlarmMetrics
                 }
               }
             } ~
             post {
-              entity(as[HealthMetricCreateMessage]) { m =>
+              entity(as[AlarmMetricCreateMessage]) { m =>
                 respondWithMediaType(MediaTypes.`application/json`) {
                   complete {
                     created {
-                      healthDao.createHealthMetric(m)
+                      alarmDao.createAlarmMetric(m)
                     }
                   }
                 }
@@ -65,7 +65,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
               get {
                 complete {
                   ok {
-                    healthDao.getHealthMetric(id)
+                    alarmDao.getAlarmMetric(id)
                   }
                 }
               }
@@ -74,7 +74,7 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
               get {
                 complete {
                   ok {
-                    healthDao.getMetricUpdates(id)
+                    alarmDao.getMetricUpdates(id)
                   }
                 }
               }
@@ -85,15 +85,15 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
           get {
             complete {
               ok {
-                healthDao.getAllUpdates
+                alarmDao.getAllUpdates
               }
             }
           } ~
           post {
-            entity(as[HealthMetricUpdateMessage]) { m =>
+            entity(as[AlarmMetricUpdateMessage]) { m =>
               complete {
                 created {
-                  healthDao.update(m)
+                  alarmDao.update(m)
                 }
               }
             }
@@ -104,23 +104,23 @@ class HealthService(healthDao: HealthDao, authenticator: Authenticator)
 }
 
 /**
- * Provides a singleton HealthService, and also binds it to the set of total services. Concrete providers must mixin a
- * {{{HealthDaoProvider}}} and an {{{AuthenticatorProvider}}}.
+ * Provides a singleton AlarmService, and also binds it to the set of total services. Concrete providers must mixin a
+ * {{{AlarmDaoProvider}}} and an {{{AuthenticatorProvider}}}.
  */
-trait HealthServiceProvider {
-  this: HealthDaoProvider with AuthenticatorProvider =>
+trait AlarmServiceProvider {
+  this: AlarmDaoProvider with AuthenticatorProvider =>
 
-  final val healthService: Singleton[HealthService] =
-    Singleton(() => new HealthService(healthDao(), authenticator())).bindToSet(AllServices)
+  final val alarmService: Singleton[AlarmService] =
+    Singleton(() => new AlarmService(alarmDao(), authenticator())).bindToSet(AllServices)
 }
 
-trait HealthServiceProviderx {
-  this: HealthDaoProvider
+trait AlarmServiceProviderx {
+  this: AlarmDaoProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
-  final val healthService: Singleton[HealthService] =
-    Singleton(() => new HealthService(healthDao(), authenticator()))
+  final val alarmService: Singleton[AlarmService] =
+    Singleton(() => new AlarmService(alarmDao(), authenticator()))
 
-  addService(healthService)
+  addService(alarmService)
 }

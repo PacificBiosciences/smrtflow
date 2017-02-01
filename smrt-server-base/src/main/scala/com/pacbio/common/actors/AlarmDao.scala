@@ -14,76 +14,76 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 /**
- * DAO interface for the health metric system.
+ * DAO interface for the alarm metric system.
  */
-trait HealthDao {
+trait AlarmDao {
   /**
-   * Returns a seq of all current health metrics.
+   * Returns a seq of all current alarm metrics.
    */
-  def getAllHealthMetrics: Future[Seq[HealthMetric]]
+  def getAllAlarmMetrics: Future[Seq[AlarmMetric]]
 
   /**
-   * Returns a health metric by id.
+   * Returns a alarm metric by id.
    */
-  def getHealthMetric(id: String): Future[HealthMetric]
+  def getAlarmMetric(id: String): Future[AlarmMetric]
 
   /**
-   * Creates a new health metric.
+   * Creates a new alarm metric.
    */
-  def createHealthMetric(m: HealthMetricCreateMessage): Future[HealthMetric]
+  def createAlarmMetric(m: AlarmMetricCreateMessage): Future[AlarmMetric]
 
   /**
    * Returns a seq of all updates to the given metric.
    */
-  def getMetricUpdates(id: String): Future[Seq[HealthMetricUpdate]]
+  def getMetricUpdates(id: String): Future[Seq[AlarmMetricUpdate]]
 
   /**
    * Returns a seq of all updates.
    */
-  def getAllUpdates: Future[Seq[HealthMetricUpdate]]
+  def getAllUpdates: Future[Seq[AlarmMetricUpdate]]
 
   /**
    * Posts an update.
    */
-  def update(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate]
+  def update(m: AlarmMetricUpdateMessage): Future[AlarmMetricUpdate]
 
   /**
    * Returns a seq of all metrics that are not in the OK state.
    */
-  def getUnhealthyMetrics: Future[Seq[HealthMetric]]
+  def getUnhealthyMetrics: Future[Seq[AlarmMetric]]
 }
 
 /**
- * Provider for injecting a singleton HealthMetricDao. Concrete providers must override the healthMetricDao val.
+ * Provider for injecting a singleton AlarmMetricDao. Concrete providers must override the healthMetricDao val.
  */
-trait HealthDaoProvider {
+trait AlarmDaoProvider {
   /**
-   * Singleton Health Metric DAO object.
+   * Singleton Alarm Metric DAO object.
    */
-  val healthDao: Singleton[HealthDao]
+  val alarmDao: Singleton[AlarmDao]
 }
 
-class InMemoryHealthDao(clock: Clock) extends HealthDao {
+class InMemoryAlarmDao(clock: Clock) extends AlarmDao {
 
-  import HealthSeverity._
+  import AlarmSeverity._
   import PacBioServiceErrors._
 
   val nextUpdateId: AtomicLong = new AtomicLong(0)
-  val metrics: mutable.Map[String, HealthMetric] = new mutable.HashMap
-  var updates: Vector[HealthMetricUpdate] = Vector()
+  val metrics: mutable.Map[String, AlarmMetric] = new mutable.HashMap
+  var updates: Vector[AlarmMetricUpdate] = Vector()
 
-  private def searchUpdates(metric: HealthMetric, now: JodaDateTime): Seq[HealthMetricUpdate] =
+  private def searchUpdates(metric: AlarmMetric, now: JodaDateTime): Seq[AlarmMetricUpdate] =
     metric.windowSeconds
       .map { ws => updates.filter(_.timestamp.plusSeconds(ws).isAfter(now)) }.getOrElse(updates)
       .filter { u => u.timestamp.isBefore(now) || u.timestamp.isEqual(now) }
       .filter { u => metric.criteria.matches(u.tags) }
 
-  private def severityByValue(severityLevels: Map[HealthSeverity, Double], value: Double): HealthSeverity = {
+  private def severityByValue(severityLevels: Map[AlarmSeverity, Double], value: Double): AlarmSeverity = {
     val l = severityLevels.filter(_._2 <= value)
-    if (l.isEmpty) OK else l.maxBy(_._2)._1
+    if (l.isEmpty) CLEAR else l.maxBy(_._2)._1
   }
 
-  private def recalculate(metric: HealthMetric, now: JodaDateTime): Future[HealthMetric] = Future {
+  private def recalculate(metric: AlarmMetric, now: JodaDateTime): Future[AlarmMetric] = Future {
     import MetricType._
 
     val updates = searchUpdates(metric, now)
@@ -101,28 +101,29 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
     newMetric
   }
 
-  override def getAllHealthMetrics: Future[Seq[HealthMetric]] = {
+  override def getAllAlarmMetrics: Future[Seq[AlarmMetric]] = {
     val now = clock.dateNow()
     Future.sequence(metrics.values.map(recalculate(_, now)).toSeq)
   }
 
-  override def getHealthMetric(id: String): Future[HealthMetric] =
+  override def getAlarmMetric(id: String): Future[AlarmMetric] =
     recalculate(metrics.getOrElse(id, throw new ResourceNotFoundError(s"Unable to find metric $id")), clock.dateNow())
 
-  override def createHealthMetric(m: HealthMetricCreateMessage): Future[HealthMetric] = Future {
+
+  override def createAlarmMetric(m: AlarmMetricCreateMessage): Future[AlarmMetric] = Future {
     metrics.synchronized {
       if (metrics contains m.id)
         throw new UnprocessableEntityError(s"Metric with id ${m.id} already exists")
       else {
-        val metric = HealthMetric(
+        val metric = AlarmMetric(
           m.id,
           m.name,
           m.description,
           m.criteria,
           m.metricType,
-          m.severityLevels - OK,
+          m.severityLevels - CLEAR,
           m.windowSeconds,
-          HealthSeverity.OK,
+          AlarmSeverity.CLEAR,
           0.0,
           clock.dateNow(),
           lastUpdate = None)
@@ -132,17 +133,17 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
     }
   }
 
-  override def getMetricUpdates(id: String): Future[Seq[HealthMetricUpdate]] = Future {
+  override def getMetricUpdates(id: String): Future[Seq[AlarmMetricUpdate]] = Future {
     val metric = metrics.getOrElse(id, throw new ResourceNotFoundError(s"Unable to find metric $id"))
     searchUpdates(metric, clock.dateNow())
   }
 
-  override def getAllUpdates: Future[Seq[HealthMetricUpdate]] = Future(updates.toSeq)
+  override def getAllUpdates: Future[Seq[AlarmMetricUpdate]] = Future(updates.toSeq)
 
-  override def update(m: HealthMetricUpdateMessage): Future[HealthMetricUpdate] = Future {
+  override def update(m: AlarmMetricUpdateMessage): Future[AlarmMetricUpdate] = Future {
     nextUpdateId.synchronized {
       val updatedAt = clock.dateNow()
-      val update = HealthMetricUpdate(
+      val update = AlarmMetricUpdate(
         m.updateValue,
         m.tags,
         m.note,
@@ -154,8 +155,8 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
     }
   }
 
-  override def getUnhealthyMetrics: Future[Seq[HealthMetric]] =
-    getAllHealthMetrics.map(_.filter(_.severity > OK))
+  override def getUnhealthyMetrics: Future[Seq[AlarmMetric]] =
+    getAllAlarmMetrics.map(_.filter(_.severity > CLEAR))
 
   @VisibleForTesting
   def clear(): Unit = {
@@ -170,10 +171,10 @@ class InMemoryHealthDao(clock: Clock) extends HealthDao {
 }
 
 /**
- * Provides an InMemoryHealthMetricDao.
+ * Provides an InMemoryAlarmMetricDao.
  */
-trait InMemoryHealthDaoProvider extends HealthDaoProvider {
+trait InMemoryAlarmDaoProvider extends AlarmDaoProvider {
   this: ClockProvider =>
 
-  override val healthDao: Singleton[HealthDao] = Singleton(() => new InMemoryHealthDao(clock()))
+  override val alarmDao: Singleton[AlarmDao] = Singleton(() => new InMemoryAlarmDao(clock()))
 }

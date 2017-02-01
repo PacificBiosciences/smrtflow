@@ -26,7 +26,7 @@ case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 object MetricType {
 
   /**
-   * Supertype for different types of health metrics
+   * Supertype for different types of alarm metrics
    */
   sealed trait MetricType
 
@@ -53,19 +53,21 @@ object MetricType {
   val ALL = Seq(LATEST, SUM, AVERAGE, MAX)
 }
 
-object HealthSeverity {
-  sealed class HealthSeverity(val severity: Int) extends Ordered[HealthSeverity] {
-    def compare(s2: HealthSeverity): Int = severity compareTo s2.severity
+object AlarmSeverity {
+  sealed class AlarmSeverity(val severity: Int) extends Ordered[AlarmSeverity] {
+    def compare(s2: AlarmSeverity): Int = severity compareTo s2.severity
   }
 
-  case object OK extends HealthSeverity(severity = 0)
-  case object CAUTION extends HealthSeverity(severity = 1)
-  case object ALERT extends HealthSeverity(severity = 2)
-  case object CRITICAL extends HealthSeverity(severity = 3)
+  case object CLEAR extends AlarmSeverity(severity = 0)
+  case object WARN extends AlarmSeverity(severity = 1)
+  case object ERROR extends AlarmSeverity(severity = 2)
+  case object CRITICAL extends AlarmSeverity(severity = 3)
+  case object FATAL extends AlarmSeverity(severity = 4)
+  case object FATAL_IMMEDIATE extends AlarmSeverity(severity = 5)
 
-  val ALL = Seq(OK, CAUTION, ALERT, CRITICAL)
-  val healthSeverityByName = ALL.map(x => x.toString -> x).toMap
-  val nameByHealthSeverity = ALL.map(x => x -> x.toString).toMap
+  val ALL = Seq(CLEAR, WARN, ERROR, CRITICAL, FATAL, FATAL_IMMEDIATE)
+  val alarmSeverityByName = ALL.map(x => x.toString -> x).toMap
+  val nameByAlarmSeverity = ALL.map(x => x -> x.toString).toMap
 }
 
 object LogLevel {
@@ -97,7 +99,7 @@ case class ServerConfig(id: String, version: String)
 case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, version: String, user: String)
 
 
-// Health System
+// Alarm System
 case class TagCriteria(hasAny: Set[String] = Set.empty, hasAll: Set[String] = Set.empty, hasAnyPrefix: Set[String] = Set.empty, hasAllPrefix: Set[String] = Set.empty) {
   def matches(tags: Set[String]): Boolean = {
     hasAll.foreach { t => if (!tags.contains(t)) return false }
@@ -108,13 +110,13 @@ case class TagCriteria(hasAny: Set[String] = Set.empty, hasAll: Set[String] = Se
   }
 }
 
-case class HealthMetricCreateMessage(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int])
+case class AlarmMetricCreateMessage(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[AlarmSeverity.AlarmSeverity, Double], windowSeconds: Option[Int])
 
-case class HealthMetric(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[HealthSeverity.HealthSeverity, Double], windowSeconds: Option[Int], severity: HealthSeverity.HealthSeverity, metricValue: Double, createdAt: JodaDateTime, lastUpdate: Option[JodaDateTime])
+case class AlarmMetric(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[AlarmSeverity.AlarmSeverity, Double], windowSeconds: Option[Int], severity: AlarmSeverity.AlarmSeverity, metricValue: Double, createdAt: JodaDateTime, lastUpdate: Option[JodaDateTime])
 
-case class HealthMetricUpdateMessage(updateValue: Double, tags: Set[String], note: Option[String] = None)
+case class AlarmMetricUpdateMessage(updateValue: Double, tags: Set[String], note: Option[String] = None)
 
-case class HealthMetricUpdate(updateValue: Double, tags: Set[String], note: Option[String], updateId: Long, timestamp: JodaDateTime)
+case class AlarmMetricUpdate(updateValue: Double, tags: Set[String], note: Option[String], updateId: Long, timestamp: JodaDateTime)
 
 
 // Logging System
