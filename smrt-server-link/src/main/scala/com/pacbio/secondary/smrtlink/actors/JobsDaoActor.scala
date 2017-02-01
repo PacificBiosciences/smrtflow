@@ -56,6 +56,8 @@ object JobsDaoActor {
 
   case class GetJobTasks(jobId: IdAble) extends JobMessage
 
+  case class GetJobTask(taskId: UUID) extends JobMessage
+
   case class UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) extends JobMessage
 
   // createdAt is when the task was created, not when the Service has
@@ -476,6 +478,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     case GetJobTasks(ix: IdAble) => pipeWith { dao.getJobTasks(ix) }
+
+    case GetJobTask(taskId: UUID) => pipeWith { dao.getJobTask(taskId) }
 
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
