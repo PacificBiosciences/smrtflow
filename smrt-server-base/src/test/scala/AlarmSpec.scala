@@ -2,7 +2,7 @@ import com.pacbio.common.actors._
 import com.pacbio.common.auth._
 import com.pacbio.common.dependency.SetBindings
 import com.pacbio.common.models._
-import com.pacbio.common.services.HealthServiceProvider
+import com.pacbio.common.services.AlarmServiceProvider
 import com.pacbio.common.time.{FakeClock, FakeClockProvider}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 // TODO(smcclellan): Refactor this into multiple specs, for the spray routing, the DAO, and the database interactions
-class HealthSpec
+class AlarmSpec
   extends Specification
   with Directives
   with Specs2RouteTest
@@ -36,15 +36,15 @@ class HealthSpec
   val avgMetricId = "avg_metric"
   val maxMetricId = "max_metric"
 
-  val severityLevels: Map[HealthSeverity.HealthSeverity, Double] = Map(
-    HealthSeverity.CAUTION -> 1.0,
-    HealthSeverity.ALERT -> 2.0,
-    HealthSeverity.CRITICAL -> 3.0
+  val severityLevels: Map[AlarmSeverity.AlarmSeverity, Double] = Map(
+    AlarmSeverity.WARN -> 1.0,
+    AlarmSeverity.ERROR -> 2.0,
+    AlarmSeverity.CRITICAL -> 3.0
   )
 
   // TODO(smcclellan): Test coverage for TagCriteria
 
-  val latestMetricCreate = HealthMetricCreateMessage(
+  val latestMetricCreate = AlarmMetricCreateMessage(
     latestMetricId,
     "LatestMetric",
     "Metric of type LATEST",
@@ -53,7 +53,7 @@ class HealthSpec
     severityLevels,
     None)
 
-  val sumMetricCreate = HealthMetricCreateMessage(
+  val sumMetricCreate = AlarmMetricCreateMessage(
     sumMetricId,
     "SumMetric",
     "Metric of type SUM",
@@ -62,7 +62,7 @@ class HealthSpec
     severityLevels,
     Some(1))
 
-  val avgMetricCreate = HealthMetricCreateMessage(
+  val avgMetricCreate = AlarmMetricCreateMessage(
     avgMetricId,
     "AvgMetric",
     "Metric of type AVERAGE",
@@ -71,7 +71,7 @@ class HealthSpec
     severityLevels,
     Some(1))
 
-  val maxMetricCreate = HealthMetricCreateMessage(
+  val maxMetricCreate = AlarmMetricCreateMessage(
     maxMetricId,
     "MaxMetric",
     "Metric of type MAX",
@@ -87,8 +87,8 @@ class HealthSpec
 
   object TestProviders extends
   SetBindings with
-  HealthServiceProvider with
-  InMemoryHealthDaoProvider with
+  AlarmServiceProvider with
+  InMemoryAlarmDaoProvider with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
   FakeClockProvider {
@@ -103,70 +103,70 @@ class HealthSpec
     })
   }
 
-  val dao = TestProviders.healthDao()
+  val dao = TestProviders.alarmDao()
   val authenticator = TestProviders.authenticator()
   val clock = TestProviders.clock().asInstanceOf[FakeClock]
 
-  val routes = TestProviders.healthService().prefixedRoutes
+  val routes = TestProviders.alarmService().prefixedRoutes
 
   trait daoSetup extends Scope {
-    TestProviders.healthDao().asInstanceOf[InMemoryHealthDao].clear()
+    TestProviders.alarmDao().asInstanceOf[InMemoryAlarmDao].clear()
 
     Await.ready(Future.sequence(Seq(
-      TestProviders.healthDao().createHealthMetric(latestMetricCreate),
-      TestProviders.healthDao().createHealthMetric(sumMetricCreate),
-      TestProviders.healthDao().createHealthMetric(avgMetricCreate),
-      TestProviders.healthDao().createHealthMetric(maxMetricCreate)
+      TestProviders.alarmDao().createAlarmMetric(latestMetricCreate),
+      TestProviders.alarmDao().createAlarmMetric(sumMetricCreate),
+      TestProviders.alarmDao().createAlarmMetric(avgMetricCreate),
+      TestProviders.alarmDao().createAlarmMetric(maxMetricCreate)
     )), 10.seconds)
   }
 
-  "Health Service" should {
+  "Alarm Service" should {
 
-    "return a list of health metrics" in new daoSetup {
+    "return a list of alarm metrics" in new daoSetup {
       val credentials = RawHeader(JWT_HEADER, readUserLogin)
-      Get("/smrt-base/health/metrics") ~> addHeader(credentials) ~> routes ~> check {
+      Get("/smrt-base/alarm/metrics") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metrics = responseAs[Set[HealthMetric]]
+        val metrics = responseAs[Set[AlarmMetric]]
         metrics.size === 4
         metrics.map(_.id) === Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId)
-        metrics.forall(_.severity == HealthSeverity.OK) === true
+        metrics.forall(_.severity == AlarmSeverity.CLEAR) === true
         metrics.forall(_.metricValue == 0.0) === true
         metrics.forall(_.createdAt == clock.dateNow()) === true
       }
     }
 
-    "return a specific health metric" in new daoSetup {
+    "return a specific alarm metric" in new daoSetup {
       val credentials = RawHeader(JWT_HEADER, readUserLogin)
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        responseAs[HealthMetric].id === latestMetricId
+        responseAs[AlarmMetric].id === latestMetricId
       }
     }
 
-    "create a new health metric" in new daoSetup {
+    "create a new alarm metric" in new daoSetup {
       val credentials = RawHeader(JWT_HEADER, adminUserLogin)
       val newId = "new_id"
       val message = latestMetricCreate.copy(id = newId)
       clock.step()
-      Post("/smrt-base/health/metrics", message) ~> addHeader(credentials) ~> routes ~> check {
+      Post("/smrt-base/alarm/metrics", message) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        responseAs[HealthMetric].id === newId
-        responseAs[HealthMetric].createdAt === clock.dateNow()
-        responseAs[HealthMetric].lastUpdate === None
+        responseAs[AlarmMetric].id === newId
+        responseAs[AlarmMetric].createdAt === clock.dateNow()
+        responseAs[AlarmMetric].lastUpdate === None
       }
-      Get(s"/smrt-base/health/metrics/$newId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$newId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        responseAs[HealthMetric].id === newId
-        responseAs[HealthMetric].createdAt === clock.dateNow()
-        responseAs[HealthMetric].lastUpdate === None
+        responseAs[AlarmMetric].id === newId
+        responseAs[AlarmMetric].createdAt === clock.dateNow()
+        responseAs[AlarmMetric].lastUpdate === None
       }
     }
 
-    "update health metrics" in new daoSetup {
+    "update alarm metrics" in new daoSetup {
       val credentials = RawHeader(JWT_HEADER, adminUserLogin)
-      val message1 = HealthMetricUpdateMessage(1.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
-      val message3 = HealthMetricUpdateMessage(3.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
-      val message2 = HealthMetricUpdateMessage(2.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
+      val message1 = AlarmMetricUpdateMessage(1.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
+      val message3 = AlarmMetricUpdateMessage(3.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
+      val message2 = AlarmMetricUpdateMessage(2.0, Set(latestMetricId, sumMetricId, avgMetricId, maxMetricId))
 
       // Post updates to each metric in order of 1 -> 3 -> 2
       //
@@ -179,38 +179,38 @@ class HealthSpec
 
       clock.reset(10)
       val t10 = clock.dateNow()
-      Post("/smrt-base/health/updates", message1) ~> addHeader(credentials) ~> routes ~> check {
+      Post("/smrt-base/alarm/updates", message1) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
+        val update = responseAs[AlarmMetricUpdate]
         update.updateValue === 1.0
         update.timestamp === t10
       }
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 1.0
-        metric.severity === HealthSeverity.CAUTION
+        metric.severity === AlarmSeverity.WARN
         metric.lastUpdate === Some(t10)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 1.0
-        metric.severity === HealthSeverity.CAUTION
+        metric.severity === AlarmSeverity.WARN
         metric.lastUpdate === Some(t10)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 1.0
-        metric.severity === HealthSeverity.CAUTION
+        metric.severity === AlarmSeverity.WARN
         metric.lastUpdate === Some(t10)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 1.0
-        metric.severity === HealthSeverity.CAUTION
+        metric.severity === AlarmSeverity.WARN
         metric.lastUpdate === Some(t10)
       }
 
@@ -218,38 +218,38 @@ class HealthSpec
 
       clock.reset(20)
       val t20 = clock.dateNow()
-      Post(s"/smrt-base/health/updates", message3) ~> addHeader(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/alarm/updates", message3) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
+        val update = responseAs[AlarmMetricUpdate]
         update.updateValue === 3.0
         update.timestamp === t20
       }
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 3.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t20)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 4.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t20)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t20)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 3.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t20)
       }
 
@@ -257,38 +257,38 @@ class HealthSpec
 
       clock.reset(30)
       val t30 = clock.dateNow()
-      Post(s"/smrt-base/health/updates", message2) ~> addHeader(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/alarm/updates", message2) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
+        val update = responseAs[AlarmMetricUpdate]
         update.updateValue === 2.0
         update.timestamp === t30
       }
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 6.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 3.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
 
@@ -296,32 +296,32 @@ class HealthSpec
       // All metrics have a window of 1 second, the first updates were at t = 10 ms, 1005 ms - 10 ms < 1000 ms, so
       // recalculating should not change the metric values
 
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 6.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 3.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
 
@@ -329,64 +329,64 @@ class HealthSpec
       // Recalculating now should drop the first update at t = 10 ms
       // Note: this does not apply to the LATEST metric
 
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 5.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.5
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 3.0
-        metric.severity === HealthSeverity.CRITICAL
+        metric.severity === AlarmSeverity.CRITICAL
         metric.lastUpdate === Some(t30)
       }
 
       clock.reset(1025)
       // Recalculating now should drop the second update
 
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
 
@@ -394,40 +394,40 @@ class HealthSpec
       val t1035 = clock.dateNow()
       // Recalculating now should drop the third update
 
-      Get(s"/smrt-base/health/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 2.0
-        metric.severity === HealthSeverity.ALERT
+        metric.severity === AlarmSeverity.ERROR
         metric.lastUpdate === Some(t30)
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 0.0
-        metric.severity === HealthSeverity.OK
+        metric.severity === AlarmSeverity.CLEAR
         metric.lastUpdate === None
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 0.0
-        metric.severity === HealthSeverity.OK
+        metric.severity === AlarmSeverity.CLEAR
         metric.lastUpdate === None
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metric = responseAs[HealthMetric]
+        val metric = responseAs[AlarmMetric]
         metric.metricValue === 0.0
-        metric.severity === HealthSeverity.OK
+        metric.severity === AlarmSeverity.CLEAR
         metric.lastUpdate === None
       }
 
       // Check the update records
 
-      Get(s"/smrt-base/health/updates") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/updates") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val updates = responseAs[Seq[HealthMetricUpdate]]
+        val updates = responseAs[Seq[AlarmMetricUpdate]]
         updates.size === 3
         updates(0).timestamp === t10
         updates(0).updateValue === 1.0
@@ -436,9 +436,9 @@ class HealthSpec
         updates(2).timestamp === t30
         updates(2).updateValue === 2.0
       }
-      Get(s"/smrt-base/health/metrics/$latestMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$latestMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val updates = responseAs[Seq[HealthMetricUpdate]]
+        val updates = responseAs[Seq[AlarmMetricUpdate]]
         updates.size === 3
         updates(0).timestamp === t10
         updates(0).updateValue === 1.0
@@ -447,39 +447,39 @@ class HealthSpec
         updates(2).timestamp === t30
         updates(2).updateValue === 2.0
       }
-      Get(s"/smrt-base/health/metrics/$sumMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$sumMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val updates = responseAs[Seq[HealthMetricUpdate]]
+        val updates = responseAs[Seq[AlarmMetricUpdate]]
         updates.size === 0
       }
-      Get(s"/smrt-base/health/metrics/$avgMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$avgMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val updates = responseAs[Seq[HealthMetricUpdate]]
+        val updates = responseAs[Seq[AlarmMetricUpdate]]
         updates.size === 0
       }
-      Get(s"/smrt-base/health/metrics/$maxMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-base/alarm/metrics/$maxMetricId/updates") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val updates = responseAs[Seq[HealthMetricUpdate]]
+        val updates = responseAs[Seq[AlarmMetricUpdate]]
         updates.size === 0
       }
     }
 
     "return unhealthy messages" in new daoSetup {
       val credentials = RawHeader(JWT_HEADER, adminUserLogin)
-      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(1.0, Set(latestMetricId))) ~> addHeader(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/alarm/updates", AlarmMetricUpdateMessage(1.0, Set(latestMetricId))) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
+        val update = responseAs[AlarmMetricUpdate]
         update.updateValue === 1.0
       }
-      Post(s"/smrt-base/health/updates", HealthMetricUpdateMessage(2.0, Set(sumMetricId))) ~> addHeader(credentials) ~> routes ~> check {
+      Post(s"/smrt-base/alarm/updates", AlarmMetricUpdateMessage(2.0, Set(sumMetricId))) ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val update = responseAs[HealthMetricUpdate]
+        val update = responseAs[AlarmMetricUpdate]
         update.updateValue === 2.0
       }
 
-      Get("/smrt-base/health") ~> addHeader(credentials) ~> routes ~> check {
+      Get("/smrt-base/alarm") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val metrics = responseAs[Seq[HealthMetric]]
+        val metrics = responseAs[Seq[AlarmMetric]]
         metrics.length === 2
         metrics.map(_.id) === Set(latestMetricId, sumMetricId)
         metrics.map(_.metricValue) === Set(1.0, 2.0)
@@ -487,13 +487,13 @@ class HealthSpec
     }
 
     "reject unauthorized users" in new daoSetup {
-      Get("/smrt-base/health/metrics") ~> routes ~> check {
+      Get("/smrt-base/alarm/metrics") ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
 
       val invalid = RawHeader(JWT_HEADER, invalidJwt)
-      Get("/smrt-base/health/metrics") ~> addHeader(invalid) ~> routes ~> check {
+      Get("/smrt-base/alarm/metrics") ~> addHeader(invalid) ~> routes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
