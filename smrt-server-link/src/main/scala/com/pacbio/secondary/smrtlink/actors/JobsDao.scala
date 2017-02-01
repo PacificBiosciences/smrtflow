@@ -1300,7 +1300,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
       val deleteDsFile = ds
-          .map(dsFile => DBIO.from(deleteDataStoreFile(dsFile.jobUUID)))
+          .map(dsFile => DBIO.from(deleteDataStoreFile(id)))
           .getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found"))))
 
       // 2 of 3: insert of the data set, if it is a known/supported file type
