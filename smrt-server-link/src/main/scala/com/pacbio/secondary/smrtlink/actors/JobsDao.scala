@@ -131,16 +131,11 @@ trait ProjectDataStore extends LazyLogging {
   def getProjectById(projId: Int): Future[Option[Project]] =
     db.run(projects.filter(_.id === projId).result.headOption)
 
-  def createProject(projReq: ProjectRequest, ownerLogin: String): Future[Project] = {
-    val owner = ProjectRequestUser(ownerLogin, ProjectUserRole.OWNER)
-    val members = projReq.members.getOrElse(List())
-    val withOwner = members.filter(_.login != ownerLogin) ++ List(owner)
-    val requestWithOwner = projReq.copy(members = Some(withOwner))
-
+  def createProject(projReq: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
     val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
-    val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, requestWithOwner))
+    val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, projReq))
     db.run(fullAction.transactionally)
   }
 
@@ -229,7 +224,7 @@ trait ProjectDataStore extends LazyLogging {
   def getUserProjects(login: String): Future[Seq[UserProjectResponse]] = {
     val join = for {
       (pu, p) <- projectsUsers join projects on (_.projectId === _.id)
-      if pu.login === login
+      if pu.login === login && p.isActive
     } yield (pu.role, p)
 
     val userProjects = join
@@ -248,7 +243,7 @@ trait ProjectDataStore extends LazyLogging {
   def getUserProjectsDatasets(login: String): Future[Seq[ProjectDatasetResponse]] = {
     val userJoin = for {
       pu <- projectsUsers if pu.login === login
-      p <- projects if pu.projectId === p.id
+      p <- projects if pu.projectId === p.id && p.isActive
       d <- dsMetaData2 if pu.projectId === d.projectId
     } yield (p, d, pu.role)
 
@@ -266,6 +261,19 @@ trait ProjectDataStore extends LazyLogging {
       .map(_.map(j => ProjectDatasetResponse(j._1, j._2, None)))
 
     db.run(userProjects.zip(genProjects).map(p => p._1 ++ p._2))
+  }
+
+  def userHasProjectRole(login: String, projectId: Int, roles: Set[ProjectUserRole.ProjectUserRole]): Future[Boolean] = {
+    val pUser = for {
+      pu <- projectsUsers if pu.login === login && pu.projectId === projectId
+    } yield pu
+
+    val hasRole = pUser.result.map(_.headOption match {
+      case Some(pu) if roles.contains(pu.role) => true
+      case _ =>  false
+    })
+
+    db.run(hasRole)
   }
 }
 
