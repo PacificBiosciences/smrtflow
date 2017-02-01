@@ -23,6 +23,7 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
+
 object LogLevel {
   sealed abstract class LogLevel
 

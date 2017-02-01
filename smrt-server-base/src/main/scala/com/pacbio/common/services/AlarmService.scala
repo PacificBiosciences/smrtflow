@@ -5,6 +5,7 @@ import com.pacbio.common.actors.{AlarmDaoProvider, AlarmDao}
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
+import spray.http.MediaTypes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
@@ -22,46 +23,77 @@ class AlarmService(alarmDao: AlarmDao, authenticator: Authenticator)
   val manifest = PacBioComponentManifest(
     toServiceId("alarm"),
     "Alarm Service",
-    "0.1.0", "Subsystem Alarm Service")
+    "1.0.0", "Subsystem Alarm Service")
 
   val alarmServiceName = "alarm"
 
   val routes =
     pathPrefix(alarmServiceName) {
       authenticate(authenticator.wso2Auth) { user =>
-        pathEndOrSingleSlash {
+        pathEnd {
           get {
             complete {
               ok {
-                alarmDao.getAlarms
+                alarmDao.getUnhealthyMetrics
               }
             }
           }
         } ~
-        path("status") {
-          get {
-            complete {
-              ok {
-                alarmDao.getAlarmStatuses
-              }
-            }
-          }
-        } ~
-        pathPrefix(Segment) { id =>
-          pathEndOrSingleSlash {
+        pathPrefix("metrics") {
+          pathEnd {
             get {
               complete {
                 ok {
-                  alarmDao.getAlarm(id)
+                  alarmDao.getAllAlarmMetrics
+                }
+              }
+            } ~
+            post {
+              entity(as[AlarmMetricCreateMessage]) { m =>
+                respondWithMediaType(MediaTypes.`application/json`) {
+                  complete {
+                    created {
+                      alarmDao.createAlarmMetric(m)
+                    }
+                  }
                 }
               }
             }
           } ~
-          path("status") {
-            get {
+          pathPrefix(Segment) { id =>
+            pathEnd {
+              get {
+                complete {
+                  ok {
+                    alarmDao.getAlarmMetric(id)
+                  }
+                }
+              }
+            } ~
+            path("updates") {
+              get {
+                complete {
+                  ok {
+                    alarmDao.getMetricUpdates(id)
+                  }
+                }
+              }
+            }
+          }
+        } ~
+        path("updates") {
+          get {
+            complete {
+              ok {
+                alarmDao.getAllUpdates
+              }
+            }
+          } ~
+          post {
+            entity(as[AlarmMetricUpdateMessage]) { m =>
               complete {
-                ok {
-                  alarmDao.getAlarmStatus(id)
+                created {
+                  alarmDao.update(m)
                 }
               }
             }
