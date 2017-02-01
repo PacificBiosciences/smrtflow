@@ -181,6 +181,14 @@ class JobModelsSpec extends Specification  {
       val prule = PipelineDataStoreViewRules("pbsmrtpipe.pipelines.id-1", rules, "4.0.0")
       prule.toJson.convertTo[PipelineDataStoreViewRules] must beEqualTo(prule)
     }
+    "JobTask" in {
+      val t = JobTask(UUID.randomUUID(), 1, "pbsmrtpipe.tasks.task1", "pbsmrtpipe.tasks.task1_tool_contract", "Task 1", AnalysisJobStates.SUCCESSFUL.toString, JodaDateTime.now(), JodaDateTime.now(), Some("Task 1 failed"))
+      val tj = t.toJson.convertTo[JobTask]
+      tj.toString must beEqualTo(t.toString)
+      val ut = UpdateJobTask(1, t.uuid, AnalysisJobStates.SUCCESSFUL.toString, "Task 1 succeeded", None)
+      val utj = ut.toJson.convertTo[UpdateJobTask]
+      utj.toString must beEqualTo(ut.toString)
+    }
   }
 
   "Testing EngineJob serialization including previous versions" should {

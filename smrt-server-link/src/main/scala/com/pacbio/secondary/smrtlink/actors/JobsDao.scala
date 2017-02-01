@@ -559,6 +559,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     }
   }
 
+  def getJobTask(taskId: UUID): Future[JobTask] = {
+    val errorMessage = s"Can't find job task $taskId"
+    db.run(jobTasks.filter(_.uuid === taskId).result).map(_.headOption).flatMap(failIfNone(errorMessage))
+  }
+
   // TODO(smcclellan): limit is never used. add `.take(limit)`?
   override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
     if (!includeInactive) db.run(engineJobs.filter(_.isActive).sortBy(_.id.desc).result)
@@ -1295,7 +1300,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
       val deleteDsFile = ds
-          .map(dsFile => DBIO.from(deleteDataStoreFile(dsFile.jobUUID)))
+          .map(dsFile => DBIO.from(deleteDataStoreFile(id)))
           .getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found"))))
 
       // 2 of 3: insert of the data set, if it is a known/supported file type
