@@ -130,8 +130,10 @@ def get_parser():
                    help="Kill simulator after X seconds if not finished")
     p.add_argument("--debug", action="store_true", default=False,
                    help="Enable debug mode and not delete temp resources")
+    p.add_argument("--host", action="store", dest="hostname",
+                   default="localhost", help="Server hostname")
 
-    p.add_argument("--port", default=8071, type=int, help="Port to launch SL Analysis services on")
+    p.add_argument("--port", default=8070, type=int, help="Port to launch SL Analysis services on")
     return p
 
 
@@ -182,7 +184,7 @@ def run(argv):
 
     test_conf = tempfile.NamedTemporaryFile(suffix="_conf.json", delete=delete_on_exit).name
     # this should probably try to use as many non-default values as possible to make sure they're set correctly
-    conf_d = to_conf_d("localhost", port, args.njobs, args.max_wait, args.max_workers, manifest, pb_test_files_json)
+    conf_d = to_conf_d(args.hostname, port, args.njobs, args.max_wait, args.max_workers, manifest, pb_test_files_json)
 
     log.info("application_conf.json for Sim {}".format(test_conf))
     log.info(conf_d)

@@ -270,7 +270,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   }
 
   protected def getJobDataStore(jobType: String, jobId: IdAble) : Future[Seq[DataStoreServiceFile]] = getDataStorePipeline {
-    Get(toJobResourceUrl(jobType, jobId, DATASTORE_FILES_PREFIX))
+    Get(toJobResourceUrl(jobType, jobId, JOB_DATASTORE_PREFIX))
   }
 
   def getImportDatasetJobDataStore(jobId: IdAble) = getJobDataStore(IMPORT_DS, jobId)
@@ -307,11 +307,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX + "/" + taskId.toString))
   }
 
-  protected def getJobEvents(jobType: String, jobId: IdAble): Future[Seq[JobEvent]] = getJobEventsPipeline {
+  protected def getJobEvents(jobType: String, jobId: Int): Future[Seq[JobEvent]] = getJobEventsPipeline {
     Get(toJobResourceUrl(jobType, jobId, JOB_EVENT_PREFIX))
   }
 
-  protected def getJobOptions(jobType: String, jobId: IdAble): Future[PipelineTemplatePreset] = getJobOptionsPipeline {
+  protected def getJobOptions(jobType: String, jobId: Int): Future[PipelineTemplatePreset] = getJobOptionsPipeline {
     Get(toJobResourceUrl(jobType, jobId, JOB_OPTIONS))
   }
 
