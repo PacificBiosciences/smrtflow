@@ -1645,7 +1645,16 @@
           }
         },
         "x-auth-type": "Application & Application User"
-      }
+      },
+      "parameters": [
+        {
+          "description": "Version of EULA",
+          "required": true,
+          "type": "string",
+          "name": "version",
+          "in": "path"
+        }
+      ]
     }
   }
 }
