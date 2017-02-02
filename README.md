@@ -42,6 +42,32 @@ fasta-to-reference --help
 
 See the [full docs for details](http://smrtflow.readthedocs.io/) for details and examples of using SL tools, such as `pbservice` or `fasta-to-reference`.
 
+
+## Runtime dependencies
+
+Running postgres
+
+On the cluster:
+```bash
+module load jdk/1.8.0_71 postgresql
+export PGDATA=/localdisk/scratch/$USER/pg
+mkdir -p $PGDATA
+# on a shared machine, choose a PGPORT that's not already in use
+export PGPORT=5442
+initdb
+perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $PGPORT/" $PGDATA/postgresql.conf
+pg_ctl -l $PGDATA/postgresql.log start
+createdb mskinner
+psql < extras/db-init.sql
+psql < extras/test-db-init.sql
+export SMRTFLOW_DB_PORT=$PGPORT
+```
+
+to run tests, also do:
+```bash
+export SMRTFLOW_TEST_DB_PORT=$PGPORT
+```
+
 ## Services
 
 Launching SMRT Link/Analysis Services
