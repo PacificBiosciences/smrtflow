@@ -93,12 +93,6 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   # to run validation
   python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
 
-  # write a simple text file of workflow options that the smrtlink installer can
-  # use to validate command-line arguments to get the XML or JSON of the workflow level options
-  # FIXME. This needs to be deleted. Using pbsmrtpipe show-workflow-options -j default-pbsmrtpipe workflow-options.json -o default-preset.xml
-  # Copy this into the bundle template before building. See https://bugzilla.nanofluidics.com/show_bug.cgi?id=32427
-  OPTS_PATH="${BUNDLER_ROOT}/smrtlink_services_ui/workflow_options.txt"
-  pbsmrtpipe show-workflow-options | grep "^Option" | sed 's/.*:\ *//; s/.*\.//;' > $OPTS_PATH
 fi
 
 # don't need to do any building for this
