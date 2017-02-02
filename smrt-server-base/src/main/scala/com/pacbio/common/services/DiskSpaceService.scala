@@ -28,7 +28,7 @@ class DiskSpaceService extends BaseSmrtService with EngineCoreConfigLoader {
 
   private val idsToPaths: Map[String, Path] = Map(
     "smrtlink.resources.root" -> Paths.get("/"),
-    "smrtlink.resources.jobs_root" -> Paths.get(engineConfig.pbRootJobDir)
+    "smrtlink.resources.jobs_root" -> engineConfig.pbRootJobDir
   )
 
   private def toResource(id: String): DiskSpaceResource = {
