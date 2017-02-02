@@ -3,9 +3,9 @@ package com.pacbio.secondary.smrtlink.models
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import com.pacbio.common.models.CommonModels.IdAble
 import org.joda.time.{DateTime => JodaDateTime}
-
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedRunStates, SupportedAcquisitionStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
 
@@ -160,6 +160,24 @@ case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: Strin
 
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
+// Service related Job Tasks
+
+/**
+  * Service Request Format to create a TaskJob
+  *
+  * @param uuid Globally Unique Task UUID
+  * @param taskId task id which is lo
+  * @param taskTypeId task type (i.e., tool contract type id)
+  * @param name Display name of the task
+  * @param createdAt Time when the task was created
+  */
+case class CreateJobTaskRecord(uuid: UUID,
+                               taskId: String,
+                               taskTypeId: String,
+                               name: String,
+                               createdAt: JodaDateTime)
+
+case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])
 
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
@@ -262,7 +280,18 @@ case class DataStoreReportFile(
     dataStoreFile: DataStoreServiceFile,
     reportTypeId: String)
 
-//DataSet
+/**
+  * Service DataSet metadata
+  *
+  * See http://pacbiofileformats.readthedocs.io for more details
+  *
+  * @param id          dataset unique id (e.g., Pacbio.DataSet.SubreadSet)
+  * @param name        Display name of dataset metadata
+  * @param description Description of dataset metadata
+  * @param createdAt   inserted into the database
+  * @param updatedAt   last updated date in the database
+  * @param shortName   short identifier (e.g., "subreads")
+  */
 case class ServiceDataSetMetaType(
     id: String,
     name: String,
@@ -491,8 +520,12 @@ object ProjectState {
   case object CREATED extends ProjectState
   case object ACTIVE extends ProjectState
 
+  // LEGACY STATES
+  // TODO(smcclellan): Clean/delete rows with UPDATED state?
+  case object UPDATED extends ProjectState
+
   def fromString(s: String): ProjectState = {
-    Seq(CREATED, ACTIVE)
+    Seq(CREATED, ACTIVE, UPDATED)
       .find(_.toString == s)
       .getOrElse(throw new IllegalArgumentException(s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
   }

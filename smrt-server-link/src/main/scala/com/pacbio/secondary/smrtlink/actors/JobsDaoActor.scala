@@ -9,6 +9,7 @@ import akka.pattern.pipe
 import akka.util.Timeout
 import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
@@ -19,7 +20,7 @@ import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, ProjectRequest, ReferenceServiceDataSet, GmapReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ProjectRequest, ReferenceServiceDataSet}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
@@ -44,18 +45,35 @@ object MessageTypes {
 object JobsDaoActor {
   import MessageTypes._
 
-  // Job
+  // All Job Message Protocols
   case object GetAllJobs extends JobMessage
 
-  case class GetJobById(jobId: Int) extends JobMessage
-
-  case class GetJobByUUID(jobId: UUID) extends JobMessage
+  case class GetJobByIdAble(ix: IdAble) extends JobMessage
 
   case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false) extends JobMessage
 
   case class GetJobEventsByJobId(jobId: Int) extends JobMessage
 
+  case class GetJobTasks(jobId: IdAble) extends JobMessage
+
+  case class GetJobTask(taskId: UUID) extends JobMessage
+
   case class UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) extends JobMessage
+
+  // createdAt is when the task was created, not when the Service has
+  // created the record. This is attempting to defer to the layer that
+  // has defined how tasks are created and not to create duplicate, and
+  // potentially inconsistent state (i.e., the database has createdAt that
+  // is different from the pbmsrtpipe createdAt datetime)
+  case class CreateJobTask(uuid: UUID,
+                           jobId: IdAble,
+                           taskId: String,
+                           taskTypeId: String,
+                           name: String,
+                           createdAt: JodaDateTime) extends JobMessage
+
+  // Update a Job Task status
+  case class UpdateJobTaskStatus(uuid: UUID, jobId: Int, state: String, message: String, errorMessage: Option[String])
 
   case class CreateJobType(
       uuid: UUID,
@@ -193,12 +211,8 @@ object JobsDaoActor {
   // Import a Reference Dataset
   case class ImportReferenceDataSet(ds: ReferenceServiceDataSet) extends DataSetMessage
 
-  case class ImportReferenceDataSetFromFile(path: String) extends DataSetMessage
-
   // Import a GMAP reference
   case class ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) extends DataSetMessage
-
-  case class ImportGmapReferenceDataSetFromFile(path: String) extends DataSetMessage
 
   // This should probably be a different actor
   // Convert a Reference to a Dataset and Import
@@ -234,7 +248,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
   import JobsDaoActor._
 
-  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+  final val QUICK_TASK_IDS = Set("import_dataset", "merge_dataset", "mock-pbsmrtpipe").map(JobTypeId)
 
   implicit val timeout = Timeout(5.second)
 
@@ -243,7 +257,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   //MK Probably want to have better model for this
   val checkForWorkInterval = 5.seconds
 
-  val checkForWorkTick = context.system.scheduler.schedule(10.seconds, checkForWorkInterval, self, CheckForRunnableJob)
+  val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -295,10 +309,13 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case Success(_) =>
           val worker = workerQueue.dequeue()
           val outputDir = resolver.resolve(runnableJobWithId)
-          worker ! RunJob(runnableJobWithId.job, outputDir)
+          val rjob = RunJob(runnableJobWithId.job, outputDir)
+          log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
+          worker ! rjob
         case Failure(ex) =>
-          log.error(s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}")
-          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED)
+          val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
+          log.error(emsg)
+          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
       }
     }
   }
@@ -359,7 +376,12 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case StandardWorkType => workers.enqueue(sender)
       }
 
-      val f = dao.updateJobStateByUUID(result.uuid, result.state, s"Updated to ${result.state}")
+      val errorMessage = result.state match {
+        case AnalysisJobStates.FAILED => Some(result.message)
+        case _ => None
+      }
+
+      val f = dao.updateJobStateByUUID(result.uuid, result.state, s"Updated to ${result.state}", errorMessage)
 
       f onComplete {
         case Success(_) =>
@@ -427,41 +449,43 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetJobsByJobType(jobTypeId, includeInactive: Boolean) => pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive))
 
-    case GetJobById(jobId: Int) => pipeWith {
-      dao.getJobById(jobId).map(_.getOrElse(toE(s"Unable to find JobId $jobId")))
-    }
-
-    case GetJobByUUID(uuid) => pipeWith {
-      dao.getJobByUUID(uuid).map(_.getOrElse(toE(s"Unable to find job ${uuid.toString}")))
-    }
+    case GetJobByIdAble(ix) => pipeWith { dao.getJobByIdAble(ix) }
 
     case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
+
+    // Job Task related message
+    case CreateJobTask(uuid, jobId, taskId, taskTypeId, name, createdAt) => pipeWith {
+      for {
+        job <- dao.getJobByIdAble(jobId)
+        jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, AnalysisJobStates.CREATED.toString, createdAt, createdAt, None))
+      } yield jobTask
+    }
+
+    case UpdateJobTaskStatus(taskUUID, jobId, state, message, errorMessage) =>
+      pipeWith {dao.updateJobTask(UpdateJobTask(jobId, taskUUID, state, message, errorMessage))}
 
     case GetJobChildrenByUUID(jobId: UUID) => dao.getJobChildrenByUUID(jobId) pipeTo sender
     case GetJobChildrenById(jobId: Int) => dao.getJobChildrenById(jobId) pipeTo sender
 
+    // This needs to be refactored and/or pushed into the Dao
     case DeleteJobByUUID(jobId: UUID) => pipeWith {
-      dao.deleteJobByUUID(jobId).map{ j => 
-        j match {
-          case Some(job) =>
-            dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
-              dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
-            }
-            j
-          case None => toE(s"Unable to find job ${jobId.toString}")
+      dao.deleteJobByUUID(jobId).map { job =>
+        dao.getDataStoreFilesByJobUUID(job.uuid).map { dss =>
+          dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
         }
+        job
       }
     }
 
+    case GetJobTasks(ix: IdAble) => pipeWith { dao.getJobTasks(ix) }
+
+    case GetJobTask(taskId: UUID) => pipeWith { dao.getJobTask(taskId) }
+
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
-    case GetDataSetMetaById(i: Int) => pipeWith {
-      dao.getDataSetById(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
-    }
+    case GetDataSetMetaById(i: Int) => pipeWith { dao.getDataSetById(i) }
 
-    case GetDataSetMetaByUUID(i: UUID) => pipeWith {
-      dao.getDataSetByUUID(i).map(_.getOrElse(toE(s"Unable to find dataset $i")))
-    }
+    case GetDataSetMetaByUUID(i: UUID) => pipeWith { dao.getDataSetByUUID(i) }
 
     case GetDataSetJobsByUUID(i: UUID) => pipeWith(dao.getDataSetJobsByUUID(i))
 
@@ -471,242 +495,160 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // DataSet Types
     case GetDataSetTypes => pipeWith(dao.getDataSetTypes)
 
-    case GetDataSetTypeById(n: String) => pipeWith {
-      dao.getDataSetTypeById(n).map(_.getOrElse(toE(s"Unable to find dataset type '$n")))
-    }
+    case GetDataSetTypeById(n: String) => pipeWith { dao.getDataSetTypeById(n) }
 
     // Get Subreads
-    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getSubreadDataSets(limit, includeInactive))
+    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getSubreadDataSets(limit, includeInactive))
 
-    case GetSubreadDataSetById(n: Int) => pipeWith {
-      dao.getSubreadDataSetById(n).map(_.getOrElse(toE(s"Unable to find subread dataset '$n")))
-    }
+    case GetSubreadDataSetById(n: Int) =>
+      pipeWith {dao.getSubreadDataSetById(n) }
 
-    case GetSubreadDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getSubreadDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find subread dataset '$uuid")))
-    }
+    case GetSubreadDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getSubreadDataSetByUUID(uuid)}
 
-    case GetSubreadDataSetDetailsById(n: Int) => pipeWith {
-      dao.getSubreadDataSetDetailsById(n).map(_.getOrElse(toE(s"Unable to find subread dataset '$n")))
-    }
+    case GetSubreadDataSetDetailsById(n: Int) =>
+      pipeWith { dao.getSubreadDataSetDetailsById(n)}
 
-    case GetSubreadDataSetDetailsByUUID(uuid: UUID) => pipeWith {
-      dao.getSubreadDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find subread dataset ${uuid.toString}")))
-    }
+    case GetSubreadDataSetDetailsByUUID(uuid: UUID) =>
+      pipeWith {dao.getSubreadDataSetDetailsByUUID(uuid)}
 
     // Get References
-    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getReferenceDataSets(limit, includeInactive))
+    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getReferenceDataSets(limit, includeInactive))
 
-    case GetReferenceDataSetById(id: Int) => pipeWith {
-      dao.getReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
-    }
+    case GetReferenceDataSetById(id: Int) =>
+      pipeWith {dao.getReferenceDataSetById(id) }
 
-    case GetReferenceDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getReferenceDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find reference dataset '$uuid")))
-    }
+    case GetReferenceDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getReferenceDataSetByUUID(uuid)}
 
-    case GetReferenceDataSetDetailsById(id: Int) => pipeWith {
-      dao.getReferenceDataSetDetailsById(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetReferenceDataSetDetailsById(id: Int) =>
+      pipeWith {dao.getReferenceDataSetDetailsById(id)}
 
-    case GetReferenceDataSetDetailsByUUID(id: UUID) => pipeWith {
-      dao.getReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetReferenceDataSetDetailsByUUID(id: UUID) =>
+      pipeWith {dao.getReferenceDataSetDetailsByUUID(id)}
 
     // Get GMAP References
     case GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getGmapReferenceDataSets(limit, includeInactive))
 
-    case GetGmapReferenceDataSetById(id: Int) => pipeWith {
-      dao.getGmapReferenceDataSetById(id).map(_.getOrElse(toE(s"Unable to find reference dataset '$id")))
-    }
+    case GetGmapReferenceDataSetById(id: Int) =>
+      pipeWith {dao.getGmapReferenceDataSetById(id)}
 
-    case GetGmapReferenceDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getGmapReferenceDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find reference dataset '$uuid")))
-    }
+    case GetGmapReferenceDataSetByUUID(uuid: UUID) =>
+      pipeWith { dao.getGmapReferenceDataSetByUUID(uuid) }
 
-    case GetGmapReferenceDataSetDetailsById(id: Int) => pipeWith {
-      dao.getGmapReferenceDataSetDetailsById(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetGmapReferenceDataSetDetailsById(id: Int) =>
+      pipeWith { dao.getGmapReferenceDataSetDetailsById(id)}
 
-    case GetGmapReferenceDataSetDetailsByUUID(id: UUID) => pipeWith {
-      dao.getGmapReferenceDataSetDetailsByUUID(id).map(_.getOrElse(toE(s"Unable to find reference details dataset '$id")))
-    }
+    case GetGmapReferenceDataSetDetailsByUUID(id: UUID) =>
+      pipeWith {dao.getGmapReferenceDataSetDetailsByUUID(id)}
 
     case ImportReferenceDataSet(ds: ReferenceServiceDataSet) => pipeWith {
-      log.debug("creating reference dataset")
-      dao.insertReferenceDataSet(ds)
-    }
-
-    case ImportReferenceDataSetFromFile(path: String) => pipeWith {
-      // FIXME. This should be removed
-      val createdAt = JodaDateTime.now()
-      val r = DataSetLoader.loadReferenceSet(Paths.get(path))
-      val uuid = UUID.fromString(r.getUniqueId)
-      val ds = ReferenceServiceDataSet(
-        -99,
-        uuid,
-        r.getName,
-        path,
-        createdAt, createdAt,
-        r.getDataSetMetadata.getNumRecords,
-        r.getDataSetMetadata.getTotalLength,
-        "0.5.0",
-        "reference comments",
-        "reference-tags",
-        toMd5(uuid.toString),
-        1,
-        1,
-        1,
-        r.getDataSetMetadata.getPloidy,
-        r.getDataSetMetadata.getOrganism)
-
+      log.debug("inserting reference dataset")
       dao.insertReferenceDataSet(ds)
     }
 
     case ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) => pipeWith {
-      log.debug("creating reference dataset")
-      dao.insertGmapReferenceDataSet(ds)
-    }
-
-    case ImportGmapReferenceDataSetFromFile(path: String) => pipeWith {
-      // FIXME. This should be removed
-      val createdAt = JodaDateTime.now()
-      val r = DataSetLoader.loadGmapReferenceSet(Paths.get(path))
-      val uuid = UUID.fromString(r.getUniqueId)
-      val ds = GmapReferenceServiceDataSet(
-        -99,
-        uuid,
-        r.getName,
-        path,
-        createdAt, createdAt,
-        r.getDataSetMetadata.getNumRecords,
-        r.getDataSetMetadata.getTotalLength,
-        "0.5.0",
-        "reference comments",
-        "reference-tags",
-        toMd5(uuid.toString),
-        1,
-        1,
-        1,
-        r.getDataSetMetadata.getPloidy,
-        r.getDataSetMetadata.getOrganism)
-
+      log.debug("inserting reference dataset")
       dao.insertGmapReferenceDataSet(ds)
     }
 
     // get Alignments
-    case GetAlignmentDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getAlignmentDataSets(limit, includeInactive))
+    case GetAlignmentDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getAlignmentDataSets(limit, includeInactive))
 
-    case GetAlignmentDataSetById(n: Int) => pipeWith {
-      dao.getAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find Alignment dataset '$n")))
-    }
+    case GetAlignmentDataSetById(n: Int) =>
+      pipeWith { dao.getAlignmentDataSetById(n)}
 
-    case GetAlignmentDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getAlignmentDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Alignment dataset '$uuid")))
-    }
+    case GetAlignmentDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getAlignmentDataSetByUUID(uuid)}
 
-    case GetAlignmentDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getAlignmentDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Alignment dataset Details for '$uuid")))
-    }
+    case GetAlignmentDataSetDetailsByUUID(uuid) =>
+      pipeWith {dao.getAlignmentDataSetDetailsByUUID(uuid)}
 
-    case GetAlignmentDataSetDetailsById(i) => pipeWith {
-      dao.getAlignmentDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Alignment dataset Details for '$i")))
-    }
+    case GetAlignmentDataSetDetailsById(i) =>
+      pipeWith {dao.getAlignmentDataSetDetailsById(i)}
 
     // Get HDF Subreads
-    case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getHdfDataSets(limit, includeInactive))
+    case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getHdfDataSets(limit, includeInactive))
 
-    case GetHdfSubreadDataSetById(n: Int) => pipeWith {
-      dao.getHdfDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
-    }
+    case GetHdfSubreadDataSetById(n: Int) =>
+      pipeWith {dao.getHdfDataSetById(n) }
 
-    case GetHdfSubreadDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getHdfDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
-    }
+    case GetHdfSubreadDataSetByUUID(uuid: UUID) =>
+      pipeWith { dao.getHdfDataSetByUUID(uuid)}
 
-    case GetHdfSubreadDataSetDetailsById(n: Int) => pipeWith {
-      dao.getHdfDataSetDetailsById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
-    }
+    case GetHdfSubreadDataSetDetailsById(n: Int) =>
+      pipeWith {dao.getHdfDataSetDetailsById(n)}
 
-    case GetHdfSubreadDataSetDetailsByUUID(uuid: UUID) => pipeWith {
-      dao.getHdfDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
-    }
+    case GetHdfSubreadDataSetDetailsByUUID(uuid: UUID) =>
+      pipeWith {dao.getHdfDataSetDetailsByUUID(uuid)}
 
     // Get CCS Subreads
-    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getConsensusReadDataSets(limit, includeInactive))
+    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getConsensusReadDataSets(limit, includeInactive))
 
-    case GetConsensusReadDataSetById(n: Int) => pipeWith {
-      dao.getConsensusReadDataSetById(n).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$n")))
-    }
+    case GetConsensusReadDataSetById(n: Int) =>
+      pipeWith {dao.getConsensusReadDataSetById(n)}
 
-    case GetConsensusReadDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getConsensusReadDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Hdf subread dataset '$uuid")))
-    }
+    case GetConsensusReadDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getConsensusReadDataSetByUUID(uuid) }
 
-    case GetConsensusReadDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getConsensusReadDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusRead dataset Details for '$uuid")))
-    }
+    case GetConsensusReadDataSetDetailsByUUID(uuid) =>
+      pipeWith { dao.getConsensusReadDataSetDetailsByUUID(uuid) }
 
-    case GetConsensusReadDataSetDetailsById(i) => pipeWith {
-      dao.getConsensusReadDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find ConsensusRead dataset Details for '$i")))
-    }
+    case GetConsensusReadDataSetDetailsById(i) =>
+      pipeWith { dao.getConsensusReadDataSetDetailsById(i)}
 
     // Get CCS Subreads
-    case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive))
+    case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive))
 
-    case GetConsensusAlignmentDataSetById(n: Int) => pipeWith {
-      dao.getConsensusAlignmentDataSetById(n).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$n")))
-    }
+    case GetConsensusAlignmentDataSetById(n: Int) =>
+      pipeWith { dao.getConsensusAlignmentDataSetById(n)}
 
-    case GetConsensusAlignmentDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getConsensusAlignmentDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusAlignmentSet '$uuid")))
-    }
+    case GetConsensusAlignmentDataSetByUUID(uuid: UUID) =>
+      pipeWith { dao.getConsensusAlignmentDataSetByUUID(uuid)}
 
-    case GetConsensusAlignmentDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getConsensusAlignmentDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find ConsensusAlignment dataset Details for '$uuid")))
-    }
+    case GetConsensusAlignmentDataSetDetailsByUUID(uuid) =>
+      pipeWith {dao.getConsensusAlignmentDataSetDetailsByUUID(uuid)}
 
-    case GetConsensusAlignmentDataSetDetailsById(i) => pipeWith {
-      dao.getConsensusAlignmentDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find ConsensusAlignment dataset Details for '$i")))
-    }
+    case GetConsensusAlignmentDataSetDetailsById(i) =>
+      pipeWith {dao.getConsensusAlignmentDataSetDetailsById(i) }
 
     // Get Barcodes
-    case GetBarcodeDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getBarcodeDataSets(limit, includeInactive))
+    case GetBarcodeDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getBarcodeDataSets(limit, includeInactive))
 
-    case GetBarcodeDataSetById(n: Int) => pipeWith {
-      dao.getBarcodeDataSetById(n).map(_.getOrElse(toE(s"Unable to find Barcode dataset '$n")))
-    }
+    case GetBarcodeDataSetById(n: Int) =>
+      pipeWith {dao.getBarcodeDataSetById(n)}
 
-    case GetBarcodeDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getBarcodeDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Barcode dataset '$uuid")))
-    }
+    case GetBarcodeDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getBarcodeDataSetByUUID(uuid)}
 
-    case GetBarcodeDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getBarcodeDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$uuid")))
-    }
+    case GetBarcodeDataSetDetailsByUUID(uuid) =>
+      pipeWith {dao.getBarcodeDataSetDetailsByUUID(uuid)}
 
-    case GetBarcodeDataSetDetailsById(i) => pipeWith {
-      dao.getBarcodeDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Barcode dataset Details for '$i")))
-    }
+    case GetBarcodeDataSetDetailsById(i) =>
+      pipeWith {dao.getBarcodeDataSetDetailsById(i)}
 
     // Contigs
-    case GetContigDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getContigDataSets(limit, includeInactive))
+    case GetContigDataSets(limit: Int, includeInactive: Boolean) =>
+      pipeWith(dao.getContigDataSets(limit, includeInactive))
 
-    case GetContigDataSetById(n: Int) => pipeWith {
-      dao.getContigDataSetById(n).map(_.getOrElse(toE(s"Unable to find Contig dataset '$n")))
-    }
+    case GetContigDataSetById(n: Int) =>
+      pipeWith {dao.getContigDataSetById(n)}
 
-    case GetContigDataSetByUUID(uuid: UUID) => pipeWith {
-      dao.getContigDataSetByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Contig dataset '$uuid")))
-    }
+    case GetContigDataSetByUUID(uuid: UUID) =>
+      pipeWith {dao.getContigDataSetByUUID(uuid)}
 
-    case GetContigDataSetDetailsByUUID(uuid) => pipeWith {
-      dao.getContigDataSetDetailsByUUID(uuid).map(_.getOrElse(toE(s"Unable to find Contig dataset Details for '$uuid")))
-    }
+    case GetContigDataSetDetailsByUUID(uuid) =>
+      pipeWith {dao.getContigDataSetDetailsByUUID(uuid)}
 
-    case GetContigDataSetDetailsById(i) => pipeWith {
-      dao.getContigDataSetDetailsById(i).map(_.getOrElse(toE(s"Unable to find Contig dataset Details for '$i")))
-    }
+    case GetContigDataSetDetailsById(i) =>
+      pipeWith {dao.getContigDataSetDetailsById(i)}
 
     case ConvertReferenceInfoToDataset(path: String, dsPath: Path) => respondWith {
       log.info(s"Converting reference.info.xml to dataset XML $path")
@@ -731,9 +673,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     // DataStore Files
     case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreInactive))
 
-    case GetDataStoreFileByUUID(uuid: UUID) => pipeWith {
-      dao.getDataStoreFileByUUID2(uuid).map(_.getOrElse(toE(s"Unable to find DataStoreFile ${uuid.toString}")))
-    }
+    case GetDataStoreFileByUUID(uuid: UUID) =>
+      pipeWith {dao.getDataStoreFileByUUID2(uuid)}
 
     case GetDataStoreFilesByJobId(jobId) => pipeWith(dao.getDataStoreFilesByJobId(jobId))
 
@@ -753,7 +694,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
     case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion) =>
-      pipeWith(dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion))
+      val fx = dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
+      fx onSuccess { case _ => self ! CheckForRunnableJob}
+      //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
+      pipeWith(fx)
 
     case UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) =>
       pipeWith(dao.updateJobState(jobId, state, message))
@@ -761,15 +705,13 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetEngineJobEntryPoints(jobId) => pipeWith(dao.getJobEntryPoints(jobId))
 
     // Need to consolidate this
-    case UpdateJobStatus(uuid, state) =>
-      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state"))
+    case UpdateJobStatus(uuid, state, errorMessage) =>
+      pipeWith(dao.updateJobStateByUUID(uuid, state, s"Updating $uuid to $state", errorMessage))
 
     case GetEulas => pipeWith(dao.getEulas)
 
-    case GetEulaByVersion(version) => {
-      log.info(s"retrieving EULA for version $version")
-      pipeWith(dao.getEulaByVersion(version).map(_.getOrElse(toE(s"EULA for version $version has not been accepted"))))
-    }
+    case GetEulaByVersion(version) =>
+      pipeWith {dao.getEulaByVersion(version) }
 
     case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
       pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
@@ -781,10 +723,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       )
     }
 
-    // Testing/Debugging messages
-    case "example-test-message" => respondWith("Successfully got example-test-message")
-
-    case x => log.error(s"Unhandled message $x to database actor.")
+    case x => log.warning(s"Unhandled message $x to database actor.")
   }
 }
 

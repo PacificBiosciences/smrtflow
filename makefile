@@ -4,15 +4,12 @@ SOURCE_DB=test-data/smrtserver-testdata/database/latest
 STRESS_NAME=run
 
 clean:
-	rm -f secondary-smrt-server*.log
+	rm -f secondary-smrt-server*.log 
 	rm -rf smrt-server-analysis/{db,jobs-root}
 	rm -rf smrt-server-link/{db,jobs-root}
 	rm -rf smrt-server-analysis-internal/{db,jobs-root}
-	rm -rf smrt-server-analysis-internal/analysis_services.db
 	sbt clean
 
-clean-db:
-	find . -name "*.db" -delete
 
 dataclean:
 	rm -rf test-data
@@ -43,6 +40,9 @@ tools-tarball:
 	rm -rf smrt-analysis/target/pack/bin/*.bat
 	cd smrt-analysis && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
+generate-test-pipeline-json:
+	pbsmrtpipe show-templates --output-templates-json smrt-server-analysis/src/main/resources/resolved-pipeline-templates
+
 repl:
 	sbt smrtflow/test:console
 
@@ -59,8 +59,8 @@ insert-pbdata:
 insert-mock-data:
 	sbt "smrt-server-analysis/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
 
-insert-mock-data-summary: smrt-server-analysis-tools
-	./smrt-server-analysis/target/pack/bin/smrt-db-tool --db-uri smrt-server-analysis/db/analysis_services.db --quiet
+insert-mock-data-summary: tools-smrt-server-analysis
+	./smrt-server-analysis/target/pack/bin/smrt-db-tool
 
 start-smrt-server-analysis:
 	sbt "smrt-server-analysis/run"
@@ -82,7 +82,7 @@ test-int-install-pytools:
 
 test-data/smrtserver-testdata:
 	mkdir -p test-data
-	rsync -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
+	rsync --progress -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
 
 test-int-import-references:
 	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-references/
@@ -97,6 +97,9 @@ test-int-run-analysis:
 
 test-int-run-analysis-stress:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json
+
+test-int-run-analysis-trigger-failure:
+	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
 
 test-int-get-status:
 	pbservice status --debug --port=8070 
@@ -125,8 +128,6 @@ full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	    mkdir -p $$OUTDIR && \
 	    rm -f $$RUNDIR/latest && \
 	    ln -s $$RUN $$RUNDIR/latest && \
-	    cp $(SOURCE_DB) smrt-server-analysis/db/analysis_services.db && \
-	    rm -rf smrt-server-analysis/jobs-root/*; \
 	    sbt smrt-server-analysis/compile && \
 	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-analysis/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & echo \$$!") && \
 	    sleep 360 && \

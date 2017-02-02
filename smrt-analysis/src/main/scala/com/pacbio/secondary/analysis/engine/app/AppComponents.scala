@@ -64,7 +64,7 @@ object AppComponents {
     //val pipelineTemplates = PbsmrtPipeTemplates.pbsmrtpipePipelineTemplates
     val pipelineTemplates = Seq[PipelineTemplate]()
     //val resolver = new SimpleUUIDJobResolver(Paths.get(engineConfig.pbRootJobDir))
-    val resolver = new PacBioIntJobResolver(Paths.get(engineConfig.pbRootJobDir))
+    val resolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
     val dao = new JobEngineDao(resolver)
 
     implicit val timeout = Timeout(10.seconds)

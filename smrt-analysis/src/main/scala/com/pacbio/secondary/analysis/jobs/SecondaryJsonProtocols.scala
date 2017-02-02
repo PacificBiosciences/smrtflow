@@ -1,6 +1,7 @@
 package com.pacbio.secondary.analysis.jobs
 
-import java.net.URI
+import java.net.{URI, URL}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -65,6 +66,25 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol {
 
 }
 
+trait PathProtocols extends DefaultJsonProtocol {
+  implicit object PathFormat extends RootJsonFormat[Path] {
+    def write(p: Path): JsValue = JsString(p.toString)
+    def read(v: JsValue): Path = v match {
+      case JsString(s) => Paths.get(s)
+      case _ => deserializationError("Expected Path as JsString")
+    }
+  }
+}
+trait UrlProtocol extends DefaultJsonProtocol {
+  implicit object UrlFormat extends RootJsonFormat[URL] {
+    def write(u: URL): JsValue = JsString(u.toString)
+    def read(v: JsValue): URL = v match {
+      case JsString(sx) => new URL(sx)
+      case _ => deserializationError("Expected URL as JsString")
+    }
+  }
+}
+
 // FIXME backwards compatibility for pbservice and older versions of smrtlink -
 // this should be eliminated in favor of the automatic protocol if and when
 // we can get away with it
@@ -90,7 +110,8 @@ trait EngineJobProtocol
         "createdBy" -> obj.createdBy.toJson,
         "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
         "smrtlinkToolsVersion" -> obj.smrtlinkToolsVersion.toJson,
-        "isActive" -> obj.isActive.toJson
+        "isActive" -> obj.isActive.toJson,
+        "errorMessage" -> obj.errorMessage.toJson
       )
     }
 
@@ -98,28 +119,29 @@ trait EngineJobProtocol
       val jsObj = value.asJsObject
       jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "jobTypeId", "path", "jsonSettings") match {
         case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
-          val createdBy = jsObj.getFields("createdBy") match {
-            case Seq(JsString(createdBy)) => Some(createdBy)
-            case _ => None
+
+          def getBy(fieldName: String): Option[String] = {
+            jsObj.getFields(fieldName) match {
+              case Seq(JsString(aValue)) => Some(aValue)
+              case _ => None
+            }
           }
-          val smrtlinkVersion = jsObj.getFields("smrtlinkVersion") match {
-            case Seq(JsString(version)) => Some(version)
-            case _ => None
-          }
-          val smrtlinkToolsVersion = jsObj.getFields("smrtlinkToolsVersion") match {
-            case Seq(JsString(version)) => Some(version)
-            case _ => None
-          }
+          val createdBy = getBy("createdBy")
+          val smrtlinkVersion = getBy("smrtlinkVersion")
+          val smrtlinkToolsVersion = getBy("smrtlinkToolsVersion")
+          val errorMessage = getBy("errorMessage")
+
           val isActive = jsObj.getFields("isActive") match {
             case Seq(JsBoolean(b)) => b
             case _ => true
           }
+
           EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
                     JodaDateTime.parse(createdAt),
                     JodaDateTime.parse(updatedAt),
                     AnalysisJobStates.toState(state).get, jobTypeId,
                     path, jsonSettings,  createdBy, smrtlinkVersion,
-                    smrtlinkToolsVersion, isActive)
+                    smrtlinkToolsVersion, isActive, errorMessage)
         case x => deserializationError(s"Expected EngineJob, got $x")
       }
     }
@@ -411,7 +433,9 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
     with EngineJobProtocol
     with DataSetMetaTypesProtocol
     with PipelineTemplateJsonProtocol
-    with PipelineTemplatePresetJsonProtocol with URIJsonProtocol {
+    with PipelineTemplatePresetJsonProtocol
+    with URIJsonProtocol
+    with PathProtocols {
 
 
   import JobModels._
@@ -421,7 +445,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val datastoreFormat = jsonFormat4(PacBioDataStore)
   implicit val boundEntryPointFormat = jsonFormat2(BoundEntryPoint)
   implicit val entryPointFormat = jsonFormat3(EntryPoint)
-  implicit val jobEventFormat = jsonFormat5(JobEvent)
+  implicit val jobEventFormat = jsonFormat6(JobEvent)
 
   // Job results
   implicit val jobResultSuccesFormat = jsonFormat6(ResultSuccess)

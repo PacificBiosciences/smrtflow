@@ -5,7 +5,6 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -23,33 +22,47 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import slick.driver.SQLiteDriver.api._
+
+import slick.driver.PostgresDriver.api._
+
 
 trait SetupMockData extends MockUtils with InitializeTables {
-  def runSetup(dao: JobsDao): Unit = {
 
-    createTables
-    println(s"Created database connection from URI ${dao.db.dbUri}")
+  /**
+    * Hacky Inserts Mock data for
+    *
+    * - Projects
+    * - SubreadsSets
+    * - HdfSubreadSets
+    * - ReferenceSets
+    * - AlignmentSets
+    * - Mock Jobs (mock-pbsmrtpipe type)
+    * - Job Events
+    * - DataStore files
+    *
+    * This is motivated by Stress testing.
+    *
+    * @param dao Jobs Dao
+    */
+  def runInsertAllMockData(dao: JobsDao): Unit = {
 
-    val f = Future(println("Inserting mock data")).flatMap { _ =>
-      Future.sequence(Seq(
-        insertMockProject(),
-        insertMockSubreadDataSetsFromDir(),
-        insertMockHdfSubreadDataSetsFromDir(),
-        insertMockReferenceDataSetsFromDir(),
-        insertMockAlignmentDataSets(),
+    // This must be done sequentially because of
+    // foreign key constraints
+    val f = for {
+      _ <- insertMockProject()
+      _ <- insertMockSubreadDataSetsFromDir()
+      _ <- insertMockHdfSubreadDataSetsFromDir()
+      _ <- insertMockReferenceDataSetsFromDir()
+      _ <- insertMockAlignmentDataSets()
+      // Jobs
+      _ <- insertMockJobs()
+      _ <- insertMockJobEvents()
+      //insertMockJobsTags(),
+      _ <- insertMockDataStoreFiles()
+    } yield "Successfully inserted Mock Data"
 
-        // Jobs
-        insertMockJobs(),
-        insertMockJobEvents(),
-        insertMockJobsTags(),
-
-        // datastore
-        insertMockDataStoreFiles()
-      ))
-    }.andThen { case _ => println("Completed inserting mock data.") }
-
-    Await.result(f, 2.minute)
+    val results = Await.result(f, 3.minute)
+    println(results)
   }
 }
 
@@ -245,12 +258,9 @@ trait MockUtils extends LazyLogging{
   }
 
   def insertMockProject(): Future[Unit] = {
-    val projectId = 2
     dao.db.run(
       DBIO.seq(
-        projects.filter(_.id > 1).delete,
-        projects += Project(projectId, "Project 2", "Project 2 description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), true),
-        projectsUsers += ProjectUser(projectId, "mkocher", ProjectUserRole.OWNER)
+        projects += Project(-1, "Mock Project", "Mock Project description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true)
       )
     )
   }
@@ -341,7 +351,7 @@ trait InitializeTables extends MockUtils {
 
   def createTables: Unit = {
     logger.info("Applying migrations")
-    db.migrate()
+    //db.migrate()
     logger.info("Completed applying migrations")
   }
 
@@ -365,28 +375,25 @@ object InsertMockData extends App
   val maxJobs = 20000
 
   // Number of chunks to batch up commits for events and datastore files
-  val numChunks = conf.getInt("mock.nchunks")
+  val numChunks = conf.getInt("smrtflow.mock.nchunks")
 
   // Jobs
-  val maxPbsmrtpipeJobs = conf.getInt("mock.pbsmrtpipe-jobs")
-  val maxImportDataSetJobs = conf.getInt("mock.import-dataset-jobs")
+  val maxPbsmrtpipeJobs = conf.getInt("smrtflow.mock.pbsmrtpipe-jobs")
+  val maxImportDataSetJobs = conf.getInt("smrtflow.mock.import-dataset-jobs")
 
   // DataSets
-  val numSubreadSets = conf.getInt("mock.subreadsets")
-  val numAlignmentSets = conf.getInt("mock.alignmentsets")
-  val numReferenceSets = conf.getInt("mock.referencesets")
+  val numSubreadSets = conf.getInt("smrtflow.mock.subreadsets")
+  val numAlignmentSets = conf.getInt("smrtflow.mock.alignmentsets")
+  val numReferenceSets = conf.getInt("smrtflow.mock.referencesets")
 
-  def toURI(sx: String) = if (sx.startsWith("jdbc:sqlite:")) sx else s"jdbc:sqlite:$sx"
+  val db = Database.forConfig("smrtflow.db")
 
-  val db = new Database(toURI(conf.getString("pb-services.db-uri")))
   val dao = new JobsDao(db, engineConfig, resolver)
 
   def runner(args: Array[String]): Int = {
-    println(s"Loading DB ${dao.db.dbUri}")
+    println(s"Loading DB ${dao.db}")
 
     val startedAt = JodaDateTime.now()
-
-    createTables
 
     println(s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
     println(s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")

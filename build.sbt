@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.3.1-SNAPSHOT"
+version in ThisBuild := "0.4.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -26,9 +26,11 @@ parallelExecution in ThisBuild := false
 fork in ThisBuild := true
 
 javaOptions in ThisBuild += "-Xms256m"
-javaOptions in ThisBuild += "-Xmx4g"
+
+javaOptions in ThisBuild += "-Xmx8g"
+
 // tmp files are written during testing; cannot be mounted noexec because of sqlite
-javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP") != None) sys.env("TMP") else "/tmp")
+javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP").isDefined) sys.env("TMP") else "/tmp")
 
 // Custom keys for this build.
 
@@ -43,6 +45,7 @@ val akkaV = "2.3.6"
 val sprayV = "1.3.3"
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 publishTo in ThisBuild := {
   val nexus = "http://ossnexus.pacificbiosciences.com/repository/"
   if (isSnapshot.value) Some("Nexus snapshots" at nexus + "maven-snapshots")
@@ -70,6 +73,7 @@ lazy val baseSettings = Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
   "com.typesafe.slick" %% "slick" % "3.1.0",
+  "com.typesafe.slick" % "slick-hikaricp_2.11" % "3.1.0",
   "com.unboundid" % "unboundid-ldapsdk" % "2.3.3",
   "commons-cli" % "commons-cli" % "1.2",
   "commons-io" % "commons-io" % "2.4",
@@ -97,6 +101,7 @@ lazy val baseSettings = Seq(
   "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
   "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+  "org.postgresql" % "postgresql" % "9.4.1212",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17"
 )
@@ -136,6 +141,7 @@ lazy val smrtflow = project.in(file("."))
     .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
     .settings(libraryDependencies ++= baseSettings)
     .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
+    .settings(parallelExecution in Test := false) // run each Spec sequentially
     .settings(initialCommands in (Test, console) :=
     s"""
        |val welcomeBanner = Some("Welcome to the smrtflow REPL")
@@ -143,15 +149,11 @@ lazy val smrtflow = project.in(file("."))
        |import ammonite.ops._
        |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
        |""".stripMargin)
-    .dependsOn(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
-    .aggregate(logging, database, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .dependsOn(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .aggregate(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
 
 
 lazy val logging = PacBioProject("smrt-server-logging")
-
-lazy val database =
-  PacBioProject("smrt-server-database") dependsOn logging
-
 
 lazy val common = (
     PacBioProject("smrt-common-models")
@@ -188,19 +190,19 @@ lazy val common = (
 // "pbscala" or pacbio-secondary in perforce repo
 lazy val smrtAnalysis = (
     PacBioProject("smrt-analysis")
-        dependsOn(logging, database, common)
+        dependsOn(logging, common)
         settings()
     )
 
 lazy val smrtServerBase = (
     PacBioProject("smrt-server-base")
-        dependsOn(logging, database, common, smrtAnalysis)
+        dependsOn(logging, common, smrtAnalysis)
         settings()
     )
 
 lazy val smrtServerLink = (
     PacBioProject("smrt-server-link")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase)
         settings()
     )
 
@@ -212,21 +214,21 @@ lazy val smrtServerLims = (
 
 lazy val smrtServerAnalysis = (
     PacBioProject("smrt-server-analysis")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
         settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
     )
 
 lazy val smrtServerAnalysisInternal = (
     PacBioProject("smrt-server-analysis-internal")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
         settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
     )
 
 lazy val smrtServerSim = (
     PacBioProject("smrt-server-sim")
-        dependsOn(logging, database, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
+        dependsOn(logging, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
         settings()
     )
 
-lazy val root = (project in file(".")).
-  aggregate(common, database, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)
+//lazy val root = (project in file(".")).
+//  aggregate(common, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)

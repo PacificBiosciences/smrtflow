@@ -1,5 +1,6 @@
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, ServiceTaskOptionBase, ServiceTaskStrOption}
 import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, CoreJob, AnalysisJobStates, SecondaryJobJsonProtocol}
 import com.pacbio.secondary.analysis.jobtypes.{PbSmrtPipeJobOptions, MockPbSmrtPipeJobOptions, PbSmrtpipeMockJob}
@@ -19,7 +20,7 @@ with SecondaryJobJsonProtocol {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
       val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
       // Path to source path.stuff.sh
-      val envPath = ""
+      val envPath:Option[Path] = None
       val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
       val taskOptions = Seq[ServiceTaskOptionBase]()
       val opts = MockPbSmrtPipeJobOptions("pbscala.pipelines.mock_dev_01", entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions.map(_.asServiceOption), envPath)
@@ -34,9 +35,8 @@ with SecondaryJobJsonProtocol {
       val entryPoints = Seq(BoundEntryPoint("e_01", "/path/to/file.txt"))
       val taskOptions = Seq(ServiceTaskStrOption("option_01", "value_01"))
       val workflowOptions = Seq(ServiceTaskStrOption("option_02", "value_02"))
-      val envPath = "/path/to/env.sh"
       val serviceUri = None
-      val x = PbSmrtPipeJobOptions("pipeline-id", entryPoints, taskOptions, workflowOptions, envPath, serviceUri)
+      val x = PbSmrtPipeJobOptions("pipeline-id", entryPoints, taskOptions, workflowOptions, None, serviceUri)
 
       //val j = x.toJson
       //logger.info(s"JSON converted to $j")

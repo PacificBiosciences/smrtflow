@@ -19,6 +19,7 @@ import scala.util.{Failure, Success, Try, Properties}
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -41,6 +42,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
     extends JobTypeService with LazyLogging {
 
   import SecondaryAnalysisJsonProtocols._
+  import CommonModelImplicits._
 
   val endpoint = "delete-datasets"
   val description = "Delete PacBio XML DataSets and associated resources"
@@ -53,7 +55,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
 
   private def getUpstreamDataSets(jobIds: Seq[Int], dsMetaType: String): Future[Seq[ServiceDataSetMetadata]] = {
     val fx = for {
-      jobs <- Future.sequence { jobIds.map(j => (dbActor ? GetJobById(j)).mapTo[EngineJob]) }
+      jobs <- Future.sequence { jobIds.map(j => (dbActor ? GetJobByIdAble(j)).mapTo[EngineJob]) }
       entryPoints <- Future.sequence { jobs.filter(_.jobTypeId == "merge-datasets").map { j => (dbActor ? GetEngineJobEntryPoints(j.id)).mapTo[Seq[EngineJobEntryPoint]] } }.map(_.flatten)
       datasets <- Future.sequence { entryPoints.map(ep => ValidateImportDataSetUtils.resolveDataSetByAny(dsMetaType, Right(ep.datasetUUID), dbActor)) }
     } yield datasets

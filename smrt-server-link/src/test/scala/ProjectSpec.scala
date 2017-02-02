@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import akka.actor.ActorRefFactory
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.auth._
@@ -5,13 +7,13 @@ import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider}
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
@@ -19,8 +21,9 @@ import spray.http.HttpHeaders.RawHeader
 import spray.http.StatusCodes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import spray.routing.AuthenticationFailedRejection
+import spray.routing.{AuthenticationFailedRejection, AuthorizationFailedRejection}
 import spray.testkit.Specs2RouteTest
+import slick.driver.PostgresDriver.api._
 
 import scala.concurrent.duration._
 
@@ -30,7 +33,7 @@ with Specs2RouteTest
 with SetupMockData
 with PacBioServiceErrors
 with JobServiceConstants
-with SmrtLinkConstants {
+with SmrtLinkConstants with TestUtils{
 
   sequential
 
@@ -76,11 +79,10 @@ with SmrtLinkConstants {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
 
-  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None)
+  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
-  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, None)
+  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
 
   val newUser = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_EDIT)
   val newUser2 = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_VIEW)
@@ -91,15 +93,12 @@ with SmrtLinkConstants {
   var dsCount = 0
   var movingDsId = 0
 
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
-    runSetup(dao)
-    println(s"completed setting up database ${dbURI}")
-  }
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
-  textFragment("creating database tables")
-  step(dbSetup())
+  step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
+  //FIXME(mpkocher)(2016-12-16) I believe this only needs to import a few SubreadSets.
+  step(runInsertAllMockData(dao))
 
   "Project list" should {
     "reject unauthorized users" in {
@@ -120,17 +119,45 @@ with SmrtLinkConstants {
       }
     }
 
+    "read the new project as the owner" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+
+    "fail to read the new project as a non-member" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
+      }
+    }
+
+    "fail to delete the new project as a non-member" in {
+      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
+      }
+    }
+
     "fail to create a project with a conflicting name" in {
       Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status === StatusCodes.Conflict
       }
     }
 
-    "return a list of all projects" in {
+    "return a list of user 1 projects" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must contain((p: Project) => p.name === newProject.name)
+        projs.map(_.id) must contain(newProjId)
+      }
+    }
+
+    "return a list of user 2 projects" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val projs = responseAs[Seq[Project]]
+        projs.map(_.id) must not contain(newProjId)
       }
     }
 
@@ -151,6 +178,13 @@ with SmrtLinkConstants {
         val proj = responseAs[FullProject]
         proj.name === newProject2.name
         proj.state === newProject2.state.get
+      }
+    }
+
+    "fail to update a project as a non-member" in {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
       }
     }
 
@@ -250,7 +284,7 @@ with SmrtLinkConstants {
       }
     }
 
-    "add a user and change change their role in a project" in {
+    "add a user and change their role in a project" in {
       Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
@@ -274,11 +308,14 @@ with SmrtLinkConstants {
       }
     }
 
-    "return a list of datasets in a project" in {
+    "return a non-empty list of datasets in a project" in {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
-        movingDsId = proj.datasets.head.id
+        // avoid a messy NoSuchElementException stacktrace that is not very useful
+        if (proj.datasets.nonEmpty) {
+          movingDsId = proj.datasets.head.id
+        }
         dsCount = proj.datasets.size
         dsCount >= 1
       }
@@ -312,8 +349,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/user-projects/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
-        results.size === 3 // the general project from dbSetup, plus
-                           // the two projects from earlier tests
+        results.size must beGreaterThanOrEqualTo(3) // the general project from dbSetup and the two projects from earlier tests
       }
     }
 
@@ -351,7 +387,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
-        dsets.size === 0
+        dsets must beEmpty
       }
 
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
@@ -378,7 +414,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must contain((p: Project) => p.id === newProjId)
+        projs.map(_.id) must contain(newProjId)
       }
 
       // then delete the project
@@ -390,7 +426,7 @@ with SmrtLinkConstants {
       Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
-        projs must not contain((p: Project) => p.id === newProjId)
+        projs.map(_.id) must not contain(newProjId)
       }
 
       // check that the general project regained a dataset

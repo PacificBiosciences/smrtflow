@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import akka.actor.{ActorRefFactory, ActorSystem}
 import com.pacbio.common.actors._
 import com.pacbio.common.auth._
@@ -6,7 +8,6 @@ import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.jobs.JobModels.ServiceTaskOptionBase
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -18,19 +19,20 @@ import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRun
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.services.jobtypes.SimpleServiceJobTypeProvider
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
+import slick.driver.PostgresDriver.api._
 
 abstract class JobExecutorSpecBase extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants with TestUtils{
 
-  // TODO(smcclellan): This test succeeds when run on its own, but fails when run with other tests, even though parallelExecution is disabled???
   sequential
 
   import SecondaryAnalysisJsonProtocols._
@@ -74,9 +76,8 @@ with JobServiceConstants {
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
-  override val db: Database = dao.db
+  override val db = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
 
@@ -86,20 +87,17 @@ with JobServiceConstants {
     val taskOptions = Seq[ServiceTaskOptionBase]()
     val workflowOptions = Seq[ServiceTaskOptionBase]()
     PbSmrtPipeServiceOptions(
-      "My-job-name",
+      "My-smrt-server-analysis-job-name",
       "pbsmrtpipe.pipelines.mock_dev01",
       eps,
       taskOptions,
       workflowOptions)
   }
 
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri ${dbURI}")
-    runSetup(dao)
-    println(s"completed setting up database ${db.dbUri}")
-  }
+  lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
 
-  textFragment("creating database tables")
-  step(dbSetup())
+  step(setupJobDir(rootJobDir))
+  step(setupDb(TestProviders.dbConfig))
+  step(runInsertAllMockData(dao))
+
 }

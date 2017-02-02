@@ -1,19 +1,20 @@
 package com.pacbio.secondary.smrtlink.client
 
 import java.util.UUID
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
 import scala.xml.XML
 import scala.math._
-
 import spray.httpx.SprayJsonSupport
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.reports.ReportModels._
 import com.pacbio.common.client._
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.analysis.tools.timeUtils
 
-trait ClientUtils {
+trait ClientUtils extends timeUtils{
 
   import SmrtLinkJsonProtocols._
 
@@ -54,8 +55,12 @@ trait ClientUtils {
     0
   }
 
-  def printJobInfo(job: EngineJob, asJson: Boolean = false,
+  def printJobInfo(job: EngineJob,
+                   asJson: Boolean = false,
                    dumpJobSettings: Boolean = false): Int = {
+
+    val runTimeSec = computeTimeDelta(job.updatedAt, job.createdAt)
+
     if (dumpJobSettings) {
       println(job.jsonSettings.parseJson.prettyPrint)
     } else if (asJson) {
@@ -63,19 +68,22 @@ trait ClientUtils {
     } else {
       if (job.isActive) println("JOB SUMMARY:")
       else println("JOB SUMMARY (INACTIVE/DELETED):")
-      println(s"  id: ${job.id}")
-      println(s"  uuid: ${job.uuid}")
-      println(s"  name: ${job.name}")
-      println(s"  state: ${job.state}")
-      println(s"  path: ${job.path}")
-      println(s"  jobTypeId: ${job.jobTypeId}")
-      println(s"  createdAt: ${job.createdAt}")
-      println(s"  updatedAt: ${job.updatedAt}")
-      job.createdBy match {
-        case Some(createdBy) => println(s"  createdBy: ${createdBy}")
-        case _ => println("  createdBy: none")
+      println(s"          id: ${job.id}")
+      println(s"        uuid: ${job.uuid}")
+      println(s"        name: ${job.name}")
+      println(s"       state: ${job.state}")
+      println(s"        path: ${job.path}")
+      println(s"   jobTypeId: ${job.jobTypeId}")
+      println(s"   createdAt: ${job.createdAt}")
+      println(s"   updatedAt: ${job.updatedAt}")
+      println(s"    run time: $runTimeSec sec")
+      println(s"  SL version: ${job.smrtlinkVersion.getOrElse("Unknown")}")
+      println(s"  created by: ${job.createdBy.getOrElse("none")}")
+
+      println(s"     comment: ${job.comment}")
+      if (job.state == AnalysisJobStates.FAILED) {
+        println(s"Error :\n ${job.errorMessage}")
       }
-      println(s"  comment: ${job.comment}")
     }
     0
   }
@@ -100,6 +108,14 @@ trait ClientUtils {
     val mkline = (row: Seq[String]) => (row zip widths).map{ case (c,w) => c.padTo(w, ' ') }
     println(mkline(headers).mkString(" "))
     table.foreach(row => println(mkline(row).mkString(" ")))
+    0
+  }
+
+  def showReportAttributes(r: Report, prefix: String = ""): Int = {
+    println(s"${prefix}${r.title}:")
+    r.attributes.foreach { a =>
+      println(s"  ${prefix}${a.name} = ${a.value}")
+    }
     0
   }
 }

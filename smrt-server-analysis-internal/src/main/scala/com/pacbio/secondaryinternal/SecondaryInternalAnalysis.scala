@@ -1,8 +1,7 @@
 package com.pacbio.secondaryinternal
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 
-import scala.collection.mutable
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.httpx.SprayJsonSupport
@@ -35,8 +34,6 @@ trait SecondaryInternalAnalysisProviders extends SecondaryAnalysisProviders
   override val actorSystemName = Some("slia")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
-  override val serverPort: Singleton[Int] = pbServices.getInt("port").orElse(8081)
-
 }
 
 trait SecondaryInternalAnalysisApi extends BaseApi
@@ -56,7 +53,7 @@ trait SecondaryInternalAnalysisApi extends BaseApi
   }
 
   override def startup(): Unit = {
-    createIfNotExists(Paths.get(providers.engineConfig.pbRootJobDir), "Engine Job Dir")
+    createIfNotExists(providers.engineConfig.pbRootJobDir, "Engine Job Dir")
     createIfNotExists(providers.reseqConditions(), "Resequencing Condition Dir")
 
   }

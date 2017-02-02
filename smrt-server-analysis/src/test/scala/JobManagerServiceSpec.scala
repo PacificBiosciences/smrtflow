@@ -6,7 +6,6 @@ import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.database.Database
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -22,6 +21,8 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
+
+import slick.driver.PostgresDriver.api._
 
 
 class JobManagerServiceSpec extends Specification
@@ -71,17 +72,7 @@ with JobServiceConstants {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
-  val dbURI = TestProviders.dbURI()
 
-  def dbSetup() = {
-    println("Running db setup")
-    logger.info(s"Running tests from db-uri $dbURI")
-    runSetup(dao)
-    println(s"completed setting up database $dbURI")
-  }
-
-  textFragment("creating database tables")
-  step(dbSetup())
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {

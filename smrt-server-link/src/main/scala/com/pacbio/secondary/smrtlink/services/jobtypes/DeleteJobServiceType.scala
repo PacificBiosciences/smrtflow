@@ -14,6 +14,7 @@ import SprayJsonSupport._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
@@ -31,12 +32,13 @@ class DeleteJobServiceType(dbActor: ActorRef,
     extends JobTypeService {
 
   import SmrtLinkJsonProtocols._
+  import CommonModelImplicits._
 
   override val endpoint = "delete-job"
   override val description = "Delete a services job and remove files"
 
   private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
-    (dbActor ? GetJobByUUID(jobId)).mapTo[EngineJob].flatMap { job =>
+    (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].flatMap { job =>
       if (job.isComplete) {
         (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]].map {
           jobs => if (jobs.isEmpty) job else

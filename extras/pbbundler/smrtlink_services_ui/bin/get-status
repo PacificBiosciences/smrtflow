@@ -10,16 +10,46 @@ import sys
 import time
 import argparse
 import itertools
+from collections import namedtuple
 
 log = logging.getLogger(__name__)
+
+__author__ = "M. Kocher"
+__version__ = '0.2.0'
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 
 _BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'config.json')
+_CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'smrtlink-system-config.json')
 
-__author__ = "M. Kocher"
-__version__ = '0.1.2'
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "ERROR": logging.ERROR,
+    "WARN": logging.WARN
+}
+
+C = namedtuple("C", "idx name")
+
+
+class Constants(object):
+    """SubComponent Ids"""
+    SL_ANALYSIS = C("smrtlink-analysis", "SMRT Link Analysis Services")
+    TOMCAT = C("tomcat", "SL tomcat UI Webserver")
+    WSO2 = C("wos2", "WSO2 API Manager")
+
+    ALL = (SL_ANALYSIS, TOMCAT, WSO2)
+
+
+class SubComponent(object):
+    def __init__(self, component, urls):
+        """Thin model for encapsulating a SL Subcomponent, such as WSO2 and a list of test/status URLs"""
+        self.component = component
+        self.urls = urls
+
+    def __repr__(self):
+        _d = dict(k=self.__class__.__name__, c=self.component, u=self.urls)
+        return "<{k} component:{c} urls: {u} >".format(**_d)
 
 
 def get_parser():
@@ -30,22 +60,16 @@ def get_parser():
     f = p.add_argument
     f('--max-retries', type=int, default=3, help="Number of retries")
     f('--sleep-time', type=int, default=5, help="Sleep time between retries (in sec)")
-    f('--debug', action='store_true', default=False, help="Enable DEBUG logging")
+    f('--debug', action='store_true', default=False, help="Shortcut to enable DEBUG log level")
+    f('--log-level', default=None, choices=LOG_LEVELS.keys(),
+      help="Set log level (--debug will override this value if supplied)")
+    f('-i', '--subcomponent-id', default=None, choices=list(x.idx for x in Constants.ALL),
+      help="Only get the status of SL Subcomponent")
     return p
 
 
 # Keep this in sync with apply-config
 class ConfigConstants(object):
-    """Constants used in config.json"""
-    HOST = "HOST"
-    PORT = "PB_SERVICES_PORT"
-    ANALYSIS_PORT = "PB_SERVICES_ANALYSIS_PORT"
-
-    PB_SMRTPIPE_PRESET = "PB_SMRTPIPE_PRESET_XML"
-    PB_SERVICES_NWORKERS = "PB_SERVICES_NWORKERS"
-    PB_JOB_ROOT = "PB_JOB_ROOT"
-    PB_TMP_DIR = "PB_TMP_DIR"
-
     # Make a call to ws02 to make sure it started up correctly
     # https://localhost:9443/publisher
     WS02_PORT = 9443
@@ -58,8 +82,8 @@ def _load_config():
     return d
 
 
-def _check_status_or_raise(url, prefix_msg=None, log_results=False):
-    msg = "Check {u}".format(u=url)
+def _check_status_or_raise(url, prefix_msg=None, log_results=False, writer=sys.stdout.write):
+    msg = "checking {u}".format(u=url)
     if prefix_msg is not None:
         msg = " ".join([prefix_msg, msg])
         log.debug(msg)
@@ -72,12 +96,25 @@ def _check_status_or_raise(url, prefix_msg=None, log_results=False):
     return True
 
 
-def _check_status(url, prefix_msg=None):
+def stderr_writer(line):
+    sys.stderr.write(line + "\n")
 
+
+def null_writer(line):
+    pass
+
+
+def _check_status(url, prefix_msg=None, writer=stderr_writer):
+
+    m = "" if prefix_msg is None else prefix_msg
     try:
-        return _check_status_or_raise(url, prefix_msg=prefix_msg)
+        return _check_status_or_raise(url, prefix_msg=m)
+    except urllib2.URLError as e:
+        # log.exception(e)
+        writer(m + "Failed to connect to {u}".format(u=url))
+        return False
     except Exception as e:
-        sys.stderr.write("Failed to make request to {u}\n{e}".format(u=url, e=e.message))
+        writer(m + "Failed to make request to {u}\n{e}".format(u=url, e=e.message))
         return False
 
 
@@ -86,7 +123,16 @@ def _check_with_retry(url, ntries, sleep_time_sec=1):
     status = False
     n = 0
     while n < ntries:
-        state = _check_status(url, prefix_msg="Attempt {i}".format(i=n + 1))
+        m = n + 1
+        if m == ntries:
+            prefix_msg = "FAILED Retry attempt {i} ".format(i=m)
+            writer = stderr_writer
+        else:
+            prefix_msg = "WARNING Attempt {i} ".format(i=m)
+            writer = stderr_writer
+
+        state = _check_status(url, prefix_msg=prefix_msg, writer=writer)
+
         if state is True:
             status = True
             break
@@ -102,61 +148,134 @@ def _to_url(host, port):
     return ":".join([host, str(port)])
 
 
-def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep_time_sec=1):
+def get_subcomponent_status(subcomponent, max_retries=3, sleep_time_sec=1):
+    """
+    Returns a successful message or raises. Any errors or warnings will be written to stderr.
+
+    :type subcomponent: SubComponent
+    :rtype: str
+    """
+    nurls = len(subcomponent.urls)
+    name = subcomponent.component.name
+
+    state = False
+    log.debug("Subcomponent {c}: Attempting to get status with {n} test URLs".format(c=name, n=nurls))
+    for i, url in enumerate(subcomponent.urls):
+        emsg = "Subcomponent {c}: Failed to get status of {u}\n".format(c=name, u=url)
+        try:
+            state = _check_with_retry(url, max_retries, sleep_time_sec)
+            if state:
+                log.debug("Subcomponent {c} successfully status ({i}/{n}) of {u}\n".format(c=name, u=url, n=nurls, i=i))
+            else:
+                sys.stderr.write(emsg)
+                return state
+        except Exception as e:
+            log.error(e)
+            sys.stderr.write(emsg)
+            return False
+
+    if state:
+        sys.stdout.write("Subcomponent {c} SUCCESSFUL status of {n} test URLs\n".format(c=name, n=nurls))
+    return state
+
+
+def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
     """
     Check analysis service status, dataset types and jobs types. Check tomcat
     to verify UI code was loaded
+
+    subcomponent_filter_func = (f: SubComponent) => bool
 
     :return: status
     :rtype: bool
     """
 
     tcat_url = _to_url(host, tomcat_port)
+    sl_analysis_url = _to_url(host, analysis_port)
 
-    services_url = _to_url(host, analysis_port) + "/status"
+    services_url = sl_analysis_url + "/status"
 
-    ds_types = ('subreads', 'references', 'hdfsubreads', 'alignments')
+    ds_types = ('subreads', 'references', 'hdfsubreads', 'alignments', 'barcodes')
 
-    ds_urls = [_to_url(host, analysis_port) + '/secondary-analysis/datasets/{f}'.format(f=f) for f in ds_types]
+    ds_urls = [sl_analysis_url + '/secondary-analysis/datasets/{f}'.format(f=f) for f in ds_types]
 
-    job_types = ('pbsmrtpipe', 'convert-fasta-reference', 'import-dataset')
+    job_types = ('pbsmrtpipe', 'convert-fasta-reference', 'import-dataset', 'merge-datasets')
     job_urls = [_to_url(host, analysis_port) + "/secondary-analysis/job-manager/jobs/{f}".format(f=f) for f in job_types]
+
+    sl_urls = [[services_url], ds_urls, job_urls]
+    sl_analysis_subcomponent = SubComponent(Constants.SL_ANALYSIS, list(itertools.chain(*sl_urls)))
 
     # MK. Tomcat will lazily-load after the first request. Making an initial request
     # here to trigger (and **ignore** the response), then check the analysis services,
     # then check tomcat status.
-    _check_status(tcat_url)
+    _check_status(tcat_url, writer=null_writer)
 
-    wso2_status_url = _to_url(host, wso2_port) + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
+    # wso2_status_url = _to_url(host, wso2_port) + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
     # FIXME(mpkocher)(2016-9-7). Roll out ws02 incrementally. Ignore the failures on startup for now
-    _check_with_retry(wso2_status_url, 3)
+    # _check_with_retry(wso2_status_url, 3)
+    tomcat_subcomponent = SubComponent(Constants.TOMCAT, [tcat_url])
 
-    urls = [[services_url], ds_urls, job_urls, [tcat_url]]
+    subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent]
 
-    return all(_check_with_retry(u, max_retries, sleep_time_sec) for u in itertools.chain(*urls))
+    if filter_subcomponent_func is not None:
+        subcomponents = [x for x in subcomponents if filter_subcomponent_func(x)]
+
+    for subcomponent in subcomponents:
+        state = get_subcomponent_status(subcomponent, max_retries=max_retries, sleep_time_sec=sleep_time_sec)
+        if state is False:
+            return False
+
+    return True
 
 
-def run_main(c, max_retries, sleep_time_sec):
+def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
 
-    h = c.get(ConfigConstants.HOST, None)
-    host = socket.getfqdn() if h is None else h
-    port = c[ConfigConstants.PORT]
+    server_d = c['smrtflow']['server']
+
+    # Assume that the exe is called on that machine
+    h = server_d.get('dnsName', None)
+    if h is None:
+        sys.stderr.write("WARNING host is assumed to be localhost.\n")
+    host = "localhost" if h is None else h
+
+    sl_analysis_port = server_d['port']
+
+    tomcat_port = c['pacBioSystem']['tomcatPort']
+
     # should this be exposed in the config.json ?
     ws02_port = ConfigConstants.WS02_PORT
 
-    url = _to_url(host, port)
+    # Base SL Analysis Service URL
+    url = _to_url(host, sl_analysis_port)
+
+    if subcomponent_ids is None:
+        filter_func = lambda x: True
+    else:
+        filter_func = lambda x: x.component.idx in subcomponent_ids
+
     status = get_status(host,
-                        port,
-                        c[ConfigConstants.ANALYSIS_PORT],
+                        tomcat_port,
+                        sl_analysis_port,
                         max_retries=max_retries,
                         sleep_time_sec=sleep_time_sec,
-                        wso2_port=ws02_port)
+                        wso2_port=ws02_port,
+                        filter_subcomponent_func=filter_func)
 
     if status is True:
-        log.info("Successfully found endpoints")
-    else:
-        sys.stderr.write("Unable to find endpoints at root {f}/ after {n} retries\n".format(f=url, n=max_retries))
-        sys.stderr.write("Analysis Services did NOT start successfully. \nCheck config in {c}\n".format(c=_CONFIG_JSON))
+
+        names_d = {c.idx: c.name for c in Constants.ALL}
+        if subcomponent_ids is None:
+            component_filter = lambda x: True
+        else:
+            component_filter = lambda x: x.idx in subcomponent_ids
+
+        component_ids = [c.idx for c in Constants.ALL if component_filter(c)]
+
+        names = [names_d[c_id] for c_id in component_ids]
+        msg = "SUCCESSFUL status of {n} SL subcomponent(s): {c}".format(n=len(names), c=", ".join(names))
+
+        sys.stdout.write(msg + "\n")
+
     return 0 if status is True else 1
 
 
@@ -165,10 +284,20 @@ def main(argv=sys.argv):
     p = get_parser()
     args = p.parse_args(argv)
 
-    level = logging.DEBUG if args.debug else logging.INFO
+    if args.log_level is not None:
+        level = LOG_LEVELS[args.log_level]
+    else:
+        level = logging.INFO
+
+    # --debug will override --log-level
+    level = logging.DEBUG if args.debug else level
 
     logging.basicConfig(level=level, format=_LOG_FORMAT, stream=sys.stdout)
     log.debug(args)
+
+    subcomponent_ids = None
+    if args.subcomponent_id is not None:
+        subcomponent_ids = (args.subcomponent_id, )
 
     max_retries = args.max_retries
     sleep_time_sec = args.sleep_time
@@ -176,7 +305,7 @@ def main(argv=sys.argv):
     log.debug("Loaded config")
     log.debug("\n" + pprint.pformat(c))
 
-    return run_main(c, max_retries, sleep_time_sec)
+    return run_main(c, max_retries, sleep_time_sec, subcomponent_ids=subcomponent_ids)
 
 
 if __name__ == '__main__':

@@ -48,7 +48,7 @@ object Sim extends App {
     arg[String]("config-file") valueName "<file>" action { (v, c) =>
       c.copy(config = Some(Paths.get(v)))
     } optional() text "Path to a config file. (E.g.: /etc/pacbio/example.conf) " +
-      "Optional, but may be required by the scneario loader."
+      "Optional, but may be required by the scenario loader."
 
     opt[String]('o', "output-xml") valueName "<file>" action { (v, c) =>
       c.copy(outputXML = Some(Paths.get(v)))

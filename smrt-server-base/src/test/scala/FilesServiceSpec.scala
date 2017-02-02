@@ -1,4 +1,3 @@
-
 import com.pacbio.common.services.CommonFilesServiceProvider
 import com.pacbio.common.actors.InMemoryLogDaoProvider
 import com.pacbio.common.app.{BaseApi, CoreProviders}

@@ -79,17 +79,16 @@ class SampleSpec extends
 
   trait daoSetup extends Scope {
     TestProviders.sampleDao().asInstanceOf[InMemorySampleDao].clear()
-    Await.ready(
-      Future.sequence(Seq(
-        TestProviders.sampleDao()
-          .createSample(ADMIN_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One")),
-        TestProviders.sampleDao()
-          .createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two")),
-        TestProviders.sampleDao()
-          .createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
-      )),
-      10.seconds
-    )
+
+    val sampleDao = TestProviders.sampleDao()
+
+    val fx = for {
+      _ <- sampleDao.createSample(ADMIN_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One"))
+      _ <- sampleDao.createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two"))
+      _ <- sampleDao.createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
+    } yield "Completed inserting Test Samples"
+
+    Await.result(fx, 10.seconds)
   }
 
   "Sample Service" should {

@@ -42,6 +42,54 @@ fasta-to-reference --help
 
 See the [full docs for details](http://smrtflow.readthedocs.io/) for details and examples of using SL tools, such as `pbservice` or `fasta-to-reference`.
 
+
+## Runtime dependencies
+
+Running postgres
+
+On the cluster:
+```bash
+module load jdk/1.8.0_71 postgresql
+export PGDATA=/localdisk/scratch/$USER/pg
+mkdir -p $PGDATA
+# on a shared machine, choose a PGPORT that's not already in use
+export PGPORT=5442
+initdb
+perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $PGPORT/" $PGDATA/postgresql.conf
+pg_ctl -l $PGDATA/postgresql.log start
+createdb smrtlinkdb
+psql < extras/db-init.sql # these are for the run services or
+psql < extras/test-db-init.sql # for the test db use in the *Spec.scala tests. The DB tables are drop and the migrations are run before each Spec.
+export SMRTFLOW_DB_PORT=$PGPORT
+```
+
+Other Custom DB values:
+
+| ENV                  | Property (`-D<key>=<value>`) |
+|----------------------| ---------|
+| SMRTFLOW_DB_USER     | smrtflow.db.properties.user         |
+| SMRTFLOW_DB_PASSWORD | smrtflow.db.properties.password     |
+| SMRTFLOW_DB_PORT     | smrtflow.db.properties.portNumber   |
+| SMRTFLOW_DB_HOST     | smrtflow.db.properties.serverName   |
+| SMRTFLOW_DB_NAME     | smrtflow.db.properties.databaseName |
+
+
+to run tests, also do:
+```bash
+export SMRTFLOW_TEST_DB_PORT=$PGPORT
+```
+
+Test DB Configuration for running unittests.
+
+| ENV                       | Property (`-D<key>=<value>`) |
+|---------------------------| ---------|
+| SMRTFLOW_TEST_DB_USER     | smrtflow.test-db.properties.user         |
+| SMRTFLOW_TEST_DB_PASSWORD | smrtflow.test-db.properties.password     |
+| SMRTFLOW_TEST_DB_PORT     | smrtflow.test-db.properties.portNumber   |
+| SMRTFLOW_TEST_DB_HOST     | smrtflow.test-db.properties.serverName   |
+| SMRTFLOW_TEST_DB_NAME     | smrtflow.test-db.properties.databaseName |
+
+
 ## Services
 
 Launching SMRT Link/Analysis Services
@@ -138,6 +186,7 @@ scala> :quit
 
 At a minimum, integration test analysis jobs requires installing pbsmrtpipe (in a virtualenv) to run a pbsmrtpipe analysis job. Specific pipeilnes will have dependencies on exes, such as `samtools` or `blasr`.
 
+- set up PostgreSQL 9.6.1 instance (see configuration above)
 - install pbsmrtpipe in a VE
 - enable scala tools via `make tools`
 - add tools to path using `source setup-tools-env.sh` Test with `which pbservice ` or `pbservice --help`

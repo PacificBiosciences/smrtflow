@@ -8,23 +8,24 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
-import com.pacbio.common.auth.{JwtUtilsImplProvider, AuthenticatorImplProvider}
+import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{DefaultConfigProvider, TypesafeSingletonReader, Singleton, SetBindings}
+import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton, TypesafeSingletonReader}
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.SystemClockProvider
 import com.pacbio.logging.LoggerOptions
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing.Route
 import spray.servlet.WebBoot
 
 import scala.collection.JavaConversions._
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 import scala.util.control.ControlThrowable
@@ -64,10 +65,10 @@ trait CoreProviders extends
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
-  SystemClockProvider {
+  SystemClockProvider with ConfigLoader{
 
-  val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
-  val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
+  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
+  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 
@@ -109,10 +110,10 @@ trait AuthenticatedCoreProviders extends
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
-  SystemClockProvider {
+  SystemClockProvider with ConfigLoader{
 
-  val serverHost: Singleton[String] = TypesafeSingletonReader.fromConfig().getString("host").orElse("0.0.0.0")
-  val serverPort: Singleton[Int] = TypesafeSingletonReader.fromConfig().getInt("port").orElse(8080)
+  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
+  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 

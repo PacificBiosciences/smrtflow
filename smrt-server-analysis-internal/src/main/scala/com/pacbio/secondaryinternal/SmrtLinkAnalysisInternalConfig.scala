@@ -10,13 +10,12 @@ import com.pacbio.secondary.analysis.configloaders.ConfigLoader
   */
 trait SmrtLinkAnalysisInternalConfig extends ConfigLoader{
 
-  lazy val reseqConditionsDir = Paths.get(conf.getString("smrt-server-analysis-internal.conditions-dir")).toAbsolutePath
+  lazy val reseqConditionsDir = Paths.get(conf.getString("smrtflow.smrt-server-analysis-internal.conditions-dir")).toAbsolutePath
 }
 
 // Trying to not infect the entire code base with Singletons
 // This entire model needs to go away.
-trait SmrtLinkAnalysisInternalConfigProvider extends ConfigLoader{
+trait SmrtLinkAnalysisInternalConfigProvider extends SmrtLinkAnalysisInternalConfig{
 
-  val reseqConditions: Singleton[Path] =
-    Singleton(() => Paths.get(conf.getString("smrt-server-analysis-internal.conditions-dir")).toAbsolutePath)
+  val reseqConditions: Singleton[Path] = Singleton(() => reseqConditionsDir)
 }

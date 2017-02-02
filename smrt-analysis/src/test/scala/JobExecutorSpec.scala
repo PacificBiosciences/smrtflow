@@ -1,4 +1,4 @@
-import java.nio.file.Files
+import java.nio.file.{Files,Path}
 import java.util.UUID
 import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, BoundEntryPoint, JobResource}
 import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, AnalysisJobStates, SimpleJobRunner}
@@ -26,7 +26,7 @@ class JobExecutorSpec extends Specification with LazyLogging{
       val outputDir = Files.createTempDirectory("mock-pbsmrtpipe-jobOptions")
       val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
       val pipelineId = "pbscala.job_types.mock_pbsmrtpipe"
-      val env = ""
+      val env: Option[Path] = None
       val taskOptions = Seq[ServiceTaskOptionBase]()
       val opts = MockPbSmrtPipeJobOptions(pipelineId, entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions.map(_.asServiceOption), env)
       logger.info(s"Running mock-pbsmrtpipe-jobOptions in ${outputDir.toString}")

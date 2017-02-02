@@ -1,0 +1,34 @@
+{
+  "smrtflow": {
+    "server": {
+      "port": 8081,
+      "manifestFile": null,
+      "eventUrl": null,
+      "dnsName": null
+    },
+    "engine": {
+      "maxWorkers": 35,
+      "jobRootDir": "./jobs-root",
+      "pbsmrtpipePresetXml": "./pbsmrtpipe-default-preset.xml"
+    },
+    "db": {
+      "properties": {
+        "databaseName": "smrtlink",
+        "user": "smrtlink_user",
+        "password": "password",
+        "portNumber": 5432,
+        "serverName": "localhost"
+      }
+    }
+  },
+  "pacBioSystem": {
+    "tomcatPort": 8080,
+    "tomcatMemory": 1024,
+    "smrtLinkServerMemoryMin": 4096,
+    "smrtLinkServerMemoryMax": 4096,
+    "smrtViewPort": 8084,
+    "tmpDir": "/tmp",
+    "logDir": "."
+  },
+  "comment": "SL System Default config example for Schema Version 2.0"
+}

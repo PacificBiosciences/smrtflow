@@ -14,6 +14,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.LogMessageRecord
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{CoreJob, SecondaryJobProtocols}
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -63,6 +64,7 @@ class DirectPbsmrtpipeJobType(
   import SecondaryAnalysisJsonProtocols._
   import SmrtServerConstants._
   import SecondaryJobProtocols.directPbsmrtpipeJobOptionsFormat
+  import CommonModelImplicits._
 
   // Not thrilled with this name
   val endpoint = "pbsmrtpipe-direct"
@@ -98,7 +100,7 @@ class DirectPbsmrtpipeJobType(
 
                 logger.info(s"Pbsmrtpipe Service Opts $ropts")
                 val jsonSettings = ropts.toJson
-                val envPath = ""
+                val envPath:Option[Path] = None
                 val serviceUri = toURL(rootUpdateURL, uuid)
 
                 val opts = PbSmrtPipeJobOptions(
@@ -158,7 +160,7 @@ class DirectPbsmrtpipeJobType(
             respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  (dbActor ? GetJobByUUID(id)).mapTo[EngineJob].map { engineJob =>
+                  (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob].map { engineJob =>
                     val sourceId = s"job::${engineJob.id}::${m.sourceId}"
                     loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
                     // an "ok" message should

@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
+import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -56,7 +57,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
               val entryPoints = ropts.entryPoints.map(x => BoundEntryPoint(x.entryId, "/tmp/file.fasta"))
               val taskOptions = Seq[ServiceTaskOptionBase]()
               val workflowOptions = Seq[ServiceTaskOptionBase]()
-              val envPath = ""
+              val envPath: Option[Path] = None
               val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")

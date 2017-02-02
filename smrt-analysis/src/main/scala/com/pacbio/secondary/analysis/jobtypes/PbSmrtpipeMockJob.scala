@@ -34,7 +34,7 @@ case class MockPbSmrtPipeJobOptions(
     entryPoints: Seq[BoundEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
-    envPath: String) extends BaseJobOptions {
+    envPath: Option[Path] = None) extends BaseJobOptions {
 
   def toJob = new PbSmrtpipeMockJob(this)
 }

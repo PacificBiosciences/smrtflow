@@ -9,6 +9,7 @@ smrt-server-analysis/jobs-root
 test-data-smrt-server
 smrt-server-analysis-internal/jobs-root
 smrt-server-analysis-internal/analysis_services.db
+extras/pbbundler/built-bundles/*
 
 # Test Data
 PacBioTestData

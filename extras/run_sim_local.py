@@ -4,6 +4,24 @@
 
 """
 Wrapper script to start the analysis server and run a simulator scenario.
+
+This should be called from that makefile via test-sim.
+
+Assumptions:
+
+- The working directory is assumed to be the root smrtflow repo directory.
+- PB_TEST_DATA_DIR env var exists, or the PacBioTestData package is installed
+- pbreports (optional) install
+- Database is completely EMPTY
+
+Drop Database using
+
+$> dropdb smrtlink
+
+Create Database using
+
+$> createdb smrtlink
+
 """
 
 import subprocess
@@ -16,12 +34,15 @@ import signal
 import os.path as op
 import os
 import sys
+import json
 
 ROOT_DIR = op.dirname(op.dirname(op.abspath(__file__)))
 TARGET_DIR = ROOT_DIR + "/smrt-server-analysis/target"
 SIM_RUNNER = ROOT_DIR + "/smrt-server-sim/target/pack/bin/scenario-runner"
 
 log = logging.getLogger(__name__)
+
+__version__ = "0.2.1"
 
 MANIFEST = """
 [{
@@ -44,7 +65,9 @@ class ServiceManager(object):
     Context manager for the server process
     """
 
-    def __init__(self):
+    def __init__(self, path_to_conf):
+        # Custom application.conf
+        self.path_to_conf = path_to_conf
         self._t = threading.Thread(target=self._run)
         self.jar_file = None
         for dir_name in os.listdir(TARGET_DIR):
@@ -65,8 +88,9 @@ class ServiceManager(object):
         with open("smrt-server-analysis.out", "w") as out:
             with open("smrt-server-analysis.err", "w") as err:
                 log.info("Starting server")
-                self._p = subprocess.Popen(["java", "-jar", self.jar_file],
-                                           stdout=out, stderr=err)
+                cmd = ["java", '-Dconfig.file={}'.format(self.path_to_conf), "-jar", self.jar_file]
+                log.info("Starting server with command '{}'".format(" ".join(cmd)))
+                self._p = subprocess.Popen(cmd, stdout=out, stderr=err)
 
     def __enter__(self):
         self._t.start()
@@ -87,10 +111,11 @@ def _alarm_handler(signum, frame):
     raise Alarm
 
 
-def run(argv):
-    logging.basicConfig(level=logging.INFO)
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("scenario")
+def get_parser():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("scenario", help="Pacbio Scenario id (example, DataSetScenario)")
+
     p.add_argument("--local", action="store_true",
                    help="Run in current directory instead of tmp dir")
     p.add_argument("--stay-alive", action="store_true",
@@ -103,30 +128,71 @@ def run(argv):
                    help="Maximum time to wait for pbsmrtpipe jobs")
     p.add_argument("--timeout", action="store", type=int, default=None,
                    help="Kill simulator after X seconds if not finished")
-    args = p.parse_args(argv)
-    if not op.exists(SIM_RUNNER):
-        raise RuntimeError("'{s}' not found".format(s=SIM_RUNNER))
-    test_conf = tempfile.NamedTemporaryFile(suffix=".conf").name
-    with open(test_conf, "w") as conf:
-        conf.write("smrt-link-host = \"localhost\"\n")
-        conf.write("smrt-link-port = 8070\n")
-        conf.write("njobs = {n}\n".format(n=args.njobs))
-        conf.write("max-time = {t}\n".format(t=args.max_wait))
-    manifest = tempfile.NamedTemporaryFile(suffix="_manifest.json").name
-    with open(manifest, "w") as mout:
-        mout.write(MANIFEST)
-    log.info("Manifest file is {f}".format(f=manifest))
-    os.environ["PB_SERVICES_MANIFEST_FILE"] = manifest
-    log.info("Capping number of workers at {j}".format(j=args.max_workers))
-    os.environ["PB_ENGINE_MAX_WORKERS"] = str(args.max_workers)
+    p.add_argument("--debug", action="store_true", default=False,
+                   help="Enable debug mode and not delete temp resources")
+    p.add_argument("--host", action="store", dest="hostname",
+                   default="localhost", help="Server hostname")
+
+    p.add_argument("--port", default=8070, type=int, help="Port to launch SL Analysis services on")
+    return p
+
+
+def to_conf_d(host, port, njobs, max_wait, max_workers, manifest_path, pb_test_files_json):
+    """Generate a application.conf formatted string"""
+
+    server = {"host": host, "port": port, "manifest-file": manifest_path}
+    engine = {"max-workers": max_workers}
+    test = {"njobs": njobs, "max-time": max_wait, "test-files": pb_test_files_json}
+    conf_d = dict(smrtflow=dict(server=server, engine=engine, test=test))
+    return conf_d
+
+
+def get_pb_test_files():
+    """ Return the path to PacBioTestData files.json or raise"""
+    x = "PB_TEST_DATA_FILES"
     try:
         import pbtestdata
+        return pbtestdata.get_path()
     except ImportError:
-        if not "PB_TEST_DATA_FILES" in os.environ:
-            raise RuntimeError(
-                "Missing PB_TEST_DATA_FILES or pbtestdata module")
-    else:
-        os.environ["PB_TEST_DATA_FILES"] = pbtestdata.get_path()
+        log.info("Attempting to get PacBioTestData files.json path from ENV var {}".format(x))
+        path = os.environ.get(x)
+        if path is None:
+            raise RuntimeError("Unable to determine PacBioTestData files.json path. ENV var {} is not defined and pbtestdata module is not installed.".format(x))
+        resolved_path = op.abspath(path)
+        if op.isfile(resolved_path):
+            return resolved_path
+        raise IOError("Unable to find PacBioTestData files.json from {}".format(resolved_path))
+
+
+def run(argv):
+    logging.basicConfig(level=logging.INFO)
+    p = get_parser()
+    args = p.parse_args(argv)
+
+    port = args.port
+    debug = args.debug
+    delete_on_exit = not debug
+
+    if not op.exists(SIM_RUNNER):
+        raise RuntimeError("'{s}' exe not found".format(s=SIM_RUNNER))
+
+    pb_test_files_json = get_pb_test_files()
+
+    manifest = tempfile.NamedTemporaryFile(suffix="_manifest.json", delete=delete_on_exit).name
+    with open(manifest, "w") as mout:
+        mout.write(MANIFEST)
+
+    test_conf = tempfile.NamedTemporaryFile(suffix="_conf.json", delete=delete_on_exit).name
+    # this should probably try to use as many non-default values as possible to make sure they're set correctly
+    conf_d = to_conf_d(args.hostname, port, args.njobs, args.max_wait, args.max_workers, manifest, pb_test_files_json)
+
+    log.info("application_conf.json for Sim {}".format(test_conf))
+    log.info(conf_d)
+    with open(test_conf, "w+") as w:
+        w.write(json.dumps(conf_d, indent=True))
+
+    log.info("Manifest file is {f}".format(f=manifest))
+
     cwd = os.getcwd()
     tmp_dir = None
     if not args.local:
@@ -138,13 +204,15 @@ def run(argv):
             raise RuntimeError("Please remove 'db' and 'jobs-root' directories")
     rc = 0
     try:
-        with ServiceManager() as server:
+        with ServiceManager(test_conf) as server:
             log.info("Running simulator scenario...")
             signal.signal(signal.SIGALRM, _alarm_handler)
             if args.timeout is not None and args.timeout > 0:
                 signal.alarm(args.timeout)
-            try :
-                rc = subprocess.call([SIM_RUNNER, args.scenario, test_conf])
+            try:
+                cmd = [SIM_RUNNER, args.scenario, test_conf]
+                log.info("Calling Sim with exe '{}'".format(" ".join(cmd)))
+                rc = subprocess.call(cmd)
                 signal.alarm(0)
             except Alarm:
                 log.error("Simulator did not terminate, killed")
@@ -156,11 +224,16 @@ def run(argv):
                 while True:
                     pass
     finally:
-        log.info("Cleaning up temporary files")
-        if tmp_dir is not None:
-            os.chdir(cwd)
-            shutil.rmtree(tmp_dir)
-        os.remove(test_conf)
+        if not debug:
+            log.info("Cleaning up temporary files")
+            if tmp_dir is not None:
+                os.chdir(cwd)
+                shutil.rmtree(tmp_dir)
+            os.remove(test_conf)
+        else:
+            log.info("running in debug mode. Not deleting tmp files")
+
+    log.info("Exiting {f} {v} with exit code {e}".format(f=__file__, v=__version__, e=rc))
     return rc
 
 if __name__ == "__main__":

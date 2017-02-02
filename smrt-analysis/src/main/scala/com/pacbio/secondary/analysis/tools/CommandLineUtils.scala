@@ -51,8 +51,8 @@ trait timeUtils {
     // return delta time in seconds
     // Do this to scope the imports
     import com.github.nscala_time.time.Implicits._
-    val dt = (ti to JodaDateTime.now).toInterval
-    dt.millis.toInt / 1000
+    val dt = (ti to tf).toInterval
+    (dt.millis / 1000).toInt
   }
 
   def computeTimeDeltaFromNow(t: JodaDateTime): Int = {
@@ -117,7 +117,7 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
             sys.exit(rcode)
         }
       case _ =>
-        val rcode = -1
+        val rcode = 2
         val runTimeSec = computeTimeDeltaFromNow(startedAt)
         val errorMessage = s"Failed to parse options for tool $toolId"
         logger.error(errorMessage)

@@ -1,430 +1,9 @@
 {
-    "_comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic_stress with pbsmrtpipe v0.42.1", 
     "bindings": [
         {
             "in": {
-                "index": 35, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
                 "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 25, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 17, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 27, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 5, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 43, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 19, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 44, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 41, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 42, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 2, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 7, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 31, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 38, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 14, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 9, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 34, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 3, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 13, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 37, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 16, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 47, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 15, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 29, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 8, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 4, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 22, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 32, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 28, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 48, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 10, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 30, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 1, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 24, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 12, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
-            }, 
-            "out": {
-                "index": 0, 
-                "instanceId": 0, 
-                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
-            }
-        }, 
-        {
-            "in": {
-                "index": 21, 
-                "instanceId": 0, 
+                "instanceId": 35, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -436,6 +15,426 @@
         {
             "in": {
                 "index": 0, 
+                "instanceId": 25, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 17, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 27, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 5, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 43, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 19, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 44, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 41, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 42, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 2, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 7, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 31, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 38, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 14, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 9, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 34, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 3, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 13, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 37, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 16, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 47, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 15, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 29, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 8, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 4, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 22, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 32, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 28, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 48, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 10, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 30, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 1, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 24, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 12, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
+                "instanceId": 21, 
+                "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
+            }, 
+            "out": {
+                "index": 0, 
+                "instanceId": 0, 
+                "taskTypeId": "pbsmrtpipe.tasks.rset_to_txt"
+            }
+        }, 
+        {
+            "in": {
+                "index": 0, 
                 "instanceId": 0, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
@@ -447,8 +446,8 @@
         }, 
         {
             "in": {
-                "index": 36, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 36, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -459,8 +458,8 @@
         }, 
         {
             "in": {
-                "index": 26, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 26, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -471,8 +470,8 @@
         }, 
         {
             "in": {
-                "index": 33, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 33, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -483,8 +482,8 @@
         }, 
         {
             "in": {
-                "index": 23, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 23, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -495,8 +494,8 @@
         }, 
         {
             "in": {
-                "index": 11, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 11, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -507,8 +506,8 @@
         }, 
         {
             "in": {
-                "index": 6, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 6, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -519,8 +518,8 @@
         }, 
         {
             "in": {
-                "index": 20, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 20, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -531,8 +530,8 @@
         }, 
         {
             "in": {
-                "index": 40, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 40, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -543,8 +542,8 @@
         }, 
         {
             "in": {
-                "index": 49, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 49, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -555,8 +554,8 @@
         }, 
         {
             "in": {
-                "index": 46, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 46, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -567,8 +566,8 @@
         }, 
         {
             "in": {
-                "index": 18, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 18, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -579,8 +578,8 @@
         }, 
         {
             "in": {
-                "index": 45, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 45, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -591,8 +590,8 @@
         }, 
         {
             "in": {
-                "index": 39, 
-                "instanceId": 0, 
+                "index": 0, 
+                "instanceId": 39, 
                 "taskTypeId": "pbsmrtpipe.tasks.dev_hello_worlder"
             }, 
             "out": {
@@ -602,6 +601,7 @@
             }
         }
     ], 
+    "comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic_stress with pbsmrtpipe v0.46.3", 
     "description": "Generate a simple report and plot from Reference DataSet", 
     "entryPoints": [
         {
@@ -625,6 +625,7 @@
     "id": "pbsmrtpipe.pipelines.dev_diagnostic_stress", 
     "name": "Reference Set Report + Random tasks", 
     "options": [], 
+    "schemaVersion": "2.0.0", 
     "tags": [
         "reports", 
         "stress", 
@@ -645,6 +646,75 @@
             "id": "pbsmrtpipe.task_options.dev_sleep_time_sec", 
             "name": "Option dev_sleep_time_sec", 
             "optionTypeId": "integer"
+        }, 
+        {
+            "choices": [
+                0.01, 
+                0.1, 
+                1.0
+            ], 
+            "default": 0.01, 
+            "description": "Option test_choice_float description", 
+            "id": "pbsmrtpipe.task_options.test_choice_float", 
+            "name": "Option test_choice_float", 
+            "optionTypeId": "choice_float"
+        }, 
+        {
+            "choices": [
+                1, 
+                2, 
+                3
+            ], 
+            "default": 1, 
+            "description": "Option test_choice_int description", 
+            "id": "pbsmrtpipe.task_options.test_choice_int", 
+            "name": "Option test_choice_int", 
+            "optionTypeId": "choice_integer"
+        }, 
+        {
+            "choices": [
+                "A", 
+                "B", 
+                "C"
+            ], 
+            "default": "A", 
+            "description": "Option test_choice_str description", 
+            "id": "pbsmrtpipe.task_options.test_choice_str", 
+            "name": "Option test_choice_str", 
+            "optionTypeId": "choice_string"
+        }, 
+        {
+            "default": 3.14, 
+            "description": "Option test_float description", 
+            "id": "pbsmrtpipe.task_options.test_float", 
+            "name": "Option test_float", 
+            "optionTypeId": "float"
+        }, 
+        {
+            "default": 1, 
+            "description": "Option test_int description", 
+            "id": "pbsmrtpipe.task_options.test_int", 
+            "name": "Option test_int", 
+            "optionTypeId": "integer"
+        }, 
+        {
+            "choices": [
+                "alpha", 
+                "beta", 
+                "gamma"
+            ], 
+            "default": "alpha", 
+            "description": "Option test_msg description", 
+            "id": "pbsmrtpipe.task_options.test_msg", 
+            "name": "Option test_msg", 
+            "optionTypeId": "choice_string"
+        }, 
+        {
+            "default": "asdf", 
+            "description": "Option test_str description", 
+            "id": "pbsmrtpipe.task_options.test_str", 
+            "name": "Option test_str", 
+            "optionTypeId": "string"
         }
     ], 
     "version": "0.1.0"
