@@ -288,6 +288,9 @@ object PbServiceParser {
       opt[String]("job-title") action { (t, c) =>
         c.copy(jobTitle = t)
       } text "Job title (will be displayed in UI)",
+      opt[Unit]("block") action { (_, c) =>
+        c.copy(block = true)
+      } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
       } text "Maximum time to poll for running job status"
