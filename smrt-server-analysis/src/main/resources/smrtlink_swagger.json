@@ -6,7 +6,7 @@
   "info": {
     "version": "1.0.0",
     "description": "SMRTLink Services Swagger 2.0 specification",
-    "title": "SMRT Link Analysis Services"
+    "title": "SMRT Link Analysis Services for SMRT Link 4.0.0 Release"
   },
   "host": "localhost:8081",
   "basePath": "/SMRTLink/1.0.0",
@@ -1307,7 +1307,18 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "SMRT Link Analysis Server Status",
+            "schema": {
+              "$ref": "#/definitions/SmrtServerStatus"
+            },
+            "examples": {
+              "uuid": "8da44054-4013-420d-b547-d11a892fe7bb",
+              "version": "0.3.0-bbcc1b5",
+              "id": "smrtlink_analysis",
+              "uptime": 210242144,
+              "message": "Services have been up for 58 hours, 24 minutes and 2.144 seconds.",
+              "user": "tesla"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1654,6 +1665,81 @@
           "name": "version",
           "in": "path"
         }
+      ]
+    }
+  },
+  "definitions": {
+    "SmrtServerStatus": {
+      "type": "object",
+      "title": "SMRT Server Status",
+      "description": "An summary of the SMRT Server instance, current state and status.",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Server UUID",
+          "description": "UUID of SMRT Server instance"
+        },
+        "version": {
+          "type": "string",
+          "title": "SMRT Analysis Services Version",
+          "description": "The Version of the SMRT Analysis Services Version. Note, this is not the SMRT Link System version. See services/manifests to see details."
+        },
+        "id": {
+          "type": "string",
+          "title": "SMRT Server Type Id",
+          "description": "SMRT Server Type Id"
+        },
+        "uptime": {
+          "type": "integer",
+          "format": "int64",
+          "title": "Uptime",
+          "description": "Uptime of the Server (in milliseconds)"
+        },
+        "message": {
+          "type": "string",
+          "title": "Status Message",
+          "description": "SMRT Analysis Service message status."
+        },
+        "user": {
+          "type": "string",
+          "title": "User",
+          "description": "User that the SMRT Analysis Services are launched by"
+        }
+      },
+      "required": [
+        "uuid",
+        "version",
+        "id",
+        "uptime",
+        "message",
+        "user"
+      ]
+    },
+    "SmrtServerError": {
+      "type": "object",
+      "title": "SMRT Server Error Message",
+      "description": "Detailed error message from SMRT Server",
+      "properties": {
+        "httpCode": {
+          "type": "integer",
+          "title": "HttpCode",
+          "description": "Returned HTTP Code. For non successful return codes, the SMRT Server will return a JSON body with error details"
+        },
+        "message": {
+          "type": "string",
+          "title": "Error Message",
+          "description": "Detailed Error Message Details"
+        },
+        "errorType": {
+          "type": "string",
+          "title": "ErrorType",
+          "description": "Error Type"
+        }
+      },
+      "required": [
+        "httpCode",
+        "message",
+        "errorType"
       ]
     }
   }
