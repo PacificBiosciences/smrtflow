@@ -58,8 +58,8 @@ initdb
 perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $PGPORT/" $PGDATA/postgresql.conf
 pg_ctl -l $PGDATA/postgresql.log start
 createdb smrtlinkdb
-psql < extras/db-init.sql # these are for the run services or
-psql < extras/test-db-init.sql # for the test db use in the *Spec.scala tests. The DB tables are drop and the migrations are run before each Spec.
+psql -d smrtlinkdb < extras/db-init.sql # these are for the run services or
+psql -d smrtlinkdb < extras/test-db-init.sql # for the test db use in the *Spec.scala tests. The DB tables are drop and the migrations are run before each Spec.
 export SMRTFLOW_DB_PORT=$PGPORT
 ```
 
