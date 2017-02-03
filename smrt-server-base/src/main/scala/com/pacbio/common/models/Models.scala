@@ -23,53 +23,6 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
-object MetricType {
-
-  /**
-   * Supertype for different types of alarm metrics
-   */
-  sealed trait MetricType
-
-  /**
-   * The value of the metric is the value of the latest update
-   */
-  case object LATEST extends MetricType
-
-  /**
-   * The value of the metric is the sum of the update values
-   */
-  case object SUM extends MetricType
-
-  /**
-   * The value of the metric is determined by a running average of the update values
-   */
-  case object AVERAGE extends MetricType
-
-  /**
-   * The value of the metric is the maximum update value seen
-   */
-  case object MAX extends MetricType
-
-  val ALL = Seq(LATEST, SUM, AVERAGE, MAX)
-}
-
-object AlarmSeverity {
-  sealed class AlarmSeverity(val severity: Int) extends Ordered[AlarmSeverity] {
-    def compare(s2: AlarmSeverity): Int = severity compareTo s2.severity
-  }
-
-  case object CLEAR extends AlarmSeverity(severity = 0)
-  case object WARN extends AlarmSeverity(severity = 1)
-  case object ERROR extends AlarmSeverity(severity = 2)
-  case object CRITICAL extends AlarmSeverity(severity = 3)
-  case object FATAL extends AlarmSeverity(severity = 4)
-  case object FATAL_IMMEDIATE extends AlarmSeverity(severity = 5)
-
-  val ALL = Seq(CLEAR, WARN, ERROR, CRITICAL, FATAL, FATAL_IMMEDIATE)
-  val alarmSeverityByName = ALL.map(x => x.toString -> x).toMap
-  val nameByAlarmSeverity = ALL.map(x => x -> x.toString).toMap
-}
-
 object LogLevel {
   sealed abstract class LogLevel
 
@@ -100,23 +53,28 @@ case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, 
 
 
 // Alarm System
-case class TagCriteria(hasAny: Set[String] = Set.empty, hasAll: Set[String] = Set.empty, hasAnyPrefix: Set[String] = Set.empty, hasAllPrefix: Set[String] = Set.empty) {
-  def matches(tags: Set[String]): Boolean = {
-    hasAll.foreach { t => if (!tags.contains(t)) return false }
-    hasAllPrefix.foreach { p => if (!tags.exists(_.startsWith(p))) return false }
-    if ( !hasAny.forall { t => !tags(t) } ) return false
-    if ( !hasAnyPrefix.forall { p => !tags.exists(_.startsWith(p)) } ) return false
-    true
+object AlarmSeverity {
+  sealed class AlarmSeverity(val severity: Int) extends Ordered[AlarmSeverity] {
+    def compare(s2: AlarmSeverity): Int = severity compareTo s2.severity
   }
+
+  case object CLEAR extends AlarmSeverity(severity = 0)
+  case object WARN extends AlarmSeverity(severity = 1)
+  case object ERROR extends AlarmSeverity(severity = 2)
+  case object CRITICAL extends AlarmSeverity(severity = 3)
+  case object FATAL extends AlarmSeverity(severity = 4)
+  case object FATAL_IMMEDIATE extends AlarmSeverity(severity = 5)
+
+  val ALL = Seq(CLEAR, WARN, ERROR, CRITICAL, FATAL, FATAL_IMMEDIATE)
+  val alarmSeverityByName = ALL.map(x => x.toString -> x).toMap
+  val nameByAlarmSeverity = ALL.map(x => x -> x.toString).toMap
 }
 
-case class AlarmMetricCreateMessage(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[AlarmSeverity.AlarmSeverity, Double], windowSeconds: Option[Int])
+case class Alarm(id: String, name: String, description: String)
 
-case class AlarmMetric(id: String, name: String, description: String, criteria: TagCriteria, metricType: MetricType.MetricType, severityLevels: Map[AlarmSeverity.AlarmSeverity, Double], windowSeconds: Option[Int], severity: AlarmSeverity.AlarmSeverity, metricValue: Double, createdAt: JodaDateTime, lastUpdate: Option[JodaDateTime])
+case class AlarmUpdate(value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
 
-case class AlarmMetricUpdateMessage(updateValue: Double, tags: Set[String], note: Option[String] = None)
-
-case class AlarmMetricUpdate(updateValue: Double, tags: Set[String], note: Option[String], updateId: Long, timestamp: JodaDateTime)
+case class AlarmStatus(id: String, value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
 
 
 // Logging System
