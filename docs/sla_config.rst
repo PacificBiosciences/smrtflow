@@ -1,19 +1,20 @@
-SMRT Link Analysis Config
-=========================
+SMRT Link Analysis Services Config
+==================================
 
 Configuration is can be done using scala conf files, setting `-D` when launching the JVM, or by setting ENV vars.
 
-Please see the `reference.conf` of each project for details.
+Please see the `reference.conf` or the `application.conf` of each sbt subproject (e.g., smrt-server-analysis) for details.
 
 Common Analysis Configuration
 -----------------------------
 
-- *PB_SERVICES_PORT* (pb-services.port) Set the port to use
-- *PB_SERVICES_DB_URI* (pb-services.db-uri) Database URI (example: test.db, jdbc:sqlite:db/analysis_services.db)
-- *PB_ENGINE_JOB_ROOT* (pb-engine.job-root) Job root directory *PB_ENGINE_JOB_ROOT* (example: jobs-root, /path/to/jobs-root)
-- *PB_SMRTPIPE_XML_PRESET* (pb-engine.pb-smrtpipe-preset-xml) Path to default pbsmrtpipe Preset XML (example: /path/to/preset.xml)
-- *PB_SERVICES_MANIFEST_FILE* (pb-services.manifest-file) Path to PacBioManifest file that contains versions of subcomponents, such as "smrtlink"
-- *PB_ENGINE_MAX_WORKERS* (pb-services.max-workers) Number of maximum services job workers to run concurrently. This will limit the total number of pbsmrtpipe, import-dataset, etc... jobs that are run concurrently.
+- *PB_SERVICES_PORT* or *SMRTFLOW_SERVER_PORT* (smrtflow.server.port) Set the port to use
+- *PB_SERVICES_MANIFEST_FILE* (smrtflow.server.manifestFile) Path to PacBioManifest file that contains versions of subcomponents, such as "smrtlink"
+- *PB_ENGINE_JOB_ROOT* (smrtflow.engine.jobRootDir) Job root directory *PB_ENGINE_JOB_ROOT* (example: jobs-root, /path/to/jobs-root)
+- *PB_SMRTPIPE_XML_PRESET* (smrtflow.engine.pbsmrtpipePresetXml) Path to default pbsmrtpipe Preset XML (example: /path/to/preset.xml)
+- *PB_ENGINE_MAX_WORKERS* (smrtflow.engine.maxWorkers) Number of maximum services job workers to run concurrently. This will limit the total number of pbsmrtpipe, import-dataset, etc... jobs that are run concurrently.
+
+For the db configuration see the hocon .conf files for details.
 
 
 SMRT Link Bundle External Resources

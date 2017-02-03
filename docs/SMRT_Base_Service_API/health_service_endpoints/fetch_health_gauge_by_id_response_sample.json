@@ -1,7 +1,0 @@
-{
-  "name": "Disk Space Full",
-  "description": "Found 95% disk full",
-  "id": "pacbio.health.gauges.disk_space_full",
-  "createdAt": "2016-04-01T14:36:24.599",
-  "severity": "ALERT"
-}
