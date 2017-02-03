@@ -24,7 +24,7 @@ SL_SERVICES_JVM_ARGS=$(cat ${__root}/services-jvm-args)
 SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
 SL_SERVICES_JAR=${__root}/${SERVICES_JAR_NAME}
-SL_SERVICES_TOOLS_DIR=$(__root}/tools
+SL_SERVICES_TOOLS_DIR=${__root}/tools
 
 export PATH=${SL_SERVICES_TOOLS_DIR}/bin:$PATH
 
