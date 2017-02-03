@@ -33,6 +33,11 @@ object ReferenceInfoToDataSetTool extends CommandLineToolRunner[ReferenceConvert
 
     // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
   }
 
   /**
