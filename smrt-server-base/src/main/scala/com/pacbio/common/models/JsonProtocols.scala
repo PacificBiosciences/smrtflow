@@ -32,18 +32,6 @@ trait AlarmProtocols extends DefaultJsonProtocol with FamilyFormats {
       case _ => deserializationError("Expected AlarmSeverity type as JsString")
     }
   }
-
-  implicit object MetricTypeFormat extends JsonFormat[MetricType.MetricType] {
-    def write(obj: MetricType.MetricType): JsValue = JsString(obj.toString)
-
-    def read(json: JsValue): MetricType.MetricType = json match {
-      case JsString(x) =>
-        MetricType.ALL
-          .find(_.toString == x.toUpperCase)
-          .getOrElse(deserializationError(s"Could not find MetricType named $x"))
-      case _ => deserializationError("Expected AlarmSeverity type as JsString")
-    }
-  }
 }
 
 trait LogLevelProtocol extends DefaultJsonProtocol with FamilyFormats {
@@ -135,10 +123,8 @@ with DirectoryResourceProtocol
   implicit val pbServiceConfigFormat = jsonFormat2(ServerConfig)
   implicit val pbServiceComponentFormat = jsonFormat3(ServiceComponent)
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
-  implicit val pbAlarmMetricCreateMessageFormat = jsonFormat7(AlarmMetricCreateMessage)
-  implicit val pbAlarmMetricFormat = jsonFormat11(AlarmMetric)
-  implicit val pbAlarmMetricUpdateMessageFormat = jsonFormat3(AlarmMetricUpdateMessage)
-  implicit val pbAlarmMetricUpdateFormat = jsonFormat5(AlarmMetricUpdate)
+  implicit val pbAlarmFormat = jsonFormat3(Alarm)
+  implicit val pbAlarmStatusFormat = jsonFormat4(AlarmStatus)
   implicit val pbLogResourceRecordFormat = jsonFormat3(LogResourceRecord)
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)

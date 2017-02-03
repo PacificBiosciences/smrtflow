@@ -8,7 +8,7 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
-import com.pacbio.common.actors.alarms.{AlarmComposer, DiskSpaceAlarmProvider}
+import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAlarmRunnerProvider, AlarmComposer}
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
@@ -46,7 +46,8 @@ trait CoreProviders extends
   ServiceManifestsProvider with
   ManifestServiceProvider with
   AlarmComposer with
-  DiskSpaceAlarmProvider with
+  JobDirectoryAlarmRunnerProvider with
+  TmpDirectoryAlarmRunnerProvider with
   AlarmServiceProvider with
   InMemoryAlarmDaoProvider with
   LogServiceProvider with
@@ -94,7 +95,8 @@ trait AuthenticatedCoreProviders extends
   ServiceComposer with
   AlarmComposer with
   ManifestServiceProviderx with
-  DiskSpaceAlarmProvider with
+  JobDirectoryAlarmRunnerProvider with
+  TmpDirectoryAlarmRunnerProvider with
   AlarmServiceProviderx with
   InMemoryAlarmDaoProvider with
   LogServiceProviderx with
@@ -195,10 +197,8 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
 
-  override def startup(): Unit = {
-    providers.cleanupScheduler().scheduleAll()
-    providers.initAlarms
-  }
+  override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
+
 
   LoggerOptions.parseAddDebug(args)
 
