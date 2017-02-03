@@ -325,7 +325,7 @@ def to_uri(host, port, base_url="", https=False):
     return "{h}:{p}{u}".format(h=h, p=port, u=u)
 
 
-def to_smrt_link_ui_config_d(host, wso2_https_port, smrtview_port, service_event_url=None, tech_support_url=None):
+def to_smrt_link_ui_config_d(host, services_port, wso2_https_port, smrtview_port, service_event_url=None, tech_support_url=None):
     """
     New Configuration format in 3.1.0
 
@@ -357,11 +357,11 @@ def write_smrt_link_ui_config(d, file_name):
     return file_name
 
 
-def update_server_path_in_ui(host, wso2_https_port, smrtview_port, event_url, tech_support_url):
+def update_server_path_in_ui(host, services_port, wso2_https_port, smrtview_port, event_url, tech_support_url):
 
     output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.SLINK_CONFIG)
 
-    d = to_smrt_link_ui_config_d(host, wso2_https_port, smrtview_port, event_url, tech_support_url)
+    d = to_smrt_link_ui_config_d(host, services_port, wso2_https_port, smrtview_port, event_url, tech_support_url)
     log.debug("SL UI Config\n" + pprint.pformat(d))
     _ = write_smrt_link_ui_config(d, output_file)
     log.debug("Writing SL UI Config to {f}".format(f=output_file))
@@ -462,6 +462,7 @@ def main(argv=sys.argv[1:]):
 
         wso2_https_port = 8243
         update_server_path_in_ui(host,
+                                 c.analysis_port,
                                  wso2_https_port,
                                  c.pb_smrt_view_port,
                                  c.pbservices_event_url,
