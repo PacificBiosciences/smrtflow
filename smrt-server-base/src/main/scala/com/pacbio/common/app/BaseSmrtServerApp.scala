@@ -197,10 +197,8 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
 
-  override def startup(): Unit = {
-    providers.cleanupScheduler().scheduleAll()
-    providers.initAlarms
-  }
+  override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
+
 
 
   LoggerOptions.parseAddDebug(args)
