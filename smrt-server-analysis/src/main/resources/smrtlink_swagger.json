@@ -6,19 +6,13 @@
   "info": {
     "version": "1.0.0",
     "description": "SMRTLink Services Swagger 2.0 specification",
-    "title": "SMRT Link Analysis Services"
+    "title": "SMRT Link Analysis Services for SMRT Link 4.1.0"
   },
   "host": "localhost:8081",
   "basePath": "/SMRTLink/1.0.0",
   "x-wso2-security": {
     "apim": {
       "x-wso2-scopes": [
-        {
-          "roles": "Internal/PbAdmin",
-          "name": "smrtlink-admin",
-          "key": "smrtlink-admin",
-          "description": "Admin Authorization"
-        },
         {
           "roles": "Internal/PbAdmin,Internal/PbLabTech",
           "name": "run-design",
@@ -129,7 +123,6 @@
     },
     "/secondary-analysis/dataset-types": {
       "get": {
-        "description": "Get a list of Job Types that are registered to the SL system. The job types can be used to get a list of jobs of specific type, such as pbsmrtpipe, job-manager/jobs/pbsmrtpipe",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1032,11 +1025,50 @@
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
+      },
+      "get": {
+        "description": "Get Job subtask by task UUID",
+        "responses": {
+          "default": {
+            "description": "Failed to find Job Id, task UUID or job type "
+          },
+          "201": {
+            "description": "Return a JobTask instance"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "description": "Task Globally unique identifier as a UUID",
+            "required": true,
+            "type": "string",
+            "name": "task-uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
       }
     },
     "/secondary-analysis/dataset-types/{type}": {
       "get": {
-        "description": "Get details for a specific job type by id (e.g., pbsmrtpipe, merge-datasets)",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1047,7 +1079,6 @@
         },
         "parameters": [
           {
-            "description": "Job Type (e.g., pbsmrtpipe, merge-datasets)",
             "required": true,
             "type": "string",
             "name": "type",
@@ -1390,10 +1421,13 @@
         "x-throttling-tier": "Unlimited",
         "responses": {
           "default": {
-            "description": "Return value"
+            "description": "Failed to get Server status likely means the server is down"
           },
           "200": {
-            "description": "Return value"
+            "description": "SMRT Link Analysis Server Status",
+            "schema": {
+              "$ref": "#/definitions/SmrtServerStatus"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1420,20 +1454,33 @@
       "get": {
         "responses": {
           "default": {
-            "description": "Return value"
+            "schema": {
+              "$ref": "#/definitions/SmrtServerError"
+            },
+            "examples": {
+              "httpCode": 404,
+              "message": "Unable to find JobId 66666",
+              "errorType": "Not Found"
+            },
+            "description": "Error Message. Unable to find job or job type is invalid"
           },
           "200": {
-            "description": "Return value"
+            "description": "Returns a SMRT Link Service Job",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
           }
         },
         "parameters": [
           {
+            "description": "Job type (e.g., pbsmrtpipe, import-dataset, merge-dataset",
             "required": true,
             "type": "string",
             "name": "type",
             "in": "path"
           },
           {
+            "description": "Job id and Integer or UUID",
             "required": true,
             "type": "string",
             "name": "job-id",
@@ -1730,16 +1777,222 @@
             "description": "Return value"
           }
         },
-        "parameters": [
-          {
-            "description": "Version of the EULA that was accepted",
-            "required": true,
-            "type": "string",
-            "name": "version",
-            "in": "path"
-          }
-        ],
         "x-auth-type": "Application & Application User"
+      },
+      "parameters": [
+        {
+          "description": "Version of EULA",
+          "required": true,
+          "type": "string",
+          "name": "version",
+          "in": "path"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "SmrtServerStatus": {
+      "type": "object",
+      "title": "SMRT Server Status",
+      "description": "An summary of the SMRT Server instance, current state and status.",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Server UUID",
+          "description": "UUID of SMRT Server instance"
+        },
+        "version": {
+          "type": "string",
+          "title": "SMRT Analysis Services Version",
+          "description": "The Version of the SMRT Analysis Services Version. Note, this is not the SMRT Link System version. See services/manifests to see details."
+        },
+        "id": {
+          "type": "string",
+          "title": "SMRT Server Type Id",
+          "description": "SMRT Server Type Id"
+        },
+        "uptime": {
+          "type": "integer",
+          "format": "int64",
+          "title": "Uptime",
+          "description": "Uptime of the Server (in milliseconds)"
+        },
+        "message": {
+          "type": "string",
+          "title": "Status Message",
+          "description": "SMRT Analysis Service message status."
+        },
+        "user": {
+          "type": "string",
+          "title": "User",
+          "description": "User that the SMRT Analysis Services are launched by"
+        }
+      },
+      "required": [
+        "uuid",
+        "version",
+        "id",
+        "uptime",
+        "message",
+        "user"
+      ],
+      "example": {
+        "uuid": "8da44054-4013-420d-b547-d11a892fe7bb",
+        "version": "0.3.0-bbcc1b5",
+        "id": "smrtlink_analysis",
+        "uptime": 210242144,
+        "message": "Services have been up for 58 hours, 24 minutes and 2.144 seconds.",
+        "user": "tesla"
+      }
+    },
+    "SmrtServerError": {
+      "type": "object",
+      "title": "SMRT Server Error Message",
+      "description": "Detailed error message from SMRT Server",
+      "properties": {
+        "httpCode": {
+          "type": "integer",
+          "title": "HttpCode",
+          "description": "Returned HTTP Code. For non successful return codes, the SMRT Server will return a JSON body with error details"
+        },
+        "message": {
+          "type": "string",
+          "title": "Error Message",
+          "description": "Detailed Error Message Details"
+        },
+        "errorType": {
+          "type": "string",
+          "title": "ErrorType",
+          "description": "Error Type"
+        }
+      },
+      "required": [
+        "httpCode",
+        "message",
+        "errorType"
+      ],
+      "example": {
+        "httpCode": 404,
+        "message": "Unable to find JobId 66666",
+        "errorType": "Not Found"
+      }
+    },
+    "ServiceJob": {
+      "type": "object",
+      "title": "SMRT Server Job",
+      "description": "SMRT Server Job data model",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Job Name",
+          "description": "Name of the SMRT Link Job"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "UpdatedAt schema.",
+          "description": "Datetime of when the job was last updated."
+        },
+        "path": {
+          "type": "string",
+          "title": "Job Path",
+          "description": "Absolute path on the file system to the SMRT Link Job"
+        },
+        "state": {
+          "type": "string",
+          "title": "State",
+          "description": "Current SMRT Link Service Job state"
+        },
+        "uuid": {
+          "type": "string",
+          "title": "UUID",
+          "description": "Globally UUID unique identifier for the job"
+        },
+        "smrtlinkToolsVersion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "SMRT Link Tools Version",
+          "description": "SMRT Link Tools Version"
+        },
+        "jobTypeId": {
+          "type": "string",
+          "title": "JobTypeId",
+          "description": "SMRT Link Server Job Type Id (e.g., pbsmrtpipe, import-dataset, merge-dataset)."
+        },
+        "id": {
+          "type": "integer",
+          "title": "Id",
+          "description": "Integer Id of the SMRT Link job"
+        },
+        "smrtlinkVersion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "SMRT Link System Version",
+          "description": "SMRT Link System Version used to run the SMRT Link job"
+        },
+        "comment": {
+          "type": "string",
+          "title": "Comment",
+          "description": "Comment/Description of Job"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "CreatedAt.",
+          "description": "When the SMRT Link job was created at"
+        },
+        "isActive": {
+          "type": "boolean",
+          "title": "IsActive",
+          "description": "If the Job is inactive, it will be displayed in the SL UI"
+        },
+        "createdBy": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "CreatedBy",
+          "description": "User that created the SMRT Link job"
+        },
+        "jsonSettings": {
+          "type": "string",
+          "title": "Input Settings of Job",
+          "description": "Input setting of the Job as JSON String. Each job type (e.g., pbsmrtpipe, merge-dataset) will contain a different schema."
+        }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "state",
+        "uuid",
+        "smrtlinkToolsVersion",
+        "jobTypeId",
+        "id",
+        "smrtlinkVersion",
+        "comment",
+        "createdAt",
+        "isActive",
+        "createdBy",
+        "jsonSettings"
+      ],
+      "example": {
+        "name": "Job import-dataset",
+        "updatedAt": "2016-11-23T08:57:25.150Z",
+        "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-alpha/smrtsuite_170220/userdata/jobs_root/001/001767",
+        "state": "FAILED",
+        "uuid": "20c97477-8b7d-4dbb-9303-beee979aaabc",
+        "smrtlinkToolsVersion": "3.2.0.187062",
+        "jobTypeId": "import-dataset",
+        "id": 1767,
+        "smrtlinkVersion": "3.2.0.187079",
+        "comment": "Importing DataSet",
+        "createdAt": "2016-11-23T08:55:10.786Z",
+        "isActive": true,
+        "createdBy": "ralph",
+        "jsonSettings": "{\"path\":\"/pbi/collections/242/2420325/r54124_20161109_021915/2_B01/m54124_161109_093303.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
       }
     }
   }
