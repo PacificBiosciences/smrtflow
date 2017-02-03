@@ -43,7 +43,19 @@ object LegacyConvertConfigJsonTool extends CommandLineToolRunner[LegacyConvertOp
     arg[File]("config").action((x, c) => c.copy(file = x)).text("Path to config.json schema V1 format")
     opt[File]("output").action((x, c) => c.copy(output = x)).text(s"Output path of Schema V2 format (default ${defaults.output})")
 
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
+
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+
   }
 
   // This should be pushed back to a central location

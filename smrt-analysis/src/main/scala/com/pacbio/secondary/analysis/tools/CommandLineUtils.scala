@@ -70,12 +70,21 @@ case class ToolSuccess(toolId: String, runTimeSec: Int) extends ToolResult
 
 case class ToolFailure(toolId: String, runTimeSec: Int, message: String) extends ToolResult
 
-trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtils {
+trait CommandLineToolVersion {
+
+  def showToolVersion(toolId: String, version: String): Unit =
+    println(s"Tool $toolId tool version $version (smrtflow ${Constants.SMRTFLOW_VERSION})")
+}
+
+
+trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtils with CommandLineToolVersion{
 
   val toolId: String
   val VERSION: String
   val parser: scopt.OptionParser[T]
   val defaults: T
+
+  def showVersion: Unit = showToolVersion(toolId, VERSION)
 
   def run(config: T): Either[ToolFailure, ToolSuccess]
 

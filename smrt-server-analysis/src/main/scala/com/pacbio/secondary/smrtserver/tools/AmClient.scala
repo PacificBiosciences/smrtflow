@@ -8,19 +8,14 @@ import java.net.URL
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Try
-
 import akka.actor.ActorSystem
 import akka.util.Timeout
-
 import spray.json._
-
 import com.typesafe.config.ConfigFactory
-
 import scopt.OptionParser
-
 import com.pacbio.common.dependency.TypesafeSingletonReader
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-
+import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
 import org.wso2.carbon.apimgt.rest.api.publisher
 
 
@@ -49,7 +44,7 @@ object loadResource extends (String => String) {
   }
 }
 
-object AmClientParser {
+object AmClientParser extends CommandLineToolVersion{
 
   val VERSION = "0.1.0"
   var TOOL_ID = "pbscala.tools.amclient"
@@ -57,6 +52,8 @@ object AmClientParser {
   def showDefaults(c: CustomConfig): Unit = {
     println(s"Defaults $c")
   }
+
+  def showVersion = showToolVersion(TOOL_ID, VERSION)
 
   // Examples:
   // smrt-server-analysis/target/pack/bin/amclient set-api --target http://localhost:8090/ --swagger-resource /smrtlink_swagger.json --app-config ~/p4/ui/main/apps/smrt-link/src/app-config.json --user admin --pass admin --host login14-biofx02 --port-offset 10
@@ -177,6 +174,11 @@ object AmClientParser {
       showUsage
       sys.exit(0)
     } text "Show options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      println("")
+      sys.exit(0)
+    } text "Show tool version and exit"
   }
 }
 

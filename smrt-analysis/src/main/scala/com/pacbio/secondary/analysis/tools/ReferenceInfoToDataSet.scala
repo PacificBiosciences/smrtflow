@@ -38,6 +38,11 @@ object ReferenceInfoToDataSetTool extends CommandLineToolRunner[ReferenceConvert
       showUsage
       sys.exit(0)
     } text "Show options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
   }
 
   /**

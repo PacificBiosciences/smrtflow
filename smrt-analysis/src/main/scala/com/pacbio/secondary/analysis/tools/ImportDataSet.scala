@@ -40,6 +40,11 @@ object ImportDataSet extends CommandLineToolRunner[ImportDataSetConfig]{
       sys.exit(0)
     } text "Show Options and exit"
 
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
     // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }

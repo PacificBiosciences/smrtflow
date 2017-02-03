@@ -1,11 +1,10 @@
 package com.pacbio.secondary.analysis.tools
 
-import java.nio.file.{Paths,Files}
+import java.nio.file.{Files, Paths}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.converters.GmapReferenceConverter
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
-
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
@@ -62,6 +61,11 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
       showUsage
       sys.exit(0)
     } text "Show options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
   }
 
   def run(c: FastaToGmapReferenceSetConfig): Either[ToolFailure, ToolSuccess] = {
