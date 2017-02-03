@@ -2,7 +2,7 @@ Disclaimer
 ==========
 
 For Research Use Only. Not for use in diagnostic procedures.
-Copyright 2016, Pacific Biosciences of California, Inc. All rights reserved.
+Copyright 2017, Pacific Biosciences of California, Inc. All rights reserved.
 Information in this document is subject to change without notice.
 Pacific Biosciences assumes no responsibility for any errors or omissions in this document.
 Certain notices, terms, conditions and/or use restrictions may pertain to your use of Pacific Biosciences products and/or third party products.
