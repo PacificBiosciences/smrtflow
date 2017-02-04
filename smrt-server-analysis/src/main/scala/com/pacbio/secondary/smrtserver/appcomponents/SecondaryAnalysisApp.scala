@@ -45,7 +45,7 @@ trait SecondaryApi extends SmrtLinkApi with LazyLogging {
 object SecondaryAnalysisServer extends App with BaseServer with SecondaryApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()
-
+  
   LoggerOptions.parseAddDebug(args)
 
   start

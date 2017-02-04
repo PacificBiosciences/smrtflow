@@ -8,10 +8,12 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.actors._
+import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAlarmRunnerProvider, AlarmComposer}
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton, TypesafeSingletonReader}
+import com.pacbio.common.file.JavaFileSystemUtilProvider
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
@@ -43,8 +45,11 @@ trait CoreProviders extends
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
-  HealthServiceProvider with
-  InMemoryHealthDaoProvider with
+  AlarmComposer with
+  JobDirectoryAlarmRunnerProvider with
+  TmpDirectoryAlarmRunnerProvider with
+  AlarmServiceProvider with
+  InMemoryAlarmDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
   CleanupServiceProvider with
@@ -65,6 +70,7 @@ trait CoreProviders extends
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
+  JavaFileSystemUtilProvider with
   SystemClockProvider with ConfigLoader{
 
   val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
@@ -87,9 +93,12 @@ trait AuthenticatedCoreProviders extends
   SetBindings with
   DefaultConfigProvider with
   ServiceComposer with
+  AlarmComposer with
   ManifestServiceProviderx with
-  HealthServiceProviderx with
-  InMemoryHealthDaoProvider with
+  JobDirectoryAlarmRunnerProvider with
+  TmpDirectoryAlarmRunnerProvider with
+  AlarmServiceProviderx with
+  InMemoryAlarmDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   CleanupServiceProviderx with
@@ -110,6 +119,7 @@ trait AuthenticatedCoreProviders extends
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
+  JavaFileSystemUtilProvider with
   SystemClockProvider with ConfigLoader{
 
   val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
@@ -188,6 +198,7 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val port = providers.serverPort()
 
   override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
+
 
   LoggerOptions.parseAddDebug(args)
 

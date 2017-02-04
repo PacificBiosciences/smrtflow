@@ -12,23 +12,11 @@ class PacbioJsonProtocolSpec extends Specification {
 
   "Serialize Alert Spec" should {
     "Alert serialize to Json " in {
-      val n = JodaDateTime.now()
-      val m = HealthMetric(
-        "id",
-        "name",
-        "desc",
-        TagCriteria(hasAny = Set("tag")),
-        MetricType.SUM,
-        Map(HealthSeverity.CAUTION -> 1.0),
-        Some(60),
-        HealthSeverity.OK,
-        0.5,
-        n,
-        None)
+      val m = Alarm("id", "name", "desc")
       m.name must beEqualTo("name")
       val x = m.toJson
       println(x)
-      m.severity must beEqualTo(HealthSeverity.OK)
+      m.id must beEqualTo("id")
     }
     "Manifest serialization" in {
       val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
