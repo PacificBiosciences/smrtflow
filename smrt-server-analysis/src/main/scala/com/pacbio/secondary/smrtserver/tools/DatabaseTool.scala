@@ -55,6 +55,16 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     opt[String]('n', "db-name").action {(x, c) => c.copy(dbName = x)}.text(s"Database Name ${toDefault(defaults.dbName)}")
     opt[Int]("port").action {(x, c) => c.copy(port = x)}.text(s"Database port ${toDefault(defaults.port.toString)}")
 
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
