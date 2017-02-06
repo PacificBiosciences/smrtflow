@@ -168,7 +168,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+              "schema": {
+                "$ref": "#/definitions/DiskSpace"
+              }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1791,6 +1794,52 @@
     }
   },
   "definitions": {
+    "DiskSpace": {
+      "type": "object",
+      "title": "SMRT Server Disk Space",
+      "description": "An summary of the SMRT Server disk usage.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Server Path",
+          "description": "Path to base directory of SMRT Server"
+        },
+        "totalSpace": {
+               "type": "int",
+               "title": "Total Space",
+               "description": "Total disk Space available for SMRT Server"
+             },
+        "id": {
+               "type": "string",
+               "title": "Server ID",
+               "description": "???"
+             },
+        "usableSpace": {
+               "type": "int",
+               "title": "Usable Disk Space",
+               "description": "Total free disk space available for SMRT Server"
+             },
+        "freeSpace": {
+               "type": "int",
+               "title": "Free Disk Space",
+               "description": "Total free disk space available for SMRT Server"
+             }
+      },
+      "required": [
+        "path",
+        "totalSpace",
+        "id",
+        "usableSpace",
+        "freeSpace"
+      ],
+      "example": {
+        "path": "/",
+        "totalSpace": 121626710016,
+        "id": "smrtlink.resources.root",
+        "usableSpace": 112911650816,
+        "freeSpace": 119113555968
+      }
+    },
     "SmrtServerStatus": {
       "type": "object",
       "title": "SMRT Server Status",
