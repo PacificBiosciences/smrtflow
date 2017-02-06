@@ -169,9 +169,9 @@
           },
           "200": {
             "description": "Return value",
-              "schema": {
-                "$ref": "#/definitions/DiskSpace"
-              }
+            "schema": {
+              "$ref": "#/definitions/DiskSpace"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
