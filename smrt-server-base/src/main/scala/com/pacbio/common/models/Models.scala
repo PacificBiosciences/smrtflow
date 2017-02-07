@@ -23,10 +23,6 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> Simplify Alarm Service
 object LogLevel {
   sealed abstract class LogLevel
 
