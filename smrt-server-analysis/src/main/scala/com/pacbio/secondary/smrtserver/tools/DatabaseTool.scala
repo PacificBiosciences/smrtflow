@@ -90,14 +90,14 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def runStatus(dbConfig: DatabaseConfig): Unit = {
+  def runStatus(dbConfig: DatabaseConfig): DatabaseConfig = {
     println(s"Attempting to connect to db with $dbConfig")
     val message = TestConnection(dbConfig.toDataSource)
     println(message)
+    dbConfig
   }
 
   def runMigrate(dbConfig: DatabaseConfig): Unit = {
-    runStatus(dbConfig)
     val result = Migrator(dbConfig.toDataSource)
     println(s"Number of successfully applied migrations $result")
     runSummary(dbConfig)
@@ -126,11 +126,12 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
 
     val dbConfig = DatabaseConfig(c.dbName, c.username, c.password, c.server, c.port)
     val startedAt = JodaDateTime.now()
-
+    val runStatusMigrate = runStatus _ andThen runMigrate
+    val runStatusSummary = runStatus _ andThen runSummary
     c.mode match {
       case DbModes.STATUS => runStatus(dbConfig)
-      case DbModes.MIGRATE => runMigrate(dbConfig)
-      case DbModes.SUMMARY => runStatus(dbConfig); runSummary(dbConfig)
+      case DbModes.MIGRATE => runStatusMigrate(dbConfig)
+      case DbModes.SUMMARY => runStatusSummary(dbConfig)
       case x => println(s"Unsupported action '$x'")
     }
 
