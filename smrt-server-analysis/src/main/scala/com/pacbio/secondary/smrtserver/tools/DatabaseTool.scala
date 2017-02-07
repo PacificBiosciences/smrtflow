@@ -18,11 +18,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import slick.driver.PostgresDriver.api._
 
 
+object DbModes {
+  sealed trait Mode {
+    val name: String
+  }
+  case object STATUS extends Mode {val name = "status"}
+  case object MIGRATE extends Mode {val name = "migrate"}
+  case object SUMMARY extends Mode {val name = "summary"}
+  case object UNKNOWN extends Mode {val name = "unknown"}
+}
+
 case class DatabaseToolOptions(username: String,
                                password: String,
                                dbName: String,
                                server: String,
-                               port: Int = 5432) extends LoggerConfig
+                               port: Int = 5432,
+                               mode: DbModes.Mode = DbModes.UNKNOWN) extends LoggerConfig
 
 object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with EngineCoreConfigLoader{
 
@@ -32,7 +43,7 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
   val VERSION = "0.2.0"
   val DESCRIPTION =
     """
-      |Test connection and Run Database Migrations
+      |Utility for interacting with SMRT Link database backend
     """.stripMargin
 
   // For the Postgres.app the defaults are
@@ -49,6 +60,17 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
   val parser = new OptionParser[DatabaseToolOptions]("database-tools") {
     head("")
     note(DESCRIPTION)
+
+    cmd(DbModes.STATUS.name) action { (_, c) =>
+      c.copy(mode = DbModes.STATUS)
+    } text "Check connectivity and display database status"
+    cmd(DbModes.MIGRATE.name) action { (_, c) =>
+      c.copy(mode = DbModes.MIGRATE)
+    } text "Migrate SQLite tables to Postgres"
+    cmd(DbModes.SUMMARY.name) action { (_, c) =>
+      c.copy(mode = DbModes.SUMMARY)
+    } text "Display database summary"
+
     opt[String]('u', "user").action { (x, c) => c.copy(username = x)}.text(s"Database user name ${toDefault(defaults.username)}")
     opt[String]('p', "password").action {(x, c) => c.copy(password = x)}.text(s"Database Password ${toDefault(defaults.password)}")
     opt[String]('s', "server").action {(x, c) => c.copy(server = x)}.text(s"Database server ${toDefault(defaults.server)}")
@@ -68,20 +90,20 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def run(c: DatabaseToolOptions): Either[ToolFailure, ToolSuccess] = {
-
-    val dbConfig = DatabaseConfig(c.dbName, c.username, c.password, c.server, c.port)
-    val startedAt = JodaDateTime.now()
-
-    TestConnection(dbConfig.toDataSource)
-
+  def runStatus(dbConfig: DatabaseConfig): Unit = {
     println(s"Attempting to connect to db with $dbConfig")
     val message = TestConnection(dbConfig.toDataSource)
     println(message)
+  }
 
+  def runMigrate(dbConfig: DatabaseConfig): Unit = {
+    runStatus(dbConfig)
     val result = Migrator(dbConfig.toDataSource)
     println(s"Number of successfully applied migrations $result")
+    runSummary(dbConfig)
+  }
 
+  def runSummary(dbConfig: DatabaseConfig): Unit = {
     //FIXME(mpkocher)(2016-12-13) Requiring the JobsDao to have the jobResolver is not awesome
     val jobResolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
@@ -98,6 +120,19 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
     println(summary)
 
     db.close()
+  }
+
+  def run(c: DatabaseToolOptions): Either[ToolFailure, ToolSuccess] = {
+
+    val dbConfig = DatabaseConfig(c.dbName, c.username, c.password, c.server, c.port)
+    val startedAt = JodaDateTime.now()
+
+    c.mode match {
+      case DbModes.STATUS => runStatus(dbConfig)
+      case DbModes.MIGRATE => runMigrate(dbConfig)
+      case DbModes.SUMMARY => runStatus(dbConfig); runSummary(dbConfig)
+      case x => println(s"Unsupported action '$x'")
+    }
 
     Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt)))
   }
