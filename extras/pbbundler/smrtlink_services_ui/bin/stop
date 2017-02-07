@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Bash3 Boilerplate. Copyright (c) 2014, kvz.io
 
-set -o errexit
+#set -o errexit
 set -o pipefail
 set -o nounset
 # set -o xtrace
@@ -25,8 +25,18 @@ elif [ ! -f ${SL_ANALYSIS_PID} ]; then
    echo No java process currently running
 fi
 
-$__dir/../apache-tomcat-8.0.26/bin/shutdown.sh
-
+STATUS=0
 ws02_dir="$__dir/../wso2am-2.0.0"
 bash $ws02_dir/bin/wso2server.sh --stop
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "WSO2 shutdown failed"
+fi
 
+$__dir/../apache-tomcat-8.0.26/bin/shutdown.sh
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "Tomcat shutdown failed"
+fi
+
+exit $STATUS
