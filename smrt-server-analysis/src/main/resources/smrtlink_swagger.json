@@ -77,7 +77,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/PipelineTemplateViewRules"
+              }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1794,6 +1797,65 @@
     }
   },
   "definitions": {
+    "PipelineTemplateViewRules": {
+      "type": "object",
+      "title": "Pipeline Template View Rules",
+      "description": "A list of the view rules for each pipeline.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": "Pipeline ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Pipeline Name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Path to base directory of SMRT Server"
+        },
+        "taskOptions": {
+          "type": "array",          
+          "title": "Task Options",
+          "description": "Task-level options available for the pipeline",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "hidden": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }, 
+      "required": [
+      "id",
+      "name",
+      "description",
+      "taskOptions"
+      ],
+      "example": {
+        "id": "pbsmrtpipe.pipelines.sa3_sat",
+        "name": "Override Pipeline Display Name",
+        "description": "Override Description",
+        "taskOptions": [
+          {
+            "id": "pbreports.task_options.max_contigs",
+            "hidden": true
+          },
+          {
+            "id": "pbcommand.task_options.dev_hello",
+            "hidden": true
+          }
+        ]
+      }
+    },
     "DiskSpace": {
       "type": "object",
       "title": "SMRT Server Disk Space",
