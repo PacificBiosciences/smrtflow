@@ -98,10 +98,10 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       implicit ct: ClassTag[R],
       ma: Marshaller[R],
       sm: Marshaller[Seq[R]]): Route =
-    optionalAuthenticate(authenticator.wso2Auth) { user =>
-      pathPrefix(shortName) {
-        pathEnd {
-          get {
+    pathPrefix(shortName) {
+      pathEnd {
+        get {
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
             parameters('showAll.?, 'projectId.as[Int].?) { (showAll, projectId) =>
               complete {
                 ok {
