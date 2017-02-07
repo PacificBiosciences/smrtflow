@@ -54,7 +54,7 @@ with JobServiceConstants with TestUtils{
   step(setupDb(TestProviders.dbConfig))
   step(runInsertAllMockData(dao))
 
-  "Service list" should {
+  "DataSetService should list" should {
     "Secondary analysis DataSets Types resources" in {
       Get(s"/$ROOT_SERVICE_PREFIX/dataset-types") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -70,6 +70,18 @@ with JobServiceConstants with TestUtils{
     "Secondary analysis Subread DataSetsType resource" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
+      }
+    }
+    "Secondary analysis Subread DataSetsType resources by projectId" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads?projectId=$MOCK_PROJECT_ID") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        subreads.size === 2
+      }
+      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads?projectId=99999999") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        subreads.size === 0
       }
     }
     "Secondary analysis Subread Schema resource" in {
