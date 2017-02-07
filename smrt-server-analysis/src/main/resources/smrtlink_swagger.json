@@ -136,7 +136,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/DatasetTypes"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1854,6 +1857,59 @@
             "hidden": true
           }
         ]
+      }
+    },
+    "DatasetTypes": {
+      "type": "object",
+      "title": "Dataset Types",
+      "description": "A list of the dataset types in SMRT Link",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of the dataset"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Updated At",
+          "description": ""
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Description of the dataset type"
+        },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": "Dataset type ID"
+        },
+        "createAt": {
+          "type": "string",
+          "title": "Created At",
+          "description": ""
+        },
+        "shortName": {
+          "type": "string",
+          "title": "Short Name",
+          "description": "Shortened name of the dataset type"
+        }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "description",
+        "id",
+        "createdAt",
+        "shortName"
+      ],
+      "example": {
+        "name": "Display name for PacBio.DataSet.AlignmentSet",
+        "updatedAt": "2016-01-22T21:21:10.293Z",
+        "description": "Description for PacBio.DataSet.AlignmentSet",
+        "id": "PacBio.DataSet.AlignmentSet",
+        "createdAt": "2016-01-22T21:21:10.293Z",
+        "shortName": "alignments"
       }
     },
     "DiskSpace": {
