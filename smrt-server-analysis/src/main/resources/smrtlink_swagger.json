@@ -464,7 +464,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Manifests"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1956,6 +1959,55 @@
         "id": "smrtlink.resources.root",
         "usableSpace": 112911650816,
         "freeSpace": 119113555968
+      }
+    },
+    "Manifests": {
+      "type": "object",
+      "title": "Manifests",
+      "description": "Manifests of sotware packages used in SMRT Link",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of software package"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Description of software package"
+        },
+        "version": {
+          "type": "string",
+          "title": "Version",
+          "description": "Software version"
+        },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": "Internal id for software package"
+        },
+        "dependencies": {
+          "type": "array",
+          "title": "Dependencies",
+          "description": "Package dependencies",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "version",
+        "id",
+        "dependencies"
+      ],
+      "example": {
+        "name": "pbtranscript",
+        "description": "pbtranscript",
+        "version": "https://github.com/PacificBiosciences/pbtranscript/tree/7dac953c85ff8b3043f224a1cfa1c4f386259f8d",
+        "id": "smrttools-pbtranscript",
+        "dependencies": []
       }
     },
     "SmrtServerStatus": {
