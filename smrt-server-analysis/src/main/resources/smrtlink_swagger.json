@@ -218,6 +218,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/HdfSubreadSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/subreads/{dataset-id}": {
       "get": {
         "responses": {
@@ -2126,6 +2161,178 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.AlignmentSet",
         "comments": "alignment dataset converted"
+      }
+    },
+    "HdfSubreadSetDetails": {
+      "type": "object",
+      "title": "HdfSubreadSet Details",
+      "description": "Details for a single hdfsubreads",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": ""
+        },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "wellSampleName": {
+               "type": "int",
+               "title": "Well Sample Name",
+               "description": ""
+             },
+        "bioSampleName": {
+          "type": "string",
+          "title": "Biological Sample Name",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "wellName": {
+          "type": "string",
+          "title": "Well Name",
+          "description": ""
+        },
+        "cellIndex": {
+               "type": "int",
+               "title": "Cell Index",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "metadataContextId": {
+               "type": "int",
+               "title": "Metadata Context ID",
+               "description": ""
+             },
+        "runName": {
+          "type": "string",
+          "title": "Run Name",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "instrumentName",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "wellSampleName",
+        "bioSampleName",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "wellName",
+        "cellIndex",
+        "userId",
+        "metadataContextId",
+        "runName",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "Convert-movie",
+        "updatedAt": "2016-03-04T14:15:00.653Z",
+        "path": "/home/UNIXHOME/ckonig/Cologne_CCS2_201603/B01_1/m160119_004643_42207_c100947812550000001823211506101611_s1_p0.hdfsubreadset.xml",
+        "tags": "pacbio.secondary.instrument=RS",
+        "instrumentName": "42207",
+        "uuid": "6d70714c-2538-46cc-9216-4f8fb7bc6361",
+        "totalLength": 50000000,
+        "projectId": 1,
+        "numRecords": 150000,
+        "wellSampleName": "1932.A",
+        "bioSampleName": "1932.A",
+        "version": "3.0.1",
+        "id": 13,
+        "md5": "9fbad9d0a65836a9b8f9d504c01b8f46",
+        "jobId": 7,
+        "createdAt": "2016-03-04T14:15:00.653Z",
+        "wellName": "B01",
+        "cellIndex": 1,
+        "userId": 1,
+        "metadataContextId": "m160119_004643_42207_c100947812550000001823211506101611_s1_p0",
+        "runName": "Run_0121",
+        "datasetType": "PacBio.DataSet.HdfSubreadSet",
+        "comments": ""
       }
     },
     "SubreadSetDetails": {
