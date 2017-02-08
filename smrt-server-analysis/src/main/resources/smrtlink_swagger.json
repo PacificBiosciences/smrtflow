@@ -393,6 +393,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/references/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ReferenceSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/{type}/_schema": {
       "get": {
         "responses": {
@@ -2861,7 +2896,7 @@
     "ConsensusReadDetails": {
       "type": "object",
       "title": "ConsensusRead Details",
-      "description": "Details for a single ConsensusRead",
+      "description": "Details for a single ConsensusReadSet",
       "properties": {
         "name": {
           "type": "string",
@@ -2979,6 +3014,143 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusReadSet",
         "comments": "ccs dataset converted"
+      }
+    },
+    "ReferenceSetDetails": {
+      "type": "object",
+      "title": "ReferenceSet Details",
+      "description": "Details for a single ReferenceSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "ploidy": {
+          "type": "string",
+          "title": "Ploidy",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "organism": {
+               "type": "int",
+               "title": "Organism",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "ploidy",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "organism",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "lambdaNEB",
+        "updatedAt": "2016-02-02T22:26:22.168Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/current/bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
+        "ploidy": "haploid",
+        "tags": "",
+        "uuid": "1a369917-507e-4f70-9f38-69614ff828b6",
+        "totalLength": 48502,
+        "projectId": 1,
+        "numRecords": 1,
+        "version": "3.0.1",
+        "id": 1,
+        "md5": "4861bca63e02aa26c92724febb3299c2",
+        "jobId": 1,
+        "createdAt": "2016-02-02T22:26:22.168Z",
+        "organism": "lambdaNEB",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ReferenceSet",
+        "comments": "reference dataset comments"
       }
     },
     "Manifests": {
