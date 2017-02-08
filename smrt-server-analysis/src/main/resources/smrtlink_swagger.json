@@ -2191,7 +2191,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2201,47 +2201,47 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
@@ -2252,16 +2252,16 @@
              },
         "userId": {
           "type": "string",
-          "title": "User ID",
+          "title": "integer",
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -2314,7 +2314,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2324,7 +2324,7 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
@@ -2334,27 +2334,27 @@
           "description": ""
         },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "wellSampleName": {
-               "type": "int",
+               "type": "string",
                "title": "Well Sample Name",
                "description": ""
              },
@@ -2364,17 +2364,17 @@
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
@@ -2384,7 +2384,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -2394,17 +2394,17 @@
           "description": ""
         },
         "cellIndex": {
-               "type": "int",
+               "type": "integer",
                "title": "Cell Index",
                "description": ""
              },
         "userId": {
-          "type": "string",
+          "type": "integer",
           "title": "User ID",
           "description": ""
         },
         "metadataContextId": {
-               "type": "int",
+               "type": "string",
                "title": "Metadata Context ID",
                "description": ""
              },
@@ -2414,12 +2414,12 @@
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -2486,7 +2486,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2496,7 +2496,7 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
@@ -2506,27 +2506,27 @@
           "description": ""
         },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "wellSampleName": {
-               "type": "int",
+               "type": "string",
                "title": "Well Sample Name",
                "description": ""
              },
@@ -2536,27 +2536,27 @@
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -2566,17 +2566,17 @@
           "description": ""
         },
         "cellIndex": {
-               "type": "int",
+               "type": "integer",
                "title": "Cell Index",
                "description": ""
              },
         "userId": {
-          "type": "string",
+          "type": "integer",
           "title": "User ID",
           "description": ""
         },
         "metadataContextId": {
-               "type": "int",
+               "type": "string",
                "title": "Metadata Context ID",
                "description": ""
              },
@@ -2586,12 +2586,12 @@
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -2658,7 +2658,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2668,47 +2668,47 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
@@ -2719,16 +2719,16 @@
              },
         "userId": {
           "type": "string",
-          "title": "User ID",
+          "title": "integer",
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -2781,7 +2781,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2791,47 +2791,47 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
@@ -2842,16 +2842,16 @@
              },
         "userId": {
           "type": "string",
-          "title": "User ID",
+          "title": "integer",
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -2904,7 +2904,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -2914,47 +2914,47 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
@@ -2965,16 +2965,16 @@
              },
         "userId": {
           "type": "string",
-          "title": "User ID",
+          "title": "integer",
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
@@ -3027,7 +3027,7 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "int",
+               "type": "string",
                "title": "Updated At",
                "description": ""
              },
@@ -3038,7 +3038,7 @@
         },
         "ploidy": {
           "type": "string",
-          "title": "Ploidy",
+          "title": "Path",
           "description": ""
         },
         "tags": {
@@ -3052,62 +3052,62 @@
                "description": ""
              },
         "totalLength": {
-          "type": "string",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "int",
+               "type": "integer",
                "title": "Project ID",
                "description": ""
              },
         "numRecords": {
-          "type": "string",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "int",
+               "type": "string",
                "title": "Version",
                "description": ""
              },
         "id": {
-          "type": "string",
+          "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "int",
+               "type": "string",
                "title": "MD5",
                "description": ""
              },
         "jobId": {
-          "type": "string",
+          "type": "integer",
           "title": "Job ID",
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
         "organism": {
-               "type": "int",
+               "type": "string",
                "title": "Organism",
                "description": ""
              },
         "userId": {
-          "type": "string",
+          "type": "integer",
           "title": "User ID",
           "description": ""
         },
         "datasetType": {
-               "type": "int",
+               "type": "string",
                "title": "Dataset Type",
                "description": ""
              },
         "comments": {
-               "type": "int",
+               "type": "string",
                "title": "Comments",
                "description": ""
              }
