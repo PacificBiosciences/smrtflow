@@ -556,7 +556,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/CellDetails"
+            }
           }
         },
         "parameters": [
@@ -2127,6 +2130,87 @@
         "instrumentSerialNumber": "",
         "uniqueId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
         "summary": "DryRun_2Cells"
+      }
+    },
+    "CellDetails": {
+      "type": "object",
+      "title": "Cell Details",
+      "description": "Details of a single cell",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Cell Name",
+          "description": "Cell name"
+        },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": "Name of instrument the cell was run on"
+        },
+        "well": {
+          "type": "string",
+          "title": "Well",
+          "description": "Well ID"
+        },
+        "status": {
+          "type": "string",
+          "title": "Status",
+          "description": "Run status of cell"
+        },
+        "instrumentId": {
+          "type": "string",
+          "title": "Instrument ID",
+          "description": "Instrument ID of the cell ran on"
+        },
+        "startedAt": {
+          "type": "string",
+          "title": "Run Start Time",
+          "description": "Run start time of cell"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Cell UUID",
+          "description": "Cell UUID"
+        },
+        "collectionPathUri": {
+          "type": "string",
+          "title": "Collection Path URI",
+          "description": "Collection Path URI of cell"
+        },
+        "runId": {
+          "type": "string",
+          "title": "Run UUID",
+          "description": "Run UUID of cell"
+        },
+        "movieMinutes": {
+          "type": "integer",
+          "title": "Movie Minutes",
+          "description": "Duration of cell movie in minutes"
+        }
+      },
+      "required": [
+        "name",
+        "instrumentName",
+        "well",
+        "status",
+        "instrumentId",
+        "startedAt",
+        "uniqueId",
+        "collectionPathUri",
+        "runId",
+        "movieMinutes"
+      ],
+      "example": {
+        "name": "DryRun_1stCell",
+        "instrumentName": "",
+        "well": "A01",
+        "status": "Ready",
+        "instrumentId": "",
+        "startedAt": "0001-01-01T08:00:00.000Z",
+        "uniqueId": "c93b843f-e534-4d15-a8b2-d6866b17eb70",
+        "collectionPathUri": "",
+        "runId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
+        "movieMinutes": 5.0
       }
     },
     "SmrtServerStatus": {
