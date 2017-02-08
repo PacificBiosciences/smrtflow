@@ -556,9 +556,9 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "Return vaue",
             "schema": {
-              "$ref": "#/definitions/CellDetails"
+              "$ref": "#/definitions/CollectionDetails"
             }
           }
         },
@@ -2132,20 +2132,20 @@
         "summary": "DryRun_2Cells"
       }
     },
-    "CellDetails": {
+    "CollectionDetails": {
       "type": "object",
-      "title": "Cell Details",
-      "description": "Details of a single cell",
+      "title": "Collection Details",
+      "description": "Details of a single collection",
       "properties": {
         "name": {
           "type": "string",
-          "title": "Cell Name",
-          "description": "Cell name"
+          "title": "Collection Name",
+          "description": "Collection name"
         },
         "instrumentName": {
           "type": "string",
           "title": "Instrument Name",
-          "description": "Name of instrument the cell was run on"
+          "description": "Name of instrument the collection was run on"
         },
         "well": {
           "type": "string",
@@ -2155,37 +2155,37 @@
         "status": {
           "type": "string",
           "title": "Status",
-          "description": "Run status of cell"
+          "description": "Run status of collection"
         },
         "instrumentId": {
           "type": "string",
           "title": "Instrument ID",
-          "description": "Instrument ID of the cell ran on"
+          "description": "Instrument ID of the collection ran on"
         },
         "startedAt": {
           "type": "string",
           "title": "Run Start Time",
-          "description": "Run start time of cell"
+          "description": "Run start time of collection"
         },
         "uniqueId": {
           "type": "string",
-          "title": "Cell UUID",
-          "description": "Cell UUID"
+          "title": "Collection UUID",
+          "description": "Collection UUID"
         },
         "collectionPathUri": {
           "type": "string",
           "title": "Collection Path URI",
-          "description": "Collection Path URI of cell"
+          "description": "Collection Path URI"
         },
         "runId": {
           "type": "string",
           "title": "Run UUID",
-          "description": "Run UUID of cell"
+          "description": "Run UUID of collection"
         },
         "movieMinutes": {
           "type": "integer",
           "title": "Movie Minutes",
-          "description": "Duration of cell movie in minutes"
+          "description": "Duration of collection movie in minutes"
         }
       },
       "required": [
