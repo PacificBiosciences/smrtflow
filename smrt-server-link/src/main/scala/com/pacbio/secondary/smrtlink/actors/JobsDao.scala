@@ -941,9 +941,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsSubread2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsSubread2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toSds(x._1, x._2)))
     }
 
@@ -954,9 +954,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsReference2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsReference2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toR(x._1, x._2)))
     }
 
@@ -987,9 +987,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
@@ -1016,9 +1016,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toHds(x._1, x._2)))
     }
 
@@ -1066,9 +1066,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsAlignment2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsAlignment2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toA(x._1)))
     }
 
@@ -1103,9 +1103,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
   def getConsensusReadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsCCSread2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toCCSread(x._1)))
     }
 
@@ -1151,9 +1151,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusAlignmentServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toCCSA(x._1)))
     }
 
@@ -1199,9 +1199,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsBarcode2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toB(x._1)))
     }
 
@@ -1247,9 +1247,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
     db.run {
-      var q = dsMetaData2 join dsContig2 on (_.id === _.id)
-      if (!includeInactive) q = q.filter(_._1.isActive)
-      if (projectIds.nonEmpty) q = q.filter(_._1.projectId inSet projectIds)
+      val qj = dsMetaData2 join dsContig2 on (_.id === _.id)
+      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
       q.result.map(_.map(x => toCtg(x._1)))
   }
 
