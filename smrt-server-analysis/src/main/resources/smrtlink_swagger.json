@@ -183,6 +183,41 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/datasets/alignments/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/AlignmentSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/subreads/{dataset-id}": {
       "get": {
         "responses": {
@@ -1968,6 +2003,129 @@
         "id": "smrtlink.resources.root",
         "usableSpace": 112911650816,
         "freeSpace": 119113555968
+      }
+    },
+    "AlignmentSetDetails": {
+      "type": "object",
+      "title": "AlignmentSet Details",
+      "description": "Details for a single alignmentset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_alignmentset-160202_223320635",
+        "updatedAt": "2016-02-02T22:34:38.534Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/000/000003/tasks/pbsmrtpipe.tasks.gather_alignmentset-1/file.alignmentset.xml",
+        "tags": "",
+        "uuid": "ee7d9225-d834-01b0-0488-b0bda263e085",
+        "totalLength": 13757246,
+        "projectId": 1,
+        "numRecords": 17864,
+        "version": "3.0.1",
+        "id": 3,
+        "md5": "fcb02727aea5fe640ec7d6e5904205e3",
+        "jobId": 3,
+        "createdAt": "2016-02-02T22:34:38.534Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.AlignmentSet",
+        "comments": "alignment dataset converted"
       }
     },
     "SubreadSetDetails": {
