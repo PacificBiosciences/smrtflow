@@ -229,8 +229,6 @@ object LegacyModels {
       errorMessage = None)
   }
 
-
-
   case class LegacyJobEvent(
                          eventId: UUID,
                          jobId: Int,
@@ -240,6 +238,38 @@ object LegacyModels {
     def toJobEvent: JobEvent = JobEvent(eventId, jobId, state, message, createdAt)
   }
 
+  case class LegacyCollectionMetadata(
+                                       runId: UUID,
+                                       uniqueId: UUID,
+                                       well: String,
+                                       name: String,
+                                       summary: Option[String],
+                                       context: Option[String],
+                                       collectionPathUri: Option[Path],
+                                       status: SupportedAcquisitionStates,
+                                       instrumentId: Option[String],
+                                       instrumentName: Option[String],
+                                       movieMinutes: Double,
+                                       startedAt: Option[JodaDateTime],
+                                       completedAt: Option[JodaDateTime],
+                                       terminationInfo: Option[String]) {
+    def toCollectionMetadata: CollectionMetadata = CollectionMetadata(
+      runId,
+      uniqueId,
+      well,
+      name,
+      summary,
+      context,
+      collectionPathUri,
+      status,
+      instrumentId,
+      instrumentName,
+      movieMinutes,
+      createdBy = None,
+      startedAt,
+      completedAt,
+      terminationInfo)
+  }
 }
 
 
@@ -510,7 +540,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
   implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
   implicit val collectionStatusType =
     MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
-  class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
+  class CollectionMetadataT(tag: Tag) extends Table[LegacyCollectionMetadata](tag, "COLLECTION_METADATA") {
     def runId: Rep[UUID] = column[UUID]("RUN_ID")
     def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
@@ -540,7 +570,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       movieMinutes,
       startedAt,
       completedAt,
-      terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
+      terminationInfo) <>(LegacyCollectionMetadata.tupled, LegacyCollectionMetadata.unapply)
     def idx = index("collection_metadata_run_id", runId)
   }
 
@@ -637,7 +667,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }

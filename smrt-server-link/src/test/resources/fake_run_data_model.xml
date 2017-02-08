@@ -20,7 +20,7 @@
 							  <pbmeta:RunDetails>
 								  <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
 								  <pbmeta:Name>Run_201512222002</pbmeta:Name>
-								  <pbmeta:CreatedBy>String</pbmeta:CreatedBy>
+								  <pbmeta:CreatedBy>{CREATED_BY}</pbmeta:CreatedBy>
 								  <pbmeta:WhenCreated>0001-01-01T00:00:00</pbmeta:WhenCreated>
 								  <pbmeta:WhenStarted>{STARTED_AT_1}</pbmeta:WhenStarted>
 							  </pbmeta:RunDetails>
@@ -100,7 +100,6 @@
 							  <pbmeta:RunDetails>
 								  <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
 								  <pbmeta:Name>Run_201512222002</pbmeta:Name>
-								  <pbmeta:CreatedBy>String</pbmeta:CreatedBy>
 								  <pbmeta:WhenCreated>0001-01-01T00:00:00</pbmeta:WhenCreated>
 							  </pbmeta:RunDetails>
 							  <pbmeta:WellSample Name="{NAME_2}" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">

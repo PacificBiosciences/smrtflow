@@ -117,6 +117,7 @@ case class CollectionMetadata(
     instrumentId: Option[String],
     instrumentName: Option[String],
     movieMinutes: Double,
+    createdBy: Option[String],
     startedAt: Option[JodaDateTime],
     completedAt: Option[JodaDateTime],
     terminationInfo: Option[String])

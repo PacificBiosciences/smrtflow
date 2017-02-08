@@ -126,6 +126,7 @@ object DataModelParserImpl extends DataModelParser {
           Option(collectionMetadataModel.getInstrumentId),
           Option(collectionMetadataModel.getInstrumentName),
           movieMinutes,
+          Option(collectionMetadataModel.getRunDetails.getCreatedBy),
           Option(collectionMetadataModel.getRunDetails.getWhenStarted).map(toDateTime),
           acqCompletedAt,
           terminationInfo = None) // TODO(smcclellan): Populate terminationInfo field when upstream data is available

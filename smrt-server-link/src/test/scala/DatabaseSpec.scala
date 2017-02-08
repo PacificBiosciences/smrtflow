@@ -174,6 +174,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         Some("instrument-id"),
         Some("instrument-name"),
         movieMinutes = 30.0,
+        Some(username),
         startedAt = Some(now),
         completedAt = Some(now),
         Some("termination-info"))
