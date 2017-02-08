@@ -136,7 +136,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/DatasetTypes"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -461,7 +464,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Manifests"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -550,7 +556,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return vaue",
+            "schema": {
+              "$ref": "#/definitions/CollectionDetails"
+            }
           }
         },
         "parameters": [
@@ -601,7 +610,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Runs"
+            }
           }
         },
         "parameters": [
@@ -1856,6 +1868,59 @@
         ]
       }
     },
+    "DatasetTypes": {
+      "type": "object",
+      "title": "Dataset Types",
+      "description": "A list of the dataset types in SMRT Link",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of the dataset"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Updated At",
+          "description": ""
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Description of the dataset type"
+        },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": "Dataset type ID"
+        },
+        "createAt": {
+          "type": "string",
+          "title": "Created At",
+          "description": ""
+        },
+        "shortName": {
+          "type": "string",
+          "title": "Short Name",
+          "description": "Shortened name of the dataset type"
+        }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "description",
+        "id",
+        "createdAt",
+        "shortName"
+      ],
+      "example": {
+        "name": "Display name for PacBio.DataSet.AlignmentSet",
+        "updatedAt": "2016-01-22T21:21:10.293Z",
+        "description": "Description for PacBio.DataSet.AlignmentSet",
+        "id": "PacBio.DataSet.AlignmentSet",
+        "createdAt": "2016-01-22T21:21:10.293Z",
+        "shortName": "alignments"
+      }
+    },
     "DiskSpace": {
       "type": "object",
       "title": "SMRT Server Disk Space",
@@ -1900,6 +1965,252 @@
         "id": "smrtlink.resources.root",
         "usableSpace": 112911650816,
         "freeSpace": 119113555968
+      }
+    },
+    "Manifests": {
+      "type": "object",
+      "title": "Manifests",
+      "description": "Manifests of sotware packages used in SMRT Link",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of software package"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Description of software package"
+        },
+        "version": {
+          "type": "string",
+          "title": "Version",
+          "description": "Software version"
+        },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": "Internal id for software package"
+        },
+        "dependencies": {
+          "type": "array",
+          "title": "Dependencies",
+          "description": "Package dependencies",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "version",
+        "id",
+        "dependencies"
+      ],
+      "example": {
+        "name": "pbtranscript",
+        "description": "pbtranscript",
+        "version": "https://github.com/PacificBiosciences/pbtranscript/tree/7dac953c85ff8b3043f224a1cfa1c4f386259f8d",
+        "id": "smrttools-pbtranscript",
+        "dependencies": []
+      }
+    },
+    "Runs": {
+      "type": "object",
+      "title": "Runs",
+      "description": "List of all instrument runs transferred to smrtlink",
+      "properties": {
+        "reserved": {
+          "type": "boolean",
+          "title": "Reserved",
+          "description": ""
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Run Name"
+        },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": "Name of Instrument used"
+        },
+        "context": {
+          "type": "string",
+          "title": "Context",
+          "description": ""
+        },
+        "instrumentSwVersion": {
+          "type": "string",
+          "title": "Software version of instrument",
+          "description": "Name of software package"
+        },
+        "numCellsCompleted": {
+          "type": "integer",
+          "title": "Number of cells completed in run",
+          "description": "Name of software package"
+        },
+        "totalCells": {
+          "type": "integer",
+          "title": "Total Number of Cells",
+          "description": "Total number of cells in run"
+        },
+        "primaryAnalysisSwVersion": {
+          "type": "string",
+          "title": "Primary Analysis SW Version",
+          "description": "Primary Analysis SW Version used to analyze run data"
+        },
+        "status": {
+          "type": "string",
+          "title": "Status",
+          "description": "Current Run Status"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created At",
+          "description": "Time run was created"
+        },
+        "createdBy": {
+          "type": "string",
+          "title": "Created By",
+          "description": "User name"
+        },
+        "numCellsFailed": {
+          "type": "integer",
+          "title": "Number of cells that failed in run",
+          "description": "Name of software package"
+        },
+        "instrumentSerialNumber": {
+          "type": "string",
+          "title": "Instrument Serial Number",
+          "description": "Serial number of instrument used for run"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Run UUID"
+        },
+        "summary": {
+          "type": "string",
+          "title": "Summary",
+          "description": "Run Summary"
+        }
+      },
+      "required": [
+        "reserved",
+        "name",
+        "instrumentName",
+        "context",
+        "instrumentSwVersion",
+        "numCellsCompleted",
+        "totalCells",
+        "primaryAnalysisSwVersion",
+        "status",
+        "createdAt",
+        "createdBy",
+        "numCellsFailed",
+        "instrumentSerialNumber",
+        "uniqueId",
+        "summary"
+      ],
+      "example": {
+        "reserved": false,
+        "name": "54136_DryRun_2Cells_20161213_F",
+        "instrumentName": "",
+        "context": "DefaultTimeStampedRunName",
+        "instrumentSwVersion": "String",
+        "numCellsCompleted": 0,
+        "totalCells": 2,
+        "primaryAnalysisSwVersion": "String",
+        "status": "Ready",
+        "createdAt": "2016-12-13T19:11:54.086Z",
+        "createdBy": "unknown",
+        "numCellsFailed": 0,
+        "instrumentSerialNumber": "",
+        "uniqueId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
+        "summary": "DryRun_2Cells"
+      }
+    },
+    "CollectionDetails": {
+      "type": "object",
+      "title": "Collection Details",
+      "description": "Details of a single collection",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Collection Name",
+          "description": "Collection name"
+        },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": "Name of instrument the collection was run on"
+        },
+        "well": {
+          "type": "string",
+          "title": "Well",
+          "description": "Well ID"
+        },
+        "status": {
+          "type": "string",
+          "title": "Status",
+          "description": "Run status of collection"
+        },
+        "instrumentId": {
+          "type": "string",
+          "title": "Instrument ID",
+          "description": "Instrument ID of the collection ran on"
+        },
+        "startedAt": {
+          "type": "string",
+          "title": "Run Start Time",
+          "description": "Run start time of collection"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Collection UUID",
+          "description": "Collection UUID"
+        },
+        "collectionPathUri": {
+          "type": "string",
+          "title": "Collection Path URI",
+          "description": "Collection Path URI"
+        },
+        "runId": {
+          "type": "string",
+          "title": "Run UUID",
+          "description": "Run UUID of collection"
+        },
+        "movieMinutes": {
+          "type": "integer",
+          "title": "Movie Minutes",
+          "description": "Duration of collection movie in minutes"
+        }
+      },
+      "required": [
+        "name",
+        "instrumentName",
+        "well",
+        "status",
+        "instrumentId",
+        "startedAt",
+        "uniqueId",
+        "collectionPathUri",
+        "runId",
+        "movieMinutes"
+      ],
+      "example": {
+        "name": "DryRun_1stCell",
+        "instrumentName": "",
+        "well": "A01",
+        "status": "Ready",
+        "instrumentId": "",
+        "startedAt": "0001-01-01T08:00:00.000Z",
+        "uniqueId": "c93b843f-e534-4d15-a8b2-d6866b17eb70",
+        "collectionPathUri": "",
+        "runId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
+        "movieMinutes": 5.0
       }
     },
     "SmrtServerStatus": {
