@@ -110,7 +110,7 @@ object JobsDaoActor {
   case class DeleteDataSetByUUID(uuid: UUID) extends DataSetMessage
 
   // DS Subreads
-  case class GetSubreadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetSubreadDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetSubreadDataSetById(i: Int) extends DataSetMessage
 
@@ -121,7 +121,7 @@ object JobsDaoActor {
   case class GetSubreadDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // DS Reference
-  case class GetReferenceDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetReferenceDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetReferenceDataSetById(i: Int) extends DataSetMessage
 
@@ -132,7 +132,7 @@ object JobsDaoActor {
   case class GetReferenceDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // GMAP reference
-  case class GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetGmapReferenceDataSetById(i: Int) extends DataSetMessage
 
@@ -147,7 +147,7 @@ object JobsDaoActor {
 
   case class GetAlignmentDataSetByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetAlignmentDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetAlignmentDataSetDetailsById(i: Int) extends DataSetMessage
 
@@ -162,14 +162,14 @@ object JobsDaoActor {
 
   case class GetHdfSubreadDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   // CCS reads
   case class GetConsensusReadDataSetById(i: Int) extends DataSetMessage
 
   case class GetConsensusReadDataSetByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetConsensusReadDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetConsensusReadDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetConsensusReadDataSetDetailsById(i: Int) extends DataSetMessage
 
@@ -180,14 +180,14 @@ object JobsDaoActor {
 
   case class GetConsensusAlignmentDataSetByUUID(uuid: UUID) extends DataSetMessage
 
-  case class GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetConsensusAlignmentDataSetDetailsById(i: Int) extends DataSetMessage
 
   case class GetConsensusAlignmentDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // Barcode DataSets
-  case class GetBarcodeDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetBarcodeDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetBarcodeDataSetById(i: Int) extends DataSetMessage
 
@@ -198,7 +198,7 @@ object JobsDaoActor {
   case class GetBarcodeDataSetDetailsByUUID(uuid: UUID) extends DataSetMessage
 
   // ContigSet
-  case class GetContigDataSets(limit: Int, includeInactive: Boolean = false) extends DataSetMessage
+  case class GetContigDataSets(limit: Int, includeInactive: Boolean = false, projectId: Seq[Int] = Nil) extends DataSetMessage
 
   case class GetContigDataSetById(i: Int) extends DataSetMessage
 
@@ -242,6 +242,10 @@ object JobsDaoActor {
   case class GetEulaByVersion(version: String) extends AdminMessage
   case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
   case class DeleteEula(version: String) extends AdminMessage
+
+
+  // Projects Messages
+  case class GetUserProjects(login: String) extends ProjectMessage
 }
 
 class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: JobResourceResolver) extends PacBioActor with EngineActorCore with ActorLogging {
@@ -498,8 +502,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetDataSetTypeById(n: String) => pipeWith { dao.getDataSetTypeById(n) }
 
     // Get Subreads
-    case GetSubreadDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getSubreadDataSets(limit, includeInactive))
+    case GetSubreadDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getSubreadDataSets(limit, includeInactive, projectIds))
 
     case GetSubreadDataSetById(n: Int) =>
       pipeWith {dao.getSubreadDataSetById(n) }
@@ -514,8 +518,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getSubreadDataSetDetailsByUUID(uuid)}
 
     // Get References
-    case GetReferenceDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getReferenceDataSets(limit, includeInactive))
+    case GetReferenceDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getReferenceDataSets(limit, includeInactive, projectIds))
 
     case GetReferenceDataSetById(id: Int) =>
       pipeWith {dao.getReferenceDataSetById(id) }
@@ -530,7 +534,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getReferenceDataSetDetailsByUUID(id)}
 
     // Get GMAP References
-    case GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean) => pipeWith(dao.getGmapReferenceDataSets(limit, includeInactive))
+    case GetGmapReferenceDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getGmapReferenceDataSets(limit, includeInactive, projectIds))
 
     case GetGmapReferenceDataSetById(id: Int) =>
       pipeWith {dao.getGmapReferenceDataSetById(id)}
@@ -555,8 +560,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     // get Alignments
-    case GetAlignmentDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getAlignmentDataSets(limit, includeInactive))
+    case GetAlignmentDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getAlignmentDataSets(limit, includeInactive, projectIds))
 
     case GetAlignmentDataSetById(n: Int) =>
       pipeWith { dao.getAlignmentDataSetById(n)}
@@ -571,8 +576,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getAlignmentDataSetDetailsById(i)}
 
     // Get HDF Subreads
-    case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getHdfDataSets(limit, includeInactive))
+    case GetHdfSubreadDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getHdfDataSets(limit, includeInactive, projectIds))
 
     case GetHdfSubreadDataSetById(n: Int) =>
       pipeWith {dao.getHdfDataSetById(n) }
@@ -587,8 +592,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getHdfDataSetDetailsByUUID(uuid)}
 
     // Get CCS Subreads
-    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getConsensusReadDataSets(limit, includeInactive))
+    case GetConsensusReadDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getConsensusReadDataSets(limit, includeInactive, projectIds))
 
     case GetConsensusReadDataSetById(n: Int) =>
       pipeWith {dao.getConsensusReadDataSetById(n)}
@@ -603,8 +608,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith { dao.getConsensusReadDataSetDetailsById(i)}
 
     // Get CCS Subreads
-    case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive))
+    case GetConsensusAlignmentDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getConsensusAlignmentDataSets(limit, includeInactive, projectIds))
 
     case GetConsensusAlignmentDataSetById(n: Int) =>
       pipeWith { dao.getConsensusAlignmentDataSetById(n)}
@@ -619,8 +624,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getConsensusAlignmentDataSetDetailsById(i) }
 
     // Get Barcodes
-    case GetBarcodeDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getBarcodeDataSets(limit, includeInactive))
+    case GetBarcodeDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getBarcodeDataSets(limit, includeInactive, projectIds))
 
     case GetBarcodeDataSetById(n: Int) =>
       pipeWith {dao.getBarcodeDataSetById(n)}
@@ -635,8 +640,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getBarcodeDataSetDetailsById(i)}
 
     // Contigs
-    case GetContigDataSets(limit: Int, includeInactive: Boolean) =>
-      pipeWith(dao.getContigDataSets(limit, includeInactive))
+    case GetContigDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
+      pipeWith(dao.getContigDataSets(limit, includeInactive, projectIds))
 
     case GetContigDataSetById(n: Int) =>
       pipeWith {dao.getContigDataSetById(n)}
@@ -722,6 +727,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         else SuccessMessage(s"Removed user agreement for version $version")
       )
     }
+
+    case GetUserProjects(login) => pipeWith(dao.getUserProjects(login))
 
     case x => log.warning(s"Unhandled message $x to database actor.")
   }
