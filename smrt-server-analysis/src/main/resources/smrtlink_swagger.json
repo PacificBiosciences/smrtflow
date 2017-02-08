@@ -183,14 +183,17 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}": {
+    "/secondary-analysis/datasets/subreads/{dataset-id}": {
       "get": {
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/SubreadSetDetails"
+            }
           }
         },
         "parameters": [
@@ -1965,6 +1968,178 @@
         "id": "smrtlink.resources.root",
         "usableSpace": 112911650816,
         "freeSpace": 119113555968
+      }
+    },
+    "SubreadSetDetails": {
+      "type": "object",
+      "title": "SubreadSet Details",
+      "description": "Details for a single subreadset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": ""
+        },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "wellSampleName": {
+               "type": "int",
+               "title": "Well Sample Name",
+               "description": ""
+             },
+        "bioSampleName": {
+          "type": "string",
+          "title": "Biological Sample Name",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "wellName": {
+          "type": "string",
+          "title": "Well Name",
+          "description": ""
+        },
+        "cellIndex": {
+               "type": "int",
+               "title": "Cell Index",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "metadataContextId": {
+               "type": "int",
+               "title": "Metadata Context ID",
+               "description": ""
+             },
+        "runName": {
+          "type": "string",
+          "title": "Run Name",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "instrumentName",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "wellSampleName",
+        "bioSampleName",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "wellName",
+        "cellIndex",
+        "userId",
+        "metadataContextId",
+        "runName",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
+        "updatedAt": "2016-12-02T23:34:58.660Z",
+        "path": "/pbi/collections/315/3150315/r54011_20160727_001907/1_A01/m54011_160727_002259.subreadset.xml",
+        "tags": "subreadset",
+        "instrumentName": "Alpha11",
+        "uuid": "146338e0-7ec2-4d2d-b938-11bce71b7ed1",
+        "totalLength": 5032258698,
+        "projectId": 1,
+        "numRecords": 4867222,
+        "wellSampleName": "SMS_FleaVal_SIRV-E0_150pM_onchip_6hrMovie",
+        "bioSampleName": "unknown",
+        "version": "3.0.1",
+        "id": 4413,
+        "md5": "5657aa955ce13afddc8a1e22a8a20b9b",
+        "jobId": 3200,
+        "createdAt": "2016-12-02T23:34:58.660Z",
+        "wellName": "A01",
+        "cellIndex": 0,
+        "userId": 1,
+        "metadataContextId": "m54011_160727_002259",
+        "runName": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
+        "datasetType": "PacBio.DataSet.SubreadSet",
+        "comments": " "
       }
     },
     "Manifests": {
