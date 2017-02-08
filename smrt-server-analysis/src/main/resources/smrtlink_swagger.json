@@ -607,7 +607,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Runs"
+            }
           }
         },
         "parameters": [
@@ -2008,6 +2011,122 @@
         "version": "https://github.com/PacificBiosciences/pbtranscript/tree/7dac953c85ff8b3043f224a1cfa1c4f386259f8d",
         "id": "smrttools-pbtranscript",
         "dependencies": []
+      }
+    },
+    "Runs": {
+      "type": "object",
+      "title": "Runs",
+      "description": "List of all instrument runs transferred to smrtlink",
+      "properties": {
+        "reserved": {
+          "type": "boolean",
+          "title": "Reserved",
+          "description": ""
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Run Name"
+        },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": "Name of Instrument used"
+        },
+        "context": {
+          "type": "string",
+          "title": "Context",
+          "description": ""
+        },
+        "instrumentSwVersion": {
+          "type": "string",
+          "title": "Software version of instrument",
+          "description": "Name of software package"
+        },
+        "numCellsCompleted": {
+          "type": "integer",
+          "title": "Number of cells completed in run",
+          "description": "Name of software package"
+        },
+        "totalCells": {
+          "type": "integer",
+          "title": "Total Number of Cells",
+          "description": "Total number of cells in run"
+        },
+        "primaryAnalysisSwVersion": {
+          "type": "string",
+          "title": "Primary Analysis SW Version",
+          "description": "Primary Analysis SW Version used to analyze run data"
+        },
+        "status": {
+          "type": "string",
+          "title": "Status",
+          "description": "Current Run Status"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created At",
+          "description": "Time run was created"
+        },
+        "createdBy": {
+          "type": "string",
+          "title": "Created By",
+          "description": "User name"
+        },
+        "numCellsFailed": {
+          "type": "integer",
+          "title": "Number of cells that failed in run",
+          "description": "Name of software package"
+        },
+        "instrumentSerialNumber": {
+          "type": "string",
+          "title": "Instrument Serial Number",
+          "description": "Serial number of instrument used for run"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Run UUID"
+        },
+        "summary": {
+          "type": "string",
+          "title": "Summary",
+          "description": "Run Summary"
+        }
+      },
+      "required": [
+        "reserved",
+        "name",
+        "instrumentName",
+        "context",
+        "instrumentSwVersion",
+        "numCellsCompleted",
+        "totalCells",
+        "primaryAnalysisSwVersion",
+        "status",
+        "createdAt",
+        "createdBy",
+        "numCellsFailed",
+        "instrumentSerialNumber",
+        "uniqueId",
+        "summary"
+      ],
+      "example": {
+        "reserved": false,
+        "name": "54136_DryRun_2Cells_20161213_F",
+        "instrumentName": "",
+        "context": "DefaultTimeStampedRunName",
+        "instrumentSwVersion": "String",
+        "numCellsCompleted": 0,
+        "totalCells": 2,
+        "primaryAnalysisSwVersion": "String",
+        "status": "Ready",
+        "createdAt": "2016-12-13T19:11:54.086Z",
+        "createdBy": "unknown",
+        "numCellsFailed": 0,
+        "instrumentSerialNumber": "",
+        "uniqueId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
+        "summary": "DryRun_2Cells"
       }
     },
     "SmrtServerStatus": {
