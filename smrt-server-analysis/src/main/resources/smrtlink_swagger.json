@@ -323,6 +323,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/contigs/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ContigSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/{type}/_schema": {
       "get": {
         "responses": {
@@ -2663,6 +2698,129 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.BarcodeSet",
         "comments": "Barcode  imported"
+      }
+    },
+    "ContigSetDetails": {
+      "type": "object",
+      "title": "ContigSet Details",
+      "description": "Details for a single contigset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
+        "updatedAt": "2017-01-23T23:43:43.521Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003805/tasks/pbcoretools.tasks.gather_contigset-1/file.contigset.xml",
+        "tags": "",
+        "uuid": "776bbba8-cb83-e46d-5228-ff02e449e3c4",
+        "totalLength": 48502,
+        "projectId": 1,
+        "numRecords": 1,
+        "version": "3.0.1",
+        "id": 5379,
+        "md5": "dd67945eea0d203625f0ef3cdafa86b6",
+        "jobId": 3805,
+        "createdAt": "2017-01-23T23:43:43.521Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ContigSet",
+        "comments": "contig dataset comments"
       }
     },
     "Manifests": {
