@@ -4,8 +4,9 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.common.models.{UserRecord, PacBioComponentManifest}
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,MethodNotImplementedError}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -35,7 +36,7 @@ import scala.reflect.ClassTag
  * Accessing DataSets by type. Currently several datasets types are
  * not completely supported (ContigSet, CCSreads, CCS Alignments)
  */
-class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLinkConstants {
+class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends JobsBaseMicroService with SmrtLinkConstants {
   // For all the Message types
 
   import JobsDaoActor._
@@ -73,9 +74,22 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     idOrUUID.map(MixedIdType).map(HNil.::)
   }
 
+  // - If a projectId is provided, return only that Id.
+  // - If a projectId is not provided, but a user is logged in, return all projectIds associated with
+  // that user, plus the general project id.
+  // - If a projectId is not provided, and no user is logged in, return an empty projectId list.
+  def getProjectIds(projectId: Option[Int], user: Option[UserRecord]): Future[Seq[Int]] =
+    (projectId, user) match {
+      case (Some(id), _) => Future(Seq(id))
+      case (None, Some(u)) => (dbActor ? GetUserProjects(u.userId))
+        .mapTo[Seq[UserProjectResponse]]
+        .map(_.map(_.project.id) :+ GENERAL_PROJECT_ID)
+      case (None, None) => Future(Nil)
+    }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: (Int, Boolean) => Any,
+      GetDataSets: (Int, Boolean, Seq[Int]) => Any,
       schema: String,
       GetDataSetById: Int => Any,
       GetDataSetByUUID: UUID => Any,
@@ -87,73 +101,78 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
     pathPrefix(shortName) {
       pathEnd {
         get {
-          parameter('showAll.?) { showAll =>
-            complete {
-              ok {
-                (dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined)).mapTo[Seq[R]]
-              }
-            }
-          }
-        }
-      } ~
-      path(SCHEMA_PREFIX) {
-        get {
-          complete {
-            ok {
-              schema
-            }
-          }
-        }
-      } ~
-      pathPrefix(MixedId) { id =>
-        pathEnd {
-          get {
-            complete {
-              ok {
-                (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
-              }
-            }
-          } ~
-          put {
-            entity(as[DataSetUpdateRequest]) { sopts =>
+          optionalAuthenticate(authenticator.wso2Auth) { user =>
+            parameters('showAll.?, 'projectId.as[Int].?) { (showAll, projectId) =>
               complete {
                 ok {
-                  if (sopts.isActive) {
-                    throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
-                  } else {
-                    (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                  getProjectIds(projectId, user).flatMap { ids =>
+                    (dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined, ids)).mapTo[Seq[R]]
                   }
                 }
               }
             }
           }
         } ~
-        path(DETAILS_PREFIX) {
+        path(SCHEMA_PREFIX) {
           get {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              complete {
-                ok {
-                  (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
-                }
+            complete {
+              ok {
+                schema
               }
             }
           }
         } ~
-        path(JOB_REPORT_PREFIX) {
-          get {
-            complete {
-              ok {
-                val dataset: Future[R] = (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
-                val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
-                  (dbActor ? GetDataStoreReportFilesByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
+        pathPrefix(MixedId) { id =>
+          pathEnd {
+            get {
+              complete {
+                ok {
+                  (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
                 }
-                reports
+              }
+            } ~
+            put {
+              entity(as[DataSetUpdateRequest]) { sopts =>
+                complete {
+                  ok {
+                    if (sopts.isActive) {
+                      throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
+                    } else {
+                      (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                    }
+                  }
+                }
+              }
+            }
+          } ~
+          path(DETAILS_PREFIX) {
+            get {
+              respondWithMediaType(MediaTypes.`application/json`) {
+                complete {
+                  ok {
+                    (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                  }
+                }
+              }
+            }
+          } ~
+          path(JOB_REPORT_PREFIX) {
+            get {
+              complete {
+                ok {
+                  val dataset: Future[R] = (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+                  val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
+                    (dbActor ? GetDataStoreReportFilesByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
+                  }
+                  reports
+                }
               }
             }
           }
         }
       }
     }
+
 
   val routes =
     pathPrefix(DATASET_TYPES_PREFIX) {
@@ -286,10 +305,10 @@ class DataSetService(dbActor: ActorRef) extends JobsBaseMicroService with SmrtLi
 }
 
 trait DataSetServiceProvider {
-  this: JobsDaoActorProvider with ServiceComposer =>
+  this: JobsDaoActorProvider with AuthenticatorProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDaoActor()))
+    Singleton(() => new DataSetService(jobsDaoActor(), authenticator()))
 
   addService(dataSetService)
 }

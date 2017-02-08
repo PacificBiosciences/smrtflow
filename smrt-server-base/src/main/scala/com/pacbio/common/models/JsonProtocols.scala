@@ -22,26 +22,14 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait HealthProtocols extends DefaultJsonProtocol with FamilyFormats {
+trait AlarmProtocols extends DefaultJsonProtocol with FamilyFormats {
 
-  implicit object HealthSeverityFormat extends JsonFormat[HealthSeverity.HealthSeverity] {
-    def write(obj: HealthSeverity.HealthSeverity): JsValue = JsString(obj.toString)
+  implicit object AlarmSeverityFormat extends JsonFormat[AlarmSeverity.AlarmSeverity] {
+    def write(obj: AlarmSeverity.AlarmSeverity): JsValue = JsString(obj.toString)
 
-    def read(json: JsValue): HealthSeverity.HealthSeverity = json match {
-      case JsString(x) => HealthSeverity.healthSeverityByName(x)
-      case _ => deserializationError("Expected HealthSeverity type as JsString")
-    }
-  }
-
-  implicit object MetricTypeFormat extends JsonFormat[MetricType.MetricType] {
-    def write(obj: MetricType.MetricType): JsValue = JsString(obj.toString)
-
-    def read(json: JsValue): MetricType.MetricType = json match {
-      case JsString(x) =>
-        MetricType.ALL
-          .find(_.toString == x.toUpperCase)
-          .getOrElse(deserializationError(s"Could not find MetricType named $x"))
-      case _ => deserializationError("Expected HealthSeverity type as JsString")
+    def read(json: JsValue): AlarmSeverity.AlarmSeverity = json match {
+      case JsString(x) => AlarmSeverity.alarmSeverityByName(x)
+      case _ => deserializationError("Expected AlarmSeverity type as JsString")
     }
   }
 }
@@ -123,7 +111,7 @@ trait BaseJsonProtocol extends DefaultJsonProtocol
 with FamilyFormats
 with UUIDJsonProtocol
 with JodaDateTimeProtocol
-with HealthProtocols
+with AlarmProtocols
 with LogLevelProtocol
 with CleanupFrequencyProtocol
 with CleanupSizeProtocol
@@ -135,10 +123,8 @@ with DirectoryResourceProtocol
   implicit val pbServiceConfigFormat = jsonFormat2(ServerConfig)
   implicit val pbServiceComponentFormat = jsonFormat3(ServiceComponent)
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
-  implicit val pbHealthMetricCreateMessageFormat = jsonFormat7(HealthMetricCreateMessage)
-  implicit val pbHealthMetricFormat = jsonFormat11(HealthMetric)
-  implicit val pbHealthMetricUpdateMessageFormat = jsonFormat3(HealthMetricUpdateMessage)
-  implicit val pbHealthMetricUpdateFormat = jsonFormat5(HealthMetricUpdate)
+  implicit val pbAlarmFormat = jsonFormat3(Alarm)
+  implicit val pbAlarmStatusFormat = jsonFormat4(AlarmStatus)
   implicit val pbLogResourceRecordFormat = jsonFormat3(LogResourceRecord)
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)
