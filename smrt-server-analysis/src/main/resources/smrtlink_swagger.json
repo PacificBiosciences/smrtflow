@@ -288,6 +288,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/BarcodeSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/{type}/_schema": {
       "get": {
         "responses": {
@@ -2505,6 +2540,129 @@
         "runName": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
         "datasetType": "PacBio.DataSet.SubreadSet",
         "comments": " "
+      }
+    },
+    "BarcodeSetDetails": {
+      "type": "object",
+      "title": "BarcodeSet Details",
+      "description": "Details for a single barcodeset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "int",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "string",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "int",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "string",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "int",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "string",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "int",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "int",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "int",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_barcode_adapters_96",
+        "updatedAt": "2016-07-13T20:32:48.349Z",
+        "path": "/pbi/dept/secondary/siv/barcodes/pacbio_barcodes_96_revcomp/pacbio_barcodes_96_revcomp.barcodeset.xml",
+        "tags": "",
+        "uuid": "bee0488f-49a6-0505-e89a-2579411804b8",
+        "totalLength": 1536,
+        "projectId": 1,
+        "numRecords": 96,
+        "version": "3.0.1",
+        "id": 459,
+        "md5": "f1b6141bbf206d30c90ffee083c25678",
+        "jobId": 411,
+        "createdAt": "2016-07-13T20:32:48.349Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.BarcodeSet",
+        "comments": "Barcode  imported"
       }
     },
     "Manifests": {
