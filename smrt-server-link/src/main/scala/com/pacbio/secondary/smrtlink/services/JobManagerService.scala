@@ -28,7 +28,6 @@ import scala.concurrent.duration._
 
 class JobManagerService(
     dbActor: ActorRef,
-    statusGenerator: StatusGenerator,
     engineConfig: EngineConfig,
     jobTypes: Set[JobTypeService],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
@@ -66,17 +65,7 @@ class JobManagerService(
 
   val statusRoutes =
     pathPrefix(SERVICE_PREFIX) {
-      // TODO(smcclellan): Do we need this endpoint? Why not use the /status endpoint in base-smrt-server?
-      path("status") {
-        get {
-          complete {
-            ok {
-              statusGenerator.getStatus
-            }
-          }
-        }
-      } ~
-      pathPrefix(JOB_ROOT_PREFIX) {
+       pathPrefix(JOB_ROOT_PREFIX) {
         sharedJobRoutes(dbActor)
       }
     }
@@ -143,7 +132,6 @@ trait JobManagerServiceProvider {
   this: SetBindings
     with SmrtLinkConfigProvider
     with JobsDaoActorProvider
-    with StatusGeneratorProvider
     with ActorSystemProvider
     with ServiceComposer =>
 
@@ -152,7 +140,6 @@ trait JobManagerServiceProvider {
       implicit val system = actorSystem()
       new JobManagerService(
         jobsDaoActor(),
-        statusGenerator(),
         jobEngineConfig(),
         set(JobTypes),
         pbsmrtpipeEngineOptions(),
