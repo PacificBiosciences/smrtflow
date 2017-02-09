@@ -34,7 +34,7 @@ class AutomationConstraintsDao(data: JsValue) {
 /**
   * Created by mkocher on 2/6/17.
   */
-class AutomationConstraintService(dao: AutomationConstraintsDao) extends SmrtLinkBaseMicroService with JobServiceConstants{
+class AutomationConstraintService(dao: AutomationConstraintsDao) extends SmrtLinkBaseMicroService {
 
   import SmrtLinkJsonProtocols._
 
