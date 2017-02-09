@@ -3,6 +3,8 @@ fork := true
 
 Revolver.settings
 
+mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer")
+
 //assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
 //  case PathList("application.conf") => MergeStrategy.first
 //  case p if p.endsWith("eclipse.inf") => MergeStrategy.first
