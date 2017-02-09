@@ -7,21 +7,38 @@
 	<xs:import namespace="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" schemaLocation="PacBioBaseDataModel.xsd"/>
 	<xs:import namespace="http://pacificbiosciences.com/PacBioReagentKit.xsd" schemaLocation="PacBioReagentKit.xsd"/>
 	<xs:import namespace="http://pacificbiosciences.com/PacBioPartNumbers.xsd" schemaLocation="PacBioPartNumbers.xsd"/>
-	<xs:element name="PacBioAutomationConstraints" type="PacBioAutomationConstraintsType">
+
+	<!-- jaxb will export this as a class -->
+	<xs:element name="PacBioAutomationConstraints">
 		<xs:annotation>
 			<xs:documentation>The root element of the Automation Constraints </xs:documentation>
 		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="PacBioAutomationConstraintsType"/>
+			</xs:complexContent>
+		</xs:complexType>
 	</xs:element>
-	<xs:element name="AutomationConstraint" type="pbbase:AutomationConstraintType"/>
+
+	<!-- All complex types will be exported as classes from jaxb -->
+	<xs:complexType name="AutomationConstraint">
+		<xs:complexContent>
+			<xs:extension base="pbbase:AutomationConstraintType"/>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="AutomationConstraints">
+		<xs:sequence>
+			<xs:element name="AutomationConstraint" type="AutomationConstraint" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
 	<xs:complexType name="PacBioAutomationConstraintsType">
 		<xs:sequence>
-			<xs:element name="AutomationConstraints">
-				<xs:complexType>
-					<xs:sequence>
-						<xs:element ref="AutomationConstraint" maxOccurs="unbounded"/>
-					</xs:sequence>
-				</xs:complexType>
-			</xs:element>
+			<!-- Types can't be defined here, otherwise they will be ignored in the Java
+			class generation. The type needs to pushed up to root level complexType -->
+			<xs:element name="AutomationConstraints" type="AutomationConstraints" />
 			<xs:element ref="pbpn:PacBioPartNumbers" minOccurs="0"/>
 		</xs:sequence>
 		<xs:attribute name="Version" type="xs:string"/>

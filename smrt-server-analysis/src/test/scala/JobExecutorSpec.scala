@@ -8,11 +8,6 @@ class JobExecutorSpec extends JobExecutorSpecBase {
   import SecondaryAnalysisJsonProtocols._
 
   "Job Execution Status" should {
-    "job execution status" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
     "Sanity 'Example' Job Execution test" in {
       val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts) ~> totalRoutes ~> check {

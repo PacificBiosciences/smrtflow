@@ -119,6 +119,8 @@ def PacBioProject(name: String): Project = (
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
+val buildNumber = (if (sys.env.get("bamboo.buildNumber").isDefined) sys.env("bamboo.buildNumber") else "UNKNOWN")
+
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
 """
@@ -160,7 +162,7 @@ lazy val common = (
         settings(
           makeVersionProperties := {
             val propFile = (resourceManaged in Compile).value / "version.properties"
-            val content = "version=%s\nsha1=%s" format(version.value, gitHeadCommitSha.value)
+            val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(version.value, gitHeadCommitSha.value, buildNumber)
             IO.write(propFile, content)
             Seq(propFile)
           },

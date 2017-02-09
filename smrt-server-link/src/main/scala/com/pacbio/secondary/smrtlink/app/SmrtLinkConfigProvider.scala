@@ -6,6 +6,8 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
+import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
+import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
 
 
 trait SmrtLinkConfigProvider {
@@ -26,4 +28,8 @@ trait SmrtLinkConfigProvider {
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRTLINK_ID).map(_.version))
   val smrtLinkToolsVersion: Singleton[Option[String]] =
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRT_LINK_TOOLS_ID).map(_.version))
+
+  // Load PacBio Automation Constraints Chemistry Bundle
+  val pacBioAutomationConstraints: Singleton[PacBioAutomationConstraints] =
+    Singleton(() => PacBioAutomationConstraintsLoader.loadExample())
 }

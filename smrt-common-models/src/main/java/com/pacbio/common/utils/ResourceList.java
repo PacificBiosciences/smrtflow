@@ -1,4 +1,4 @@
-package com.pacbio.secondary.smrtserver.resourceutils;
+package com.pacbio.common.utils;
 
 /**
  * Created by mkocher on 9/24/15.

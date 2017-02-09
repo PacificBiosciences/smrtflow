@@ -118,12 +118,6 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   "Job Execution Service list" should {
 
-    "return status" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/status") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
-
     var newJob: Option[EngineJob] = None
 
     "execute job" in {

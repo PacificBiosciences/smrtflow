@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PacBioAutomationConstraints
+        xmlns="http://pacificbiosciences.com/PacBioAutomationConstraints.xsd"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd"
+        xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd"
+        xsi:schemaLocation="http://pacificbiosciences.com/PacBioAutomationConstraints.xsd PacBioAutomationConstraints.xsd"
+        xmlns:xi="http://www.w3.org/2001/XInclude"
+
+        Version="3.0.0009"
+        Description="Document the automations and part numbers recognized by the system along with their incompatibilities with one another, if applicable.">
+
+    <AutomationConstraints>
+        <AutomationConstraint Name="Manual" Description="Manual and QC workflow constraints" SupportsCellReuse="true" SupportsStageStart="true" MaxCollectionsPerCell="4" MinMovieLength="1" MaxMovieLength="360" MinInsertSize="500" MaxInsertSize="30000">
+            <pbbase:Automations>
+                <pbbase:Automation Name="WFA-300-000-001"  IsDefault="true" />
+            </pbbase:Automations>
+        </AutomationConstraint>
+
+        <AutomationConstraint Name="Magbead" Description="Magbead workflow constraints" SupportsCellReuse="true" SupportsStageStart="true" MaxCollectionsPerCell="4" MinMovieLength="1" MaxMovieLength="360" MinInsertSize="2000" MaxInsertSize="20000">
+            <pbbase:Automations>
+                <pbbase:Automation Name="WFA-300-000-003" IsDefault="true" />
+                <pbbase:Automation Name="WFA-300-000-006" />
+            </pbbase:Automations>
+        </AutomationConstraint>
+
+        <AutomationConstraint Name="Diffusion" Description="Diffusion workflow constraints" SupportsCellReuse="true" SupportsStageStart="true" MaxCollectionsPerCell="4" MinMovieLength="1" MaxMovieLength="360" MinInsertSize="500" MaxInsertSize="2000">
+            <pbbase:Automations>
+                <pbbase:Automation Name="WFA-300-000-004" IsDefault="true" />
+                <pbbase:Automation Name="WFA-300-000-007" />
+            </pbbase:Automations>
+        </AutomationConstraint>
+
+        <AutomationConstraint Name="Wash" Description="Wash workflow constraints" SupportsCellReuse="true" SupportsStageStart="true" MaxCollectionsPerCell="4" MinMovieLength="1" MaxMovieLength="360" MinInsertSize="500" MaxInsertSize="2000">
+            <pbbase:Automations>
+                <pbbase:Automation Name="WFA-300-000-005"  IsDefault="true" />
+            </pbbase:Automations>
+        </AutomationConstraint>
+
+
+        <AutomationConstraint Name="All" Description="Sequel workflow constraints" SupportsCellReuse="false" SupportsStageStart="true" MaxCollectionsPerCell="1" MinMovieLength="1" MaxMovieLength="360" MinInsertSize="500" MaxInsertSize="40000">
+            <pbbase:Automations>
+                <pbbase:Automation Name="WFA-300-000-001" />
+                <pbbase:Automation Name="WFA-300-000-003"  IsDefault="true" />
+                <pbbase:Automation Name="WFA-300-000-004" />
+                <pbbase:Automation Name="WFA-300-000-005" />
+                <pbbase:Automation Name="WFA-300-000-006" />
+                <pbbase:Automation Name="WFA-300-000-007" />
+                <pbbase:Automation Name="WFA-300-000-008" />
+            </pbbase:Automations>
+        </AutomationConstraint>
+    </AutomationConstraints>
+
+
+    <pbpn:PacBioPartNumbers >
+
+        <pbbase:KeyValueMap>
+            <pbbase:Items>
+
+                <pbbase:Item>
+                    <pbbase:Key>WFA</pbbase:Key>
+                    <pbbase:Value>Workflow Automation</pbbase:Value>
+                    <pbbase:Description>An automation defining workflow for a process</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>BDK</pbbase:Key>
+                    <pbbase:Value>Binding Kit</pbbase:Value>
+                    <pbbase:Description>A kit which contains reagent supplies to bind prepared DNA template libraries to the DNA polymerase in preparation for sequencing on the instrument</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>TPK</pbbase:Key>
+                    <pbbase:Value>Template Prep Kit</pbbase:Value>
+                    <pbbase:Description>A kit which contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>SQK</pbbase:Key>
+                    <pbbase:Value>Sequencing Kit</pbbase:Value>
+                    <pbbase:Description>A kit which contains a sequencing reagent plate with chemistry for single molecule real-time sequencing</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>CPK</pbbase:Key>
+                    <pbbase:Value>Cell Pack</pbbase:Value>
+                    <pbbase:Description>A kit which contains one or more SMRT&#174;Cells</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>OSE</pbbase:Key>
+                    <pbbase:Value>OS Enzyme</pbbase:Value>
+                    <pbbase:Description>OS Enzyme for use with the Sequencing reagent kit</pbbase:Description>
+                </pbbase:Item>
+
+                <pbbase:Item>
+                    <pbbase:Key>CMO</pbbase:Key>
+                    <pbbase:Value>Cell Mineral Oil</pbbase:Value>
+                    <pbbase:Description>SMRT&#174; Cell Oil packaged in a tube</pbbase:Description>
+                </pbbase:Item>
+
+            </pbbase:Items>
+        </pbbase:KeyValueMap>
+
+        <pbpn:Automations>
+            <pbpn:Automation Name="Workflow_ManualCellPrep" Description="Manual automation workflow" Tags="Automation, WFA"  Version="3.0" PartNumber="WFA-300-000-001" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_Magbead" Description="Magbead loading automation workflow"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-003" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_Diffusion" Description="Diffusion loading automation workflow"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-004" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_ReuseWash" Description="Cell wash for reuse automation workflow"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-005" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_Magbead_NoTrypsin" Description="Magbead loading automation workflow without Trypsin"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-006" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_Diffusion_NoTrypsin" Description="Diffusion loading automation workflow without Trypsin"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-007" IsRestricted="false" IsObsolete="false" />
+
+            <pbpn:Automation Name="Workflow_Magbead_BD" Description="Biotin Depletion Magbead loading automation workflow"  Tags="Automation, WFA" Version="3.0" PartNumber="WFA-300-000-008" IsRestricted="false" IsObsolete="false" />
+        </pbpn:Automations>
+
+        <pbpn:BindingKits>
+            <pbpn:BindingKit Name="Sequel&#8482; Binding Kit 1.0"
+                             Description="The Sequel Binding Kit 1.0 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions."
+                             Tags="Binding Kit, BDK" Version="1.0" PartNumber="BDK-100-619-300" IsObsolete="false"/>
+            <pbpn:BindingKit Name="Sequel&#8482; Binding Kit 1.1"
+                             Description="The Sequel Binding Kit 1.1 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions."
+                             Tags="Binding Kit, BDK" Version="1.0" PartNumber="BDK-100-867-500" IsObsolete="false"/>
+            <pbpn:BindingKit Name="Sequel&#8482; Binding Kit 1.1"
+                             Description="The Sequel Binding Kit 1.1 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions."
+                             Tags="Binding Kit, BDK" Version="1.0" PartNumber="BDK-100-867-400" IsObsolete="false"/>
+            <pbpn:BindingKit Name="Sequel&#8482; Binding Kit 2.0"
+                             Description="The Sequel Binding Kit 2.0 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions."
+                             Tags="Binding Kit, BDK" Version="1.0" PartNumber="BDK-100-862-200" IsObsolete="false"/>
+        </pbpn:BindingKits>
+
+        <pbpn:TemplatePrepKits>
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Template Prep Kit" Description="The SMRTbell&#8482; Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-259-100" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; HT Template Prep Kit" Description="The SMRTbell HT Template Prep Kit contains reagent supplies to perform 96 automated SMRTbell non-size-selected library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb. Reagents come in 4 x 24 reaction sets."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-286-300" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Barcoded Adapter Prep-96" Description="The SMRTbell Barcoded Adapter Complete Prep Kit- 96 contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-514-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Asym Template Prep 1.0" Description="The SMRTbell&#8482; Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-902-400" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAATTTTTTTTTTTTTTTTTTTTTTTAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Template Prep Kit 2.0" Description="The SMRTbell&#8482; Template Prep Kit contains reagent supplies to perform 96 automated SMRTbell non-size-selected library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb. Reagents come in 4 x 24 reaction sets."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-938-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; HT Template Prep Kit 2.0 (96 rxn)" Description="The SMRTbell&#8482; HT Template Prep Kit contains reagent supplies to perform 96 automated SMRTbell non-size-selected library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb. Reagents come in 4 x 24 reaction sets."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-939-400" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+            <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Barcoded Complete Prep Kit-96 2.0" Description="The SMRTbell&#8482; Barcoded Adapter Complete Prep Kit - 96 contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."
+                                  Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-939-500" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+                <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+                <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+                <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+                <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+            </pbpn:TemplatePrepKit>
+
+        </pbpn:TemplatePrepKits>
+
+        <pbpn:SequencingKits>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 1.0" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.0" PartNumber="SQK-100-620-000" IsRestricted="true"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 1.1" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.1" PartNumber="SQK-100-867-300" IsRestricted="true"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 1.1" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.1" PartNumber="SQK-100-861-700" IsRestricted="true"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 1.2" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.2" PartNumber="SQK-100-902-100"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 1.3" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.3" PartNumber="SQK-100-972-200"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Verification Plate" Description="The DNA Sequencing Verification Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="1.0" PartNumber="SQK-100-807-900"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Cell Wash Plate 2.1" Description="Cell Wash reagent plate"
+                                Tags="Sequencing Kit, SQK" Version="1.0" PartNumber="SQK-100-866-100"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate Biotin Depletion" Description="Biotin Depletion Sequencing reagent plate"
+                                Tags="Sequencing Kit, SQK" Version="1.0" PartNumber="SQK-100-925-300"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 2.0" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+                                Tags="Sequencing Kit, SQK" Version="2.0" PartNumber="SQK-100-861-800"  IsObsolete="false" MaxCollections="8"/>
+        </pbpn:SequencingKits>
+
+        <pbpn:ControlKits>
+            <pbpn:ControlKit Name="Sequel&#8482; DNA Internal Control 1.0" Description="The Sequel DNA Internal Control 1.0 contains a fixed template of 2 kb length bound to Sequel Binding Kit 1.0 for use as an internal sequencing control. Reagent quantities provide spike-in controls for a minimum of 24 samples."
+                             Tags="Control Kit, CCK" Version="1.0" PartNumber="CCK-100-619-900"  IsObsolete="false"/>
+
+            <pbpn:ControlKit Name="Sequel&#8482; SMRT&#174;Cell Control Complex 1.0" Description="The Sequel SMRT Cell Control Complex 1.0 contains Lambda library DNA template sheared to a peak size of 2 kb and bound to Sequel Binding Kit 1.0. It acts as a complete Sequel SMRT Cell control." Version="1.0" PartNumber="CCK-100-620-100"  IsObsolete="false"/>
+        </pbpn:ControlKits>
+
+        <pbpn:CellPackKits>
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M (4/Pack)" Description="The Sequel SMRT Cell 1M (4/Pack) are nanofabricated consumables each patterned with 1,000,000 wells called zero-mode waveguides (ZMWs). They are packaged together in a streamlined 4 SMRT Cell format (4/tray). One SMRT Cell is utilized in each sequencing reaction, and experiments can be run in single or in batch mode, giving your projects a greater level of flexibility."
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-513-100"  IsObsolete="false" SupportsCellReuse="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Partial External" Description="Individual partial Pack containing 1 - 3 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-513-200"  IsObsolete="false" SupportsCellReuse="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Full Internal" Description="Individual 4 Pack containing 4 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-512-700"  IsObsolete="false" SupportsCellReuse="false" IsRestricted="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Partial Internal" Description="Individual 4 Pack containing 4 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-512-800"  IsObsolete="false" SupportsCellReuse="false" IsRestricted="false"  />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Functional Test" Description=""
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-514-000"  IsObsolete="false" SupportsCellReuse="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Mechanical" Description=""
+                              Tags="Cell Pack, CPK" Version="1.0"  PartNumber="CPK-100-692-600"  IsObsolete="false" SupportsCellReuse="false" />
+
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M (4/Pack)" Description="The Sequel SMRT Cell 1M (4/Pack) are nanofabricated consumables each patterned with 1,000,000 wells called zero-mode waveguides (ZMWs). They are packaged together in a streamlined 4 SMRT Cell format (4/tray). One SMRT Cell is utilized in each sequencing reaction, and experiments can be run in single or in batch mode, giving your projects a greater level of flexibility."
+                              Tags="Cell Pack, CPK" Version="2.0"  PartNumber="CPK-101-008-000"  IsObsolete="false" SupportsCellReuse="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Partial External" Description="Individual partial Pack containing 1 - 3 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="2.0"  PartNumber="CPK-101-008-100"  IsObsolete="false" SupportsCellReuse="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Full Internal" Description="Individual 4 Pack containing 4 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="2.0"  PartNumber="CPK-101-008-200"  IsObsolete="false" SupportsCellReuse="false" IsRestricted="false" />
+            <pbpn:CellPackKit Name="SMRT&#174;Cell 1M, Partial Internal" Description="Individual 4 Pack containing 4 SMRT&#174;Cells each containing 1 million ZMWs"
+                              Tags="Cell Pack, CPK" Version="2.0"  PartNumber="CPK-101-008-300"  IsObsolete="false" SupportsCellReuse="false" IsRestricted="false"  />
+
+
+        </pbpn:CellPackKits>
+
+        <pbpn:OtherKits>
+            <pbpn:OtherKit Name="Sequel&#8482; OS Enzyme" Description="OS Enzyme is currently packaged with the Sequel Sequencing Kit 1.0."
+                           Tags="OS Enzyme, OSE" Version="1.0" PartNumber="OSE-100-619-700"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:OtherKit Name="Sequel&#8482; SMRT&#174;Cell Oil" Description="SMRT&#174;Cell Oil packaged in 2 mL tubes."
+                           Tags="Cell Mineral Oil, CMO" Version="1.0" PartNumber="CMO-100-619-600"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:OtherKit Name="Verification Sequel&#8482; OS Enzyme" Description="Verification OS Enzyme is currently packaged with the Sequel Sequencing Kit 1.0."
+                           Tags="OS Enzyme, OSE" Version="1.0" PartNumber="OSE-100-798-600"  IsObsolete="false" MaxCollections="8"/>
+            <pbpn:OtherKit Name="Verification Sequel&#8482; SMRT&#174;Cell Oil" Description="Verification SMRT&#174;Cell Oil packaged in 2 mL tubes."
+                           Tags="Cell Mineral Oil, CMO" Version="1.0" PartNumber="CMO-100-798-500"  IsObsolete="false" MaxCollections="8"/>
+        </pbpn:OtherKits>
+
+        <pbpn:IncompatibleParts>
+            <pbpn:IncompatiblePart Name="Incompatibility 1" Description="Manual automation workflow is incompatible with Sequel Binding Kit v1" Version="3.0" PartA="WFA-300-000-001" PartB="BDK-100-619-300"/>
+
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 1" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-620-000"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 2" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-867-300"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 3" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-861-700"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 4" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-807-900"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 5" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-925-300"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 6" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-902-100"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 6" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-861-800"/>
+            <pbpn:IncompatiblePart Name="Cell Wash Workflow Incompatibility 7" Description="Cell Wash Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-005" PartB="SQK-100-972-200"/>
+
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 1" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-620-000"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 2" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-867-300"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 3" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-861-700"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 4" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-866-100"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 5" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-902-100"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 5" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-972-200"/>
+            <pbpn:IncompatiblePart Name="BD Workflow Incompatibility 5" Description="BD Workflow Incompatibility" Version="3.0" PartA="WFA-300-000-008" PartB="SQK-100-861-800"/>
+
+            <pbpn:IncompatiblePart Name="Magbead Original Sequencing Plate 1.2 Incompatibilty " Description="Magbead Original is incompatible with Sequencing Plate 1.2" Version="3.0" PartA="WFA-300-000-006" PartB="SQK-100-902-100"/>
+            <pbpn:IncompatiblePart Name="Magbead Original Sequencing Plate 1.2 Incompatibilty " Description="Magbead Original is incompatible with Sequencing Plate 1.2" Version="3.0" PartA="WFA-300-000-006" PartB="SQK-100-861-800"/>
+            <pbpn:IncompatiblePart Name="Magbead Original Sequencing Plate 1.3 Incompatibilty " Description="Magbead Original is incompatible with Sequencing Plate 1.3" Version="3.0" PartA="WFA-300-000-006" PartB="SQK-100-972-200"/>
+            <pbpn:IncompatiblePart Name="Magbead Original Wash Sequencing Plate Incompatibilty " Description="Magbead Original is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-006" PartB="SQK-100-866-100"/>
+            <pbpn:IncompatiblePart Name="Magbead Original BD Sequencing Plate Incompatibilty " Description="Magbead Original is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-006" PartB="SQK-100-925-300"/>
+            <pbpn:IncompatiblePart Name="Diffusion Original Sequencing Plate 1.2 Incompatibilty " Description="Diffusion Original is incompatible with Sequencing Plate 1.2" Version="3.0" PartA="WFA-300-000-007" PartB="SQK-100-902-100"/>
+            <pbpn:IncompatiblePart Name="Diffusion Original Sequencing Plate 1.2 Incompatibilty " Description="Diffusion Original is incompatible with Sequencing Plate 1.2" Version="3.0" PartA="WFA-300-000-007" PartB="SQK-100-861-800"/>
+            <pbpn:IncompatiblePart Name="Diffusion Original Sequencing Plate 1.3 Incompatibilty " Description="Diffusion Original is incompatible with Sequencing Plate 1.3" Version="3.0" PartA="WFA-300-000-007" PartB="SQK-100-972-200"/>
+            <pbpn:IncompatiblePart Name="Diffusion Original Wash Sequencing Plate Incompatibilty " Description="Diffusion Original is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-007" PartB="SQK-100-866-100"/>
+            <pbpn:IncompatiblePart Name="Diffusion Original BD Sequencing Plate Incompatibilty " Description="Magbead Original is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-007" PartB="SQK-100-925-300"/>
+
+            <pbpn:IncompatiblePart Name="Diffusion and Sequencing Plate 1.0 Incompatibilty " Description="Diffusion is incompatible with Reagent Plate 1.0" Version="3.0" PartA="WFA-300-000-004" PartB="SQK-100-620-000"/>
+            <pbpn:IncompatiblePart Name="Diffusion and Sequencing Plate 1.1 Incompatibilty 1" Description="Diffusion is incompatible with Reagent Plate 1.1" Version="3.0" PartA="WFA-300-000-004" PartB="SQK-100-867-300"/>
+            <pbpn:IncompatiblePart Name="Diffusion and Sequencing Plate 1.1 Incompatibilty 2" Description="Diffusion is incompatible with Reagent Plate 1.1" Version="3.0" PartA="WFA-300-000-004" PartB="SQK-100-861-700"/>
+            <pbpn:IncompatiblePart Name="Diffusion and Wash plate Incompatibilty" Description="Diffusion is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-004" PartB="SQK-100-866-100"/>
+            <pbpn:IncompatiblePart Name="Diffusion and BD Sequencing Plate Incompatibilty" Description="Diffusion is incompatible with Reagent Plate 1.1" Version="3.0" PartA="WFA-300-000-004" PartB="SQK-100-925-300"/>
+
+            <pbpn:IncompatiblePart Name="Magbead and Sequencing Plate 1.0 Incompatibilty " Description="Magbead is incompatible with Reagent Plate 1.0" Version="3.0" PartA="WFA-300-000-003" PartB="SQK-100-620-000"/>
+            <pbpn:IncompatiblePart Name="Magbead and Sequencing Plate 1.1 Incompatibilty 1" Description="Magbead is incompatible with Reagent Plate 1.1" Version="3.0" PartA="WFA-300-000-003" PartB="SQK-100-867-300"/>
+            <pbpn:IncompatiblePart Name="Magbead and Sequencing Plate 1.1 Incompatibilty 2" Description="Magbead is incompatible with Reagent Plate 1.1" Version="3.0" PartA="WFA-300-000-003" PartB="SQK-100-861-700"/>
+            <pbpn:IncompatiblePart Name="Magbead and Wash plate Incompatibilty" Description="Magbead is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-003" PartB="SQK-100-866-100"/>
+            <pbpn:IncompatiblePart Name="Magbead and BD plate Incompatibilty" Description="Magbead is incompatible with Wash Plate" Version="3.0" PartA="WFA-300-000-003" PartB="SQK-100-925-300"/>
+
+            <pbpn:IncompatiblePart Name="SQK Reuse Reagent Incompatibility v1 1" Description="Incompatibility with Cell Wash Plate v1" Version="3.0" PartA="SQK-100-866-100" PartB="SQK-100-620-000"/>
+            <pbpn:IncompatiblePart Name="SQK Reuse Reagent Incompatibility v1 2" Description="Incompatibility with Cell Wash Plate v1" Version="3.0" PartA="SQK-100-866-100" PartB="SQK-100-867-300"/>
+            <pbpn:IncompatiblePart Name="SQK Reuse Reagent Incompatibility v1 2" Description="Incompatibility with Cell Wash Plate v1" Version="3.0" PartA="SQK-100-866-100" PartB="SQK-100-902-100"/>
+            <pbpn:IncompatiblePart Name="SQK Reuse Reagent Incompatibility v1 2" Description="Incompatibility with Cell Wash Plate v1" Version="3.0" PartA="SQK-100-866-100" PartB="SQK-100-861-800"/>
+            <pbpn:IncompatiblePart Name="SQK Reuse Reagent Incompatibility v1 3" Description="Incompatibility with Cell Wash Plate v1" Version="3.0" PartA="SQK-100-866-100" PartB="SQK-100-972-200"/>
+
+            <pbpn:IncompatiblePart Name="BDK v1/v2.0 Incompatibility 2" Description="Binding Kit Incompatibility v1 and v2.0" Version="3.0" PartA="BDK-100-619-300" PartB="BDK-100-862-200"/>
+
+            <pbpn:IncompatiblePart Name="BDK v1.1/v2.0 Incompatibility 2" Description="Sequencing Kit Incompatibility v1.1 and v2.0" Version="3.0" PartA="BDK-100-867-500" PartB="BDK-100-862-200"/>
+            <pbpn:IncompatiblePart Name="BDK v1.1/v2.0 Incompatibility 4" Description="Sequencing Kit Incompatibility v1.1 and v2.0" Version="3.0" PartA="BDK-100-867-400" PartB="BDK-100-862-200"/>
+
+            <!-- v1.2 Sequencing plate is incompatible with 2.0 binding kit-->
+            <pbpn:IncompatiblePart Name="SQK v1.2/BDK v2.0 Incompatibility 1" Description="Sequencing Kit Incompatibility v1.2 and Binding Kit v2.0" Version="3.0" PartA="SQK-100-902-100" PartB="BDK-100-862-200"/>
+
+            <!-- v2.0 Sequencing plate is incompatible with 1.0 binding kit-->
+            <pbpn:IncompatiblePart Name="SQK v2.0/BDK v1.0 Incompatibility 1" Description="Sequencing Kit Incompatibility v2.0 and Bindking Kit v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="BDK-100-619-300"/>
+
+            <!-- v1.2 Sequencing plate is incompatible with 2.0 cells-->
+            <pbpn:IncompatiblePart Name="SQK v1.2/CPK v2.0 Incompatibility 1" Description="Sequencing Kit Incompatibility v1.2 and Cell v2.0" Version="3.0" PartA="SQK-100-902-100" PartB="CPK-101-008-000"/>
+            <pbpn:IncompatiblePart Name="SQK v1.2/CPK v2.0 Incompatibility 2" Description="Sequencing Kit Incompatibility v1.2 and Cell v2.0" Version="3.0" PartA="SQK-100-902-100" PartB="CPK-101-008-100"/>
+            <pbpn:IncompatiblePart Name="SQK v1.2/CPK v2.0 Incompatibility 3" Description="Sequencing Kit Incompatibility v1.2 and Cell v2.0" Version="3.0" PartA="SQK-100-902-100" PartB="CPK-101-008-200"/>
+            <pbpn:IncompatiblePart Name="SQK v1.2/CPK v2.0 Incompatibility 4" Description="Sequencing Kit Incompatibility v1.2 and Cell v2.0" Version="3.0" PartA="SQK-100-902-100" PartB="CPK-101-008-300"/>
+
+            <!-- v2.0 Sequencing plate is incompatible with 1.0 cells-->
+            <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 1" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-513-100"/>
+            <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 2" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-513-200"/>
+            <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 3" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-512-700"/>
+            <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 4" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-512-800"/>
+            <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 5" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-692-600"/>
+
+        </pbpn:IncompatibleParts>
+
+
+    </pbpn:PacBioPartNumbers>
+</PacBioAutomationConstraints>
