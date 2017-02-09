@@ -323,6 +323,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ConsensusAlignmentSet"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/contigs/{dataset-id}": {
       "get": {
         "responses": {
@@ -2768,6 +2803,129 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.BarcodeSet",
         "comments": "Barcode  imported"
+      }
+    },
+    "ConsensusAlignmentSet": {
+      "type": "object",
+      "title": "ConsensusAlignmentSet Details",
+      "description": "Details for a single ConsensusAlignmentSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "integer",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "integer",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
+        "updatedAt": "2016-11-04T06:32:04.982Z",
+        "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/041/041572/tasks/pbcoretools.tasks.gather_ccs_alignmentset-1/file.consensusalignmentset.xml",
+        "tags": "",
+        "uuid": "41dd6a1f-6088-61fe-0066-5b74ce073831",
+        "totalLength": 14684586,
+        "projectId": 1,
+        "numRecords": 3515,
+        "version": "3.0.1",
+        "id": 68009,
+        "md5": "db972a033f3181fa231688a360e7df0a",
+        "jobId": 41572,
+        "createdAt": "2016-11-04T06:32:04.982Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
+        "comments": "ccs alignment dataset converted"
       }
     },
     "ContigSetDetails": {
