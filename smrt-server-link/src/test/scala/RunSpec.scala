@@ -218,6 +218,7 @@ class RunSpec
         val collect1 = collections.filter(_.uniqueId == SUBREAD_ID_1).head
         collect1.runId === RUN_ID
         collect1.name === NAME_1
+        collect1.createdBy === Some(CREATED_BY)
         collect1.summary === Some(SUMMARY_1)
         collect1.context === Some(CONTEXT_ID_1)
         collect1.collectionPathUri === Some(PATH_URI_1)
@@ -232,6 +233,7 @@ class RunSpec
         val collect2 = collections.filter(_.uniqueId == SUBREAD_ID_2).head
         collect2.runId === RUN_ID
         collect2.name === NAME_2
+        collect2.createdBy === None
         collect2.summary === None
         collect2.context === None
         collect2.collectionPathUri === None
@@ -252,6 +254,7 @@ class RunSpec
 
         collect1.runId === RUN_ID
         collect1.name === NAME_1
+        collect1.createdBy === Some(CREATED_BY)
         collect1.summary === Some(SUMMARY_1)
         collect1.context === Some(CONTEXT_ID_1)
         collect1.collectionPathUri === Some(PATH_URI_1)

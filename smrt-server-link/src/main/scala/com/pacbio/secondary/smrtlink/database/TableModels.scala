@@ -525,6 +525,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
 
+    def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
+
     def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
 
     def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
@@ -543,6 +545,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         instrumentId,
         instrumentName,
         movieMinutes,
+        createdBy,
         startedAt,
         completedAt,
         terminationInfo) <>(CollectionMetadata.tupled, CollectionMetadata.unapply)
