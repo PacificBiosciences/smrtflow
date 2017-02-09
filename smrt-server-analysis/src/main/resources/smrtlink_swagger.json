@@ -463,6 +463,41 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/GmapReferenceSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/{type}/_schema": {
       "get": {
         "responses": {
@@ -3308,6 +3343,143 @@
         "organism": "lambdaNEB",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ReferenceSet",
+        "comments": "reference dataset comments"
+      }
+    },
+    "GmapReferenceSetDetails": {
+      "type": "object",
+      "title": "GmapReferenceSet Details",
+      "description": "Details for a single GmapReferenceSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "ploidy": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "integer",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "integer",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "string",
+               "title": "Created At",
+               "description": ""
+             },
+        "organism": {
+               "type": "string",
+               "title": "Organism",
+               "description": ""
+             },
+        "userId": {
+          "type": "integer",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "ploidy",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "organism",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "hg38",
+        "updatedAt": "2016-11-30T22:04:01.317Z",
+        "path": "/pbi/dept/secondary/siv/testdata/isoseq/gmapreferences/hg38/hg38/gmapreferenceset.xml",
+        "ploidy": "",
+        "tags": "",
+        "uuid": "8207511e-8be8-4935-89f3-49ccfa2516ba",
+        "totalLength": -1085681191,
+        "projectId": 1,
+        "numRecords": 455,
+        "version": "3.0.1",
+        "id": 3297,
+        "md5": "8072374d09f6b4ef48f362f051b62f2b",
+        "jobId": 1781,
+        "createdAt": "2016-11-30T22:04:01.317Z",
+        "organism": "hg38",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.GmapReferenceSet",
         "comments": "reference dataset comments"
       }
     },
