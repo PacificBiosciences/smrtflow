@@ -183,14 +183,297 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}": {
+    "/secondary-analysis/datasets/alignments/{dataset-id}": {
       "get": {
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/AlignmentSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
             "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/HdfSubreadSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/subreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/SubreadSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/BarcodeSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ConsensusAlignmentSet"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/contigs/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ContigSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ConsensusReadDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/references/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ReferenceSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/GmapReferenceSetDetails"
+            }
           }
         },
         "parameters": [
@@ -1983,6 +2266,1239 @@
         "id": "smrtlink.resources.root",
         "usableSpace": 112911650816,
         "freeSpace": 119113555968
+      }
+    },
+    "AlignmentSetDetails": {
+      "type": "object",
+      "title": "AlignmentSet Details",
+      "description": "Details for a single alignmentset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_alignmentset-160202_223320635",
+        "updatedAt": "2016-02-02T22:34:38.534Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/000/000003/tasks/pbsmrtpipe.tasks.gather_alignmentset-1/file.alignmentset.xml",
+        "tags": "",
+        "uuid": "ee7d9225-d834-01b0-0488-b0bda263e085",
+        "totalLength": 13757246,
+        "projectId": 1,
+        "numRecords": 17864,
+        "version": "3.0.1",
+        "id": 3,
+        "md5": "fcb02727aea5fe640ec7d6e5904205e3",
+        "jobId": 3,
+        "createdAt": "2016-02-02T22:34:38.534Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.AlignmentSet",
+        "comments": "alignment dataset converted"
+      }
+    },
+    "HdfSubreadSetDetails": {
+      "type": "object",
+      "title": "HdfSubreadSet Details",
+      "description": "Details for a single hdfsubreads",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": ""
+        },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "wellSampleName": {
+               "type": "string",
+               "title": "Well Sample Name",
+               "description": ""
+             },
+        "bioSampleName": {
+          "type": "string",
+          "title": "Biological Sample Name",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "string",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "string",
+               "title": "Created At",
+               "description": ""
+             },
+        "wellName": {
+          "type": "string",
+          "title": "Well Name",
+          "description": ""
+        },
+        "cellIndex": {
+               "type": "integer",
+               "title": "Cell Index",
+               "description": ""
+             },
+        "userId": {
+          "type": "integer",
+          "title": "User ID",
+          "description": ""
+        },
+        "metadataContextId": {
+               "type": "string",
+               "title": "Metadata Context ID",
+               "description": ""
+             },
+        "runName": {
+          "type": "string",
+          "title": "Run Name",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "instrumentName",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "wellSampleName",
+        "bioSampleName",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "wellName",
+        "cellIndex",
+        "userId",
+        "metadataContextId",
+        "runName",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "Convert-movie",
+        "updatedAt": "2016-03-04T14:15:00.653Z",
+        "path": "/home/UNIXHOME/ckonig/Cologne_CCS2_201603/B01_1/m160119_004643_42207_c100947812550000001823211506101611_s1_p0.hdfsubreadset.xml",
+        "tags": "pacbio.secondary.instrument=RS",
+        "instrumentName": "42207",
+        "uuid": "6d70714c-2538-46cc-9216-4f8fb7bc6361",
+        "totalLength": 50000000,
+        "projectId": 1,
+        "numRecords": 150000,
+        "wellSampleName": "1932.A",
+        "bioSampleName": "1932.A",
+        "version": "3.0.1",
+        "id": 13,
+        "md5": "9fbad9d0a65836a9b8f9d504c01b8f46",
+        "jobId": 7,
+        "createdAt": "2016-03-04T14:15:00.653Z",
+        "wellName": "B01",
+        "cellIndex": 1,
+        "userId": 1,
+        "metadataContextId": "m160119_004643_42207_c100947812550000001823211506101611_s1_p0",
+        "runName": "Run_0121",
+        "datasetType": "PacBio.DataSet.HdfSubreadSet",
+        "comments": ""
+      }
+    },
+    "SubreadSetDetails": {
+      "type": "object",
+      "title": "SubreadSet Details",
+      "description": "Details for a single subreadset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "instrumentName": {
+          "type": "string",
+          "title": "Instrument Name",
+          "description": ""
+        },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "wellSampleName": {
+               "type": "string",
+               "title": "Well Sample Name",
+               "description": ""
+             },
+        "bioSampleName": {
+          "type": "string",
+          "title": "Biological Sample Name",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "string",
+               "title": "Created At",
+               "description": ""
+             },
+        "wellName": {
+          "type": "string",
+          "title": "Well Name",
+          "description": ""
+        },
+        "cellIndex": {
+               "type": "integer",
+               "title": "Cell Index",
+               "description": ""
+             },
+        "userId": {
+          "type": "integer",
+          "title": "User ID",
+          "description": ""
+        },
+        "metadataContextId": {
+               "type": "string",
+               "title": "Metadata Context ID",
+               "description": ""
+             },
+        "runName": {
+          "type": "string",
+          "title": "Run Name",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "instrumentName",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "wellSampleName",
+        "bioSampleName",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "wellName",
+        "cellIndex",
+        "userId",
+        "metadataContextId",
+        "runName",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
+        "updatedAt": "2016-12-02T23:34:58.660Z",
+        "path": "/pbi/collections/315/3150315/r54011_20160727_001907/1_A01/m54011_160727_002259.subreadset.xml",
+        "tags": "subreadset",
+        "instrumentName": "Alpha11",
+        "uuid": "146338e0-7ec2-4d2d-b938-11bce71b7ed1",
+        "totalLength": 5032258698,
+        "projectId": 1,
+        "numRecords": 4867222,
+        "wellSampleName": "SMS_FleaVal_SIRV-E0_150pM_onchip_6hrMovie",
+        "bioSampleName": "unknown",
+        "version": "3.0.1",
+        "id": 4413,
+        "md5": "5657aa955ce13afddc8a1e22a8a20b9b",
+        "jobId": 3200,
+        "createdAt": "2016-12-02T23:34:58.660Z",
+        "wellName": "A01",
+        "cellIndex": 0,
+        "userId": 1,
+        "metadataContextId": "m54011_160727_002259",
+        "runName": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
+        "datasetType": "PacBio.DataSet.SubreadSet",
+        "comments": " "
+      }
+    },
+    "BarcodeSetDetails": {
+      "type": "object",
+      "title": "BarcodeSet Details",
+      "description": "Details for a single barcodeset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_barcode_adapters_96",
+        "updatedAt": "2016-07-13T20:32:48.349Z",
+        "path": "/pbi/dept/secondary/siv/barcodes/pacbio_barcodes_96_revcomp/pacbio_barcodes_96_revcomp.barcodeset.xml",
+        "tags": "",
+        "uuid": "bee0488f-49a6-0505-e89a-2579411804b8",
+        "totalLength": 1536,
+        "projectId": 1,
+        "numRecords": 96,
+        "version": "3.0.1",
+        "id": 459,
+        "md5": "f1b6141bbf206d30c90ffee083c25678",
+        "jobId": 411,
+        "createdAt": "2016-07-13T20:32:48.349Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.BarcodeSet",
+        "comments": "Barcode  imported"
+      }
+    },
+    "ConsensusAlignmentSet": {
+      "type": "object",
+      "title": "ConsensusAlignmentSet Details",
+      "description": "Details for a single ConsensusAlignmentSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
+        "updatedAt": "2016-11-04T06:32:04.982Z",
+        "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/041/041572/tasks/pbcoretools.tasks.gather_ccs_alignmentset-1/file.consensusalignmentset.xml",
+        "tags": "",
+        "uuid": "41dd6a1f-6088-61fe-0066-5b74ce073831",
+        "totalLength": 14684586,
+        "projectId": 1,
+        "numRecords": 3515,
+        "version": "3.0.1",
+        "id": 68009,
+        "md5": "db972a033f3181fa231688a360e7df0a",
+        "jobId": 41572,
+        "createdAt": "2016-11-04T06:32:04.982Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
+        "comments": "ccs alignment dataset converted"
+      }
+    },
+    "ContigSetDetails": {
+      "type": "object",
+      "title": "ContigSet Details",
+      "description": "Details for a single contigset",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
+        "updatedAt": "2017-01-23T23:43:43.521Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003805/tasks/pbcoretools.tasks.gather_contigset-1/file.contigset.xml",
+        "tags": "",
+        "uuid": "776bbba8-cb83-e46d-5228-ff02e449e3c4",
+        "totalLength": 48502,
+        "projectId": 1,
+        "numRecords": 1,
+        "version": "3.0.1",
+        "id": 5379,
+        "md5": "dd67945eea0d203625f0ef3cdafa86b6",
+        "jobId": 3805,
+        "createdAt": "2017-01-23T23:43:43.521Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ContigSet",
+        "comments": "contig dataset comments"
+      }
+    },
+    "ConsensusReadDetails": {
+      "type": "object",
+      "title": "ConsensusRead Details",
+      "description": "Details for a single ConsensusReadSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "string",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "string",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "int",
+               "title": "Created At",
+               "description": ""
+             },
+        "userId": {
+          "type": "string",
+          "title": "integer",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
+        "updatedAt": "2017-02-02T06:56:46.940Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003943/tasks/pbcoretools.tasks.gather_ccsset-1/file.consensusreadset.xml",
+        "tags": "",
+        "uuid": "0e4cb148-7a5e-c98b-c204-a5ac47378e14",
+        "totalLength": 0,
+        "projectId": 1,
+        "numRecords": 204341,
+        "version": "3.0.1",
+        "id": 5529,
+        "md5": "52ebf7c860d94350a4617406ae4ff9dc",
+        "jobId": 3943,
+        "createdAt": "2017-02-02T06:56:46.940Z",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ConsensusReadSet",
+        "comments": "ccs dataset converted"
+      }
+    },
+    "ReferenceSetDetails": {
+      "type": "object",
+      "title": "ReferenceSet Details",
+      "description": "Details for a single ReferenceSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "ploidy": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "string",
+               "title": "Created At",
+               "description": ""
+             },
+        "organism": {
+               "type": "string",
+               "title": "Organism",
+               "description": ""
+             },
+        "userId": {
+          "type": "integer",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "ploidy",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "organism",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "lambdaNEB",
+        "updatedAt": "2016-02-02T22:26:22.168Z",
+        "path": "/pbi/analysis/smrtlink/release/smrtsuite/current/bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
+        "ploidy": "haploid",
+        "tags": "",
+        "uuid": "1a369917-507e-4f70-9f38-69614ff828b6",
+        "totalLength": 48502,
+        "projectId": 1,
+        "numRecords": 1,
+        "version": "3.0.1",
+        "id": 1,
+        "md5": "4861bca63e02aa26c92724febb3299c2",
+        "jobId": 1,
+        "createdAt": "2016-02-02T22:26:22.168Z",
+        "organism": "lambdaNEB",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.ReferenceSet",
+        "comments": "reference dataset comments"
+      }
+    },
+    "GmapReferenceSetDetails": {
+      "type": "object",
+      "title": "GmapReferenceSet Details",
+      "description": "Details for a single GmapReferenceSet",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "updatedAt": {
+               "type": "string",
+               "title": "Updated At",
+               "description": ""
+             },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "ploidy": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "tags": {
+               "type": "int",
+               "title": "Tags",
+               "description": ""
+             },
+        "uuid": {
+               "type": "int",
+               "title": "UUID",
+               "description": ""
+             },
+        "totalLength": {
+          "type": "long",
+          "title": "Total Length",
+          "description": ""
+        },
+        "projectId": {
+               "type": "integer",
+               "title": "Project ID",
+               "description": ""
+             },
+        "numRecords": {
+          "type": "long",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "version": {
+               "type": "string",
+               "title": "Version",
+               "description": ""
+             },
+        "id": {
+          "type": "integer",
+          "title": "ID",
+          "description": ""
+        },
+        "md5": {
+               "type": "string",
+               "title": "MD5",
+               "description": ""
+             },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "createdAt": {
+               "type": "string",
+               "title": "Created At",
+               "description": ""
+             },
+        "organism": {
+               "type": "string",
+               "title": "Organism",
+               "description": ""
+             },
+        "userId": {
+          "type": "integer",
+          "title": "User ID",
+          "description": ""
+        },
+        "datasetType": {
+               "type": "string",
+               "title": "Dataset Type",
+               "description": ""
+             },
+        "comments": {
+               "type": "string",
+               "title": "Comments",
+               "description": ""
+             }
+      },
+      "required": [
+        "name",
+        "updatedAt",
+        "path",
+        "ploidy",
+        "tags",
+        "uuid",
+        "totalLength",
+        "projectId",
+        "numRecords",
+        "version",
+        "id",
+        "md5",
+        "jobId",
+        "createdAt",
+        "organism",
+        "userId",
+        "datasetType",
+        "comments"
+      ],
+      "example": {
+        "name": "hg38",
+        "updatedAt": "2016-11-30T22:04:01.317Z",
+        "path": "/pbi/dept/secondary/siv/testdata/isoseq/gmapreferences/hg38/hg38/gmapreferenceset.xml",
+        "ploidy": "",
+        "tags": "",
+        "uuid": "8207511e-8be8-4935-89f3-49ccfa2516ba",
+        "totalLength": -1085681191,
+        "projectId": 1,
+        "numRecords": 455,
+        "version": "3.0.1",
+        "id": 3297,
+        "md5": "8072374d09f6b4ef48f362f051b62f2b",
+        "jobId": 1781,
+        "createdAt": "2016-11-30T22:04:01.317Z",
+        "organism": "hg38",
+        "userId": 1,
+        "datasetType": "PacBio.DataSet.GmapReferenceSet",
+        "comments": "reference dataset comments"
       }
     },
     "Manifests": {
