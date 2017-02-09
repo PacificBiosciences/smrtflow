@@ -1,16 +1,15 @@
 package com.pacbio.secondary.smrtserver.loaders
 
 import java.util.regex.Pattern
+
+import com.pacbio.common.utils.ResourceList
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 
 import collection.JavaConversions._
-
-import com.pacbio.secondary.smrtserver.resourceutils.ResourceList
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{Charsets, IOUtils}
 
 import scala.util.Try
-
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 

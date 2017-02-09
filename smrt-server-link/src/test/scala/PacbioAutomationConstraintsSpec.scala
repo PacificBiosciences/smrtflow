@@ -37,7 +37,10 @@ class PacbioAutomationConstraintsSpec extends Specification{
       vx must beSome("3.0.0009")
       val constraints = p.getAutomationConstraints.getAutomationConstraint
       constraints.length === 5
-
+    }
+    "Load Demo/Example Chemistry Bundle" in {
+      val p = PacBioAutomationConstraintsLoader.loadExample()
+      Option(p.getVersion) must beSome("3.0.0009")
     }
   }
 }
