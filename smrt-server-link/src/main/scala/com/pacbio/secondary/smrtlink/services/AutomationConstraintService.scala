@@ -9,8 +9,6 @@ import spray.routing._
 import DefaultJsonProtocol._
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.services._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
@@ -35,8 +33,6 @@ class AutomationConstraintsDao(data: JsValue) {
   * Created by mkocher on 2/6/17.
   */
 class AutomationConstraintService(dao: AutomationConstraintsDao) extends SmrtLinkBaseMicroService {
-
-  import SmrtLinkJsonProtocols._
 
   val ROUTE_PREFIX = "automation-constraints"
 
