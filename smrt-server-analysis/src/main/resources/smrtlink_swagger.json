@@ -2281,7 +2281,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -2291,7 +2291,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -2409,7 +2409,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -2419,7 +2419,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -2581,7 +2581,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -2591,7 +2591,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -2748,7 +2748,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -2758,7 +2758,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -2871,7 +2871,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -2881,7 +2881,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -2994,7 +2994,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -3004,7 +3004,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -3117,7 +3117,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -3127,7 +3127,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -3245,7 +3245,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -3255,7 +3255,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
@@ -3382,7 +3382,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "integer",
+          "type": "long",
           "title": "Total Length",
           "description": ""
         },
@@ -3392,7 +3392,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "integer",
+          "type": "long",
           "title": "Number of Records",
           "description": ""
         },
