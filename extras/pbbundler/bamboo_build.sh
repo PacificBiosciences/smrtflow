@@ -3,6 +3,8 @@
 # this will be in the name of output tar.gz file
 BUNDLE_VERSION="0.11.0"
 
+echo "Bamboo build number '${bamboo.buildNumber}'"
+
 # this script assumes that the directory containing the smrtflow repo also
 # contains ui and the python repos
 g_progdir=$(dirname "$0");
