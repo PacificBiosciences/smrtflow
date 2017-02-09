@@ -1728,6 +1728,24 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/automation-constraints": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBioAutomationConstraints. System may not be configured to load a PacBioAutomationConstraints.XML"
+          },
+          "200": {
+            "description": "JSON conversion of the PacBioAutomationConstraints.XML. Please see the PacBioAutomationConstraints.xsd for details"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/smrt-base/eula": {
       "post": {
         "responses": {
@@ -1805,22 +1823,22 @@
           "description": "Path to base directory of SMRT Server"
         },
         "totalSpace": {
-               "type": "int",
+               "type": "integer",
                "title": "Total Space",
-               "description": "Total disk Space available for SMRT Server"
+               "description": "Total disk Space available for SMRT Server directory (e.g., job directory, tmp space, root dir)"
              },
         "id": {
                "type": "string",
-               "title": "Server ID",
-               "description": "???"
+               "title": "Resource ID",
+               "description": "Resource id (e.g., smrtlink.resources.jobs_root, or smrtlink.resources.root)"
              },
         "usableSpace": {
-               "type": "int",
+               "type": "integer",
                "title": "Usable Disk Space",
                "description": "Total free disk space available for SMRT Server"
              },
         "freeSpace": {
-               "type": "int",
+               "type": "integer",
                "title": "Free Disk Space",
                "description": "Total free disk space available for SMRT Server"
              }
