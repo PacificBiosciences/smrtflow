@@ -103,7 +103,8 @@ lazy val baseSettings = Seq(
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
-  "log4j" % "log4j" % "1.2.17"
+  "log4j" % "log4j" % "1.2.17",
+  "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r"
 )
 
 def PacBioProject(name: String): Project = (
