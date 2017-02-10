@@ -280,7 +280,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def md5: Rep[String] = column[String]("md5")
 
-    def userId: Rep[Int] = column[Int]("user_id")
+    def createdBy: Rep[Option[String]] = column[Option[String]]("user_id")
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
@@ -288,7 +288,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, createdBy, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
     def uuidIdx = index("dataset_metadata_uuid", uuid)
 

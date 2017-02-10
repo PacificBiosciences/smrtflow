@@ -6,6 +6,7 @@ import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.logging.{LoggerOptions, LoggerConfig}
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.analysis.tools.{ToolSuccess, ToolFailure, CommandLineToolRunner}
@@ -196,6 +197,8 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
 }
 
 object LegacyModels {
+  import DataSetMetaTypes._
+
   case class LegacyEngineJob(
                           id: Int,
                           uuid: UUID,
@@ -270,6 +273,261 @@ object LegacyModels {
       completedAt,
       terminationInfo)
   }
+
+  trait LegacyProjectAble {
+    val userId: Int
+    val jobId: Int
+    val projectId: Int
+    val isActive: Boolean
+  }
+
+  case class LegacyDataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with LegacyProjectAble {
+
+    def toDataSetaMetaDataSet = DataSetMetaDataSet(
+      id,
+      uuid,
+      name,
+      path,
+      createdAt,
+      updatedAt,
+      numRecords,
+      totalLength,
+      tags,
+      version,
+      comments,
+      md5,
+      None,
+      jobId,
+      projectId,
+      isActive
+    )
+  }
+
+  case class LegacySubreadServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: SubreadServiceSet)
+
+  case class LegacyHdfSubreadServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: HdfSubreadServiceSet)
+
+  case class LegacyReferenceServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: ReferenceServiceSet)
+
+  case class LegacyAlignmentServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: AlignmentServiceSet)
+
+  case class LegacyBarcodeServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: BarcodeServiceSet)
+
+  case class LegacyConsensusReadServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: ConsensusReadServiceSet)
+
+  case class LegacyGmapReferenceServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: GmapReferenceServiceSet)
+
+  case class LegacyConsensusAlignmentServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
+
+  case class LegacyContigServiceMetaDataSet(metadata: LegacyDataSetMetaDataSet, dataset: ContigServiceSet)
+
+  trait LegacyServiceDataSetMetadata {
+    val id: Int
+    val name: String
+    val uuid: UUID
+    val path: String
+    val createdAt: JodaDateTime
+    val updatedAt: JodaDateTime
+    val numRecords: Long
+    val totalLength: Long
+    val version: String
+    val comments: String
+    // Keeping this a string for now
+    val tags: String
+    val md5: String
+    val userId: Int
+    val jobId: Int
+    val projectId: Int
+  }
+
+  case class SubreadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    instrumentName: String,
+    metadataContextId: String,
+    wellSampleName: String,
+    wellName: String,
+    bioSampleName: String,
+    cellIndex: Int,
+    runName: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Subread.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class HdfSubreadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    instrumentName: String,
+    metadataContextId: String,
+    wellSampleName: String,
+    wellName: String,
+    bioSampleName: String,
+    cellIndex: Int,
+    runName: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = HdfSubread.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class ReferenceServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    ploidy: String,
+    organism: String,
+    datasetType: String = Reference.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class AlignmentServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Alignment.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class ConsensusReadServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = CCS.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class ConsensusAlignmentServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = AlignmentCCS.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class BarcodeServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Barcode.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class ContigServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    datasetType: String = Contig.toString())
+      extends LegacyServiceDataSetMetadata
+
+  case class GmapReferenceServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    userId: Int,
+    jobId: Int,
+    projectId: Int,
+    ploidy: String,
+    organism: String,
+    datasetType: String = GmapReference.toString())
+      extends LegacyServiceDataSetMetadata
 }
 
 
@@ -383,7 +641,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def idx = index("engine_jobs_datasets_job_id", jobId)
   }
 
-  class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
+  class DataSetMetaT(tag: Tag) extends IdAbleTable[LegacyDataSetMetaDataSet](tag, "dataset_metadata") {
     def name: Rep[String] = column[String]("name")
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
@@ -398,7 +656,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def jobId: Rep[Int] = column[Int]("job_id")
     def projectId: Rep[Int] = column[Int]("project_id")
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(LegacyDataSetMetaDataSet.tupled, LegacyDataSetMetaDataSet.unapply)
     def uuidIdx = index("dataset_metadata_uuid", uuid)
     def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
@@ -667,7 +925,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }

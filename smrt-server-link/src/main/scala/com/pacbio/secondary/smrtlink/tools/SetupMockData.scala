@@ -86,7 +86,7 @@ trait MockUtils extends LazyLogging{
   val MOCK_NDATASETS = 5
   val MOCK_NUM_PIPELINE_TEMPLATES = 5
   val ROOT_MOCK_DATASET_DIR = "/mock-datasets"
-  val MOCK_USER_ID = 1
+  val MOCK_CREATED_BY = Some("testuser")
   val MOCK_JOB_ID = 1
   val MOCK_USER_LOGIN = "jsnow"
   val GEN_PROJECT_ID = 1
@@ -150,7 +150,7 @@ trait MockUtils extends LazyLogging{
         "bio-sample",
         0,
         "run-name",
-        MOCK_USER_ID, importJobId, mockProjectId)
+        MOCK_CREATED_BY, importJobId, mockProjectId)
     }
 
     Future.sequence((0 until n).map(_ => dao.insertSubreadDataSet(toS)))
@@ -164,7 +164,7 @@ trait MockUtils extends LazyLogging{
       logger.info(s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
       val d = DataSetLoader.loadSubreadSet(file.toPath)
       logger.info(s"DataSet $d")
-      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_USER_ID, MOCK_JOB_ID, mockProjectId)
+      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_CREATED_BY, MOCK_JOB_ID, mockProjectId)
       logger.info(s"Loading dataset $sds")
       sds
     }
@@ -183,7 +183,7 @@ trait MockUtils extends LazyLogging{
       logger.info(s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
       val d = DataSetLoader.loadHdfSubreadSet(file.toPath)
       logger.info(s"DataSet $d")
-      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_USER_ID, MOCK_JOB_ID, mockProjectId)
+      val sds = Converters.convert(d, file.toPath.toAbsolutePath, MOCK_CREATED_BY, MOCK_JOB_ID, mockProjectId)
       logger.info(s"Loading dataset $sds")
       sds
     }
@@ -197,7 +197,7 @@ trait MockUtils extends LazyLogging{
     def toS(file: File): ReferenceServiceDataSet = {
       val dataset = DataSetLoader.loadReferenceSet(file.toPath)
       logger.debug(s"Loading reference from ${file.toPath}")
-      Converters.convert(dataset, file.toPath, MOCK_USER_ID, MOCK_JOB_ID, mockProjectId)
+      Converters.convert(dataset, file.toPath, MOCK_CREATED_BY, MOCK_JOB_ID, mockProjectId)
     }
     Future.sequence(files.map(toS).map(dao.insertReferenceDataSet))
   }
@@ -215,7 +215,7 @@ trait MockUtils extends LazyLogging{
         9876,
         MOCK_DS_VERSION,
         "mock Alignment Dataset comments",
-        "mock-alignment-dataset-tags", toMd5(uuid.toString), MOCK_USER_ID, MOCK_JOB_ID, mockProjectId)
+        "mock-alignment-dataset-tags", toMd5(uuid.toString), MOCK_CREATED_BY, MOCK_JOB_ID, mockProjectId)
     }
     val dss = (0 until n).map(x => toDS)
     Future.sequence(dss.map(dao.insertAlignmentDataSet))

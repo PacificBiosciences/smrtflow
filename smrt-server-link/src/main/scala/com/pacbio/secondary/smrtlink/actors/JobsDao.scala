@@ -650,44 +650,44 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   /**
    * Generic Importing of DataSet by type and Path to dataset file
    */
-  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, userId: Int, projectId: Int): Future[MessageResponse] = {
+  protected def insertDataSet(dataSetMetaType: DataSetMetaType, spath: String, jobId: Int, createdBy: Option[String], projectId: Int): Future[MessageResponse] = {
     val path = Paths.get(spath)
     dataSetMetaType match {
       case DataSetMetaTypes.Subread =>
         val dataset = DataSetLoader.loadSubreadSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertSubreadDataSet(sds)
       case DataSetMetaTypes.Reference =>
         val dataset = DataSetLoader.loadReferenceSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertReferenceDataSet(sds)
       case DataSetMetaTypes.GmapReference =>
         val dataset = DataSetLoader.loadGmapReferenceSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertGmapReferenceDataSet(sds)
       case DataSetMetaTypes.HdfSubread =>
         val dataset = DataSetLoader.loadHdfSubreadSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertHdfSubreadDataSet(sds)
       case DataSetMetaTypes.Alignment =>
         val dataset = DataSetLoader.loadAlignmentSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertAlignmentDataSet(sds)
       case DataSetMetaTypes.Barcode =>
         val dataset = DataSetLoader.loadBarcodeSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertBarcodeDataSet(sds)
       case DataSetMetaTypes.CCS =>
         val dataset = DataSetLoader.loadConsensusReadSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertConsensusReadDataSet(sds)
       case DataSetMetaTypes.AlignmentCCS =>
         val dataset = DataSetLoader.loadConsensusAlignmentSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertConsensusAlignmentDataSet(sds)
       case DataSetMetaTypes.Contig =>
         val dataset = DataSetLoader.loadContigSet(path)
-        val sds = Converters.convert(dataset, path.toAbsolutePath, userId, jobId, projectId)
+        val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertContigDataSet(sds)
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
@@ -724,7 +724,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
           case Some(typ) =>
-            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, DEFAULT_USER_ID, DEFAULT_PROJECT_ID))
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, None, DEFAULT_PROJECT_ID))
           case None =>
             existing match {
               case Some(_) =>
@@ -740,7 +740,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
         } yield oi
         db.run(fin.transactionally)
       }
-      
+
       // This needed queries un-nested due to SQLite limitations -- see #197
       db.run(datastoreServiceFiles.filter(_.uuid === ds.uniqueId).result.headOption).flatMap{
         addOptionalInsert
@@ -806,7 +806,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     val modifiedAt = createdAt
     dsMetaData2 returning dsMetaData2.map(_.id) += DataSetMetaDataSet(
       -999, ds.uuid, ds.name, ds.path, createdAt, modifiedAt, ds.numRecords, ds.totalLength, ds.tags, ds.version,
-      ds.comments, ds.md5, ds.userId, ds.jobId, ds.projectId, isActive = true)
+      ds.comments, ds.md5, ds.createdBy, ds.jobId, ds.projectId, isActive = true)
   }
 
   type U = slick.profile.FixedSqlAction[Int,slick.dbio.NoStream,slick.dbio.Effect.Write]
@@ -912,7 +912,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   // util for converting to the old model
   def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
     SubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
+      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
   // FIXME. REALLY, REALLY need to generalize this.
   def getSubreadDataSetById(id: Int): Future[SubreadServiceDataSet] = {
@@ -950,7 +950,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   // conversion util for keeping the old interface
   def toR(t1: DataSetMetaDataSet, t2: ReferenceServiceSet): ReferenceServiceDataSet =
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
+      t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
   def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
     db.run {
@@ -983,7 +983,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
+      t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
   def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
     db.run {
@@ -1024,7 +1024,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def toHds(t1: DataSetMetaDataSet, t2: HdfSubreadServiceSet): HdfSubreadServiceDataSet =
     HdfSubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.userId, t1.jobId, t1.projectId)
+      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
   def getHdfDataSetById(id: Int): Future[HdfSubreadServiceDataSet] =
     db.run {
@@ -1060,7 +1060,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       t1.comments,
       t1.tags,
       t1.md5,
-      t1.userId,
+      t1.createdBy,
       t1.jobId,
       t1.projectId)
 
@@ -1098,7 +1098,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def toCCSread(t1: DataSetMetaDataSet) =
     ConsensusReadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t1.userId, t1.jobId, t1.projectId)
+      t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
   def getConsensusReadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
@@ -1145,7 +1145,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       t1.comments,
       t1.tags,
       t1.md5,
-      t1.userId,
+      t1.createdBy,
       t1.jobId,
       t1.projectId)
 
@@ -1193,7 +1193,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       t1.comments,
       t1.tags,
       t1.md5,
-      t1.userId,
+      t1.createdBy,
       t1.jobId,
       t1.projectId)
 
@@ -1241,7 +1241,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       t1.comments,
       t1.tags,
       t1.md5,
-      t1.userId,
+      t1.createdBy,
       t1.jobId,
       t1.projectId)
 

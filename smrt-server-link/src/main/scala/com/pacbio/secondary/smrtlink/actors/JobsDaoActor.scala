@@ -667,11 +667,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       log.info(s"Importing subread dataset from $path")
       //val d = SubreadDataset.loadFrom(Paths.get(path).toUri)
       val pathP = Paths.get(path)
-      val userId = 1
       val projectId = 1
       val jobId = 1
       val d = DataSetLoader.loadSubreadSet(Paths.get(path))
-      val serviceDataSet = Converters.convert(d, pathP, userId, jobId, projectId)
+      val serviceDataSet = Converters.convert(d, pathP, None, jobId, projectId)
       dao.insertSubreadDataSet(serviceDataSet)
     }
 

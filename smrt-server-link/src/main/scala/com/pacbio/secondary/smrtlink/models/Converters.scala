@@ -33,7 +33,7 @@ object Converters {
 
   def toMd5(text: String): String = MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
 
-  def convert(dataset: SubreadSet, path: Path, userId: Int, jobId: Int, projectId: Int): SubreadServiceDataSet = {
+  def convert(dataset: SubreadSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): SubreadServiceDataSet = {
     // this is not correct, but the timestamps are often written correctly
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -55,6 +55,7 @@ object Converters {
     val cellIndex = Try { dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getCellIndex.toInt } getOrElse -1
     val wellName = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getWellSample.getWellName).getOrElse(DEFAULT_WELL_NAME) } getOrElse DEFAULT_WELL_NAME
     val runName = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getRunDetails.getName).getOrElse(DEFAULT_RUN_NAME) } getOrElse DEFAULT_RUN_NAME
+    val metadataCreatedBy = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getRunDetails.getCreatedBy) } getOrElse None
     val contextId = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getContext).getOrElse(DEFAULT_CONTEXT) } getOrElse DEFAULT_CONTEXT
     val instrumentName = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstrumentName).getOrElse(DEFAULT_INST) } getOrElse DEFAULT_INST
 
@@ -81,12 +82,12 @@ object Converters {
       bioSampleName,
       cellIndex,
       runName,
-      userId,
+      createdBy.orElse(metadataCreatedBy),
       jobId,
       projectId)
   }
 
-  def convert(dataset: HdfSubreadSet, path: Path, userId: Int, jobId: Int, projectId: Int): HdfSubreadServiceDataSet = {
+  def convert(dataset: HdfSubreadSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): HdfSubreadServiceDataSet = {
     // this is not correct
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -119,10 +120,10 @@ object Converters {
       dataset.getVersion,
       comments, dataset.getTags,
       toMd5(dataset.getUniqueId),
-      instrumentName, contextId, wellSampleName, wellName, bioSampleName, cellIndex, runName, userId, jobId, projectId)
+      instrumentName, contextId, wellSampleName, wellName, bioSampleName, cellIndex, runName, createdBy, jobId, projectId)
   }
 
-  def convert(dataset: ContigSet, path: Path, userId: Int, jobId: Int, projectId: Int): ContigServiceDataSet = {
+  def convert(dataset: ContigSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): ContigServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -145,10 +146,10 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId)
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
 
-  def convert(dataset: ReferenceSet, path: Path, userId: Int, jobId: Int, projectId: Int): ReferenceServiceDataSet = {
+  def convert(dataset: ReferenceSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): ReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -171,13 +172,13 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId,
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId,
       dataset.getDataSetMetadata.getPloidy,
       dataset.getDataSetMetadata.getOrganism)
   }
 
   // FIXME way too much code duplication here
-  def convert(dataset: GmapReferenceSet, path: Path, userId: Int, jobId: Int, projectId: Int): GmapReferenceServiceDataSet = {
+  def convert(dataset: GmapReferenceSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): GmapReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -200,12 +201,12 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId,
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId,
       dataset.getDataSetMetadata.getPloidy,
       dataset.getDataSetMetadata.getOrganism)
   }
 
-  def convert(dataset: AlignmentSet, path: Path, userId: Int, jobId: Int, projectId: Int): AlignmentServiceDataSet = {
+  def convert(dataset: AlignmentSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): AlignmentServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -227,10 +228,10 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId)
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
 
-  def convert(dataset: ConsensusReadSet, path: Path, userId: Int, jobId: Int, projectId: Int): ConsensusReadServiceDataSet = {
+  def convert(dataset: ConsensusReadSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): ConsensusReadServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -252,11 +253,11 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId)
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
 
   // FIXME consolidate with AlignmentSet implementation
-  def convert(dataset: ConsensusAlignmentSet, path: Path, userId: Int, jobId: Int, projectId: Int): ConsensusAlignmentServiceDataSet = {
+  def convert(dataset: ConsensusAlignmentSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): ConsensusAlignmentServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -278,10 +279,10 @@ object Converters {
       totalLength,
       dataset.getVersion,
       comments,
-      tags, toMd5(uuid.toString), userId, jobId, projectId)
+      tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
 
-  def convert(dataset: BarcodeSet, path: Path, userId: Int, jobId: Int, projectId: Int): BarcodeServiceDataSet = {
+  def convert(dataset: BarcodeSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): BarcodeServiceDataSet = {
 
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
@@ -311,7 +312,7 @@ object Converters {
       comments,
       tags,
       md5,
-      userId,
+      createdBy,
       jobId,
       projectId)
 
