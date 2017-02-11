@@ -218,8 +218,6 @@ object JobsDaoActor {
   // Convert a Reference to a Dataset and Import
   case class ConvertReferenceInfoToDataset(path: String, dsPath: Path) extends DataSetMessage
 
-  case class ImportSubreadDataSetFromFile(path: String) extends DataSetMessage
-
 
   // DataStore Files
   case class GetDataStoreFileByUUID(uuid: UUID) extends DataStoreMessage
@@ -661,17 +659,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         case Right(ds) => s"Successfully converted reference.info.xml to dataset and imported ${ds.dataset.metadata.uuid} path:$dsPath"
         case Left(e) => throw new Exception(s"DataSetConversionError: Unable to convert and import $path. Error ${e.msg}")
       }
-    }
-
-    case ImportSubreadDataSetFromFile(path: String) => pipeWith {
-      log.info(s"Importing subread dataset from $path")
-      //val d = SubreadDataset.loadFrom(Paths.get(path).toUri)
-      val pathP = Paths.get(path)
-      val projectId = 1
-      val jobId = 1
-      val d = DataSetLoader.loadSubreadSet(Paths.get(path))
-      val serviceDataSet = Converters.convert(d, pathP, None, jobId, projectId)
-      dao.insertSubreadDataSet(serviceDataSet)
     }
 
     // DataStore Files
