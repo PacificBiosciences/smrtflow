@@ -33,6 +33,12 @@
                   "type": ["string", "null"]
                 },
                 {
+                  "name": "bundleDir",
+                  "doc": "Absolute path to PacBio Bundles. The directory must be read+write from the user that started the services (hocon-key: smrtflow.server.bundleDir)",
+                  "default": "pacbio-bundles",
+                  "type": "string"
+                },
+                {
                   "name": "eventUrl",
                   "doc": "External Event URL to send messages to. (example, \"http://my-event-server:8888/events\", hcon-kkey: smrtflow.server.eventUrl)",
                   "default": null,

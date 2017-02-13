@@ -12,12 +12,6 @@ class SanitySpec extends Specification with Specs2RouteTest {
   val providers = new SecondaryAnalysisProviders {}
   val totalRoutes = providers.routes()
 
-  "Sanity test" should {
-      "example spec" in {
-          0 must be_==(0)
-      }
-  }
-
   "Service list" should {
     "return a list of services" in {
       Get("/services/manifests") ~> totalRoutes ~> check {
