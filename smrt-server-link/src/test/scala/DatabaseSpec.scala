@@ -91,7 +91,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "version",
         "comments",
         "md5",
-        userId = 1,
+        createdBy = Some("testuser"),
         jobId = -1,
         projectId = -1,
         isActive = true)

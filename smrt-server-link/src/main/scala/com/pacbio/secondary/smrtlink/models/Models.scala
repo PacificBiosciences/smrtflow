@@ -200,13 +200,13 @@ trait UniqueIdAble {
 }
 
 trait ProjectAble {
-  val userId: Int
+  val createdBy: Option[String]
   val jobId: Int
   val projectId: Int
   val isActive: Boolean
 }
 
-case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
+case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, createdBy: Option[String], jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
 
 case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends UniqueIdAble
 
@@ -315,7 +315,7 @@ trait ServiceDataSetMetadata {
   // Keeping this a string for now
   val tags: String
   val md5: String
-  val userId: Int
+  val createdBy: Option[String]
   val jobId: Int
   val projectId: Int
 }
@@ -340,7 +340,7 @@ case class SubreadServiceDataSet(
     bioSampleName: String,
     cellIndex: Int,
     runName: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = Subread.toString())
@@ -366,7 +366,7 @@ case class HdfSubreadServiceDataSet(
     bioSampleName: String,
     cellIndex: Int,
     runName: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = HdfSubread.toString())
@@ -385,7 +385,7 @@ case class ReferenceServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     ploidy: String,
@@ -406,7 +406,7 @@ case class AlignmentServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = Alignment.toString())
@@ -425,7 +425,7 @@ case class ConsensusReadServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = CCS.toString())
@@ -444,7 +444,7 @@ case class ConsensusAlignmentServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = AlignmentCCS.toString())
@@ -463,7 +463,7 @@ case class BarcodeServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = Barcode.toString())
@@ -482,7 +482,7 @@ case class ContigServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     datasetType: String = Contig.toString())
@@ -501,7 +501,7 @@ case class GmapReferenceServiceDataSet(
     comments: String,
     tags: String,
     md5: String,
-    userId: Int,
+    createdBy: Option[String],
     jobId: Int,
     projectId: Int,
     ploidy: String,

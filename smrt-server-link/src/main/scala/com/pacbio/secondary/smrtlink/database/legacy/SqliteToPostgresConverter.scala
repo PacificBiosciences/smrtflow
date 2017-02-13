@@ -270,6 +270,35 @@ object LegacyModels {
       completedAt,
       terminationInfo)
   }
+
+  trait LegacyProjectAble {
+    val userId: Int
+    val jobId: Int
+    val projectId: Int
+    val isActive: Boolean
+  }
+
+  case class LegacyDataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with LegacyProjectAble {
+
+    def toDataSetaMetaDataSet = DataSetMetaDataSet(
+      id,
+      uuid,
+      name,
+      path,
+      createdAt,
+      updatedAt,
+      numRecords,
+      totalLength,
+      tags,
+      version,
+      comments,
+      md5,
+      None,
+      jobId,
+      projectId,
+      isActive
+    )
+  }
 }
 
 
@@ -383,7 +412,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def idx = index("engine_jobs_datasets_job_id", jobId)
   }
 
-  class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
+  class DataSetMetaT(tag: Tag) extends IdAbleTable[LegacyDataSetMetaDataSet](tag, "dataset_metadata") {
     def name: Rep[String] = column[String]("name")
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
@@ -398,7 +427,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def jobId: Rep[Int] = column[Int]("job_id")
     def projectId: Rep[Int] = column[Int]("project_id")
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
-    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, userId, jobId, projectId, isActive) <>(LegacyDataSetMetaDataSet.tupled, LegacyDataSetMetaDataSet.unapply)
     def uuidIdx = index("dataset_metadata_uuid", uuid)
     def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
@@ -667,7 +696,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd, dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }
