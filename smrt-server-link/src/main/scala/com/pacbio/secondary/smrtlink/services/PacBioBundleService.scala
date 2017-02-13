@@ -258,7 +258,7 @@ class PacBioBundleDao(bundles: Seq[PacBioBundle] = Seq.empty[PacBioBundle]) {
     BundleUtils.getNewestBundleVersionByType(loadedBundles, bundleType)
 
   def getBundle(bundleType: String, version: String): Option[PacBioBundle] =
-    BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version == version)
+    BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version.toSemVerString() == version)
 
   def addBundle(bundle: PacBioBundle): PacBioBundle = {
     loadedBundles += bundle
