@@ -1,5 +1,7 @@
 # PacBio Bundles go here
 
+**NOTE** The default **chemistry bundle** needs to be build from artifacts from bamboo or pulled from a git repo. The default chemistry bundle is hardcoded until the location of this resource has been agreed upon. 
+
 - Chemistry related bundle [POC example](http://bitbucket.nanofluidics.com:7990/users/mkocher/repos/chemistry-bundle/browse)
 - SL pipeline resources bundle [hello-world example](https://github.com/PacificBiosciences/pbpipeline-helloworld-resources)
 
