@@ -79,7 +79,7 @@ trait UrlProtocol extends DefaultJsonProtocol {
   implicit object UrlFormat extends RootJsonFormat[URL] {
     def write(u: URL): JsValue = JsString(u.toString)
     def read(v: JsValue): URL = v match {
-      case JsString(sx) => new URL(sx)
+      case JsString(sx) => new URL(sx) // Should this default to file:// if not provided?
       case _ => deserializationError("Expected URL as JsString")
     }
   }

@@ -4,7 +4,8 @@
       "port": 8081,
       "manifestFile": null,
       "eventUrl": null,
-      "dnsName": null
+      "dnsName": null,
+      "bundleDir": "./pacbio-bundles"
     },
     "engine": {
       "maxWorkers": 35,

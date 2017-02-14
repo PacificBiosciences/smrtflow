@@ -36,6 +36,11 @@ _CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'smrtlink-system-config.json')
 _SERVICES_JVM_ARGS = os.path.join(_BUNDLE_ROOT, "services-jvm-args")
 _SERVICES_ARGS = os.path.join(_BUNDLE_ROOT, "services-log-args")
 
+# This is a hack to load the default value in the bundle. Once Herb
+# updates the installer to write the required key, "smrtflow.server.bundleDir"
+# this should be removed.
+_DEFAULT_BUNDLE_DIR = os.path.join(_BUNDLE_ROOT, "pacbio-bundles")
+
 # These are Internal
 _TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
 
@@ -102,7 +107,7 @@ class SystemConfig(object):
                  db_host, db_port, db_name, db_user, db_password,
                  pb_services_analysis_mem_max,
                  pb_services_analysis_mem_min, pb_services_mem, pb_manifest_file, pbservices_event_url,
-                 pb_tech_support_url):
+                 pb_tech_support_url, bundle_dir):
         # Tomcat host
         self.host = host
         # Tomcat port
@@ -140,6 +145,8 @@ class SystemConfig(object):
 
         self.pbservices_event_url = pbservices_event_url
         self.pb_tech_support_url = pb_tech_support_url
+
+        self.bundle_dir = bundle_dir
 
     def __repr__(self):
         _d = dict(k=self.__class__.__name__,
@@ -180,18 +187,25 @@ class SystemConfig(object):
         tmp_dir = pb['tmpDir']
         log_dir = pb['logDir']
 
+        # SEE comments about this Hack. the value is required now in the schema
+        bundle_dir = server.get("bundleDir", _BUNDLE_ROOT)
+
         # FIXME
         enable_https = False
 
         return SystemConfig(dns_name, tomcat_port, sl_port, enable_https, pbsmrtpipe_preset_xml, max_workers, tmp_dir,
                             log_dir, job_root, smrtview_port, db_host, db_port, db_name, db_user, db_password,
-                            sl_max_memory, sl_min_memory, tomcat_memory, manifest_file, event_url, event_url)
+                            sl_max_memory, sl_min_memory, tomcat_memory, manifest_file, event_url, event_url, bundle_dir)
 
     def to_dict(self):
         _comment = "Config writer v{v}. Updated at {d}"\
             .format(d=datetime.datetime.now(), v=__version__)
 
-        server = dict(dnsName=self.host, manifestFile=self.pb_manifest_file, eventUrl=self.pbservices_event_url, port=self.analysis_port)
+        server = dict(dnsName=self.host,
+                      port=self.analysis_port,
+                      manifestFile=self.pb_manifest_file,
+                      eventUrl=self.pbservices_event_url,
+                      bundleDir=self.bundle_dir)
         engine = dict(maxWorkers=self.service_nworkers, jobRootDir=self.job_root, pbsmrtpipePresetXml=self.pb_pbsmrtipe_preset_xml)
         dbp = dict(databaseName=self.db_name, user=self.db_user, password=self.db_password, portNumber=self.db_port, serverName=self.db_host)
         db = dict(properties=dbp)
@@ -448,6 +462,8 @@ def main(argv=sys.argv[1:]):
         c = validate_system_config(c)
         if args.validate_only:
             return 0
+        # Hack. this is necessary to get the required bundleDir to be added to the config for the services
+        write_system_config(c, config_json)
 
         host = c.host
 

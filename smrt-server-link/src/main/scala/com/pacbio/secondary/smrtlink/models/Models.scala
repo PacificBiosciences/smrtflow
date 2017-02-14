@@ -1,9 +1,11 @@
 package com.pacbio.secondary.smrtlink.models
 
+import java.net.URL
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
+import com.pacbio.common.semver.SemVersion
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -625,3 +627,20 @@ case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: S
 case class EulaAcceptance(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
 
 case class DataSetUpdateRequest(isActive: Boolean)
+
+// Bundle Related Models
+
+case class PacBioBundle(typeId: String,
+                        version: SemVersion,
+                        importedAt: JodaDateTime,
+                        path: Path,
+                        createdBy: Option[String])
+
+object PacBioBundle {
+  implicit val orderBySemVer = SemVersion.orderBySemVersion
+  val orderByVersion = Ordering.by((a: PacBioBundle) => a.version)
+}
+
+// Use to create a bundle record. All Metadata will be extracted from
+// the bundle metadata after it's been extracted
+case class PacBioBundleRecord(url: URL)

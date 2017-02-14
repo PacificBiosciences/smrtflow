@@ -67,7 +67,7 @@ trait PacBioAutomationConstraintsLoader extends LazyLogging {
   def loadFromString(sx: String): PacBioAutomationConstraints =
     loadFromReader(new StringReader(sx))
 
-  private val EXAMPLE_PB_AUTO_XML = "example-chemistry-bundle/definitions/PacBioAutomationConstraints.xml"
+  private val EXAMPLE_PB_AUTO_XML = "example-bundles/chemistry-example/definitions/PacBioAutomationConstraints.xml"
 
   /**
     * Load Example PacBioAutoConstraints from sbt or within the Jar file.

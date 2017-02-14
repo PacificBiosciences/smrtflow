@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.4.1-SNAPSHOT"
+version in ThisBuild := "0.4.2-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -78,6 +78,7 @@ lazy val baseSettings = Seq(
   "commons-cli" % "commons-cli" % "1.2",
   "commons-io" % "commons-io" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
+  "org.apache.commons" % "commons-compress" % "1.13",
   "io.spray" % "spray-can_2.11" % sprayV,
   "io.spray" % "spray-client_2.11" % sprayV,
   "io.spray" % "spray-http_2.11" % sprayV,
@@ -103,7 +104,9 @@ lazy val baseSettings = Seq(
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
-  "log4j" % "log4j" % "1.2.17"
+  "log4j" % "log4j" % "1.2.17",
+  "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
+  "com.github.zafarkhaja" % "java-semver" % "0.9.0"
 )
 
 def PacBioProject(name: String): Project = (
@@ -119,7 +122,7 @@ def PacBioProject(name: String): Project = (
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
-val buildNumber = (if (sys.env.get("bamboo.buildNumber").isDefined) sys.env("bamboo.buildNumber") else "UNKNOWN")
+val buildNumber = (if (sys.env.get("bamboo.buildNumber").isDefined) sys.env("bamboo_buildNumber") else "UNKNOWN")
 
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
