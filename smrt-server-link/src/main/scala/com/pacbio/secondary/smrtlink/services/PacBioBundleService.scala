@@ -183,9 +183,13 @@ trait BundleUtils extends LazyLogging{
   }
 
   def getManifestXmlFromDir(path: Path):Option[Path] =
-    path.toFile.list()
-        .find(_ == MANIFEST_FILE)
-        .map(x => path.resolve(x))
+    if (Files.isDirectory(path)) {
+      path.toFile.list()
+          .find(_ == MANIFEST_FILE)
+          .map(x => path.resolve(x))
+    } else {
+      None
+    }
 
 
   /**
@@ -207,9 +211,10 @@ trait BundleUtils extends LazyLogging{
       getManifestXmlFromDir(p)
         .map(px => parseBundleManifestXml(px.toFile))
 
-    // .list() can return null if there's a security issue
+    // Look for any subdirectories that have 'manifest.xml' files in them
     val bundles = path.toAbsolutePath.toFile.list()
         .map(p => path.resolve(p))
+        .filter(f => Files.isDirectory(f))
         .flatMap(getBundle)
 
     logger.info(s"Successfully loaded ${bundles.length} PacBio Bundles.")
