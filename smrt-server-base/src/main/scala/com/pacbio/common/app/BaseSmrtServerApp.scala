@@ -7,6 +7,7 @@ import akka.actor.{ActorRefFactory, Props}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.pacbio.common.models.Constants
 import com.pacbio.common.actors._
 import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAlarmRunnerProvider, AlarmComposer}
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
@@ -169,7 +170,7 @@ trait BaseServer extends LazyLogging {
   val port: Int
 
   def start = {
-    logger.info("Starting App")
+    logger.info(s"Starting App using smrtflow ${Constants.SMRTFLOW_VERSION}")
     logger.info("Java Version: " + System.getProperty("java.version"))
     logger.info("Java Home: " + System.getProperty("java.home"))
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean
