@@ -195,7 +195,7 @@ trait BundleUtils extends LazyLogging{
 
   def getManifestXmlFromDir(path: Path):Option[Path] =
     path.toFile.list()
-        .find(f => f == MANIFEST_FILE)
+        .find(_ == MANIFEST_FILE)
         .map(x => path.resolve(x))
 
 
@@ -212,13 +212,19 @@ trait BundleUtils extends LazyLogging{
     */
   def loadBundlesFromRoot(path: Path): Seq[PacBioBundle] = {
 
-    def getBundle(p: Path) =
+    logger.info(s"Attempting to load bundles from $path")
+
+    def getBundle(p: Path): Option[PacBioBundle] =
       getManifestXmlFromDir(p)
         .map(px => parseBundleManifestXml(px.toFile))
 
-    path.toAbsolutePath.toFile.list()
+    // .list() can return null if there's a security issue
+    val bundles = path.toAbsolutePath.toFile.list()
         .map(p => path.resolve(p))
         .flatMap(getBundle)
+
+    logger.info(s"Successfully loaded ${bundles.length} PacBio Bundles.")
+    bundles
   }
 
 
@@ -226,7 +232,7 @@ trait BundleUtils extends LazyLogging{
     bundles.filter(_.typeId == bundleType)
 
   /**
-    * This needs to support sorting by SemVer string
+    * Return the newest version of bundle as defined by SemVer
     * @param bundleType
     * @return
     */

@@ -79,11 +79,12 @@ trait PacBioAutomationConstraintsLoader extends LazyLogging {
   def loadExample(): PacBioAutomationConstraints = {
     // This does work
     // The leading '/' is required for sbt, but not for loading from assembly
-    println(s"Loading resource $EXAMPLE_PB_AUTO_XML")
+    logger.info(s"Attempting to load PacBioAutomationConstraint resource $EXAMPLE_PB_AUTO_XML")
     val sx = getClass.getClassLoader.getResourceAsStream(EXAMPLE_PB_AUTO_XML)
-    println(s"Loading from $sx")
     val reader = new BufferedReader(new InputStreamReader(sx, "UTF-8"))
-    loadFromReader(reader)
+    val pbAutomationConstraints = loadFromReader(reader)
+    logger.info(s"Successfully loaded PacBioAutomationConstraint resource version ${pbAutomationConstraints.getVersion} from $EXAMPLE_PB_AUTO_XML")
+    pbAutomationConstraints
   }
 
 }
