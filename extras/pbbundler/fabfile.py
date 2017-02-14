@@ -454,7 +454,7 @@ def build_smrtlink_services_ui(version,
 
     To copy the tar.gz bundle to the outputdir.
     """
-    bamboo_build_number = os.environ.get("bamboo.buildNumber", "")
+    bamboo_build_number = os.environ.get("bamboo_buildNumber", "")
     log.info("Starting SL Bundler. Building components: SL Server {}, Tomcat and wso2 AM manager".format(analysis_server))
     log.info("bamboo build number {}".format(bamboo_build_number))
 
