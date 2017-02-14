@@ -19,14 +19,14 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
 
   /**
-    * Create a Directory if it doesn't exist.
+    * Create a Directories (mkdir -p) if they don't exist.
     *
     * @param p
     * @return
     */
   def createDirIfNotExist(p: Path): Path = {
     if (!Files.exists(p)) {
-      Files.createDirectory(p)
+      Files.createDirectories(p)
       logger.info(s"created dir $p")
     }
     p
@@ -49,7 +49,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRT_LINK_TOOLS_ID).map(_.version))
 
   val pacBioBundleRoot: Singleton[Path] =
-    Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toRealPath()))
+    Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toRealPath().toAbsolutePath))
 
   val pacBioBundles: Singleton[Seq[PacBioBundle]] =
     Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
