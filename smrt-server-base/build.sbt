@@ -1,4 +1,5 @@
-
+// Disable tests before assembly
+test in assembly := {}
 
 
 assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
