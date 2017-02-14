@@ -1,6 +1,7 @@
 *.class
 *.log
 *.swp
+.DS_Store
 
 smrt-server-link/db/*
 # these dirs will be automatically created on startup

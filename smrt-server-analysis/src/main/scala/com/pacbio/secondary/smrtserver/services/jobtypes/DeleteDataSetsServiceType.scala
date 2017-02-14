@@ -23,7 +23,7 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTypeIds}
 import com.pacbio.secondary.analysis.jobtypes.DeleteDatasetsOptions
 import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, InValidJobOptionsError, ValidatorDataSetServicesOptions, ValidateImportDataSetUtils}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
@@ -44,7 +44,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
   import SecondaryAnalysisJsonProtocols._
   import CommonModelImplicits._
 
-  val endpoint = "delete-datasets"
+  val endpoint = JobTypeIds.DELETE_DATASETS
   val description = "Delete PacBio XML DataSets and associated resources"
 
   private def deleteDataSet(ds: ServiceDataSetMetadata): Future[Any] = {

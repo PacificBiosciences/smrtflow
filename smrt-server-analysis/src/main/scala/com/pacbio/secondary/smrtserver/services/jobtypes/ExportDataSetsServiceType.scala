@@ -20,7 +20,7 @@ import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTypeIds}
 import com.pacbio.secondary.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.services.jobtypes.{JobTypeService, InValidJobOptionsError, ValidatorDataSetServicesOptions, ValidateImportDataSetUtils}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
@@ -67,7 +67,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
 
   import SecondaryAnalysisJsonProtocols._
 
-  val endpoint = "export-datasets"
+  val endpoint = JobTypeIds.EXPORT_DATASETS
   val description = "Export PacBio XML DataSets to ZIP file"
 
   val routes = 
