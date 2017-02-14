@@ -492,6 +492,8 @@ def build_smrtlink_services_ui(version,
     _chmod_on_files(os.path.join(output_bundle_dir, 'bin'))
     # Default job directory
     _chmod_on_files(os.path.join(output_bundle_dir, 'jobs-root'))
+    # default pacbio-bundle dir
+    _chmod_on_files(os.path.join(output_bundle_dir, 'pacbio-bundles'))
 
     build_log = os.path.join(output_bundle_dir, PbConstants.BUILD_LOG)
     setup_log(log, level=logging.DEBUG, file_name=build_log)

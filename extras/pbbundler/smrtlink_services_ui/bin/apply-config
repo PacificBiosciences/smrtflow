@@ -21,7 +21,7 @@ import traceback
 import argparse
 
 __author__ = "M. Kocher"
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 
 
 log = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ _SERVICES_ARGS = os.path.join(_BUNDLE_ROOT, "services-log-args")
 # This is a hack to load the default value in the bundle. Once Herb
 # updates the installer to write the required key, "smrtflow.server.bundleDir"
 # this should be removed.
-_DEFAULT_BUNDLE_DIR = os.path.join(_BUNDLE_ROOT, "pacbio-bundles")
+_PACBIO_BUNDLE_DIR = os.path.join(_BUNDLE_ROOT, "pacbio-bundles")
 
 # These are Internal
 _TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
@@ -188,7 +188,7 @@ class SystemConfig(object):
         log_dir = pb['logDir']
 
         # SEE comments about this Hack. the value is required now in the schema
-        bundle_dir = server.get("bundleDir", _BUNDLE_ROOT)
+        bundle_dir = server.get("bundleDir", _PACBIO_BUNDLE_DIR)
 
         # FIXME
         enable_https = False

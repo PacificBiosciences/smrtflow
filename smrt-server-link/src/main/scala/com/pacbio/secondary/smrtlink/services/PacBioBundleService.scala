@@ -57,18 +57,7 @@ trait BundleUtils extends LazyLogging{
     val author = (xs \ "Author").headOption.map(_.text)
     //val createdAt = (xs \ "Created").text
 
-    // Need to add some slop here for the 1.2.3.1234 format. Currently
-    // not all packages are using strict SemVer format.
-    val rx = """(\d+).(\d+).(\d+).(\d+)""".r
-
-    val sanitizedString = rawVersion match {
-      case rx(major, minor, patch, extra) => s"$major.$minor.$patch+$extra"
-      case _ => rawVersion
-    }
-
-    val bundleVersion = SemVersion.fromString(sanitizedString)
-
-    PacBioBundle(bundleTypeId, bundleVersion, JodaDateTime.now(), Paths.get(file.getParent), author)
+    PacBioBundle(bundleTypeId, rawVersion, JodaDateTime.now(), Paths.get(file.getParent), author)
   }
 
   def parseBundle(rootDir: Path): PacBioBundle =
@@ -183,7 +172,7 @@ trait BundleUtils extends LazyLogging{
     * @return
     */
   def copyBundleTo(pacBioBundle: PacBioBundle, rootDir: Path): PacBioBundle = {
-    val name = s"${pacBioBundle.typeId}-${pacBioBundle.version.toSemVerString()}"
+    val name = s"${pacBioBundle.typeId}-${pacBioBundle.version}"
     val bundleDir = rootDir.resolve(name)
     if (Files.exists(bundleDir)) {
       throw new IOException(s"Bundle $name already exists.")
@@ -195,7 +184,7 @@ trait BundleUtils extends LazyLogging{
 
   def getManifestXmlFromDir(path: Path):Option[Path] =
     path.toFile.list()
-        .find(f => f == MANIFEST_FILE)
+        .find(_ == MANIFEST_FILE)
         .map(x => path.resolve(x))
 
 
@@ -212,13 +201,19 @@ trait BundleUtils extends LazyLogging{
     */
   def loadBundlesFromRoot(path: Path): Seq[PacBioBundle] = {
 
-    def getBundle(p: Path) =
+    logger.info(s"Attempting to load bundles from $path")
+
+    def getBundle(p: Path): Option[PacBioBundle] =
       getManifestXmlFromDir(p)
         .map(px => parseBundleManifestXml(px.toFile))
 
-    path.toAbsolutePath.toFile.list()
+    // .list() can return null if there's a security issue
+    val bundles = path.toAbsolutePath.toFile.list()
         .map(p => path.resolve(p))
         .flatMap(getBundle)
+
+    logger.info(s"Successfully loaded ${bundles.length} PacBio Bundles.")
+    bundles
   }
 
 
@@ -226,12 +221,12 @@ trait BundleUtils extends LazyLogging{
     bundles.filter(_.typeId == bundleType)
 
   /**
-    * This needs to support sorting by SemVer string
+    * Return the newest version of bundle as defined by SemVer
     * @param bundleType
     * @return
     */
   def getNewestBundleVersionByType(bundles: Seq[PacBioBundle], bundleType: String): Option[PacBioBundle] = {
-    implicit val orderBy = PacBioBundle.orderByVersion
+    implicit val orderBy = PacBioBundle.orderByBundleVersion
     getBundlesByType(bundles, bundleType).sorted.reverse.headOption
   }
 
@@ -258,7 +253,7 @@ class PacBioBundleDao(bundles: Seq[PacBioBundle] = Seq.empty[PacBioBundle]) {
     BundleUtils.getNewestBundleVersionByType(loadedBundles, bundleType)
 
   def getBundle(bundleType: String, version: String): Option[PacBioBundle] =
-    BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version.toSemVerString() == version)
+    BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version == version)
 
   def addBundle(bundle: PacBioBundle): PacBioBundle = {
     loadedBundles += bundle
