@@ -631,14 +631,39 @@ case class DataSetUpdateRequest(isActive: Boolean)
 // Bundle Related Models
 
 case class PacBioBundle(typeId: String,
-                        version: SemVersion,
+                        version: String,
                         importedAt: JodaDateTime,
                         path: Path,
-                        createdBy: Option[String])
+                        createdBy: Option[String]) {
+  // This is bad OO to duplicate data (version and semVersion)
+  // However, this is used to sort bundles and is
+  // exposed publicly, but we don't want this to leak to serialization layers (e.g., jsonFormat).
+  // Given that case classes are immutable .copy(version="1.2.3") will work
+  // as expected. This seems like a reasonable
+  // trade off.
+  val semVersion = allowSlop(version)
+
+  /**
+    * Add Some slop until we all components strictly use SemVer
+    *
+    * Only supported is the 1.2.3.1234 format used by ICS.
+    *
+    * @param rawVersion
+    * @return
+    */
+  private def allowSlop(rawVersion: String): SemVersion = {
+    val rx = """(\d+).(\d+).(\d+).(\d+)""".r
+
+    rawVersion match {
+      case rx(major, minor, patch, extra) => SemVersion.fromString(s"$major.$minor.$patch+$extra")
+      case _ => SemVersion.fromString(rawVersion)
+    }
+  }
+}
 
 object PacBioBundle {
   implicit val orderBySemVer = SemVersion.orderBySemVersion
-  val orderByVersion = Ordering.by((a: PacBioBundle) => a.version)
+  val orderByBundleVersion = Ordering.by((a: PacBioBundle) => a.semVersion)
 }
 
 // Use to create a bundle record. All Metadata will be extracted from
