@@ -49,7 +49,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRT_LINK_TOOLS_ID).map(_.version))
 
   val pacBioBundleRoot: Singleton[Path] =
-    Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toRealPath().toAbsolutePath))
+    Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
 
   val pacBioBundles: Singleton[Seq[PacBioBundle]] =
     Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
