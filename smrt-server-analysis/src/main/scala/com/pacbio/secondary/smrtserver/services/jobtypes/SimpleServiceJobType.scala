@@ -8,7 +8,7 @@ import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.CheckForRunnableJob
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, EngineJob}
+import com.pacbio.secondary.analysis.jobs.JobModels.{JobEvent, EngineJob, JobTypeIds}
 import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
@@ -28,7 +28,7 @@ import spray.http._
 class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
   import SecondaryAnalysisJsonProtocols._
 
-  override val endpoint = "simple"
+  override val endpoint = JobTypeIds.SIMPLE.id
   override val description = "Simple Job for debugging and development"
 
   override val routes =

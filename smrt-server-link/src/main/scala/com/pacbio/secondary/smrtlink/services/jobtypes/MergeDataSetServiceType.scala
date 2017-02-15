@@ -21,7 +21,7 @@ import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetLoader._
 import com.pacbio.secondary.analysis.datasets.validators.ImplicitDataSetValidators._
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTypeIds}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -109,7 +109,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
 
   import SmrtLinkJsonProtocols._
 
-  val endpoint = "merge-datasets"
+  val endpoint = JobTypeIds.MERGE_DATASETS.id
   val description = "Merge PacBio XML DataSets (Subread, HdfSubread datasets types are supported)"
 
   val routes =

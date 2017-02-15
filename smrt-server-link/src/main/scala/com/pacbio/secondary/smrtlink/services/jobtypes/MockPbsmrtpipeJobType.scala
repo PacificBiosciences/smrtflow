@@ -9,7 +9,7 @@ import akka.util.Timeout
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, ServiceTaskOptionBase}
+import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, JobTypeIds, ServiceTaskOptionBase}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
@@ -33,7 +33,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
 
   import SmrtLinkJsonProtocols._
 
-  val endpoint = "mock-pbsmrtpipe"
+  val endpoint = JobTypeIds.MOCK_PBSMRTPIPE.id
   val description = "Mock Pbmsrtpipe Job used for Development purposes"
 
   val routes =
