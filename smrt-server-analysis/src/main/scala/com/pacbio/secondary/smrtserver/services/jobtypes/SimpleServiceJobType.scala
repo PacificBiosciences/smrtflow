@@ -28,7 +28,7 @@ import spray.http._
 class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator) extends JobTypeService with LazyLogging {
   import SecondaryAnalysisJsonProtocols._
 
-  override val endpoint = JobTypeIds.SIMPLE
+  override val endpoint = JobTypeIds.SIMPLE.id
   override val description = "Simple Job for debugging and development"
 
   override val routes =

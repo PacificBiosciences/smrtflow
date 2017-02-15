@@ -67,7 +67,7 @@ class DirectPbsmrtpipeJobType(
   import CommonModelImplicits._
 
   // Not thrilled with this name
-  val endpoint = JobTypeIds.PBSMRTPIPE_DIRECT
+  val endpoint = JobTypeIds.PBSMRTPIPE_DIRECT.id
   val description =
     """
       |Run a secondary analysis pbsmrtpipe job and by passing the File Resolver. Assumes files are on the Shared

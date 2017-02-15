@@ -109,7 +109,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
 
   import SmrtLinkJsonProtocols._
 
-  val endpoint = JobTypeIds.MERGE_DATASETS
+  val endpoint = JobTypeIds.MERGE_DATASETS.id
   val description = "Merge PacBio XML DataSets (Subread, HdfSubread datasets types are supported)"
 
   val routes =

@@ -67,7 +67,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
 
   import SecondaryAnalysisJsonProtocols._
 
-  val endpoint = JobTypeIds.EXPORT_DATASETS
+  val endpoint = JobTypeIds.EXPORT_DATASETS.id
   val description = "Export PacBio XML DataSets to ZIP file"
 
   val routes = 

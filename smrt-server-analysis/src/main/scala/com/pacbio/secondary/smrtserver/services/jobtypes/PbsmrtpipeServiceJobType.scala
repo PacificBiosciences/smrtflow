@@ -60,7 +60,7 @@ class PbsmrtpipeServiceJobType(
   import SmrtServerConstants._
   import CommonModelImplicits._
 
-  val endpoint = JobTypeIds.PBSMRTPIPE
+  val endpoint = JobTypeIds.PBSMRTPIPE.id
   val description = "Run a secondary analysis pbsmrtpipe job."
 
   val rootUpdateURL = new URL(s"http://$serviceStatusHost:$port/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX/jobs/pbsmrtpipe")

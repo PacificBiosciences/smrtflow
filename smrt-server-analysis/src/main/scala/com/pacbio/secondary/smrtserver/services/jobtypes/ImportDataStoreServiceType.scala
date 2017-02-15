@@ -32,7 +32,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef, authenticator: Authenticator
 
   import SecondaryAnalysisJsonProtocols._
 
-  override val endpoint = JobTypeIds.IMPORT_DATASTORE
+  override val endpoint = JobTypeIds.IMPORT_DATASTORE.id
   override val description = "Import a PacBio DataStore JSON file"
 
   override val routes =

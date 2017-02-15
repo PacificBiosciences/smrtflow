@@ -33,7 +33,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
 
   import SmrtLinkJsonProtocols._
 
-  val endpoint = JobTypeIds.MOCK_PBSMRTPIPE
+  val endpoint = JobTypeIds.MOCK_PBSMRTPIPE.id
   val description = "Mock Pbmsrtpipe Job used for Development purposes"
 
   val routes =

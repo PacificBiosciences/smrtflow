@@ -54,7 +54,7 @@ class ImportFastaServiceType(
   final val OPT_ORGANISM = "pbcoretools.task_options.organism"
   final val OPT_PLOIDY = "pbcoretools.task_options.ploidy"
 
-  override val endpoint = JobTypeIds.CONVERT_FASTA_REFERENCE
+  override val endpoint = JobTypeIds.CONVERT_FASTA_REFERENCE.id
   override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
 
   // There's some common code that needs to be pulled out

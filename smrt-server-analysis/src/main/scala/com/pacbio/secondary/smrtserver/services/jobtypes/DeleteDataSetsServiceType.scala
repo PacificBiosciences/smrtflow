@@ -44,7 +44,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
   import SecondaryAnalysisJsonProtocols._
   import CommonModelImplicits._
 
-  val endpoint = JobTypeIds.DELETE_DATASETS
+  val endpoint = JobTypeIds.DELETE_DATASETS.id
   val description = "Delete PacBio XML DataSets and associated resources"
 
   private def deleteDataSet(ds: ServiceDataSetMetadata): Future[Any] = {
