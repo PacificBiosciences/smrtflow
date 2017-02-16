@@ -31,6 +31,7 @@ trait SmrtLinkProviders extends
   JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
+  DataIntegrityManagerActorProvider with
   EulaServiceProvider with
   ProjectServiceProvider with
   DataSetServiceProvider with
@@ -60,6 +61,9 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     super.startup()
 
     val dataSource = providers.dbConfig.toDataSource
+
+    // Is this necessary because there's not an explicit dep on this?
+    val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
 
     def createJobDir(path: Path): Path = {
       if (!Files.exists(path)) {
