@@ -723,7 +723,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
             val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
             datastoreServiceFiles += dss
         }
-        val createdBy = if (engineJob.jobTypeId == JobTypeIds.MERGE_DATASETS) {
+        val createdBy = if (engineJob.jobTypeId == JobTypeIds.MERGE_DATASETS.id) {
           engineJob.createdBy
         } else {
           None
