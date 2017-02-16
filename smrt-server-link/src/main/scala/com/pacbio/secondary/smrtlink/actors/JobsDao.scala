@@ -810,7 +810,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     * @param ids DataSetMetaSets that are to marked as InActive.
     * @return
     */
-  def updatedDataSetMetasAsInValid(ids: Set[Int]): Future[MessageResponse] = {
+  def updatedDataSetMetasAsInActive(ids: Set[Int]): Future[MessageResponse] = {
     val q = qDsMetaDataIsActive
         .filter(_.id inSet ids)
         .map(d => (d.isActive, d.updatedAt))
