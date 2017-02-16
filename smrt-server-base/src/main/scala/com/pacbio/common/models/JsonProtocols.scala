@@ -135,7 +135,7 @@ with DirectoryResourceProtocol
   implicit val pbApiCleanupJobCreateFormat = jsonFormat7(ApiCleanupJobCreate)
   implicit val pbCleanupJobResponseFormat = jsonFormat8(CleanupJobResponse)
   implicit val pbFileResourceFormat = jsonFormat5(FileResource)
-  implicit val pbDiskSpaceResourceFormat = jsonFormat5(DiskSpaceResource)
+  implicit val pbDiskSpaceResourceFormat = jsonFormat3(DiskSpaceResource)
   implicit val subSystemResourceFormat = jsonFormat8(SubsystemResource)
   implicit val subSystemResourceRecordFormat = jsonFormat5(SubsystemResourceRecord)
   implicit val subSystemConfigFormat = jsonFormat3(SubsystemConfig)

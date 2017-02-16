@@ -1,8 +1,10 @@
+import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.file.{JavaFileSystemUtil, FileSystemUtil}
 import com.pacbio.common.services.CommonFilesServiceProvider
 import com.pacbio.common.actors.InMemoryLogDaoProvider
 import com.pacbio.common.app.{BaseApi, CoreProviders}
-import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus, DirectoryResource}
-import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.common.models.{DiskSpaceResource, PacBioJsonProtocol, DirectoryResource}
+import org.specs2.mock._
 
 import org.specs2.mutable.Specification
 import org.apache.commons.io.FileUtils
@@ -11,15 +13,24 @@ import spray.testkit.Specs2RouteTest
 import spray.routing._
 import spray.httpx.SprayJsonSupport._
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Path, Files, Paths}
 import java.net.URLEncoder
 
-class FilesServiceSpec extends Specification with Directives with Specs2RouteTest {
+class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
   import PacBioJsonProtocol._
 
+  val spiedFileSystemUtil = spy(new JavaFileSystemUtil)
+
   object Api extends BaseApi {
-    override val providers: CoreProviders = new CoreProviders with InMemoryLogDaoProvider with CommonFilesServiceProvider {}
+    override val providers: CoreProviders = new CoreProviders
+      with InMemoryLogDaoProvider
+      with CommonFilesServiceProvider {
+        override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(() => spiedFileSystemUtil)
+      }
   }
+
+  spiedFileSystemUtil.getTotalSpace(Paths.get("/")) returns 100
+  spiedFileSystemUtil.getFreeSpace(Paths.get("/")) returns 50
 
   val routes = Api.routes
 
@@ -34,23 +45,31 @@ class FilesServiceSpec extends Specification with Directives with Specs2RouteTes
       val tmpDir = Files.createTempDirectory("files-test")
       val tmpFile = tmpDir.resolve("data.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files" + tmpDir.toString()
+      val url = "/smrt-base/files" + tmpDir.toString
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
         dirRes.files.size must beEqualTo(1)
-        dirRes.files(0).name must beEqualTo("data.txt")
+        dirRes.files.head.name must beEqualTo("data.txt")
+      }
+    }
+    "return a DiskSpaceResource" in {
+      Get("/smrt-base/files-diskspace/") ~> routes ~> check {
+        val res = responseAs[DiskSpaceResource]
+        res.fullPath must beEqualTo("/")
+        res.totalSpace must beEqualTo(100)
+        res.freeSpace must beEqualTo(50)
       }
     }
     "decode a path containing spaces" in {
       val tmpDir = Files.createTempDirectory("path with spaces")
       val tmpFile = tmpDir.resolve("data with spaces.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files/" + URLEncoder.encode(tmpDir.toString(), "UTF-8")
+      val url = "/smrt-base/files/" + URLEncoder.encode(tmpDir.toString, "UTF-8")
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
-        dirRes.fullPath must beEqualTo(tmpDir.toString())
+        dirRes.fullPath must beEqualTo(tmpDir.toString)
         Files.exists(Paths.get(dirRes.fullPath)) must beTrue
-        dirRes.files(0).name must beEqualTo("data with spaces.txt")
+        dirRes.files.head.name must beEqualTo("data with spaces.txt")
       }
     }
   }
