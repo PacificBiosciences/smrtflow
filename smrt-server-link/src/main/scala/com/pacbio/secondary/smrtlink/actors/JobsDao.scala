@@ -800,8 +800,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     * @param limit Maximum number of returned results
     * @return
     */
-  def getDataSetMetas(limit: Option[Int] = None): Future[Seq[DataSetMetaDataSet]] = {
-    val q = limit.map(x => dsMetaData2.take(x)).getOrElse(dsMetaData2)
+  def getDataSetMetas(limit: Option[Int] = None, activity: Option[Boolean]): Future[Seq[DataSetMetaDataSet]] = {
+    val qActive = activity.map(activity => dsMetaData2.filter(_.isActive === activity)).getOrElse(dsMetaData2)
+    val q = limit.map(x => qActive.take(x)).getOrElse(qActive)
     db.run(q.sortBy(_.id).result)
   }
 
