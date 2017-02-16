@@ -32,7 +32,8 @@ packMain := Map(
   "amclient" -> "com.pacbio.secondary.smrtserver.tools.AmClientApp",
   "bundler-migrate-legacy-db" -> "com.pacbio.secondary.smrtlink.database.legacy.SqliteToPostgresConverterApp",
   "bundler-migrate-legacy-config" -> "com.pacbio.secondary.smrtserver.tools.LegacyConvertConfigJsonToolApp",
-  "bundler-validate-config" -> "com.pacbio.secondary.smrtserver.tools.BundlerConfigApp"
+  "bundler-validate-config" -> "com.pacbio.secondary.smrtserver.tools.BundlerConfigApp",
+  "accept-user-agreement" -> "com.pacbio.secondary.smrtserver.tools.AcceptUserAgreementApp"
 )
 
 packGenerateWindowsBatFile := false
