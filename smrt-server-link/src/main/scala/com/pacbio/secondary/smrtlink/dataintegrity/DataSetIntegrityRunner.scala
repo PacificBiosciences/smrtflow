@@ -20,7 +20,7 @@ class DataSetIntegrityRunner(dao: JobsDao) extends BaseDataIntegrity {
 
   def run(): Future[MessageResponse] =  {
     for {
-      results <- dao.getDataSetMetas(None)
+      results <- dao.getDataSetMetas(None, activity = Some(true))
       inValidIds <- Future { results.filter(isValid).map(_.id).toSet }
       resultsMessage <- dao.updatedDataSetMetasAsInActive(inValidIds)
     } yield resultsMessage
