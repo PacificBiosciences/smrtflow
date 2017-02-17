@@ -9,24 +9,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
+import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.ActorSystem
 import scopt.OptionParser
 
 import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.analysis.tools._
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 
 
 case class AcceptUserAgreementConfig(
     host: String = "http://localhost",
     port: Int = 8070,
-    user: String = System.getProperty("user.name"))
+    user: String = System.getProperty("user.name")) extends LoggerConfig
 
-trait AcceptUserAgreementParser {
-  final val TOOL_ID = "pbscala.tools.accept_user_agreement"
-  final val VERSION = "0.1.0"
-  final val DEFAULT = AcceptUserAgreementConfig()
+object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConfig] {
+  final val TIMEOUT = 10 seconds
+  val toolId = "pbscala.tools.accept_user_agreement"
+  val VERSION = "0.1.0"
+  val defaults = AcceptUserAgreementConfig()
 
-  lazy val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
-
+  val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
     head("PacBio SMRTLink User Agreement Acceptance Tool", VERSION)
 
     opt[String]("host") action { (x, c) =>
@@ -45,17 +48,14 @@ trait AcceptUserAgreementParser {
       showUsage
       sys.exit(0)
     } text "Show Options and exit"
-  }
-}
 
-object AcceptUserAgreementApp extends App with AcceptUserAgreementParser {
-  final val TIMEOUT = 10 seconds
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+  }
 
   def acceptUserAgreement(c: AcceptUserAgreementConfig) = {
     implicit val actorSystem = ActorSystem("get-status")
-    val url = new URL(s"http://${c.host}:${c.port}")
-    println(s"URL: ${url}")
-    val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
+    val sal = new AnalysisServiceAccessLayer(c.host, c.port)(actorSystem)
+    println(s"URL: ${sal.baseUrl}")
     val manifest = Await.result(sal.getPacBioComponentManifests, TIMEOUT)
     val version = manifest.sortWith(_.id > _.id).find(
       m => m.id == "smrtlink-analysisservices-gui" || m.id == "pacbio.services.eula").getOrElse(
@@ -72,19 +72,17 @@ object AcceptUserAgreementApp extends App with AcceptUserAgreementParser {
     0
   }
 
-  def run(args: Seq[String]) = {
-    val exitCode = parser.parse(args, DEFAULT) match {
-      case Some(opts) => Try {
-        acceptUserAgreement(opts)
-      } match {
-        case Success(rc) => rc
-        case Failure(err) => println(s"ERROR: $err"); 1
-      }
-      case _ => 1
+  def run(c: AcceptUserAgreementConfig): Either[ToolFailure, ToolSuccess] = {
+    val startedAt = JodaDateTime.now()
+    Try { acceptUserAgreement(c) } match {
+      case Success(rc) => Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
+      case Failure(err) =>
+        Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), err.getMessage))
     }
-    println(s"Exiting $TOOL_ID v$VERSION with exit code $exitCode")
-    sys.exit(exitCode)
   }
+}
 
-  run(args)
+object AcceptUserAgreementApp extends App {
+  import AcceptUserAgreement._
+  runner(args)
 }
