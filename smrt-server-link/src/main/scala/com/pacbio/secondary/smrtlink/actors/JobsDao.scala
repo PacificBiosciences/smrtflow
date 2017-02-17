@@ -20,6 +20,8 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.services.jobtypes.MergeDataSetServiceJobType
+
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.lang.SystemUtils
@@ -721,10 +723,15 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
             val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
             datastoreServiceFiles += dss
         }
+        val createdBy = if (engineJob.jobTypeId == JobTypeIds.MERGE_DATASETS.id) {
+          engineJob.createdBy
+        } else {
+          None
+        }
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
           case Some(typ) =>
-            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, None, DEFAULT_PROJECT_ID))
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, createdBy, DEFAULT_PROJECT_ID))
           case None =>
             existing match {
               case Some(_) =>

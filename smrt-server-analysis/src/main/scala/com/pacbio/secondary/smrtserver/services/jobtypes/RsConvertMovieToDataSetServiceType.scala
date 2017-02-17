@@ -32,7 +32,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
 
   import SecondaryAnalysisJsonProtocols._
 
-  override val endpoint = "convert-rs-movie"
+  override val endpoint = JobTypeIds.CONVERT_RS_MOVIE.id
   override val description = "Import RS metadata.xml and create an HdfSubread DataSet XML file"
 
   override val routes =

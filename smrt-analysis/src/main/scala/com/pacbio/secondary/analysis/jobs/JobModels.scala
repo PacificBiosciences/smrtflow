@@ -95,6 +95,22 @@ object JobModels {
 
   }
 
+  object JobTypeIds {
+    val CONVERT_FASTA_BARCODES = JobTypeId("convert-fasta-barcodes")
+    val CONVERT_FASTA_REFERENCE = JobTypeId("convert-fasta-reference")
+    val CONVERT_RS_MOVIE = JobTypeId("convert-rs-movie")
+    val DELETE_DATASETS = JobTypeId("delete-datasets")
+    val DELETE_JOB = JobTypeId("delete-job")
+    val EXPORT_DATASETS = JobTypeId("export-datasets")
+    val IMPORT_DATASET = JobTypeId("import-dataset")
+    val IMPORT_DATASTORE = JobTypeId("import-datastore")
+    val MERGE_DATASETS = JobTypeId("merge-datasets")
+    val MOCK_PBSMRTPIPE = JobTypeId("mock-pbsmrtpipe")
+    val PBSMRTPIPE = JobTypeId("pbsmrtpipe")
+    val PBSMRTPIPE_DIRECT = JobTypeId("pbsmrtpipe-direct")
+    val SIMPLE = JobTypeId("simple")
+  }
+
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
   // the 'id' is the short name
   case class JobTypeId(id: String) {

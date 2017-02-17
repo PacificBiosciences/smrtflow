@@ -12,6 +12,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.pacbio.secondary.smrtserver.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtserver.services.jobtypes.SimpleServiceJobTypeProvider
@@ -21,14 +22,13 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
-
 import slick.driver.PostgresDriver.api._
 
 
 class JobManagerServiceSpec extends Specification
 with Specs2RouteTest
 with SetupMockData
-with JobServiceConstants {
+with JobServiceConstants with TestUtils{
 
   sequential
 
@@ -73,6 +73,7 @@ with JobServiceConstants {
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
 
+  step(setupDb(TestProviders.dbConfig))
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {

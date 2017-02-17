@@ -40,7 +40,7 @@ class ImportFastaBarcodesServiceType(
 
   import SecondaryAnalysisJsonProtocols._
 
-  override val endpoint = "convert-fasta-barcodes"
+  override val endpoint = JobTypeIds.CONVERT_FASTA_BARCODES.id
   override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
 
   def toURI(baseURL: URL, uuid: UUID): URI = {

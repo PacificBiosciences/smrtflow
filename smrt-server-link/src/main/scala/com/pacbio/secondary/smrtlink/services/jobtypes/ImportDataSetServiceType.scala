@@ -31,7 +31,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
 
   import SmrtLinkJsonProtocols._
 
-  override val endpoint = "import-dataset"
+  override val endpoint = JobTypeIds.IMPORT_DATASET.id
   override val description = "Import a Pacbio DataSet XML file"
 
 

@@ -34,7 +34,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
   import SmrtLinkJsonProtocols._
   import CommonModelImplicits._
 
-  override val endpoint = "delete-job"
+  override val endpoint = JobTypeIds.DELETE_JOB.id
   override val description = "Delete a services job and remove files"
 
   private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
