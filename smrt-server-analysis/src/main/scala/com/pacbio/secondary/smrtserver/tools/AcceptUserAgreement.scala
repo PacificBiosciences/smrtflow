@@ -10,6 +10,7 @@ import scala.util.{Failure, Properties, Success, Try}
 import scala.language.postfixOps
 
 import org.joda.time.{DateTime => JodaDateTime}
+import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import scopt.OptionParser
 
@@ -27,8 +28,9 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
   final val TIMEOUT = 10 seconds
   val toolId = "pbscala.tools.accept_user_agreement"
   val VERSION = "0.1.0"
-  lazy val defaultHost: String = Properties.envOrElse("PB_SERVICE_HOST", "localhost")
-  lazy val defaultPort: Int = Properties.envOrElse("PB_SERVICE_PORT", "8070").toInt
+  lazy val conf = ConfigFactory.load()
+  lazy val defaultHost: String = Try { conf.getString("smrtflow.server.dnsName") }.getOrElse("localhost")
+  lazy val defaultPort: Int = conf.getInt("smrtflow.server.port")
   lazy val defaults = AcceptUserAgreementConfig(defaultHost, defaultPort)
 
   lazy val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
