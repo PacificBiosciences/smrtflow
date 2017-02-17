@@ -132,8 +132,6 @@ def getBuildNumber(): Option[Int] = {
     None
 }
 
-val buildNumber = if (sys.env.get(bambooBuildNumberEnv).isDefined) sys.env(bambooBuildNumberEnv) else "UNKNOWN"
-
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
 """
