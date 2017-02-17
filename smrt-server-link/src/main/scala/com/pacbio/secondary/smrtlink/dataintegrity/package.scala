@@ -9,6 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * Created by mkocher on 2/15/17.
@@ -16,6 +17,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 package object dataintegrity extends LazyLogging{
 
   trait BaseDataIntegrity {
+
+    /**
+      * The Default value for calling the integrity checker
+      */
+    val defaultInterval: Option[FiniteDuration] = None
+
     /**
       * Globablly unique identifer for the Runner
       * @return

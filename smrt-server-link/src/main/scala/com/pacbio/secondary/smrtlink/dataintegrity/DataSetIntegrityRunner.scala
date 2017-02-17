@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class DataSetIntegrityRunner(dao: JobsDao) extends BaseDataIntegrity {
 
-  val runnerId = "smrtflow.dataintegrity.metatadataset"
+  val runnerId = "smrtflow.dataintegrity.metadataset"
 
   // This needs to do more, for real subclasses of DataSets, it should
   // check the external resources for
