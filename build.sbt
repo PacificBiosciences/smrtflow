@@ -125,12 +125,8 @@ def PacBioProject(name: String): Project = (
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
 
-def getBuildNumber(): Option[Int] = {
-  if (sys.env.get(bambooBuildNumberEnv).isDefined)
-    Some(sys.env(bambooBuildNumberEnv).toInt)
-  else
-    None
-}
+def getBuildNumber(): Option[Int] = sys.env.get(bambooBuildNumberEnv).map(_.toInt)
+
 
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
