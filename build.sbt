@@ -44,6 +44,8 @@ val akkaV = "2.3.6"
 
 val sprayV = "1.3.3"
 
+val bambooBuildNumberEnv = "bamboo_buildNumber"
+
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 publishTo in ThisBuild := {
@@ -122,7 +124,15 @@ def PacBioProject(name: String): Project = (
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
-val buildNumber = (if (sys.env.get("bamboo.buildNumber").isDefined) sys.env("bamboo_buildNumber") else "UNKNOWN")
+
+def getBuildNumber(): Option[Int] = {
+  if (sys.env.get(bambooBuildNumberEnv).isDefined)
+    Some(sys.env(bambooBuildNumberEnv).toInt)
+  else
+    None
+}
+
+val buildNumber = if (sys.env.get(bambooBuildNumberEnv).isDefined) sys.env(bambooBuildNumberEnv) else "UNKNOWN"
 
 // still can't get these to be imported successfully within ammonite on startup
 val replImports =
@@ -165,7 +175,7 @@ lazy val common = (
         settings(
           makeVersionProperties := {
             val propFile = (resourceManaged in Compile).value / "version.properties"
-            val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(version.value, gitHeadCommitSha.value, buildNumber)
+            val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(version.value, gitHeadCommitSha.value, getBuildNumber().getOrElse("Unknown"))
             IO.write(propFile, content)
             Seq(propFile)
           },
@@ -174,8 +184,11 @@ lazy val common = (
         settings(
           makePacBioComponentManifest := {
             val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
-            val sfVersion = version.value.replace("-SNAPSHOT-", "")
-            val pacbioVersion = "%s-%s" format(sfVersion, gitHeadCommitSha.value.take(7))
+            val sfVersion = version.value.replace("-SNAPSHOT", "")
+            val bambooBuildNumber = getBuildNumber().map(number => s"$number.").getOrElse("")
+            // Generate a version format of {major}.{minor}.{patch}+{build-number}.{short-sha} or
+            // {major}.{minor}.{patch}+{short-sha} if the build number is not assigned
+            val pacbioVersion = "%s+%s%s" format(sfVersion, bambooBuildNumber, gitHeadCommitSha.value.take(7))
             val manifest = s"""
               |{
               | "id":"smrtlink_services",
