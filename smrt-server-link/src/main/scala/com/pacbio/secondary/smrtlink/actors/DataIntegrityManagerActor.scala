@@ -19,6 +19,8 @@ import scala.util.{Failure, Success, Try}
 
 object DataIntegrityManagerActor {
   case object RunIntegrityChecks
+  // Run an explicit Runner by id
+  case class RunIntegrityCheckById(id: String)
 }
 
 class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], interval: FiniteDuration) extends Actor with LazyLogging with timeUtils{
@@ -33,24 +35,36 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], i
     logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} and interval $interval")
   }
 
-  private def executeRunner(r: BaseDataIntegrity): Future [MessageResponse] = {
-    for {
+  private def executeRunner(runner: BaseDataIntegrity): Future [MessageResponse] = {
+    val f = for {
       startedAt <- Future { JodaDateTime.now()}
-      result <- r.run() // Wrap this in a Try
-      message <- Future {s"Completed running ${r.runnerId} in ${computeTimeDelta(JodaDateTime.now(), startedAt)} sec"}
+      result <- runner.run() // Wrap this in a Try
+      message <- Future {s"Completed running ${runner.runnerId} in ${computeTimeDelta(JodaDateTime.now(), startedAt)} sec"}
     } yield MessageResponse(s"${result.message} $message")
+
+    f.onFailure { case ex => logger.error(s"Failed run Integrity Runner ${runner.runnerId}. ${ex.getMessage}")}
+    f
   }
 
   override def receive: Receive = {
     // We probably want to wire in a webservice layer to trigger this via a
     // POST to smrt-link/data-integrity or POST to smrt-link/data-integrity/{runner-id} which will return a MessageResponse
+    // But limit to only running one runner type at a time (make it impossible to run instances of the same DataIntegrityRunner)
     case RunIntegrityChecks => {
-      val successMessage = "Triggered run of SMRT Link DataIntegrity checks"
-      logger.info(successMessage)
+      val successMessage = MessageResponse(s"Triggered run of SMRT Link DataIntegrity (${runners.length}) checks")
       sender ! successMessage
       // Maybe this isn't the greatest idea. This should just run serially
       runners.foreach(executeRunner)
     }
+    case RunIntegrityCheckById(runnerId) =>
+      runners.find(_.runnerId == runnerId) match {
+        case Some(runner) =>
+          sender ! MessageResponse(s"Triggered runner $runnerId")
+          executeRunner(runner)
+        case _ =>
+          // This should use pipeTo and fail the Future
+          sender ! MessageResponse(s"Failed to find runner with id $runnerId")
+      }
   }
 }
 
