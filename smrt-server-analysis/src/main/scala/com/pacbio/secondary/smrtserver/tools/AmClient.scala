@@ -61,8 +61,8 @@ object AmClientParser extends CommandLineToolVersion{
   val conf = ConfigFactory.load()
 
   val targetx = for {
-    host <- Try { conf.getString("pb-services.host") }
-    port <- Try { conf.getInt("pb-services.port")}
+    host <- Try { conf.getString("smrtflow.server.dnsName") }
+    port <- Try { conf.getInt("smrtflow.server.port")}
   } yield new URL(s"http://$host:$port/")
   val target = targetx.toOption
 
