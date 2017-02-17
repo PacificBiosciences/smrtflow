@@ -126,7 +126,9 @@ object PbServiceParser extends CommandLineToolVersion{
       description: String = "",
       authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
       manifestId: String = "smrtlink",
-      showReports: Boolean = false
+      showReports: Boolean = false,
+      searchName: Option[String] = None,
+      searchPath: Option[String] = None
   ) extends LoggerConfig
 
 
@@ -336,7 +338,13 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Dataset Meta type", // TODO validate
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of Datasets to show"
+      } text "Max number of Datasets to show",
+      opt[String]("search-name") action { (n, c) =>
+        c.copy(searchName = Some(n))
+      } text "Search for datasets whose 'name' field matches the specified string",
+      opt[String]("search-path") action { (p, c) =>
+        c.copy(searchPath = Some(p))
+      } text "Search for datasets whose 'path' field matches the specified string"
     )
 
     cmd(Modes.DELETE_DATASET.name) action { (_, c) =>
@@ -462,7 +470,20 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     }
   }
 
-  def runGetDataSets(dsType: String, maxItems: Int, asJson: Boolean = false): Int = {
+  def runGetDataSets(dsType: String,
+                     maxItems: Int,
+                     asJson: Boolean = false,
+                     searchName: Option[String] = None,
+                     searchPath: Option[String] = None): Int = {
+    def isMatching(ds: ServiceDataSetMetadata): Boolean = {
+      (searchName match {
+        case Some(name) => ds.name contains name
+        case None => true
+      }) && (searchPath match {
+        case Some(path) => ds.path contains path
+        case None => true
+      })
+    }
     Try {
       dsType match {
         case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
@@ -479,7 +500,7 @@ class PbService (val sal: AnalysisServiceAccessLayer,
       case Success(records) => {
         if (asJson) {
           var k = 1
-          for (ds <- records) {
+          for (ds <- records.filter(r => isMatching(r))) {
             // XXX this is annoying - the records get interpreted as
             // Seq[ServiceDataSetMetaData], which can't be unmarshalled
             val sep = if (k < records.size) "," else ""
@@ -497,7 +518,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
           }
         } else {
           var k = 0
-          val table = for (ds <- records.reverse if k < maxItems) yield {
+          val table = for {
+            ds <- records.filter(r => isMatching(r)).reverse if k < maxItems
+          } yield {
             k += 1
             Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
           }
@@ -1045,7 +1068,7 @@ object PbService {
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
-        case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson)
+        case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
