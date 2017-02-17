@@ -6,7 +6,7 @@ import java.net.URL
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Properties, Success, Try}
 import scala.language.postfixOps
 
 import org.joda.time.{DateTime => JodaDateTime}
@@ -27,22 +27,24 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
   final val TIMEOUT = 10 seconds
   val toolId = "pbscala.tools.accept_user_agreement"
   val VERSION = "0.1.0"
-  val defaults = AcceptUserAgreementConfig()
+  lazy val defaultHost: String = Properties.envOrElse("PB_SERVICE_HOST", "localhost")
+  lazy val defaultPort: Int = Properties.envOrElse("PB_SERVICE_PORT", "8070").toInt
+  lazy val defaults = AcceptUserAgreementConfig(defaultHost, defaultPort)
 
-  val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
+  lazy val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
     head("PacBio SMRTLink User Agreement Acceptance Tool", VERSION)
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
-    } text "Hostname of SMRT Link server"
+    } text s"Hostname of SMRT Link server (default: ${defaults.host})"
 
     opt[Int]("port") action { (x, c) =>
       c.copy(port = x)
-    } text "Services port on SMRT Link server"
+    } text s"Services port on SMRT Link server (default: ${defaults.port})"
 
     opt[String]("user") action { (x, c) =>
       c.copy(user = x)
-    } text "User name to save in acceptance record"
+    } text s"User name to save in acceptance record (default: ${defaults.user})"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
