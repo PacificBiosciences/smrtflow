@@ -158,8 +158,8 @@ lazy val smrtflow = project.in(file("."))
        |import ammonite.ops._
        |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
        |""".stripMargin)
-    .dependsOn(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
-    .aggregate(logging, common, smrtAnalysis, smrtServerAnalysis, smrtServerSim)
+    .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, smrtServerSim)
+    .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, smrtServerSim)
 
 
 lazy val logging = PacBioProject("smrt-server-logging")
