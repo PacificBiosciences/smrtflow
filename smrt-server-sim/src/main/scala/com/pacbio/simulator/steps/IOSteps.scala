@@ -1,10 +1,10 @@
 package com.pacbio.simulator.steps
 
-import com.pacbio.simulator.Scenario
-import com.pacbio.simulator.StepResult
+import java.nio.file.Paths
+
+import com.pacbio.simulator.{Scenario, StepResult, XmlTemplateReader}
 
 import scala.concurrent.Future
-
 import resource._
 
 import scala.io.Source
@@ -22,6 +22,18 @@ trait IOSteps {
       for { s <- managed(Source.fromFile(pathVar.get)) } {
         output(s.getLines().mkString("\n"))
       }
+      SUCCEEDED
+    }
+  }
+
+  case class ReadFileFromTemplate(pathVar: Var[String]) extends VarStep[String]{
+
+    override val name = "Read File From Template"
+
+    override def run: Future[Result] = Future {
+      var xml = new XmlTemplateReader(Paths.get(pathVar.get)).readStr
+      println(s"xml :  $xml")
+      output(xml.mkString)
       SUCCEEDED
     }
   }
