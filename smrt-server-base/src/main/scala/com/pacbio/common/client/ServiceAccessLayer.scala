@@ -44,7 +44,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   protected def toUiRootUrl(port: Int): String =
     new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
 
-  // Override this in subclasses
+  /**
+    * Provide a list of relative URLs that GET requests will be
+    * can be checked via {{{checkServiceEndpoints}}}
+    *
+    * Override this in the subclasses
+    * @return
+    */
   def serviceStatusEndpoints: Vector[String] = Vector()
 
   // Pipelines and serialization
@@ -54,8 +60,16 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   protected def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
   protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
 
+  // We should try to standardize on nomenclature here, 'Segment' for relative and
+  // and 'Endpoint' for absolute URL?
   val statusUrl = toUrl("/status")
 
+  /**
+    * Get Status of the System. The model must adhere to the SmrtServer Status
+    * message schema.
+    *
+    * @return
+    */
   def getStatus: Future[ServiceStatus] = serviceStatusPipeline {
     Get(statusUrl)
   }
@@ -68,40 +82,72 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     Get(toUrl(endpointPath))
   }
 
-  def checkEndpoint(endpointUrl: String): Int = {
+  /**
+    * Checks an relative Endpoint for Success (HTTP 200) and returns non-zero
+    * exit code on failure.
+    *
+    * Note, this is blocking.
+    *
+    * @param endpointUrl Relative endpoint segment
+    * @param timeOut     Max timeout for status request
+    * @return
+    */
+  def checkEndpoint(endpointUrl: String, timeOut: FiniteDuration = 20.seconds): Int = {
+
+    def statusToInt(status: StatusCode): Int = {
+      status match {
+        case StatusCodes.Success(_) =>
+          println(s"found endpoint $endpointUrl")
+          0
+        case _ =>
+          println(s"error retrieving $endpointUrl: $status")
+          1
+      }
+    }
+
     Try {
-      Await.result(getEndpoint(endpointUrl), 20 seconds)
+      Await.result(getEndpoint(endpointUrl), timeOut)
     } match {
       // FIXME need to make this more generic
-      case Success(x) => {
-        x.status match {
-          case StatusCodes.Success(_) =>
-            println(s"found endpoint ${endpointUrl}")
-            0
-          case _ =>
-            println(s"error retrieving ${endpointUrl}: ${x.status}")
-            1
-        }
-      }
+      case Success(x) => statusToInt(x.status)
       case Failure(err) => {
-        println(s"failed to retrieve endpoint ${endpointUrl}")
-        println(s"${err}")
+        println(s"failed to retrieve endpoint $endpointUrl")
+        println(s"$err")
         1
       }
     }
   }
 
+  /**
+    * Check an endpoint for status 200
+    *
+    * @param endpointPath Provided as Relative to the base url in Client.
+    * @return
+    */
   def checkServiceEndpoint(endpointPath: String): Int = checkEndpoint(toUrl(endpointPath))
 
+  /**
+    * Check the UI webserver for "Status"
+    *
+    * @param uiPort UI webserver port
+    * @return
+    */
   def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
 
+  /**
+    * Run over each defined Endpoint (provided as relative segments to the base)
+    *
+    * Will NOT fail early. It will run over all endpoints and return non-zero
+    * if the any of the results have failed.
+    *
+    * Note, this is blocking.
+    *
+    * @return
+    */
   def checkServiceEndpoints: Int = {
-    var xc = 0
-    for (endpointPath <- serviceStatusEndpoints) {
-      val epStatus = checkServiceEndpoint(endpointPath)
-      if (epStatus > 0) xc = epStatus
-    }
-    xc
+
+    serviceStatusEndpoints.map(checkServiceEndpoint)
+        .foldLeft(0) { (a, v) => Seq(a, v).max}
   }
 
 }
