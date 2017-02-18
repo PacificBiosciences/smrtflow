@@ -21,7 +21,6 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes.MergeDataSetServiceJobType
-
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.lang.SystemUtils
@@ -36,6 +35,7 @@ import scala.util.control.NonFatal
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
 
+import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
@@ -122,6 +122,11 @@ trait DaoFutureUtils {
     case Some(value) => Future { value}
     case _ => Future.failed(new ResourceNotFoundError(message))
   }
+}
+
+
+trait EventComponent {
+  def sendEventToManager[T](message: T): Unit
 }
 
 trait ProjectDataStore extends LazyLogging {
@@ -618,7 +623,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
  * Mixin the Job Component because the files depended on the job
  */
 trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLogging {
-  this: JobDataStore with DalComponent =>
+  this: EventComponent with JobDataStore with DalComponent =>
 
   val DEFAULT_PROJECT_ID = 1
   val DEFAULT_USER_ID = 1
@@ -1404,7 +1409,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     }
     logger.info(s"OS version: $osVersion")
     val rec = EulaRecord(user, now, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics)
-    db.run(eulas += rec).map(_ => rec)
+    val f = db.run(eulas += rec).map(_ => rec)
+    f.onSuccess {case e:EulaRecord  => sendEventToManager[EulaRecord](e)}
+    f
   }
 
   def getEulas: Future[Seq[EulaRecord]] = db.run(eulas.result)
@@ -1417,9 +1424,18 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(eulas.filter(_.smrtlinkVersion === version).delete)
 }
 
-class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver) extends JobEngineDataStore
+/**
+  * Core SMRT Link Data Access Object for interacting with DataSets, Projects and Jobs.
+  *
+  * @param db Postgres Database Config
+  * @param engineConfig Engine Manager config (for root job, number of workers)
+  * @param resolver Resolver that will determine where to write jobs to
+  * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
+  */
+class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends JobEngineDataStore
 with DalComponent
 with SmrtLinkConstants
+with EventComponent
 with ProjectDataStore
 with JobDataStore
 with DataSetStore {
@@ -1427,10 +1443,16 @@ with DataSetStore {
   import JobModels._
 
   var _runnableJobs = mutable.LinkedHashMap[UUID, RunnableJobWithId]()
+
+  override def sendEventToManager[T](message: T): Unit = {
+    eventManager.map(a => a ! message)
+  }
+
 }
 
 trait JobsDaoProvider {
-  this: DalProvider with SmrtLinkConfigProvider =>
+  this: DalProvider with SmrtLinkConfigProvider with EventManagerActorProvider =>
 
-  val jobsDao: Singleton[JobsDao] = Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver()))
+  val jobsDao: Singleton[JobsDao] =
+    Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver(), Some(eventManagerActor())))
 }
