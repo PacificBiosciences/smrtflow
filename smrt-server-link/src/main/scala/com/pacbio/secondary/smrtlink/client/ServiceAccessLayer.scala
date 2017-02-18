@@ -35,6 +35,7 @@ trait ServiceEndpointConstants extends JobServiceConstants {
   val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"
   val ROOT_PROJECTS = s"/$ROOT_SERVICE_PREFIX/projects"
   val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
+  val ROOT_EULA = "/smrt-base/eula"
 }
 
 trait JobTypesConstants {
@@ -145,6 +146,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceiveAuthenticated ~> unmarshal[Seq[Project]]
   protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceiveAuthenticated ~> unmarshal[FullProject]
+
+  protected def getEulaPipeline: HttpRequest => Future[EulaRecord] = sendReceiveAuthenticated ~> unmarshal[EulaRecord]
+  protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] = sendReceiveAuthenticated ~> unmarshal[Seq[EulaRecord]]
 
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceiveAuthenticated ~> unmarshal[MessageResponse]
 
@@ -374,5 +378,22 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
     Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
+  }
+
+  // User agreements (not really a EULA)
+  def getEula(version: String): Future[EulaRecord] = getEulaPipeline {
+    Get(toUrl(ROOT_EULA + s"/$version"))
+  }
+
+  def getEulas: Future[Seq[EulaRecord]] = getEulasPipeline {
+    Get(toUrl(ROOT_EULA))
+  }
+
+  def acceptEula(user: String, version: String, enableInstallMetrics: Boolean = true, enableJobMetrics: Boolean = true) = getEulaPipeline {
+    Post(toUrl(ROOT_EULA), EulaAcceptance(user, version, enableInstallMetrics, enableJobMetrics))
+  }
+
+  def deleteEula(version: String) = getMessageResponsePipeline {
+    Delete(toUrl(ROOT_EULA + s"/$version"))
   }
 }

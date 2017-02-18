@@ -16,7 +16,6 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
-import scala.util.Try
 
 
 // TODO get defaults from prod.conf
