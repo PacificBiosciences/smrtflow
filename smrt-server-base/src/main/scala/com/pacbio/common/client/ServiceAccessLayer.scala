@@ -1,21 +1,20 @@
 package com.pacbio.common.client
 
 import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
-
 import akka.actor.ActorSystem
 import spray.client.pipelining._
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
-
 import java.net.URL
 
 import scala.language.postfixOps
+import scala.util.control.NonFatal
 
 // Move this to a central location
 trait UrlUtils {
@@ -148,6 +147,24 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
 
     serviceStatusEndpoints.map(checkServiceEndpoint)
         .foldLeft(0) { (a, v) => Seq(a, v).max}
+  }
+
+  def callWithBlockingRetry[A, B](f: (A => Future[B]), input: A, numRetries: Int = 3, timeOutPerCall: FiniteDuration): Try[B] = {
+    Try {
+      Await.result[B](f(input), timeOutPerCall)
+    } match {
+      case Success(r) => Success(r)
+      case Failure(ex) =>
+        if (numRetries > 0) callWithBlockingRetry[A, B](f, input, numRetries - 1, timeOutPerCall)
+        else Failure(ex)
+    }
+  }
+
+
+  // This should have a backoff model to wait a few seconds before the retry. It should
+  // also have a better error message that includes the total number of retries
+  def callWithRetry[A, B](f: (A => Future[B]), input: A, numRetries: Int): Future[B] = {
+    f(input).recoverWith { case NonFatal(_) if numRetries > 0 => callWithRetry[A, B](f, input, numRetries - 1) }
   }
 
 }

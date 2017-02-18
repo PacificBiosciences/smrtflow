@@ -7,12 +7,12 @@ import spray.client.pipelining._
 import spray.http.HttpRequest
 import spray.http._
 import spray.httpx.SprayJsonSupport
-
 import akka.actor.ActorSystem
 import com.pacbio.common.client.ServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
 
-import scala.concurrent.Future
+import scala.concurrent._
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * Create a Client for the Event Server.
@@ -23,7 +23,7 @@ import scala.concurrent.Future
   * @param baseUrl note, this is the base URL of the system, not http://my-server:8080/my-events.
   * @param actorSystem
   */
-class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem){
+class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
 
   import SprayJsonSupport._
   import SmrtLinkJsonProtocols._
@@ -44,12 +44,22 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
     else super.toUrl(s"$BASE_PREFIX/$segment")
   }
 
+  // Base Events url
   val eventsUrl = toUrl(EVENTS_SEGMENT)
 
   def smrtLinkSystemEventPipeline: HttpRequest => Future[SmrtLinkSystemEvent] =
     sendReceive ~> unmarshal[SmrtLinkSystemEvent]
 
   def sendSmrtLinkSystemEvent(event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline { Get(eventsUrl) }
+    smrtLinkSystemEventPipeline {
+      Get(eventsUrl)
+    }
+
+  def sendSmrtLinkSystemEventWithBlockingRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3, timeOutPerCall: FiniteDuration) =
+    callWithBlockingRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries, timeOutPerCall)
+
+  def sendSmrtLinkSystemWithRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3): Future[SmrtLinkSystemEvent] = {
+    callWithRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries)
+  }
 
 }
