@@ -28,7 +28,7 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
   import SprayJsonSupport._
   import SmrtLinkJsonProtocols._
 
-  val BASE_PREFIX = "api/v1"
+  val BASE_PREFIX = "/api/v1"
   private val EVENTS_SEGMENT = "events"
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
@@ -54,7 +54,7 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
     sendReceive ~> unmarshal[SmrtLinkSystemEvent]
 
   def sendSmrtLinkSystemEvent(event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline { Get(eventsUrl.toString)}
+    smrtLinkSystemEventPipeline { Post(eventsUrl.toString, event)}
 
   def sendSmrtLinkSystemEventWithBlockingRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3, timeOutPerCall: FiniteDuration) =
     callWithBlockingRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries, timeOutPerCall)
