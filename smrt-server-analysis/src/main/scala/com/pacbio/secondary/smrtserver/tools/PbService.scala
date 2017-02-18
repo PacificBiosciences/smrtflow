@@ -476,13 +476,9 @@ class PbService (val sal: AnalysisServiceAccessLayer,
                      searchName: Option[String] = None,
                      searchPath: Option[String] = None): Int = {
     def isMatching(ds: ServiceDataSetMetadata): Boolean = {
-      (searchName match {
-        case Some(name) => ds.name contains name
-        case None => true
-      }) && (searchPath match {
-        case Some(path) => ds.path contains path
-        case None => true
-      })
+      val qName = searchName.map(n => ds.name contains n).getOrElse(true)
+      val qPath = searchPath.map(p => ds.path contains p).getOrElse(true)
+      qName && qPath
     }
     Try {
       dsType match {
