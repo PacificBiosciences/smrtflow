@@ -15,5 +15,6 @@ SMRT Flow Docs
    SMRT Link Analysis Config <sla_config>
    PacBio Bundle APIs <pacbio_bundles>
    SMRT Link Analysis Server APIs <sla_service_apis>
+   SMRT Event Server <events>
    Disclaimer <disclaimer>
 
