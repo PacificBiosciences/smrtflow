@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.app
 
+import java.io.{BufferedWriter, FileWriter}
 import java.net.BindException
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
@@ -35,13 +36,93 @@ import scala.util.{Failure, Success, Try}
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
 
+// Push this back to FileSystemUtils in common
+trait FileUtils {
+  def createDirIfNotExists(p: Path): Path = {
+    if (!Files.exists(p)) {
+      Files.createDirectories(p)
+    }
+    p
+  }
+
+  def writeToFile(sx: String, path: Path) = {
+    val bw = new BufferedWriter(new FileWriter(path.toFile))
+    bw.write(sx)
+    bw.close()
+    path
+  }
+}
+
+/**
+  * Base Interface for Processing an Event
+  *
+  * This could log an event, send the event to ElasticSearch, or Kafka, etc...
+  *
+  *
+  */
+trait EventProcessor {
+  /**
+    * Name of the processor
+    */
+  val name: String
+
+  /**
+    * Process the event. If the processing of the event has failed, the
+    * future should be failed.
+    * @param event SL System event
+    * @return
+    */
+  def process(event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent]
+}
+
+/**
+  * Logging of the Event
+  */
+class EventLoggingProcessor extends EventProcessor with LazyLogging{
+
+  val name = "Logging Processor"
+
+  def process(event: SmrtLinkSystemEvent) = Future {
+    logger.info(s"Event $event")
+    event
+  }
+}
+
+/**
+  * Write the event to a directory. a Directory within the root SL instance will
+  * be created and events will be written to that dir with the UUID of the message
+  * as the name.
+  *
+  * root-dir/{SL-UUID}/{EVENT-UUID}.json
+  *
+  * @param rootDir
+  */
+class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLogging with FileUtils{
+
+  import SmrtLinkJsonProtocols._
+
+  val name = s"File Writer Event Processor to Dir $rootDir"
+
+  def createSmrtLinkSystemDir(uuid: UUID): Path =
+    createDirIfNotExists(rootDir.resolve(uuid.toString))
+
+  def writeEvent(e: SmrtLinkSystemEvent): SmrtLinkSystemEvent = {
+    val eventPath = createSmrtLinkSystemDir(e.smrtLinkId).resolve(s"${e.uuid}.json")
+    writeToFile(e.toJson.prettyPrint.toString, eventPath)
+    e
+  }
+
+  def process(event: SmrtLinkSystemEvent) = Future {writeEvent(event)}
+}
+
+
 trait EventServiceBaseMicroService extends PacBioService {
 
   // Note, Using a single prefix of "api/v1" will not work as "expected"
   override def prefixedRoutes = pathPrefix("api" / "v1") { super.prefixedRoutes }
 }
 
-class EventService extends EventServiceBaseMicroService with LazyLogging{
+class EventService(eventProcessor: EventProcessor) extends EventServiceBaseMicroService with LazyLogging{
 
   import SmrtLinkJsonProtocols._
 
@@ -49,6 +130,8 @@ class EventService extends EventServiceBaseMicroService with LazyLogging{
 
   val manifest = PacBioComponentManifest("events", "Event Services", "0.1.0",
     "SMRT Server Event and general Messages service")
+
+  logger.info(s"Creating Service with Event Processor ${eventProcessor.name}")
 
   def eventRoutes: Route =
     pathPrefix(PREFIX_EVENTS) {
@@ -61,8 +144,7 @@ class EventService extends EventServiceBaseMicroService with LazyLogging{
             entity(as[SmrtLinkSystemEvent]) { event =>
             complete {
               created {
-                logger.info(s"Logged Event $event")
-                event
+               eventProcessor.process(event)
               }
             }
           }
@@ -85,7 +167,7 @@ class EventService extends EventServiceBaseMicroService with LazyLogging{
   */
 trait EventServiceConfigCakeProvider extends ConfigLoader{
   // This should be loaded from the application.conf with an ENV var mapping
-  lazy val eventMessageDir: Path = Paths.get("/tmp/events")
+  lazy val eventMessageDir: Path = Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
 
   lazy val systemName = "smrt-events"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
@@ -104,8 +186,9 @@ trait EventServicesCakeProvider {
 
   lazy val statusGenerator = new StatusGenerator(new SystemClock(), systemName, systemUUID, Constants.SMRTFLOW_VERSION)
 
+  lazy val eventProcessor = new EventFileWriterProcessor(eventMessageDir)
   // All Service instances go here
-  lazy val services: Seq[PacBioService] = Seq(new EventService, new StatusService(statusGenerator))
+  lazy val services: Seq[PacBioService] = Seq(new EventService(eventProcessor), new StatusService(statusGenerator))
 }
 
 trait RootEventServerCakeProvider extends RouteConcatenation{
@@ -116,7 +199,7 @@ trait RootEventServerCakeProvider extends RouteConcatenation{
   lazy val rootService = actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
-trait EventServerCakeProvider extends LazyLogging with timeUtils{
+trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
   this: RootEventServerCakeProvider
       with EventServiceConfigCakeProvider
       with ActorSystemCakeProvider =>
@@ -125,13 +208,6 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils{
 
   lazy val startupTimeOut = 10.seconds
   lazy val eventServiceClient = new EventServerClient(systemHost, systemPort)
-
-  def createDirIfNotExists(p: Path): Path = {
-    if (!Files.exists(p)) {
-      Files.createDirectories(p)
-    }
-    p
-  }
 
   // Mocked out. Fail the future if any invalid option is detected
   def validateOption(): Future[String] =
