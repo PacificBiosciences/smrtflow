@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.app
 
+import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.common.dependency.Singleton
@@ -9,10 +10,12 @@ import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
-import com.pacbio.secondary.smrtlink.models.PacBioBundle
+import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioBundle}
 import com.pacbio.secondary.smrtlink.services.BundleUtils
 import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
 import com.typesafe.scalalogging.LazyLogging
+
+import scala.util.Try
 
 
 trait SmrtLinkConfigProvider extends LazyLogging {
@@ -57,4 +60,21 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   // Load PacBio Automation Constraints Chemistry Bundle
   val pacBioAutomationConstraints: Singleton[PacBioAutomationConstraints] =
     Singleton(() => PacBioAutomationConstraintsLoader.loadExample())
+
+  /**
+    * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
+    *
+    * @return
+    */
+  private def loadExternalEventHost(): Option[ExternalEventServerConfig] = {
+    Try {
+      val ux = new URL(conf.getString("smrtflow.server.eventUrl"))
+      // Don't require a port
+      val eventPort = Try {ux.getPort}.getOrElse(port())
+      ExternalEventServerConfig(ux.getHost, eventPort)
+    }.toOption
+  }
+
+  val externalEventHost: Singleton[Option[ExternalEventServerConfig]] =
+    Singleton(() => loadExternalEventHost())
 }
