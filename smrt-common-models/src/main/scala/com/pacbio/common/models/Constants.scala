@@ -1,6 +1,6 @@
 package com.pacbio.common.models
 
-import java.util.Properties
+import java.util.{Properties, UUID}
 
 import scala.util.Try
 
@@ -9,6 +9,12 @@ import scala.util.Try
   * Created by mkocher on 10/13/15.
   */
 trait Constants {
+
+  //MK. Trying to centralize this. This needs to be moved out to a central
+  // location that is loaded from the *.conf file or assigned a random value
+  // on startup.
+  final val SERVER_UUID = UUID.randomUUID()
+
   // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "4.0.0"
   // Perforce CHANGELIST that was used to generate the XSDs
