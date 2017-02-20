@@ -136,11 +136,7 @@ class EventService(eventProcessor: EventProcessor) extends EventServiceBaseMicro
   def eventRoutes: Route =
     pathPrefix(PREFIX_EVENTS) {
       pathEndOrSingleSlash {
-        get {
-          complete {
-            Map("status" -> "OK", "comment" -> "Mocked out Get").toJson
-          }
-        } ~ post {
+        post {
             entity(as[SmrtLinkSystemEvent]) { event =>
             complete {
               created {
