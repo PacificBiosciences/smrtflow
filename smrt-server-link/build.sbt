@@ -14,3 +14,13 @@ mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtlink.app.SmrtLinkS
 //  case x => old(x)
 //}
 //}
+
+packSettings
+
+packMain := Map(
+  "smrt-server-link" -> "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer",
+  "smrt-server-events" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp"
+)
+
+
+packGenerateWindowsBatFile := false
