@@ -288,16 +288,19 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
     }
 
   }
-
 }
 
-// Construct the Applications from Components
-object SmrtEventServerApp extends EventServiceConfigCakeProvider
+// Construct the Applications from Components. This will be used in the Tests as well
+object SmrtEventServer extends EventServiceConfigCakeProvider
     with ActorSystemCakeProvider
     with EventServicesCakeProvider
     with RootEventServerCakeProvider
-    with EventServerCakeProvider with App {
+    with EventServerCakeProvider {}
 
+
+object SmrtEventServerApp extends App {
+
+  import SmrtEventServer._
 
   LoggerOptions.parseAddDebug(args)
   startSystem()
