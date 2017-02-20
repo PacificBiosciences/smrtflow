@@ -172,7 +172,7 @@ trait EventServiceConfigCakeProvider extends ConfigLoader{
   lazy val systemName = "smrt-events"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
-  lazy val systemUUID = UUID.randomUUID()
+  lazy val systemUUID = Constants.SERVER_UUID
 
 }
 
