@@ -694,3 +694,5 @@ case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                createdAt: JodaDateTime,
                                message: JsObject)
 
+
+case class ExternalEventServerConfig(host: String, port: Int)
