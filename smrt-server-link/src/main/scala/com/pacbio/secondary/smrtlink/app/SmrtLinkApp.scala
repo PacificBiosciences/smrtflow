@@ -57,6 +57,9 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
   override val providers = new SmrtLinkProviders {}
 
+  // This is necessary for the Actor to get created from the Singleton
+  providers.eventManagerActor()
+
   override def startup(): Unit = {
     super.startup()
 
