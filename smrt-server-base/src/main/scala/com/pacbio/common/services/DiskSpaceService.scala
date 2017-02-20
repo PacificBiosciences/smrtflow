@@ -4,6 +4,7 @@ import java.nio.file.{Paths, Path}
 
 import akka.util.Timeout
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.file.{FileSystemUtilProvider, FileSystemUtil}
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.configloaders.EngineCoreConfigLoader
@@ -15,7 +16,7 @@ import scala.concurrent.duration._
 
 // TODO(smcclellan): Unit tests
 
-class DiskSpaceService extends BaseSmrtService with EngineCoreConfigLoader {
+class DiskSpaceService(fileSystemUtil: FileSystemUtil) extends BaseSmrtService with EngineCoreConfigLoader {
 
   import PacBioJsonProtocol._
 
@@ -33,8 +34,10 @@ class DiskSpaceService extends BaseSmrtService with EngineCoreConfigLoader {
 
   private def toResource(id: String): DiskSpaceResource = {
     idsToPaths.get(id).map { p =>
-      val dir = p.toFile
-      DiskSpaceResource(id, p.toString, dir.getTotalSpace, dir.getUsableSpace, dir.getFreeSpace)
+      DiskSpaceResource(
+        fileSystemUtil.getFile(p).getAbsolutePath,
+        fileSystemUtil.getTotalSpace(p),
+        fileSystemUtil.getFreeSpace(p))
     }.getOrElse {
       val ids = idsToPaths.keySet.map(i => s"'$i'").reduce(_ + ", " + _)
       throw new ResourceNotFoundError(s"Could not find resource with id $id. Available resources are: $ids.")
@@ -68,13 +71,16 @@ class DiskSpaceService extends BaseSmrtService with EngineCoreConfigLoader {
  * Provides a singleton SpaceService, and also binds it to the set of total services.
  */
 trait DiskSpaceServiceProvider {
-  val diskSpaceService: Singleton[DiskSpaceService] = Singleton(() => new DiskSpaceService).bindToSet(AllServices)
+  this: FileSystemUtilProvider =>
+
+  val diskSpaceService: Singleton[DiskSpaceService] =
+    Singleton(() => new DiskSpaceService(fileSystemUtil())).bindToSet(AllServices)
 }
 
 trait DiskSpaceServiceProviderx {
-  this: ServiceComposer =>
+  this: FileSystemUtilProvider with ServiceComposer =>
 
-  val diskSpaceService: Singleton[DiskSpaceService] = Singleton(() => new DiskSpaceService)
+  val diskSpaceService: Singleton[DiskSpaceService] = Singleton(() => new DiskSpaceService(fileSystemUtil()))
 
   addService(diskSpaceService)
 }
