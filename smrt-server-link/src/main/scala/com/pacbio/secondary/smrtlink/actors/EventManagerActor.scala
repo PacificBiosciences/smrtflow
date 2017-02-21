@@ -52,7 +52,7 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
   }
 
   def toSystemEvent(e: SmrtLinkEvent) =
-    SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.uuid, e.createdAt, e.message)
+    SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.eventTypeVersion, e.uuid, e.createdAt, e.message)
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
     Try {client.map(c => c.sendSmrtLinkSystemEvent(e))}
@@ -65,7 +65,7 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
 
     case e: EulaRecord =>
       // maybe these eventTypeId(s) should be bolted back on the case class to centralize?
-      val event = SmrtLinkEvent("smrtlink_eula_accepted", UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
+      val event = SmrtLinkEvent("smrtlink_eula_accepted", 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
       val systemEvent = toSystemEvent(event)
       logger.info(s"EventManager $systemEvent")
       sendSystemEvent(systemEvent)

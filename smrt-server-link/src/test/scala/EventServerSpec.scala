@@ -23,7 +23,7 @@ class EventServerSpec extends Specification with Specs2RouteTest{
   import SmrtLinkJsonProtocols._
 
   val smrtLinkSystemId = UUID.randomUUID()
-  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId, "test", UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
+  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId, "test", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
 
 
   val totalRoutes = SmrtEventServer.allRoutes

@@ -25,7 +25,8 @@ as a *SMRT Link Message*
     {
         "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
         "createdAt": "2017-02-16T08:36:21.082-08:00",
-        "eventTypeId": "smrtlink_job_change_state", 
+        "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
         "message": {
             "jobId": 1234,
             "jobTypeId":
@@ -38,6 +39,7 @@ as a *SMRT Link Message*
    which should be documented. When the model changes, the id must
    change. One possible way of doing this is to ``job_change_state2`` to
    encode the version.
+-  *eventTypeVersion* Version of eventTypeId message schema
 -  *createdAt* ISO8601 encoded version of the datetime the original
    message was created
 -  *message* message payload
@@ -59,6 +61,7 @@ Defining this data model as a *SMRT Link System Message*
         "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
         "createdAt": "2017-02-16T08:36:21.082-08:00",
         "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
         "message": {
             "jobId": 1234,
             "jobTypeId": "pbsmrtpipe",

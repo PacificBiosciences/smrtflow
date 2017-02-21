@@ -678,11 +678,13 @@ case class PacBioBundleRecord(url: URL)
   * General SmrtLink Event data model
   *
   * @param eventTypeId event Type id. This must be globally unique and map to schema defined in the message (as Json)
+  * @param eventTypeVersion Version of the eventTypeId. A tuple of (eventTypeId, eventTypeVersion) must be resolvable to schema defined in *message*
   * @param uuid        globally unique identifier for event message. Assigned by the creator
   * @param createdAt   when the message/event was created at
   * @param message     Json of the message
   */
 case class SmrtLinkEvent(eventTypeId: String,
+                         eventTypeVersion: Int = 1,
                          uuid: UUID,
                          createdAt: JodaDateTime,
                          message: JsObject)
@@ -690,6 +692,7 @@ case class SmrtLinkEvent(eventTypeId: String,
 
 case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                eventTypeId: String,
+                               eventTypeVersion: Int = 1,
                                uuid: UUID,
                                createdAt: JodaDateTime,
                                message: JsObject)

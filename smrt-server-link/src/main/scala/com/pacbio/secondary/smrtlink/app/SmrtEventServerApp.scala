@@ -243,7 +243,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
     */
   private def postStartUpHook(): Future[String] = {
     val startUpEventMessage =
-      SmrtLinkSystemEvent(systemUUID, "smrt_server_startup",
+      SmrtLinkSystemEvent(systemUUID, "smrt_server_startup", 1,
         UUID.randomUUID(),
         JodaDateTime.now, JsObject.empty)
 
