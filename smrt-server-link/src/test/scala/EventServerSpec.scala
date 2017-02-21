@@ -1,4 +1,5 @@
 import java.util.UUID
+import java.nio.file.Files
 
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
@@ -7,6 +8,7 @@ import akka.actor.ActorRefFactory
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
+import org.apache.commons.io.FileUtils
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -25,6 +27,7 @@ class EventServerSpec extends Specification with Specs2RouteTest{
 
 
   val totalRoutes = SmrtEventServer.allRoutes
+  val eventMessageDir = SmrtEventServer.eventMessageDir
 
   SmrtEventServer.startSystem()
 
@@ -38,6 +41,19 @@ class EventServerSpec extends Specification with Specs2RouteTest{
       Post("/api/v1/events", exampleMessage) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
+    }
+    "Check files we're written to file system and Delete tmp dir" in {
+      // Check that dir was created
+      Files.exists(eventMessageDir) must beTrue
+
+      val smrtLinkSystemEventsDir = eventMessageDir.resolve(smrtLinkSystemId.toString)
+      Files.exists(smrtLinkSystemEventsDir)
+
+      val messagePath = smrtLinkSystemEventsDir.resolve(s"${exampleMessage.uuid}.json")
+      Files.exists(messagePath) must beTrue
+
+      FileUtils.deleteQuietly(eventMessageDir.toFile)
+      Files.exists(eventMessageDir) must beFalse
     }
   }
 
