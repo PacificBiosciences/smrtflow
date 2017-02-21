@@ -161,19 +161,23 @@ class EventService(eventProcessor: EventProcessor) extends EventServiceBaseMicro
   * Note that every definition must use a lazy val or def to use the
   * cake pattern correctly.
   */
-trait EventServiceConfigCakeProvider extends ConfigLoader{
-  // This should be loaded from the application.conf with an ENV var mapping
-  lazy val eventMessageDir: Path = Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
 
-  lazy val systemName = "smrt-events"
+trait BaseServiceConfigCakeProvider extends ConfigLoader {
+  lazy val systemName = "smrt-server"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
   lazy val systemUUID = Constants.SERVER_UUID
+}
 
+trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
+
+  override lazy val systemName = "smrt-event"
+  // This should be loaded from the application.conf with an ENV var mapping
+  lazy val eventMessageDir: Path = Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
 }
 
 trait ActorSystemCakeProvider {
-  this: EventServiceConfigCakeProvider =>
+  this: BaseServiceConfigCakeProvider =>
   implicit lazy val actorSystem = ActorSystem(systemName)
 }
 
