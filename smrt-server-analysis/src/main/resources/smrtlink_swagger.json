@@ -65,6 +65,39 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-base/files-diskspace/*": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-base/files-download/*": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/pipeline-template-view-rules": {
       "get": {
         "x-scope": "data-management",
@@ -676,21 +709,6 @@
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/smrt-base/files-download/*": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/report-view-rules": {

@@ -259,10 +259,7 @@ case class ConfigCleanupJob(
 // Files Service
 case class DirectoryResource(fullPath: String, subDirectories: Seq[DirectoryResource], files: Seq[FileResource])
 case class FileResource(fullPath: String, name: String, mimeType: String, sizeInBytes: Long, sizeReadable: String)
-
-
-// Disk Space Service
-case class DiskSpaceResource(id: String, path: String, totalSpace: Long, usableSpace: Long, freeSpace: Long)
+case class DiskSpaceResource(fullPath: String, totalSpace: Long, freeSpace: Long)
 
 // SubSystem Resources
 case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)

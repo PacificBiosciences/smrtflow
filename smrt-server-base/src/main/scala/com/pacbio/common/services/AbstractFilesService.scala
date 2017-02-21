@@ -1,11 +1,11 @@
 package com.pacbio.common.services
 
 import java.io.File
-import java.net.URLDecoder
 import java.nio.file.{Paths, Path}
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
+import com.pacbio.common.file.FileSystemUtil
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import spray.http.Uri
@@ -16,7 +16,8 @@ import spray.routing.RoutingSettings
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-abstract class AbstractFilesService(mimeTypes: MimeTypes)(
+// TODO(smcclellan): Is this abstraction necessary? We initially planned to have other file services.
+abstract class AbstractFilesService(mimeTypes: MimeTypes, fileSystemUtil: FileSystemUtil)(
     implicit val actorSystem: ActorSystem,
     implicit val ec: ExecutionContext)
   extends PacBioService {
@@ -40,11 +41,11 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
   def resolvePath(path: Path): Future[Option[Path]]
   ////////////////////////////////////////
 
-  private def resolve(path: Uri.Path): Future[File] = {
+  private def resolve(path: Uri.Path): Future[Path] = {
     val realPath = java.net.URLDecoder.decode(path.toString(), "UTF-8")
     val absPath = Paths.get("/").resolve(Paths.get(realPath))
     resolvePath(absPath).map {
-      case Some(p) => p.toFile
+      case Some(p) => p
       case None => throw new ResourceNotFoundError(s"Unable to resolve path: ${path.toString()}")
     }
   }
@@ -65,7 +66,18 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
         get {
           complete {
             ok {
-              resolve(path).map(getResource)
+              resolve(path).map(getDirectoryResource)
+            }
+          }
+        }
+      }
+    } ~
+    pathPrefix(s"$serviceBaseId-diskspace") {
+      path(RestPath) { path =>
+        get {
+          complete {
+            ok {
+              resolve(path).map(getDiskSpaceResource)
             }
           }
         }
@@ -73,13 +85,14 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
     } ~
     pathPrefix(s"$serviceBaseId-download") {
       path(RestPath) { path =>
-        onSuccess(resolve(path)) { file =>
+        onSuccess(resolve(path).map(fileSystemUtil.getFile)) { file =>
           getFromFile(file)
         }
       }
     }
 
-  private def getResource(file: File): DirectoryResource = {
+
+  private def getDirectoryResource(path: Path): DirectoryResource = {
     def sizeReadable(sizeInBytes: Long): String = {
       if (sizeInBytes < 1024) return s"$sizeInBytes B"
 
@@ -116,6 +129,8 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
       DirectoryResource(f.getAbsolutePath, subDirectories, files)
     }
 
+    val file = fileSystemUtil.getFile(path)
+
     if (file.exists())
       if (file.isDirectory)
         toDirectoryResource(file)
@@ -124,6 +139,12 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
     else
       throw new ResourceNotFoundError(s"No file or directory found at path ${file.getAbsolutePath}")
   }
+
+  private def getDiskSpaceResource(path: Path): DiskSpaceResource =
+    DiskSpaceResource(
+      fileSystemUtil.getFile(path).getAbsolutePath,
+      fileSystemUtil.getTotalSpace(path),
+      fileSystemUtil.getFreeSpace(path))
 }
 
 /**
@@ -145,10 +166,10 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes)(
  * call like {{{GET /foo-files-download/bar/file.txt}}} by serving the contents of the file
  * located at {{{/foo/bar/file.txt}}}.
  */
-abstract class SimpleFilesService(mimeTypes: MimeTypes)(
+abstract class SimpleFilesService(mimeTypes: MimeTypes, fileSystemUtil: FileSystemUtil)(
     override implicit val actorSystem: ActorSystem,
     override implicit val ec: ExecutionContext)
-  extends AbstractFilesService(mimeTypes) {
+  extends AbstractFilesService(mimeTypes, fileSystemUtil) {
 
   /**
    * The root directory against which incoming requests will be resolved. (Should be absolute.)
@@ -182,10 +203,10 @@ abstract class SimpleFilesService(mimeTypes: MimeTypes)(
  * would handle a call like {{{GET /foo-files-download/baz-resources/file.txt}}} by serving the
  * contents of the file located at {{{/foo/baz/path/to/resources/file.txt}}}.
  */
-abstract class ViewFilesService(mimeTypes: MimeTypes)(
+abstract class ViewFilesService(mimeTypes: MimeTypes, fileSystemUtil: FileSystemUtil)(
     override implicit val actorSystem: ActorSystem,
     override implicit val ec: ExecutionContext)
-  extends AbstractFilesService(mimeTypes) {
+  extends AbstractFilesService(mimeTypes, fileSystemUtil) {
 
   /**
    * The view, mapping request URI path prefixes to filesystem prefixes. (Both the URI path
