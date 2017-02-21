@@ -10,6 +10,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
+import spray.json.JsObject
 
 object Models
 
@@ -669,3 +670,32 @@ object PacBioBundle {
 // Use to create a bundle record. All Metadata will be extracted from
 // the bundle metadata after it's been extracted
 case class PacBioBundleRecord(url: URL)
+
+
+// SmrtLink Events/Messages
+
+/**
+  * General SmrtLink Event data model
+  *
+  * @param eventTypeId event Type id. This must be globally unique and map to schema defined in the message (as Json)
+  * @param eventTypeVersion Version of the eventTypeId. A tuple of (eventTypeId, eventTypeVersion) must be resolvable to schema defined in *message*
+  * @param uuid        globally unique identifier for event message. Assigned by the creator
+  * @param createdAt   when the message/event was created at
+  * @param message     Json of the message
+  */
+case class SmrtLinkEvent(eventTypeId: String,
+                         eventTypeVersion: Int = 1,
+                         uuid: UUID,
+                         createdAt: JodaDateTime,
+                         message: JsObject)
+
+
+case class SmrtLinkSystemEvent(smrtLinkId: UUID,
+                               eventTypeId: String,
+                               eventTypeVersion: Int = 1,
+                               uuid: UUID,
+                               createdAt: JodaDateTime,
+                               message: JsObject)
+
+
+case class ExternalEventServerConfig(host: String, port: Int)

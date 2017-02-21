@@ -39,6 +39,9 @@ trait SecondaryAnalysisProviders
 trait SecondaryApi extends SmrtLinkApi with LazyLogging {
   override val providers = new SecondaryAnalysisProviders {}
 
+  // This is necessary for the Actor to get created from the Singleton
+  providers.eventManagerActor()
+
   sys.addShutdownHook(system.shutdown())
 }
 

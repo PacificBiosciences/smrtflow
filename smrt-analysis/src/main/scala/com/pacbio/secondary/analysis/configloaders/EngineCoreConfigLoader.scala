@@ -63,7 +63,6 @@ trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging{
     }
   }
 
-  // FIXME. Convert this to Option[Path]
   private def loadPbToolsEnv(conf: Config): Option[Path] =
     Try { Paths.get(conf.getString(EngineCoreConfigConstants.PB_TOOLS_ENV)).toAbsolutePath }.toOption
 
