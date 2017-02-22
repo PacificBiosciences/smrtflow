@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+MIN_NPROC=8192
+MIN_NFILES=8192
+SMRTLINK_PORTS="5672 7611 7711 8243 8280 8672 9443 9611 9711 9763 9999 10397 10711 11111"
+
+USED_PORTS="`netstat -tan | grep '^tcp' | awk '{print $4;}' | sed 's/.*://;' | sort | uniq | tr '\n' ' '`"
+
+if [ "$1" = "--help" ]; then
+  echo "Usage: check-system-resources"
+  echo ""
+  echo "This script checks for TCP port usage and ulimit settings that may"
+  echo "conflict with normal operation of SMRT Link."
+  exit 0
+fi
+
+STATUS=0
+for PORT1 in $SMRTLINK_PORTS; do
+  for PORT2 in $USED_PORTS; do
+    if [ "${PORT1}" = "${PORT2}" ]; then
+      echo "ERROR: port $PORT1 is already in use"
+      STATUS=1
+      break
+    fi
+  done
+done
+
+ULIMIT_NPROC=`ulimit -u`
+if [ "$ULIMIT_NPROC" != "unlimited" ] && [ $ULIMIT_NPROC -lt $MIN_NPROC ]; then
+  echo "ERROR: The maximum number of concurrent user processes/threads is too low (at least $MIN_NPROC recommended).  You can fix this by running 'ulimit -u <LIMIT>'."
+  STATUS=1
+fi
+
+ULIMIT_NFILES=`ulimit -n`
+if [ "$ULIMIT_NFILES" != "unlimited" ] && [ $ULIMIT_NFILES -lt $MIN_NFILES ]; then
+  echo "ERROR: The maximum number of open files is too low (at least $MIN_NFILES recommended).  You can fix this by running 'ulimit -n <LIMIT>'."
+  STATUS=1
+fi
+
+if [ $STATUS -eq 0 ]; then
+  echo "No conflicts with SMRT Link detected."
+fi
+exit $STATUS
