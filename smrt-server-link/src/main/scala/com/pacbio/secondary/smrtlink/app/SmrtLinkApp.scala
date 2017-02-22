@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.app
 
 import java.nio.file.{Files, Path, Paths}
 
+import akka.actor.ActorRef
 import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
@@ -57,12 +58,11 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
   override val providers = new SmrtLinkProviders {}
 
-  // This is necessary for the Actor to get created from the Singleton
-  providers.eventManagerActor()
-
   override def startup(): Unit = {
     super.startup()
 
+    // This is necessary for the Actor to get created from the Singleton???
+    val eventManagerActorX = providers.eventManagerActor()
     val dataSource = providers.dbConfig.toDataSource
 
     def createJobDir(path: Path): Path = {

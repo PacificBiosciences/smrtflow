@@ -41,10 +41,7 @@ class DiskSpaceService(config: Config, fileSystemUtil: FileSystemUtil)
 
   private def toResource(id: String): Future[DiskSpaceResource] = Future {
     idsToPaths.get(id).map { p =>
-      DiskSpaceResource(
-        fileSystemUtil.getFile(p).getAbsolutePath,
-        fileSystemUtil.getTotalSpace(p),
-        fileSystemUtil.getFreeSpace(p))
+      DiskSpaceResource(p.toString, fileSystemUtil.getTotalSpace(p), fileSystemUtil.getFreeSpace(p))
     }.getOrElse {
       val ids = idsToPaths.keySet.map(i => s"'$i'").reduce(_ + ", " + _)
       throw new ResourceNotFoundError(s"Could not find resource with id $id. Available resources are: $ids.")

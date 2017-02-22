@@ -141,10 +141,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes, fileSystemUtil: FileSy
   }
 
   private def getDiskSpaceResource(path: Path): DiskSpaceResource =
-    DiskSpaceResource(
-      fileSystemUtil.getFile(path).getAbsolutePath,
-      fileSystemUtil.getTotalSpace(path),
-      fileSystemUtil.getFreeSpace(path))
+    DiskSpaceResource(path.toString, fileSystemUtil.getTotalSpace(path), fileSystemUtil.getFreeSpace(path))
 }
 
 /**

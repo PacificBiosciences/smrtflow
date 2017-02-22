@@ -70,6 +70,7 @@ with JobServiceConstants with TestUtils {
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
+  val eventManagerActorX = TestProviders.eventManagerActor()
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"

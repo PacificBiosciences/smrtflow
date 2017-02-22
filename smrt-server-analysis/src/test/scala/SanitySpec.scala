@@ -11,6 +11,8 @@ class SanitySpec extends Specification with Specs2RouteTest {
 
   val providers = new SecondaryAnalysisProviders {}
   val totalRoutes = providers.routes()
+  val eventManagerActorX = providers.eventManagerActor()
+
 
   "Service list" should {
     "return a list of services" in {
