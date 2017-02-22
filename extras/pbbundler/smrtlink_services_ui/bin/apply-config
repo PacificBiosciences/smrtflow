@@ -21,7 +21,7 @@ import traceback
 import argparse
 
 __author__ = "M. Kocher"
-__version__ = '0.7.2'
+__version__ = '0.7.3'
 
 
 log = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _TOMCAT_VERSION = "apache-tomcat-8.0.26"
 _BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TOMCAT_ENV = os.path.join(_BUNDLE_ROOT, _TOMCAT_VERSION, "bin", "setenv.sh")
+_WSO2_API_DIR = os.path.join(_BUNDLE_ROOT, "wso2am-2.0.0", "repository", "deployment", "server", "synapse-configs", "default", "api")
 _SERVICES_LOG_LEVEL = "INFO"
 # Note, changes here, will require changes in bin/start
 _CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'smrtlink-system-config.json')
@@ -43,7 +44,7 @@ _PACBIO_BUNDLE_DIR = os.path.join(_BUNDLE_ROOT, "pacbio-bundles")
 
 # These are Internal
 _TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
-
+_WSO2_TEMPLATE_DIR = "templates-wso2"
 
 class InvalidConfigOptionResource(IOError):
     """Resource that are not found, or invalid values"""
@@ -222,6 +223,7 @@ class SystemConfig(object):
 class ConstantsTemplateVars(object):
     """Constants used in templates"""
     ANALYSIS_SERVER_URI = "ANALYSIS_SERVER_URI"
+    TOMCAT_HOST = "TOMCAT_HOST"
     TOMCAT_PORT = "TOMCAT_PORT"
     SSL_KEYSTORE_FILE = "SSL_KEYSTORE_FILE"
 
@@ -232,6 +234,7 @@ class ConstantsTemplateNames(object):
     TOMCAT_SERVER_XML = "server.xml"
     TOMCAT_HTTPS_SERVER_XML = "https-server.xml"
     SSL_KEYSTORE_FILE = ".keystore"
+    UI_PROXY_FILE = "_sl-ui_.xml"
 
 
 class TemplateConstants(object):
@@ -239,6 +242,7 @@ class TemplateConstants(object):
     SLINK_CONFIG = _TOMCAT_VERSION + '/webapps/ROOT/' + ConstantsTemplateNames.SLINK_UI_SERVICE
     TOMCAT_CONFIG = _TOMCAT_VERSION + '/conf/' + ConstantsTemplateNames.TOMCAT_SERVER_XML
     SSL_KEYSTORE_FILE = os.path.join(_BUNDLE_ROOT, ConstantsTemplateNames.SSL_KEYSTORE_FILE)
+    UI_PROXY_CONFIG = os.path.join(_WSO2_API_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
 
 
 def validate_resource(func, path, prefix_msg=None):
@@ -398,6 +402,15 @@ def update_tomcat(port, enable_https, tomcat_mem):
     return output_file
 
 
+def update_sl_ui(host, port):
+    output_file = os.path.join(_WSO2_API_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
+    updates = {ConstantsTemplateVars.TOMCAT_HOST  : host,
+               ConstantsTemplateVars.TOMCAT_PORT  : port}
+
+    input_file = os.path.join(_TEMPLATE_DIR, _WSO2_TEMPLATE_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
+    update_multiple_and_write(input_file, updates, output_file)
+
+
 def write_services_jvm_args(pb_services_analysis_mem_max, pb_services_analysis_mem_min):
     with open(_SERVICES_JVM_ARGS, 'w') as f:
         f.write("-Xmx{max}m -Xms{min}m".format(
@@ -487,6 +500,8 @@ def main(argv=sys.argv[1:]):
         update_tomcat(c.port,
                       SystemConfig.ENABLE_HTTPS,
                       c.pb_services_mem)
+
+        update_sl_ui(host, c.port)
 
         rcode = 0
 

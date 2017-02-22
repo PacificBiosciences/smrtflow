@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api xmlns="http://ws.apache.org/ns/synapse"
+     name="_sl-ui_"
+     context="/sl">
+   <resource methods="GET" url-mapping="/*" faultSequence="fault">
+      <inSequence>
+         <send>
+            <endpoint name="sl-ui-root">
+               <http uri-template="http://${TOMCAT_HOST}:${TOMCAT_PORT}"/>
+            </endpoint>
+         </send>
+      </inSequence>
+      <outSequence>
+         <send/>
+      </outSequence>
+   </resource>
+</api>
