@@ -1,3 +1,4 @@
-sphinx
+# hard pin this. RTD is using dev version of 1.5.3?
+sphinx==1.5.2
 sphinx_bootstrap_theme
 docutils

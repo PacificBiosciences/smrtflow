@@ -1,14 +1,14 @@
 import akka.actor.ActorRefFactory
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.auth.Authenticator._
-import com.pacbio.common.auth.{JwtUtils, JwtUtilsProvider, AuthenticatorImplProvider}
+import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
 import com.pacbio.common.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
@@ -46,6 +46,7 @@ with JobServiceConstants with TestUtils{
       JobRunnerProvider with
       DataSetServiceProvider with
       JobsDaoActorProvider with
+      EventManagerActorProvider with
       JobsDaoProvider with
       TestDalProvider with
       AuthenticatorImplProvider with

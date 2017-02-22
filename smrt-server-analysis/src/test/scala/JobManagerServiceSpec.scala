@@ -43,6 +43,7 @@ with JobServiceConstants with TestUtils{
   JobManagerServiceProvider with
   SimpleServiceJobTypeProvider with
   StatusGeneratorProvider with
+  EventManagerActorProvider with
   JobsDaoProvider with
   JobsDaoActorProvider with
   TestDalProvider with
