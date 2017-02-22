@@ -5,6 +5,7 @@ import com.pacbio.common.actors.InMemoryLogDaoProvider
 import com.pacbio.common.app.{BaseApi, CoreProviders}
 import com.pacbio.common.models.{DiskSpaceResource, PacBioJsonProtocol, DirectoryResource}
 import org.specs2.mock._
+import org.mockito.Mockito.doReturn
 
 import org.specs2.mutable.Specification
 import org.apache.commons.io.FileUtils
@@ -29,8 +30,8 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
       }
   }
 
-  spiedFileSystemUtil.getTotalSpace(Paths.get("/")) returns 100
-  spiedFileSystemUtil.getFreeSpace(Paths.get("/")) returns 50
+  doReturn(100.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get("/"))
+  doReturn(50.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get("/"))
 
   val routes = Api.routes
 
