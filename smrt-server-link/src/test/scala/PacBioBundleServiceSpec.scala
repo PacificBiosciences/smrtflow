@@ -10,6 +10,7 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 
   object Api extends SmrtLinkApi {
     override val providers = new SmrtLinkProviders {}
+    val eventManagerActorX = providers.eventManagerActor()
   }
 
   val routes = Api.routes

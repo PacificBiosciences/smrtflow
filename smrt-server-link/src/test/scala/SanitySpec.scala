@@ -11,6 +11,7 @@ class SanitySpec extends Specification with Specs2RouteTest {
   }
 
   val routes = Api.routes
+  val eventManagerActorX = Api.providers.eventManagerActor()
 
   import PacBioJsonProtocol._
 
