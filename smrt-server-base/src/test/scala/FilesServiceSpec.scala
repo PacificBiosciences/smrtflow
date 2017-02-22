@@ -58,8 +58,8 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
         val res = responseAs[DiskSpaceResource]
         res.fullPath must beEqualTo("/")
         // workaround for singleton bug with loading/applying mocks
-        res.totalSpace must beGreaterThan(0)
-        res.freeSpace must beGreaterThan(0)
+        res.totalSpace must beGreaterThan(0L)
+        res.freeSpace must beGreaterThan(0L)
       }
     }
     "decode a path containing spaces" in {
