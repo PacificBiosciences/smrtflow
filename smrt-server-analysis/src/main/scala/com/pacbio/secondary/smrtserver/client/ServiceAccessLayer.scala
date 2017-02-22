@@ -90,6 +90,7 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[ReportViewRule]]
   def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] = sendReceiveAuthenticated ~> unmarshal[ReportViewRule]
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplate]
+  def getPipelineTemplatesPipeline: HttpRequest => Future[Seq[PipelineTemplate]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplate]]
   def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplateViewRule]]
   def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
   def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
@@ -215,6 +216,10 @@ class AnalysisServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
     Get(toUrl(ROOT_PT + "/" + pipelineId))
+  }
+
+  def getPipelineTemplates: Future[Seq[PipelineTemplate]] = getPipelineTemplatesPipeline {
+    Get(toUrl(ROOT_PT))
   }
 
   def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] = getPipelineTemplateViewRulesPipeline {

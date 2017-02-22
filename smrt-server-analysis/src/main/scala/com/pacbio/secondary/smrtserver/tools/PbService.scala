@@ -48,6 +48,7 @@ object Modes {
   case object ANALYSIS extends Mode {val name = "run-analysis"}
   case object TEMPLATE extends Mode {val name = "emit-analysis-template"}
   case object PIPELINE extends Mode {val name = "run-pipeline"}
+  case object SHOW_PIPELINES extends Mode {val name = "show-pipelines"}
   case object IMPORT_MOVIE extends Mode {val name = "import-rs-movie"}
   case object JOB extends Mode {val name = "get-job"}
   case object JOBS extends Mode {val name = "get-jobs"}
@@ -270,12 +271,16 @@ object PbServiceParser extends CommandLineToolVersion{
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
       } validate { i => validateId(i, "Job") } text "Job ID"
-    ) text "Delete a pbsmrtpipe job (EXPERIMENTAL, does not remove files yet)"
+    ) text "Delete a pbsmrtpipe job, including all output files"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
     } children(
     ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
+
+    cmd(Modes.SHOW_PIPELINES.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.SHOW_PIPELINES)
+    } text "Display a list of available pbsmrtpipe pipelines"
 
     cmd(Modes.PIPELINE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.PIPELINE)
@@ -817,6 +822,13 @@ class PbService (val sal: AnalysisServiceAccessLayer,
     0
   }
 
+  def runShowPipelines: Int = {
+    Await.result(sal.getPipelineTemplates, TIMEOUT).sortWith(_.id > _.id).foreach { pt =>
+      println(s"${pt.id}: ${pt.name}")
+    }
+    0
+  }
+
   def runAnalysisPipeline(jsonPath: Path, block: Boolean): Int = {
     val jsonSrc = Source.fromFile(jsonPath.toFile).getLines.mkString
     val jsonAst = jsonSrc.parseJson
@@ -1059,6 +1071,7 @@ object PbService {
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
                                               c.jobTitle, c.presetXml, c.block)
+        case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
