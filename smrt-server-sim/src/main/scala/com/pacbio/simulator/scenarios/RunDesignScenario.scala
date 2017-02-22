@@ -56,9 +56,9 @@ class RunDesignScenario(host: String, port: Int, runXmlFile: Path)
   override val steps = Seq(
     runDesigns := GetRuns,
 
-    fail("Run database should be initially empty") IF runDesigns ? (_.nonEmpty),
+    //fail("Run database should be initially empty") IF runDesigns ? (_.nonEmpty),
 
-    runXml := ReadFileStep(runXmlPath),
+    runXml := ReadFileFromTemplate(runXmlPath),
 
     runId := CreateRun(runXml),
 

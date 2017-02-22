@@ -7,6 +7,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models.{Run, RunSummary}
+import com.pacbio.simulator.clients.InstrumentControlClient
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.{Config, ConfigException}
@@ -42,13 +43,26 @@ object RunDesignWithICSScenarioLoader extends ScenarioLoader {
   }
 }
 
-class RunDesignWithICSScenario(host: String, port: Int, icsHost : String, icsPort : Int, runXmlFile: Path)
-  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps with IcsClientSteps {
+class RunDesignWithICSScenario(host: String,
+                               port: Int,
+                               icsHost : String,
+                               icsPort : Int,
+                               runXmlFile: Path)
+  extends Scenario
+    with VarSteps
+    with ConditionalSteps
+    with IOSteps
+    with SmrtLinkSteps
+    with IcsClientSteps {
 
   import scala.concurrent.duration._
+  import com.pacbio.simulator.clients.ICSState
+  import ICSState._
+
   override val name = "RunDesignScenario"
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)
   val runXml: Var[String] = Var()
@@ -71,32 +85,21 @@ class RunDesignWithICSScenario(host: String, port: Int, icsHost : String, icsPor
 
     fail("Expected reserved to be false") IF runDesign.mapWith(_.reserved) !=? false,
 
-    PostRunDesignToICS( icsHost, icsPort , runDesign),
+    PostRunDesignToICS(runDesign),
+
+    // todo : Inject Manny's script to load runs
+
+    GetRunStatus(runDesign, Seq(Idle,Ready)),
 
     // WAIT FOR FEW SECS, FOR ICS TO LOAD THE RUN
     SleepStep(5.minutes),
 
-    PostStartRunToICS(icsHost, icsPort)
+    PostStartRunToICS,
 
+    GetRunStatus(runDesign, Seq(Running,Starting)),
 
-    /*runDesigns := GetRuns,
+    SleepStep(5.minutes),
 
-    fail("Expected only a single run") IF runDesigns.mapWith(_.size) !=? 1,
-
-    fail("Wrong uniqueId found") IF runDesigns.mapWith(_.head.uniqueId) !=? runId,
-
-    fail("Expected reserved to be false") IF runDesigns.mapWith(_.head.reserved) !=? false
-
-    UpdateRun(runId, reserved = Some(Var(true))),
-
-    runDesign := GetRun(runId),
-
-    fail("Expected reserved to be true") IF runDesign.mapWith(_.reserved) !=? true,
-
-    DeleteRun(runId),
-
-    runDesigns := GetRuns,
-
-    fail("Failed to delete run") IF runDesigns ? (_.nonEmpty)*/
+    GetRunStatus(runDesign, Seq(Complete))
   )
 }

@@ -2,7 +2,7 @@ package com.pacbio.simulator.steps
 
 import java.nio.file.Paths
 
-import com.pacbio.simulator.{Scenario, StepResult, XmlTemplateReader}
+import com.pacbio.simulator.{Scenario, StepResult, RunDesignTemplateReader}
 
 import scala.concurrent.Future
 import resource._
@@ -31,7 +31,7 @@ trait IOSteps {
     override val name = "Read File From Template"
 
     override def run: Future[Result] = Future {
-      var xml = new XmlTemplateReader(Paths.get(pathVar.get)).readStr
+      var xml = new RunDesignTemplateReader(Paths.get(pathVar.get)).readStr
       println(s"xml :  $xml")
       output(xml.mkString)
       SUCCEEDED

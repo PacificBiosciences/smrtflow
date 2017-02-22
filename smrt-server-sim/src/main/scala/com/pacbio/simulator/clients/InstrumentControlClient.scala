@@ -13,16 +13,45 @@ import spray.httpx.SprayJsonSupport._
 import spray.http.HttpHeaders._
 import MediaTypes._
 import com.pacbio.simulator.ICSJsonProtocol
-import com.pacbio.simulator.ICSModel.ICSRun
+import com.pacbio.simulator.ICSModel.{RunResponse, ICSRun}
+import scala.concurrent.Future
 
+// not sure if this will be useful
+object ICSState {
 
+  sealed trait State {
+    val ind: Int
+    val name: String
+  }
+
+  object Ready  extends State{val ind = 0; val name = "Ready"}
+  object Idle  extends State{val ind = 1; val name ="Idle"}
+  object SystemTest  extends State{val ind =2; val name ="SystemTest"}
+  object Starting  extends State{val ind =3; val name ="Starting"}
+  object Running  extends State{val ind =4; val name ="Running"}
+  object Aborting  extends State{val ind =5; val name ="Aborting"}
+  object Aborted  extends State{val ind =6; val name ="Aborted"}
+  object Terminated  extends State{val ind =7; val name ="Terminated"}
+  object Completing  extends State{val ind =8;val name ="Completing"}
+  object Complete  extends State{val ind =9;val name = "Complete"}
+  object Paused  extends State{val ind =10;val name = "Paused"}
+  object Unknown  extends State{val ind =11; val name ="Unknown"}
+
+  final val ALL = Set(Ready, Idle, SystemTest,Starting,Running,Aborting, Aborted,Terminated,Completing,Complete,Paused,Unknown)
+  def fromIndex(ind : Int) : Option[State] = ALL.map(xx => (xx.ind,xx)).toMap.get(ind)
+}
+
+object ICSUris{
+  final val RUN_URI = "/run"
+  final val RUN_START_URI = "/run/start"
+}
 /**
   * Client to Instrument Control
   */
 class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSystem) extends ICSJsonProtocol{
 
   //import com.pacbio.simulator.ICSJsonProtocol
-
+  import ICSUris._
   // Context to run futures in
   implicit val executionContext = actorSystem.dispatcher
 
@@ -33,24 +62,23 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
     response.withEntity(HttpEntity(ContentTypes.`application/json`, response.entity.data))
   }
 
-  def runStatusPipeline = sendReceive ~> mapToJson
-  //def alarmStatusPipeline= sendReceive ~> mapToJson
-  //def alarmStatusPipeline: HttpRequest => Future[JsValue] = sendReceive ~> unmarshal[JsValue]
+  def runPostPipeline = sendReceive ~> mapToJson
 
-  /*def postAlarms(alarms : JsObject) = alarmStatusPipeline {
-    Post(toUrl("/alarms"), alarms)~> addHeader(`Content-Type`(`application/json`))
-  }*/
+  def runStatusPipeline : HttpRequest => Future[RunResponse] = sendReceive ~> unmarshal[RunResponse]
 
-  // todo - instead of json, retrieve the object
-  def postRun(icsRun: ICSRun) = runStatusPipeline{
-    Post(toUrl("/run"), icsRun)~> addHeader(`Content-Type`(`application/json`))
+  // POST /run  NOTE : cannot retrieve object, json contains an element with name "type"
+  def postRun(icsRun: ICSRun) = runPostPipeline{
+    Post(toUrl(RUN_URI), icsRun)~> addHeader(`Content-Type`(`application/json`))
   }
 
-  // todo - instead of json retrieve the object
-  def postRunStart = runStatusPipeline{
-    Post(toUrl("/run/start"))~> addHeader(`Content-Type`(`application/json`))
+  // POST /run/start
+  def postRunStart = runPostPipeline{
+    Post(toUrl(RUN_START_URI))~> addHeader(`Content-Type`(`application/json`))
   }
 
-  // todo - implement get method to query for run status
+  // GET /run
+  def getRunStatus = runStatusPipeline{
+    Get(toUrl(RUN_URI)) ~> addHeader(`Content-Type`(`application/json`))
+  }
 }
 

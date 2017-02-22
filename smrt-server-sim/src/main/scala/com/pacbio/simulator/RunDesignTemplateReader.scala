@@ -12,7 +12,7 @@ import com.pacbio.common.models.{XmlTemplateReader => GenTemplateReader}
 
 import scala.xml.{Node, XML}
 
-class XmlTemplateReader(xmlFile: Path) {
+class RunDesignTemplateReader(xmlFile: Path) {
   private def randomId(): UUID = UUID.randomUUID()
   private def randomContextId(): String = toRandomMovieContextId("SIM")
 
