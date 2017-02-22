@@ -1,0 +1,251 @@
+{
+  "swagger": "2.0",
+  "schemes": [
+    "http"
+  ],
+  "info": {
+    "version": "1.0.0",
+    "description": "SMRT EventServer Swagger 2.0 specification",
+    "title": "SMRT EventServer"
+  },
+  "host": "localhost:8083",
+  "paths": {
+    "/status": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Failed to get Server status likely means the server is down"
+          },
+          "200": {
+            "description": "SMRT Link Analysis Server Status",
+            "schema": {
+              "$ref": "#/definitions/SmrtServerStatus"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/api/v1/events": {
+      "title": "Submit event to the Event Server",
+      "description": "Submit an SL System Event to the Event Server",
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "SMRT Link System Eveent",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SmrtLinkSystemEvent"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "Created SmrtLink SystemEvent",
+            "schema": {
+              "$ref": "#/definitions/SmrtLinkSystemEvent"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "SmrtServerStatus": {
+      "type": "object",
+      "title": "SMRT Server Status",
+      "description": "An summary of the SMRT Server instance, current state and status.",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Server UUID",
+          "description": "UUID of SMRT Server instance"
+        },
+        "version": {
+          "type": "string",
+          "title": "SMRT Analysis Services Version",
+          "description": "The Version of the SMRT Analysis Services Version. Note, this is not the SMRT Link System version. See services/manifests to see details."
+        },
+        "id": {
+          "type": "string",
+          "title": "SMRT Server Type Id",
+          "description": "SMRT Server Type Id"
+        },
+        "uptime": {
+          "type": "integer",
+          "format": "int64",
+          "title": "Uptime",
+          "description": "Uptime of the Server (in milliseconds)"
+        },
+        "message": {
+          "type": "string",
+          "title": "Status Message",
+          "description": "SMRT Analysis Service message status."
+        },
+        "user": {
+          "type": "string",
+          "title": "User",
+          "description": "User that the SMRT Analysis Services are launched by"
+        }
+      },
+      "required": [
+        "uuid",
+        "version",
+        "id",
+        "uptime",
+        "message",
+        "user"
+      ],
+      "example": {
+        "uuid": "8da44054-4013-420d-b547-d11a892fe7bb",
+        "version": "0.3.0-bbcc1b5",
+        "id": "smrtlink_analysis",
+        "uptime": 210242144,
+        "message": "Services have been up for 58 hours, 24 minutes and 2.144 seconds.",
+        "user": "tesla"
+      }
+    },
+    "SmrtServerError": {
+      "type": "object",
+      "title": "SMRT Server Error Message",
+      "description": "Detailed error message from SMRT Server",
+      "properties": {
+        "httpCode": {
+          "type": "integer",
+          "title": "HttpCode",
+          "description": "Returned HTTP Code. For non successful return codes, the SMRT Server will return a JSON body with error details"
+        },
+        "message": {
+          "type": "string",
+          "title": "Error Message",
+          "description": "Detailed Error Message Details"
+        },
+        "errorType": {
+          "type": "string",
+          "title": "ErrorType",
+          "description": "Error Type"
+        }
+      },
+      "required": [
+        "httpCode",
+        "message",
+        "errorType"
+      ],
+      "example": {
+        "httpCode": 404,
+        "message": "Unable to find JobId 66666",
+        "errorType": "Not Found"
+      }
+    },
+    "SmrtLinkEvent": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "title": "UUID of Event",
+          "description": "Globally unique id of the event",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "TimeStamp when the Event was created",
+          "type": "string"
+        },
+        "eventTypeId": {
+          "title": "Event Type Id",
+          "description": "Event Type Id. This must be globally unique",
+          "type": "string"
+        },
+        "eventTypeVersion": {
+          "title": "Event Type Version",
+          "description": "Schema version for eventTypeId",
+          "type": "integer"
+        },
+        "message": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "uuid",
+        "createdAt",
+        "eventTypeId",
+        "eventTypeVersion",
+        "message"
+      ],
+      "example": {
+        "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
+        "createdAt": "2017-02-16T08:36:21.082-08:00",
+        "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
+        "message": {
+          "jobId": 1234,
+          "jobTypeId": "pbsmrtpipe",
+          "state": "SUCCCESSFUL"
+        }
+      }
+    },
+    "SmrtLinkSystemEvent": {
+      "type": "object",
+      "title": "SMRT Link System Event",
+      "properties": {
+        "smrtLinkId": {
+          "title": "UUID of SMRT Link System",
+          "description": "Unique of Smrt Link System (currently UUID)",
+          "type": "string"
+        },
+        "uuid": {
+          "title": "UUID of Event",
+          "description": "Globally unique id of the event",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "TimeStamp when the Event was created",
+          "type": "string"
+        },
+        "eventTypeId": {
+          "title": "Event Type Id",
+          "description": "Event Type Id. This must be globally unique",
+          "type": "string"
+        },
+        "eventTypeVersion": {
+          "title": "Event Type Version",
+          "description": "Schema version for eventTypeId",
+          "type": "integer"
+        },
+        "message": {
+          "title": "JSON Message",
+          "description": "Message schema corresponding to the evenTypeId and eventTypeVersion",
+          "type": "object"
+        }
+      },
+      "required": [
+        "uuid",
+        "createdAt",
+        "eventTypeId",
+        "eventTypeVersion",
+        "message"
+      ],
+      "example": {
+        "smrtLinkId": "972c5bbe-f94a-11e6-b5cd-3c15c2cc8f88",
+        "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
+        "createdAt": "2017-02-16T08:36:21.082-08:00",
+        "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
+        "message": {
+          "jobId": 1234,
+          "jobTypeId": "pbsmrtpipe",
+          "state": "SUCCCESSFUL"
+        }
+      }
+    }
+  }
+}
