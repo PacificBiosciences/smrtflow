@@ -46,7 +46,7 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
       val tmpDir = Files.createTempDirectory("files-test")
       val tmpFile = tmpDir.resolve("data.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files" + URLEncoder.encode(tmpDir.toString, "UTF-8")
+      val url = "/smrt-base/files" + tmpDir
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
         dirRes.files.size must beEqualTo(1)
