@@ -43,6 +43,7 @@ with JobServiceConstants with TestUtils{
   JobManagerServiceProvider with
   SimpleServiceJobTypeProvider with
   StatusGeneratorProvider with
+  EventManagerActorProvider with
   JobsDaoProvider with
   JobsDaoActorProvider with
   TestDalProvider with
@@ -72,6 +73,7 @@ with JobServiceConstants with TestUtils{
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
+  TestProviders.eventManagerActor()
 
   step(setupDb(TestProviders.dbConfig))
 

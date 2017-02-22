@@ -53,6 +53,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   StatusGeneratorProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
+  EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with
   SmrtLinkConfigProvider with

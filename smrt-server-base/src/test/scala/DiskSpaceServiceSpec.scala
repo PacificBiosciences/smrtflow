@@ -1,9 +1,10 @@
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 import com.pacbio.common.dependency.{Singleton, StringConfigProvider}
 import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
 import com.pacbio.common.models.{DiskSpaceResource, PacBioJsonProtocol}
 import com.pacbio.common.services.{DiskSpaceServiceProviderx, ServiceComposer}
+import org.mockito.Mockito._
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
@@ -33,11 +34,11 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
         """.stripMargin)
     }
 
-  spiedFileSystemUtil.getTotalSpace(Paths.get("/")) returns 100
-  spiedFileSystemUtil.getFreeSpace(Paths.get("/")) returns 50
+  doReturn(100.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get("/"))
+  doReturn(50.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get("/"))
 
-  spiedFileSystemUtil.getTotalSpace(Paths.get(TEST_JOB_DIR)) returns 200
-  spiedFileSystemUtil.getFreeSpace(Paths.get(TEST_JOB_DIR)) returns 150
+  doReturn(200.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get(TEST_JOB_DIR))
+  doReturn(150.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get(TEST_JOB_DIR))
 
   val routes = TestProviders.diskSpaceService().prefixedRoutes
 

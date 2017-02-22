@@ -12,7 +12,7 @@ import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoActorProvider, JobsDaoProvider, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, EulaServiceProvider, JobRunnerProvider, ProjectServiceProvider}
 import com.pacbio.secondary.smrtlink.models._
@@ -49,6 +49,7 @@ class EulaServiceSpec extends Specification
       EulaServiceProvider with
       DataSetServiceProvider with
       JobsDaoActorProvider with
+      EventManagerActorProvider with
       JobsDaoProvider with
       TestDalProvider with
       AuthenticatorImplProvider with

@@ -163,6 +163,9 @@ trait SmrtLinkJsonProtocols
   // this model has a val assigned and requires a custom serialization
   implicit val pacbioBundleFormat = jsonFormat(PacBioBundle.apply, "typeId", "version", "importedAt", "path", "createdBy")
   implicit val pacbioBundleRecordFormat = jsonFormat1(PacBioBundleRecord)
+
+  implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
+
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

@@ -64,7 +64,7 @@ trait StatusGeneratorProvider {
    */
   val baseServiceId: Singleton[String]
 
-  val uuid: Singleton[UUID] = Singleton(UUID.randomUUID())
+  val uuid: Singleton[UUID] = Singleton(Constants.SERVER_UUID)
 
   val buildVersion: Singleton[String] = Singleton(() => Constants.SMRTFLOW_VERSION)
 

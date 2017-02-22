@@ -50,6 +50,7 @@ with JobServiceConstants with TestUtils{
   StatusGeneratorProvider with
   EngineManagerActorProvider with
   EngineDaoActorProvider with
+  EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with
   SmrtLinkConfigProvider with
