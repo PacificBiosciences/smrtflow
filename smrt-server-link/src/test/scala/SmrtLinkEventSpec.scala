@@ -1,5 +1,8 @@
-
 import org.specs2.mutable.Specification
+
+import java.util.UUID
+import org.joda.time.{DateTime => JodaDateTime}
+
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import akka.actor.ActorRefFactory
@@ -14,18 +17,14 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, EulaServiceProvider, JobRunnerProvider, ProjectServiceProvider}
+import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api.Database
 
-/**
-  * This spec has been updated to support multiple runs (i.e.,
-  * not necessary to drop and create+migrate the db) This should be re-evaluated.
-  *
-  */
-class EulaServiceSpec extends Specification
+
+class SmrtLinkEventSpec extends Specification
     with Specs2RouteTest
     with SetupMockData
     with PacBioServiceErrors
@@ -50,6 +49,7 @@ class EulaServiceSpec extends Specification
       DataSetServiceProvider with
       JobsDaoActorProvider with
       EventManagerActorProvider with
+      SmrtLinkEventServiceProvider with
       JobsDaoProvider with
       TestDalProvider with
       AuthenticatorImplProvider with
@@ -68,47 +68,21 @@ class EulaServiceSpec extends Specification
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.eulaService().prefixedRoutes
+  val totalRoutes = TestProviders.routes()
 
-  // This is a hacky workaround to make the tests not have a dep on
-  // the previous tests. Generate a random version string for the Eula
-  val r = scala.util.Random
-  val eulaVersion = (0 until 3)
-      .map(_ => r.nextInt(100).toString)
-      .reduce(_ + "." + _)
+  val exampleEvent = SmrtLinkEvent("test_event", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
 
-  step(setupDb(TestProviders.dbConfig))
+    step(setupDb(TestProviders.dbConfig))
 
-  "EULA service" should {
-    "return an empty list of EULAs" in {
-      Get("/smrt-base/eula") ~> totalRoutes ~> check {
-        val eulas = responseAs[Seq[EulaRecord]]
-        //eulas must beEmpty
+  "SmrtLink Event endpoint test" should {
+    "Create an Event" in {
+      Post("/smrt-link/events", exampleEvent) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
-      }
-    }
-    "accept the EULA" in {
-      val params = EulaAcceptance("smrtlinktest", eulaVersion, enableInstallMetrics = true, enableJobMetrics = false)
-      Post("/smrt-base/eula", params) ~> totalRoutes ~> check {
-        val eula = responseAs[EulaRecord]
-        eula.user must beEqualTo("smrtlinktest")
-        eula.smrtlinkVersion must beEqualTo(eulaVersion)
-      }
-    }
-    "retrieve the list of EULAs again" in {
-      Get("/smrt-base/eula") ~> totalRoutes ~> check {
-        val eulas = responseAs[Seq[EulaRecord]]
-        eulas.size must beEqualTo(1)
-      }
-    }
-    "retrieve the new EULA directly" in {
-      Get(s"/smrt-base/eula/$eulaVersion") ~> totalRoutes ~> check {
-        val eula = responseAs[EulaRecord]
-        eula.smrtlinkVersion must beEqualTo(eulaVersion)
-        eula.user must beEqualTo("smrtlinktest")
-        eula.enableInstallMetrics must beTrue
-        eula.enableJobMetrics must beFalse
+
+        val smrtLinkSystemEvent = responseAs[SmrtLinkSystemEvent]
+        smrtLinkSystemEvent.uuid must beEqualTo(exampleEvent.uuid)
       }
     }
   }
+
 }

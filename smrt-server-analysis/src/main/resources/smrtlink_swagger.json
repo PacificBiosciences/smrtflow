@@ -233,12 +233,6 @@
           {
             "required": true,
             "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
             "name": "dataset-id",
             "in": "path"
           }
@@ -265,12 +259,6 @@
           }
         },
         "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
           {
             "required": true,
             "type": "string",
@@ -303,12 +291,6 @@
           {
             "required": true,
             "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
             "name": "dataset-id",
             "in": "path"
           }
@@ -335,12 +317,6 @@
           }
         },
         "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
           {
             "required": true,
             "type": "string",
@@ -373,12 +349,6 @@
           {
             "required": true,
             "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
             "name": "dataset-id",
             "in": "path"
           }
@@ -405,12 +375,6 @@
           }
         },
         "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
           {
             "required": true,
             "type": "string",
@@ -443,12 +407,6 @@
           {
             "required": true,
             "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
             "name": "dataset-id",
             "in": "path"
           }
@@ -478,12 +436,6 @@
           {
             "required": true,
             "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
             "name": "dataset-id",
             "in": "path"
           }
@@ -510,12 +462,6 @@
           }
         },
         "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
           {
             "required": true,
             "type": "string",
@@ -2062,6 +2008,42 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/events": {
+      "post": {
+        "description": "Send SMRT Link an SmrtLinkEvent",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "SMRT Link Event",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SmrtLinkEvent"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "schema": {
+              "$ref": "#/definitions/SmrtLinkSystemEvent"
+            },
+            "description": "Created SmrtLink System Event"
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-base/eula": {
       "post": {
         "responses": {
@@ -2317,7 +2299,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -2327,7 +2309,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -2352,7 +2334,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -2445,7 +2427,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -2455,7 +2437,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -2617,7 +2599,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -2627,7 +2609,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -2784,7 +2766,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -2794,7 +2776,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -2819,7 +2801,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -2907,7 +2889,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -2917,7 +2899,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -2942,7 +2924,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -3030,7 +3012,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -3040,7 +3022,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -3065,7 +3047,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -3153,7 +3135,7 @@
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -3163,7 +3145,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -3188,7 +3170,7 @@
           "description": ""
         },
         "createdAt": {
-               "type": "int",
+               "type": "string",
                "title": "Created At",
                "description": ""
              },
@@ -3271,17 +3253,17 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
                "description": ""
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -3291,7 +3273,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -3408,17 +3390,17 @@
           "description": ""
         },
         "tags": {
-               "type": "int",
+               "type": "string",
                "title": "Tags",
-               "description": ""
+               "description": "Comma separated tag(s)"
              },
         "uuid": {
-               "type": "int",
+               "type": "string",
                "title": "UUID",
                "description": ""
              },
         "totalLength": {
-          "type": "long",
+          "type": "integer",
           "title": "Total Length",
           "description": ""
         },
@@ -3428,7 +3410,7 @@
                "description": ""
              },
         "numRecords": {
-          "type": "long",
+          "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
@@ -3440,7 +3422,7 @@
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Id of DataSet"
         },
         "md5": {
                "type": "string",
@@ -3450,7 +3432,7 @@
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "Job Id that produced the DataSet"
         },
         "createdAt": {
                "type": "string",
@@ -3967,6 +3949,109 @@
         "isActive": true,
         "createdBy": "ralph",
         "jsonSettings": "{\"path\":\"/pbi/collections/242/2420325/r54124_20161109_021915/2_B01/m54124_161109_093303.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
+      }
+    },
+    "SmrtLinkEvent": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "title": "UUID of Event",
+          "description": "Globally unique id of the event",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "TimeStamp when the Event was created",
+          "type": "string"
+        },
+        "eventTypeId": {
+          "title": "Event Type Id",
+          "description": "Event Type Id. This must be globally unique",
+          "type": "string"
+        },
+        "eventTypeVersion": {
+          "title": "Event Type Version",
+          "description": "Schema version for eventTypeId",
+          "type": "integer"
+        },
+        "message": {
+          "title": "JSON Message",
+          "description": "Message schema corresponding to the evenTypeId and eventTypeVersion",
+          "type": "object"
+        }
+      },
+      "required": [
+        "uuid",
+        "createdAt",
+        "eventTypeId",
+        "eventTypeVersion",
+        "message"
+      ],
+      "example": {
+        "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
+        "createdAt": "2017-02-16T08:36:21.082-08:00",
+        "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
+        "message": {
+          "jobId": 1234,
+          "jobTypeId": "pbsmrtpipe",
+          "state": "SUCCCESSFUL"
+        }
+      }
+    },
+    "SmrtLinkSystemEvent": {
+      "type": "object",
+      "title": "SMRT Link System Event",
+      "properties": {
+        "smrtLinkId": {
+          "title": "UUID of SMRT Link System",
+          "description": "Unique of Smrt Link System (currently UUID)",
+          "type": "string"
+        },
+        "uuid": {
+          "title": "UUID of Event",
+          "description": "Globally unique id of the event",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Created At",
+          "description": "TimeStamp when the Event was created",
+          "type": "string"
+        },
+        "eventTypeId": {
+          "title": "Event Type Id",
+          "description": "Event Type Id. This must be globally unique",
+          "type": "string"
+        },
+        "eventTypeVersion": {
+          "title": "Event Type Version",
+          "description": "Schema version for eventTypeId",
+          "type": "integer"
+        },
+        "message": {
+          "title": "JSON Message",
+          "description": "Message schema corresponding to the evenTypeId and eventTypeVersion",
+          "type": "object"
+        }
+      },
+      "required": [
+        "uuid",
+        "createdAt",
+        "eventTypeId",
+        "eventTypeVersion",
+        "message"
+      ],
+      "example": {
+        "smrtLinkId": "972c5bbe-f94a-11e6-b5cd-3c15c2cc8f88",
+        "uuid": "83927d00-f46c-11e6-9f9b-3c15c2cc8f88",
+        "createdAt": "2017-02-16T08:36:21.082-08:00",
+        "eventTypeId": "smrtlink_job_change_state",
+        "eventTypeVersion": 1,
+        "message": {
+          "jobId": 1234,
+          "jobTypeId": "pbsmrtpipe",
+          "state": "SUCCCESSFUL"
+        }
       }
     }
   }

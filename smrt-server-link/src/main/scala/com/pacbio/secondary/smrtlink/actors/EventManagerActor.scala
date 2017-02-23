@@ -25,6 +25,7 @@ import scala.util.control.NonFatal
 
 object EventManagerActor {
   case object CheckExternalServerStatus
+  case class CreateEvent(event: SmrtLinkEvent)
 }
 
 
@@ -62,6 +63,11 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
 
     case CheckExternalServerStatus =>
       checkExternalServerStatus()
+
+    case CreateEvent(e) =>
+      val systemEvent = toSystemEvent(e)
+      sender ! systemEvent
+      sendSystemEvent(systemEvent)
 
     case e: EulaRecord =>
       // maybe these eventTypeId(s) should be bolted back on the case class to centralize?
