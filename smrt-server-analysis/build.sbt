@@ -34,7 +34,7 @@ packMain := Map(
   "bundler-migrate-legacy-config" -> "com.pacbio.secondary.smrtserver.tools.LegacyConvertConfigJsonToolApp",
   "bundler-validate-config" -> "com.pacbio.secondary.smrtserver.tools.BundlerConfigApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtserver.tools.AcceptUserAgreementApp",
-  "validate-run" -> "com.pacbio.secondary.smrtserver.tools.ValidateRunApp"
+  "validate-run-design" -> "com.pacbio.secondary.smrtserver.tools.ValidateRunApp"
 )
 
 packGenerateWindowsBatFile := false
