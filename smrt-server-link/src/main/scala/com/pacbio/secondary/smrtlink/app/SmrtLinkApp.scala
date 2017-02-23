@@ -30,6 +30,7 @@ trait SmrtLinkProviders extends
   AutomationConstraintServiceProvider with
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
+  SmrtLinkEventServiceProvider with
   JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
@@ -61,8 +62,6 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
   override def startup(): Unit = {
     super.startup()
 
-    // This is necessary for the Actor to get created from the Singleton???
-    val eventManagerActorX = providers.eventManagerActor()
     val dataSource = providers.dbConfig.toDataSource
 
     def createJobDir(path: Path): Path = {
