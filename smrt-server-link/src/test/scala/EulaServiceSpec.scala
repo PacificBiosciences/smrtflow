@@ -18,7 +18,7 @@ import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, EulaServi
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
-import slick.driver.PostgresDriver.api._
+import slick.driver.PostgresDriver.api.Database
 
 /**
   * This spec has been updated to support multiple runs (i.e.,
