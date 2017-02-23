@@ -1,6 +1,8 @@
 package com.pacbio.common.models
 
 import java.util.{Properties, UUID}
+import collection.JavaConversions._
+import collection.JavaConverters._
 
 import scala.util.Try
 
@@ -10,10 +12,26 @@ import scala.util.Try
   */
 trait Constants {
 
+  /**
+    * Temporary Solution to have a reproducible SL System Unique ID from the hostname.
+    *
+    * Long term this will be assigned by the installer and loaded on startup
+    * via the config file.
+    *
+    * The SL System UUID will be used in Events and will be eventually used to
+    * register the SL instance.
+    *
+    * @return
+    */
+  private def computeUUID(): UUID = {
+    val host = java.net.InetAddress.getLocalHost().getHostName()
+    UUID.nameUUIDFromBytes(host.map(_.toByte).toArray)
+  }
+
   //MK. Trying to centralize this. This needs to be moved out to a central
   // location that is loaded from the *.conf file or assigned a random value
   // on startup.
-  final val SERVER_UUID = UUID.randomUUID()
+  final val SERVER_UUID = Try {computeUUID()}.getOrElse(UUID.randomUUID())
 
   // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "4.0.0"
