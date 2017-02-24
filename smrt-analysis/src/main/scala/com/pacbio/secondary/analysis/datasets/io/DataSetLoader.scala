@@ -146,25 +146,35 @@ object DataSetLoader extends LazyLogging{
   def loadAlignmentSet(path: Path): AlignmentSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[AlignmentSet]), path).asInstanceOf[AlignmentSet]
 
+  def loadAndResolveAlignmentSet(path: Path) = resolveDataSet(loadAlignmentSet(path), path.toAbsolutePath.getParent)
+
   def loadAlignmentSetIO(path: Path) = AlignmentSetIO(loadAlignmentSet(path), path)
 
   def loadBarcodeSet(path: Path): BarcodeSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[BarcodeSet]), path).asInstanceOf[BarcodeSet]
+
+  def loadAndResolveBarcodeSet(path: Path) = resolveDataSet(loadBarcodeSet(path), path.toAbsolutePath.getParent)
 
   def loadBarcodeSetIO(path: Path) = BarcodeSetIO(loadBarcodeSet(path), path)
 
   def loadConsensusReadSet(path: Path): ConsensusReadSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusReadSet]), path).asInstanceOf[ConsensusReadSet]
 
+  def loadAndResolveConsensusReadSet(path: Path) = resolveDataSet(loadConsensusReadSet(path), path.toAbsolutePath.getParent)
+
   def loadConsensusReadSetIO(path: Path) = ConsensusReadSetIO(loadConsensusReadSet(path), path)
 
   def loadConsensusAlignmentSet(path: Path): ConsensusAlignmentSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusAlignmentSet]), path).asInstanceOf[ConsensusAlignmentSet]
 
+  def loadAndResolveConsensusAlignmentSet(path: Path) = resolveDataSet(loadConsensusAlignmentSet(path), path.toAbsolutePath.getParent)
+
   def loadConsensusAlignmentSetIO(path: Path) = ConsensusAlignmentSetIO(loadConsensusAlignmentSet(path), path)
 
   def loadContigSet(path: Path): ContigSet =
     toUnMarshaller(JAXBContext.newInstance(classOf[ContigSet]), path).asInstanceOf[ContigSet]
+
+  def loadAndResolveContigSet(path: Path) = resolveDataSet(loadContigSet(path), path.toAbsolutePath.getParent)
 
   def loadContigSetIO(path: Path) = ContigSetIO(loadContigSet(path), path)
 
