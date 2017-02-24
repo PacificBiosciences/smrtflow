@@ -32,14 +32,13 @@ trait DataSetMerger extends LazyLogging{
   def merge[T <: DataSetType](
         datasets: Seq[T],
         name: String,
-        newDataSet: () => T): T = {
+        newDataSet: T): T = {
 
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
 
     val uds = datasets.map(x => (x.getUniqueId, x)).toMap.values.toList
 
-    // Overwrite the initial settings
-    val ds = newDataSet()
+    val ds = newDataSet
 
     ds.setName(name)
     ds.setVersion(Constants.DATASET_VERSION)
@@ -117,7 +116,7 @@ trait DataSetMerger extends LazyLogging{
   private def mergeReadSets[T <: ReadSetType](
         datasets: Seq[T],
         name: String,
-        newDataSet: () => T): T = {
+        newDataSet: T): T = {
     val uuid = UUID.randomUUID()
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
 
@@ -129,7 +128,7 @@ trait DataSetMerger extends LazyLogging{
     val description = s"Merged dataset from ${uds.length} files from ${datasets.length} original files using DatasetMerger $VERSION"
 
     // Overwrite the initial settings
-    val ds = newDataSet()
+    val ds = newDataSet
 
     val mergedReadSetMetadata = mergeReadSetMetadata(uds.map(u => u.getDataSetMetadata))
 
@@ -164,10 +163,10 @@ trait DataSetMerger extends LazyLogging{
     ds
   }
 
-  def mergeHdfSubreadSets(datasets: Seq[HdfSubreadSet], name: String): HdfSubreadSet = mergeReadSets(datasets, name, () => new HdfSubreadSet())
-  def mergeSubreadSets(datasets: Seq[SubreadSet], name: String): SubreadSet = mergeReadSets(datasets, name, () => new SubreadSet())
+  def mergeHdfSubreadSets(datasets: Seq[HdfSubreadSet], name: String): HdfSubreadSet = mergeReadSets(datasets, name, new HdfSubreadSet())
+  def mergeSubreadSets(datasets: Seq[SubreadSet], name: String): SubreadSet = mergeReadSets(datasets, name, new SubreadSet())
 
-  def mergeAlignmentSets(datasets: Seq[AlignmentSet], name: String): AlignmentSet = merge[AlignmentSet](datasets, name, () => new AlignmentSet())
+  def mergeAlignmentSets(datasets: Seq[AlignmentSet], name: String): AlignmentSet = merge[AlignmentSet](datasets, name, new AlignmentSet())
 
 
   private def mergeDataSetPaths[T <: DataSetType](
