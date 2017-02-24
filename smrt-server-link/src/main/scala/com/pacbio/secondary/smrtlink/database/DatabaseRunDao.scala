@@ -89,15 +89,11 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
     db.run(run)
   }
 
-  override def createRun(create: RunCreate): Future[RunSummary] = {
-    val parseResults = parser(create.dataModel)
-    updateOrCreate(parseResults.run.uniqueId, update = false, Some(parseResults))
-  }
+  override def createRun(create: RunCreate): Future[RunSummary] =
+    Future(parser(create.dataModel)).flatMap { r => updateOrCreate(r.run.uniqueId, update = false, Some(r)) }
 
-  override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] = {
-    val parseResults = update.dataModel.map(parser.apply)
-    updateOrCreate(id, update = true, parseResults, update.reserved)
-  }
+  override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
+    Future(update.dataModel.map(parser.apply)).flatMap { r => updateOrCreate(id, update = true, r, update.reserved) }
 
   override def deleteRun(id: UUID): Future[MessageResponse] = {
     val action = DBIO.seq(
