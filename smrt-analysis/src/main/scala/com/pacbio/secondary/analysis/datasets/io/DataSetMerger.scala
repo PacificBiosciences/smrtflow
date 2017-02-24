@@ -29,14 +29,17 @@ trait DataSetMerger extends LazyLogging{
    * @tparam T
    * @return
    */
-  def merge[T <: DataSetType](datasets: Seq[T], name: String): T = {
+  def merge[T <: DataSetType](
+        datasets: Seq[T],
+        name: String,
+        newDataSet: () => T): T = {
 
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
 
     val uds = datasets.map(x => (x.getUniqueId, x)).toMap.values.toList
 
     // Overwrite the initial settings
-    val ds = uds.head
+    val ds = newDataSet()
 
     ds.setName(name)
     ds.setVersion(Constants.DATASET_VERSION)
@@ -56,7 +59,13 @@ trait DataSetMerger extends LazyLogging{
       exs.getExternalResource.add(r)
     }
 
+    val dss = new DataSetType.DataSets()
+    datasets.foreach { ds =>
+      dss.getDataSet.add(ds)
+    }
+
     ds.setExternalResources(exs)
+    ds.setDataSets(dss)
     ds
   }
 
@@ -105,7 +114,10 @@ trait DataSetMerger extends LazyLogging{
    * @tparam T
    * @return
    */
-  private def mergeReadSets[T <: ReadSetType](datasets: Seq[T], name: String): T = {
+  private def mergeReadSets[T <: ReadSetType](
+        datasets: Seq[T],
+        name: String,
+        newDataSet: () => T): T = {
     val uuid = UUID.randomUUID()
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new DateTime().toGregorianCalendar)
 
@@ -117,7 +129,7 @@ trait DataSetMerger extends LazyLogging{
     val description = s"Merged dataset from ${uds.length} files from ${datasets.length} original files using DatasetMerger $VERSION"
 
     // Overwrite the initial settings
-    val ds = uds.head
+    val ds = newDataSet()
 
     val mergedReadSetMetadata = mergeReadSetMetadata(uds.map(u => u.getDataSetMetadata))
 
@@ -145,13 +157,17 @@ trait DataSetMerger extends LazyLogging{
     ds.setExternalResources(exs)
     ds.getExternalResources.getExternalResource.addAll(externalResources)
 
+    val dss = new DataSetType.DataSets()
+    ds.setDataSets(dss)
+    ds.getDataSets.getDataSet.addAll(datasets)
+
     ds
   }
 
-  def mergeHdfSubreadSets(datasets: Seq[HdfSubreadSet], name: String): HdfSubreadSet = mergeReadSets(datasets, name)
-  def mergeSubreadSets(datasets: Seq[SubreadSet], name: String): SubreadSet = mergeReadSets(datasets, name)
+  def mergeHdfSubreadSets(datasets: Seq[HdfSubreadSet], name: String): HdfSubreadSet = mergeReadSets(datasets, name, () => new HdfSubreadSet())
+  def mergeSubreadSets(datasets: Seq[SubreadSet], name: String): SubreadSet = mergeReadSets(datasets, name, () => new SubreadSet())
 
-  def mergeAlignmentSets(datasets: Seq[AlignmentSet], name: String): AlignmentSet = merge[AlignmentSet](datasets, name)
+  def mergeAlignmentSets(datasets: Seq[AlignmentSet], name: String): AlignmentSet = merge[AlignmentSet](datasets, name, () => new AlignmentSet())
 
 
   private def mergeDataSetPaths[T <: DataSetType](
