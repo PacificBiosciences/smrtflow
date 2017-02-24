@@ -43,6 +43,8 @@ trait DataSetMerger extends LazyLogging{
     ds.setName(name)
     ds.setVersion(Constants.DATASET_VERSION)
     ds.setUniqueId(UUID.randomUUID().toString)
+    ds.setMetaType(datasets.head.getMetaType)
+    ds.setTags(datasets.head.getTags)
     // Is this using iso8601 ?
     ds.setCreatedAt(createdAt)
 
@@ -137,7 +139,8 @@ trait DataSetMerger extends LazyLogging{
 
     ds.setUniqueId(uuid.toString)
     ds.setName(name)
-
+    ds.setMetaType(datasets.head.getMetaType)
+    ds.setTags(datasets.head.getTags)
     ds.setCreatedAt(createdAt)
     ds.setVersion(Constants.DATASET_VERSION)
 

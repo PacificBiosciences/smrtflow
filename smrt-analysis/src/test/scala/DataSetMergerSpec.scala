@@ -4,6 +4,7 @@ import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.analysis.datasets.io.{DataSetWriter, DataSetMerger, DataSetLoader}
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool}
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 
@@ -35,9 +36,9 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 
       val mergedDataSet = DataSetMerger.mergeHdfSubreadSets(datasets, "ds-name")
 
-      println(s"Dataset mergedDataSet $mergedDataSet")
+      logger.info(s"Dataset mergedDataSet $mergedDataSet")
 
-      val p = Files.createTempFile("subread", "dataset.xml")
+      val p = Files.createTempFile("merged", ".hdfsubreadset.xml")
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeHdfSubreadSet(mergedDataSet, p)
 
@@ -47,12 +48,13 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(3)
+      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.HdfSubread.toString)
     }
   }
   "Merge dataset tool smoke test" should {
     "Simple HdfSubread merge" in {
       val paths = examplePaths.map(_.toFile)
-      val outputPath = Files.createTempFile("hdfsubread", "dataset.xml")
+      val outputPath = Files.createTempFile("merged", ".hdfsubreadset.xml")
       val opts = DataSetMergerOptions("PacBio.DataSet.HdfSubreadSet", paths, outputPath.toAbsolutePath.toString)
       val result = DataSetMergerTool.run(opts)
       logger.info(s"Merge tool Results $result")
@@ -76,30 +78,33 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging {
   "Test merging additional dataset types" should {
     "Merge SubreadSets" in {
       val paths = getData(Seq("subreads-sequel", "subreads-xml"))
-      val datasets = paths.map(x => DataSetLoader.loadSubreadSet(x))
+      val datasets = paths.map(x => DataSetLoader.loadAndResolveSubreadSet(x))
       val name = "Merged Datasets"
       logger.info(s"Loaded datasets $datasets")
       val mergedDataSet = DataSetMerger.mergeSubreadSets(datasets, "ds-name")
-      println(s"Dataset mergedDataSet $mergedDataSet")
-      val p = Files.createTempFile("merged", "subreadset.xml")
+      logger.info(s"Dataset mergedDataSet $mergedDataSet")
+      val p = Files.createTempFile("merged", ".subreadset.xml")
       logger.info(s"Writing merged dataset to $p")
+      println(p)
       DataSetWriter.writeSubreadSet(mergedDataSet, p)
       mergedDataSet.getVersion must beEqualTo("4.0.0")
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(2)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(81354)
       mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(137)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(2)
+      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.Subread.toString)
     }
     "Merge AlignmentSets" in {
       val paths = getData(Seq("aligned-xml", "aligned-ds-2"))
-      val datasets = paths.map(x => DataSetLoader.loadAlignmentSet(x))
+      val datasets = paths.map(x => DataSetLoader.loadAndResolveAlignmentSet(x))
       val name = "Merged Datasets"
       logger.info(s"Loaded datasets $datasets")
       val mergedDataSet = DataSetMerger.mergeAlignmentSets(datasets, "ds-name")
-      println(s"Dataset mergedDataSet $mergedDataSet")
-      val p = Files.createTempFile("merged", "alignmentset.xml")
+      logger.info(s"Dataset mergedDataSet $mergedDataSet")
+      val p = Files.createTempFile("merged", ".alignmentset.xml")
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeAlignmentSet(mergedDataSet, p)
+      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.Alignment.toString)
       mergedDataSet.getVersion must beEqualTo("4.0.0")
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(3)
       //FIXME Metadata isn't being handled properly right now
