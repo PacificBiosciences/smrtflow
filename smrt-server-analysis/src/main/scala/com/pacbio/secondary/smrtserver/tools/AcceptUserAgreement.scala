@@ -49,6 +49,11 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
       c.copy(user = x)
     } text s"User name to save in acceptance record (default: ${defaults.user})"
 
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
