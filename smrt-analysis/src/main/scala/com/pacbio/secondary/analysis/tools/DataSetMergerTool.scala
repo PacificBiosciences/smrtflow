@@ -25,12 +25,13 @@ case class UnSupportDataSetTypeException(message: String) extends Exception
 object DataSetMergerTool extends CommandLineToolRunner[DataSetMergerOptions]{
 
   val VERSION = "0.2.0"
+  val DESCRIPTION = "Merge DataSet XMLs By type"
   val toolId = "pbscala.tools.dataset_merger"
 
   val defaults = DataSetMergerOptions("", Seq[File](), "")
 
   val parser = new OptionParser[DataSetMergerOptions]("validate-datasets") {
-    head("Merge DataSet XMLs By type", VERSION)
+    head(DESCRIPTION, VERSION)
 
     arg[String]("dataset-type") required() action { (x, c) =>
       c.copy(datasetType = x)

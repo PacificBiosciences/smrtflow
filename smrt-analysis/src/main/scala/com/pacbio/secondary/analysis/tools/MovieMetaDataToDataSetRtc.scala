@@ -18,11 +18,12 @@ object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaData
 
   val toolId = "pbscala.tasks.rs_movie_to_ds_rtc"
   val VERSION = "0.2.0"
+  val DESCRIPTION = "Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract"
   val defaults = MovieMetaDataToDataSetRtcConfig("")
   defaults.debug = true  // keeping old debug default. most others are false
 
   val parser = new OptionParser[MovieMetaDataToDataSetRtcConfig]("movie-metadata-to-dataset-rtc") {
-    head("Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract", VERSION)
+    head(DESCRIPTION, VERSION)
     note("Tool to convert a RS movie.metadata.xml to a HdfSubreadSet Dataset XML using Resolved Tool Contract")
 
     arg[String]("resolved-tool-contract") required() action { (x, c) =>
