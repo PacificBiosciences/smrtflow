@@ -16,6 +16,7 @@ case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path) exten
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] {
 
   override val VERSION = "0.1.0"
+  override val DESCRIPTION = "Create TechSupport bundle for failed SMRT Link Installs"
   override val toolId: String = "smrtflow.tools.tech_support_bundler"
 
   val defaults = TechSupportFileBundlerOptions(
@@ -25,7 +26,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
 
   val parser = new OptionParser[TechSupportFileBundlerOptions]("techsupport-bundler") {
 
-    head("Create TechSupport bundle for failed SMRT Link Installs")
+    head(DESCRIPTION, VERSION)
 
     arg[File]("userdata")
         .action {(x, c) => c.copy(rootUserData = x.toPath)}
