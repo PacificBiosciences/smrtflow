@@ -70,9 +70,9 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     else Right(Unit)
   }
 
-  def runTool(c: TechSupportFileBundlerOptions): Try[String] =
+  override def runTool(c: TechSupportFileBundlerOptions): Try[String] =
       Try { TechSupportFailedInstallBuilder(c.rootUserData, c.output) }
-          .map(output => s"Successfully wrote TechSupport Bundle to $output (${output.toFile.length() / 1024.0} K)")
+          .map(output => s"Successfully wrote TechSupport Bundle to $output (${output.toFile.length() / 1024} Kb)")
 
   // To adhere to the fundamental interface. Other tools need to migrate to use
   // new runnerWithTryAndExit model
@@ -85,5 +85,5 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
 object TechSupportFileBundlerApp extends App {
   import TechSupportFileBundler._
 
-  runnerWithTryAndExit(runTool, args)
+  runnerWithArgsAndExit(args)
 }
