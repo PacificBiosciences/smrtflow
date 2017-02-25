@@ -1,15 +1,19 @@
 package com.pacbio.common.utils;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.RegexFileFilter;
 
 
 public class TarGzUtil {
@@ -48,5 +52,46 @@ public class TarGzUtil {
         tarIn.close();
 
         return dest;
+    }
+
+    /**
+     * Create a tgz output file from a input directory.
+     *
+     * @param inputDirectoryPath  Root Input Directory
+     * @param outputFile output tar.gz or tgz file.
+     * @return
+     * @throws IOException
+     */
+    public static File createTarGzip(Path inputDirectoryPath, File outputFile) throws IOException {
+
+        try (FileOutputStream fileOutputStream = new FileOutputStream(outputFile);
+             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+             GzipCompressorOutputStream gzipOutputStream = new GzipCompressorOutputStream(bufferedOutputStream);
+             TarArchiveOutputStream tarArchiveOutputStream = new TarArchiveOutputStream(gzipOutputStream)) {
+
+            tarArchiveOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+            tarArchiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+
+
+            List<File> files = new ArrayList<>(FileUtils.listFiles(
+                    inputDirectoryPath.toFile(),
+                    new RegexFileFilter("^(.*?)"),
+                    DirectoryFileFilter.DIRECTORY
+            ));
+
+            for (File currentFile : files) {
+                String relativeFilePath = new File(inputDirectoryPath.toUri()).toURI().relativize(
+                        new File(currentFile.getAbsolutePath()).toURI()).getPath();
+
+                TarArchiveEntry tarEntry = new TarArchiveEntry(currentFile, relativeFilePath);
+                tarEntry.setSize(currentFile.length());
+
+                tarArchiveOutputStream.putArchiveEntry(tarEntry);
+                tarArchiveOutputStream.write(IOUtils.toByteArray(new FileInputStream(currentFile)));
+                tarArchiveOutputStream.closeArchiveEntry();
+            }
+            tarArchiveOutputStream.close();
+            return outputFile;
+        }
     }
 }
