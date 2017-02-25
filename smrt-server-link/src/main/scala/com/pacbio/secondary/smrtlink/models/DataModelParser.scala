@@ -163,7 +163,7 @@ object DataModelParserImpl extends DataModelParser {
 
   } catch {
     case NonFatal(e) =>
-      throw new UnprocessableEntityError(s"Data model parsing failed: ${e.getMessage}", e)
+      throw new UnprocessableEntityError(s"Data model parsing failed: ${e.toString}", e)
   }
 
   def toDateTime(c: XMLGregorianCalendar): JodaDateTime =
