@@ -34,9 +34,15 @@ class DiskSpaceService(config: Config, fileSystemUtil: FileSystemUtil)
   // We use the injected config here, instead of engineConfig.pbRootJobDir, so tests can use a custom job dir
   val jobRootDir = loadJobRoot(config.getString(EngineCoreConfigConstants.PB_ROOT_JOB_DIR))
 
+  // TODO(smcclellan): Make this a constant, maybe in EngineCoreConfigConstants?
+  val tmpDirConfig = "pacBioSystem.tmpDir"
+  val tmpDirProp = "java.io.tmpdir"
+  val tmpDir = if (config.hasPath(tmpDirConfig)) config.getString(tmpDirConfig) else System.getProperty(tmpDirProp)
+
   private val idsToPaths: Map[String, Path] = Map(
-    "smrtlink.resources.root" -> Paths.get("/"),
-    "smrtlink.resources.jobs_root" -> jobRootDir
+    "smrtlink.resources.root"      -> Paths.get("/"),
+    "smrtlink.resources.jobs_root" -> jobRootDir,
+    "smrtlink.resources.tmpdir"    -> Paths.get(tmpDir)
   )
 
   private def toResource(id: String): Future[DiskSpaceResource] = Future {
