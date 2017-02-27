@@ -13,7 +13,9 @@ import spray.httpx.SprayJsonSupport._
 import spray.http.HttpHeaders._
 import MediaTypes._
 import com.pacbio.simulator.ICSJsonProtocol
-import com.pacbio.simulator.ICSModel.{RunResponse, ICSRun}
+import com.pacbio.simulator.ICSModel.{ICSRun, RunResponse}
+import spray.json._
+
 import scala.concurrent.Future
 
 // not sure if this will be useful
@@ -45,6 +47,7 @@ object ICSUris{
   final val RUN_URI = "/run"
   final val RUN_START_URI = "/run/start"
   final val RUN_RQMTS_URI="/run/rqmts"
+  final val LOAD_INVENTORY_URI = "/test/endtoend/inventory"
 }
 /**
   * Client to Instrument Control
@@ -66,6 +69,14 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
   def runPostPipeline = sendReceive ~> mapToJson
 
   def runGetPipeline = runPostPipeline
+
+  def unmarshalJSON(httpResponse: HttpResponse): JsValue = {
+    val aa = httpResponse.entity.asString.parseJson
+    println(s"unmarshalled json : $aa")
+    aa
+  }
+
+  val mapToJsValuePipeline  =  sendReceive ~> unmarshalJSON
 
   def runStatusPipeline : HttpRequest => Future[RunResponse] = sendReceive ~> unmarshal[RunResponse]
 
@@ -90,13 +101,23 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
   just one elemnent from json
    */
   // GET /run/rqmts
-  def getRunRqmts = runGetPipeline{
-    Get(toUrl(RUN_RQMTS_URI)) ~> addHeader(`Content-Type`(`application/json`))
+  def getRunRqmts = mapToJsValuePipeline{
+    Get(toUrl("/run/rqmts"))
   }
 
   // GET /run
   def getRunStatus = runStatusPipeline{
     Get(toUrl(RUN_URI)) ~> addHeader(`Content-Type`(`application/json`))
   }
+
+  // POST /test/endtoend/inventory
+  /*
+  instead of running the python script discretely, Manny created an endpt in ICS to load the run.
+  this is a fire and forget request
+   */
+  def postLoadInventory = runPostPipeline{
+    Post(toUrl(LOAD_INVENTORY_URI))~> addHeader(`Content-Type`(`application/json`))
+  }
+
 }
 

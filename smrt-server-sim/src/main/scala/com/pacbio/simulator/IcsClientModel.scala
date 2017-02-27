@@ -23,41 +23,6 @@ object ICSModel {
                         summary:String,
                         totalCells : Int,
                         uniqueId : Option[String] = null)
-
- /* case class Compatibility (description : Option[String]=null,
-                            name : Option[String]=null,
-                            partNumber : String)
-
-  case class ExpectedPartNumbers(allocatedQuantity : Int,
-                                 description: String,
-                                 name :String,
-                                 partNumber: String,
-                                 requiredQuantity : Int)
-
-  case class ConsumableState(assigned: Boolean=false,
-                             cellCount : Int = 0,
-                             problemInfo : Option[String]=null)
-
-  case class Consumables(expirationDate : Option[String]=null,
-                         lotId: Option[String]=null,
-                         moduleNumber:Int,
-                         name:Option[String],
-                         partNumber:Option[String]=null,
-                         serialNumber :Option[String]=null,
-                         state: ConsumableState)
-
-  case class Stations(consumable: Seq[Consumables],
-                      name : String,
-                      occupied :Boolean)
-
-  case class CellRequirements (compatibility: Seq[Compatibility],
-                               expectedPartNumbers: Seq[ExpectedPartNumbers],
-                               itemsNeeded :Int,
-                               stations : Seq[Stations])
-
-  case class ReqManagement(allowExpiredInventory : Boolean,
-                           allowPartNumberMismatch :Boolean,
-                           cellRequirements : CellRequirements )*/
 }
 
 trait ICSJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol{

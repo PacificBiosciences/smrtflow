@@ -85,18 +85,18 @@ class RunDesignWithICSScenario(host: String,
 
     fail("Expected reserved to be false") IF runDesign.mapWith(_.reserved) !=? false,
 
+    PostLoadInventory,
+
     PostRunDesignToICS(runDesign),
 
     PostRunRqmtsToICS,
 
-    GetRunRqmts(),
-
-    // todo : Inject Manny's script to load runs
+    //GetRunRqmts(),
 
     GetRunStatus(runDesign, Seq(Idle,Ready)),
 
     // WAIT FOR FEW SECS, FOR ICS TO LOAD THE RUN
-    SleepStep(5.minutes),
+    SleepStep(1.minutes),
 
     PostRunStartToICS,
 

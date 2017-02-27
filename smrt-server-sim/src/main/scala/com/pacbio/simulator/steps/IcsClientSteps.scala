@@ -81,7 +81,6 @@ trait IcsClientSteps {
     override val name = "Post start run to ICS"
 
     override def run: Future[Result] = {
-      //val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
       val response = for {
         res <- icsClient.postRunStart
       } yield res
@@ -97,13 +96,27 @@ trait IcsClientSteps {
     override val name = "Post run rqmts to ICS"
 
     override def run: Future[Result] = {
-      //val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
       val response = for {
         res <- icsClient.postRunRqmts
       } yield res
 
       response.map { rr =>
         println(s"POST /run/rqmts response from ICS : $rr")
+        SUCCEEDED
+      }
+    }
+  }
+
+  case object PostLoadInventory extends Step {
+    override val name = "Post load inventory to ICS"
+
+    override def run: Future[Result] = {
+      val response = for {
+        res <- icsClient.postLoadInventory
+      } yield res
+
+      response.map { rr =>
+        println(s"POST /test/endtoend/inventory response from ICS : $rr")
         SUCCEEDED
       }
     }
@@ -177,6 +190,9 @@ trait IcsClientSteps {
                          sleepTime: FiniteDuration = 1.second) extends VarStep[Int] {
     import play.api.libs.json._
 
+    import scala.concurrent.Await
+    import java.util.concurrent.TimeUnit
+
     override val name = "GET Run Rqmts"
 
     //val aa = Json.parse(jj)
@@ -187,13 +203,25 @@ trait IcsClientSteps {
       val desiredState = true
       val failureState = false
 
-      def stateFuture : Future[Boolean] = icsClient.getRunRqmts
-        .map { rr =>
-          val jsonResponse = Json.parse(rr.toString)
-          val hasInventory = jsonResponse\"hasSufficientInventory"
-          val resp = hasInventory.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
-          resp.asInstanceOf[Boolean]
-        }
+      def stateFuture : Future[Boolean] = Future{
+        val aa = icsClient.getRunRqmts
+        val nn = Await.result(aa, Duration(50000, TimeUnit.MILLISECONDS))
+        println(s"nn : $nn")
+        val mm = Json.parse(nn.toString())
+        val cc = mm \"hasSufficientInventory"
+        cc.get.asInstanceOf[Boolean]
+
+      }
+      /*icsClient.getRunRqmts.map { rr =>
+
+          println(s"rr : $rr")
+
+      val jsonResponse = Json.parse(rr.toString)
+      val hasInventory = jsonResponse\"hasSufficientInventory"
+      val resp = hasInventory.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
+      resp.asInstanceOf[Boolean]
+
+        }*/
 
       var retry  = 0;
 
