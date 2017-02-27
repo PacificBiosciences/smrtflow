@@ -3,8 +3,11 @@ package com.pacbio.secondary.smrtlink.models
 import java.io.ByteArrayInputStream
 import java.nio.file.{Paths, Path}
 import java.util.UUID
+import javax.xml.XMLConstants
 import javax.xml.bind.{Unmarshaller, JAXBContext}
 import javax.xml.datatype.XMLGregorianCalendar
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.SchemaFactory
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
@@ -35,6 +38,12 @@ object DataModelParserImpl extends DataModelParser {
 
   override def apply(dataModel: String): ParseResults = try {
     val xmlContentBytes: ByteArrayInputStream = new ByteArrayInputStream(dataModel.getBytes)
+
+    val schemaFile = getClass.getResource("/pb-common-xsds/PacBioDataModel.xsd")
+    val schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(schemaFile)
+    val validator = schema.newValidator()
+    validator.validate(new StreamSource(xmlContentBytes))
+
     val context: JAXBContext = JAXBContext.newInstance(new PacBioDataModel().getClass)
     val unmarshaller: Unmarshaller = context.createUnmarshaller()
     val parsedModel =  new PacBioDataModel().getClass.cast(unmarshaller.unmarshal(xmlContentBytes))
