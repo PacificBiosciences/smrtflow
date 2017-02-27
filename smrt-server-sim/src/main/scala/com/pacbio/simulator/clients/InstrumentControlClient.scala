@@ -44,6 +44,7 @@ object ICSState {
 object ICSUris{
   final val RUN_URI = "/run"
   final val RUN_START_URI = "/run/start"
+  final val RUN_RQMTS_URI="/run/rqmts"
 }
 /**
   * Client to Instrument Control
@@ -64,16 +65,33 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
 
   def runPostPipeline = sendReceive ~> mapToJson
 
+  def runGetPipeline = runPostPipeline
+
   def runStatusPipeline : HttpRequest => Future[RunResponse] = sendReceive ~> unmarshal[RunResponse]
 
   // POST /run  NOTE : cannot retrieve object, json contains an element with name "type"
   def postRun(icsRun: ICSRun) = runPostPipeline{
+    //println(s"running post : $icsRun")
     Post(toUrl(RUN_URI), icsRun)~> addHeader(`Content-Type`(`application/json`))
   }
 
   // POST /run/start
   def postRunStart = runPostPipeline{
     Post(toUrl(RUN_START_URI))~> addHeader(`Content-Type`(`application/json`))
+  }
+
+  // POST /run/rqmts
+  def postRunRqmts = runPostPipeline{
+    Post(toUrl(RUN_RQMTS_URI))~> addHeader(`Content-Type`(`application/json`))
+  }
+
+  /*
+  reads response as json, do not deserialize that objects, its too huge and unncessary for accessing
+  just one elemnent from json
+   */
+  // GET /run/rqmts
+  def getRunRqmts = runGetPipeline{
+    Get(toUrl(RUN_RQMTS_URI)) ~> addHeader(`Content-Type`(`application/json`))
   }
 
   // GET /run

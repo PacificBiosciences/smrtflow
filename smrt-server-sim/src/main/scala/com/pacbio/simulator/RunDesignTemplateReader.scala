@@ -30,12 +30,13 @@ class RunDesignTemplateReader(xmlFile: Path) {
     GenTemplateReader
       .fromFile(xmlFile)
       .globally()            .substitute("{RUN_ID}", randomId())
-      .perInstance()         .substitute("{STATUS}", "READY")
+      .perInstance()         .substitute("{STATUS}", "Ready")
       //.perInstance()         .substitute("{movieLengthInMins}", movieLenInMins())
       .perNode("SubreadSet") .substituteMap {
       val collectionContextId = randomContextId()
       Map(
-        "{SUBREAD_ID}"           -> (() => randomId())
+        "{SUBREAD_ID}"           -> (() => randomId()),
+        "{EXTERNAL_RESOURCE_ID}" -> (() => randomId())
         //"{collectionContextId}" -> (() => collectionContextId),
         //"{collectionPathUri}"   -> (() => s"//pbi/collections/xfer-test/$collectionContextId/1_A01/$runId/")
         //"{movieLengthInMins}"   -> (() => movieLengthInMins)

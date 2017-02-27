@@ -73,7 +73,7 @@ class RunDesignWithICSScenario(host: String,
   override val steps = Seq(
     runDesigns := GetRuns,
 
-    fail("Run database should be initially empty") IF runDesigns ? (_.nonEmpty),
+    //fail("Run database should be initially empty") IF runDesigns ? (_.nonEmpty),
 
     runXml := ReadFileFromTemplate(runXmlPath),
 
@@ -87,6 +87,10 @@ class RunDesignWithICSScenario(host: String,
 
     PostRunDesignToICS(runDesign),
 
+    PostRunRqmtsToICS,
+
+    GetRunRqmts(),
+
     // todo : Inject Manny's script to load runs
 
     GetRunStatus(runDesign, Seq(Idle,Ready)),
@@ -94,7 +98,7 @@ class RunDesignWithICSScenario(host: String,
     // WAIT FOR FEW SECS, FOR ICS TO LOAD THE RUN
     SleepStep(5.minutes),
 
-    PostStartRunToICS,
+    PostRunStartToICS,
 
     GetRunStatus(runDesign, Seq(Running,Starting)),
 
