@@ -4,6 +4,7 @@ import os
 import pprint
 import socket
 import urllib2
+import ssl
 import json
 import logging
 import sys
@@ -15,7 +16,7 @@ from collections import namedtuple
 log = logging.getLogger(__name__)
 
 __author__ = "M. Kocher"
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 
@@ -29,6 +30,8 @@ LOG_LEVELS = {
     "WARN": logging.WARN
 }
 
+MAX_DEFAULT_RETRIES = 3
+
 C = namedtuple("C", "idx name")
 
 
@@ -36,16 +39,19 @@ class Constants(object):
     """SubComponent Ids"""
     SL_ANALYSIS = C("smrtlink-analysis", "SMRT Link Analysis Services")
     TOMCAT = C("tomcat", "SL tomcat UI Webserver")
-    WSO2 = C("wos2", "WSO2 API Manager")
+    WSO2 = C("wso2", "WSO2 API Manager")
+    SVIEW = C("smrtview", "SMRT View")
 
-    ALL = (SL_ANALYSIS, TOMCAT, WSO2)
+    ALL = (SL_ANALYSIS, TOMCAT, WSO2, SVIEW)
 
 
 class SubComponent(object):
-    def __init__(self, component, urls):
+    def __init__(self, component, urls, max_retries=MAX_DEFAULT_RETRIES):
         """Thin model for encapsulating a SL Subcomponent, such as WSO2 and a list of test/status URLs"""
         self.component = component
         self.urls = urls
+        # Max number of retires per url call
+        self.max_retries = max_retries
 
     def __repr__(self):
         _d = dict(k=self.__class__.__name__, c=self.component, u=self.urls)
@@ -58,11 +64,14 @@ def get_parser():
                                 description=desc,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     f = p.add_argument
-    f('--max-retries', type=int, default=3, help="Number of retries")
+    f('--max-retries', type=int, default=MAX_DEFAULT_RETRIES, help="Number of retries")
     f('--sleep-time', type=int, default=5, help="Sleep time between retries (in sec)")
     f('--debug', action='store_true', default=False, help="Shortcut to enable DEBUG log level")
     f('--log-level', default=None, choices=LOG_LEVELS.keys(),
       help="Set log level (--debug will override this value if supplied)")
+    f('--log-file', default=None,
+      help="Custom path to log file output. Default will output to the location defined in the "
+           "smrtlink-system-config.json file.")
     f('-i', '--subcomponent-id', default=None, choices=list(x.idx for x in Constants.ALL),
       help="Only get the status of SL Subcomponent")
     return p
@@ -82,12 +91,29 @@ def _load_config():
     return d
 
 
+def _https_url_opener(url):
+    # this enables support for https calls
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    opener = urllib2.build_opener(urllib2.HTTPSHandler(context=ctx))
+    return opener.open(url)
+
+
+def _get_opener(url):
+    if url.startswith("http://"):
+        return urllib2.urlopen(url)
+    else:
+        return _https_url_opener(url)
+
+
 def _check_status_or_raise(url, prefix_msg=None, log_results=False, writer=sys.stdout.write):
     msg = "checking {u}".format(u=url)
     if prefix_msg is not None:
         msg = " ".join([prefix_msg, msg])
         log.debug(msg)
-    x = urllib2.urlopen(url)
+
+    x = _get_opener(url)
     datum = x.read()
     if log_results:
         log.info(datum)
@@ -142,9 +168,9 @@ def _check_with_retry(url, ntries, sleep_time_sec=1):
     return status
 
 
-def _to_url(host, port):
-    if not host.startswith("http://"):
-        host = "http://" + host
+def _to_url(host, port, prefix="http://"):
+    if not host.startswith(prefix):
+        host = prefix + host
     return ":".join([host, str(port)])
 
 
@@ -179,7 +205,7 @@ def get_subcomponent_status(subcomponent, max_retries=3, sleep_time_sec=1):
     return state
 
 
-def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
+def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
     """
     Check analysis service status, dataset types and jobs types. Check tomcat
     to verify UI code was loaded
@@ -192,6 +218,7 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep
 
     tcat_url = _to_url(host, tomcat_port)
     sl_analysis_url = _to_url(host, analysis_port)
+    smrtview_url = _to_url(host, smrtview_port)
 
     services_url = sl_analysis_url + "/status"
 
@@ -205,23 +232,30 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep
     sl_urls = [[services_url], ds_urls, job_urls]
     sl_analysis_subcomponent = SubComponent(Constants.SL_ANALYSIS, list(itertools.chain(*sl_urls)))
 
+    # SMRT View
+    smrtview_urls = [smrtview_url + "/smrtview",
+                     smrtview_url + "/smrtview/services/VersionService.VersionServiceHttpEndpoint/getVersion"]
+    smrtview_subcomponent = SubComponent(Constants.SVIEW, smrtview_urls)
+
     # MK. Tomcat will lazily-load after the first request. Making an initial request
     # here to trigger (and **ignore** the response), then check the analysis services,
     # then check tomcat status.
     _check_status(tcat_url, writer=null_writer)
 
-    # wso2_status_url = _to_url(host, wso2_port) + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
-    # FIXME(mpkocher)(2016-9-7). Roll out ws02 incrementally. Ignore the failures on startup for now
-    # _check_with_retry(wso2_status_url, 3)
+    wso2_publisher_url = _to_url(host, wso2_port, prefix="https://") + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
+
+    # FIXME(mpkocher)(2016-9-7). Roll out wso2 incrementally and tune this custom retry parameter
+    wso2_subcomponent = SubComponent(Constants.WSO2, [wso2_publisher_url], max_retries=30)
+
     tomcat_subcomponent = SubComponent(Constants.TOMCAT, [tcat_url])
 
-    subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent]
+    subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent, smrtview_subcomponent, wso2_subcomponent]
 
     if filter_subcomponent_func is not None:
         subcomponents = [x for x in subcomponents if filter_subcomponent_func(x)]
 
     for subcomponent in subcomponents:
-        state = get_subcomponent_status(subcomponent, max_retries=max_retries, sleep_time_sec=sleep_time_sec)
+        state = get_subcomponent_status(subcomponent, max_retries=subcomponent.max_retries, sleep_time_sec=sleep_time_sec)
         if state is False:
             return False
 
@@ -240,10 +274,14 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
 
     sl_analysis_port = server_d['port']
 
-    tomcat_port = c['pacBioSystem']['tomcatPort']
+    system_d = c['pacBioSystem']
+
+    tomcat_port = system_d['tomcatPort']
+
+    smrt_view_port = system_d['smrtViewPort']
 
     # should this be exposed in the config.json ?
-    ws02_port = ConfigConstants.WS02_PORT
+    wso2_port = ConfigConstants.WS02_PORT
 
     # Base SL Analysis Service URL
     url = _to_url(host, sl_analysis_port)
@@ -256,9 +294,10 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
     status = get_status(host,
                         tomcat_port,
                         sl_analysis_port,
+                        wso2_port,
+                        smrt_view_port,
                         max_retries=max_retries,
                         sleep_time_sec=sleep_time_sec,
-                        wso2_port=ws02_port,
                         filter_subcomponent_func=filter_func)
 
     if status is True:
@@ -274,9 +313,44 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
         names = [names_d[c_id] for c_id in component_ids]
         msg = "SUCCESSFUL status of {n} SL subcomponent(s): {c}".format(n=len(names), c=", ".join(names))
 
+        log.info(msg)
         sys.stdout.write(msg + "\n")
 
     return 0 if status is True else 1
+
+
+def setup_logger(alog, level=logging.INFO, file_name=None,
+                 log_filter=None,
+                 str_formatter='[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'):
+    """
+    Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
+    needs to be delayed until after the config is parsed.
+
+    :param alog: a log instance
+    :param level: (int) Level of logging debug
+    :param file_name: (str, None) if None, stdout is used, str write to file
+    :param log_filter: (LogFilter, None)
+    :param str_formatter: (str) log formatting str
+    """
+
+    alog.setLevel(logging.DEBUG)
+    alog.propagate = 0
+
+    if file_name is None:
+        handler = logging.StreamHandler(sys.stdout)
+    else:
+        handler = logging.FileHandler(file_name)
+
+    formatter = logging.Formatter(str_formatter)
+    handler.setFormatter(formatter)
+    handler.setLevel(level)
+
+    if log_filter:
+        handler.addFilter(log_filter)
+
+    alog.addHandler(handler)
+
+    return alog
 
 
 def main(argv=sys.argv):
@@ -284,16 +358,16 @@ def main(argv=sys.argv):
     p = get_parser()
     args = p.parse_args(argv)
 
+    log_level_stdout = logging.WARN
+    log_level_file = logging.INFO
+
     if args.log_level is not None:
-        level = LOG_LEVELS[args.log_level]
-    else:
-        level = logging.INFO
+        log_level_stdout = LOG_LEVELS[args.log_level]
+        log_level_file = LOG_LEVELS[args.log_level]
 
-    # --debug will override --log-level
-    level = logging.DEBUG if args.debug else level
-
-    logging.basicConfig(level=level, format=_LOG_FORMAT, stream=sys.stdout)
-    log.debug(args)
+    if args.debug:
+        log_level_stdout = logging.DEBUG
+        log_level_file = logging.DEBUG
 
     subcomponent_ids = None
     if args.subcomponent_id is not None:
@@ -302,6 +376,25 @@ def main(argv=sys.argv):
     max_retries = args.max_retries
     sleep_time_sec = args.sleep_time
     c = _load_config()
+
+    log_dir = c['pacBioSystem']['logDir']
+
+    if args.log_file is None:
+        get_status_log = os.path.join(os.path.abspath(log_dir), "get-status.log")
+    else:
+        get_status_log = os.path.abspath(os.path.expanduser(args.log_file))
+
+    # Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
+    # needs to be delayed until after the config is parsed.
+
+    # SL System log dir
+    setup_logger(log, log_level_file, file_name=get_status_log)
+
+    # Stdout logger, This should probably have a higher default level
+    setup_logger(log, log_level_stdout, file_name=None, str_formatter=_LOG_FORMAT)
+
+    log.debug(args)
+
     log.debug("Loaded config")
     log.debug("\n" + pprint.pformat(c))
 

@@ -21,10 +21,11 @@ import traceback
 import argparse
 
 __author__ = "M. Kocher"
-__version__ = '0.7.3'
+__version__ = '0.8.0'
 
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler()) # stop the logger from complaining
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _TOMCAT_VERSION = "apache-tomcat-8.0.26"
@@ -46,6 +47,7 @@ _PACBIO_BUNDLE_DIR = os.path.join(_BUNDLE_ROOT, "pacbio-bundles")
 _TEMPLATE_DIR = os.path.join(_BUNDLE_ROOT, "templates")
 _WSO2_TEMPLATE_DIR = "templates-wso2"
 
+
 class InvalidConfigOptionResource(IOError):
     """Resource that are not found, or invalid values"""
     pass
@@ -56,8 +58,12 @@ def get_parser():
                                 description=__doc__,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     f = p.add_argument
-    f('--config-json', default=_CONFIG_JSON, help="Path to SMRT Link System Config HOCON JSON file")
-    f('--debug', action='store_true', default=False, help="Enable DEBUG logging.")
+    f('--config-json', default=_CONFIG_JSON,
+      help="Path to SMRT Link System Config HOCON smrtlink-system-config.json sfile")
+    f('--debug', action='store_true', default=False, help="Enable DEBUG logging to both stdout and file handler.")
+    f('--log-file', default=None,
+      help="Custom path to log file output. Default will output to the location defined in the "
+           "smrtlink-system-config.json file.")
     f('--validate-only', action='store_true', default=False, help="Validate the SMRT Link System Config HOCON JSON file")
     return p
 
@@ -269,19 +275,19 @@ def load_system_config(path):
     with open(path, 'r') as f:
         d = json.loads(f.read())
 
-    logging.info("Loaded raw config")
-    logging.info(pprint.pformat(d))
+    log.debug("Loaded raw config")
+    log.debug(pprint.pformat(d))
 
     return SystemConfig.from_dict(d)
 
 
 def write_system_config(system_config, output_path):
-    log.info("attempting to write SL System config {c} to {d}".format(d=system_config, c=output_path))
+    log.debug("attempting to write SL System config {c} to {d}".format(d=system_config, c=output_path))
     _chmod_config(output_path)
     _d = system_config.to_dict()
     with open(output_path, 'w') as f:
         f.write(json.dumps(_d, indent=4, sort_keys=True))
-    log.info("successfully updated {d}".format(d=output_path))
+    log.debug("successfully updated {d}".format(d=output_path))
 
 
 def _chmod_config(path):
@@ -301,7 +307,7 @@ def load_local_template_by_name(name):
 
 
 def update_by(template_name, template_var, template_value):
-    log.info("Updating {c} to {x}".format(c=template_name, x=template_value))
+    log.debug("Updating {c} to {x}".format(c=template_name, x=template_value))
     t = load_local_template_by_name(template_name)
     _d = {template_var: template_value}
     s = t.substitute(**_d)
@@ -310,7 +316,7 @@ def update_by(template_name, template_var, template_value):
 
 def update_multiple_by(template_name, template_updates):
     for var, value in template_updates.iteritems():
-        log.info("Updating {k} to {v} in {t}".format(k=var, v=value, t=template_name))
+        log.debug("Updating {k} to {v} in {t}".format(k=var, v=value, t=template_name))
     t = load_local_template_by_name(template_name)
     s = t.substitute(template_updates)
     return s
@@ -434,7 +440,7 @@ def validate_system_config(sconf):
     :raises InvalidConfigOptionResource
 
     """
-    log.info("Validating SMRT Link System Config:")
+    log.debug("Validating SMRT Link System Config:")
     sconf.job_root = validate_dir(sconf.job_root, prefix_msg="Invalid Job Root")
     sconf.pb_pbsmrtipe_preset_xml = validate_file(sconf.pb_pbsmrtipe_preset_xml, prefix_msg="Invalid pbsmrtpipe preset.xml")
     sconf.tmp_dir = validate_dir(sconf.tmp_dir, prefix_msg="Invalid tmp dir")
@@ -445,6 +451,40 @@ def validate_system_config(sconf):
 
     log.info("Successfully validated config")
     return sconf
+
+
+def setup_logger(alog, level=logging.INFO, file_name=None,
+                 log_filter=None,
+                 str_formatter='[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'):
+    """
+    Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
+    needs to be delayed until after the config is parsed.
+
+    :param alog: a log instance
+    :param level: (int) Level of logging debug
+    :param file_name: (str, None) if None, stdout is used, str write to file
+    :param log_filter: (LogFilter, None)
+    :param str_formatter: (str) log formatting str
+    """
+    alog.setLevel(logging.DEBUG)
+    # this is the magic that enables the log to have different handlers with different log levels
+    alog.propagate = 0
+
+    if file_name is None:
+        handler = logging.StreamHandler(sys.stdout)
+    else:
+        handler = logging.FileHandler(file_name)
+
+    formatter = logging.Formatter(str_formatter)
+    handler.setFormatter(formatter)
+    handler.setLevel(level)
+
+    if log_filter:
+        handler.addFilter(log_filter)
+
+    alog.addHandler(handler)
+
+    return alog
 
 
 def main(argv=sys.argv[1:]):
@@ -459,20 +499,35 @@ def main(argv=sys.argv[1:]):
     p = get_parser()
     args = p.parse_args(argv)
 
+    #
+    log_level_stdout = logging.WARN
+    log_level_file = logging.INFO
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG, format=_LOG_FORMAT, stream=sys.stdout)
-        log.debug(args)
-    else:
-        log.addHandler(logging.NullHandler())
+        log_level_stdout = logging.DEBUG
+        log_level_file = logging.DEBUG
 
     config_json = args.config_json
 
-    log.debug("Running apply-config v{v}".format(v=__version__))
-
     try:
         c = load_system_config(config_json)
-        log.debug(c)
         c = validate_system_config(c)
+
+        # now that we have the logDir location, setup the logger(s)
+
+        if args.log_file is None:
+            apply_config_log = os.path.join(os.path.abspath(c.log_dir), "apply-config.log")
+        else:
+            apply_config_log = os.path.abspath(os.path.expanduser(args.log_file))
+
+        setup_logger(log, log_level_file, file_name=apply_config_log)
+
+        setup_logger(log, log_level_stdout, file_name=None, str_formatter=_LOG_FORMAT)
+
+        log.debug("Running apply-config v{v}".format(v=__version__))
+
+        log.debug(c)
+        log.debug(args)
+
         if args.validate_only:
             return 0
         # Hack. this is necessary to get the required bundleDir to be added to the config for the services
@@ -482,7 +537,7 @@ def main(argv=sys.argv[1:]):
 
         if c.host is None:
             host = socket.getfqdn()
-            log.warn("Null host detected. using FQDN {h} for host".format(h=host))
+            log.warn("Null host detected. using FQDN {h} for host. User are recommended to manually set this value.".format(h=host))
 
         write_services_jvm_args(c.pb_services_analysis_mem_max,
                                 c.pb_services_analysis_mem_min)
@@ -514,7 +569,7 @@ def main(argv=sys.argv[1:]):
         traceback.print_exc(file=sys.stderr)
         rcode = 1
 
-    logging.info("Completed {f} v{v} exit code {r}".format(r=rcode, f=__file__, v=__version__))
+    log.info("Completed {f} v{v} exit code {r}".format(r=rcode, f=__file__, v=__version__))
     return rcode
 
 

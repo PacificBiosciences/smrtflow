@@ -25,6 +25,8 @@ SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
 SL_SERVICES_JAR=${__root}/${SERVICES_JAR_NAME}
 SL_SERVICES_TOOLS_DIR=${__root}/tools
+# Max number of retries to call subcomponent get-status -i {my-component} --max-retries {X}
+MAX_RETRIES=30
 
 export PATH=${SL_SERVICES_TOOLS_DIR}/bin:$PATH
 
@@ -40,6 +42,9 @@ logStartFile=${logDir}/bundle-start.log
 echo "Attempting to apply-config"
 python ${__dir}/apply-config
 echo "completed applying config"
+
+
+${__dir}/check-system-limits
 
 
 check_port() {
@@ -135,18 +140,21 @@ echo "Started up SMRT Link Analysis services on PID ${sl_services_pid}"
 # This might be clearer to error out here, than startup the other
 # components? get-status should be extended to be able to
 # get the status a specific SL subcomponent
-${__dir}/get-status --subcomponent-id smrtlink-analysis
+${__dir}/get-status --subcomponent-id smrtlink-analysis --max-retries ${MAX_RETRIES}
 
 
 # Fire up the GUI webserver
 echo "Attempting to start tomcat GUI webserver daemon..."
 ${TOMCAT_DIR}/bin/startup.sh
+${__dir}/get-status --subcomponent-id tomcat --max-retries ${MAX_RETRIES}
 echo "started up tomcat GUI webserver"
 
 echo "Attempting to start WSO2 API Manager..."
 bash ${WSO2_DIR}/bin/wso2server.sh --start
 echo "started up WSO2 API Manager"
 
+# The scala code will block here and wait for wso2 to startup. Need to make this
+# configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
 java -cp ${SL_SERVICES_JAR} \
      -Xmx256m -Xms256m \
