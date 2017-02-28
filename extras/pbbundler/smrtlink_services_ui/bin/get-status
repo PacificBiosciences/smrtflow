@@ -15,7 +15,7 @@ from collections import namedtuple
 log = logging.getLogger(__name__)
 
 __author__ = "M. Kocher"
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 
@@ -36,9 +36,10 @@ class Constants(object):
     """SubComponent Ids"""
     SL_ANALYSIS = C("smrtlink-analysis", "SMRT Link Analysis Services")
     TOMCAT = C("tomcat", "SL tomcat UI Webserver")
-    WSO2 = C("wos2", "WSO2 API Manager")
+    WSO2 = C("wso2", "WSO2 API Manager")
+    SVIEW = C("smrtview", "SMRT View")
 
-    ALL = (SL_ANALYSIS, TOMCAT, WSO2)
+    ALL = (SL_ANALYSIS, TOMCAT, WSO2, SVIEW)
 
 
 class SubComponent(object):
@@ -179,7 +180,7 @@ def get_subcomponent_status(subcomponent, max_retries=3, sleep_time_sec=1):
     return state
 
 
-def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
+def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
     """
     Check analysis service status, dataset types and jobs types. Check tomcat
     to verify UI code was loaded
@@ -192,6 +193,7 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep
 
     tcat_url = _to_url(host, tomcat_port)
     sl_analysis_url = _to_url(host, analysis_port)
+    smrtview_url = _to_url(host, smrtview_port)
 
     services_url = sl_analysis_url + "/status"
 
@@ -205,6 +207,11 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep
     sl_urls = [[services_url], ds_urls, job_urls]
     sl_analysis_subcomponent = SubComponent(Constants.SL_ANALYSIS, list(itertools.chain(*sl_urls)))
 
+    # SMRT View
+    smrtview_urls = [smrtview_url + "/smrtview",
+                     smrtview_url + "/smrtview/services/VersionService.VersionServiceHttpEndpoint/getVersion"]
+    smrtview_subcomponent = SubComponent(Constants.SVIEW, smrtview_urls)
+
     # MK. Tomcat will lazily-load after the first request. Making an initial request
     # here to trigger (and **ignore** the response), then check the analysis services,
     # then check tomcat status.
@@ -215,7 +222,7 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, max_retries=3, sleep
     # _check_with_retry(wso2_status_url, 3)
     tomcat_subcomponent = SubComponent(Constants.TOMCAT, [tcat_url])
 
-    subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent]
+    subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent, smrtview_subcomponent]
 
     if filter_subcomponent_func is not None:
         subcomponents = [x for x in subcomponents if filter_subcomponent_func(x)]
@@ -240,10 +247,14 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
 
     sl_analysis_port = server_d['port']
 
-    tomcat_port = c['pacBioSystem']['tomcatPort']
+    system_d = c['pacBioSystem']
+
+    tomcat_port = system_d['tomcatPort']
+
+    smrt_view_port = system_d['smrtViewPort']
 
     # should this be exposed in the config.json ?
-    ws02_port = ConfigConstants.WS02_PORT
+    wso2_port = ConfigConstants.WS02_PORT
 
     # Base SL Analysis Service URL
     url = _to_url(host, sl_analysis_port)
@@ -256,9 +267,10 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
     status = get_status(host,
                         tomcat_port,
                         sl_analysis_port,
+                        wso2_port,
+                        smrt_view_port,
                         max_retries=max_retries,
                         sleep_time_sec=sleep_time_sec,
-                        wso2_port=ws02_port,
                         filter_subcomponent_func=filter_func)
 
     if status is True:
@@ -279,11 +291,44 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
     return 0 if status is True else 1
 
 
+def setup_logger(alog, level=logging.INFO, file_name=None,
+                 log_filter=None,
+                 str_formatter='[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'):
+    """
+    Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
+    needs to be delayed until after the config is parsed.
+
+    :param alog: a log instance
+    :param level: (int) Level of logging debug
+    :param file_name: (str, None) if None, stdout is used, str write to file
+    :param log_filter: (LogFilter, None)
+    :param str_formatter: (str) log formatting str
+    """
+    alog.setLevel(logging.DEBUG)
+    if file_name is None:
+        handler = logging.StreamHandler(sys.stdout)
+    else:
+        handler = logging.FileHandler(file_name)
+
+    formatter = logging.Formatter(str_formatter)
+    handler.setFormatter(formatter)
+    handler.setLevel(level)
+
+    if log_filter:
+        handler.addFilter(log_filter)
+
+    alog.addHandler(handler)
+
+    return alog
+
+
 def main(argv=sys.argv):
 
     p = get_parser()
     args = p.parse_args(argv)
 
+    # This is a bit unclear. The stdout level should be different than
+    # the log file output to smrtlink-system-config.json
     if args.log_level is not None:
         level = LOG_LEVELS[args.log_level]
     else:
@@ -292,9 +337,6 @@ def main(argv=sys.argv):
     # --debug will override --log-level
     level = logging.DEBUG if args.debug else level
 
-    logging.basicConfig(level=level, format=_LOG_FORMAT, stream=sys.stdout)
-    log.debug(args)
-
     subcomponent_ids = None
     if args.subcomponent_id is not None:
         subcomponent_ids = (args.subcomponent_id, )
@@ -302,6 +344,18 @@ def main(argv=sys.argv):
     max_retries = args.max_retries
     sleep_time_sec = args.sleep_time
     c = _load_config()
+
+    log_dir = c['pacBioSystem']['logDir']
+    get_status_log = os.path.join(os.path.abspath(log_dir), "get-status.log")
+
+    # Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
+    # needs to be delayed until after the config is parsed.
+
+    setup_logger(log, level, file_name=get_status_log)
+    # Stdout logger, This should probably have a higher default level
+    setup_logger(log, level, file_name=None, str_formatter=_LOG_FORMAT)
+    log.debug(args)
+
     log.debug("Loaded config")
     log.debug("\n" + pprint.pformat(c))
 
