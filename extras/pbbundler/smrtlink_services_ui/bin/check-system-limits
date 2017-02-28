@@ -27,13 +27,13 @@ done
 
 ULIMIT_NPROC=`ulimit -u`
 if [ "$ULIMIT_NPROC" != "unlimited" ] && [ $ULIMIT_NPROC -lt $MIN_NPROC ]; then
-  echo "ERROR: The maximum number of concurrent user processes/threads is too low (at least $MIN_NPROC recommended).  You can fix this by running 'ulimit -u <LIMIT>'."
+  echo "ERROR: The maximum number of concurrent user processes/threads is too low (currently $ULIMIT_NPROC, at least $MIN_NPROC recommended).  You can fix this by running 'ulimit -u <LIMIT>'."
   STATUS=1
 fi
 
 ULIMIT_NFILES=`ulimit -n`
 if [ "$ULIMIT_NFILES" != "unlimited" ] && [ $ULIMIT_NFILES -lt $MIN_NFILES ]; then
-  echo "ERROR: The maximum number of open files is too low (at least $MIN_NFILES recommended).  You can fix this by running 'ulimit -n <LIMIT>'."
+  echo "ERROR: The maximum number of open files is too low (currently $ULIMIT_NFILES, at least $MIN_NFILES recommended).  You can fix this by running 'ulimit -n <LIMIT>'."
   STATUS=1
 fi
 
