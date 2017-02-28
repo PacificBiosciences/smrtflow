@@ -15,7 +15,7 @@ import com.pacificbiosciences.pacbiodatasets._
 import java.net.URL
 
 import scala.concurrent.Future
-import com.pacbio.simulator.ICSModel.{ICSRun, RunObj, RunResponse}
+import com.pacbio.simulator.ICSModel.{ICSRun, RunObj}
 import com.pacbio.simulator.ICSJsonProtocol._
 import spray.json.JsValue
 
@@ -144,14 +144,10 @@ trait IcsClientSteps {
       based on the api it appears that ICS will just convey the information of the current run, as opposed to all runs
       in other words, there is no need for filtering out runs based on unique_id
        */
-      def stateFuture: Future[ICSState.State] = icsClient.getRunStatus
-        .map { rr =>
-          if(rr.uniqueId.get != uid) {
-            throw new IllegalStateException(s"ICS-UniqueId ${rr.uniqueId} doesnt match SL-UniqueID $uid")
-          }
-          val state = rr.status
-          ICSState.fromIndex(state).getOrElse(throw new IllegalStateException(s"Unknown state $state encountered."))
-        }
+      def stateFuture: Future[ICSState.State] = icsClient.getInstrumentState.map { rr =>
+        val state = rr.runState
+        ICSState.fromIndex(state).getOrElse(throw new IllegalStateException(s"Unknown state $state encountered."))
+      }
 
       var retry = 0;
 
@@ -184,44 +180,21 @@ trait IcsClientSteps {
     }
   }
 
-
   // todo : retries must be calculated according to the movieLength
   case class GetRunRqmts(retries: Int = 3000,
                          sleepTime: FiniteDuration = 1.second) extends VarStep[Int] {
-    import play.api.libs.json._
 
-    import scala.concurrent.Await
-    import java.util.concurrent.TimeUnit
 
     override val name = "GET Run Rqmts"
-
-    //val aa = Json.parse(jj)
-    //val bb = aa\"hasSufficientInventory
 
     override def run : Future[Result] = {
 
       val desiredState = true
       val failureState = false
 
-      def stateFuture : Future[Boolean] = Future{
-        val aa = icsClient.getRunRqmts
-        val nn = Await.result(aa, Duration(50000, TimeUnit.MILLISECONDS))
-        println(s"nn : $nn")
-        val mm = Json.parse(nn.toString())
-        val cc = mm \"hasSufficientInventory"
-        cc.get.asInstanceOf[Boolean]
-
+      def stateFuture = icsClient.getRunRqmts.map { rr =>
+        rr.hasSufficientInventory//.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
       }
-      /*icsClient.getRunRqmts.map { rr =>
-
-          println(s"rr : $rr")
-
-      val jsonResponse = Json.parse(rr.toString)
-      val hasInventory = jsonResponse\"hasSufficientInventory"
-      val resp = hasInventory.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
-      resp.asInstanceOf[Boolean]
-
-        }*/
 
       var retry  = 0;
 

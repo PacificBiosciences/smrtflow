@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.http.HttpHeaders._
 import MediaTypes._
 import com.pacbio.simulator.ICSJsonProtocol
-import com.pacbio.simulator.ICSModel.{ICSRun, RunResponse}
+import com.pacbio.simulator.ICSModel.{ICSRun, InstrumentState, RunRequirements, RunResponse}
 import spray.json._
 
 import scala.concurrent.Future
@@ -48,13 +48,14 @@ object ICSUris{
   final val RUN_START_URI = "/run/start"
   final val RUN_RQMTS_URI="/run/rqmts"
   final val LOAD_INVENTORY_URI = "/test/endtoend/inventory"
+  final val INSTRUMENT_STATE_URI = "/instrument/state"
 }
+
 /**
   * Client to Instrument Control
   */
 class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSystem) extends ICSJsonProtocol{
 
-  //import com.pacbio.simulator.ICSJsonProtocol
   import ICSUris._
   // Context to run futures in
   implicit val executionContext = actorSystem.dispatcher
@@ -68,7 +69,9 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
 
   def runPostPipeline = sendReceive ~> mapToJson
 
-  def runGetPipeline = runPostPipeline
+  def getInstrumentStatePipeline : HttpRequest => Future[InstrumentState] = sendReceive ~> unmarshal[InstrumentState]
+
+  def getRunRequirementsPipeline : HttpRequest => Future[RunRequirements] = sendReceive ~> unmarshal[RunRequirements]
 
   def unmarshalJSON(httpResponse: HttpResponse): JsValue = {
     val aa = httpResponse.entity.asString.parseJson
@@ -82,7 +85,6 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
 
   // POST /run  NOTE : cannot retrieve object, json contains an element with name "type"
   def postRun(icsRun: ICSRun) = runPostPipeline{
-    //println(s"running post : $icsRun")
     Post(toUrl(RUN_URI), icsRun)~> addHeader(`Content-Type`(`application/json`))
   }
 
@@ -97,12 +99,21 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
   }
 
   /*
+  instead of running the python script discretely, Manny created an endpt in ICS to load the run.
+  this is a fire and forget request
+ */
+  // POST /test/endtoend/inventory
+  def postLoadInventory = runPostPipeline{
+    Post(toUrl(LOAD_INVENTORY_URI))~> addHeader(`Content-Type`(`application/json`))
+  }
+
+  /*
   reads response as json, do not deserialize that objects, its too huge and unncessary for accessing
   just one elemnent from json
    */
   // GET /run/rqmts
-  def getRunRqmts = mapToJsValuePipeline{
-    Get(toUrl("/run/rqmts"))
+  def getRunRqmts = getRunRequirementsPipeline{
+    Get(toUrl("/run/rqmts"))~> addHeader(`Content-Type`(`application/json`))
   }
 
   // GET /run
@@ -110,14 +121,9 @@ class InstrumentControlClient(val baseUrl: URL)(implicit actorSystem: ActorSyste
     Get(toUrl(RUN_URI)) ~> addHeader(`Content-Type`(`application/json`))
   }
 
-  // POST /test/endtoend/inventory
-  /*
-  instead of running the python script discretely, Manny created an endpt in ICS to load the run.
-  this is a fire and forget request
-   */
-  def postLoadInventory = runPostPipeline{
-    Post(toUrl(LOAD_INVENTORY_URI))~> addHeader(`Content-Type`(`application/json`))
+  // GET /instrument/state
+  def getInstrumentState = getInstrumentStatePipeline{
+    Get(toUrl(INSTRUMENT_STATE_URI))~> addHeader(`Content-Type`(`application/json`))
   }
-
 }
 

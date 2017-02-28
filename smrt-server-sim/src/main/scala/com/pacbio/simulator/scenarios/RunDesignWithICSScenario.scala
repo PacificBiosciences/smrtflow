@@ -102,7 +102,7 @@ class RunDesignWithICSScenario(host: String,
 
     GetRunStatus(runDesign, Seq(Running,Starting)),
 
-    SleepStep(5.minutes),
+    SleepStep(15.minutes),
 
     GetRunStatus(runDesign, Seq(Complete))
   )
