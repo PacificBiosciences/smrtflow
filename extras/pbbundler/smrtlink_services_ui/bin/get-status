@@ -64,6 +64,9 @@ def get_parser():
     f('--debug', action='store_true', default=False, help="Shortcut to enable DEBUG log level")
     f('--log-level', default=None, choices=LOG_LEVELS.keys(),
       help="Set log level (--debug will override this value if supplied)")
+    f('--log-file', default=None,
+      help="Custom path to log file output. Default will output to the location defined in the "
+           "smrtlink-system-config.json file.")
     f('-i', '--subcomponent-id', default=None, choices=list(x.idx for x in Constants.ALL),
       help="Only get the status of SL Subcomponent")
     return p
@@ -286,6 +289,7 @@ def run_main(c, max_retries, sleep_time_sec, subcomponent_ids=None):
         names = [names_d[c_id] for c_id in component_ids]
         msg = "SUCCESSFUL status of {n} SL subcomponent(s): {c}".format(n=len(names), c=", ".join(names))
 
+        log.info(msg)
         sys.stdout.write(msg + "\n")
 
     return 0 if status is True else 1
@@ -304,7 +308,10 @@ def setup_logger(alog, level=logging.INFO, file_name=None,
     :param log_filter: (LogFilter, None)
     :param str_formatter: (str) log formatting str
     """
+
     alog.setLevel(logging.DEBUG)
+    alog.propagate = 0
+
     if file_name is None:
         handler = logging.StreamHandler(sys.stdout)
     else:
@@ -327,15 +334,16 @@ def main(argv=sys.argv):
     p = get_parser()
     args = p.parse_args(argv)
 
-    # This is a bit unclear. The stdout level should be different than
-    # the log file output to smrtlink-system-config.json
-    if args.log_level is not None:
-        level = LOG_LEVELS[args.log_level]
-    else:
-        level = logging.INFO
+    log_level_stdout = logging.WARN
+    log_level_file = logging.INFO
 
-    # --debug will override --log-level
-    level = logging.DEBUG if args.debug else level
+    if args.log_level is not None:
+        log_level_stdout = LOG_LEVELS[args.log_level]
+        log_level_file = LOG_LEVELS[args.log_level]
+
+    if args.debug:
+        log_level_stdout = logging.DEBUG
+        log_level_file = logging.DEBUG
 
     subcomponent_ids = None
     if args.subcomponent_id is not None:
@@ -346,14 +354,21 @@ def main(argv=sys.argv):
     c = _load_config()
 
     log_dir = c['pacBioSystem']['logDir']
-    get_status_log = os.path.join(os.path.abspath(log_dir), "get-status.log")
+
+    if args.log_file is None:
+        get_status_log = os.path.join(os.path.abspath(log_dir), "get-status.log")
+    else:
+        get_status_log = os.path.abspath(os.path.expanduser(args.log_file))
 
     # Because we want to log to the output dir defined in the smrtlink-system-config, the logging config
     # needs to be delayed until after the config is parsed.
 
-    setup_logger(log, level, file_name=get_status_log)
+    # SL System log dir
+    setup_logger(log, log_level_file, file_name=get_status_log)
+
     # Stdout logger, This should probably have a higher default level
-    setup_logger(log, level, file_name=None, str_formatter=_LOG_FORMAT)
+    setup_logger(log, log_level_stdout, file_name=None, str_formatter=_LOG_FORMAT)
+
     log.debug(args)
 
     log.debug("Loaded config")
