@@ -28,13 +28,14 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
   final val TIMEOUT = 10 seconds
   val toolId = "pbscala.tools.accept_user_agreement"
   val VERSION = "0.1.0"
+  val DESCRIPTION = "PacBio SMRTLink User Agreement Acceptance Tool"
   lazy val conf = ConfigFactory.load()
   lazy val defaultHost: String = Try { conf.getString("smrtflow.server.dnsName") }.getOrElse("localhost")
   lazy val defaultPort: Int = conf.getInt("smrtflow.server.port")
   lazy val defaults = AcceptUserAgreementConfig(defaultHost, defaultPort)
 
   lazy val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
-    head("PacBio SMRTLink User Agreement Acceptance Tool", VERSION)
+    head(DESCRIPTION, VERSION)
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
@@ -47,6 +48,11 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
     opt[String]("user") action { (x, c) =>
       c.copy(user = x)
     } text s"User name to save in acceptance record (default: ${defaults.user})"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage

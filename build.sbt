@@ -62,7 +62,7 @@ lazy val baseSettings = Seq(
   "com.github.fge" % "json-schema-validator" % "2.2.5",
   "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
   "com.github.nscala-time" %% "nscala-time" % "1.4.0",
-  "com.github.scopt" %% "scopt" % "3.4.0",
+  "com.github.scopt" %% "scopt" % "3.5.0",
   "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
   "com.h2database" % "h2" % "1.4.192",

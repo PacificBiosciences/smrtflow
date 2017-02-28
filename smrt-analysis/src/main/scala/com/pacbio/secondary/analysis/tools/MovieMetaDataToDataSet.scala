@@ -16,6 +16,7 @@ object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToD
 
   val toolId = "pbscala.tools.rs_movie_to_ds"
   val VERSION = "0.3.0"
+  val DESCRIPTION = "MovieMetadata To Hdf5 Subread Dataset XML "
   val defaults = MovieMetaDataToDataSetConfig("", "")
   defaults.debug = true // keeping old debug default. most others are false
 

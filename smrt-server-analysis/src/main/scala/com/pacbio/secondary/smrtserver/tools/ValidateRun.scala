@@ -25,16 +25,15 @@ import com.pacbio.secondary.smrtlink.models._
 
 case class ValidateRunConfig(path: File) extends LoggerConfig
 
-object ValidateRun
-    extends CommandLineToolRunner[ValidateRunConfig]
-    with SmrtLinkJsonProtocols {
+object ValidateRun extends CommandLineToolRunner[ValidateRunConfig] with SmrtLinkJsonProtocols {
 
   val toolId = "pbscala.tools.validate_run"
   val VERSION = "0.1.0"
+  val DESCRIPTION = "PacBio Run Design Validation Tool"
   lazy val defaults = ValidateRunConfig(null)
 
   lazy val parser = new OptionParser[ValidateRunConfig]("validate-run") {
-    head("PacBio Run Design Validation Tool", VERSION)
+    head(DESCRIPTION, VERSION)
 
     arg[File]("run").action { (p,c) =>
       c.copy(path = p)
@@ -48,27 +47,27 @@ object ValidateRun
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def validateRun(c: ValidateRunConfig) = {
+  override def runTool(c: ValidateRunConfig): Try[String] =
+    Try { validateRun(c) }
+
+
+  def validateRun(c: ValidateRunConfig): String = {
     val contents = Source.fromFile(c.path).getLines.mkString
     val dataModel = if (c.path.toString.endsWith(".json")) {
       contents.parseJson.convertTo[RunCreate].dataModel
     } else contents
     val pr = DataModelParserImpl(dataModel)
-    println(s"Successfully parsed run ${pr.run.name}")
-    0
+    s"Successfully parsed run ${pr.run.name}"
   }
 
-  def run(c: ValidateRunConfig): Either[ToolFailure, ToolSuccess] = {
-    val startedAt = JodaDateTime.now()
-    Try { validateRun(c) } match {
-      case Success(rc) => Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
-      case Failure(err) =>
-        Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), err.getMessage))
-    }
-  }
+  // delete me when this is removed from the base interface
+  def run(opt: ValidateRunConfig) =
+    Left(ToolFailure(toolId, 0, "Not Supported"))
+
+
 }
 
 object ValidateRunApp extends App {
   import ValidateRun._
-  runner(args)
+  runnerWithArgsAndExit(args)
 }

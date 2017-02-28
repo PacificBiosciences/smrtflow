@@ -7,6 +7,7 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import org.joda.time.DateTime
 import scopt.OptionParser
 
+// Is this even used?
 case class ImportDataSetConfig(
     datasetMetaType: String,
     path: String,
@@ -21,10 +22,11 @@ object ImportDataSet extends CommandLineToolRunner[ImportDataSetConfig]{
 
   val toolId = "pbscala.tools.import_dataset"
   val VERSION = "0.1.0"
+  val DESCRIPTION = "Import PacBio DataSet "
   val defaults = ImportDataSetConfig("", "", "http://localhost", 8070)
 
   val parser = new OptionParser[ImportDataSetConfig]("import-dataset") {
-    head("Import PacBio DataSet ", VERSION)
+    head(DESCRIPTION, VERSION)
     note("Tool to import a PacBio DataSet into SMRTLink Common or Analysis Services")
 
     arg[String]("ds-type") required() action { (x, c) =>

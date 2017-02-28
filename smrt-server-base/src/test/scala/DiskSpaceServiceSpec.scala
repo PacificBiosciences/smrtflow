@@ -1,4 +1,4 @@
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 
 import com.pacbio.common.dependency.{Singleton, StringConfigProvider}
 import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
@@ -17,6 +17,7 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
   val spiedFileSystemUtil = spy(new JavaFileSystemUtil)
 
   val TEST_JOB_DIR = "/test/job/dir"
+  val TEST_TMP_DIR = "/test/tmp/dir"
 
   object TestProviders extends
     ServiceComposer with
@@ -31,6 +32,10 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
            |    jobRootDir = "$TEST_JOB_DIR"
            |  }
            |}
+           |
+           |pacBioSystem {
+           |  tmpDir = "$TEST_TMP_DIR"
+           |}
         """.stripMargin)
     }
 
@@ -40,15 +45,19 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
   doReturn(200.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get(TEST_JOB_DIR))
   doReturn(150.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get(TEST_JOB_DIR))
 
+  doReturn(300.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get(TEST_TMP_DIR))
+  doReturn(250.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get(TEST_TMP_DIR))
+
   val routes = TestProviders.diskSpaceService().prefixedRoutes
 
   "Disk space service" should {
     "return a DiskSpaceResource for every id" in {
       Get("/smrt-base/disk-space") ~> routes ~> check {
         val res = responseAs[Seq[DiskSpaceResource]]
-        res.length must beEqualTo(2)
+        res.length must beEqualTo(3)
         res.map(_.fullPath) must contain("/")
         res.map(_.fullPath) must contain(TEST_JOB_DIR)
+        res.map(_.fullPath) must contain(TEST_TMP_DIR)
       }
     }
     "return a DiskSpaceResource for the root dir" in {
@@ -65,6 +74,14 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
         res.fullPath must beEqualTo(TEST_JOB_DIR)
         res.totalSpace must beEqualTo(200)
         res.freeSpace must beEqualTo(150)
+      }
+    }
+    "return a DiskSpaceResource for the tmp dir" in {
+      Get("/smrt-base/disk-space/smrtlink.resources.tmpdir") ~> routes ~> check {
+        val res = responseAs[DiskSpaceResource]
+        res.fullPath must beEqualTo(TEST_TMP_DIR)
+        res.totalSpace must beEqualTo(300)
+        res.freeSpace must beEqualTo(250)
       }
     }
   }

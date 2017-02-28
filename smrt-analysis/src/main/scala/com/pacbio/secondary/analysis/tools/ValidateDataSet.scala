@@ -22,10 +22,11 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
 
   val toolId = "pbscala.tools.validate_datasets"
   val VERSION = "0.1.2"
+  val DESCRIPTION = "Validate DataSet XMLs By type and Display DataSet Summary"
   val defaults = ValidatorConfig("")
 
   val parser = new OptionParser[ValidatorConfig]("validate-datasets") {
-    head("Validate DataSet XMLs By type and Display DataSet Summary", VERSION)
+    head(DESCRIPTION, VERSION)
 
     arg[String]("dataset-xml") required() action { (x, c) =>
       c.copy(dsPath = x)
