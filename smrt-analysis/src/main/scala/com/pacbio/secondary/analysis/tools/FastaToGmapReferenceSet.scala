@@ -25,10 +25,11 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
   import ExternalToolsUtils._
   val toolId = "pbscala.tools.fasta_to_gmap_reference"
   val VERSION = "0.1.1"
+  val DESCRIPTION = "Fasta file to GMAP Reference Dataset XML "
   val defaults = FastaToGmapReferenceSetConfig("", "", "", "", "")
 
   val parser = new OptionParser[FastaToGmapReferenceSetConfig]("fasta-to-gmap-reference") {
-    head("Fasta file to GMAP Reference Dataset XML ", VERSION)
+    head(DESCRIPTION, VERSION)
     note("Tool to generate GMAP database and convert a fasta to a Dataset XML (requires 'gmap_build' commandline exe in path)")
 
     arg[String]("fasta-file") required() action { (x, c) =>

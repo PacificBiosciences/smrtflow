@@ -19,7 +19,8 @@ packSettings
 
 packMain := Map(
   "smrt-server-link" -> "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer",
-  "smrt-server-events" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp"
+  "smrt-server-events" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
+  "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp"
 )
 
 

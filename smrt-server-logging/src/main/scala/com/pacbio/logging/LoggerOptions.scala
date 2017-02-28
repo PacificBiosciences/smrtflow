@@ -1,5 +1,8 @@
 package com.pacbio.logging
 
+import java.io.File
+import java.nio.file.Files
+
 import scopt.OptionParser
 
 
@@ -14,6 +17,17 @@ object LoggerOptions {
 
   var configured = false
 
+  val VALID_LOG_LEVELS = Set("ERROR", "WARN", "INFO", "DEBUG")
+
+  private def validateExists(file: File): Either[String, Unit] = {
+    if (Files.exists(file.toPath)) Right(Unit)
+    else Left(s"Unable to find $file")
+  }
+  private def validateLogLevel(level: String): Either[String, Unit] = {
+    if (VALID_LOG_LEVELS contains level.toUpperCase) Right(Unit)
+    else Left(s"Invalid log level '${level.toUpperCase}'. Valid log levels: ${VALID_LOG_LEVELS.reduce(_ + "," + _)}")
+  }
+
   /**
    * Common logger config options for SMRT server Apps.
    *
@@ -25,9 +39,10 @@ object LoggerOptions {
       c.configure(c.logbackFile, c.logFile, true, c.logLevel)
     } text "If true, log output will be displayed to the console. Default is false."
 
-    parser.opt[String]("log-level") action { (x, c) =>
+    parser.opt[String]("log-level").action { (x, c) =>
       c.configure(c.logbackFile, c.logFile, c.debug, x)
-    } text "Level for logging: \"ERROR\", \"WARN\", \"DEBUG\", or \"INFO\". Default is \"ERROR\""
+    }.validate(validateLogLevel)
+        .text(s"Level for logging: ${VALID_LOG_LEVELS.reduce(_ + "," + _)}")
 
     for ((n, l) <- List(("debug", "DEBUG"), ("quiet", "ERROR"), ("verbose", "INFO")))
       parser.opt[Unit](n) action { (x, c) =>
@@ -36,13 +51,12 @@ object LoggerOptions {
 
     parser.opt[String]("log-file") action { (x, c) =>
       c.configure(c.logbackFile, x, c.debug, c.logLevel)
-    } text "File for log output. Default is \".\""
+    } text "File for log output."
 
-    parser.opt[String]("logback") action { (x, c) =>
-      c.configure(x, c.logFile, c.debug, c.logLevel)
-    } text "Override all logger config with the given logback.xml file."
+    parser.opt[File]("logback").action { (x, c) =>
+      c.configure(x.toPath.toAbsolutePath.toString, c.logFile, c.debug, c.logLevel)
+    }.text("Override all logger config with the given logback.xml file.")
   }
-
   /**
    * Helper method for cases where an App doesn't otherwise use scopt parsing
    *

@@ -166,6 +166,8 @@ trait SmrtLinkJsonProtocols
 
   implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
 
+  implicit val techSupportBundleFormat = jsonFormat8(TechSupportBundle.apply)
+
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

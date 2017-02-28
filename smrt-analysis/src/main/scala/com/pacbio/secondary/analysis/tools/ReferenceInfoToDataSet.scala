@@ -17,10 +17,11 @@ object ReferenceInfoToDataSetTool extends CommandLineToolRunner[ReferenceConvert
 
   val toolId = "pbscala.tools.reference_info_to_ds"
   val VERSION = "0.3.0"
+  val DESCRIPTION = "Reference To Reference Dataset XML "
   val defaults = ReferenceConverterConfig("", "")
 
   val parser = new OptionParser[ReferenceConverterConfig]("reference-to-dataset") {
-    head("Reference To Reference Dataset XML ", VERSION)
+    head(DESCRIPTION, VERSION)
     note("Tool to convert a reference.info.xml to a Dataset XML")
 
     arg[String]("reference-info-xml") required() action { (x, c) =>
