@@ -12,6 +12,8 @@
   "paths": {
     "/status": {
       "get": {
+        "summary": "Status of Event Server",
+        "description": "Get the status, system id and uptime of the EventServer",
         "produces": [
           "application/json"
         ],
@@ -31,9 +33,9 @@
       }
     },
     "/api/v1/events": {
-      "title": "Submit event to the Event Server",
-      "description": "Submit an SL System Event to the Event Server",
       "post": {
+        "summary": "Submit event to the Event Server",
+        "description": "Submit an SL System Event to the Event Server",
         "parameters": [
           {
             "in": "body",
@@ -51,6 +53,23 @@
           },
           "201": {
             "description": "Created SmrtLink SystemEvent",
+            "schema": {
+              "$ref": "#/definitions/SmrtLinkSystemEvent"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files": {
+      "post": {
+        "summary": "Upload Tech Support (tgz) Bundle",
+        "description": "Upload .tgz or .tar.gz Tech Support Bundle. Files sizes are limited to < 8MB. Files must contain a tech-support-manifest.json file in the root directory.",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "Created SmrtLink SystemEvent corresponding to the TechSupport file uploads",
             "schema": {
               "$ref": "#/definitions/SmrtLinkSystemEvent"
             }
