@@ -39,10 +39,12 @@ object DataModelParserImpl extends DataModelParser {
   override def apply(dataModel: String): ParseResults = try {
     val xmlContentBytes: ByteArrayInputStream = new ByteArrayInputStream(dataModel.getBytes)
 
-    val schemaFile = getClass.getResource("/pb-common-xsds/PacBioDataModel.xsd")
-    val schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(schemaFile)
-    val validator = schema.newValidator()
-    validator.validate(new StreamSource(xmlContentBytes))
+    // TODO(smcclellan): Validate against raw XSD (see https://jira.pacificbiosciences.com/browse/SE-17)
+    // Currently, raw XSD validation rejects UniqueIds that begin with a number
+//    val schemaFile = getClass.getResource("/pb-common-xsds/PacBioDataModel.xsd")
+//    val schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(schemaFile)
+//    val validator = schema.newValidator()
+//    validator.validate(new StreamSource(xmlContentBytes))
 
     val context: JAXBContext = JAXBContext.newInstance(new PacBioDataModel().getClass)
     val unmarshaller: Unmarshaller = context.createUnmarshaller()
