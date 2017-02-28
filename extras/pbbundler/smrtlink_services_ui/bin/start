@@ -44,6 +44,9 @@ python ${__dir}/apply-config
 echo "completed applying config"
 
 
+${__dir}/check-system-limits
+
+
 check_port() {
    local port=$1; shift;
 
