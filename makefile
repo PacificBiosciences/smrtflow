@@ -62,7 +62,7 @@ start-smrt-server-link:
 
 start-smrt-server-link-jar:
 	sbt "smrt-server-link/assembly"
-	java -jar smrt-server-link/target/scala-2.11/secondary-analysis-services.jar
+	java -jar smrt-server-link/target/scala-2.11/smrt-server-link-assembly*.jar
 
 test:
 	sbt -batch "test-only -- junitxml html console"
