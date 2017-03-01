@@ -174,7 +174,7 @@ def _to_url(host, port, prefix="http://"):
     return ":".join([host, str(port)])
 
 
-def get_subcomponent_status(subcomponent, max_retries=3, sleep_time_sec=1):
+def get_subcomponent_status(subcomponent, max_retries=MAX_DEFAULT_RETRIES, sleep_time_sec=1):
     """
     Returns a successful message or raises. Any errors or warnings will be written to stderr.
 
@@ -205,7 +205,7 @@ def get_subcomponent_status(subcomponent, max_retries=3, sleep_time_sec=1):
     return state
 
 
-def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_retries=3, sleep_time_sec=1, filter_subcomponent_func=None):
+def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_retries=MAX_DEFAULT_RETRIES, sleep_time_sec=1, filter_subcomponent_func=None):
     """
     Check analysis service status, dataset types and jobs types. Check tomcat
     to verify UI code was loaded
@@ -230,12 +230,12 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_r
     job_urls = [_to_url(host, analysis_port) + "/secondary-analysis/job-manager/jobs/{f}".format(f=f) for f in job_types]
 
     sl_urls = [[services_url], ds_urls, job_urls]
-    sl_analysis_subcomponent = SubComponent(Constants.SL_ANALYSIS, list(itertools.chain(*sl_urls)))
+    sl_analysis_subcomponent = SubComponent(Constants.SL_ANALYSIS, list(itertools.chain(*sl_urls)), max_retries=max_retries)
 
     # SMRT View
     smrtview_urls = [smrtview_url + "/smrtview",
                      smrtview_url + "/smrtview/services/VersionService.VersionServiceHttpEndpoint/getVersion"]
-    smrtview_subcomponent = SubComponent(Constants.SVIEW, smrtview_urls)
+    smrtview_subcomponent = SubComponent(Constants.SVIEW, smrtview_urls, max_retries=max_retries)
 
     # MK. Tomcat will lazily-load after the first request. Making an initial request
     # here to trigger (and **ignore** the response), then check the analysis services,
@@ -245,9 +245,9 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_r
     wso2_publisher_url = _to_url(host, wso2_port, prefix="https://") + "/" + ConfigConstants.WS02_STATUS_ENDPOINT
 
     # FIXME(mpkocher)(2016-9-7). Roll out wso2 incrementally and tune this custom retry parameter
-    wso2_subcomponent = SubComponent(Constants.WSO2, [wso2_publisher_url], max_retries=30)
+    wso2_subcomponent = SubComponent(Constants.WSO2, [wso2_publisher_url], max_retries=max_retries)
 
-    tomcat_subcomponent = SubComponent(Constants.TOMCAT, [tcat_url])
+    tomcat_subcomponent = SubComponent(Constants.TOMCAT, [tcat_url], max_retries=max_retries)
 
     subcomponents = [sl_analysis_subcomponent, tomcat_subcomponent, smrtview_subcomponent, wso2_subcomponent]
 
