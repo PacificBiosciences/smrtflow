@@ -1,5 +1,5 @@
-Event/Message Server
-====================
+Event/Message Server for Events and File Uploads
+================================================
 
 This WIP doc describe three pieces.
 
@@ -127,8 +127,20 @@ Define standard "schema" for zipped dirs. For example, every zipped
 archive must have a manifest.json with the included files and identifer
 for that type of "file" upload. This will enable well defined parsing on
 the consumer side. For example, a failed install would have a different
-identifer that an analysis job failure (Analogous to the eventTypeId
+identifier that an analysis job failure (Analogous to the eventTypeId
 which maps to a specific schema).
+
+
+File Upload Example
+~~~~~~~~~~~~~~~~~~~
+
+Only tgz or tar.gz files are supported. Files are restricted to be less than 8MB (configurable via spray webframework). There must be
+a tech-support-manifest.json file in root directory. This manifest will provide metadata about the SL system (e.g., SL System version).
+
+::
+
+    curl -v -F techsupport_tgz=@/Users/mkocher/repos/smrtflow/example.tgz http://localhost:8070/api/v1/files
+
 
 Starting up the SMRT Event Listener Services
 --------------------------------------------
