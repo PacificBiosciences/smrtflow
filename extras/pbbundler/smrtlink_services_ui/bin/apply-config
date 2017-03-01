@@ -29,9 +29,11 @@ log.addHandler(logging.NullHandler()) # stop the logger from complaining
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _TOMCAT_VERSION = "apache-tomcat-8.0.26"
+_STATIC_FILE_DIR = "sl"
 _BUNDLE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TOMCAT_ENV = os.path.join(_BUNDLE_ROOT, _TOMCAT_VERSION, "bin", "setenv.sh")
 _WSO2_API_DIR = os.path.join(_BUNDLE_ROOT, "wso2am-2.0.0", "repository", "deployment", "server", "synapse-configs", "default", "api")
+_WSO2_HTTPS_PORT = 8243
 _SERVICES_LOG_LEVEL = "INFO"
 # Note, changes here, will require changes in bin/start
 _CONFIG_JSON = os.path.join(_BUNDLE_ROOT, 'smrtlink-system-config.json')
@@ -231,6 +233,9 @@ class ConstantsTemplateVars(object):
     ANALYSIS_SERVER_URI = "ANALYSIS_SERVER_URI"
     TOMCAT_HOST = "TOMCAT_HOST"
     TOMCAT_PORT = "TOMCAT_PORT"
+    STATIC_FILE_DIR = "STATIC_FILE_DIR"
+    WSO2_HOST = "WSO2_HOST"
+    WSO2_PORT = "WSO2_PORT"
     SSL_KEYSTORE_FILE = "SSL_KEYSTORE_FILE"
 
 
@@ -239,14 +244,16 @@ class ConstantsTemplateNames(object):
     SLINK_UI_SERVICE = "api-server.config.json"
     TOMCAT_SERVER_XML = "server.xml"
     TOMCAT_HTTPS_SERVER_XML = "https-server.xml"
+    TOMCAT_INDEX = "index.jsp"
     SSL_KEYSTORE_FILE = ".keystore"
     UI_PROXY_FILE = "_sl-ui_.xml"
 
 
 class TemplateConstants(object):
     # Config to update for SMRT Link
-    SLINK_CONFIG = _TOMCAT_VERSION + '/webapps/ROOT/' + ConstantsTemplateNames.SLINK_UI_SERVICE
-    TOMCAT_CONFIG = _TOMCAT_VERSION + '/conf/' + ConstantsTemplateNames.TOMCAT_SERVER_XML
+    SLINK_CONFIG = os.path.join(_TOMCAT_VERSION, "webapps", "ROOT", _STATIC_FILE_DIR, ConstantsTemplateNames.SLINK_UI_SERVICE)
+    TOMCAT_CONFIG = os.path.join(_TOMCAT_VERSION, "conf", ConstantsTemplateNames.TOMCAT_SERVER_XML)
+    TOMCAT_REDIRECT = os.path.join(_TOMCAT_VERSION, "webapps", "ROOT", ConstantsTemplateNames.TOMCAT_INDEX)
     SSL_KEYSTORE_FILE = os.path.join(_BUNDLE_ROOT, ConstantsTemplateNames.SSL_KEYSTORE_FILE)
     UI_PROXY_CONFIG = os.path.join(_WSO2_API_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
 
@@ -408,10 +415,21 @@ def update_tomcat(port, enable_https, tomcat_mem):
     return output_file
 
 
-def update_sl_ui(host, port):
+def update_redirect(wso2_host, wso2_port, static_dir):
+    output_file = os.path.join(_BUNDLE_ROOT, TemplateConstants.TOMCAT_REDIRECT)
+    updates = {ConstantsTemplateVars.WSO2_HOST       : wso2_host,
+               ConstantsTemplateVars.WSO2_PORT       : wso2_port,
+               ConstantsTemplateVars.STATIC_FILE_DIR : static_dir}
+
+    input_file = os.path.join(_TEMPLATE_DIR, ConstantsTemplateNames.TOMCAT_INDEX)
+    update_multiple_and_write(input_file, updates, output_file)
+
+
+def update_sl_ui(host, port, static_dir):
     output_file = os.path.join(_WSO2_API_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
-    updates = {ConstantsTemplateVars.TOMCAT_HOST  : host,
-               ConstantsTemplateVars.TOMCAT_PORT  : port}
+    updates = {ConstantsTemplateVars.TOMCAT_HOST     : host,
+               ConstantsTemplateVars.TOMCAT_PORT     : port,
+               ConstantsTemplateVars.STATIC_FILE_DIR : static_dir}
 
     input_file = os.path.join(_TEMPLATE_DIR, _WSO2_TEMPLATE_DIR, ConstantsTemplateNames.UI_PROXY_FILE)
     update_multiple_and_write(input_file, updates, output_file)
@@ -544,10 +562,9 @@ def main(argv=sys.argv[1:]):
 
         write_services_args(c.log_dir)
 
-        wso2_https_port = 8243
         update_server_path_in_ui(host,
                                  c.analysis_port,
-                                 wso2_https_port,
+                                 _WSO2_HTTPS_PORT,
                                  c.pb_smrt_view_port,
                                  c.pbservices_event_url,
                                  c.pb_tech_support_url)
@@ -556,7 +573,9 @@ def main(argv=sys.argv[1:]):
                       SystemConfig.ENABLE_HTTPS,
                       c.pb_services_mem)
 
-        update_sl_ui(host, c.port)
+        update_sl_ui(host, c.port, _STATIC_FILE_DIR)
+
+        update_redirect(host, _WSO2_HTTPS_PORT, _STATIC_FILE_DIR)
 
         rcode = 0
 
