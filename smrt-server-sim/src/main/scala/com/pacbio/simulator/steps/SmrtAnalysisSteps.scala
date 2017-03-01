@@ -6,15 +6,13 @@ import java.nio.file.Path
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-
-import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondary.smrtserver.tools.PbService
-import com.pacbio.secondary.smrtserver.models._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
 import com.pacbio.common.models._
+import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtlink.tools.PbService
 
 
 trait SmrtAnalysisSteps {
