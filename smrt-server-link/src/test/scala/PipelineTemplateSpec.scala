@@ -1,6 +1,5 @@
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtserver.services.ResolvedPipelineTemplateServiceProvider
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.{SecondaryJobJsonProtocol, SecondaryJobProtocols}
 import com.pacbio.secondary.smrtlink.services.{PipelineTemplateProvider, ResolvedPipelineTemplateServiceProvider}

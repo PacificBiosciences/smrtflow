@@ -1,6 +1,5 @@
 import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.SecondaryAnalysisProviders
-import com.pacbio.secondary.smrtserver.appcomponents._
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest

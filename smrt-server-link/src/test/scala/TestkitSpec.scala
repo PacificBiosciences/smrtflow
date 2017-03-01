@@ -1,13 +1,11 @@
 
 import java.nio.file.Paths
 
-import com.pacbio.secondary.smrtlink.testkit.{MockConfig, TestkitJsonProtocol}
-
 import scala.io.Source
 import scala.collection.immutable.Seq
 import org.specs2.mutable.Specification
 import spray.json._
-import com.pacbio.secondary.smrtserver.testkit._
+import com.pacbio.secondary.smrtlink.testkit._
 
 class TestkitSpec extends Specification with TestkitJsonProtocol {
   import com.pacbio.secondary.smrtlink.testkit.TestkitModels._
