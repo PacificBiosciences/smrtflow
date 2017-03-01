@@ -215,9 +215,7 @@ lazy val smrtServerBase = (
 lazy val smrtServerLink = (
     PacBioProject("smrt-server-link")
         dependsOn(logging, common, smrtAnalysis, smrtServerBase)
-        settings(
-          assemblyJarName in assembly := "secondary-analysis-services.jar" // keep for backward compatibility. This is referenced in bin/start amongst other places. Migrate to use exe created from sbt-pack
-        )
+        settings(mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"))
     )
 
 lazy val smrtServerSim = (

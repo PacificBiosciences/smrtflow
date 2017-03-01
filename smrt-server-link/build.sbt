@@ -4,9 +4,13 @@ fork := true
 // Don't run the test before building the jar
 test in assembly := {}
 
+val mainServer = "com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"
+
 Revolver.settings
 
-mainClass in (Compile, run) := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer")
+mainClass in (Compile, run) := Some(mainServer)
+
+mainClass in assembly := Some(mainServer)
 
 assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case PathList("application.conf") => MergeStrategy.first
@@ -23,7 +27,7 @@ packSettings
 
 packMain := Map(
   "smrt-server-link" -> "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer", // Remove this. There is no longer a concept of an "Analysis"-less SL
-  "smrt-server-analysis" -> "com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer",
+  "smrt-server-link-analysis" -> mainServer,
   "smrt-server-events" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
