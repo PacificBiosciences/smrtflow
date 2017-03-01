@@ -10,6 +10,7 @@ import org.joda.time.format.ISODateTimeFormat
 import resource._
 import scopt.OptionParser
 
+
 import scala.concurrent.{ExecutionContext, Await, Future}
 import scala.concurrent.duration._
 
@@ -28,7 +29,8 @@ object Sim extends App {
     "DataSetScenario" -> DataSetScenarioLoader,
     "ProjectsScenario" -> ProjectsScenarioLoader,
     "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
-    "StressTest" -> StressTestScenarioLoader
+    "StressTest" -> StressTestScenarioLoader,
+    "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader
   )
 
   final val DESCRIPTION =

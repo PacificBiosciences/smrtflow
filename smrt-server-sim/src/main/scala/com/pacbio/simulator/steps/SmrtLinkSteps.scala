@@ -44,6 +44,7 @@ trait SmrtLinkSteps {
     override val name = "GetRun"
 
     override def run: Future[Result] = smrtLinkClient.getRun(runId.get).map { r =>
+      println(s"runId for this run : ${runId.get}")
       output(r)
       SUCCEEDED
     }

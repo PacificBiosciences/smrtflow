@@ -6,21 +6,22 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
-import com.pacbio.secondary.smrtlink.models.{RunSummary, Run}
+import com.pacbio.secondary.smrtlink.models.{Run, RunSummary}
+import com.pacbio.simulator.clients.InstrumentControlClient
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.{Config, ConfigException}
-
+import com.pacbio.simulator.steps.IcsClientSteps
 /**
- * Example config:
- *
- * {{{
- *   smrt-link-host = "smrtlink-bihourly"
- *   smrt-link-port = 8081
- *   run-xml-path = "/path/to/testdata/runDataModel.xml"
- * }}}
- */
-object RunDesignScenarioLoader extends ScenarioLoader {
+  * Example config:
+  *
+  * {{{
+  *   smrt-link-host = "smrtlink-bihourly"
+  *   smrt-link-port = 8081
+  *   run-xml-path = "/path/to/testdata/runDataModel.xml"
+  * }}}
+  */
+object RunDesignWithICSScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for RunDesignScenario")
     val c: Config = config.get
@@ -33,19 +34,35 @@ object RunDesignScenarioLoader extends ScenarioLoader {
         case e: ConfigException.WrongType => c.getString(key).trim.toInt
       }
 
-    new RunDesignScenario(
+    new RunDesignWithICSScenario(
       c.getString("smrt-link-host"),
       getInt("smrt-link-port"),
+      c.getString("ics-host"),
+      getInt("ics-port"),
       Paths.get(c.getString("run-xml-path")))
   }
 }
 
-class RunDesignScenario(host: String, port: Int, runXmlFile: Path)
-  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps {
+class RunDesignWithICSScenario(host: String,
+                               port: Int,
+                               icsHost : String,
+                               icsPort : Int,
+                               runXmlFile: Path)
+  extends Scenario
+    with VarSteps
+    with ConditionalSteps
+    with IOSteps
+    with SmrtLinkSteps
+    with IcsClientSteps {
+
+  import scala.concurrent.duration._
+  import com.pacbio.simulator.clients.ICSState
+  import ICSState._
 
   override val name = "RunDesignScenario"
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)
   val runXml: Var[String] = Var()
@@ -68,24 +85,25 @@ class RunDesignScenario(host: String, port: Int, runXmlFile: Path)
 
     fail("Expected reserved to be false") IF runDesign.mapWith(_.reserved) !=? false,
 
-    runDesigns := GetRuns,
+    PostLoadInventory,
 
-    fail("Expected only a single run") IF runDesigns.mapWith(_.size) !=? 1,
+    PostRunDesignToICS(runDesign),
 
-    fail("Wrong uniqueId found") IF runDesigns.mapWith(_.head.uniqueId) !=? runId,
+    PostRunRqmtsToICS,
 
-    fail("Expected reserved to be false") IF runDesigns.mapWith(_.head.reserved) !=? false,
+    //GetRunRqmts(),
 
-    UpdateRun(runId, reserved = Some(Var(true))),
+    GetRunStatus(runDesign, Seq(Idle,Ready)),
 
-    runDesign := GetRun(runId),
+    // WAIT FOR FEW SECS, FOR ICS TO LOAD THE RUN
+    SleepStep(1.minutes),
 
-    fail("Expected reserved to be true") IF runDesign.mapWith(_.reserved) !=? true,
+    PostRunStartToICS,
 
-    DeleteRun(runId),
+    GetRunStatus(runDesign, Seq(Running,Starting)),
 
-    runDesigns := GetRuns,
+    SleepStep(15.minutes),
 
-    fail("Failed to delete run") IF runDesigns ? (_.nonEmpty)
+    GetRunStatus(runDesign, Seq(Complete))
   )
 }
