@@ -216,7 +216,7 @@ def get_status(host, tomcat_port, analysis_port, wso2_port, smrtview_port, max_r
     :rtype: bool
     """
 
-    tcat_url = _to_url(host, tomcat_port)
+    tcat_url = _to_url(host, tomcat_port) + "/sl/"
     sl_analysis_url = _to_url(host, analysis_port)
     smrtview_url = _to_url(host, smrtview_port)
 

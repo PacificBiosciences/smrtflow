@@ -161,7 +161,7 @@ java -cp ${SL_SERVICES_JAR} \
      -Dconfig.file=${SL_SERVICES_CONF} \
      com.pacbio.secondary.smrtserver.tools.AmClientApp \
      set-api --swagger-resource /smrtlink_swagger.json \
-     --app-config ${TOMCAT_DIR}/webapps/ROOT/app-config.json \
+     --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
      --user admin --pass admin --host localhost \
      && echo "configured API Manager for SL Analysis backend"
 
