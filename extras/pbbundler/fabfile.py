@@ -38,6 +38,7 @@ _ROOT_BUILT_BUNDLES = os.path.join(_ROOT_DIR, 'built-bundles')
 _RESOURCES_DIR = os.path.join(_ROOT_DIR, 'resources')
 _SL_ROOT = os.path.dirname(os.path.dirname(os.path.join(_ROOT_DIR)))
 _SL_SYSTEM_AVSC = os.path.join(_SL_ROOT, "SmrtLinkSystemConfig.avsc")
+_STATIC_FILE_DIR = "sl"
 
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s [%(name)s %(funcName)s %(lineno)d] %(message)s'
 
@@ -517,7 +518,7 @@ def build_smrtlink_services_ui(version,
     # Copy new-SL-UI to Tomcat
     # root_app_dir = to_path("curbranch/apps/smrt-link/dist")
     root_app_dir = os.path.join(smrtlink_ui_dir, "dist")
-    root_html_dir = os.path.join(tomcat_output_dir, "webapps/ROOT")
+    root_html_dir = os.path.join(tomcat_output_dir, "webapps", "ROOT", _STATIC_FILE_DIR)
     if os.path.exists(root_html_dir):
         shutil.rmtree(root_html_dir)
     shutil.copytree(root_app_dir, root_html_dir)

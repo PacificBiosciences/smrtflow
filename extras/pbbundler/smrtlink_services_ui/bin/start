@@ -157,7 +157,7 @@ echo "started up WSO2 API Manager"
 echo "Attempting to configure API Manager for SL Analysis backend..."
 env "JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}" \
      ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
-     --app-config ${TOMCAT_DIR}/webapps/ROOT/app-config.json \
+     --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
      --user admin --pass admin --host localhost \
      && echo "configured API Manager for SL Analysis backend"
 
