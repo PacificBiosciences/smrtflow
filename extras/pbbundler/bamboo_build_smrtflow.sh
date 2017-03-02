@@ -10,6 +10,7 @@ export PB_TEST_DATA_FILES=`readlink -f repos/PacBioTestData/data/files.json`
 source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71 sbt postgresql
 
+mkdir -p tmp
 # postgres initialization
 rm -rf $PGDATA && mkdir -p $PGDATA
 initdb
