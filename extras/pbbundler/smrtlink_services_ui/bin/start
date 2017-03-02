@@ -14,6 +14,11 @@ __base="$(basename ${__file} .sh)"
 
 arg1="${1:-}"
 
+# Need to call this here to create the *-jvm-args files
+echo "Attempting to apply-config"
+python ${__dir}/apply-config
+echo "completed applying config"
+
 SERVICES_JAR_NAME="secondary-analysis-services.jar"
 
 SL_PREFIX=sl-analysis
@@ -37,11 +42,6 @@ WSO2_DIR="$__dir/../wso2am-2.0.0"
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 logStartFile=${logDir}/bundle-start.log
-
-
-echo "Attempting to apply-config"
-python ${__dir}/apply-config
-echo "completed applying config"
 
 
 ${__dir}/check-system-limits
@@ -123,11 +123,9 @@ if ! $tomcat_running; then
 fi
 
 # Fire up the services
-echo "Starting SL Analysis services daemon..."
-java ${SL_SERVICES_JVM_ARGS} \
-     -Dconfig.file=${SL_SERVICES_CONF} \
-     -jar ${SL_SERVICES_JAR} \
-     ${SL_SERVICES_LOG_ARGS} \
+echo "Starting SMRTLink Analysis services daemon..."
+env "JAVA_OPTS=${SL_SERVICES_JVM_ARGS} -Dconfig.file=${SL_SERVICES_CONF}" \
+    ${SL_SERVICES_TOOLS_DIR}/bin/smrt-server-link-analysis ${SL_SERVICES_LOG_ARGS} \
      > ${SL_SERVICES_STDOUT} \
      2> ${SL_SERVICES_STDERR} &
 
@@ -151,16 +149,14 @@ echo "started up tomcat GUI webserver"
 
 echo "Attempting to start WSO2 API Manager..."
 bash ${WSO2_DIR}/bin/wso2server.sh --start
+${__dir}/get-status --subcomponent-id wso2 --max-retries ${MAX_RETRIES}
 echo "started up WSO2 API Manager"
 
 # The scala code will block here and wait for wso2 to startup. Need to make this
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
-java -cp ${SL_SERVICES_JAR} \
-     -Xmx256m -Xms256m \
-     -Dconfig.file=${SL_SERVICES_CONF} \
-     com.pacbio.secondary.smrtserver.tools.AmClientApp \
-     set-api --swagger-resource /smrtlink_swagger.json \
+env "JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}" \
+     ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
      --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
      --user admin --pass admin --host localhost \
      && echo "configured API Manager for SL Analysis backend"

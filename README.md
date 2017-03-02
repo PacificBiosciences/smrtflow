@@ -164,7 +164,7 @@ actorSystem: ActorSystem = akka://demo
 @ import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer => Sal}
 import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer => Sal}
 @ val sal = new Sal("smrtlink-bihourly", 8081)
-sal: com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer = com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer@8639ea4
+sal: com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer = com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer@8639ea4
 @ val fx = sal.getStatus
 fx: concurrent.Future[com.pacbio.common.models.ServiceStatus] = Success(ServiceStatus(smrtlink_analysis,Services have been up for 46 minutes and 59.472 seconds.,2819472,6d87566f-3433-4d73-8953-92673cc50f80,0.1.10-c63303e,secondarytest))
 @ actorSystem.shutdown

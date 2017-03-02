@@ -7,20 +7,19 @@ package com.pacbio.simulator.scenarios
 import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.io.{File,PrintWriter}
+import java.io.{File, PrintWriter}
 
 import akka.actor.ActorSystem
+
 import scala.collection._
 import com.typesafe.config.{Config, ConfigException}
 import spray.httpx.UnsuccessfulResponseException
-
-import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
-import com.pacbio.secondary.smrtlink.client.ClientUtils
+import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.{JobModels, OptionTypes, AnalysisJobStates}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
 import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._

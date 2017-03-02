@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.11.0"
+BUNDLE_VERSION="0.12.0"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -41,14 +41,7 @@ __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
 
-INTERNAL_BUILD=0
-SL_ANALYSIS_SERVER="smrt-server-analysis"
-arg1="${1:-}"
-if [ ! -z "$arg1" ] && [ "$arg1" = "--internal" ]; then
-  INTERNAL_BUILD=1
-  BUNDLE_VERSION="internal-${BUNDLE_VERSION}"
-  SL_ANALYSIS_SERVER="smrt-server-analysis-internal"
-fi
+SL_ANALYSIS_SERVER="smrt-server-link"
 
 echo "Starting building ${BUNDLE_VERSION}"
 
@@ -88,30 +81,21 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   pbsmrtpipe show-templates --output-templates-json ${RPT_JSON_PATH}
 
   echo "Generating pipeline datastore view rules"
-  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
+  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/pipeline-datastore-view-rules"
   python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
 
   # FIXME this won't be run if we use build artifacts - need some other way
   # to run validation
-  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
+  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/resolved-pipeline-template-presets
 
 fi
 
 # don't need to do any building for this
 echo "Installing report view rules from pbreports"
-REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/report-view-rules"
+REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/report-view-rules"
 cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
-# giant hack to allow us to display internal pipelines
-if [ $INTERNAL_BUILD -eq 1 ]; then
-  echo "Making adjustments for internal build..."
-  CONFIG_FILE=`find ${UI_ROOT} -name "app-config.json"`
-  if [ -z "$CONFIG_FILE" ]; then
-    echo "Can't find app-config.json"
-    exit 1
-  fi
-  sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
-fi
+
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI

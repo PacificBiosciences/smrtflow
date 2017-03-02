@@ -253,7 +253,7 @@ def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
 
 def __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir):
     """
-    Copy all resolved pipeline templates into smrt-server-analysis within smrtflow.
+    Copy all resolved pipeline templates into smrt-server-link within smrtflow.
 
     Note, this will overwrite all existing files
     """
@@ -263,7 +263,7 @@ def __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir
 
     if resolved_pipeline_templates_dir is not None:
         target_json_dir = to_scala_path(
-            "smrt-server-analysis/src/main/resources/resolved-pipeline-templates")
+            "smrt-server-link/src/main/resources/resolved-pipeline-templates")
         if os.path.exists(target_json_dir):
             log.warn("removing old resolved pipeline templates dir {d}".format(
                 d=target_json_dir))
@@ -349,7 +349,7 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
 def _build_smrtlink_services(services_root_dir, output_bundle_dir,
                              resolved_pipeline_templates_dir=None,
                              ivy_cache=None,
-                             analysis_server="smrt-server-analysis"):
+                             analysis_server="smrt-server-link"):
     """
     Builds all of the Scala Services and returns a path to single jar file
 
@@ -388,17 +388,17 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     jar_path = _find_target_jar(target_dir)
 
     # rename the file in the bundle
-    analysis_jar = os.path.join(output_bundle_dir, PbConstants.SECONDARY_JAR_NAME)
-    shutil.copy(jar_path, analysis_jar)
+    analysis_server_jar = os.path.join(output_bundle_dir, PbConstants.SECONDARY_JAR_NAME)
+    shutil.copy(jar_path, analysis_server_jar)
 
     # Copy built SL Analysis tools into bundle tools dir
     output_tools_root = os.path.join(output_bundle_dir, 'tools')
-    tools_root = to_scala_path("smrt-server-analysis/target/pack")
+    tools_root = to_scala_path("smrt-server-link/target/pack")
     log.info("Copying {i} to {o}".format(i=tools_root, o=output_tools_root))
     shutil.copytree(tools_root, output_tools_root)
 
     log.debug("Completed building in SL Services in {:.2f} sec.".format(time.time() - t0))
-    return analysis_jar
+    return analysis_server_jar
 
 
 @task
@@ -408,7 +408,7 @@ def build_smrtlink_services_ui(version,
                                resolved_pipeline_templates_dir,
                                publish_to=None,
                                ivy_cache=None,
-                               analysis_server="smrt-server-analysis",
+                               analysis_server="smrt-server-link",
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="apache-tomcat-8.0.26.tar.gz"):
     """
@@ -446,7 +446,7 @@ def build_smrtlink_services_ui(version,
     "/Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/resolved-pipeline-templates",
     ivy_cache="~/.ivy-cache-custom",
-    analysis_server="smrt-server-analysis",
+    analysis_server="smrt-server-link",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
     tomcat_tgz=/path/to/apache-tomcat-8.0.26.tar.gz
 

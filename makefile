@@ -5,9 +5,7 @@ STRESS_NAME=run
 
 clean:
 	rm -f secondary-smrt-server*.log 
-	rm -rf smrt-server-analysis/{db,jobs-root}
 	rm -rf smrt-server-link/{db,jobs-root}
-	rm -rf smrt-server-analysis-internal/{db,jobs-root}
 	sbt clean
 
 
@@ -24,24 +22,21 @@ tools:
 tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
-tools-smrt-analysis-internal:
-	sbt smrt-server-analysis-internal/{compile,pack}
-
-tools-smrt-server-analysis:
-	sbt smrt-server-analysis/pack
+tools-smrt-server-link:
+	sbt smrt-server-link/pack
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
-	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
+	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
 	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
-	cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
+	cp -r smrt-server-link/target/pack/* smrt-analysis/target/pack/
 	rm -rf smrt-analysis/target/pack/bin/*.bat
 	cd smrt-analysis && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 generate-test-pipeline-json:
-	pbsmrtpipe show-templates --output-templates-json smrt-server-analysis/src/main/resources/resolved-pipeline-templates
+	pbsmrtpipe show-templates --output-templates-json smrt-server-link/src/main/resources/resolved-pipeline-templates
 
 repl:
 	sbt smrtflow/test:console
@@ -57,17 +52,17 @@ insert-pbdata:
 	pbservice import-dataset PacBioTestData --debug
 
 insert-mock-data:
-	sbt "smrt-server-analysis/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
+	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
 
-insert-mock-data-summary: tools-smrt-server-analysis
-	./smrt-server-analysis/target/pack/bin/smrt-db-tool
+insert-mock-data-summary: tools-smrt-server-link
+	./smrt-server-link/target/pack/bin/smrt-db-tool
 
-start-smrt-server-analysis:
-	sbt "smrt-server-analysis/run"
+start-smrt-server-link:
+	sbt "smrt-server-link/run"
 
-start-smrt-server-analysis-jar:
-	sbt "smrt-server-analysis/assembly"
-	java -jar smrt-server-analysis/target/scala-2.11/smrt-server-analysis-assembly-*-SNAPSHOT.jar
+start-smrt-server-link-jar:
+	sbt "smrt-server-link/assembly"
+	java -jar smrt-server-link/target/scala-2.11/smrt-server-link-assembly*.jar
 
 test:
 	sbt -batch "test-only -- junitxml html console"
@@ -93,13 +88,13 @@ test-int-import-subreads:
 test-int-import-data: test-int-import-references test-int-import-subreads
 
 test-int-run-analysis:
-	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-01.json
+	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-01.json
 
 test-int-run-analysis-stress:
-	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json
+	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-stress-01.json
 
 test-int-run-analysis-trigger-failure:
-	pbservice run-analysis --debug --port=8070 --block ./smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
+	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
 
 test-int-get-status:
 	pbservice status --debug --port=8070 
@@ -107,15 +102,15 @@ test-int-get-status:
 test-int-run-sanity: test-int-get-status test-int-import-data test-int-run-analysis
 
 test-sim:
-	sbt "smrt-server-analysis/assembly"
+	sbt "smrt-server-link/assembly"
 	sbt "smrt-server-sim/pack"
 	python extras/run_sim_local.py DataSetScenario
 
 validate-report-view-rules:
-	find ./smrt-server-analysis/src/main/resources/report-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
+	find ./smrt-server-link/src/main/resources/report-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
 
 validate-pipeline-view-rules:
-	find ./smrt-server-analysis/src/main/resources/pipeline-template-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
+	find ./smrt-server-link/src/main/resources/pipeline-template-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
 
 validate-resources: validate-report-view-rules validate-pipeline-view-rules
 
@@ -128,8 +123,8 @@ full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	    mkdir -p $$OUTDIR && \
 	    rm -f $$RUNDIR/latest && \
 	    ln -s $$RUN $$RUNDIR/latest && \
-	    sbt smrt-server-analysis/compile && \
-	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-analysis/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-analysis.out 2> $$OUTDIR/smrt-server-analysis.err & echo \$$!") && \
+	    sbt smrt-server-link/compile && \
+	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-link/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-link.out 2> $$OUTDIR/smrt-server-link.err & echo \$$!") && \
 	    sleep 360 && \
 	    ./stress.py -x 10 --nprocesses 20 --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
 	    sleep 2 ; \
