@@ -22,4 +22,4 @@ export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
 
-TMP=`pwd`/tmp sbt -no-colors compile test publish
+env TMP=`pwd`/tmp sbt -no-colors compile test publish
