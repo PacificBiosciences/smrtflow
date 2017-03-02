@@ -6,9 +6,9 @@ module load sbt
 SHA=`git rev-parse --short HEAD`
 echo SHA is ${SHA}
 rm -f pbscala*.tar.gz
-sbt -no-colors smrt-analysis/pack smrt-server-base/pack smrt-server-analysis/pack
+sbt -no-colors smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
 cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
-cp -r smrt-server-analysis/target/pack/* smrt-analysis/target/pack/
+cp -r smrt-server-link/target/pack/* smrt-analysis/target/pack/
 rm -rf smrt-analysis/target/pack/bin/*.bat
 
 TARBALL=${bamboo_working_directory}/pbscala-packed-${SHA}.tar.gz
