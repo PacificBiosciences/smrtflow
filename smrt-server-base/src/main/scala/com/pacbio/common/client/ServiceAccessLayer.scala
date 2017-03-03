@@ -167,4 +167,7 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
     f(input).recoverWith { case NonFatal(_) if numRetries > 0 => callWithRetry[A, B](f, input, numRetries - 1) }
   }
 
+  def getStatusWithRetry(maxRetries: Int = 3): Future[ServiceStatus] =
+    callWithRetry[Unit, ServiceStatus]((Unit) => getStatus, Unit, maxRetries)
+
 }
