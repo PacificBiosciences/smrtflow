@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Bash3 Boilerplate. Copyright (c) 2014, kvz.io
+
+#set -o errexit
+set -o pipefail
+set -o nounset
+# set -o xtrace
+
+# Set magic variables for current file & dir
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+__base="$(basename ${__file} .sh)"
+
+arg1="${1:-}"
+
+SL_ANALYSIS_PID=$__root/sl-analysis.pid
+
+if [ -f ${SL_ANALYSIS_PID} ]; then
+   PID=`cat ${SL_ANALYSIS_PID}`
+   echo Killing Java PID: ${SL_ANALYSIS_PID}
+   kill $PID || true
+   rm ${SL_ANALYSIS_PID}
+elif [ ! -f ${SL_ANALYSIS_PID} ]; then
+   echo No java process currently running
+fi
+
+STATUS=0
+ws02_dir="$__dir/../wso2am-2.0.0"
+bash $ws02_dir/bin/wso2server.sh --stop
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "WSO2 shutdown failed"
+fi
+
+$__dir/../apache-tomcat-8.0.26/bin/shutdown.sh
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "Tomcat shutdown failed"
+fi
+
+exit $STATUS
