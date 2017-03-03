@@ -38,6 +38,7 @@ packMain := Map(
   "bundler-migrate-legacy-config" -> "com.pacbio.secondary.smrtlink.tools.LegacyConvertConfigJsonToolApp",
   "bundler-validate-config" -> "com.pacbio.secondary.smrtlink.tools.BundlerConfigApp",
   "bundler-get-status" -> "com.pacbio.secondary.smrtlink.tools.GetSystemStatusToolApp",
+  "bundler-apply-config" -> "com.pacbio.secondary.smrtlink.tools.ApplyConfigToolApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtlink.tools.AcceptUserAgreementApp",
   "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp"
 )
