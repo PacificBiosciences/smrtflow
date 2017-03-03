@@ -39,6 +39,7 @@ if [ -f ${wso2_pid} ]; then
 else
    PID=0
    echo "Could not locate WSO2 PID"
+   STATUS=1
 fi
 bash $wso2_dir/bin/wso2server.sh --stop
 if [ $? -ne 0 ]; then
@@ -60,7 +61,7 @@ if [ $PID -ne 0 ]; then
   fi
   if check_pid "$PID"; then
     echo "WSO2 still running on PID ${PID}"
-    STATUS=1
+    STATUS=2
   fi
 elif [ $PID -eq 0 ]; then
   echo "WARNING: WSO2 may still be running on unknown PID"
