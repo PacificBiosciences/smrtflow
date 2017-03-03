@@ -3,25 +3,26 @@ package com.pacbio.secondary.smrtlink.tools
 import java.net.URL
 import java.nio.file.{Files, Path}
 
-import akka.actor.ActorSystem
-import com.pacbio.common.client.UrlUtils
+import akka.actor.{ActorSystem, Scheduler}
+import akka.pattern.after
+import com.pacbio.common.client.{Retrying, UrlUtils}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
 import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
-
 import spray.client.pipelining._
 import spray.http._
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NonFatal
 
 /**
   * Migration of the get-status python code to scala to reduce duplication
@@ -71,7 +72,7 @@ trait GetSubComponentStatus {
   val port: Int
   val pidFile: Option[Path]
 
-  def getServiceStatus(maxRetries: Int = 3)(implicit actorSystem: ActorSystem): Future[String]
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.seconds)(implicit actorSystem: ActorSystem): Future[String]
 
   def getPidStatus(): Future[String] = {
     pidFile match {
@@ -89,35 +90,36 @@ trait GetSubComponentStatus {
     if (Files.exists(path)) Future(s"Found PID file $path")
     else Future.failed(throw new Exception(s"SubComponent $name is down. Unable to find PID file $path"))
 
-  def getStatus()(implicit actorSystem: ActorSystem): Future[String] = {
+  def getStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     for {
       pidStatus <- getPidStatus()
-      serviceStatus <- getStatus()
+      serviceStatus <- getServiceStatus(maxRetries, retryDelay)
     } yield s"$pidStatus\n$serviceStatus"
   }
 }
 
 class GetSmrtViewComponentStatus(override val host: String, override val port: Int, override val pidFile: Option[Path]) extends GetSubComponentStatus{
   val name = SubComponentIds.SVIEW
-  def getServiceStatus(maxRetries: Int = 3)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.seconds)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new SmrtViewClient(host, port)
-    client.getStatus()
+    client.getStatusWithRetry(maxRetries)
   }
 }
 
 class GetSmrtLinkComponentStatus(override val host: String, override val port: Int, override val pidFile: Option[Path]) extends GetSubComponentStatus{
   val name = SubComponentIds.SLA
-  def getServiceStatus(maxRetries: Int = 3)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new AnalysisServiceAccessLayer(host, port)
+    //FIXME(mpkocher)(3-2-2017) This needs to support retryDelay
     client.getStatusWithRetry(maxRetries).map(status => s"Successfully got status ${status.message}")
   }
 }
 
 class GetTomcatComponentStatus(override val host: String, override val port: Int, override val pidFile: Option[Path]) extends GetSubComponentStatus{
   val name = SubComponentIds.TOMCAT
-  def getServiceStatus(maxRetries: Int = 3)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new TomcatClient(host, port)
-    client.getStatus()
+    client.getStatusWithRetry(maxRetries, retryDelay)
   }
 }
 
@@ -125,13 +127,14 @@ class GetWso2ComponentStatus(override val host: String, override val port: Int, 
   val name = SubComponentIds.WSO2
 
   //FIXME(mpkocher)(3-2-2017) This needs to be replaced by the AmClient. I Don't see a getStatus method
-  def getServiceStatus(maxRetries: Int = 3)(implicit actorSystem: ActorSystem): Future[String] =
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] =
     Future.successful("WARNING! Skipping WSO2 status check. Not Supported")
 }
 
+
 // This is kinda brutal. The Client interface needs to have a base trait or class
 // to enable reuse of code. I'll have to copy in the retry funcs from ServerAccessLayer
-abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem) {
+abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends Retrying{
 
   // Sanity Status EndPoint (must have leading slash, or can be empty string)
   val EP_STATUS: String
@@ -147,6 +150,10 @@ abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem) {
   // The components that we control should implement the ServiceStatus as the interface
   def getStatus(): Future[String] = simplePipeline { Get(STATUS_URL.toString) }
       .map(_ => s"Successfully got status of $STATUS_URL")
+
+  def getStatusWithRetry(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second): Future[String] =
+    retry[String](getStatus, retryDelay, maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
+
 
 }
 
@@ -172,42 +179,42 @@ trait GetSubSystemStatus extends LazyLogging{
     sx
   }
 
-  def getSmrtLinkStatus(host: String, port: Int, maxReties: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getSmrtLinkStatus(host: String, port: Int, maxReties: Int, retryDelay: FiniteDuration)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new GetSmrtLinkComponentStatus(host, port, None)
-    client.getServiceStatus()(actorSystem)
+    client.getServiceStatus(maxReties)(actorSystem)
   }
 
-  def getSmrtViewStatus(host: String, port: Int, maxRetries: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getSmrtViewStatus(host: String, port: Int, maxRetries: Int, retryDelay: FiniteDuration)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new GetSmrtViewComponentStatus(host, port, None)
-    client.getServiceStatus()
+    client.getServiceStatus(maxRetries)
   }
 
-  def getTomcatStatus(host: String, port: Int, maxRetries: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getTomcatStatus(host: String, port: Int, maxRetries: Int, retryDelay: FiniteDuration)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new GetTomcatComponentStatus(host, port, None)
-    client.getServiceStatus()
+    client.getServiceStatus(maxRetries)
   }
 
-  def getWso2Status(host: String, port: Int, maxRetries: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getWso2Status(host: String, port: Int, maxRetries: Int, retryDelay: FiniteDuration)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new GetWso2ComponentStatus(host, port, None)
-    client.getServiceStatus()
+    client.getServiceStatus(maxRetries)
   }
 
 
-  def getSystemStatus(host: String, smrtLinkPort: Int, smrtViewPort: Int, tomcatPort: Int, wso2Port: Int, maxRetries: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getSystemStatus(host: String, smrtLinkPort: Int, smrtViewPort: Int, tomcatPort: Int, wso2Port: Int, maxRetries: Int, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     for {
-      smrtLinkStatus <- getSmrtLinkStatus(host, smrtLinkPort, maxRetries).map(andLog)
-      smrtViewStatus <- getSmrtViewStatus(host, smrtViewPort, maxRetries).map(andLog)
-      tomcatStatus <- getTomcatStatus(host, tomcatPort, maxRetries).map(andLog)
-      wso2Status <- getWso2Status(host, wso2Port, maxRetries).map(andLog)
+      smrtLinkStatus <- getSmrtLinkStatus(host, smrtLinkPort, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      smrtViewStatus <- getSmrtViewStatus(host, smrtViewPort, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      tomcatStatus <- getTomcatStatus(host, tomcatPort, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      wso2Status <- getWso2Status(host, wso2Port, maxRetries, retryDelay: FiniteDuration).map(andLog)
     } yield "Successfully Got status of Subcomponents: SL Analysis, SMRT View, Tomcat and WSO2"
   }
 
-  def getSubComponentSystemStatusById(id: String, host: String, port: Int, maxRetries: Int)(implicit actorSystem: ActorSystem): Future[String] = {
+  def getSubComponentSystemStatusById(id: String, host: String, port: Int, maxRetries: Int, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     id.toLowerCase match {
-      case SubComponentIds.SLA => getSmrtLinkStatus(host, port, maxRetries).map(andLog)
-      case SubComponentIds.SVIEW => getSmrtViewStatus(host, port, maxRetries).map(andLog)
-      case SubComponentIds.TOMCAT => getTomcatStatus(host, port, maxRetries).map(andLog)
-      case SubComponentIds.WSO2 => getWso2Status(host, port, maxRetries).map(andLog)
+      case SubComponentIds.SLA => getSmrtLinkStatus(host, port, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      case SubComponentIds.SVIEW => getSmrtViewStatus(host, port, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      case SubComponentIds.TOMCAT => getTomcatStatus(host, port, maxRetries, retryDelay: FiniteDuration).map(andLog)
+      case SubComponentIds.WSO2 => getWso2Status(host, port, maxRetries, retryDelay: FiniteDuration).map(andLog)
       case x => Future.failed(throw new Exception(s"Invalid Subcomponent id '$x'"))
     }
   }
@@ -314,6 +321,7 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
 
     val timeOutSec = (opts.maxRetries + 1) * opts.sleepTimeSec
     val timeOut = timeOutSec.seconds
+    val retryDelay: FiniteDuration = opts.sleepTimeSec.seconds
 
     // get a map of the system to port for the case where -i was given
     val systemPort = opts.subComponentId
@@ -324,9 +332,9 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
 
     val result = systemPort match {
       case Some(Tuple2(ix, port)) =>
-        runAndBlock(() => GetSubSystemStatus.getSubComponentSystemStatusById(ix, opts.host, port, opts.maxRetries), timeOut)
+        runAndBlock(() => GetSubSystemStatus.getSubComponentSystemStatusById(ix, opts.host, port, opts.maxRetries, retryDelay), timeOut)
       case _ =>
-        runAndBlock(() => GetSubSystemStatus.getSystemStatus(opts.host, opts.smrtLinkPort, opts.smrtViewPort, opts.tomcatPort, opts.wso2Port, opts.maxRetries), timeOut)
+        runAndBlock(() => GetSubSystemStatus.getSystemStatus(opts.host, opts.smrtLinkPort, opts.smrtViewPort, opts.tomcatPort, opts.wso2Port, opts.maxRetries,retryDelay), timeOut)
     }
 
     logger.debug("Shutting down actor system")
