@@ -110,7 +110,6 @@ class GetSmrtLinkComponentStatus(override val host: String, override val port: I
   val name = SubComponentIds.SLA
   def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new AnalysisServiceAccessLayer(host, port)
-    //FIXME(mpkocher)(3-2-2017) This needs to support retryDelay
     client.getStatusWithRetry(maxRetries).map(status => s"Successfully got status ${status.message}")
   }
 }
