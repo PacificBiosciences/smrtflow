@@ -314,8 +314,8 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
     * @param timeOut timeout for the blocking call
     * @return
     */
-  def runAndBlock(fx: (() => Future[String]), timeOut: Duration): Try[String] =
-    Try { Await.result(fx(), timeOut) }
+  def runAndBlock(fx: => Future[String], timeOut: Duration): Try[String] =
+    Try { Await.result(fx, timeOut) }
 
   override def runTool(opts: GetSystemStatusToolOptions): Try[String] = {
 
@@ -332,9 +332,9 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
 
     val result = systemPort match {
       case Some(Tuple2(ix, port)) =>
-        runAndBlock(() => GetSubSystemStatus.getSubComponentSystemStatusById(ix, opts.host, port, opts.maxRetries, retryDelay), timeOut)
+        runAndBlock(GetSubSystemStatus.getSubComponentSystemStatusById(ix, opts.host, port, opts.maxRetries, retryDelay), timeOut)
       case _ =>
-        runAndBlock(() => GetSubSystemStatus.getSystemStatus(opts.host, opts.smrtLinkPort, opts.smrtViewPort, opts.tomcatPort, opts.wso2Port, opts.maxRetries,retryDelay), timeOut)
+        runAndBlock(GetSubSystemStatus.getSystemStatus(opts.host, opts.smrtLinkPort, opts.smrtViewPort, opts.tomcatPort, opts.wso2Port, opts.maxRetries,retryDelay), timeOut)
     }
 
     logger.debug("Shutting down actor system")
