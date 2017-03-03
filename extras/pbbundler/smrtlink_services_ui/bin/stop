@@ -36,7 +36,7 @@ wso2_pid="$wso2_dir/wso2carbon.pid"
 if [ -f ${wso2_pid} ]; then
    PID=`cat ${wso2_pid}`
    echo "WSO2 PID: ${PID}"
-elif [ ! -f ${wso2_pid} ]; then
+else
    PID=0
    echo "Could not locate WSO2 PID"
 fi
