@@ -56,6 +56,11 @@ if [ $PID -ne 0 ]; then
   done
   if check_pid "$PID"; then
     echo "WSO2 still running on PID ${PID}"
+    echo "Sending termination signal to PID ${PID}"
+    kill $PID || true
+  fi
+  if check_pid "$PID"; then
+    echo "WSO2 still running on PID ${PID}"
     echo "Sending kill signal to PID ${PID}"
     kill -9 $PID || true
   fi
