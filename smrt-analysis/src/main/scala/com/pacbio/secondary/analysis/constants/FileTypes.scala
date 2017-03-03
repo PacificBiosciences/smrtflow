@@ -69,7 +69,7 @@ object FileTypes {
   final val VCF = FileBaseType(toFT("vcf"), "file", "vcf", "text/plain")
   final val CSV = FileBaseType(toFT("csv"), "file", "csv", "text/plain")
   final val XML = FileBaseType(toFT("xml"), "file", "xml", "application/xml")
-  final val HTML = FileType(toFT("html"), "file", "html", "text/html")
+  final val HTML = FileBaseType(toFT("html"), "file", "html", "text/html")
   final val JSON = FileBaseType(toFT("json"), "file", "json", "application/json")
   final val BIGWIG = FileBaseType(toFT("bigwig"), "file", "bw", "application/octet-stream")
   final val GZIP = FileBaseType(toFT("gzip"), "file", "gz", "application/x-gzip")
