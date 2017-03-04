@@ -1,7 +1,8 @@
 package com.pacbio.common.client
 
 import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Scheduler}
+import akka.pattern.after
 import spray.client.pipelining._
 
 import scala.concurrent.duration._
@@ -9,7 +10,7 @@ import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import java.net.URL
 
@@ -27,7 +28,14 @@ trait UrlUtils {
 object UrlUtils extends UrlUtils
 
 
-class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
+// Lifted from https://gist.github.com/viktorklang/9414163
+trait Retrying {
+  def retry[T](f: => Future[T], delay: FiniteDuration, retries: Int)(implicit ec: ExecutionContext, s: Scheduler): Future[T] = {
+    f recoverWith { case _ if retries > 0 => after(delay, s)(retry(f, delay, retries - 1)) }
+  }
+}
+
+class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) extends Retrying {
 
   import PacBioJsonProtocol._
   import SprayJsonSupport._
@@ -166,5 +174,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) {
   def callWithRetry[A, B](f: (A => Future[B]), input: A, numRetries: Int): Future[B] = {
     f(input).recoverWith { case NonFatal(_) if numRetries > 0 => callWithRetry[A, B](f, input, numRetries - 1) }
   }
+
+  def getStatusWithRetry(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second): Future[ServiceStatus] =
+    retry[ServiceStatus](getStatus, retryDelay, maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
 
 }
