@@ -2,9 +2,14 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.net.URL
 import java.nio.file.{Files, Path}
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import akka.actor.{ActorSystem, Scheduler}
-import akka.pattern.after
+import akka.io.IO
+import akka.pattern.{after, ask}
+import akka.util.Timeout
 import com.pacbio.common.client.{Retrying, UrlUtils}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
@@ -12,6 +17,7 @@ import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
 import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
+import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.json._
@@ -126,8 +132,11 @@ class GetWso2ComponentStatus(override val host: String, override val port: Int, 
   val name = SubComponentIds.WSO2
 
   //FIXME(mpkocher)(3-2-2017) This needs to be replaced by the AmClient. I Don't see a getStatus method
-  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] =
-    Future.successful("WARNING! Skipping WSO2 status check. Not Supported")
+  def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
+    val client = new AmClientLite(host, port)
+    client.getStatus()
+  }
+
 }
 
 
@@ -170,6 +179,49 @@ class TomcatClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends Base
   }
   // This should be pushed back to a central constants location
   val EP_STATUS = "/sl"
+}
+
+// This is largely cribbed from AmClient. This needs to be folded back into a base trait
+class AmClientLite(baseUrl: URL)(implicit actorSystem: ActorSystem) extends BaseSmrtClient(baseUrl) {
+
+  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
+    this(new URL(s"https://$host:$port"))(actorSystem)
+  }
+
+  val EP_STATUS = "/publisher"
+  val WSO2_OFFSET = 0
+
+  implicit val timeout: Timeout = 200.seconds
+
+  implicit val sslContext = {
+    // Create a trust manager that does not validate certificate chains.
+    val permissiveTrustManager: TrustManager = new X509TrustManager() {
+      override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = {
+      }
+      override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = {
+      }
+      override def getAcceptedIssuers(): Array[X509Certificate] = {
+        null
+      }
+    }
+
+    val initTrustManagers = Array(permissiveTrustManager)
+    val ctx = SSLContext.getInstance("TLS")
+    ctx.init(null, initTrustManagers, new SecureRandom())
+    ctx
+  }
+
+  val adminPipe: Future[SendReceive] =
+    for (
+      Http.HostConnectorInfo(connector, _) <-
+      IO(Http) ? Http.HostConnectorSetup(baseUrl.getHost, port = baseUrl.getPort + WSO2_OFFSET, sslEncryption = true)
+    ) yield sendReceive(connector)
+
+
+  override def getStatus(): Future[String] =
+    adminPipe.flatMap(_(Get(STATUS_URL.toString)))
+        .map(_ => s"Successfully got status of $STATUS_URL")
+
 }
 
 
@@ -231,7 +283,7 @@ trait GetSystemStatusDefaultLoader extends ConfigLoader {
   private lazy val defaultTomcatPort = Try { conf.getInt("smrtflow.pacBioSystem.tomcatPort")}.getOrElse(8080)
   private lazy val defaultSmrtViewPort = Try { conf.getInt("smrtflow.pacBioSystem.smrtViewPort")}.getOrElse(8084)
   // This needs to stop being hardcoded everywhere. The chickens will come home and roust at some point.
-  private lazy val defaultWso2Port = 8243 // 9443
+  private lazy val defaultWso2Port = 9443
 
   lazy val defaults = GetSystemStatusToolOptions("localhost", 3, 5, None, defaultSmrtLinkPort, defaultSmrtViewPort, defaultTomcatPort, defaultWso2Port)
 
