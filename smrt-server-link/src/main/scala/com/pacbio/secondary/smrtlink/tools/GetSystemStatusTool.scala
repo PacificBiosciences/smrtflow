@@ -133,6 +133,7 @@ class GetWso2ComponentStatus(override val host: String, override val port: Int, 
 
 // This is kinda brutal. The Client interface needs to have a base trait or class
 // to enable reuse of code. I'll have to copy in the retry funcs from ServerAccessLayer
+//FIXME(mpkocher)(3-3-2017) Push these clients back to com.pacbio.sceondary.smrtlink.clients
 abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends Retrying{
 
   // Sanity Status EndPoint (must have leading slash, or can be empty string)
@@ -167,7 +168,8 @@ class TomcatClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends Base
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)
   }
-  val EP_STATUS = "/"
+  // This should be pushed back to a central constants location
+  val EP_STATUS = "/sl"
 }
 
 
