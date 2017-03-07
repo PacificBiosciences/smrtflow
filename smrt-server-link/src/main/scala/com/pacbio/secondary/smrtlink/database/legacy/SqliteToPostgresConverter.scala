@@ -156,9 +156,6 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
       (jobEvents             forceInsertAll v(2).asInstanceOf[Seq[JobEvent]]) >>
-      (jobTags               forceInsertAll v(3).asInstanceOf[Seq[(Int, String)]]) >>
-      jobTags.map(_.id).max.result.flatMap(m => setAutoInc(jobTags.baseTableRow.tableName, "job_tag_id", m)) >>
-      (jobsTags              forceInsertAll v(4).asInstanceOf[Seq[(Int, Int)]]) >>
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
       sqlu"create unique index project_name_unique on projects (name) where is_active;" >>
@@ -324,21 +321,6 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def idx = index("job_events_job_id", jobId)
   }
 
-  class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
-    def id: Rep[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
-    def name: Rep[String] = column[String]("name")
-    def * : ProvenShape[(Int, String)] = (id, name)
-  }
-
-  class JobsTags(tag: Tag) extends Table[(Int, Int)](tag, "jobs_tags") {
-    def jobId: Rep[Int] = column[Int]("job_id")
-    def tagId: Rep[Int] = column[Int]("job_tag_id")
-    def * : ProvenShape[(Int, Int)] = (jobId, tagId)
-    def jobJoin = engineJobs.filter(_.id === jobId)
-    def jobTagFK = foreignKey("job_tag_fk", tagId, jobTags)(a => a.id)
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
-  }
-
   class EngineJobsT(tag: Tag) extends Table[LegacyEngineJob](tag, "engine_jobs") {
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
     def uuid: Rep[UUID] = column[UUID]("uuid")
@@ -359,14 +341,6 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
     def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive) <> (LegacyEngineJob.tupled, LegacyEngineJob.unapply)
     def uuidIdx = index("engine_jobs_uuid", uuid)
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
-  }
-
-  class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
-    def id: Rep[Int] = column[Int]("job_result_id")
-    def host: Rep[String] = column[String]("host_name")
-    def jobId: Rep[Int] = column[Int]("job_id")
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-    def * : ProvenShape[(Int, String)] = (id, host)
   }
 
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
@@ -643,8 +617,6 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
   lazy val engineJobs = TableQuery[EngineJobsT]
   lazy val engineJobsDataSets = TableQuery[EngineJobDataSetT]
   lazy val jobEvents = TableQuery[JobEventsT]
-  lazy val jobTags = TableQuery[JobTags]
-  lazy val jobsTags = TableQuery[JobsTags]
 
   // Runs
   lazy val runSummaries = TableQuery[RunSummariesT]
@@ -676,8 +648,6 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       ej  <- engineJobs.result
       ejd <- engineJobsDataSets.result
       je  <- (jobEvents join engineJobs on (_.jobId === _.id)).result
-      jt  <- jobTags.result
-      jst <- (jobsTags join engineJobs on (_.jobId === _.id) join jobTags on (_._1.tagId === _.id)).result
       ps  <- projects.result
       psu <- (projectsUsers join projects on (_.projectId === _.id)).result
       dmd <- dsMetaData2.result
@@ -696,7 +666,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), jt, jst.map(_._1), ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), None, None, ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }

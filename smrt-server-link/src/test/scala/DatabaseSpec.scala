@@ -186,8 +186,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         for {
           jid <- engineJobs returning engineJobs.map(_.id) += job
           _   <- jobEvents += event.copy(jobId = jid)
-          tid <- jobTags returning jobTags.map(_.id) += tag
-          _   <- jobsTags += jTag.copy(_1 = jid, _2 = tid)
           pid <- projects returning projects.map(_.id) += project
           _   <- projectsUsers += projectUser.copy(projectId = pid)
           _   <- engineJobsDataSets += dataset.copy(jobId = jid)
@@ -219,8 +217,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       val ej = Await.result(testdb.run(engineJobs.filter(_.uuid === job.uuid).result.head), 1.second)
       val je = Await.result(testdb.run(jobEvents.filter(_.jobId === ej.id).result.head), 1.second)
-      val ta = Await.result(testdb.run(jobTags.result.head), 1.second)
-      val jt = Await.result(testdb.run(jobsTags.result.head), 1.second)
       val gp = Await.result(testdb.run(projects.filter(_.name === "General Project").result.head), 1.second)
       // Get the Project that this spec imported
       val pr = Await.result(testdb.run(projects.filter(_.name === projectName).result.head), 1.second)
@@ -244,7 +240,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val sa = Await.result(testdb.run(samples.filter(_.uniqueId === sample.uniqueId).result.head), 1.second)
 
       val jobId = ej.id
-      val tagId = ta._1
       val projectId = pr.id
       val metadataId = md.id
       val subreadId = su.id
@@ -259,8 +254,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       ej === job.copy(id = jobId)
       je === event.copy(jobId = jobId)
-      ta === tag.copy(_1 = tagId)
-      //jt === jTag.copy(_1 = jobId, _2 = tagId)
       //gp.description === "General Project"
       //pr === project.copy(id = projectId)
       //pu === projectUser.copy(projectId = projectId)
