@@ -250,21 +250,6 @@ trait MockUtils extends LazyLogging{
     } yield ()
   }
 
-  def insertMockJobsTags(): Future[Unit] = {
-    def randomInt(x: List[Int]) = Random.shuffle(x).head
-
-    val jobIds = (1 until MOCK_NJOBS).toList
-    val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
-    val tagIds = tags.indices.toList
-
-    dao.db.run(
-      DBIO.seq(
-        jobTags ++= tagIds.map(i => (i, tags(i))),
-        jobsTags ++= jobIds.map( (_, randomInt(tagIds)) )
-      )
-    )
-  }
-
   def insertMockProject(): Future[Int] = {
     val f = dao.db.run(
       for {
