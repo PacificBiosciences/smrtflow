@@ -118,18 +118,16 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     val sqliteURI = toSqliteURI(c.sqliteFile)
 
     val writer = new PostgresWriter(db, c.pgUsername)
-    val res = writer.checkForSuccessfulMigration().flatMap { s =>
-      if (s) {
-        // This should pass the Migration metadata here to communicate the date of the
-        // successfully applied migration.
-        val msg = "Previous Import was successful. Skipping importing."
+    val res = writer.checkForSuccessfulMigration().flatMap {
+      case Some(status) =>
+        val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
         println(msg)
         Future.successful(msg)
-      } else
+      case _ =>
         writer
-          .write(new LegacySqliteReader(sqliteURI).read())
-          .andThen { case _ => db.close() }
-          .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
+            .write(new LegacySqliteReader(sqliteURI).read())
+            .andThen { case _ => db.close() }
+            .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
     }
 
     Try {Await.result(res, Duration.Inf)}
@@ -212,9 +210,9 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
     sql"SELECT setval($sequenceName, ${max.getOrElse(0) + 1});".as[Int].map(_.head)
   }
 
-  def checkForSuccessfulMigration(): Future[Boolean] = {
+  def checkForSuccessfulMigration(): Future[Option[MigrationStatusRow]] = {
     val c = initMigrationStatusTable().flatMap { _ =>
-      migrationStatus.filter(_.success === true).exists.result
+      migrationStatus.filter(_.success === true).result.headOption
     }
     db.run(c.transactionally)
   }
