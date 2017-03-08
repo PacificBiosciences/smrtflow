@@ -132,8 +132,8 @@ parseargs() {
 set_preglobals() {
     g_prog=$(basename $0);
     g_progdir=$(dirname $0);
-    g_progdir_abs=$(greadlink -f "$g_progdir");
-    g_config=$(greadlink -f "${g_progdir}/../smrtlink-system-config.json");
+    g_progdir_abs=$(readlink -f "$g_progdir");
+    g_config=$(readlink -f "${g_progdir}/../smrtlink-system-config.json");
 }
 
 
