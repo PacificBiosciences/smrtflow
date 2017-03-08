@@ -1,25 +1,26 @@
 package com.pacbio.secondary.smrtlink.database.legacy
 
 import java.io.{PrintWriter, StringWriter}
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
-import com.pacbio.logging.{LoggerOptions, LoggerConfig}
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
-import com.pacbio.secondary.analysis.tools.{ToolSuccess, ToolFailure, CommandLineToolRunner}
+import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
-import slick.lifted.ProvenShape
+import slick.jdbc.meta.MTable
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.util.Failure
 import scala.util.control.NonFatal
 
 object SqliteToPostgresConverterApp extends App {
@@ -83,14 +84,20 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
     val db = dbConfig.toDatabase
 
-    val res = new PostgresWriter(db, c.pgUsername)
-      .write(new LegacySqliteReader(c.legacyUri).read())
-      .andThen { case _ => db.close() }
-      .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
-      .recover {
-        case NonFatal(e) => Left(ToolFailure(toolId, computeTimeDelta(JodaDateTime.now(), startedAt), exceptionString(e)))
-      }
-
+    val writer = new PostgresWriter(db, c.pgUsername)
+    val res = writer.checkForSuccessfulMigration().flatMap { s =>
+      if (s) {
+        println("Successful migration already completed")
+        Future.successful(Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))))
+      } else
+        writer
+          .write(new LegacySqliteReader(c.legacyUri).read())
+          .andThen { case _ => db.close() }
+          .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
+          .recover {
+            case NonFatal(e) => Left(ToolFailure(toolId, computeTimeDelta(JodaDateTime.now(), startedAt), exceptionString(e)))
+          }
+    }
     Await.result(res, Duration.Inf)
   }
 
@@ -102,8 +109,17 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 }
 
 class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String) {
-  import slick.driver.PostgresDriver.api._
   import TableModels._
+  import slick.driver.PostgresDriver.api._
+
+  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String])
+
+  class MigrationStatusT(tag: Tag) extends Table[MigrationStatusRow](tag, "migration_status") {
+    def timestamp: Rep[String] = column[String]("timestamp")
+    def success: Rep[Boolean] = column[Boolean]("success")
+    def error: Rep[Option[String]] = column[Option[String]]("error")
+    def * = (timestamp, success) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
+  }
 
   case class FlywayRow(installed_rank: Int,
                        version: Option[String],
@@ -131,7 +147,10 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
     def * = (installed_rank, version, description, typ, script, checksum, installed_by, installed_on, execution_time, success) <>(FlywayRow.tupled, FlywayRow.unapply)
   }
 
+  lazy val migrationStatus = TableQuery[MigrationStatusT]
   lazy val flyway = TableQuery[FlywayT]
+
+  val timestamp = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS")
 
   val flywayBaselineRow = FlywayRow(
     installed_rank = 1,
@@ -141,17 +160,31 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
     script = "<< Flyway Baseline >>",
     checksum = None,
     installed_by = pgUsername,
-    installed_on = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS"),
+    installed_on = timestamp,
     execution_time = 0,
     success = true)
+
+  def initMigrationStatusTable(): DBIOAction[Unit, NoStream, Effect.Schema with Effect.Read] = {
+    MTable.getTables.map { t =>
+      if (!t.exists(_.name.name == migrationStatus.baseTableRow.tableName)) { migrationStatus.schema.create }
+    }.map { _ => () }
+  }
 
   def setAutoInc(tableName: String, idName: String, max: Option[Int]): DBIO[Int] = {
     val sequenceName = s"${tableName}_${idName}_seq"
     sql"SELECT setval($sequenceName, ${max.getOrElse(0) + 1});".as[Int].map(_.head)
   }
 
+  def checkForSuccessfulMigration(): Future[Boolean] = {
+    val c = initMigrationStatusTable().flatMap { _ =>
+      migrationStatus.filter(_.success == true).exists.result
+    }
+    db.run(c.transactionally)
+  }
+
   def write(f: Future[Seq[Any]]): Future[Unit] = f.flatMap { v =>
-    val w = (schema ++ flyway.schema).create >>
+    val w =
+      (schema ++ flyway.schema).create >>
       (engineJobs            forceInsertAll v(0).asInstanceOf[Seq[EngineJob]]) >>
       engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
@@ -186,9 +219,15 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
       (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
       (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
-      (flyway                +=  flywayBaselineRow)
+      (flyway                += flywayBaselineRow) >>
+      (migrationStatus       += MigrationStatusRow(timestamp, success = true, error = None))
 
-    db.run(w.transactionally).map { _ => () }
+    db.run(w.transactionally).map { _ => () }.andThen {
+      case Failure(NonFatal(e)) =>
+        val w = initMigrationStatusTable() >>
+          (migrationStatus += MigrationStatusRow(timestamp, success = false, error = Some(e.toString)))
+        Await.result(db.run(w.transactionally), Duration.Inf)
+    }
   }
 }
 
@@ -300,8 +339,8 @@ object LegacyModels {
 
 
 class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseFormat {
-  import slick.driver.SQLiteDriver.api._
   import LegacyModels._
+  import slick.driver.SQLiteDriver.api._
 
   implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
     {s => s.toString},
