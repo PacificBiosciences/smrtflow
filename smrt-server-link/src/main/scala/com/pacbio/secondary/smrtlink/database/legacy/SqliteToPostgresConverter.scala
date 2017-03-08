@@ -119,9 +119,10 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     val sqliteURI = toSqliteURI(c.sqliteFile)
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
+    val dataSource = dbConfig.toDataSource
 
     println(s"Attempting to connect to postgres db with $dbConfig")
-    val message = TestConnection(dbConfig.toDataSource)
+    val message = TestConnection(dataSource)
     println(message)
 
     val dbURI = dbConfig.jdbcURI
@@ -131,6 +132,9 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
     val psqlMigrationStatus = Migrator(dbConfig.toDataSource)
     println(psqlMigrationStatus)
+
+    // Make this more robust. This must be called, regardless of when the exception is thrown
+    dataSource.close()
 
     val db = dbConfig.toDatabase
 
@@ -143,9 +147,8 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
       case _ =>
         writer
             .write(new LegacySqliteReader(sqliteURI).read())
-            .andThen { case _ => db.close() }
             .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
-    }
+    }.andThen { case _ => db.close() }
 
     Await.result(res, Duration.Inf)
   }
@@ -693,7 +696,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), None, None, ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), None, None, ps.filter(_.id != 1), psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }
