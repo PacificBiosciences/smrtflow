@@ -1,34 +1,35 @@
 package com.pacbio.secondary.smrtlink.database.legacy
 
 import java.io.{PrintWriter, StringWriter}
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
+import java.io.File
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
-import com.pacbio.logging.{LoggerOptions, LoggerConfig}
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
-import com.pacbio.secondary.analysis.tools.{ToolSuccess, ToolFailure, CommandLineToolRunner}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, MigrationStatusRow}
+import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
-import slick.lifted.ProvenShape
+import slick.jdbc.meta.MTable
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Try}
 import scala.util.control.NonFatal
 
 object SqliteToPostgresConverterApp extends App {
   import SqliteToPostgresConverter._
-
-  runner(args)
+  runnerWithArgsAndExit(args)
 }
 
-case class SqliteToPostgresConverterOptions(legacyUri: String,
+case class SqliteToPostgresConverterOptions(sqliteFile: File,
                                             pgUsername: String,
                                             pgPassword: String,
                                             pgDbName: String,
@@ -42,11 +43,12 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   val VERSION = "0.1.0"
   val DESCRIPTION =
     """
-      |Migrate legacy SQLite db to Postgres
+      |Migrate legacy SMRT Link 4.0.0 SQLite db to Postgres
     """.stripMargin
 
+  // These defaults should be loaded from the conf
   val defaults = SqliteToPostgresConverterOptions(
-    "jdbc:sqlite:db/analysis_services.db",
+    Paths.get("analysis_services.db").toFile,
     "smrtlink_user",
     "password",
     "smrtlink",
@@ -54,111 +56,134 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
   def toDefault(s: String) = s"(default: '$s')"
 
-  val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
+  lazy val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
     head("")
     note(DESCRIPTION)
-    opt[String]('l', "legacy").action { (x, c) => c.copy(legacyUri = x)}.text(s"Legacy SQLite URI ${toDefault(defaults.legacyUri)}")
+    arg[File]("sqlite-file").action { (x, c) => c.copy(sqliteFile = x)}.text(s"Path to SMRT Link 4.0.0 Sqlite db file")
     opt[String]('u', "user").action { (x, c) => c.copy(pgUsername = x)}.text(s"Postgres user name ${toDefault(defaults.pgUsername)}")
     opt[String]('p', "password").action {(x, c) => c.copy(pgPassword = x)}.text(s"Postgres Password ${toDefault(defaults.pgPassword)}")
     opt[String]('s', "server").action {(x, c) => c.copy(pgServer = x)}.text(s"Postgres server ${toDefault(defaults.pgServer)}")
     opt[String]('n', "db-name").action {(x, c) => c.copy(pgDbName = x)}.text(s"Postgres Name ${toDefault(defaults.pgDbName)}")
     opt[Int]("port").action {(x, c) => c.copy(pgPort = x)}.text(s"Postgres port ${toDefault(defaults.pgPort.toString)}")
 
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show Options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  override def run(c: SqliteToPostgresConverterOptions): Either[ToolFailure, ToolSuccess] = {
+  /**
+    * Util to expose only the Path to users and translate to a jdbc URI string
+    * @param f Path to sqlite 4.0.0 File
+    * @return
+    */
+  private def toSqliteURI(f: File): String = {
+    val sx = f.toPath.toAbsolutePath.toString
+    if (sx.startsWith("jdbc:sqlite:")) sx
+    else s"jdbc:sqlite:$sx"
+  }
+
+  /**
+    *
+    * Migration/Import Model
+    *
+    * 1. Use Postgres configuration to run migration to create necessary tables (if Necessary)
+    * 2. Check for previously successful import Sqlite import (exit early if successful)
+    * 3. Load all Sqlite data into memory
+    * 4. Import into Postgres
+    * 5. Write successful import message into MigrateStatus table (on Failure write error message to MigrationStatus table)
+    *
+    * Still need to clearly define error handling cases, specifically:
+    *
+    * - On "retry of import", should postgresql tables be dropped completed and re migration from scratch
+    * - Pre validation test for peeking into the sqlite file to make sure it has the official/release 4.0.0 sqlite migration number
+    * - Pre validation test to test for Sqlite connection to fail early with a reasonable message
+    *
+    * Returns a terse summary message of the successful db import.
+    *
+    * Note, this will throw. The main entry should be runTool.
+    *
+    * @param c Config
+    * @return
+    */
+  def runImporter(c: SqliteToPostgresConverterOptions): String = {
+
+    // Would be nice to have sqlite test connection here to fail early
+    val sqliteURI = toSqliteURI(c.sqliteFile)
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
-    val startedAt = JodaDateTime.now()
-
-    TestConnection(dbConfig.toDataSource)
+    val dataSource = dbConfig.toDataSource
 
     println(s"Attempting to connect to postgres db with $dbConfig")
-    val message = TestConnection(dbConfig.toDataSource)
+    val message = TestConnection(dataSource)
     println(message)
 
     val dbURI = dbConfig.jdbcURI
     println(s"Postgres URL '$dbURI'")
 
+    println("Attempting to run Postgres migrations (if necessary)")
+
+    val psqlMigrationStatus = Migrator(dbConfig.toDataSource)
+    println(psqlMigrationStatus)
+
+    // Make this more robust. This must be called, regardless of when the exception is thrown
+    dataSource.close()
+
     val db = dbConfig.toDatabase
 
-    val res = new PostgresWriter(db, c.pgUsername)
-      .write(new LegacySqliteReader(c.legacyUri).read())
-      .andThen { case _ => db.close() }
-      .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
-      .recover {
-        case NonFatal(e) => Left(ToolFailure(toolId, computeTimeDelta(JodaDateTime.now(), startedAt), exceptionString(e)))
-      }
+    val writer = new PostgresWriter(db, c.pgUsername)
+    val res = writer.checkForSuccessfulMigration().flatMap {
+      case Some(status) =>
+        val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
+        println(msg)
+        Future.successful(msg)
+      case _ =>
+        writer
+            .write(new LegacySqliteReader(sqliteURI).read())
+            .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
+    }.andThen { case _ => db.close() }
 
     Await.result(res, Duration.Inf)
   }
 
-  def exceptionString(e: Throwable): String = {
-    val sw = new StringWriter
-    e.printStackTrace(new PrintWriter(sw))
-    sw.toString
-  }
-}
+  override def runTool(c: SqliteToPostgresConverterOptions) = Try(runImporter(c))
+
+  // Legacy interface
+  override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
+
+ }
 
 class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String) {
-  import slick.driver.PostgresDriver.api._
   import TableModels._
+  import slick.driver.PostgresDriver.api._
 
-  case class FlywayRow(installed_rank: Int,
-                       version: Option[String],
-                       description: String,
-                       typ: String,
-                       script: String,
-                       checksum: Option[Int],
-                       installed_by: String,
-                       installed_on: String,
-                       execution_time: Int,
-                       success: Boolean)
-
-  class FlywayT(tag: Tag) extends Table[FlywayRow](tag, "schema_version") {
-    def installed_rank: Rep[Int] = column[Int]("installed_rank", O.PrimaryKey)
-    def version: Rep[Option[String]] = column[Option[String]]("version", O.SqlType("VARCHAR"), O.Length(50))
-    def description: Rep[String] = column[String]("description", O.SqlType("VARCHAR"), O.Length(200))
-    def typ: Rep[String] = column[String]("type", O.SqlType("VARCHAR"), O.Length(20))
-    def script: Rep[String] = column[String]("script", O.SqlType("VARCHAR"), O.Length(1000))
-    def checksum: Rep[Option[Int]] = column[Option[Int]]("checksum")
-    def installed_by: Rep[String] = column[String]("installed_by", O.SqlType("VARCHAR"), O.Length(100))
-    def installed_on: Rep[String] = column[String]("installed_on", O.SqlType("TEXT NOT NULL DEFAULT (to_char(LOCALTIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS'))")) // E.g.: 2016-04-28 23:32:09.294
-    def execution_time: Rep[Int] = column[Int]("execution_time")
-    def success: Rep[Boolean] = column[Boolean]("success")
-    def schema_version_s_idx = index("schema_version_s_idx", success, unique = false)
-    def * = (installed_rank, version, description, typ, script, checksum, installed_by, installed_on, execution_time, success) <>(FlywayRow.tupled, FlywayRow.unapply)
-  }
-
-  lazy val flyway = TableQuery[FlywayT]
-
-  val flywayBaselineRow = FlywayRow(
-    installed_rank = 1,
-    version = Some("1"),
-    description = "<< Flyway Baseline >>",
-    typ = "BASELINE",
-    script = "<< Flyway Baseline >>",
-    checksum = None,
-    installed_by = pgUsername,
-    installed_on = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS"),
-    execution_time = 0,
-    success = true)
+  val timestamp = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS")
 
   def setAutoInc(tableName: String, idName: String, max: Option[Int]): DBIO[Int] = {
     val sequenceName = s"${tableName}_${idName}_seq"
     sql"SELECT setval($sequenceName, ${max.getOrElse(0) + 1});".as[Int].map(_.head)
   }
 
+  def checkForSuccessfulMigration(): Future[Option[MigrationStatusRow]] = {
+    val query = migrationStatus.filter(_.success === true).result.headOption
+    db.run(query.transactionally)
+  }
+
   def write(f: Future[Seq[Any]]): Future[Unit] = f.flatMap { v =>
-    val w = (schema ++ flyway.schema).create >>
+    val w =
       (engineJobs            forceInsertAll v(0).asInstanceOf[Seq[EngineJob]]) >>
       engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
       (jobEvents             forceInsertAll v(2).asInstanceOf[Seq[JobEvent]]) >>
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
-      sqlu"create unique index project_name_unique on projects (name) where is_active;" >>
       (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
       (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
       dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
@@ -186,9 +211,13 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
       (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
       (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
-      (flyway                +=  flywayBaselineRow)
+      (migrationStatus       += MigrationStatusRow(timestamp, success = true, error = None))
 
-    db.run(w.transactionally).map { _ => () }
+    db.run(w.transactionally).map { _ => () }.andThen {
+      case Failure(NonFatal(e)) =>
+        val w = migrationStatus += MigrationStatusRow(timestamp, success = false, error = Some(e.toString))
+        Await.result(db.run(w.transactionally), Duration.Inf)
+    }
   }
 }
 
@@ -300,8 +329,8 @@ object LegacyModels {
 
 
 class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseFormat {
-  import slick.driver.SQLiteDriver.api._
   import LegacyModels._
+  import slick.driver.SQLiteDriver.api._
 
   implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
     {s => s.toString},
@@ -666,7 +695,7 @@ class LegacySqliteReader(legacyDbUri: String) extends PacBioDateTimeDatabaseForm
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), None, None, ps, psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield Seq(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), None, None, ps.filter(_.id != 1), psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }
   }
 }
