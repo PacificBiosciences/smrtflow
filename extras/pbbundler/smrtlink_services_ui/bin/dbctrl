@@ -130,35 +130,40 @@ parseargs() {
 # ---- globals
 
 set_preglobals() {
-    # Force the path to only what we need (/sbin needed for ifconfig)
-    PATH_ORIG=$PATH
-    PATH="/usr/bin:/bin"
-
     g_prog=$(basename $0);
     g_progdir=$(dirname $0);
-    g_progdir_abs=$(readlink -f "$g_progdir");
+    g_progdir_abs=$(greadlink -f "$g_progdir");
+    g_config=$(greadlink -f "${g_progdir}/../smrtlink-system-config.json");
 }
 
-set_globals() {
-    g_topdir="$g_progdir_abs/../../../.."
-    g_userdata_dir="$g_topdir/userdata";
-    g_dbconfigfile="$g_userdata_dir/config/database.config"
-
-    g_installdir="$g_progdir_abs/../.."
-    g_pgcmds_bindir="$g_installdir/bundles/smrtlink-analysisservices-gui/current/private/thirdparty/postgresql/postgresql_9.6.1/binwrap"
-    g_pgctl_cmd="$g_pgcmds_bindir/pg_ctl"
-}
 
 # ---- subroutines
 
 read_config() {
-    g_db_logfile=$(. "$g_dbconfigfile"; echo "$DBLOGFILE")
-    g_db_datadir=$(. "$g_dbconfigfile"; echo "$DBDATADIR")
-    g_db_port=$(. "$g_dbconfigfile"; echo "$DBPORT")
-    g_db_host=$(. "$g_dbconfigfile"; echo "$DBHOST")
-    g_db_user=$(. "$g_dbconfigfile"; echo "$DBUSER")
-    g_db_password=$(. "$g_dbconfigfile"; echo "$DBPASSWORD")
-    g_db_database_smrtlink=$(. "$g_dbconfigfile"; echo "$DBDATABASE_SMRTLINK")
+    # get key from smrtlink-system-config.json
+    # Is there a cleaner way to do this?
+    # I think we need a thin scala tool to do this. If a path is returned it should be absolute/resolved?
+    # with get-value <KEY> <OPTIONAL_DEFAULT> (to handle Option[T]) values
+    # Example, get-value smrtflow.server.host "http://my-host"
+
+    logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${g_config})
+
+    g_db_logfile="${logDir}/dbctrl.log"
+
+    # Root data directory where the db files will reside
+    #g_db_datadir=$(. "$g_dbconfigfile"; echo "$DBDATADIR")
+
+    # TODO(mpkocher)(3-8-2017) Need to add a new config value. pacBioSystem.dbPath ? For now add load from tmpdir
+    g_db_datadir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['tmpDir'])" ${g_config})
+
+    g_db_port=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print int(d['smrtflow']['db']['properties']['portNumber'])" ${g_config})
+
+    g_db_host=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['serverName']" ${g_config})
+    # raw password
+    g_db_user=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['password']" ${g_config})
+    g_db_password=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['user']" ${g_config})
+
+    g_db_database_smrtlink=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['databaseName']" ${g_config})
 
     # This shows how the password md5 is computed.  Not really needed for this
     # temporary solution, since we are hardwiring the password anyway.
@@ -171,7 +176,7 @@ db_start() {
     datestr=$(echo $(date +"%s")": "$(date))
     echo "===== Starting database: $datestr" >> "$g_db_logfile"
     local stat=0;
-    $g_pgctl_cmd -l "$g_db_logfile" -w -D "$g_db_datadir" -o "-k '' -p $g_db_port -h $g_db_host" start || stat=$?
+    pg_ctl -l "$g_db_logfile" -w -D "$g_db_datadir" -o "-k '' -p $g_db_port -h $g_db_host" start || stat=$?
     if [[ $stat -ne 0 ]] ; then
 	echo "Logfile Output:"
 	sed -ne "/^===== Starting database: ${datestr%%:*}/,\$p" "$g_db_logfile"
@@ -183,26 +188,17 @@ db_stop() {
     # FIXME: should we do a dbbackup here?
 
     echo "Stopping database server..."
-    exec $g_pgctl_cmd -w -D "$g_db_datadir" -o "-p $g_db_port" stop
+    exec pg_ctl -w -D "$g_db_datadir" -o "-p $g_db_port" stop
 }
 db_init() {
 
     echo "Initializing database data dir..."
     local stat=0;
-    ( set +o posix; $g_pgctl_cmd -D "$g_db_datadir" -o "-U $g_db_user --auth-host=md5 --auth-local=reject --pwfile="<(echo "$g_db_password_md5") init ) || stat=$?
+    ( set +o posix; pg_ctl -D "$g_db_datadir" -o "-U $g_db_user --auth-host=md5 --auth-local=reject --pwfile="<(echo "$g_db_password_md5") init ) || stat=$?
     exit $stat;
 }
 db_status() {
-    exec $g_pgctl_cmd -s -D "$g_db_datadir" -o "-p $g_db_port" status
-}
-db_dbcmd() {
-    local stat=0;
-
-    if [[ ! -x "$g_pgcmds_bindir/$opt_dbcmd" ]] ; then
-	merror "Could not find specified dbcmd '$g_pgcmds_bindir/$opt_dbcmd'"
-    fi
-
-    PGPASSWORD="$g_db_password" exec "$g_pgcmds_bindir/$opt_dbcmd" -p "$g_db_port" -h "$g_db_host" -U "$g_db_user" "${opt_dbcmdargs[@]+${opt_dbcmdargs[@]}}"
+    exec pg_ctl -s -D "$g_db_datadir" -o "-p $g_db_port" status
 }
 
 # ---- main
@@ -212,7 +208,6 @@ g_origargs=( ${1+"$@"} )
 
 set_preglobals ${1+"$@"};
 parseargs ${1+"$@"};
-set_globals;
 
 read_config;
 
@@ -224,8 +219,6 @@ elif $opt_init; then
     db_init;
 elif $opt_status; then
     db_status;
-elif [[ ! -z "$opt_dbcmd" ]]; then
-    db_dbcmd;
 else
     minterror "Unknown action, specify --start, --stop, --init or --status".
 fi
