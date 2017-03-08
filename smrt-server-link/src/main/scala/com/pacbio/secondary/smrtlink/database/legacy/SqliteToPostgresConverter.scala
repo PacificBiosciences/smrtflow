@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.database.legacy
 
 import java.io.{PrintWriter, StringWriter}
 import java.nio.file.{Path, Paths}
+import java.io.File
 import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
@@ -20,16 +21,15 @@ import slick.jdbc.meta.MTable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import scala.util.Failure
+import scala.util.{Failure, Try}
 import scala.util.control.NonFatal
 
 object SqliteToPostgresConverterApp extends App {
   import SqliteToPostgresConverter._
-
-  runner(args)
+  runnerWithArgsAndExit(args)
 }
 
-case class SqliteToPostgresConverterOptions(legacyUri: String,
+case class SqliteToPostgresConverterOptions(sqliteFile: File,
                                             pgUsername: String,
                                             pgPassword: String,
                                             pgDbName: String,
@@ -43,11 +43,12 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   val VERSION = "0.1.0"
   val DESCRIPTION =
     """
-      |Migrate legacy SQLite db to Postgres
+      |Migrate legacy SMRT Link 4.0.0 SQLite db to Postgres
     """.stripMargin
 
+  // These defaults should be loaded from the conf
   val defaults = SqliteToPostgresConverterOptions(
-    "jdbc:sqlite:db/analysis_services.db",
+    Paths.get("analysis_services.db").toFile,
     "smrtlink_user",
     "password",
     "smrtlink",
@@ -58,7 +59,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
     head("")
     note(DESCRIPTION)
-    opt[String]('l', "legacy").action { (x, c) => c.copy(legacyUri = x)}.text(s"Legacy SQLite URI ${toDefault(defaults.legacyUri)}")
+    arg[File]("legacy").action { (x, c) => c.copy(sqliteFile = x)}.text(s"Path to SMRT Link 4.0.0 Sqlite db file")
     opt[String]('u', "user").action { (x, c) => c.copy(pgUsername = x)}.text(s"Postgres user name ${toDefault(defaults.pgUsername)}")
     opt[String]('p', "password").action {(x, c) => c.copy(pgPassword = x)}.text(s"Postgres Password ${toDefault(defaults.pgPassword)}")
     opt[String]('s', "server").action {(x, c) => c.copy(pgServer = x)}.text(s"Postgres server ${toDefault(defaults.pgServer)}")
@@ -68,7 +69,13 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  override def run(c: SqliteToPostgresConverterOptions): Either[ToolFailure, ToolSuccess] = {
+  private def toSqliteURI(f: File): String = {
+    val sx = f.toPath.toAbsolutePath.toString
+    if (sx.startsWith("jdbc:sqlite:")) sx
+    else s"jdbc:sqlite:$sx"
+  }
+
+  override def runTool(c: SqliteToPostgresConverterOptions): Try[String] = {
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
     val startedAt = JodaDateTime.now()
@@ -84,22 +91,27 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
     val db = dbConfig.toDatabase
 
+    // Would be nice to have sqlite test connection here to fail early
+    val sqliteURI = toSqliteURI(c.sqliteFile)
+
     val writer = new PostgresWriter(db, c.pgUsername)
     val res = writer.checkForSuccessfulMigration().flatMap { s =>
       if (s) {
-        println("Successful migration already completed")
-        Future.successful(Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))))
+        val msg = "Previous Import was successful. Skipping importing."
+        println(msg)
+        Future.successful(msg)
       } else
         writer
-          .write(new LegacySqliteReader(c.legacyUri).read())
+          .write(new LegacySqliteReader(sqliteURI).read())
           .andThen { case _ => db.close() }
-          .map { _ => Right(ToolSuccess(toolId, computeTimeDelta(JodaDateTime.now(), startedAt))) }
-          .recover {
-            case NonFatal(e) => Left(ToolFailure(toolId, computeTimeDelta(JodaDateTime.now(), startedAt), exceptionString(e)))
-          }
+          .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
     }
-    Await.result(res, Duration.Inf)
+
+    Try {Await.result(res, Duration.Inf)}
   }
+
+  // Legacy interface
+  override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
 
   def exceptionString(e: Throwable): String = {
     val sw = new StringWriter
@@ -112,13 +124,13 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
   import TableModels._
   import slick.driver.PostgresDriver.api._
 
-  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String])
+  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
 
   class MigrationStatusT(tag: Tag) extends Table[MigrationStatusRow](tag, "migration_status") {
     def timestamp: Rep[String] = column[String]("timestamp")
     def success: Rep[Boolean] = column[Boolean]("success")
     def error: Rep[Option[String]] = column[Option[String]]("error")
-    def * = (timestamp, success) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
+    def * = (timestamp, success, error) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
   }
 
   case class FlywayRow(installed_rank: Int,
@@ -177,7 +189,7 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
 
   def checkForSuccessfulMigration(): Future[Boolean] = {
     val c = initMigrationStatusTable().flatMap { _ =>
-      migrationStatus.filter(_.success == true).exists.result
+      migrationStatus.filter(_.success === true).exists.result
     }
     db.run(c.transactionally)
   }
