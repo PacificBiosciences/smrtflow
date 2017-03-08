@@ -56,15 +56,25 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
   def toDefault(s: String) = s"(default: '$s')"
 
-  val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
+  lazy val parser = new OptionParser[SqliteToPostgresConverterOptions]("sqlite-to-postgres") {
     head("")
     note(DESCRIPTION)
-    arg[File]("legacy").action { (x, c) => c.copy(sqliteFile = x)}.text(s"Path to SMRT Link 4.0.0 Sqlite db file")
+    arg[File]("sqlite-file").action { (x, c) => c.copy(sqliteFile = x)}.text(s"Path to SMRT Link 4.0.0 Sqlite db file")
     opt[String]('u', "user").action { (x, c) => c.copy(pgUsername = x)}.text(s"Postgres user name ${toDefault(defaults.pgUsername)}")
     opt[String]('p', "password").action {(x, c) => c.copy(pgPassword = x)}.text(s"Postgres Password ${toDefault(defaults.pgPassword)}")
     opt[String]('s', "server").action {(x, c) => c.copy(pgServer = x)}.text(s"Postgres server ${toDefault(defaults.pgServer)}")
     opt[String]('n', "db-name").action {(x, c) => c.copy(pgDbName = x)}.text(s"Postgres Name ${toDefault(defaults.pgDbName)}")
     opt[Int]("port").action {(x, c) => c.copy(pgPort = x)}.text(s"Postgres port ${toDefault(defaults.pgPort.toString)}")
+
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show Options and exit"
+
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
