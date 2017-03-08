@@ -184,7 +184,6 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (jobEvents             forceInsertAll v(2).asInstanceOf[Seq[JobEvent]]) >>
       (projects              forceInsertAll v(5).asInstanceOf[Seq[Project]]) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
-      sqlu"create unique index project_name_unique on projects (name) where is_active;" >>
       (projectsUsers         forceInsertAll v(6).asInstanceOf[Seq[ProjectUser]]) >>
       (dsMetaData2           forceInsertAll v(7).asInstanceOf[Seq[DataSetMetaDataSet]]) >>
       dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
