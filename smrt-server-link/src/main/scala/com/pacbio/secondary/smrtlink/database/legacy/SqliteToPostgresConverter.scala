@@ -96,14 +96,19 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     * - Pre validation test for peeking into the sqlite file to make sure it has the official/release 4.0.0 sqlite migration number
     * - Pre validation test to test for Sqlite connection to fail early with a reasonable message
     *
+    * Returns a terse summary message of the successful db import.
+    *
+    * Note, this will throw. The main entry should be runTool.
+    *
     * @param c Config
     * @return
     */
-  override def runTool(c: SqliteToPostgresConverterOptions): Try[String] = {
+  def runImporter(c: SqliteToPostgresConverterOptions): String = {
+
+    // Would be nice to have sqlite test connection here to fail early
+    val sqliteURI = toSqliteURI(c.sqliteFile)
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
-
-    TestConnection(dbConfig.toDataSource)
 
     println(s"Attempting to connect to postgres db with $dbConfig")
     val message = TestConnection(dbConfig.toDataSource)
@@ -112,10 +117,12 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     val dbURI = dbConfig.jdbcURI
     println(s"Postgres URL '$dbURI'")
 
-    val db = dbConfig.toDatabase
+    println("Attempting to run Postgres migrations (if necessary)")
 
-    // Would be nice to have sqlite test connection here to fail early
-    val sqliteURI = toSqliteURI(c.sqliteFile)
+    val psqlMigrationStatus = Migrator(dbConfig.toDataSource)
+    println(psqlMigrationStatus)
+
+    val db = dbConfig.toDatabase
 
     val writer = new PostgresWriter(db, c.pgUsername)
     val res = writer.checkForSuccessfulMigration().flatMap {
@@ -130,8 +137,10 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
             .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
     }
 
-    Try {Await.result(res, Duration.Inf)}
+    Await.result(res, Duration.Inf)
   }
+
+  override def runTool(c: SqliteToPostgresConverterOptions) = Try(runImporter(c))
 
   // Legacy interface
   override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
