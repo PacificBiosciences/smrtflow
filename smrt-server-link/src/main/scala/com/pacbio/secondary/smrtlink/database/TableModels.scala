@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask, MigrationStatusRow}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.joda.time.{DateTime => JodaDateTime}
@@ -609,6 +609,17 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (user, acceptedAt, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
   }
 
+  // This is the Legacy Migration from sqlite to postgres. Adding this here for consistency (i.e.,
+  // All 4.1 installs will have this table)
+  // This can be dropped when the sqlite import is not longer supported.
+  class MigrationStatusT(tag: Tag) extends Table[MigrationStatusRow](tag, "migration_status") {
+    def timestamp: Rep[String] = column[String]("timestamp")
+    def success: Rep[Boolean] = column[Boolean]("success")
+    def error: Rep[Option[String]] = column[Option[String]]("error")
+    def * = (timestamp, success, error) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
+  }
+
+
   // DataSet types
   lazy val dsMetaData2 = TableQuery[DataSetMetaT]
   lazy val dsSubread2 = TableQuery[SubreadDataSetT]
@@ -646,6 +657,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   // EULA
   lazy val eulas = TableQuery[EulaRecordT]
 
+  // Legacy Import migration table
+  lazy val migrationStatus = TableQuery[MigrationStatusT]
+
   final type SlickTable = TableQuery[_ <: Table[_]]
 
   lazy val serviceTables: Set[SlickTable] = Set(
@@ -667,7 +681,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eulas)
+    eulas, migrationStatus)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata, samples)
 

@@ -478,4 +478,5 @@ object JobModels {
   case class DataStoreFileViewRule(sourceId: String, fileTypeId: String, isHidden: Boolean, name: Option[String], description: Option[String])
   case class PipelineDataStoreViewRules(pipelineId: String, rules: Seq[DataStoreFileViewRule], smrtlinkVersion: String)
 
+  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
 }

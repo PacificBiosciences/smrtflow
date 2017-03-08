@@ -8,7 +8,7 @@ import java.util.UUID
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, MigrationStatusRow}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
 import com.pacbio.secondary.smrtlink.models._
@@ -155,74 +155,13 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   // Legacy interface
   override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
 
-  def exceptionString(e: Throwable): String = {
-    val sw = new StringWriter
-    e.printStackTrace(new PrintWriter(sw))
-    sw.toString
-  }
-}
+ }
 
 class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String) {
   import TableModels._
   import slick.driver.PostgresDriver.api._
 
-  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
-
-  class MigrationStatusT(tag: Tag) extends Table[MigrationStatusRow](tag, "migration_status") {
-    def timestamp: Rep[String] = column[String]("timestamp")
-    def success: Rep[Boolean] = column[Boolean]("success")
-    def error: Rep[Option[String]] = column[Option[String]]("error")
-    def * = (timestamp, success, error) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
-  }
-
-  case class FlywayRow(installed_rank: Int,
-                       version: Option[String],
-                       description: String,
-                       typ: String,
-                       script: String,
-                       checksum: Option[Int],
-                       installed_by: String,
-                       installed_on: String,
-                       execution_time: Int,
-                       success: Boolean)
-
-  class FlywayT(tag: Tag) extends Table[FlywayRow](tag, "schema_version") {
-    def installed_rank: Rep[Int] = column[Int]("installed_rank", O.PrimaryKey)
-    def version: Rep[Option[String]] = column[Option[String]]("version", O.SqlType("VARCHAR"), O.Length(50))
-    def description: Rep[String] = column[String]("description", O.SqlType("VARCHAR"), O.Length(200))
-    def typ: Rep[String] = column[String]("type", O.SqlType("VARCHAR"), O.Length(20))
-    def script: Rep[String] = column[String]("script", O.SqlType("VARCHAR"), O.Length(1000))
-    def checksum: Rep[Option[Int]] = column[Option[Int]]("checksum")
-    def installed_by: Rep[String] = column[String]("installed_by", O.SqlType("VARCHAR"), O.Length(100))
-    def installed_on: Rep[String] = column[String]("installed_on", O.SqlType("TEXT NOT NULL DEFAULT (to_char(LOCALTIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS'))")) // E.g.: 2016-04-28 23:32:09.294
-    def execution_time: Rep[Int] = column[Int]("execution_time")
-    def success: Rep[Boolean] = column[Boolean]("success")
-    def schema_version_s_idx = index("schema_version_s_idx", success, unique = false)
-    def * = (installed_rank, version, description, typ, script, checksum, installed_by, installed_on, execution_time, success) <>(FlywayRow.tupled, FlywayRow.unapply)
-  }
-
-  lazy val migrationStatus = TableQuery[MigrationStatusT]
-  lazy val flyway = TableQuery[FlywayT]
-
   val timestamp = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS")
-
-  val flywayBaselineRow = FlywayRow(
-    installed_rank = 1,
-    version = Some("1"),
-    description = "<< Flyway Baseline >>",
-    typ = "BASELINE",
-    script = "<< Flyway Baseline >>",
-    checksum = None,
-    installed_by = pgUsername,
-    installed_on = timestamp,
-    execution_time = 0,
-    success = true)
-
-  def initMigrationStatusTable(): DBIOAction[Unit, NoStream, Effect.Schema with Effect.Read] = {
-    MTable.getTables.map { t =>
-      if (!t.exists(_.name.name == migrationStatus.baseTableRow.tableName)) { migrationStatus.schema.create }
-    }.map { _ => () }
-  }
 
   def setAutoInc(tableName: String, idName: String, max: Option[Int]): DBIO[Int] = {
     val sequenceName = s"${tableName}_${idName}_seq"
@@ -230,15 +169,12 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
   }
 
   def checkForSuccessfulMigration(): Future[Option[MigrationStatusRow]] = {
-    val c = initMigrationStatusTable().flatMap { _ =>
-      migrationStatus.filter(_.success === true).result.headOption
-    }
-    db.run(c.transactionally)
+    val query = migrationStatus.filter(_.success === true).result.headOption
+    db.run(query.transactionally)
   }
 
   def write(f: Future[Seq[Any]]): Future[Unit] = f.flatMap { v =>
     val w =
-      (schema ++ flyway.schema).create >>
       (engineJobs            forceInsertAll v(0).asInstanceOf[Seq[EngineJob]]) >>
       engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll v(1).asInstanceOf[Seq[EngineJobEntryPoint]]) >>
@@ -273,13 +209,11 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (dataModels            forceInsertAll v(19).asInstanceOf[Seq[DataModelAndUniqueId]]) >>
       (collectionMetadata    forceInsertAll v(20).asInstanceOf[Seq[CollectionMetadata]]) >>
       (samples               forceInsertAll v(21).asInstanceOf[Seq[Sample]]) >>
-      (flyway                += flywayBaselineRow) >>
       (migrationStatus       += MigrationStatusRow(timestamp, success = true, error = None))
 
     db.run(w.transactionally).map { _ => () }.andThen {
       case Failure(NonFatal(e)) =>
-        val w = initMigrationStatusTable() >>
-          (migrationStatus += MigrationStatusRow(timestamp, success = false, error = Some(e.toString)))
+        val w = migrationStatus += MigrationStatusRow(timestamp, success = false, error = Some(e.toString))
         Await.result(db.run(w.transactionally), Duration.Inf)
     }
   }
