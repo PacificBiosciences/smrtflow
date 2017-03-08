@@ -69,16 +69,39 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
+  /**
+    * Util to expose only the Path to users and translate to a jdbc URI string
+    * @param f Path to sqlite 4.0.0 File
+    * @return
+    */
   private def toSqliteURI(f: File): String = {
     val sx = f.toPath.toAbsolutePath.toString
     if (sx.startsWith("jdbc:sqlite:")) sx
     else s"jdbc:sqlite:$sx"
   }
 
+  /**
+    *
+    * Migration/Import Model
+    *
+    * 1. Use Postgres configuration to run migration to create necessary tables (if Necessary)
+    * 2. Check for previously successful import Sqlite import (exit early if successful)
+    * 3. Load all Sqlite data into memory
+    * 4. Import into Postgres
+    * 5. Write successful import message into MigrateStatus table (on Failure write error message to MigrationStatus table)
+    *
+    * Still need to clearly define error handling cases, specifically:
+    *
+    * - On "retry of import", should postgresql tables be dropped completed and re migration from scratch
+    * - Pre validation test for peeking into the sqlite file to make sure it has the official/release 4.0.0 sqlite migration number
+    * - Pre validation test to test for Sqlite connection to fail early with a reasonable message
+    *
+    * @param c Config
+    * @return
+    */
   override def runTool(c: SqliteToPostgresConverterOptions): Try[String] = {
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
-    val startedAt = JodaDateTime.now()
 
     TestConnection(dbConfig.toDataSource)
 
@@ -97,6 +120,8 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     val writer = new PostgresWriter(db, c.pgUsername)
     val res = writer.checkForSuccessfulMigration().flatMap { s =>
       if (s) {
+        // This should pass the Migration metadata here to communicate the date of the
+        // successfully applied migration.
         val msg = "Previous Import was successful. Skipping importing."
         println(msg)
         Future.successful(msg)
