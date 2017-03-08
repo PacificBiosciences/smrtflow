@@ -1,0 +1,231 @@
+#!/bin/bash
+# ---- error handling
+set -o errexit;
+set -o posix;
+set -o pipefail;
+set -o errtrace;
+set -o nounset;
+
+# Primary Author: Herb Maeder
+# Migration of code from perforce (http://swarm/files/depot/software/smrtanalysis/bbmig/build/smrtlink/admin/bin/dbctl)
+
+
+unexpected_error() {
+    local errstat=$?
+    echo "${g_prog:-$(basename $0)}: Error! Encountered unexpected error at 'line $(caller)', bailing out..." 1>&2
+    exit $errstat;
+}
+trap unexpected_error ERR;
+
+# ---- error functions
+
+merror() {
+    echo "$g_prog: Error! ""$@" 1>&2;
+    exit 1;
+}
+minterror() {
+    echo "$g_prog: Internal Error! ""$@" 1>&2;
+    exit 1;
+}
+mwarn() {
+    echo "$g_prog: Warning! ""$@" 1>&2;
+}
+
+# ---- usage
+
+usage() {
+  local exitstat=2;
+  if [[ ! -z "${2:-}" ]] ; then
+      if [[ ! $2 =~ [[:digit:]]+ ]] ; then
+	   minterror "usage(): exitstat ($2) must be numeric."
+      fi
+      exitstat=$2;
+  fi
+
+  # Only redirect to stderr on non-zero exit status
+  if [[ $exitstat -ne 0 ]] ; then
+      exec 1>&2;
+  fi
+
+  if [[ ! -z "${1:-}" ]] ; then
+      echo "$g_prog: Error! $1"
+  fi
+
+  echo "Usage: $g_prog [--help] --start"
+  echo "       $g_prog [--help] --stop"
+  echo "       $g_prog [--help] --init"
+  echo "       $g_prog [--help] --status"
+  echo "       $g_prog [--help] --dbcmd --|--dbcmdargs [args [args]...] "
+  echo ""
+  echo "         --start        -- start database server"
+  echo "         --stop         -- stop database server"
+  echo "         --init         -- initialize database dir"
+  echo "         --status       -- show status of the database server"
+  echo "         --dbcmd        -- run postgres executable"
+  echo "         --|--dbcmdargs -- all remaining args passed to pgcmd "
+  echo ""
+  echo "         -h|--help     -- print this usage";
+  echo "";
+
+
+  if [[ $exitstat -ne 0 ]] ; then
+      # Print error again, useful for long usages messages
+      if [[ ! -z "${1:-}" ]] ; then
+	  echo ""
+	  echo "$g_prog: Error! $1"
+      fi
+  fi
+
+  # bash only:
+  if [[ $exitstat -ne 0 ]] ; then
+      echo "  at: $(caller)";
+  fi
+  exit $exitstat;
+}
+
+# ---- argument parsing
+
+achk() {
+    if [[ $1 -eq 0 ]] ; then usage "Missing argument to $2 option"; fi
+}
+
+parseargs() {
+    opt_start=false;
+    opt_stop=false;
+    opt_init=false;
+    opt_status=false;
+    opt_dbcmd="";
+    opt_dbcmdargs=();
+    while [[ $# != 0 ]]; do
+	opt="$1"; shift;
+	case "$opt" in
+	    # Flag with no argument example:
+	    #   --flag|--fla|--fl|--f)
+	    #     opt_flag=true;;
+	    # Option with argument example:
+	    #   --arg|--ar|--a)
+	    #     achk $# $opt; opt_somearg=$1; shift;;
+	    --start) opt_start=true;;
+	    --stop) opt_stop=true;;
+	    --init) opt_init=true;;
+	    --status) opt_status=true;;
+	    --dbcmd)  achk $# $opt; opt_dbcmd=$1; shift;;
+	    --|--dbcmdargs)  opt_dbcmdargs=${1+"$@"}; break;;
+	    -h|-help|--help|--hel|--he|--h) usage "" 0;;
+	    -*) usage "Unrecognized option: $opt";;
+	    *)
+		local argstr=${1+"$@"};
+		usage "Unexpected extraneous arguments detected: $opt $argstr"
+		;;
+	esac
+    done
+
+    if [[ ! ${opt_start}${opt_stop}${opt_init}${opt_status}${opt_dbcmd:+true} =~ true ]] ; then
+	usage "Must specify one of --start, --stop, --init, --status or --dbcmd"
+    elif [[ ${opt_start}${opt_stop}${opt_init}${opt_status}${opt_dbcmd:+true} =~ true.*true ]] ; then
+	usage "Must specify only one of --start, --stop, --init, --status or --dbcmd"
+    fi
+}
+
+# ---- globals
+
+set_preglobals() {
+    # Force the path to only what we need (/sbin needed for ifconfig)
+    PATH_ORIG=$PATH
+    PATH="/usr/bin:/bin"
+
+    g_prog=$(basename $0);
+    g_progdir=$(dirname $0);
+    g_progdir_abs=$(readlink -f "$g_progdir");
+}
+
+set_globals() {
+    g_topdir="$g_progdir_abs/../../../.."
+    g_userdata_dir="$g_topdir/userdata";
+    g_dbconfigfile="$g_userdata_dir/config/database.config"
+
+    g_installdir="$g_progdir_abs/../.."
+    g_pgcmds_bindir="$g_installdir/bundles/smrtlink-analysisservices-gui/current/private/thirdparty/postgresql/postgresql_9.6.1/binwrap"
+    g_pgctl_cmd="$g_pgcmds_bindir/pg_ctl"
+}
+
+# ---- subroutines
+
+read_config() {
+    g_db_logfile=$(. "$g_dbconfigfile"; echo "$DBLOGFILE")
+    g_db_datadir=$(. "$g_dbconfigfile"; echo "$DBDATADIR")
+    g_db_port=$(. "$g_dbconfigfile"; echo "$DBPORT")
+    g_db_host=$(. "$g_dbconfigfile"; echo "$DBHOST")
+    g_db_user=$(. "$g_dbconfigfile"; echo "$DBUSER")
+    g_db_password=$(. "$g_dbconfigfile"; echo "$DBPASSWORD")
+    g_db_database_smrtlink=$(. "$g_dbconfigfile"; echo "$DBDATABASE_SMRTLINK")
+
+    # This shows how the password md5 is computed.  Not really needed for this
+    # temporary solution, since we are hardwiring the password anyway.
+    g_db_password_md5="md5"$(echo -n "${g_db_password}${g_db_user}" | md5sum | sed -e 's/[[:space:]].*//')
+}
+
+db_start() {
+    echo "Starting database server..."
+    local datestr
+    datestr=$(echo $(date +"%s")": "$(date))
+    echo "===== Starting database: $datestr" >> "$g_db_logfile"
+    local stat=0;
+    $g_pgctl_cmd -l "$g_db_logfile" -w -D "$g_db_datadir" -o "-k '' -p $g_db_port -h $g_db_host" start || stat=$?
+    if [[ $stat -ne 0 ]] ; then
+	echo "Logfile Output:"
+	sed -ne "/^===== Starting database: ${datestr%%:*}/,\$p" "$g_db_logfile"
+	merror "Error detected in starting database server";
+    fi
+    exit $stat;
+}
+db_stop() {
+    # FIXME: should we do a dbbackup here?
+
+    echo "Stopping database server..."
+    exec $g_pgctl_cmd -w -D "$g_db_datadir" -o "-p $g_db_port" stop
+}
+db_init() {
+
+    echo "Initializing database data dir..."
+    local stat=0;
+    ( set +o posix; $g_pgctl_cmd -D "$g_db_datadir" -o "-U $g_db_user --auth-host=md5 --auth-local=reject --pwfile="<(echo "$g_db_password_md5") init ) || stat=$?
+    exit $stat;
+}
+db_status() {
+    exec $g_pgctl_cmd -s -D "$g_db_datadir" -o "-p $g_db_port" status
+}
+db_dbcmd() {
+    local stat=0;
+
+    if [[ ! -x "$g_pgcmds_bindir/$opt_dbcmd" ]] ; then
+	merror "Could not find specified dbcmd '$g_pgcmds_bindir/$opt_dbcmd'"
+    fi
+
+    PGPASSWORD="$g_db_password" exec "$g_pgcmds_bindir/$opt_dbcmd" -p "$g_db_port" -h "$g_db_host" -U "$g_db_user" "${opt_dbcmdargs[@]+${opt_dbcmdargs[@]}}"
+}
+
+# ---- main
+
+# Save off original cmdline args, use as "${g_origargs[@]}" (with doublequotes)
+g_origargs=( ${1+"$@"} )
+
+set_preglobals ${1+"$@"};
+parseargs ${1+"$@"};
+set_globals;
+
+read_config;
+
+if $opt_start; then
+    db_start;
+elif $opt_stop; then
+    db_stop;
+elif $opt_init; then
+    db_init;
+elif $opt_status; then
+    db_status;
+elif [[ ! -z "$opt_dbcmd" ]]; then
+    db_dbcmd;
+else
+    minterror "Unknown action, specify --start, --stop, --init or --status".
+fi
