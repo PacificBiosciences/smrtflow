@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Thin wrapper to call the scala admin tools in <BUNDLE_ROOT>/tools/bin
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+config=${__dir}/../smrtlink-system-config.json
+
+
+if ! [ -e "$config" ]; then
+    echo "file ${config} does not exist"
+    exit 1
+fi
+
+# This interface is a bit odd. Perhaps should change the
+# positional arg to be optional and be set from the
+# smrtlink-system-config.json by default.
+# By default pass in the smrtlink-system-config as the
+# default file to validate, Otherwise, pass in the raw
+# args to the bundler-validate-config
+if [ $# -eq 0 ]
+  then
+  args="$config"
+else
+  args="$@"
+fi
+
+export JAVA_OPTS="-Dconfig.file=${config}"
+${__dir}/../tools/bin/bundler-validate-config $args
+
