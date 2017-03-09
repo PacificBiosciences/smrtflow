@@ -1,4 +1,4 @@
-Example Job Directory.
+# Default bundle Job Directory.
 
 Jobs of all types will be placed in here using
 

@@ -185,6 +185,12 @@
             "name": "logDir",
             "type": "string",
             "default": "./"
+          },
+          {
+            "doc": "Directory where the Postgres data files will reside. This direction should be r+w from the user that launches the Services (hcon-key smrtflow.pacbiosystem.pgDataDir)",
+            "name": "pgDataDir",
+            "type": "string",
+            "default": "./"
           }
         ]
       }

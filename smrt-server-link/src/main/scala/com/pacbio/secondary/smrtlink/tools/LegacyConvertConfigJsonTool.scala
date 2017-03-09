@@ -63,7 +63,8 @@ object LegacyConvertConfigJsonTool extends CommandLineToolRunner[LegacyConvertOp
     def getSmrtflowPacBioSystemConfig = {
       val tmpDir = Paths.get("/tmp")
       val logDir = Paths.get(".")
-      SmrtflowPacBioSystemConfig(tmpDir, logDir)
+      val pgDataDir = Paths.get("./pgDataDir")
+      SmrtflowPacBioSystemConfig(tmpDir, logDir, pgDataDir)
     }
 
     def getSmrtflowDbPropertiesConfig = {
