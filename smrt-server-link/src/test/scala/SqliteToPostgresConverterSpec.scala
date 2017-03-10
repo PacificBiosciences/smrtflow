@@ -107,10 +107,15 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         (runSummaries forceInsertAll data.runSummaries) >>
         (dataModels forceInsertAll data.dataModels) >>
         (collectionMetadata forceInsertAll data.collectionMetadata.map(toLegacyCollectionMetadata)) >>
-        (samples forceInsertAll data.samples)
+        (samples forceInsertAll data.samples) >>
+        // Add rows with broken foreign keys that should be ignored
+        (jobEvents forceInsert LegacyJobEvent(UUID.randomUUID(), 999, AnalysisJobStates.RUNNING, "ignore", now)) >>
+        (projectsUsers forceInsert ProjectUser(999, "ignore", ProjectUserRole.OWNER)) >>
+        (dataModels forceInsert DataModelAndUniqueId("<xml>ignore</xml>", UUID.randomUUID())) >>
+        (collectionMetadata forceInsert LegacyCollectionMetadata(UUID.randomUUID(), UUID.randomUUID(), "ignore", "ignore", None, None, None, SupportedAcquisitionStates.ABORTED, None, None, 1.0, None, None, None))
 
       val sqliteDb = Database.forURL(dbUri)
-      Await.result(sqliteDb.run(action).andThen { case _ => sqliteDb.close() }, Duration.Inf)
+      Await.result(sqliteDb.run(action.transactionally).andThen { case _ => sqliteDb.close() }, Duration.Inf)
 
       val reader = new LegacySqliteReader(dbUri)
       val res = Await.result(reader.read(), Duration.Inf)
