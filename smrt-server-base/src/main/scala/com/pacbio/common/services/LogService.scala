@@ -4,6 +4,7 @@ import com.pacbio.common.actors._
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
+import com.pacbio.common.time.PacBioDateTimeFormat
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
@@ -15,10 +16,12 @@ class LogService(logDao: LogDao, authenticator: Authenticator)
   extends BaseSmrtService
   with DefaultJsonProtocol {
 
+  import PacBioDateTimeFormat.TIME_ZONE
   import PacBioJsonProtocol._
   import language.implicitConversions
 
-  implicit def longOptionToJodaDateTimeOption(t: Option[Long]): Option[JodaDateTime] = t.map(new JodaDateTime(_))
+  implicit def longOptionToJodaDateTimeOption(t: Option[Long]): Option[JodaDateTime] =
+    t.map(new JodaDateTime(_, TIME_ZONE))
 
   val manifest = PacBioComponentManifest(
     toServiceId("log"),
