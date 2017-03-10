@@ -24,14 +24,15 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val now = JodaDateTime.now()
   val jobId = 1
   val jobUUID = UUID.randomUUID()
+  val projectId = 2
   val runId = UUID.randomUUID()
 
   val data = MigrationData(
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, Some("oops"))),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
     Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
-    Seq(Project(1, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
-    Seq(ProjectUser(1, "jsnow", ProjectUserRole.OWNER)),
+    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
+    Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
     Seq(DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", Some("jsnow"), jobId, 1, isActive = false)),
     Seq(SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
     Seq(HdfSubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
