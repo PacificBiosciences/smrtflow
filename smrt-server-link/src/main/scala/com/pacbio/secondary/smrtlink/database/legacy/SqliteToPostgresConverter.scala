@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import com.pacbio.common.time.{SystemClock, Clock, PacBioDateTimeDatabaseFormat}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, MigrationStatusRow}
@@ -137,7 +137,9 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
 
     val db = dbConfig.toDatabase
 
-    val writer = new PostgresWriter(db, c.pgUsername)
+    val clock = new SystemClock
+
+    val writer = new PostgresWriter(db, c.pgUsername, clock)
     val res = writer.checkForSuccessfulMigration().flatMap {
       case Some(status) =>
         val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
@@ -180,11 +182,11 @@ case class MigrationData(engineJobs: Seq[EngineJob],
                          collectionMetadata: Seq[CollectionMetadata],
                          samples:Seq[Sample])
 
-class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String) {
+class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String, clock: Clock) {
   import TableModels._
   import slick.driver.PostgresDriver.api._
 
-  val timestamp = JodaDateTime.now().toString("YYYY-MM-dd HH:mm:ss.SSS")
+  val timestamp = clock.dateNow().toString("YYYY-MM-dd HH:mm:ss.SSS")
 
   def setAutoInc(tableName: String, idName: String, max: Option[Int]): DBIO[Int] = {
     val sequenceName = s"${tableName}_${idName}_seq"

@@ -2,10 +2,10 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeFormat
+import com.pacbio.common.time.FakeClock
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.Subread
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobConstants, JobEvent, JobTypeIds}
+import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.database.TableModels.DataModelAndUniqueId
@@ -13,7 +13,6 @@ import com.pacbio.secondary.smrtlink.database.legacy._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
-import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 
@@ -21,8 +20,9 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest with TestDalProvider with TestUtils {
-  
-  val now = new JodaDateTime(1000000000L, PacBioDateTimeFormat.TIME_ZONE)
+
+  val clock = new FakeClock(1000000000L, 1, autoStep = false)
+  val now = clock.dateNow()
   val jobId = 1
   val jobUUID = UUID.randomUUID()
   val projectId = 2
@@ -140,7 +140,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       import TableModels._
       import slick.driver.PostgresDriver.api._
 
-      val writer = new PostgresWriter(testdb, dbConfig.username)
+      val writer = new PostgresWriter(testdb, dbConfig.username, clock)
 
       Await.result(writer.write(Future.successful(data)), Duration.Inf)
 
@@ -164,6 +164,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       Await.result(testdb.run(dataModels.result), Duration.Inf) === data.dataModels
       Await.result(testdb.run(collectionMetadata.result), Duration.Inf) === data.collectionMetadata
       Await.result(testdb.run(samples.result), Duration.Inf) === data.samples
+      Await.result(testdb.run(migrationStatus.result), Duration.Inf) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
     }
   }
 }
