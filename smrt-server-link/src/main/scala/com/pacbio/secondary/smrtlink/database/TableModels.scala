@@ -11,9 +11,6 @@ import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, S
 import org.joda.time.{DateTime => JodaDateTime}
 
 import slick.driver.PostgresDriver.api._
-import slick.lifted.ProvenShape
-// This must be added otherwise an PSQLException: ERROR: integer out of range will occur
-import com.github.tototoshi.slick.PostgresJodaSupport._
 
 
 object TableModels extends PacBioDateTimeDatabaseFormat {

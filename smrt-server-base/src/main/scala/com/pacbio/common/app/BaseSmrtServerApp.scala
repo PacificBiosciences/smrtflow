@@ -67,7 +67,6 @@ trait CoreProviders extends
   SubSystemComponentServiceProvider with
   SubSystemResourceServiceProvider with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
@@ -82,10 +81,6 @@ trait CoreProviders extends
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
-
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
@@ -116,7 +111,6 @@ trait AuthenticatedCoreProviders extends
   SubSystemComponentServiceProviderx with
   SubSystemResourceServiceProviderx with
   ActorSystemProvider with
-  BaseSmrtServerDatabaseConfigProviders with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
@@ -131,10 +125,6 @@ trait AuthenticatedCoreProviders extends
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
-
-  override val logDaoDatabaseConfigProvider: DatabaseConfigProvider = new TypesafeDatabaseConfigProvider {
-    override val databaseConfigPath = Singleton("log")
-  }
 
   override val logback: Singleton[Boolean] = Singleton(true)
 }
