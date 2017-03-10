@@ -6,7 +6,7 @@ import com.pacbio.common.models.{LogMessage, LogLevel}
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import org.joda.time.{DateTime => JodaDateTime}
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.PostgresDriver.api._
 
 object LogDatabaseSchema extends PacBioDateTimeDatabaseFormat {
   // Define serialization/deserialization of LogLevel for database storage
