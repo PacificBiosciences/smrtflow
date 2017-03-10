@@ -172,7 +172,7 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
 
   def parseAndValidateOptions(parser: OptionParser[T], defaults: T, args: Array[String]): Try[T] = {
 
-    val prettyArgs = args.toSeq.reduce(_ + " " + _)
+    val prettyArgs = args.toSeq.reduceLeftOption(_ + " " + _).getOrElse("")
 
     // Note, due to global variables, this is where the log gets setup. This should be revisited to use a better pattern.
     val parsedOpts = parser.parse(args, defaults)
