@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.12.0"
+BUNDLE_VERSION="0.13.0"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -47,7 +47,7 @@ echo "Starting building ${BUNDLE_VERSION}"
 
 source /mnt/software/Modules/current/init/bash
 
-module load jdk/1.8.0_40
+module load jdk/1.8.0_71
 module load sbt
 module load nodejs/4.1.2
 module load python/2.7.9
