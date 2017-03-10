@@ -239,9 +239,13 @@ def _get_smrtlink_ui_version(root_dir):
     return load_pacbio_versions(ui_manifest_path)
 
 
+def _chmod(file_name):
+    os.chmod(file_name, 0o777)
+
+
 def _chmod_on_files(bundle_bin_dir):
     for fname in os.listdir(bundle_bin_dir):
-        os.chmod(os.path.join(bundle_bin_dir, fname), 0o777)
+        _chmod(os.path.join(bundle_bin_dir, fname))
 
 
 def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
@@ -377,7 +381,8 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 
     sbt_cmd = _to_sbt_cmd(ivy_cache)
 
-    cmds = [analysis_server + "/{assembly,pack}"]
+    # this only really works for smrt-server-link. Remove
+    cmds = [analysis_server + "/pack"]
 
     with lcd(services_root_dir):
         for cmd in cmds:
@@ -472,7 +477,7 @@ def build_smrtlink_services_ui(version,
     _raise_if_not_exists(smrtlink_ui_dir, "SMRTLink UI not found.")
     _raise_if_not_exists(smrtflow_root_dir, "smrtflow services not found.")
     _raise_if_not_exists(resolved_pipeline_templates_dir, "pbsmrtpipe Resources not found.")
-    _raise_if_not_exists(wso2_api_manager_zip, "Unable to find ws02 API Manager zip '{}'".format(wso2_api_manager_zip))
+    _raise_if_not_exists(wso2_api_manager_zip, "Unable to find wso2 API Manager zip '{}'".format(wso2_api_manager_zip))
     _raise_if_not_exists(tomcat_tgz, "Unable to find tomcat from '{}'".format(tomcat_tgz))
 
     if publish_to is not None:
@@ -489,12 +494,13 @@ def build_smrtlink_services_ui(version,
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
-    # Change Permissions
-    _chmod_on_files(os.path.join(output_bundle_dir, 'bin'))
-    # Default job directory
-    _chmod_on_files(os.path.join(output_bundle_dir, 'jobs-root'))
-    # default pacbio-bundle dir
-    _chmod_on_files(os.path.join(output_bundle_dir, 'pacbio-bundles'))
+    # Change Permissions. Not sure if this is really even necessary.
+    dirs = ("bin", "resources")
+    for px in dirs:
+        for root, dirs, files in os.walk(os.path.join(output_bundle_dir, px)):
+            for file_name in files:
+                f = os.path.join(output_bundle_dir, root, file_name)
+                _chmod(f)
 
     build_log = os.path.join(output_bundle_dir, PbConstants.BUILD_LOG)
     setup_log(log, level=logging.DEBUG, file_name=build_log)

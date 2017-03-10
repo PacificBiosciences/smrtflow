@@ -11,8 +11,10 @@ import spray.json._
 object ConfigModels {
 
   // PacBio SMRT Link System Configuration IO. These must be consistent with the Avro Schema
+  // See the SmrtLinkSystemConfig.avsc for model details and documentation.
   case class SmrtflowPacBioSystemConfig(tmpDir: Path,
                                         logDir: Path,
+                                        pgDataDir: Path,
                                         tomcatPort: Int = 8080,
                                         tomcatMemory: Int = 1024,
                                         smrtViewPort: Int = 8084,

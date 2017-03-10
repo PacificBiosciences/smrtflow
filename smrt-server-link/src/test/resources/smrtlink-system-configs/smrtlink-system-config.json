@@ -28,7 +28,8 @@
     "smrtLinkServerMemoryMax": 4096,
     "smrtViewPort": 8084,
     "tmpDir": "/tmp",
-    "logDir": "/path/to/log-directory"
+    "logDir": "/path/to/log-directory",
+    "pgDataDir": "/path/to/pg-data"
   },
   "comment": "SL System config example for Schema Version 2.0"
 }

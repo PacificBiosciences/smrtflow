@@ -19,8 +19,6 @@ echo "Attempting to apply-config"
 python ${__dir}/apply-config
 echo "completed applying config"
 
-SERVICES_JAR_NAME="secondary-analysis-services.jar"
-
 SL_PREFIX=sl-analysis
 SL_SERVICES_PID=${__root}/${SL_PREFIX}.pid
 SL_SERVICES_STDOUT=${__root}/${SL_PREFIX}.stdout
@@ -28,7 +26,6 @@ SL_SERVICES_STDERR=${__root}/${SL_PREFIX}.stderr
 SL_SERVICES_JVM_ARGS=$(cat ${__root}/services-jvm-args)
 SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
-SL_SERVICES_JAR=${__root}/${SERVICES_JAR_NAME}
 SL_SERVICES_TOOLS_DIR=${__root}/tools
 # Max number of retries to call subcomponent get-status -i {my-component} --max-retries {X}
 MAX_RETRIES=30
