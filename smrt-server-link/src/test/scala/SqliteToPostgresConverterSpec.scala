@@ -111,7 +111,27 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       Await.result(sqliteDb.run(action).andThen { case _ => sqliteDb.close() }, Duration.Inf)
 
       val reader = new LegacySqliteReader(dbUri)
-      Await.result(reader.read(), Duration.Inf) must beEqualTo(data)
+      val res = Await.result(reader.read(), Duration.Inf)
+
+      res.engineJobs must beEqualTo(data.engineJobs)
+      res.jobEvents must beEqualTo(data.jobEvents)
+      res.projects must beEqualTo(data.projects)
+      res.projectsUsers must beEqualTo(data.projectsUsers)
+      res.dsMetaData2 must beEqualTo(data.dsMetaData2)
+      res.dsSubread2 must beEqualTo(data.dsSubread2)
+      res.dsHdfSubread2 must beEqualTo(data.dsHdfSubread2)
+      res.dsReference2 must beEqualTo(data.dsReference2)
+      res.dsAlignment2 must beEqualTo(data.dsAlignment2)
+      res.dsBarcode2 must beEqualTo(data.dsBarcode2)
+      res.dsCCSread2 must beEqualTo(data.dsCCSread2)
+      res.dsGmapReference2 must beEqualTo(data.dsGmapReference2)
+      res.dsCCSAlignment2 must beEqualTo(data.dsCCSAlignment2)
+      res.dsContig2 must beEqualTo(data.dsContig2)
+      res.datastoreServiceFiles must beEqualTo(data.datastoreServiceFiles)
+      res.runSummaries must beEqualTo(data.runSummaries)
+      res.dataModels must beEqualTo(data.dataModels)
+      res.collectionMetadata must beEqualTo(data.collectionMetadata)
+      res.samples must beEqualTo(data.samples)
     }
 
     "write to postgres" in {
