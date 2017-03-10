@@ -2,6 +2,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 
+import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.Subread
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobConstants, JobEvent, JobTypeIds}
@@ -20,8 +21,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest with TestDalProvider with TestUtils {
-
-  val now = JodaDateTime.now()
+  
+  val now = new JodaDateTime(1000000000L, PacBioDateTimeFormat.TIME_ZONE)
   val jobId = 1
   val jobUUID = UUID.randomUUID()
   val projectId = 2
