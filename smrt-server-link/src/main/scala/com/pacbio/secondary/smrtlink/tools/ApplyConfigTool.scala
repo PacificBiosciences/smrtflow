@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
@@ -13,7 +13,6 @@ import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 
 import scala.util.Try
-
 import spray.json._
 import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 
@@ -332,14 +331,27 @@ object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
   val defaults = ApplyConfigToolOptions(null)
 
+  /**
+    * This should do more validation on the required template files
+    *
+    * @param p Root Path to th bundle directory
+    * @return
+    */
+  def validateIsDir(p: File): Either[String, Unit] = {
+    if (Files.isDirectory(p.toPath)) Right(Unit)
+    else Left(s"$p must be a directory")
+  }
+
   lazy val parser = new OptionParser[ApplyConfigToolOptions]("apply-config") {
 
     arg[File]("root-dir")
-        .action((x, c) => c.copy(rootDir = x.toPath))
+        .action((x, c) => c.copy(rootDir = x.toPath.toAbsolutePath))
+        .validate(validateIsDir)
         .text("Root directory of the SMRT Link Analysis GUI bundle")
 
     opt[File]("template-dir")
         .action((x, c) => c.copy(templateDir = Some(x.toPath)))
+        .validate(validateIsDir)
         .text("Override path to template directory. By default 'template' dir within <ROOT-DIR> will be used")
 
     opt[Unit]('h', "help") action { (x, c) =>
