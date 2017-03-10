@@ -36,7 +36,7 @@ object LoggerOptions {
   def add(parser: OptionParser[LoggerConfig]): Unit = {
 
     parser.opt[Unit]("log2stdout") action { (x, c) =>
-      c.configure(c.logbackFile, c.logFile, true, c.logLevel)
+      c.configure(c.logbackFile, c.logFile, debug = true, c.logLevel)
     } text "If true, log output will be displayed to the console. Default is false."
 
     parser.opt[String]("log-level").action { (x, c) =>
