@@ -30,7 +30,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val data = MigrationData(
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, Some("oops"))),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
-    Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
+    Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_TASK_STATUS)),
     Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
     Seq(DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", Some("jsnow"), jobId, 1, isActive = false)),
@@ -114,11 +114,11 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       val reader = new LegacySqliteReader(dbUri)
       val res = Await.result(reader.read(), Duration.Inf)
 
-      res.engineJobs must beEqualTo(data.engineJobs)
-      res.jobEvents must beEqualTo(data.jobEvents)
+      res.engineJobs must beEqualTo(data.engineJobs.map(_.copy(errorMessage = None)))
+      res.jobEvents must beEqualTo(data.jobEvents.map(_.copy(eventTypeId = JobConstants.EVENT_TYPE_JOB_STATUS)))
       res.projects must beEqualTo(data.projects)
       res.projectsUsers must beEqualTo(data.projectsUsers)
-      res.dsMetaData2 must beEqualTo(data.dsMetaData2)
+      res.dsMetaData2 must beEqualTo(data.dsMetaData2.map(_.copy(createdBy = None)))
       res.dsSubread2 must beEqualTo(data.dsSubread2)
       res.dsHdfSubread2 must beEqualTo(data.dsHdfSubread2)
       res.dsReference2 must beEqualTo(data.dsReference2)
@@ -131,7 +131,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       res.datastoreServiceFiles must beEqualTo(data.datastoreServiceFiles)
       res.runSummaries must beEqualTo(data.runSummaries)
       res.dataModels must beEqualTo(data.dataModels)
-      res.collectionMetadata must beEqualTo(data.collectionMetadata)
+      res.collectionMetadata must beEqualTo(data.collectionMetadata.map(_.copy(createdBy = None)))
       res.samples must beEqualTo(data.samples)
     }
 
