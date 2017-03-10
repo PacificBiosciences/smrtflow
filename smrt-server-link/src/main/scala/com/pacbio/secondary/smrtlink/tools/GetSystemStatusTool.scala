@@ -348,6 +348,8 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
       sys.exit(0)
     } text "Show tool version and exit"
 
+    override def showUsageOnError = false
+
     // add the shared `--debug` and logging options
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
