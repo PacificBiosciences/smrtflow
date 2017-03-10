@@ -8,7 +8,7 @@ import com.pacbio.common.models._
 import com.pacbio.common.time.{ClockProvider, Clock}
 import com.typesafe.scalalogging.LazyLogging
 
-import slick.driver.SQLiteDriver.api._
+import slick.driver.PostgresDriver.api._
 import slick.jdbc.meta.MTable
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -18,11 +18,12 @@ import scala.concurrent.Future
  * Concrete implementation of LogDao that stores stale messages in a database.
  */
 class DatabaseLogDao(
-    databaseConfig: DatabaseConfig.Configured,
+    dbConf: String,
     clock: Clock,
     bufferSize: Int) extends AbstractLogDao(clock, bufferSize) with LazyLogging {
 
-  private lazy val db = Database.forURL(databaseConfig.url, driver = databaseConfig.driver)
+  // TODO(smcclellan): Get this from DalProvider when smrt-server-base is flattened with smrt-server-link
+  private lazy val db = Database.forConfig(dbConf)
 
   db.run(MTable.getTables(logMessageTable.baseTableRow.tableName).headOption).foreach[Any] { opt =>
     if (opt.isEmpty) db.run(logMessageTable.schema.create)
@@ -65,11 +66,13 @@ class DatabaseLogDao(
  * BaseSmrtServerDatabaseConfigProviders that provides a configured log database.
  */
 trait DatabaseLogDaoProvider extends LogDaoProvider {
-  this: BaseSmrtServerDatabaseConfigProviders with ClockProvider =>
+  this: ClockProvider =>
+
+  val dbConf: String = "smrtflow.db"
 
   override val logDao: Singleton[LogDao] = Singleton(() =>
     new DatabaseLogDao(
-      logDaoDatabaseConfigProvider.databaseConfig().asInstanceOf[DatabaseConfig.Configured],
+      dbConf,
       clock(),
       logDaoBufferSize))
 }

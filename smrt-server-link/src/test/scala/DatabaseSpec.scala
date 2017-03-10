@@ -1,6 +1,7 @@
 import java.nio.file.Paths
 import java.util.UUID
 
+import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
@@ -32,6 +33,7 @@ import scala.concurrent.duration._
   *
   */
 class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with TestDalProvider with TestUtils{
+  import PacBioDateTimeFormat.TIME_ZONE
   import JobModels._
   import TableModels._
 
@@ -45,7 +47,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
   "Database" should {
     "Sanity test for inserting and querying the db" in {
 
-      val now = JodaDateTime.now()
+      val now = JodaDateTime.now(TIME_ZONE)
       val username = "user-name"
       val datasetTypeId = "dataset-type-id"
 
