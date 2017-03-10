@@ -146,7 +146,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       Await.result(testdb.run(engineJobs.result), Duration.Inf) must beEqualTo(data.engineJobs)
       Await.result(testdb.run(engineJobsDataSets.result), Duration.Inf) must beEqualTo(data.engineJobsDataSets)
       Await.result(testdb.run(jobEvents.result), Duration.Inf) must beEqualTo(data.jobEvents)
-      Await.result(testdb.run(projects.result), Duration.Inf) must beEqualTo(data.projects)
+      Await.result(testdb.run(projects.filter(_.id =!= 1).result), Duration.Inf) must beEqualTo(data.projects)
       Await.result(testdb.run(projectsUsers.result), Duration.Inf) must beEqualTo(data.projectsUsers)
       Await.result(testdb.run(dsMetaData2.result), Duration.Inf) must beEqualTo(data.dsMetaData2)
       Await.result(testdb.run(dsSubread2.result), Duration.Inf) must beEqualTo(data.dsSubread2)
