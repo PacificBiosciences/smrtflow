@@ -89,25 +89,25 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         samples.schema
 
       val action = schema.create >>
-        (engineJobs ++= data.engineJobs.map(toLegacyEngineJob)) >>
-        (jobEvents ++= data.jobEvents.map(toLegacyJobEvent)) >>
-        (projects ++= data.projects) >>
-        (projectsUsers ++= data.projectsUsers) >>
-        (dsMetaData2 ++= data.dsMetaData2.map(toLegacyDataSetMetaDataSet)) >>
-        (dsSubread2 ++= data.dsSubread2) >>
-        (dsHdfSubread2 ++= data.dsHdfSubread2) >>
-        (dsReference2 ++= data.dsReference2) >>
-        (dsAlignment2 ++= data.dsAlignment2) >>
-        (dsBarcode2 ++= data.dsBarcode2) >>
-        (dsCCSread2 ++= data.dsCCSread2) >>
-        (dsGmapReference2 ++= data.dsGmapReference2) >>
-        (dsCCSAlignment2 ++= data.dsCCSAlignment2) >>
-        (dsContig2 ++= data.dsContig2) >>
-        (datastoreServiceFiles ++= data.datastoreServiceFiles) >>
-        (runSummaries ++= data.runSummaries) >>
-        (dataModels ++= data.dataModels) >>
-        (collectionMetadata ++= data.collectionMetadata.map(toLegacyCollectionMetadata)) >>
-        (samples ++= data.samples)
+        (engineJobs forceInsertAll data.engineJobs.map(toLegacyEngineJob)) >>
+        (jobEvents forceInsertAll data.jobEvents.map(toLegacyJobEvent)) >>
+        (projects forceInsertAll data.projects) >>
+        (projectsUsers forceInsertAll data.projectsUsers) >>
+        (dsMetaData2 forceInsertAll data.dsMetaData2.map(toLegacyDataSetMetaDataSet)) >>
+        (dsSubread2 forceInsertAll data.dsSubread2) >>
+        (dsHdfSubread2 forceInsertAll data.dsHdfSubread2) >>
+        (dsReference2 forceInsertAll data.dsReference2) >>
+        (dsAlignment2 forceInsertAll data.dsAlignment2) >>
+        (dsBarcode2 forceInsertAll data.dsBarcode2) >>
+        (dsCCSread2 forceInsertAll data.dsCCSread2) >>
+        (dsGmapReference2 forceInsertAll data.dsGmapReference2) >>
+        (dsCCSAlignment2 forceInsertAll data.dsCCSAlignment2) >>
+        (dsContig2 forceInsertAll data.dsContig2) >>
+        (datastoreServiceFiles forceInsertAll data.datastoreServiceFiles) >>
+        (runSummaries forceInsertAll data.runSummaries) >>
+        (dataModels forceInsertAll data.dataModels) >>
+        (collectionMetadata forceInsertAll data.collectionMetadata.map(toLegacyCollectionMetadata)) >>
+        (samples forceInsertAll data.samples)
 
       val sqliteDb = Database.forURL(dbUri)
       Await.result(sqliteDb.run(action).andThen { case _ => sqliteDb.close() }, Duration.Inf)
