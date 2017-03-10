@@ -114,25 +114,25 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       val reader = new LegacySqliteReader(dbUri)
       val res = Await.result(reader.read(), Duration.Inf)
 
-      res.engineJobs must beEqualTo(data.engineJobs.map(_.copy(errorMessage = None)))
-      res.jobEvents must beEqualTo(data.jobEvents.map(_.copy(eventTypeId = JobConstants.EVENT_TYPE_JOB_STATUS)))
-      res.projects must beEqualTo(data.projects)
-      res.projectsUsers must beEqualTo(data.projectsUsers)
-      res.dsMetaData2 must beEqualTo(data.dsMetaData2.map(_.copy(createdBy = None)))
-      res.dsSubread2 must beEqualTo(data.dsSubread2)
-      res.dsHdfSubread2 must beEqualTo(data.dsHdfSubread2)
-      res.dsReference2 must beEqualTo(data.dsReference2)
-      res.dsAlignment2 must beEqualTo(data.dsAlignment2)
-      res.dsBarcode2 must beEqualTo(data.dsBarcode2)
-      res.dsCCSread2 must beEqualTo(data.dsCCSread2)
-      res.dsGmapReference2 must beEqualTo(data.dsGmapReference2)
-      res.dsCCSAlignment2 must beEqualTo(data.dsCCSAlignment2)
-      res.dsContig2 must beEqualTo(data.dsContig2)
-      res.datastoreServiceFiles must beEqualTo(data.datastoreServiceFiles)
-      res.runSummaries must beEqualTo(data.runSummaries)
-      res.dataModels must beEqualTo(data.dataModels)
-      res.collectionMetadata must beEqualTo(data.collectionMetadata.map(_.copy(createdBy = None)))
-      res.samples must beEqualTo(data.samples)
+      res.engineJobs === data.engineJobs.map(_.copy(errorMessage = None))
+      res.jobEvents === data.jobEvents.map(_.copy(eventTypeId = JobConstants.EVENT_TYPE_JOB_STATUS))
+      res.projects === data.projects
+      res.projectsUsers === data.projectsUsers
+      res.dsMetaData2 === data.dsMetaData2.map(_.copy(createdBy = None))
+      res.dsSubread2 === data.dsSubread2
+      res.dsHdfSubread2 === data.dsHdfSubread2
+      res.dsReference2 === data.dsReference2
+      res.dsAlignment2 === data.dsAlignment2
+      res.dsBarcode2 === data.dsBarcode2
+      res.dsCCSread2 === data.dsCCSread2
+      res.dsGmapReference2 === data.dsGmapReference2
+      res.dsCCSAlignment2 === data.dsCCSAlignment2
+      res.dsContig2 === data.dsContig2
+      res.datastoreServiceFiles === data.datastoreServiceFiles
+      res.runSummaries === data.runSummaries
+      res.dataModels === data.dataModels
+      res.collectionMetadata === data.collectionMetadata.map(_.copy(createdBy = None))
+      res.samples === data.samples
     }
 
     "write to postgres" in {
@@ -143,26 +143,26 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
       Await.result(writer.write(Future.successful(data)), Duration.Inf)
 
-      Await.result(testdb.run(engineJobs.result), Duration.Inf) must beEqualTo(data.engineJobs)
-      Await.result(testdb.run(engineJobsDataSets.result), Duration.Inf) must beEqualTo(data.engineJobsDataSets)
-      Await.result(testdb.run(jobEvents.result), Duration.Inf) must beEqualTo(data.jobEvents)
-      Await.result(testdb.run(projects.filter(_.id =!= 1).result), Duration.Inf) must beEqualTo(data.projects)
-      Await.result(testdb.run(projectsUsers.result), Duration.Inf) must beEqualTo(data.projectsUsers)
-      Await.result(testdb.run(dsMetaData2.result), Duration.Inf) must beEqualTo(data.dsMetaData2)
-      Await.result(testdb.run(dsSubread2.result), Duration.Inf) must beEqualTo(data.dsSubread2)
-      Await.result(testdb.run(dsHdfSubread2.result), Duration.Inf) must beEqualTo(data.dsHdfSubread2)
-      Await.result(testdb.run(dsReference2.result), Duration.Inf) must beEqualTo(data.dsReference2)
-      Await.result(testdb.run(dsAlignment2.result), Duration.Inf) must beEqualTo(data.dsAlignment2)
-      Await.result(testdb.run(dsBarcode2.result), Duration.Inf) must beEqualTo(data.dsBarcode2)
-      Await.result(testdb.run(dsCCSread2.result), Duration.Inf) must beEqualTo(data.dsCCSread2)
-      Await.result(testdb.run(dsGmapReference2.result), Duration.Inf) must beEqualTo(data.dsGmapReference2)
-      Await.result(testdb.run(dsCCSAlignment2.result), Duration.Inf) must beEqualTo(data.dsCCSAlignment2)
-      Await.result(testdb.run(dsContig2.result), Duration.Inf) must beEqualTo(data.dsContig2)
-      Await.result(testdb.run(datastoreServiceFiles.result), Duration.Inf) must beEqualTo(data.datastoreServiceFiles)
-      Await.result(testdb.run(runSummaries.result), Duration.Inf) must beEqualTo(data.runSummaries)
-      Await.result(testdb.run(dataModels.result), Duration.Inf) must beEqualTo(data.dataModels)
-      Await.result(testdb.run(collectionMetadata.result), Duration.Inf) must beEqualTo(data.collectionMetadata)
-      Await.result(testdb.run(samples.result), Duration.Inf) must beEqualTo(data.samples)
+      Await.result(testdb.run(engineJobs.result), Duration.Inf) === data.engineJobs
+      Await.result(testdb.run(engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
+      Await.result(testdb.run(jobEvents.result), Duration.Inf) === data.jobEvents
+      Await.result(testdb.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
+      Await.result(testdb.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
+      Await.result(testdb.run(dsMetaData2.result), Duration.Inf) === data.dsMetaData2
+      Await.result(testdb.run(dsSubread2.result), Duration.Inf) === data.dsSubread2
+      Await.result(testdb.run(dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
+      Await.result(testdb.run(dsReference2.result), Duration.Inf) === data.dsReference2
+      Await.result(testdb.run(dsAlignment2.result), Duration.Inf) === data.dsAlignment2
+      Await.result(testdb.run(dsBarcode2.result), Duration.Inf) === data.dsBarcode2
+      Await.result(testdb.run(dsCCSread2.result), Duration.Inf) === data.dsCCSread2
+      Await.result(testdb.run(dsGmapReference2.result), Duration.Inf) === data.dsGmapReference2
+      Await.result(testdb.run(dsCCSAlignment2.result), Duration.Inf) === data.dsCCSAlignment2
+      Await.result(testdb.run(dsContig2.result), Duration.Inf) === data.dsContig2
+      Await.result(testdb.run(datastoreServiceFiles.result), Duration.Inf) === data.datastoreServiceFiles
+      Await.result(testdb.run(runSummaries.result), Duration.Inf) === data.runSummaries
+      Await.result(testdb.run(dataModels.result), Duration.Inf) === data.dataModels
+      Await.result(testdb.run(collectionMetadata.result), Duration.Inf) === data.collectionMetadata
+      Await.result(testdb.run(samples.result), Duration.Inf) === data.samples
     }
   }
 }
