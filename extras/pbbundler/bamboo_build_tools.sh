@@ -1,6 +1,7 @@
 #!/bin/bash -ex
 
 source /mnt/software/Modules/current/init/bash
+module load jdk/1.8.0_71
 module load sbt
 
 SHA=`git rev-parse --short HEAD`

@@ -140,10 +140,6 @@ class Constants(object):
 
 
 class PbConstants(object):
-    # Output of the jar file for secondary analysis services
-    SECONDARY_JAR_NAME = "secondary-analysis-services.jar"
-    # Output of the jar file for smrtlink common services
-    COMMON_JAR_NAME = "smrtlink-common-server.jar"
     # FIle in the bundle
     MANIFEST_FILE = "pacbio-manifest.json"
     # Build log in the bundle
@@ -217,16 +213,6 @@ def _publish_to(bundle_tgz, publish_dir):
         else:
             shutil.copy(bundle_tgz, output_gz)
             log.info("Published {x} to {o}".format(x=name, o=output_gz))
-
-
-def _find_target_jar(target_dir):
-    for fname in os.listdir(target_dir):
-        if fname.endswith(".jar"):
-            jar_path = os.path.join(target_dir, fname)
-            log.debug("Found {f}".format(f=jar_path))
-            return jar_path
-
-    raise ValueError("Unable to find jar file in {f}".format(f=target_dir))
 
 
 def _get_smrtflow_version(root_dir):
@@ -355,7 +341,7 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
                              ivy_cache=None,
                              analysis_server="smrt-server-link"):
     """
-    Builds all of the Scala Services and returns a path to single jar file
+    Builds all of the Scala Services
 
     :param services_root_dir: smrtflow root directory to the scala services
     code
@@ -364,8 +350,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     resolved pipeline template JSON files
     :param ivy_cache: Custom ivy-cache location
     :param analysis_server: sbt smrt-server subproject name
-
-    :return: Path to self-contained jar file
 
     """
     t0 = time.time()
@@ -388,14 +372,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
         for cmd in cmds:
             local("{s} {c}".format(s=sbt_cmd, c=cmd))
 
-    target_dir = to_scala_path('{s}/target/scala-2.11'.format(s=analysis_server))
-
-    jar_path = _find_target_jar(target_dir)
-
-    # rename the file in the bundle
-    analysis_server_jar = os.path.join(output_bundle_dir, PbConstants.SECONDARY_JAR_NAME)
-    shutil.copy(jar_path, analysis_server_jar)
-
     # Copy built SL Analysis tools into bundle tools dir
     output_tools_root = os.path.join(output_bundle_dir, 'tools')
     tools_root = to_scala_path("smrt-server-link/target/pack")
@@ -403,7 +379,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     shutil.copytree(tools_root, output_tools_root)
 
     log.debug("Completed building in SL Services in {:.2f} sec.".format(time.time() - t0))
-    return analysis_server_jar
 
 
 @task
