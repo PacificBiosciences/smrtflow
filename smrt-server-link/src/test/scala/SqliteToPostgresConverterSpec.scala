@@ -164,7 +164,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
   "SqliteToPostgresConverter" should {
     "read from sqlite" in {
-      println("TEST TEST TEST - read from sqlite")
       val dbFile = createTestSqliteDb()
       val dbUri = SqliteToPostgresConverter.toSqliteURI(dbFile)
       val reader = new LegacySqliteReader(dbUri)
@@ -197,8 +196,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       import TableModels._
       import slick.driver.PostgresDriver.api._
 
-      println("TEST TEST TEST - write to postgres")
-
       val writer = new PostgresWriter(testdb, dbConfig.username, clock)
 
       Await.result(writer.write(Future.successful(data)), Duration.Inf)
@@ -214,7 +211,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     }
 
     "read from sqlite and write to postgres" in {
-      println("TEST TEST TEST - read from sqlite and write to postgres")
       setupDb(dbConfig)
 
       val dbFile = createTestSqliteDb()
@@ -227,8 +223,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     }
 
     "skip migration if already complete" in {
-      println("TEST TEST TEST - skip migration if already complete")
-
       val dbFile = createTestSqliteDb()
 
       val opts = SqliteToPostgresConverterOptions(dbFile, dbConfig.username, dbConfig.password, dbConfig.dbName, dbConfig.server, dbConfig.port)
@@ -239,7 +233,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     "handle failed write" in {
       import TableModels._
       import slick.driver.PostgresDriver.api._
-      println("TEST TEST TEST - handle failed write")
 
       setupDb(dbConfig)
 
