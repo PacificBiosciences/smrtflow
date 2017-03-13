@@ -85,27 +85,10 @@ class RunDesignWithICSScenario(host: String,
   val runDesign: Var[Run] = Var()
   val runDesigns: Var[Seq[RunSummary]] = Var()
 
-  
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
-	
 
   // for SAT - hacking from pbSmrtPipeScenario
-
-/*  val testdata = PacBioTestData()
-  val reference = Var(testdata.getFile("lambdaNEB"))
-  val refUuid = Var(dsUuidFromPath(reference.get))
-  val subreads = Var(testdata.getFile("subreads-xml"))
-  val subreadsUuid = Var(dsUuidFromPath(subreads.get))
-  val jobStatus: Var[Int] = Var()
-  val jobId: Var[UUID] = Var()
-  val EXIT_SUCCESS: Var[Int] = Var(0)
-  val EXIT_FAILURE: Var[Int] = Var(1)
-  val childJobs: Var[Seq[EngineJob]] = Var()
-  val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
-  val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
-*/
-
 
   val testdata = PacBioTestData()
   val reference = Var(testdata.getFile("lambdaNEB"))
@@ -178,7 +161,7 @@ class RunDesignWithICSScenario(host: String,
       dataStore := GetAnalysisJobDataStore(jobId)
   )
 
-  val diagnosticJobTests = Seq(
+  val satTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),
     jobStatus := WaitForJob(jobId),
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -282,6 +265,6 @@ class RunDesignWithICSScenario(host: String,
 
     GetRunStatus(runDesign, Seq(Complete))
   )
-//icsEndToEndsteps ++
-  override val steps =  setupSteps ++ diagnosticJobTests //satSteps
+
+  override val steps =  icsEndToEndsteps ++ setupSteps ++ satTests 
 }
