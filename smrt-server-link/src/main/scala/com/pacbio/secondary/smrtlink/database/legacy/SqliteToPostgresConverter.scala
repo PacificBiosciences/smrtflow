@@ -15,6 +15,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
+import resource._
 import scopt.OptionParser
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -118,40 +119,35 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     val sqliteURI = toSqliteURI(c.sqliteFile)
 
     val dbConfig = DatabaseConfig(c.pgDbName, c.pgUsername, c.pgPassword, c.pgServer, c.pgPort)
-    val dataSource = dbConfig.toDataSource
 
-    println(s"Attempting to connect to postgres db with $dbConfig")
-    val message = TestConnection(dataSource)
-    println(message)
+    for (dataSource <- managed(dbConfig.toDataSource)) {
+      println(s"Attempting to connect to postgres db with $dbConfig")
+      val message = TestConnection(dataSource)
+      println(message)
 
-    val dbURI = dbConfig.jdbcURI
-    println(s"Postgres URL '$dbURI'")
+      val dbURI = dbConfig.jdbcURI
+      println(s"Postgres URL '$dbURI'")
 
-    println("Attempting to run Postgres migrations (if necessary)")
+      println("Attempting to run Postgres migrations (if necessary)")
 
-    val psqlMigrationStatus = Migrator(dbConfig.toDataSource)
-    println(psqlMigrationStatus)
+      val psqlMigrationStatus = Migrator(dataSource)
+      println(psqlMigrationStatus)
+    }
 
-    // Make this more robust. This must be called, regardless of when the exception is thrown
-    dataSource.close()
-
-    val db = dbConfig.toDatabase
-
-    val clock = new SystemClock
-
-    val writer = new PostgresWriter(db, c.pgUsername, clock)
-    val res = writer.checkForSuccessfulMigration().flatMap {
-      case Some(status) =>
-        val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
-        println(msg)
-        Future.successful(msg)
-      case _ =>
-        writer
+    managed(dbConfig.toDatabase) acquireAndGet { db =>
+      val writer = new PostgresWriter(db, c.pgUsername, new SystemClock)
+      val res = writer.checkForSuccessfulMigration().flatMap {
+        case Some(status) =>
+          val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
+          println(msg)
+          Future.successful(msg)
+        case _ =>
+          writer
             .write(new LegacySqliteReader(sqliteURI).read())
             .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
-    }.andThen { case _ => db.close() }
-
-    Await.result(res, Duration.Inf)
+      }
+      Await.result(res, Duration.Inf)
+    }
   }
 
   override def runTool(c: SqliteToPostgresConverterOptions) = Try(runImporter(c))
@@ -875,6 +871,6 @@ class LegacySqliteReader(legacyDbUri: String) {
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
     } yield MigrationData(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), ps.filter(_.id != 1), psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
-    db.run(action).andThen { case _ => db.close() }
+    db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }

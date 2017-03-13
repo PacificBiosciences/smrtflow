@@ -15,6 +15,7 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
+import resource._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -29,9 +30,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val jobUUID = UUID.randomUUID()
   val projectId = 2
   val runId = UUID.randomUUID()
-
-  setupDb(dbConfig)
-  val testdb = dbConfig.toDatabase
 
   val data = MigrationData(
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
@@ -122,44 +120,44 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     dbFile
   }
 
-  def writeResultAssertions() = {
+  def writeResultAssertions(db: slick.driver.PostgresDriver.api.Database) = {
     import TableModels._
     import slick.driver.PostgresDriver.api._
 
-    Await.result(testdb.run(engineJobs.result), Duration.Inf) === data.engineJobs
-    Await.result(testdb.run(engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
-    Await.result(testdb.run(jobEvents.result), Duration.Inf) === data.jobEvents
-    Await.result(testdb.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
-    Await.result(testdb.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
-    Await.result(testdb.run(dsMetaData2.result), Duration.Inf) === data.dsMetaData2
-    Await.result(testdb.run(dsSubread2.result), Duration.Inf) === data.dsSubread2
-    Await.result(testdb.run(dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
-    Await.result(testdb.run(dsReference2.result), Duration.Inf) === data.dsReference2
-    Await.result(testdb.run(dsAlignment2.result), Duration.Inf) === data.dsAlignment2
-    Await.result(testdb.run(dsBarcode2.result), Duration.Inf) === data.dsBarcode2
-    Await.result(testdb.run(dsCCSread2.result), Duration.Inf) === data.dsCCSread2
-    Await.result(testdb.run(dsGmapReference2.result), Duration.Inf) === data.dsGmapReference2
-    Await.result(testdb.run(dsCCSAlignment2.result), Duration.Inf) === data.dsCCSAlignment2
-    Await.result(testdb.run(dsContig2.result), Duration.Inf) === data.dsContig2
-    Await.result(testdb.run(datastoreServiceFiles.result), Duration.Inf) === data.datastoreServiceFiles
-    Await.result(testdb.run(runSummaries.result), Duration.Inf) === data.runSummaries
-    Await.result(testdb.run(dataModels.result), Duration.Inf) === data.dataModels
-    Await.result(testdb.run(collectionMetadata.result), Duration.Inf) === data.collectionMetadata
-    Await.result(testdb.run(samples.result), Duration.Inf) === data.samples
+    Await.result(db.run(engineJobs.result), Duration.Inf) === data.engineJobs
+    Await.result(db.run(engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
+    Await.result(db.run(jobEvents.result), Duration.Inf) === data.jobEvents
+    Await.result(db.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
+    Await.result(db.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
+    Await.result(db.run(dsMetaData2.result), Duration.Inf) === data.dsMetaData2
+    Await.result(db.run(dsSubread2.result), Duration.Inf) === data.dsSubread2
+    Await.result(db.run(dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
+    Await.result(db.run(dsReference2.result), Duration.Inf) === data.dsReference2
+    Await.result(db.run(dsAlignment2.result), Duration.Inf) === data.dsAlignment2
+    Await.result(db.run(dsBarcode2.result), Duration.Inf) === data.dsBarcode2
+    Await.result(db.run(dsCCSread2.result), Duration.Inf) === data.dsCCSread2
+    Await.result(db.run(dsGmapReference2.result), Duration.Inf) === data.dsGmapReference2
+    Await.result(db.run(dsCCSAlignment2.result), Duration.Inf) === data.dsCCSAlignment2
+    Await.result(db.run(dsContig2.result), Duration.Inf) === data.dsContig2
+    Await.result(db.run(datastoreServiceFiles.result), Duration.Inf) === data.datastoreServiceFiles
+    Await.result(db.run(runSummaries.result), Duration.Inf) === data.runSummaries
+    Await.result(db.run(dataModels.result), Duration.Inf) === data.dataModels
+    Await.result(db.run(collectionMetadata.result), Duration.Inf) === data.collectionMetadata
+    Await.result(db.run(samples.result), Duration.Inf) === data.samples
 
     // Test autoinc values
-    Await.result(testdb.run(sql"SELECT last_value FROM engine_jobs_job_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM projects_project_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
-    Await.result(testdb.run(sql"SELECT last_value FROM dataset_metadata_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM dataset_subreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM dataset_hdfsubreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM dataset_references_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM datasets_alignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM datasets_barcodes_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM datasets_ccsreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM dataset_gmapreferences_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM datasets_ccsalignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(testdb.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM engine_jobs_job_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM projects_project_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+    Await.result(db.run(sql"SELECT last_value FROM dataset_metadata_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_subreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_hdfsubreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_references_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM datasets_alignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM datasets_barcodes_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_gmapreferences_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsalignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
   }
 
   "SqliteToPostgresConverter" should {
@@ -196,18 +194,21 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       import TableModels._
       import slick.driver.PostgresDriver.api._
 
-      val writer = new PostgresWriter(testdb, dbConfig.username, clock)
+      setupDb(dbConfig)
+      managed(dbConfig.toDatabase) acquireAndGet { db =>
+        val writer = new PostgresWriter(db, dbConfig.username, clock)
 
-      Await.result(writer.write(Future.successful(data)), Duration.Inf)
+        Await.result(writer.write(Future.successful(data)), Duration.Inf)
 
-      writeResultAssertions()
+        writeResultAssertions(db)
 
-      // Test migration status table
-      Await.result(testdb.run(migrationStatus.result), Duration.Inf) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+        // Test migration status table
+        Await.result(db.run(migrationStatus.result), Duration.Inf) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
 
-      // Test autoinc works with new insertions
-      Await.result(testdb.run((dsContig2 returning dsContig2.map(_.id)) += ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 3
-      Await.result(testdb.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+        // Test autoinc works with new insertions
+        Await.result(db.run((dsContig2 returning dsContig2.map(_.id)) += ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 3
+        Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+      }
     }
 
     "read from sqlite and write to postgres" in {
@@ -219,7 +220,9 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
       SqliteToPostgresConverter.runImporter(opts) === s"Successfully migrated data from $dbFile into Postgres"
 
-      writeResultAssertions()
+      managed(dbConfig.toDatabase) acquireAndGet { db =>
+        writeResultAssertions(db)
+      }
     }
 
     "skip migration if already complete" in {
@@ -235,31 +238,32 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       import slick.driver.PostgresDriver.api._
 
       setupDb(dbConfig)
+      managed(dbConfig.toDatabase) acquireAndGet { db =>
+        val writer = new PostgresWriter(db, dbConfig.username, clock)
 
-      val writer = new PostgresWriter(testdb, dbConfig.username, clock)
+        val dupId = UUID.randomUUID()
+        val badData = MigrationData(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil,
+          Seq(DataModelAndUniqueId("<xml>bad</xml>", dupId), DataModelAndUniqueId("<xml>bad</xml>", dupId)), Nil, Nil)
 
-      val dupId = UUID.randomUUID()
-      val badData = MigrationData(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil,
-        Seq(DataModelAndUniqueId("<xml>bad</xml>", dupId), DataModelAndUniqueId("<xml>bad</xml>", dupId)), Nil, Nil)
+        // Try to write bad data
+        Await.ready(writer.write(Future.successful(badData)), Duration.Inf)
 
-      // Try to write bad data
-      Await.ready(writer.write(Future.successful(badData)), Duration.Inf)
+        // Test migration status table
+        val row = Await.result(db.run(migrationStatus.result), Duration.Inf).head
+        row.timestamp === now.toString("YYYY-MM-dd HH:mm:ss.SSS")
+        row.success === false
+        row.error must beSome
 
-      // Test migration status table
-      val row = Await.result(testdb.run(migrationStatus.result), Duration.Inf).head
-      row.timestamp === now.toString("YYYY-MM-dd HH:mm:ss.SSS")
-      row.success === false
-      row.error must beSome
+        // Write good data
+        Await.result(writer.write(Future.successful(data)), Duration.Inf)
 
-      // Write good data
-      Await.result(writer.write(Future.successful(data)), Duration.Inf)
+        writeResultAssertions(db)
 
-      writeResultAssertions()
-
-      // Test migration status table
-      val rows = Await.result(testdb.run(migrationStatus.result), Duration.Inf)
-      rows.size === 2
-      rows.filter(_.success == true) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+        // Test migration status table
+        val rows = Await.result(db.run(migrationStatus.result), Duration.Inf)
+        rows.size === 2
+        rows.filter(_.success == true) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+      }
     }
   }
 }
