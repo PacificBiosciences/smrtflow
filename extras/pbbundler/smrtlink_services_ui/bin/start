@@ -16,7 +16,7 @@ arg1="${1:-}"
 
 # Need to call this here to create the *-jvm-args files
 echo "Attempting to apply-config"
-python ${__dir}/apply-config
+${__dir}/apply-config
 echo "completed applying config"
 
 SL_PREFIX=sl-analysis
