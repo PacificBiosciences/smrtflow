@@ -11,12 +11,14 @@ import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
-import com.pacbio.simulator.StepResult.{SUCCEEDED, Result}
-import com.pacbio.simulator.steps.{ConditionalSteps, VarSteps, SmrtLinkSteps}
+import com.pacbio.simulator.StepResult.{FAILED, SUCCEEDED, Result}
+import com.pacbio.simulator.steps.{BasicSteps, ConditionalSteps, VarSteps, SmrtLinkSteps}
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.{ConfigException, Config}
 
+import scala.concurrent.duration._
 import scala.concurrent.Future
+import scala.util.Try
 
 object SqliteToPostgresScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
@@ -45,11 +47,11 @@ object SqliteToPostgresScenarioLoader extends ScenarioLoader {
 }
 
 class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverterOptions)
-  extends Scenario with VarSteps with ConditionalSteps with SmrtLinkSteps with TestUtils {
+  extends Scenario with BasicSteps with VarSteps with ConditionalSteps with SmrtLinkSteps with TestUtils {
 
   override val name = "SqliteToPostgresScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", "localhost", 8081, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", "localhost", 8070, ""))
 
   // TODO(smcclellan): Move these steps into ...simulator.steps package?
 
@@ -64,10 +66,23 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   case class LaunchSmrtLinkStep(pathToJar: Var[Path]) extends VarStep[Process] {
     override val name = "LaunchSmrtLink"
     override def run: Future[Result] = Future {
-      // TODO(smcclellan): Pass in necessary configs with '-D'
-      val cmd = s"java -jar ${pathToJar.get.toAbsolutePath}"
-      output(Runtime.getRuntime.exec(cmd))
-      SUCCEEDED
+      val argBase = " -Dsmrtflow.db.properties"
+      val args = Seq(
+        s"$argBase.databaseName=${opts.pgDbName}",
+        s"$argBase.user=${opts.pgUsername}",
+        s"$argBase.password=${opts.pgPassword}",
+        s"$argBase.portNumber=${opts.pgPort}",
+        s"$argBase.serverName=${opts.pgServer}"
+      ).reduce(_ + _)
+      val cmd = s"java$args -jar ${pathToJar.get.toAbsolutePath}"
+
+      val process = Runtime.getRuntime.exec(cmd)
+      output(process)
+
+      Try(smrtLinkProcess.get.exitValue())
+        .map(e => FAILED(s"SMRT Link exited with code $e"))
+        .recover { case e: IllegalThreadStateException => SUCCEEDED }
+        .get
     }
   }
 
@@ -107,6 +122,7 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     RunSqliteToPostgresConverterStep(converterOpts),
 
     smrtLinkProcess := LaunchSmrtLinkStep(smrtLinkJarPath),
+    SleepStep(30.seconds), // Wait for server to start
 
     // TODO(smcclellan): Add more steps to verify that SMRTLink endpoints contain data from SQLite
     project := GetProject(Var(2)),
