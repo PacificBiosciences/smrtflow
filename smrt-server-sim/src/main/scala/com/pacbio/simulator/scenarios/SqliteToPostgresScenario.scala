@@ -90,9 +90,19 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
 
     // TODO(smcclellan): Add steps to verify that SMRTLink endpoints contain data from SQLite
 
-    // TODO(smcclellan): Ensure this step runs regardless of prior failures
     smrtLinkExitCode := KillSmrtLink(smrtLinkProcess),
 
     fail("SMRT Link exited with non-zero code") IF smrtLinkExitCode !=? 0
   )
+
+  override def tearDown() = {
+    // Kill SMRT Link if still running
+    if (smrtLinkProcess.isDefined) {
+      try {
+        smrtLinkProcess.get.exitValue()
+      } catch {
+        case e: IllegalThreadStateException => smrtLinkProcess.get.destroy()
+      }
+    }
+  }
 }
