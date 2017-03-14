@@ -19,6 +19,7 @@ import resource._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.language.reflectiveCalls
 
 class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest with TestDalProvider with TestUtils {
 
@@ -31,27 +32,42 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val projectId = 2
   val runId = UUID.randomUUID()
 
-  val data = MigrationData(
+  val baseMetaData = DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = true)
+  def idAbleToMetaData(idAble: {val id: Int; val uuid: UUID}) = baseMetaData.copy(id = idAble.id, uuid = idAble.uuid)
+  def addMetaData(data: MigrationData) = {
+    val meta = (data.dsSubread2 ++
+      data.dsHdfSubread2 ++
+      data.dsReference2 ++
+      data.dsAlignment2 ++
+      data.dsBarcode2 ++
+      data.dsCCSread2 ++
+      data.dsGmapReference2 ++
+      data.dsCCSAlignment2 ++
+      data.dsContig2).map(idAbleToMetaData)
+    data.copy(dsMetaData2 = meta)
+  }
+
+  val data = addMetaData(MigrationData(
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
     Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
     Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
-    Seq(DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = false)),
+    Nil, // Will be added by addMetaData
     Seq(SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
-    Seq(HdfSubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
-    Seq(ReferenceServiceSet(1, UUID.randomUUID(), "ploidy", "organism")),
-    Seq(AlignmentServiceSet(1, UUID.randomUUID())),
-    Seq(BarcodeServiceSet(1, UUID.randomUUID())),
-    Seq(ConsensusReadServiceSet(1, UUID.randomUUID())),
-    Seq(GmapReferenceServiceSet(1, UUID.randomUUID(), "ploidy", "organism")),
-    Seq(ConsensusAlignmentServiceSet(1, UUID.randomUUID())),
-    Seq(ContigServiceSet(1, UUID.randomUUID())),
-    Seq(DataStoreServiceFile(UUID.randomUUID(), Subread.toString, "sourceId", 1L, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
+    Seq(HdfSubreadServiceSet(2, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
+    Seq(ReferenceServiceSet(3, UUID.randomUUID(), "ploidy", "organism")),
+    Seq(AlignmentServiceSet(4, UUID.randomUUID())),
+    Seq(BarcodeServiceSet(5, UUID.randomUUID())),
+    Seq(ConsensusReadServiceSet(6, UUID.randomUUID())),
+    Seq(GmapReferenceServiceSet(7, UUID.randomUUID(), "ploidy", "organism")),
+    Seq(ConsensusAlignmentServiceSet(8, UUID.randomUUID())),
+    Seq(ContigServiceSet(9, UUID.randomUUID())),
+    Seq(DataStoreServiceFile(UUID.randomUUID(), Subread.toString, "sourceId", 1, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
     Seq(RunSummary(runId, "name", Some("summary"), Some("jsnow"), Some(now), Some(now), Some(now), Some(now), SupportedRunStates.COMPLETE, 1, 1, 0, Some("instrumentName"), Some("instrumentSerialNumber"), Some("instrumentSwVersion"), Some("primaryAnalysisSwVersion"), Some("context"), Some("terminationInfo"), reserved = false)),
     Seq(DataModelAndUniqueId("<xml></xml>", runId)),
     Seq(CollectionMetadata(runId, UUID.randomUUID(), "well", "name", Some("summary"), Some("context"), Some(Paths.get("/path/to")), SupportedAcquisitionStates.COMPLETE, Some("instrumentId"), Some("instrumentName"), 1.0, None, Some(now), Some(now), Some("terminationInfo"))),
-    Seq(Sample("details", UUID.randomUUID(), "name", "jsnow", now)))
+    Seq(Sample("details", UUID.randomUUID(), "name", "jsnow", now))))
 
   def createTestSqliteDb(): File = {
     import LegacyModels._
@@ -152,16 +168,16 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     // Test autoinc values
     Await.result(db.run(sql"SELECT last_value FROM engine_jobs_job_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
     Await.result(db.run(sql"SELECT last_value FROM projects_project_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
-    Await.result(db.run(sql"SELECT last_value FROM dataset_metadata_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_metadata_id_seq;".as[Int].map(_.head)), Duration.Inf) === 10
     Await.result(db.run(sql"SELECT last_value FROM dataset_subreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM dataset_hdfsubreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM dataset_references_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM datasets_alignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM datasets_barcodes_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM dataset_gmapreferences_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsalignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
-    Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
+    Await.result(db.run(sql"SELECT last_value FROM dataset_hdfsubreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+    Await.result(db.run(sql"SELECT last_value FROM dataset_references_id_seq;".as[Int].map(_.head)), Duration.Inf) === 4
+    Await.result(db.run(sql"SELECT last_value FROM datasets_alignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 5
+    Await.result(db.run(sql"SELECT last_value FROM datasets_barcodes_id_seq;".as[Int].map(_.head)), Duration.Inf) === 6
+    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 7
+    Await.result(db.run(sql"SELECT last_value FROM dataset_gmapreferences_id_seq;".as[Int].map(_.head)), Duration.Inf) === 8
+    Await.result(db.run(sql"SELECT last_value FROM datasets_ccsalignments_id_seq;".as[Int].map(_.head)), Duration.Inf) === 9
+    Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 10
   }
 
   "SqliteToPostgresConverter" should {
@@ -210,8 +226,8 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         Await.result(db.run(migrationStatus.result), Duration.Inf) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
 
         // Test autoinc works with new insertions
-        Await.result(db.run((dsContig2 returning dsContig2.map(_.id)) += ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 3
-        Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+        Await.result(db.run((dsContig2 returning dsContig2.map(_.id)) += ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 11
+        Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 11
       }
     }
 
