@@ -9,21 +9,23 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import com.pacbio.common.models.{XmlTemplateReader => GenTemplateReader}
-
+import com.pacbio.simulator.RunDesignTemplateInfo
 import scala.xml.{Node, XML}
 
 class RunDesignTemplateReader(xmlFile: Path) {
   private def randomId(): UUID = UUID.randomUUID()
   private def randomContextId(): String = toRandomMovieContextId("SIM")
-
-  /*var count = 0
-  val runId = randomId()
-  val runName = s"Sim-Run-$runId"
-  val movieLengthInMins = numFrames / (60.0 * 80.0)*/
+  private var subreadSetUuid : Option[UUID] = None
 
   def toRandomMovieContextId(instrument:String) = {
     val sx = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     s"m${instrument}_$sx"
+  }
+
+
+  private val getSubreadsetUuid = {
+    subreadSetUuid = Some(randomId())
+    subreadSetUuid.get
   }
 
   def read :Node =
@@ -35,7 +37,7 @@ class RunDesignTemplateReader(xmlFile: Path) {
       .perNode("SubreadSet") .substituteMap {
       val collectionContextId = randomContextId()
       Map(
-        "{SUBREAD_ID}"           -> (() => randomId()),
+        "{SUBREAD_ID}"           -> (() => getSubreadsetUuid),
         "{EXTERNAL_RESOURCE_ID}" -> (() => randomId())
         //"{collectionContextId}" -> (() => collectionContextId),
         //"{collectionPathUri}"   -> (() => s"//pbi/collections/xfer-test/$collectionContextId/1_A01/$runId/")
@@ -44,4 +46,6 @@ class RunDesignTemplateReader(xmlFile: Path) {
     }.result()
 
   def readStr = read.mkString
+
+  def readRundesignTemplateInfo = RunDesignTemplateInfo(readStr, subreadSetUuid.get)
 }

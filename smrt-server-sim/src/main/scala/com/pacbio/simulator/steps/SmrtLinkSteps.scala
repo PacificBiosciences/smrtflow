@@ -6,7 +6,7 @@ import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.common.tools.GetSmrtServerStatus
-import com.pacbio.simulator.Scenario
+import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario}
 import com.pacbio.simulator.StepResult._
 import com.pacbio.common.models._
 import com.pacificbiosciences.pacbiodatasets._
