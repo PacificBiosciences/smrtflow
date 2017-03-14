@@ -84,8 +84,12 @@ trait IOSteps {
 
 
     def updateXml = {
+      val uuid = runInfo.get.subreadsetUuid.toString
+
       val dd = DataSetLoader.loadSubreadSet(subreads.get)
-      dd.setUniqueId(runInfo.get.subreadsetUuid.toString)
+      dd.setUniqueId(uuid)
+
+      println(s"setting subreadset uuid : $uuid")
       DataSetWriter.writeSubreadSet(dd, subreads.get)
     }
 
