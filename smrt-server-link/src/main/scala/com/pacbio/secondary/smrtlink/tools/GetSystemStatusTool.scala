@@ -134,7 +134,7 @@ class GetWso2ComponentStatus(override val host: String, override val port: Int, 
   //FIXME(mpkocher)(3-2-2017) This needs to be replaced by the AmClient. I Don't see a getStatus method
   def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
     val client = new AmClientLite(host, port)
-    client.getStatus()
+    client.getStatusWithRetry(maxRetries)
   }
 
 }
