@@ -44,7 +44,24 @@ trait SmrtLinkSteps {
     override val name = "GetRun"
 
     override def run: Future[Result] = smrtLinkClient.getRun(runId.get).map { r =>
-      println(s"runId for this run : ${runId.get}")
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  case class GetCollections(runId: Var[UUID]) extends VarStep[Seq[CollectionMetadata]] {
+    override val name = "GetCollections"
+
+    override def run: Future[Result] = smrtLinkClient.getCollections(runId.get).map { r =>
+      output(r)
+      SUCCEEDED
+    }
+  }
+
+  case class GetCollection(runId: Var[UUID], collectionId: Var[UUID]) extends VarStep[CollectionMetadata] {
+    override val name = "GetCollection"
+
+    override def run: Future[Result] = smrtLinkClient.getCollection(runId.get, collectionId.get).map { r =>
       output(r)
       SUCCEEDED
     }

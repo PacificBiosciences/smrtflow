@@ -102,10 +102,23 @@ class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverte
   val smrtLinkProcess: Var[Process] = Var()
 
   val project: Var[FullProject] = Var()
+  val datasetId: Var[UUID] = project.mapWith(_.datasets.head.uuid)
+  val dataset: Var[DataSetMetaDataSet] = Var()
+
+  val subreads: Var[Seq[SubreadServiceDataSet]] = Var()
+  val hdfSubreads: Var[Seq[HdfSubreadServiceDataSet]] = Var()
+  val references: Var[Seq[ReferenceServiceDataSet]] = Var()
+  val alignments: Var[Seq[AlignmentServiceDataSet]] = Var()
+  val barcodes: Var[Seq[BarcodeServiceDataSet]] = Var()
+  val consensus: Var[Seq[ConsensusReadServiceDataSet]] = Var()
+  val gmaps: Var[Seq[GmapReferenceServiceDataSet]] = Var()
+  val consensusAlignments: Var[Seq[ConsensusAlignmentServiceDataSet]] = Var()
+  val contigs: Var[Seq[ContigServiceDataSet]] = Var()
 
   val runSummaries: Var[Seq[RunSummary]] = Var()
   val runId: Var[UUID] = runSummaries.mapWith(_.head.uniqueId)
   val runDesign: Var[Run] = Var()
+  val collections: Var[Seq[CollectionMetadata]] = Var()
 
   override val steps = Seq(
     RunSqliteToPostgresConverterStep(converterOpts),
@@ -113,16 +126,59 @@ class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverte
     smrtLinkProcess := LaunchSmrtLinkStep,
     SleepStep(30.seconds), // Wait for server to start
 
-    // TODO(smcclellan): Add more steps to verify that SMRTLink endpoints contain data from SQLite
     project := GetProject(Var(2)),
-    fail ("Wrong name for project ") IF project ? (_.name != "name"),
+    fail ("Wrong name for project") IF project ? (_.name != "name"),
     fail ("Wrong project users") IF project ? (!_.members.exists(_.login == "jsnow")),
+    fail ("Expected 9 datasets") IF project ? (_.datasets.size != 9),
+    dataset := GetDataSet(datasetId),
+    fail("Wrong comments for dataset") IF dataset ? (_.comments != "comments"),
+
+    subreads := GetSubreadSets,
+    fail ("Expected 1 subread") IF subreads ? (_.size != 1),
+    fail ("Wrong id for subread") IF subreads ? (_.head.id != 1),
+
+    hdfSubreads := GetHdfSubreadSets,
+    fail ("Expected 1 hdf subread") IF hdfSubreads ? (_.size != 1),
+    fail ("Wrong id for hdf subread") IF hdfSubreads ? (_.head.id != 2),
+
+    references := GetReferenceSets,
+    fail ("Expected 1 reference") IF references ? (_.size != 1),
+    fail ("Wrong id for reference") IF references ? (_.head.id != 3),
+
+    alignments := GetAlignmentSets,
+    fail ("Expected 1 alignment") IF alignments ? (_.size != 1),
+    fail ("Wrong id for alignment") IF alignments ? (_.head.id != 4),
+
+    barcodes := GetBarcodeSets,
+    fail ("Expected 1 barcode") IF barcodes ? (_.size != 1),
+    fail ("Wrong id for barcode") IF barcodes ? (_.head.id != 5),
+
+    consensus := GetConsensusReadSets,
+    fail ("Expected 1 consensus") IF consensus ? (_.size != 1),
+    fail ("Wrong id for consensus") IF consensus ? (_.head.id != 6),
+
+    gmaps := GetGmapReferenceSets,
+    fail ("Expected 1 gmap") IF gmaps ? (_.size != 1),
+    fail ("Wrong id for gmap") IF gmaps ? (_.head.id != 7),
+
+    consensusAlignments := GetConsensusAlignmentSets,
+    fail ("Expected 1 consensus alignment") IF consensusAlignments ? (_.size != 1),
+    fail ("Wrong id for consensus alignment") IF consensusAlignments ? (_.head.id != 8),
+
+    contigs := GetContigSets,
+    fail ("Expected 1 contig") IF contigs ? (_.size != 1),
+    fail ("Wrong id for contig") IF contigs ? (_.head.id != 9),
+
+    // TODO(smcclellan): Check for datastore files?
 
     runSummaries := GetRuns,
     fail ("Expected 1 run summary") IF runSummaries ? (_.size != 1),
     runDesign := GetRun(runId),
     fail ("Wrong name for run summary") IF runDesign ? (_.name != "name"),
-    fail ("Wrong xml for run summary") IF runDesign ? (_.dataModel != "<xml></xml>")
+    fail ("Wrong xml for run summary") IF runDesign ? (_.dataModel != "<xml></xml>"),
+    collections := GetCollections(runId),
+    fail ("Expected 1 collection metadata") IF collections ? (_.size != 1),
+    fail ("Wrong name for collection metadata") IF collections ? (_.head.name != "name")
   )
 
   override def tearDown() = {
