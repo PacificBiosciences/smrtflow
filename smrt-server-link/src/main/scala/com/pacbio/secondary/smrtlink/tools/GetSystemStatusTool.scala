@@ -47,9 +47,9 @@ import scala.util.control.NonFatal
 
 // Centralize the subcomponet ids
 object SubComponentIds {
-  final val SLA = "smrtlink"
+  final val SLA = "smrtlink-analysis"
   final val TOMCAT = "tomcat"
-  final val SVIEW = "smttview"
+  final val SVIEW = "smrtview"
   final val WSO2 = "wso2"
 
   final val ALL = Set(SLA, TOMCAT, SVIEW, WSO2)

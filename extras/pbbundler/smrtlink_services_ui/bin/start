@@ -16,7 +16,7 @@ arg1="${1:-}"
 
 # Need to call this here to create the *-jvm-args files
 echo "Attempting to apply-config"
-python ${__dir}/apply-config
+${__dir}/apply-config
 echo "completed applying config"
 
 SL_PREFIX=sl-analysis
@@ -129,12 +129,9 @@ env "JAVA_OPTS=${SL_SERVICES_JVM_ARGS} -Dconfig.file=${SL_SERVICES_CONF}" \
 sl_services_pid=$!
 echo ${sl_services_pid} >${SL_SERVICES_PID}
 echo "Started up SMRT Link Analysis services on PID ${sl_services_pid}"
-
-# Should get-status be called here?
-# This will raise if the SL Analysis services aren't started yet.
-# This might be clearer to error out here, than startup the other
-# components? get-status should be extended to be able to
-# get the status a specific SL subcomponent
+ # block until system is up and running. The get-status layer currently only
+ # checks for the services, it doesn't check for the PID.
+ # FIXME(mpkocher)(2017-3-13) A future version should check the pid and process are running, then check for the services.
 ${__dir}/get-status --subcomponent-id smrtlink-analysis --max-retries ${MAX_RETRIES}
 
 
@@ -158,4 +155,6 @@ env "JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}" \
      --user admin --pass admin --host localhost \
      && echo "configured API Manager for SL Analysis backend"
 
-echo "Completed starting the SMRT Link services, tomcat UI server and WSO2 API Manager"
+# This is a bit odd, SMRT View is started by a different layer of the software stack.
+# This layer only start 3 of the 4 sub-components of the system up.
+echo "Completed starting the SMRT Link Analysis services, tomcat UI server and WSO2 API Manager"
