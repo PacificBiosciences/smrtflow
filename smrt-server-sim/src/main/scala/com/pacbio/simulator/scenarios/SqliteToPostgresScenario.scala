@@ -42,11 +42,11 @@ object SqliteToPostgresScenarioLoader extends ScenarioLoader {
       c.getString("server"),
       getInt("port"))
 
-    new SqliteToPostgresScenario(Paths.get(c.getString("smrt-link-jar-file")), opts)
+    new SqliteToPostgresScenario(Paths.get(c.getString("smrt-link-exe-file")), opts)
   }
 }
 
-class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverterOptions)
+class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverterOptions)
   extends Scenario with BasicSteps with VarSteps with ConditionalSteps with SmrtLinkSteps with TestUtils {
 
   override val name = "SqliteToPostgresScenario"
@@ -63,23 +63,23 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     }
   }
 
-  case class LaunchSmrtLinkStep(pathToJar: Var[Path]) extends VarStep[Process] {
+  case object LaunchSmrtLinkStep extends VarStep[Process] {
     override val name = "LaunchSmrtLink"
     override def run: Future[Result] = Future {
-      val argBase = " -Dsmrtflow.db.properties"
+      val argBase = "-Dsmrtflow.db.properties"
       val args = Seq(
+        "JAVA_OPTS=",
         s"$argBase.databaseName=${opts.pgDbName}",
         s"$argBase.user=${opts.pgUsername}",
         s"$argBase.password=${opts.pgPassword}",
         s"$argBase.portNumber=${opts.pgPort}",
         s"$argBase.serverName=${opts.pgServer}"
-      ).reduce(_ + _)
-      val cmd = s"java$args -jar ${pathToJar.get.toAbsolutePath}"
+      ).reduce(_ + " " + _)
 
-      val process = Runtime.getRuntime.exec(cmd)
+      val process = Runtime.getRuntime.exec(Array("env", args, smrtLinkExe.toAbsolutePath.toString))
       output(process)
 
-      Try(smrtLinkProcess.get.exitValue())
+      Try(process.exitValue())
         .map(e => FAILED(s"SMRT Link exited with code $e"))
         .recover { case e: IllegalThreadStateException => SUCCEEDED }
         .get
@@ -99,7 +99,6 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   }
 
   val converterOpts: Var[SqliteToPostgresConverterOptions] = Var(opts)
-  val smrtLinkJarPath: Var[Path] = Var(smrtLinkJar)
   val smrtLinkProcess: Var[Process] = Var()
 
   val project: Var[FullProject] = Var()
@@ -111,7 +110,7 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   override val steps = Seq(
     RunSqliteToPostgresConverterStep(converterOpts),
 
-    smrtLinkProcess := LaunchSmrtLinkStep(smrtLinkJarPath),
+    smrtLinkProcess := LaunchSmrtLinkStep,
     SleepStep(30.seconds), // Wait for server to start
 
     // TODO(smcclellan): Add more steps to verify that SMRTLink endpoints contain data from SQLite
