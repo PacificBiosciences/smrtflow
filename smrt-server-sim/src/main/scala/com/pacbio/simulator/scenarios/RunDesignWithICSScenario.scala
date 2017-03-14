@@ -180,5 +180,5 @@ class RunDesignWithICSScenario(host: String,
     GetRunStatus(runDesign, Seq(Complete))
   )
 
-  override val steps =  icsEndToEndsteps //++ setupSteps
+  override val steps =  icsEndToEndsteps ++ setupSteps ++ satSteps
 }
