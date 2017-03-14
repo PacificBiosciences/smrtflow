@@ -99,15 +99,8 @@ class RunDesignWithICSScenario(host: String,
 
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
-  val job: Var[EngineJob] = Var()
-  val importJob: Var[EngineJob] = Var()
-  val jobReports: Var[Seq[DataStoreReportFile]] = Var()
-  val report: Var[Report] = Var()
-  val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
   val childJobs: Var[Seq[EngineJob]] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
-  val dsRules: Var[PipelineDataStoreViewRules] = Var()
-
 
   println(s"subreads : ${subreads.get}")
   val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
