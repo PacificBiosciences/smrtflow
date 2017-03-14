@@ -870,7 +870,7 @@ class LegacySqliteReader(legacyDbUri: String) {
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield MigrationData(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), ps.filter(_.id != 1), psu.map(_._1), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield MigrationData(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), ps.filter(_.id != 1), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }

@@ -37,7 +37,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
     Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
-    Seq(DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, 1, isActive = false)),
+    Seq(DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = false)),
     Seq(SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
     Seq(HdfSubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
     Seq(ReferenceServiceSet(1, UUID.randomUUID(), "ploidy", "organism")),
@@ -47,7 +47,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     Seq(GmapReferenceServiceSet(1, UUID.randomUUID(), "ploidy", "organism")),
     Seq(ConsensusAlignmentServiceSet(1, UUID.randomUUID())),
     Seq(ContigServiceSet(1, UUID.randomUUID())),
-    Seq(DataStoreServiceFile(UUID.randomUUID(), Subread.toString, "sourceId", 1, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
+    Seq(DataStoreServiceFile(UUID.randomUUID(), Subread.toString, "sourceId", 1L, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
     Seq(RunSummary(runId, "name", Some("summary"), Some("jsnow"), Some(now), Some(now), Some(now), Some(now), SupportedRunStates.COMPLETE, 1, 1, 0, Some("instrumentName"), Some("instrumentSerialNumber"), Some("instrumentSwVersion"), Some("primaryAnalysisSwVersion"), Some("context"), Some("terminationInfo"), reserved = false)),
     Seq(DataModelAndUniqueId("<xml></xml>", runId)),
     Seq(CollectionMetadata(runId, UUID.randomUUID(), "well", "name", Some("summary"), Some("context"), Some(Paths.get("/path/to")), SupportedAcquisitionStates.COMPLETE, Some("instrumentId"), Some("instrumentName"), 1.0, None, Some(now), Some(now), Some("terminationInfo"))),
@@ -88,6 +88,10 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       samples.schema
 
     val action = schema.create >>
+      // Add static rows
+      (projects forceInsert Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, now, now, isActive = true)) >>
+      (projectsUsers forceInsert ProjectUser(1, "admin", ProjectUserRole.OWNER)) >>
+      // Add test data
       (engineJobs forceInsertAll data.engineJobs.map(toLegacyEngineJob)) >>
       (engineJobsDataSets forceInsertAll data.engineJobsDataSets) >>
       (jobEvents forceInsertAll data.jobEvents.map(toLegacyJobEvent)) >>
