@@ -94,6 +94,8 @@ parseargs() {
     opt_stop=false;
     opt_init=false;
     opt_status=false;
+    opt_create=false;
+    opt_migrate=false;
     opt_dbcmd="";
     opt_dbcmdargs=();
     while [[ $# != 0 ]]; do
@@ -109,6 +111,8 @@ parseargs() {
 	    --stop) opt_stop=true;;
 	    --init) opt_init=true;;
 	    --status) opt_status=true;;
+	    --create) opt_create=true;;
+	    --migrate) opt_migrate=true;;
 	    --dbcmd)  achk $# $opt; opt_dbcmd=$1; shift;;
 	    --|--dbcmdargs)  opt_dbcmdargs=${1+"$@"}; break;;
 	    -h|-help|--help|--hel|--he|--h) usage "" 0;;
@@ -133,7 +137,14 @@ set_preglobals() {
     g_prog=$(basename $0);
     g_progdir=$(dirname $0);
     g_progdir_abs=$(readlink -f "$g_progdir");
+    g_tools_bin=$(readlink -f "${g_progdir}/../tools/bin")
     g_config=$(readlink -f "${g_progdir}/../smrtlink-system-config.json");
+
+    # The path to Legacy Sqlite file. This should have a single key of {PB_DB_URI: /path/to/file.db }
+    # Should we use this file to also store the status of the migration?
+    #g_legacy_db_config=$(readlink -f "${g_progdir}/../legacy-db.json")
+    # Fail this to make this explicit that this isn't yet supported
+    g_sqlite_database="${g_progdir}/LEGACY-NOT-SUPPORTED"
 }
 
 
@@ -150,11 +161,7 @@ read_config() {
 
     g_db_logfile="${logDir}/dbctrl.log"
 
-    # Root data directory where the db files will reside
-    #g_db_datadir=$(. "$g_dbconfigfile"; echo "$DBDATADIR")
-
-    # TODO(mpkocher)(3-8-2017) Need to add a new config value. pacBioSystem.dbPath ? For now add load from tmpdir
-    g_db_datadir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['tmpDir'])" ${g_config})
+    g_db_datadir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['pgDataDir'])" ${g_config})
 
     g_db_port=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print int(d['smrtflow']['db']['properties']['portNumber'])" ${g_config})
 
@@ -197,8 +204,134 @@ db_init() {
     ( set +o posix; pg_ctl -D "$g_db_datadir" -o "-U $g_db_user --auth-host=md5 --auth-local=reject --pwfile="<(echo "$g_db_password_md5") init ) || stat=$?
     exit $stat;
 }
+
+db_create() {
+    # This was migrated from apply_settings_database from installerprompt
+
+    # This will
+
+    # This must be called after apply_smrtslag_settings_configjson(), since
+    # the <smrtslagroot>/bin/upgrade script depends on the json config files
+    # existing in order to set up the database.
+
+    echo "Attempting to create database (if necessary) with data dir '${g_db_datadir}'"
+
+
+    if [[ -e "$g_topdir/bundles/smrtlink-analysisservices-gui/current/private/pacbio/smrtlink-analysisservices-gui/bin/upgrade" ]] &&
+	! sed -ne '$p' smrt400/install/smrtlink-incremental_4.1.0.00479/bundles/smrtlink-analysisservices-gui/install/smrtlink-analysisservices-gui-fromsrc_4.1.0.00160/private/pacbio/smrtlink-analysisservices-gui/bin/upgrade |grep -q 'NOT IMPLEMENTED'; then
+
+        # Call the smrtlink services bundler upgrade.  This will initialize
+        # the postgres database from scratch (including setting up ports, and
+        # credentials), create the smrtlink database, import the old sqlite.db
+        # database, and initially populate the smrtlinkdb database.
+        # All control of the database including backups and such will be part
+        # of the services bundle now.
+        "${g_progdir}/upgrade"
+    else
+        # Create the database datastore and backup directories
+        if [[ ! -e "$g_dbdatadir_dbdatastore_dir" ]] ; then
+            mkdir -p "$g_dbdatadir_dbdatastore_dir"
+        fi
+        if [[ ! -e "$g_dbdatadir_dbbackup_dir" ]] ; then
+            mkdir -p "$g_dbdatadir_dbbackup_dir"
+        fi
+
+        # Determine if we need to initialize the database
+        local emptydir;
+        emptydir=$( find "$g_dbdatadir_dbdatastore_dir" -maxdepth 0 -type d -empty || true)
+        if [[ ! -z "$emptydir" ]] ; then
+            echo "    Initializing the database..."
+            db_init
+        fi
+
+        # FIXME: do we need to make a backup of the database?
+        # "$g_progdir/dbbackup"
+
+        # Start database
+        if "$g_progdir/dbctl" --status >> "$g_db_logfile" ; then
+            # Stop database server if it is running (could have changed database
+            # directory or something like that).
+            db_stop
+        fi
+        echo "    Starting the database server..."
+        db_start
+
+        # Database server is stopped.  Trap any exit, and try to stop the
+        # database in order to leave us in the same state we started in.
+        exittrap() {
+            echo "  Exiting unexpectedly, Stopping the database server..."
+            db_stop || true
+        }
+        trap exittrap EXIT;
+
+
+        local dblist_str;
+        # Query for a list of databases in table form.  Do this in a separate
+        # line than the grep to make it clear if we happen to get an error in
+        # the actual query (vs match/non-match status from grep)
+        dblist_str=$("$g_progdir/dbctl" --dbcmd psql -- -lqtA )
+        if ! echo "$dblist_str" | grep -q -E "^${g_db_database_smrtlink}\|" ; then
+            echo "      Creating '$g_db_database_smrtlink' database..."
+            "$g_progdir/dbctl" --dbcmd createdb -- "$g_db_database_smrtlink" >> "$g_db_logfile" ;
+        else
+            "Found existing created database ${g_db_database_smrtlink}. Skipping creation"
+        fi
+
+        # FIXME(mpkocher)(This tool should really have a subparser to validate or validation + apply Postgres migrations
+        echo "      Validating and populating '$g_db_database_smrtlink' database..."
+        ${g_tools_bin}/smrt-db-tool -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink"  >> "$g_db_logfile"
+
+        # Unset the exittrap to stop the database server.  The next thing we will
+        # do is stop the server (if it fails, we don't need to try to stop it
+        # again).
+        trap - EXIT;
+        unset -f exittrap;
+
+        # Stop database
+        echo "    Stopping the database server..."
+        db_stop
+    fi
+}
+
+
+# Import the legacy Sqlite database into Postgres. This assumes the database has been created and is up and running.
+db_migrate() {
+
+    if [[ -e "$g_sqlite_database" ]] ; then
+        local stat=0
+		echo "      Attempting to Importing legacy Sqlite database to Postgres DB"
+		${g_tools_bin}/bundler-migrate-legacy-config --legacy "$g_sqlite_database" -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink" >> "$g_db_logfile" || stat=$?
+
+		if [[ $stat -ne 0 ]] ; then
+		    merror "Could not import sqlite database to postgresql"
+		else
+            # Double check that the import happened ok
+            local import_outstr;
+            stat=0;
+            import_outstr=$("$g_tools_bin/bundler-migrate-legacy-config" --legacy "$g_sqlite_database" -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink" >> "$g_db_logfile" ) || stat=$?
+            if [[ $stat -ne 0 ]] ; then
+                minterror "Unexpected error from sqlite->postgres import tool, expected to be already imported"
+            fi
+            if [[ $import_outstr =~ already\ migrated\ string ]] ; then
+                local datestr;
+                datestr=$( date +"%Y%m%d_%H%M%S" )
+                mv "$g_sqlite_database" "${g_sqlite_database}.migrated.${datestr}"
+            fi
+		    fi
+	else
+        echo "Unable to find sqlite file ${g_sqlite_database}. Skipping importing step"
+	fi
+}
+
+# Get the db status given the db config defined in smrtlink-system-config.json
 db_status() {
     exec pg_ctl -s -D "$g_db_datadir" -o "-p $g_db_port" status
+}
+
+# Run any command from an exe in the postgresql bin/exe tools
+db_dbcmd() {
+    local stat=0;
+    PGPASSWORD="$g_db_password" exec "$opt_dbcmd" -p "$g_db_port" -h "$g_db_host" -U "$g_db_user" "${opt_dbcmdargs[@]+${opt_dbcmdargs[@]}}"
 }
 
 # ---- main
@@ -219,6 +352,10 @@ elif $opt_init; then
     db_init;
 elif $opt_status; then
     db_status;
+elif ${opt_create}; then
+    db_create
+elif [[ ! -z "$opt_dbcmd" ]]; then
+    db_dbcmd;
 else
-    minterror "Unknown action, specify --start, --stop, --init or --status".
+    minterror "Unknown action, specify --start, --stop, --init, --create or --status".
 fi
