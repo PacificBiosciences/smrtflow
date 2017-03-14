@@ -189,8 +189,8 @@ echo "Successfully started up tomcat GUI webserver"
 
 echo "Attempting to start WSO2 API Manager..."
 bash ${WSO2_DIR}/bin/wso2server.sh --start
-${__dir}/get-status --subcomponent-id wso2 --max-retries ${MAX_RETRIES}
-echo "Successfully started up WSO2 API Manager"
+#${__dir}/get-status --subcomponent-id wso2 --max-retries ${MAX_RETRIES}
+#echo "Successfully started up WSO2 API Manager"
 
 # The scala code will block here and wait for wso2 to startup. Need to make this
 # configurable to have the same level of MAX_RETRIES interface
