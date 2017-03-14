@@ -8,6 +8,7 @@ import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
+import com.pacbio.secondary.smrtlink.models.RunSummary
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.simulator.StepResult.{SUCCEEDED, Result}
 import com.pacbio.simulator.steps.{ConditionalSteps, VarSteps, SmrtLinkSteps}
@@ -78,11 +79,6 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     }
   }
 
-  val converterOpts: Var[SqliteToPostgresConverterOptions] = Var(opts)
-  val smrtLinkJarPath: Var[Path] = Var(smrtLinkJar)
-  val smrtLinkProcess: Var[Process] = Var()
-  val smrtLinkExitCode: Var[Int] = Var()
-
   override def setUp() = {
     // TODO(smcclellan): Make maxConnections configurable?
     val dbConfig = DatabaseConfig(
@@ -95,12 +91,22 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     setupDb(dbConfig)
   }
 
+  val converterOpts: Var[SqliteToPostgresConverterOptions] = Var(opts)
+  val smrtLinkJarPath: Var[Path] = Var(smrtLinkJar)
+  val smrtLinkProcess: Var[Process] = Var()
+  val smrtLinkExitCode: Var[Int] = Var()
+
+  val runSummaries: Var[Seq[RunSummary]] = Var()
+
   override val steps = Seq(
     RunSqliteToPostgresConverterStep(converterOpts),
 
     smrtLinkProcess := LaunchSmrtLinkStep(smrtLinkJarPath),
 
-    // TODO(smcclellan): Add steps to verify that SMRTLink endpoints contain data from SQLite
+    // TODO(smcclellan): Add more steps to verify that SMRTLink endpoints contain data from SQLite
+    runSummaries := GetRuns,
+    fail ("Expected 1 run summary") IF runSummaries ? (_.size != 1),
+    fail ("Wrong name for run summary") IF runSummaries ?(_.head.name != "name"),
 
     smrtLinkExitCode := KillSmrtLink(smrtLinkProcess),
 
