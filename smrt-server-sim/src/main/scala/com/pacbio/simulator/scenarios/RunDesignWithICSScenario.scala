@@ -161,10 +161,7 @@ class RunDesignWithICSScenario(host: String,
     UpdateSubreadsetXml(subreads, runInfo),
     jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
     jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
-    referenceSets := GetReferenceSets
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 
   val satSteps = Seq(
