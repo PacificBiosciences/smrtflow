@@ -3,12 +3,13 @@ package com.pacbio.simulator.scenarios
 import java.io.File
 import java.net.URL
 import java.nio.file.{Paths, Path}
+import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
-import com.pacbio.secondary.smrtlink.models.RunSummary
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.simulator.StepResult.{SUCCEEDED, Result}
 import com.pacbio.simulator.steps.{ConditionalSteps, VarSteps, SmrtLinkSteps}
@@ -96,7 +97,11 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   val smrtLinkProcess: Var[Process] = Var()
   val smrtLinkExitCode: Var[Int] = Var()
 
+  val project: Var[FullProject] = Var()
+
   val runSummaries: Var[Seq[RunSummary]] = Var()
+  val runId: Var[UUID] = runSummaries.mapWith(_.head.uniqueId)
+  val runDesign: Var[Run] = Var()
 
   override val steps = Seq(
     RunSqliteToPostgresConverterStep(converterOpts),
@@ -104,9 +109,15 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     smrtLinkProcess := LaunchSmrtLinkStep(smrtLinkJarPath),
 
     // TODO(smcclellan): Add more steps to verify that SMRTLink endpoints contain data from SQLite
+    project := GetProject(Var(2)),
+    fail ("Wrong name for project ") IF project ? (_.name != "name"),
+    fail ("Wrong project users") IF project ? (!_.members.exists(_.login == "jsnow")),
+
     runSummaries := GetRuns,
     fail ("Expected 1 run summary") IF runSummaries ? (_.size != 1),
-    fail ("Wrong name for run summary") IF runSummaries ?(_.head.name != "name"),
+    runDesign := GetRun(runId),
+    fail ("Wrong name for run summary") IF runDesign ? (_.name != "name"),
+    fail ("Wrong xml for run summary") IF runDesign ? (_.dataModel != "<xml></xml>"),
 
     smrtLinkExitCode := KillSmrtLink(smrtLinkProcess),
 
