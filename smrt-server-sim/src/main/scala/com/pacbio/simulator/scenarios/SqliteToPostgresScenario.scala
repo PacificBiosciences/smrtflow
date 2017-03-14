@@ -51,7 +51,7 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
 
   override val name = "SqliteToPostgresScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", "localhost", 8070, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", "localhost", 8070, ""), Some("jsnow"))
 
   // TODO(smcclellan): Move these steps into ...simulator.steps package?
 
@@ -86,15 +86,6 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     }
   }
 
-  case class KillSmrtLink(process: Var[Process]) extends VarStep[Int] {
-    override val name = "KillSmrtLink"
-    override def run: Future[Result] = Future {
-      process.get.destroy()
-      output(process.get.exitValue())
-      SUCCEEDED
-    }
-  }
-
   override def setUp() = {
     // TODO(smcclellan): Make maxConnections configurable?
     val dbConfig = DatabaseConfig(
@@ -110,7 +101,6 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   val converterOpts: Var[SqliteToPostgresConverterOptions] = Var(opts)
   val smrtLinkJarPath: Var[Path] = Var(smrtLinkJar)
   val smrtLinkProcess: Var[Process] = Var()
-  val smrtLinkExitCode: Var[Int] = Var()
 
   val project: Var[FullProject] = Var()
 
@@ -133,15 +123,11 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
     fail ("Expected 1 run summary") IF runSummaries ? (_.size != 1),
     runDesign := GetRun(runId),
     fail ("Wrong name for run summary") IF runDesign ? (_.name != "name"),
-    fail ("Wrong xml for run summary") IF runDesign ? (_.dataModel != "<xml></xml>"),
-
-    smrtLinkExitCode := KillSmrtLink(smrtLinkProcess),
-
-    fail("SMRT Link exited with non-zero code") IF smrtLinkExitCode !=? 0
+    fail ("Wrong xml for run summary") IF runDesign ? (_.dataModel != "<xml></xml>")
   )
 
   override def tearDown() = {
-    // Kill SMRT Link if still running
+    // Kill SMRT Link
     if (smrtLinkProcess.isDefined) {
       try {
         smrtLinkProcess.get.exitValue()
