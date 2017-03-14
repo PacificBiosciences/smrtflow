@@ -6,7 +6,9 @@ import java.nio.file.{Paths, Path}
 
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.simulator.StepResult.{SUCCEEDED, Result}
 import com.pacbio.simulator.steps.{ConditionalSteps, VarSteps, SmrtLinkSteps}
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -41,7 +43,7 @@ object SqliteToPostgresScenarioLoader extends ScenarioLoader {
 }
 
 class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverterOptions)
-  extends Scenario with VarSteps with ConditionalSteps with SmrtLinkSteps {
+  extends Scenario with VarSteps with ConditionalSteps with SmrtLinkSteps with TestUtils {
 
   override val name = "SqliteToPostgresScenario"
 
@@ -81,9 +83,19 @@ class SqliteToPostgresScenario(smrtLinkJar: Path, opts: SqliteToPostgresConverte
   val smrtLinkProcess: Var[Process] = Var()
   val smrtLinkExitCode: Var[Int] = Var()
 
-  override val steps = Seq(
-    // TODO(smcclellan): Add step to run Flyway migrations
+  override def setUp() = {
+    // TODO(smcclellan): Make maxConnections configurable?
+    val dbConfig = DatabaseConfig(
+      opts.pgDbName,
+      opts.pgUsername,
+      opts.pgPassword,
+      opts.pgServer,
+      opts.pgPort,
+      maxConnections = 10)
+    setupDb(dbConfig)
+  }
 
+  override val steps = Seq(
     RunSqliteToPostgresConverterStep(converterOpts),
 
     smrtLinkProcess := LaunchSmrtLinkStep(smrtLinkJarPath),
