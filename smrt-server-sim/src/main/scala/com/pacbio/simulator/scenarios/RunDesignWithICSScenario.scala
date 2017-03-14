@@ -120,34 +120,13 @@ class RunDesignWithICSScenario(host: String,
       Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
           ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
 
-  val setupSteps = Seq(
-    jobStatus := GetStatus,
-    fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    UpdateSubreadsetXml(subreads, runInfo),
-    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
-    referenceSets := GetReferenceSets
-    //fail("Expected one reference set") IF referenceSets.mapWith(_.size) !=? 1
-  )
-
-  val satSteps = Seq(
-      jobId := RunAnalysisPipeline(satOpts),
-      jobStatus := WaitForJob(jobId),
-      fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS
-  )
 
   val icsEndToEndsteps = Seq(
 
     runDesigns := GetRuns,
 
     runInfo := ReadFile(runXmlPath),
-    //runXml := ReadFileFromTemplate(runXmlPath),
+
     runXml := ReadXml(runInfo),
 
     runId := CreateRun(runXml),
@@ -178,6 +157,27 @@ class RunDesignWithICSScenario(host: String,
     SleepStep(15.minutes),
 
     GetRunStatus(runDesign, Seq(Complete))
+  )
+
+
+  val setupSteps = Seq(
+    jobStatus := GetStatus,
+    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobStatus := WaitForJob(jobId),
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    UpdateSubreadsetXml(subreads, runInfo),
+    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobStatus := WaitForJob(jobId),
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    childJobs := GetJobChildren(jobId),
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
+    referenceSets := GetReferenceSets
+  )
+
+  val satSteps = Seq(
+    jobId := RunAnalysisPipeline(satOpts),
+    jobStatus := WaitForJob(jobId),
+    fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 
   override val steps =  icsEndToEndsteps ++ setupSteps ++ satSteps

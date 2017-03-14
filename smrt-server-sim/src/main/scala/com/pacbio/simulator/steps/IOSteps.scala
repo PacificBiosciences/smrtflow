@@ -1,7 +1,9 @@
 package com.pacbio.simulator.steps
 
 import java.nio.file.{Path, Paths}
+import java.util.UUID
 
+import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetWriter}
 import com.pacbio.simulator.util.XmlAttributeManipulator
 import com.pacbio.simulator.{RunDesignTemplateInfo, RunDesignTemplateReader, Scenario, StepResult}
 
@@ -65,12 +67,12 @@ trait IOSteps {
     }
   }
 
-  case class UpdateSubreadsetXml(subreads : Var[Path], runInfo : Var[RunDesignTemplateInfo]) extends Step
-    with XmlAttributeManipulator{
+  case class UpdateSubreadsetXml(subreads : Var[Path], runInfo : Var[RunDesignTemplateInfo]) extends Step{
+    //with XmlAttributeManipulator{
 
     override val name = "UpdateSubreadsetXml"
 
-    def readFile = XML.loadFile(subreads.get.toString)
+    /*def readFile = XML.loadFile(subreads.get.toString)
 
     def writeToFile(contents : scala.xml.Elem) = XML.save(subreads.get.toString, contents)
 
@@ -78,6 +80,13 @@ trait IOSteps {
       val elems = readFile
       val updatedXml = updateSubreadSetUuid(runInfo.get.subreadsetUuid,elems)
       writeToFile(updatedXml)
+    }*/
+
+
+    def updateXml = {
+      val dd = DataSetLoader.loadSubreadSet(subreads.get)
+      dd.setUniqueId(runInfo.get.subreadsetUuid.toString)
+      DataSetWriter.writeSubreadSet(dd, subreads.get)
     }
 
     override def run : Future[Result] = Future{

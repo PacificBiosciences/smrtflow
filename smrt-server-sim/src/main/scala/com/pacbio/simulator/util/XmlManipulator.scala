@@ -1,7 +1,7 @@
 package com.pacbio.simulator.util
 
 import java.util.UUID
-import scala.xml.{Attribute, MetaData, Null, Text, Elem}
+import scala.xml.{Attribute, Elem, MetaData, Null, Text}
 
 /**
   * Created by amaster on 3/13/17.
