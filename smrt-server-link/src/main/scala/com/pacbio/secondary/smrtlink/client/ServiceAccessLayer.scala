@@ -1,29 +1,28 @@
 package com.pacbio.secondary.smrtlink.client
 
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.jobs.{JobModels,SecondaryJobProtocols}
-import com.pacbio.secondary.analysis.reports._
-import com.pacbio.common.models._
-import com.pacbio.common.client._
-import com.pacificbiosciences.pacbiodatasets._
-
-import akka.actor.ActorSystem
-
-import spray.http._
-import spray.client.pipelining._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
-import spray.json.DefaultJsonProtocol
-
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
 import java.net.URL
 import java.util.UUID
+
+import akka.actor.ActorSystem
+import com.pacbio.common.auth.Authenticator._
+import com.pacbio.common.auth.JwtUtils._
+import com.pacbio.common.client._
+import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.analysis.jobs.JobModels
+import com.pacbio.secondary.analysis.reports._
+import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.models._
+import com.pacificbiosciences.pacbiodatasets._
+import spray.client.pipelining._
+import spray.http._
+import spray.httpx.SprayJsonSupport
+import spray.httpx.unmarshalling.FromResponseUnmarshaller
+
+import scala.concurrent.Future
+import scalaj.http.Base64
 
 object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols
 
@@ -44,18 +43,25 @@ trait JobTypesConstants {
   val MOCK_PB_PIPE = "mock-pbsmrtpipe"
 }
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with ServiceEndpointConstants
     with JobTypesConstants {
 
+  import CommonModelImplicits._
+  import CommonModels._
+  import JobModels._
+  import ReportModels._
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
-  import CommonModels._
-  import CommonModelImplicits._
-  import ReportModels._
-  import JobModels._
+
+  // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth
+  val headers = authUser
+    .map(u => "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
+    .map(c => Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
+    .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
+    .toSeq
 
   private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
   protected def toJobUrl(jobType: String, jobId: IdAble): String =
@@ -361,14 +367,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Delete(getRunUrl(runId))
   }
 
-  // FIXME(nechols)(2016-09-21) these are currently broken pending fixes to
-  // authentication
   def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ROOT_PROJECTS))
+    Get(toUrl(ROOT_PROJECTS)).withHeaders(headers:_*)
   }
 
   def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ROOT_PROJECTS + s"/$projectId"))
+    Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers:_*)
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {

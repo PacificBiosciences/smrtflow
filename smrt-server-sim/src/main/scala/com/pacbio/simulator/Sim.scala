@@ -30,7 +30,8 @@ object Sim extends App {
     "ProjectsScenario" -> ProjectsScenarioLoader,
     "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
     "StressTest" -> StressTestScenarioLoader,
-    "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader
+    "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader,
+    "SqliteToPostgresScenario" -> SqliteToPostgresScenarioLoader
   )
 
   final val DESCRIPTION =
