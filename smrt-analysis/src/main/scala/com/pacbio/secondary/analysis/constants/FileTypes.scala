@@ -41,13 +41,13 @@ object FileTypes {
   def toFT(x: String) = toI("FileTypes", x)
 
   object MimeTypes {
-    BINARY = "application/octet-stream"
-    HTML = "text/html"
-    XML = "application/xml"
-    TXT = "text/plain"
-    JSON = "application/json"
-    GZIP = "application/x-gzip"
-    ZIP = "application/zip"
+    val BINARY = "application/octet-stream"
+    val HTML = "text/html"
+    val XML = "application/xml"
+    val TXT = "text/plain"
+    val JSON = "application/json"
+    val GZIP = "application/x-gzip"
+    val ZIP = "application/zip"
   }
 
   trait FileType {
