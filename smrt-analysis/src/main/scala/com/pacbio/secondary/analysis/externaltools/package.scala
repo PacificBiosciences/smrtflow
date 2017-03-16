@@ -8,6 +8,7 @@ import com.pacbio.secondary.analysis.tools.timeUtils
 import org.apache.commons.io.FileUtils
 
 import scala.sys.process._
+import scala.util.{Try,Success,Failure}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -124,6 +125,9 @@ package object externaltools {
         .map(a => Paths.get(a).toAbsolutePath.resolve(cmd))
         .find(x => Files.exists(x))
     }
+
+    def isExeAvailable(args: Seq[String]): Boolean =
+      Try { runCmd(args).isRight }.getOrElse(false)
   }
 
   object ExternalToolsUtils extends ExternalToolsUtils
