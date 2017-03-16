@@ -12,9 +12,7 @@ import com.pacbio.secondary.analysis.converters.IndexCreationError
 object CallSaWriterIndex extends ExternalToolsUtils{
   val EXE = "sawriter"
 
-  def isAvailable(): Boolean = {
-    runCmd(Seq(EXE, "--help")).isRight
-  }
+  def isAvailable(): Boolean = isExeAvailable(Seq(EXE, "--help"))
 
   def apply(fastaPath: Path, exePath: String = EXE): Option[ExternalCmdFailure] = {
     val indexFile = Paths.get(s"${fastaPath.toAbsolutePath.toString}.sa")
@@ -22,11 +20,11 @@ object CallSaWriterIndex extends ExternalToolsUtils{
     runSimpleCmd(cmd)
   }
 
-  def run(fastaPath: Path, samToolExePath: String = EXE): Either[ExternalCmdFailure, Path] = {
+  def run(fastaPath: Path, exePath: String = EXE): Either[ExternalCmdFailure, Path] = {
     // Does sawriter let you set the output file path?
     val indexFile = fastaPath.toAbsolutePath.toString + ".sa"
     val indexPath = Paths.get(indexFile)
-    apply(fastaPath, EXE) match {
+    apply(fastaPath, exePath) match {
       case Some(e) => Left(e)
       case _ => Right(indexPath)
     }

@@ -15,7 +15,8 @@ case class FastaToReferenceConfig(
     outputDir: String,
     name: String,
     organism: String,
-    ploidy: String) extends LoggerConfig
+    ploidy: String,
+    skipNgmlr: Boolean = false) extends LoggerConfig
 
 
 object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
@@ -61,6 +62,10 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
       c.copy(ploidy = x)
     } text "ploidy "
 
+    opt[Unit]("skip-ngmlr") action { (x, c) =>
+      c.copy(skipNgmlr = true)
+    } text "Skip generating NGMLR indices (for structural variants analysis)"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -88,7 +93,8 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
     val ploidy = Option(c.ploidy)
     val organism = Option(c.organism)
 
-    FastaToReferenceConverter(c.name, organism, ploidy, fastaPath, outputDir) match {
+    FastaToReferenceConverter(c.name, organism, ploidy, fastaPath, outputDir,
+                              skipNgmlr = c.skipNgmlr) match {
       case Right(rio) =>
         logger.info(s"Successfully converted Fasta to dataset ${rio.dataset.getName} ${rio.dataset.getUniqueId}")
         logger.info(s"TotalLength:${rio.dataset.getDataSetMetadata.getTotalLength} nrecords:${rio.dataset.getDataSetMetadata.getNumRecords}")

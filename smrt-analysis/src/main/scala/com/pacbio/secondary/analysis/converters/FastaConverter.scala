@@ -45,6 +45,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   protected val programName: String // fasta-to-reference
   protected val metatype: String // PacBio.DataSet.ReferenceSet
   protected val fastaMetatype: String // PacBio.ReferenceFile.ReferenceFastaFile
+  protected val baseTags: Seq[String] = Seq("converted")
 
   protected def nameToFileName(name: String): String = name.replaceAll("[^A-Za-z0-9_]", "_")
 
@@ -65,12 +66,14 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   // implicits and/or type classes
   protected def setMetadata(ds: T, metadata: U): Unit
 
-  protected def composeDataSet(fastaPath: Path,
-                               name: String,
-                               outputDir: Path,
-                               metadata: U,
-                               relativePath: Boolean = true)
-                              (implicit man: Manifest[T]): T = {
+  protected def composeDataSet(
+      fastaPath: Path,
+      name: String,
+      outputDir: Path,
+      metadata: U,
+      relativePath: Boolean = true,
+      makeIndices: Path => Seq[DatasetIndexFile] = createIndexFiles)
+      (implicit man: Manifest[T]): T = {
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
 
@@ -79,7 +82,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
     val timeStampName = toTimeStampName(dsName.toLowerCase)
     val fastaTimeStampName = toTimeStampName("fasta")
-    val tags = s"converted, $baseName"
+    val tags = (baseTags ++ Seq(baseName)).mkString(", ")
     val description = s"Converted $dsName $name"
 
     val er = new ExternalResource()
@@ -98,7 +101,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     }
 
     val fileIndices = new FileIndices()
-    for (indexFile <- createIndexFiles(fastaPath)) {
+    for (indexFile <- makeIndices(fastaPath)) {
       val idx = new InputOutputDataType()
       idx.setUniqueId(UUID.randomUUID().toString)
       idx.setTimeStampedName(toTimeStampName("index"))

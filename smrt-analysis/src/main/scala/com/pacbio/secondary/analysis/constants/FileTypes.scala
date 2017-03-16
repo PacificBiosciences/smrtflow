@@ -132,7 +132,8 @@ object FileTypes {
   final val I_BAI = IndexFileBaseType("PacBio.Index.BamIndex", "file", "bam.bai", MimeTypes.BINARY)
 
   // NGMLR indices
-  final val I_NGMLR = IndexFileBaseType("PacBio.Index.NgmlrIndex", "file", ".ngm", MimeTypes.BINARY)
+  final val I_NGMLR_ENC = IndexFileBaseType("PacBio.Index.NgmlrRefEncoded", "file", ".ngm", MimeTypes.BINARY)
+  final val I_NGMLR_TAB = IndexFileBaseType("PacBio.Index.NgmlrRefTable", "file", ".ngm", MimeTypes.BINARY)
 
   // Files used by SMRT View
   // "Indexer" (name in reference.info.xml) file used by SMRT View
