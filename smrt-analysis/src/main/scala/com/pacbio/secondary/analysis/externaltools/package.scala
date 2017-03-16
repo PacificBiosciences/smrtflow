@@ -126,14 +126,8 @@ package object externaltools {
         .find(x => Files.exists(x))
     }
 
-    def isExeAvailable(args: Seq[String]): Boolean = {
-      Try {
-        runCmd(args).isRight
-      } match {
-        case Success(b) => b
-        case Failure(err) => false
-      }
-    }
+    def isExeAvailable(args: Seq[String]): Boolean =
+      Try { runCmd(args).isRight }.getOrElse(false)
   }
 
   object ExternalToolsUtils extends ExternalToolsUtils

@@ -30,9 +30,9 @@ object CallNgmlrIndex extends ExternalToolsUtils{
           ngmlrExePath: String = EXE): Either[ExternalCmdFailure, Seq[Path]] = {
     val baseDir = fastaPath.toFile.getParentFile.toPath
     val absPath = fastaPath.toAbsolutePath
-    apply(fastaPath, nproc, ngmlrExePath) match {
-      case Some(e) => Left(e)
-      case _ => Right(SUFFICES.map(s => Paths.get(s"${absPath}${s}")))
-    }
+    val indices = SUFFICES.map(s => Paths.get(s"${absPath}${s}"))
+    apply(fastaPath, nproc, ngmlrExePath)
+      .map(e => Left(e))
+      .getOrElse(Right(outputFiles)))
   }
 }
