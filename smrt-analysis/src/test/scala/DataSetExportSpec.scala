@@ -74,7 +74,6 @@ class DataSetExportSpec extends Specification with LazyLogging {
   }
 }
 
-// XXX I don't think it's possible to conditionally skip just part of a spec
 class DataSetExportSpecAdvanced extends Specification with LazyLogging {
   args(skipAll = !PacBioTestData.isAvailable)
 

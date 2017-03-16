@@ -39,30 +39,32 @@ object PbReports {
     Python.hasModule("pbreports")
   }
 
-  object FilterStatsXml extends CallPbReport {
+  trait SubreadStatsReport extends CallPbReport {
+    override def canProcess(dst: DataSetMetaTypes.DataSetMetaType,
+                            hasStatsXml: Boolean): Boolean = {
+      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
+    }
+  }
+
+  object FilterStatsXml extends SubreadStatsReport {
     val reportModule = "filter_stats_xml"
     val reportTaskId = "pbreports.tasks.filter_stats_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
-      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
-    }
   }
 
-  object LoadingXml extends CallPbReport {
+  object LoadingXml extends SubreadStatsReport {
     val reportModule = "loading_xml"
     val reportTaskId = "pbreports.tasks.loading_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
-      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
-    }
   }
 
-  object AdapterXml extends CallPbReport {
+  object AdapterXml extends SubreadStatsReport {
     val reportModule = "adapter_xml"
     val reportTaskId = "pbreports.tasks.adapter_report_xml"
-    def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean) = {
-      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
-    }
   }
 
-  val ALL = List(FilterStatsXml, LoadingXml, AdapterXml)
+  object ControlRpt extends SubreadStatsReport {
+    val reportModule = "control"
+    val reportTaskId = "pbreports.tasks.control_report"
+  }
 
+  val ALL = List(FilterStatsXml, LoadingXml, AdapterXml, ControlRpt)
 }
