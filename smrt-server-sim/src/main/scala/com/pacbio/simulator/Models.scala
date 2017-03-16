@@ -7,6 +7,7 @@ import com.pacbio.simulator.scenarios.ExampleScenarioLoader
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.duration._
+import java.util.UUID
 
 object Models
 
@@ -67,3 +68,5 @@ case class SimArgs(loader: ScenarioLoader = ExampleScenarioLoader,
                    config: Option[Path] = None,
                    outputXML: Option[Path] = None,
                    timeout: Duration = 15.minutes)
+
+case class RunDesignTemplateInfo(xml : String, subreadsetUuid : UUID)

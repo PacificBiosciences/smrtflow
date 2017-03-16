@@ -5,13 +5,27 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
-import com.pacbio.secondary.smrtlink.models.{Run, RunSummary}
+import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
+import com.pacbio.secondary.analysis.jobs.OptionTypes.{CHOICE, CHOICE_FLOAT, _}
+import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, SmrtLinkServiceAccessLayer}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.clients.InstrumentControlClient
 import com.pacbio.simulator.steps._
-import com.pacbio.simulator.{Scenario, ScenarioLoader}
+import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario, ScenarioLoader}
 import com.typesafe.config.{Config, ConfigException}
 import com.pacbio.simulator.steps.IcsClientSteps
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+
+import scala.collection.Seq
+import spray.httpx.UnsuccessfulResponseException
+import com.pacbio.simulator.util._
+
+// for SAT
+import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 /**
   * Example config:
   *
@@ -53,7 +67,9 @@ class RunDesignWithICSScenario(host: String,
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
-    with IcsClientSteps {
+    with SmrtAnalysisSteps
+    with IcsClientSteps
+    with ClientUtils {
 
   import scala.concurrent.duration._
   import com.pacbio.simulator.clients.ICSState
@@ -61,21 +77,50 @@ class RunDesignWithICSScenario(host: String,
 
   override val name = "RunDesignScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
   override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)
   val runXml: Var[String] = Var()
+  val runInfo : Var[RunDesignTemplateInfo] = Var()
   val runId: Var[UUID] = Var()
   val runDesign: Var[Run] = Var()
   val runDesigns: Var[Seq[RunSummary]] = Var()
 
-  override val steps = Seq(
+  val EXIT_SUCCESS: Var[Int] = Var(0)
+  val EXIT_FAILURE: Var[Int] = Var(1)
+
+  // for SAT - hacking from pbSmrtPipeScenario
+  val testdata = PacBioTestData()
+  val reference = Var(testdata.getFile("lambdaNEB"))
+  val refUuid = Var(dsUuidFromPath(reference.get))
+  val subreads = Var(testdata.getFile("subreads-xml"))
+  def subreadsUuid = Var(dsUuidFromPath(subreads.get))
+
+  val jobId: Var[UUID] = Var()
+  val jobStatus: Var[Int] = Var()
+  val childJobs: Var[Seq[EngineJob]] = Var()
+  val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+
+  println(s"subreads : ${subreads.get}")
+  val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
+    PbSmrtPipeServiceOptions(
+      "site-acceptance-test",
+      "pbsmrtpipe.pipelines.sa3_sat",
+      Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
+          BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(subreadsUuid.get))),
+      Seq[ServiceTaskOptionBase](),
+      Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
+          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
+
+
+  val icsEndToEndsteps = Seq(
+
     runDesigns := GetRuns,
 
-    //fail("Run database should be initially empty") IF runDesigns ? (_.nonEmpty),
+    runInfo := ReadFile(runXmlPath),
 
-    runXml := ReadFileFromTemplate(runXmlPath),
+    runXml := ReadXml(runInfo),
 
     runId := CreateRun(runXml),
 
@@ -106,4 +151,24 @@ class RunDesignWithICSScenario(host: String,
 
     GetRunStatus(runDesign, Seq(Complete))
   )
+
+
+  val setupSteps = Seq(
+    jobStatus := GetStatus,
+    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobStatus := WaitForJob(jobId),
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    UpdateSubreadsetXml(subreads, runInfo),
+    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobStatus := WaitForJob(jobId),
+    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
+  )
+
+  val satSteps = Seq(
+    jobId := RunAnalysisPipeline(satOpts),
+    jobStatus := WaitForJob(jobId),
+    fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS
+  )
+
+  override val steps =  icsEndToEndsteps ++ setupSteps ++ satSteps
 }
