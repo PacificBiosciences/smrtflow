@@ -33,6 +33,6 @@ object CallNgmlrIndex extends ExternalToolsUtils{
     val indices = SUFFICES.map(s => Paths.get(s"${absPath}${s}"))
     apply(fastaPath, nproc, ngmlrExePath)
       .map(e => Left(e))
-      .getOrElse(Right(outputFiles))
+      .getOrElse(Right(indices))
   }
 }
