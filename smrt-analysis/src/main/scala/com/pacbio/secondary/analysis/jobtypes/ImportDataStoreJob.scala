@@ -14,7 +14,7 @@ import com.pacbio.secondary.analysis.tools.timeUtils
 import scala.util.{Success, Failure, Try}
 
 
-case class ImportDataStoreOptions(path: String) extends BaseJobOptions {
+case class ImportDataStoreOptions(path: String, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new ImportDataStoreJob(this)
 }
 

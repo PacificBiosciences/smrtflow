@@ -191,6 +191,7 @@ object JobModels {
     * @param createdAt when the Job was created
     * @param updatedAt when the job was last updated
     * @param state current state of the job
+    * @param projectId id of the associated project
     * @param jobTypeId job type id
     * @param path path to job output directory
     * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
@@ -208,6 +209,7 @@ object JobModels {
       createdAt: JodaDateTime,
       updatedAt: JodaDateTime,
       state: AnalysisJobStates.JobStates,
+      projectId: Int,
       jobTypeId: String,
       path: String,
       jsonSettings: String,
@@ -229,6 +231,7 @@ object JobModels {
           createdAt: JodaDateTime,
           updatedAt: JodaDateTime,
           stateId: Int,
+          projectId: Int,
           jobTypeId: String,
           path: String,
           jsonSettings: String,
@@ -241,7 +244,7 @@ object JobModels {
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, projectId, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
       }
   }
 
@@ -440,6 +443,7 @@ object JobModels {
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
   case class PbsmrtpipeDirectJobOptions(
+      projectId: Int = 1,
       pipelineId: String,
       entryPoints: Seq[BoundEntryPoint],
       taskOptions: Seq[ServiceTaskOptionBase],

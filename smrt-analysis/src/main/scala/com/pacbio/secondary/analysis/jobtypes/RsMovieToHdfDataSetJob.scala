@@ -16,7 +16,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 
 // Importing Movies -> HdfSubread DataSet
-case class MovieMetadataToHdfSubreadOptions(path: String, name: String) extends BaseJobOptions {
+case class MovieMetadataToHdfSubreadOptions(path: String, name: String, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new RsMovieToHdfDataSetJob(this)
 }
 

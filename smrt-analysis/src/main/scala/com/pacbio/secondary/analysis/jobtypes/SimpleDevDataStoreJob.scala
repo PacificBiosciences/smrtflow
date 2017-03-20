@@ -3,7 +3,7 @@ package com.pacbio.secondary.analysis.jobtypes
 import com.pacbio.secondary.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJobOptions, CoreJobModel}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 
-case class SimpleDevDataStoreJobOptions(maxMockFiles: Int) extends BaseJobOptions {
+case class SimpleDevDataStoreJobOptions(maxMockFiles: Int, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new SimpleDevDataStoreJob(this)
 }
 

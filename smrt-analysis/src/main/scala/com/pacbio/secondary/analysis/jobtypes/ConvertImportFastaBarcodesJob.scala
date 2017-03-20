@@ -16,7 +16,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 // Import & Convert Fasta -> Barcode Dataset
-case class ConvertImportFastaBarcodesOptions(path: String, name: String) extends BaseJobOptions {
+case class ConvertImportFastaBarcodesOptions(path: String, name: String, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new ConvertImportFastaBarcodesJob(this)
 
   override def validate = {

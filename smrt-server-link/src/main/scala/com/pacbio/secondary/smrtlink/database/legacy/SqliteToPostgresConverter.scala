@@ -263,6 +263,7 @@ object LegacyModels {
       createdAt,
       updatedAt,
       state,
+      projectId = 1, // General project id
       jobTypeId,
       path,
       jsonSettings,

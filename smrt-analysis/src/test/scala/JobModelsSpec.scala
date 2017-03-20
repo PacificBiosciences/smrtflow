@@ -150,7 +150,7 @@ class JobModelsSpec extends Specification  {
       val entryPoints = Seq(
         BoundEntryPoint("eid_ref_dataset", "/var/tmp/referenceset.xml"),
         BoundEntryPoint("eid_subread", "/var/tmp/subreadset.xml"))
-      val jobOpts = PbsmrtpipeDirectJobOptions("pipeline-id-01",
+      val jobOpts = PbsmrtpipeDirectJobOptions(1, "pipeline-id-01",
         entryPoints, taskOpts, opts)
       val jobOpts2 = jobOpts.toJson.convertTo[PbsmrtpipeDirectJobOptions]
       jobOpts2 must beEqualTo(jobOpts)
@@ -199,7 +199,7 @@ class JobModelsSpec extends Specification  {
     "Serialize model to JSON and recycle" in {
       val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
         JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
-        "pbsmrtpipe", "/tmp/0001",
+        1, "pbsmrtpipe", "/tmp/0001",
         "{}", Some("smrtlinktest"), Some("4.0.0"), Some("4.0.0"))
       val job2 = job.toJson.convertTo[EngineJob]
       job2.toString must beEqualTo(job.toString)

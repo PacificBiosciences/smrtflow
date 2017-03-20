@@ -25,7 +25,7 @@ class DataSetImportSpec extends Specification with LazyLogging {
 
   private def getData(dsIds: Seq[String]): Seq[Path] = {
     val pbdata = PacBioTestData()
-    dsIds.map(pbdata.getFile(_))
+    dsIds.map(pbdata.getFile)
   }
 
   def runImport(dsId: String, dsType: DataSetMetaTypes.DataSetMetaType) = {
@@ -38,12 +38,12 @@ class DataSetImportSpec extends Specification with LazyLogging {
     val writer = new NullJobResultsWriter
     val jobResult = j.run(job, writer)
     jobResult.isRight must beTrue
-    jobResult.right.get.asInstanceOf[PacBioDataStore]
+    jobResult.right.get
   }
 
   def checkNumReports(datastore: PacBioDataStore, nReports: Int) = {
     datastore.files.size must beEqualTo(nReports + 2)
-    datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(nReports)
+    datastore.files.count(_.fileTypeId == FileTypes.REPORT.fileTypeId) must beEqualTo(nReports)
   }
 
   "Import Datasets from PacBioTestData" should {

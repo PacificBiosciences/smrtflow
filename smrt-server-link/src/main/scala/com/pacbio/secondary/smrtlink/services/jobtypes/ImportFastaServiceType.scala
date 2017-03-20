@@ -72,7 +72,7 @@ class ImportFastaServiceType(
 
     // FIXME. this should be Option[Path] or Option[Map[String, String]]
     val envPath: Option[Path] = None
-    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption), envPath, serviceURI)
+    PbSmrtPipeJobOptions(PIPELINE_ID, entryPoints, taskOptions, pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption), envPath, serviceURI, projectId = opts.projectId)
 
   }
 

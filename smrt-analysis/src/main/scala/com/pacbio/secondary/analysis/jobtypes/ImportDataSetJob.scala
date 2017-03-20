@@ -21,7 +21,7 @@ import com.pacbio.secondary.analysis.jobs.JobModels._
  * @param path Path to input dataSet
  * @param datasetType DataSet type (must be consistent with the resource in `path`
  */
-case class ImportDataSetOptions(path: String, datasetType: DataSetMetaTypes.DataSetMetaType) extends BaseJobOptions {
+case class ImportDataSetOptions(path: String, datasetType: DataSetMetaTypes.DataSetMetaType, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new ImportDataSetJob(this)
 
   override def validate = {

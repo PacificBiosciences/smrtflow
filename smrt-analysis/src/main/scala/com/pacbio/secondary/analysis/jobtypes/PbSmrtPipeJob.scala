@@ -20,8 +20,10 @@ case class PbSmrtPipeJobOptions(
     entryPoints: Seq[BoundEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
-    envPath: Option[Path], serviceUri: Option[URI],
-    commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
+    envPath: Option[Path],
+    serviceUri: Option[URI],
+    commandTemplate: Option[CommandTemplate] = None,
+    override val projectId: Int = 1) extends BaseJobOptions {
 
   def toJob = new PbSmrtPipeJob(this)
 

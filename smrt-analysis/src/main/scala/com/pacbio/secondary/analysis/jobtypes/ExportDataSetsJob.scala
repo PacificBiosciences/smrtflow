@@ -18,7 +18,8 @@ import com.pacificbiosciences.pacbiodatasets._
 case class ExportDataSetsOptions(
     datasetType: DataSetMetaTypes.DataSetMetaType,
     paths: Seq[Path],
-    outputPath: Path) extends BaseJobOptions {
+    outputPath: Path,
+    override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new ExportDataSetsJob(this)
 
   override def validate = {

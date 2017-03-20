@@ -104,6 +104,7 @@ trait EngineJobProtocol
         "createdAt" -> obj.createdAt.toJson,
         "updatedAt" -> obj.updatedAt.toJson,
         "state" -> obj.state.toJson,
+        "projectId" -> JsNumber(obj.projectId),
         "jobTypeId" -> JsString(obj.jobTypeId),
         "path" -> JsString(obj.path),
         "jsonSettings" -> JsString(obj.jsonSettings),
@@ -117,8 +118,8 @@ trait EngineJobProtocol
 
     def read(value: JsValue): EngineJob = {
       val jsObj = value.asJsObject
-      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "jobTypeId", "path", "jsonSettings") match {
-        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
+      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "projectId", "jobTypeId", "path", "jsonSettings") match {
+        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsNumber(projectId), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
 
           def getBy(fieldName: String): Option[String] = {
             jsObj.getFields(fieldName) match {
@@ -139,9 +140,10 @@ trait EngineJobProtocol
           EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
                     JodaDateTime.parse(createdAt),
                     JodaDateTime.parse(updatedAt),
-                    AnalysisJobStates.toState(state).get, jobTypeId,
-                    path, jsonSettings,  createdBy, smrtlinkVersion,
-                    smrtlinkToolsVersion, isActive, errorMessage)
+                    AnalysisJobStates.toState(state).get,
+                    projectId.toInt, jobTypeId, path, jsonSettings,
+                    createdBy, smrtlinkVersion, smrtlinkToolsVersion,
+                    isActive, errorMessage)
         case x => deserializationError(s"Expected EngineJob, got $x")
       }
     }
@@ -456,14 +458,14 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val pipelineTemplateViewRule = jsonFormat4(PipelineTemplateViewRule)
 
   // Job Options
-  implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat4(PbsmrtpipeDirectJobOptions)
-  implicit val simpleDevJobOptionsFormat = jsonFormat2(SimpleDevJobOptions)
-  implicit val simpleDataTransferOptionsFormat = jsonFormat2(SimpleDataTransferOptions)
-  implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat2(MovieMetadataToHdfSubreadOptions)
+  implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(PbsmrtpipeDirectJobOptions)
+  implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
+  implicit val simpleDataTransferOptionsFormat = jsonFormat3(SimpleDataTransferOptions)
+  implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat3(MovieMetadataToHdfSubreadOptions)
 
-  implicit val importDataSetOptionsFormat = jsonFormat2(ImportDataSetOptions)
-  implicit val importConvertFastaOptionsFormat = jsonFormat4(ConvertImportFastaOptions)
-  implicit val importDataStoreOptionsFormat = jsonFormat1(ImportDataStoreOptions)
+  implicit val importDataSetOptionsFormat = jsonFormat3(ImportDataSetOptions)
+  implicit val importConvertFastaOptionsFormat = jsonFormat5(ConvertImportFastaOptions)
+  implicit val importDataStoreOptionsFormat = jsonFormat2(ImportDataStoreOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)

@@ -132,6 +132,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def projectId: Rep[Int] = column[Int]("project_id")
+
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
@@ -154,11 +156,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, projectId, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid)
 
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
+
+    def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
 
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](

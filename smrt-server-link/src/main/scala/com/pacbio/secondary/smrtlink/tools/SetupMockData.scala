@@ -75,7 +75,7 @@ trait MockUtils extends LazyLogging{
 
   val dao: JobsDao
 
-  private var mockProjectId = -1
+  private var mockProjectId = 1
   def getMockProjectId: Int = mockProjectId
 
   // This is a weak way to indentify MOCK jobs from real jobs
@@ -120,6 +120,7 @@ trait MockUtils extends LazyLogging{
         JodaDateTime.now(),
         JodaDateTime.now(),
         getRandomState,
+        mockProjectId,
         jobType,
         "path",
         "{}",

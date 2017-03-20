@@ -63,6 +63,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         createdAt = now,
         updatedAt = now,
         AnalysisJobStates.CREATED,
+        -1,
         "job-type-id",
         "/job/path",
         "{\"foo\":true}",
@@ -186,10 +187,10 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       val putAll = testdb.run(
         for {
-          jid <- engineJobs returning engineJobs.map(_.id) += job
-          _   <- jobEvents += event.copy(jobId = jid)
           pid <- projects returning projects.map(_.id) += project
           _   <- projectsUsers += projectUser.copy(projectId = pid)
+          jid <- engineJobs returning engineJobs.map(_.id) += job.copy(projectId = pid)
+          _   <- jobEvents += event.copy(jobId = jid)
           _   <- engineJobsDataSets += dataset.copy(jobId = jid)
           _   <- dsMetaData2 += metadata.copy(jobId = jid, projectId = pid)
           _   <- dsSubread2 += subread
@@ -254,7 +255,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val consensusId = ca.id
       val contigId = co.id
 
-      ej === job.copy(id = jobId)
+      ej === job.copy(id = jobId, projectId = projectId)
       je === event.copy(jobId = jobId)
       //gp.description === "General Project"
       //pr === project.copy(id = projectId)

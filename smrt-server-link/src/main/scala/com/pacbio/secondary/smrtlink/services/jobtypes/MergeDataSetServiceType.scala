@@ -45,7 +45,7 @@ trait ValidatorDataSetServicesOptions {
 
   def validateDataSetsExist(datasets: Seq[Int],
                             dsType: DataSetMetaTypes.DataSetMetaType,
-                            dbActor: ActorRef): Future[Seq[Path]] = {
+                            dbActor: ActorRef): Future[Seq[ServiceDataSetMetadata]] = {
     val fsx = datasets.map(id => ValidateImportDataSetUtils.resolveDataSet(dsType.dsId, id, dbActor))
     Future.sequence(fsx).map { f => 
       f.map { ds =>
@@ -53,6 +53,7 @@ trait ValidatorDataSetServicesOptions {
         if (path.toFile.exists) path else {
           throw InValidJobOptionsError(s"The dataset path $path does not exist")
         }
+        ds
       }
     }
   }
@@ -79,7 +80,7 @@ trait ValidatorDataSetServicesOptions {
 
 }
 
-object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptions {
+object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptions with ProjectIdJoiner {
 
   def apply(opts: DataSetMergeServiceOptions,
             dbActor: ActorRef): Future[MergeDataSetOptions] = {
@@ -91,9 +92,9 @@ object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptio
     for {
       datasetType <- validateDataSetType(opts.datasetType)
       name <- validateName(opts.name)
-      paths <- validateDataSetsExist(opts.ids, datasetType, dbActor)
-    //  paths <- validateDataSets(paths, datasetType)
-    } yield MergeDataSetOptions(datasetType.dsId, paths.map(_.toString), name)
+      datasets <- validateDataSetsExist(opts.ids, datasetType, dbActor)
+      projectId <- Future { joinProjectIds(datasets.map(_.projectId)) }
+    } yield MergeDataSetOptions(datasetType.dsId, datasets.map(_.path), name, projectId)
   }
 
   def validateName(name: String): Future[String] = Future { name }
@@ -105,7 +106,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
                                  authenticator: Authenticator,
                                  smrtLinkVersion: Option[String],
                                  smrtLinkToolsVersion: Option[String])
-  extends JobTypeService with LazyLogging {
+  extends JobTypeService with ProjectIdJoiner with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -132,10 +133,12 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
               val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))
 
               val fx = for {
-                uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
+                datasets <- Future.sequence(fsx)
+                uuidPaths <- Future { datasets.map(sx => (sx.uuid, sx.path)) }
                 resolvedPaths <- Future { uuidPaths.map(x => x._2) }
                 engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
-                mergeDataSetOptions <- Future { MergeDataSetOptions(sopts.datasetType, resolvedPaths, sopts.name) }
+                projectId <- Future { joinProjectIds(datasets.map(_.projectId)) }
+                mergeDataSetOptions <- Future { MergeDataSetOptions(sopts.datasetType, resolvedPaths, sopts.name, projectId) }
                 coreJob <- Future { CoreJob(uuid, mergeDataSetOptions) }
                 engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Merging Datasets", endpoint, coreJob, Some(engineEntryPoints), mergeDataSetOptions.toJson.toString, user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob

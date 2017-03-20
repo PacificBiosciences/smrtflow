@@ -15,7 +15,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 // Import & Convert Fasta -> Reference Dataset (need to add standard Organism, ploidy options)
-case class ConvertImportFastaOptions(path: String, name: String, ploidy: String, organism: String) extends BaseJobOptions {
+case class ConvertImportFastaOptions(path: String, name: String, ploidy: String, organism: String, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new ConvertImportFastaJob(this)
 
   override def validate = {

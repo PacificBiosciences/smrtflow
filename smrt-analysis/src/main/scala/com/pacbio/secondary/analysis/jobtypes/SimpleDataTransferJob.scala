@@ -9,7 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 
 // DataTransfer
-case class SimpleDataTransferOptions(src: String, dest: String) extends BaseJobOptions {
+case class SimpleDataTransferOptions(src: String, dest: String, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new SimpleDataTransferJob(this)
 }
 

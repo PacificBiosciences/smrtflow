@@ -193,7 +193,8 @@ case class PbSmrtPipeServiceOptions(
     pipelineId: String,
     entryPoints: Seq[BoundServiceEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
-    workflowOptions: Seq[ServiceTaskOptionBase])
+    workflowOptions: Seq[ServiceTaskOptionBase],
+    projectId: Int = 1)
 
 
 // New DataSet Service Models

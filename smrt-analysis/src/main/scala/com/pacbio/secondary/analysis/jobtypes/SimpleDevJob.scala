@@ -5,7 +5,7 @@ import com.pacbio.secondary.analysis.jobs.JobModels.{JobTypeId, JobResourceBase,
 import com.pacbio.secondary.analysis.reports.ReportUtils
 
 // Simple Dev Job for testing
-case class SimpleDevJobOptions(a: Int, b: Int) extends BaseJobOptions {
+case class SimpleDevJobOptions(a: Int, b: Int, override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new SimpleDevJob(this)
 }
 

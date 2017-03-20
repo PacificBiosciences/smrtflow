@@ -116,7 +116,7 @@ class PbsmrtpipeServiceJobType(
                 boundEntryPoints <- Future { xs.map(_._2) }
                 engineJobPoints <- Future { xs.map(_._1) }
                 workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption) }
-                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, ropts.taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate)}
+                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, ropts.taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate, ropts.projectId)}
                 coreJob <- Future { CoreJob(uuid, opts)}
                 engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob

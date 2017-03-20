@@ -17,7 +17,8 @@ import com.pacificbiosciences.pacbiodatasets._
 case class MergeDataSetOptions(
     datasetType: String,
     paths: Seq[String],
-    name: String) extends BaseJobOptions {
+    name: String,
+    override val projectId: Int = 1) extends BaseJobOptions {
   def toJob = new MergeDataSetJob(this)
 
   override def validate = {

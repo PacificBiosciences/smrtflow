@@ -95,7 +95,8 @@ class DirectPbsmrtpipeJobType(
                   ropts.taskOptions,
                   ropts.workflowOptions,
                   envPath,
-                  Option(serviceUri))
+                  Option(serviceUri),
+                  projectId = ropts.projectId)
 
                 val coreJob = CoreJob(uuid, opts)
                 // Should this be exposed via POST ?
