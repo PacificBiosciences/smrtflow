@@ -44,34 +44,31 @@ object PbsmrtpipeScenarioLoader extends ScenarioLoader {
   }
 }
 
-class PbsmrtpipeScenario(host: String, port: Int)
+
+trait PbsmrtpipeScenarioCore
     extends Scenario
     with VarSteps
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
     with ClientUtils {
-
-  import OptionTypes._
   import JobModels._
+  import OptionTypes._
 
-  override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  protected def fileExists(path: String) = Files.exists(Paths.get(path))
 
-  def fileExists(path: String) = Files.exists(Paths.get(path))
+  protected val EXIT_SUCCESS: Var[Int] = Var(0)
+  protected val EXIT_FAILURE: Var[Int] = Var(1)
 
-  val EXIT_SUCCESS: Var[Int] = Var(0)
-  val EXIT_FAILURE: Var[Int] = Var(1)
+  private val testdata = PacBioTestData()
 
-  val testdata = PacBioTestData()
+  protected val reference = Var(testdata.getFile("lambdaNEB"))
+  protected val refUuid = Var(dsUuidFromPath(reference.get))
+  protected val subreads = Var(testdata.getFile("subreads-xml"))
+  protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
-  val reference = Var(testdata.getFile("lambdaNEB"))
-  val refUuid = Var(dsUuidFromPath(reference.get))
-  val subreads = Var(testdata.getFile("subreads-xml"))
-  val subreadsUuid = Var(dsUuidFromPath(subreads.get))
-
-  def toI(name: String) = s"pbsmrtpipe.task_options.$name"
-  val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
+  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "diagnostic-test",
       "pbsmrtpipe.pipelines.dev_diagnostic",
@@ -89,10 +86,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
         ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
       ),
       Seq[ServiceTaskOptionBase]()))
-  val failOpts = diagnosticOpts.mapWith(_.copy(
+  protected val failOpts = diagnosticOpts.mapWith(_.copy(
     taskOptions=Seq(ServiceTaskBooleanOption(toI("raise_exception"), true,
                                              BOOL.optionTypeId))))
-  val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  protected val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "site-acceptance-test",
       "pbsmrtpipe.pipelines.sa3_sat",
@@ -109,24 +106,25 @@ class PbsmrtpipeScenario(host: String, port: Int)
         ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2,
                              INT.optionTypeId))))
 
-  val jobId: Var[UUID] = Var()
-  val jobId2: Var[UUID] = Var()
-  val jobStatus: Var[Int] = Var()
-  val job: Var[EngineJob] = Var()
-  val importJob: Var[EngineJob] = Var()
-  val jobReports: Var[Seq[DataStoreReportFile]] = Var()
-  val report: Var[Report] = Var()
-  val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
-  val entryPoints: Var[Seq[EngineJobEntryPoint]] = Var()
-  val childJobs: Var[Seq[EngineJob]] = Var()
-  val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
-  val dsRules: Var[PipelineDataStoreViewRules] = Var()
-  val pipelineRules: Var[PipelineTemplateViewRule] = Var()
-  val jobOptions: Var[PipelineTemplatePreset] = Var()
-  val jobEvents: Var[Seq[JobEvent]] = Var()
-  val jobTasks: Var[Seq[JobTask]] = Var()
+  protected val jobId: Var[UUID] = Var()
+  protected val jobId2: Var[UUID] = Var()
+  protected val jobStatus: Var[Int] = Var()
+  protected val job: Var[EngineJob] = Var()
+  protected val jobs: Var[Seq[EngineJob]] = Var()
+  protected val importJob: Var[EngineJob] = Var()
+  protected val jobReports: Var[Seq[DataStoreReportFile]] = Var()
+  protected val report: Var[Report] = Var()
+  protected val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
+  protected val entryPoints: Var[Seq[EngineJobEntryPoint]] = Var()
+  protected val childJobs: Var[Seq[EngineJob]] = Var()
+  protected val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+  protected val dsRules: Var[PipelineDataStoreViewRules] = Var()
+  protected val pipelineRules: Var[PipelineTemplateViewRule] = Var()
+  protected val jobOptions: Var[PipelineTemplatePreset] = Var()
+  protected val jobEvents: Var[Seq[JobEvent]] = Var()
+  protected val jobTasks: Var[Seq[JobTask]] = Var()
 
-  val setupSteps = Seq(
+  protected val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
@@ -136,10 +134,20 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
-    referenceSets := GetReferenceSets,
-    fail("Expected one reference set") IF referenceSets.mapWith(_.size) !=? 1
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0
   )
+}
+
+
+class PbsmrtpipeScenario(host: String, port: Int)
+    extends PbsmrtpipeScenarioCore {
+
+  import OptionTypes._
+  import JobModels._
+
+  override val name = "PbsmrtpipeScenario"
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+
   val diagnosticJobTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),
     jobStatus := WaitForJob(jobId),
@@ -183,7 +191,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     //fail("Expected a single task option") IF jobOptions.mapWith(_.taskOptions.size) !=? 1,
     // try and fail to delete ReferenceSet import
     referenceSets := GetReferenceSets,
-    importJob := GetJobById(referenceSets.mapWith(_.head.jobId)),
+    importJob := GetJobById(referenceSets.mapWith{ rs =>
+      rs.filter(_.uuid == refUuid.get).head.jobId
+    }),
     DeleteJob(importJob.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     DeleteJob(importJob.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     // delete pbsmrtpipe jobs
@@ -203,7 +213,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobId := DeleteJob(importJob.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
-    fail("Reference dataset file should not have been deleted") IF referenceSets.mapWith(rs => fileExists(rs.head.path)) !=? true,
+    fail("Reference dataset file should not have been deleted") IF referenceSets.mapWith(rs => fileExists(rs.filter(_.uuid == refUuid.get).head.path)) !=? true,
     referenceSets := GetReferenceSets,
     fail("There should be zero ReferenceSets") IF referenceSets.mapWith(_.size) !=? 0
   )
