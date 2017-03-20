@@ -665,7 +665,9 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     println(s"UUID: ${dsUuid.toString}")
     Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) => {
-        println(s"Dataset ${dsUuid.toString} already imported.")
+        if (Paths.get(dsInfo.path) != path) {
+          println(s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already present in the database but associated with a different path; if you want to re-import with the new path, run this command:\n\n  dataset newuuid ${path.toString}\n\nthen run the pbservice command again to import the modified dataset.\n")
+        } else println(s"Dataset ${dsUuid.toString} already imported.")
         printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
