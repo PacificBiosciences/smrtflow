@@ -9,7 +9,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
 import com.pacbio.secondary.analysis.jobs.OptionTypes.{CHOICE, CHOICE_FLOAT, _}
-import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, SmrtLinkServiceAccessLayer}
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.clients.InstrumentControlClient
 import com.pacbio.simulator.steps._
@@ -67,7 +67,6 @@ class RunDesignWithICSScenario(host: String,
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
-    with SmrtAnalysisSteps
     with IcsClientSteps
     with ClientUtils {
 
@@ -77,7 +76,7 @@ class RunDesignWithICSScenario(host: String,
 
   override val name = "RunDesignScenario"
 
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
   override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)

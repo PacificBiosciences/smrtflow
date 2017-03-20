@@ -15,7 +15,7 @@ import scala.collection._
 import com.typesafe.config.{Config, ConfigException}
 import spray.httpx.UnsuccessfulResponseException
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -50,14 +50,13 @@ class PbsmrtpipeScenario(host: String, port: Int)
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
-    with SmrtAnalysisSteps
     with ClientUtils {
 
   import OptionTypes._
   import JobModels._
 
   override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
 
   def fileExists(path: String) = Files.exists(Paths.get(path))
 

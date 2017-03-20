@@ -14,7 +14,7 @@ import com.pacbio.common.client.{Retrying, UrlUtils}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
-import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 import spray.can.Http
@@ -115,7 +115,7 @@ class GetSmrtViewComponentStatus(override val host: String, override val port: I
 class GetSmrtLinkComponentStatus(override val host: String, override val port: Int, override val pidFile: Option[Path]) extends GetSubComponentStatus{
   val name = SubComponentIds.SLA
   def getServiceStatus(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second)(implicit actorSystem: ActorSystem): Future[String] = {
-    val client = new AnalysisServiceAccessLayer(host, port)
+    val client = new SmrtLinkServiceAccessLayer(host, port)
     client.getStatusWithRetry(maxRetries).map(status => s"Successfully got status ${status.message}")
   }
 }

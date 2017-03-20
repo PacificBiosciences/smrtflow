@@ -14,7 +14,7 @@ import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
@@ -391,11 +391,11 @@ object PbServiceParser extends CommandLineToolVersion{
 
 
 // TODO consolidate Try behavior
-class PbService (val sal: AnalysisServiceAccessLayer,
+class PbService (val sal: SmrtLinkServiceAccessLayer,
                  val maxTime: Int = -1) extends LazyLogging with ClientUtils {
   import CommonModelImplicits._
   import CommonModels._
-  import com.pacbio.secondary.smrtlink.client.AnalysisClientJsonProtocol._
+  import ServicesClientJsonProtocol._
 
   protected val TIMEOUT = 30 seconds
   private lazy val entryPointsLookup = Map(
@@ -1047,7 +1047,7 @@ object PbService {
     // creation includes validation, but it wasn't failing on extra 'http://'
     val host = c.host.replaceFirst("http://", "")
     val url = new URL(s"http://$host:${c.port}")
-    val sal = new AnalysisServiceAccessLayer(url, c.authToken)(actorSystem)
+    val sal = new SmrtLinkServiceAccessLayer(url, c.authToken)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
     try {
       c.mode match {

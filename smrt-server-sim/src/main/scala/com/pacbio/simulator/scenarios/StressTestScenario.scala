@@ -14,7 +14,7 @@ import akka.actor.ActorSystem
 import scala.collection._
 import com.typesafe.config.{Config, ConfigException}
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -50,12 +50,11 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
-    with SmrtAnalysisSteps
     with ClientUtils {
 
   override val name = "StressTestScenario"
 
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
 
   val TIMEOUT_ERR = s"Job did not complete within $maxTime seconds"
   val EXIT_SUCCESS: Var[Int] = Var(0)
