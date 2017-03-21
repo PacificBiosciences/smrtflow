@@ -8,7 +8,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{AnalysisServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -46,11 +46,16 @@ object ProjectsScenarioLoader extends ScenarioLoader {
 }
 
 class ProjectsScenario(host: String, port: Int)
-  extends Scenario with VarSteps with ConditionalSteps with IOSteps with SmrtLinkSteps with SmrtAnalysisSteps with ClientUtils {
+    extends Scenario
+    with VarSteps
+    with ConditionalSteps
+    with IOSteps
+    with SmrtLinkSteps
+    with ClientUtils {
 
   override val name = "ProjectsScenario"
 
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
 
   val MSG_PROJ_ERR = "Project database should be initially have just one project"
   val MSG_DS_ERR = "DataSet database should be initially empty"
