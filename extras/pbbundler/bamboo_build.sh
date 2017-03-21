@@ -50,27 +50,31 @@ source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71
 module load sbt
 module load nodejs/4.1.2
-module load python/2.7.9
 
 echo "Running java version $(java -version)"
 echo "Running sbt $(which sbt)"
 
 cd $SRC
-ve=${SRC}/ve
-echo "Creating Virtualenv $ve"
-/opt/python-2.7.9/bin/python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
-source $ve/bin/activate
-pip install fabric
+if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
+  module load python/2.7.9
+  ve=${SRC}/ve
+  echo "Creating Virtualenv $ve"
+  python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
+  source $ve/bin/activate
+  pip install fabric
+fi
 
 RPT_JSON_PATH="${SRC}/resolved-pipeline-templates"
 if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
-  echo "Installing pbsmrtpipe to virtualenv"
-  cd ${SRC}/pbcore
-  pip install -r requirements.txt
-  python setup.py install
-  cd ..
-  (cd ${SRC}/pbcommand && make clean && python setup.py install)
-  (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
+  if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
+    echo "Installing pbsmrtpipe to virtualenv"
+    cd ${SRC}/pbcore
+    pip install -r requirements.txt
+    python setup.py install
+    cd ..
+    (cd ${SRC}/pbcommand && make clean && python setup.py install)
+    (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
+  fi
 
   if [ ! -d ${RPT_JSON_PATH} ]; then
     mkdir ${RPT_JSON_PATH}

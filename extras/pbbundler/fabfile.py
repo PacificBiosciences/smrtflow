@@ -21,6 +21,7 @@ import json
 import warnings
 import time
 from zipfile import ZipFile
+from distutils.dir_util import copy_tree
 
 from fabric.api import lcd, task
 from fabric.api import local as flocal
@@ -376,7 +377,7 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     output_tools_root = os.path.join(output_bundle_dir, 'tools')
     tools_root = to_scala_path(analysis_server + "/target/pack")
     log.info("Copying {i} to {o}".format(i=tools_root, o=output_tools_root))
-    shutil.copytree(tools_root, output_tools_root)
+    copy_tree(tools_root, output_tools_root)
 
     log.debug("Completed building {s} in SL Services in {t:.2f} sec.".format(s=analysis_server, t=time.time() - t0))
 
