@@ -4,7 +4,6 @@
 
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File, PrintWriter}
@@ -146,7 +145,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   import JobModels._
 
   override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   val diagnosticJobTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),

@@ -1,6 +1,5 @@
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File, PrintWriter}
@@ -49,7 +48,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   import JobModels._
 
   override val name = "UpgradeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = diagnosticOpts.mapWith(_.copy(
