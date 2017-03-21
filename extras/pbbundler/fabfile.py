@@ -374,11 +374,11 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 
     # Copy built SL Analysis tools into bundle tools dir
     output_tools_root = os.path.join(output_bundle_dir, 'tools')
-    tools_root = to_scala_path("smrt-server-link/target/pack")
+    tools_root = to_scala_path(analysis_server + "/target/pack")
     log.info("Copying {i} to {o}".format(i=tools_root, o=output_tools_root))
     shutil.copytree(tools_root, output_tools_root)
 
-    log.debug("Completed building in SL Services in {:.2f} sec.".format(time.time() - t0))
+    log.debug("Completed building {s} in SL Services in {t:.2f} sec.".format(s=analysis_server, t=time.time() - t0))
 
 
 @task
@@ -509,7 +509,9 @@ def build_smrtlink_services_ui(version,
                              resolved_pipeline_templates_dir=resolved_pipeline_templates_dir,
                              ivy_cache=ivy_cache,
                              analysis_server=analysis_server)
-
+    # build simulator tools
+    _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
+                             analysis_server="smrt-server-sim")
     # Write the PacBio Version file
     smrtflow_versions = {i for i in _get_smrtflow_version(smrtflow_root_dir)}
     log.info("Versions: smrtflow -> {}".format(smrtflow_versions))
