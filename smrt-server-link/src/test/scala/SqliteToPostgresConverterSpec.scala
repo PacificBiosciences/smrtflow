@@ -48,11 +48,11 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   }
 
   val data = addMetaData(MigrationData(
-    Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, 1, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
-    Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
-    Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
     Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
+    Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
+    Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
+    Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
     Nil, // Will be added by addMetaData
     Seq(SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
     Seq(HdfSubreadServiceSet(2, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
@@ -108,11 +108,11 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       (projects forceInsert Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, now, now, isActive = true)) >>
       (projectsUsers forceInsert ProjectUser(1, "admin", ProjectUserRole.OWNER)) >>
       // Add test data
+      (projects forceInsertAll data.projects) >>
+      (projectsUsers forceInsertAll data.projectsUsers) >>
       (engineJobs forceInsertAll data.engineJobs.map(toLegacyEngineJob)) >>
       (engineJobsDataSets forceInsertAll data.engineJobsDataSets) >>
       (jobEvents forceInsertAll data.jobEvents.map(toLegacyJobEvent)) >>
-      (projects forceInsertAll data.projects) >>
-      (projectsUsers forceInsertAll data.projectsUsers) >>
       (dsMetaData2 forceInsertAll data.dsMetaData2.map(toLegacyDataSetMetaDataSet)) >>
       (dsSubread2 forceInsertAll data.dsSubread2) >>
       (dsHdfSubread2 forceInsertAll data.dsHdfSubread2) >>
@@ -144,11 +144,11 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     import TableModels._
     import slick.driver.PostgresDriver.api._
 
+    Await.result(db.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
+    Await.result(db.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
     Await.result(db.run(engineJobs.result), Duration.Inf) === data.engineJobs
     Await.result(db.run(engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
     Await.result(db.run(jobEvents.result), Duration.Inf) === data.jobEvents
-    Await.result(db.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
-    Await.result(db.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
     Await.result(db.run(dsMetaData2.result), Duration.Inf) === data.dsMetaData2
     Await.result(db.run(dsSubread2.result), Duration.Inf) === data.dsSubread2
     Await.result(db.run(dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
@@ -166,8 +166,8 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     Await.result(db.run(samples.result), Duration.Inf) === data.samples
 
     // Test autoinc values
-    Await.result(db.run(sql"SELECT last_value FROM engine_jobs_job_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
     Await.result(db.run(sql"SELECT last_value FROM projects_project_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
+    Await.result(db.run(sql"SELECT last_value FROM engine_jobs_job_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
     Await.result(db.run(sql"SELECT last_value FROM dataset_metadata_id_seq;".as[Int].map(_.head)), Duration.Inf) === 10
     Await.result(db.run(sql"SELECT last_value FROM dataset_subreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 2
     Await.result(db.run(sql"SELECT last_value FROM dataset_hdfsubreads_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
@@ -188,11 +188,11 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
       val res = Await.result(reader.read(), Duration.Inf)
 
+      res.projects === data.projects
+      res.projectsUsers === data.projectsUsers
       res.engineJobs === data.engineJobs
       res.engineJobsDataSets === data.engineJobsDataSets
       res.jobEvents === data.jobEvents
-      res.projects === data.projects
-      res.projectsUsers === data.projectsUsers
       res.dsMetaData2 === data.dsMetaData2
       res.dsSubread2 === data.dsSubread2
       res.dsHdfSubread2 === data.dsHdfSubread2

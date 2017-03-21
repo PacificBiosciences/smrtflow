@@ -9,6 +9,7 @@ import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, MigrationStatusRow}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
+import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.database.TableModels.DataModelAndUniqueId
 import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
 import com.pacbio.secondary.smrtlink.models._
@@ -156,11 +157,11 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
 }
 
-case class MigrationData(engineJobs: Seq[EngineJob],
+case class MigrationData(projects: Seq[Project],
+                         projectsUsers: Seq[ProjectUser],
+                         engineJobs: Seq[EngineJob],
                          engineJobsDataSets: Seq[EngineJobEntryPoint],
                          jobEvents: Seq[JobEvent],
-                         projects: Seq[Project],
-                         projectsUsers: Seq[ProjectUser],
                          dsMetaData2: Seq[DataSetMetaDataSet],
                          dsSubread2: Seq[SubreadServiceSet],
                          dsHdfSubread2: Seq[HdfSubreadServiceSet],
@@ -196,13 +197,13 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
 
   def write(f: Future[MigrationData]): Future[Unit] = f.flatMap { d =>
     val w =
+      (projects              forceInsertAll d.projects) >>
+      projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
+      (projectsUsers         forceInsertAll d.projectsUsers) >>
       (engineJobs            forceInsertAll d.engineJobs) >>
       engineJobs.map(_.id).max.result.flatMap(m => setAutoInc(engineJobs.baseTableRow.tableName, "job_id", m)) >>
       (engineJobsDataSets    forceInsertAll d.engineJobsDataSets) >>
       (jobEvents             forceInsertAll d.jobEvents) >>
-      (projects              forceInsertAll d.projects) >>
-      projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
-      (projectsUsers         forceInsertAll d.projectsUsers) >>
       (dsMetaData2           forceInsertAll d.dsMetaData2) >>
       dsMetaData2.map(_.id).max.result.flatMap(m => setAutoInc(dsMetaData2.baseTableRow.tableName, "id", m)) >>
       (dsSubread2            forceInsertAll d.dsSubread2) >>
@@ -239,7 +240,7 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
   }
 }
 
-object LegacyModels {
+object LegacyModels extends SmrtLinkConstants {
   case class LegacyEngineJob(
                           id: Int,
                           uuid: UUID,
@@ -263,7 +264,6 @@ object LegacyModels {
       createdAt,
       updatedAt,
       state,
-      projectId = 1, // General project id
       jobTypeId,
       path,
       jsonSettings,
@@ -271,7 +271,8 @@ object LegacyModels {
       smrtlinkVersion,
       smrtlinkToolsVersion,
       isActive,
-      errorMessage = None)
+      errorMessage = None,
+      projectId = GENERAL_PROJECT_ID)
   }
 
   case class LegacyJobEvent(
@@ -850,11 +851,11 @@ class LegacySqliteReader(legacyDbUri: String) {
 
   def read(): Future[MigrationData] = {
     val action = for {
+      ps  <- projects.result
+      psu <- (projectsUsers join projects on (_.projectId === _.id)).result
       ej  <- engineJobs.result
       ejd <- engineJobsDataSets.result
       je  <- (jobEvents join engineJobs on (_.jobId === _.id)).result
-      ps  <- projects.result
-      psu <- (projectsUsers join projects on (_.projectId === _.id)).result
       dmd <- dsMetaData2.result
       dsu <- dsSubread2.result
       dhs <- dsHdfSubread2.result
@@ -871,7 +872,7 @@ class LegacySqliteReader(legacyDbUri: String) {
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield MigrationData(ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), ps.filter(_.id != 1), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield MigrationData(ps.filter(_.id != 1), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }

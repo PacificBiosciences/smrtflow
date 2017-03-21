@@ -120,11 +120,13 @@ trait MockUtils extends LazyLogging{
         JodaDateTime.now(),
         JodaDateTime.now(),
         getRandomState,
-        mockProjectId,
         jobType,
         "path",
         "{}",
-        Some("root"), None, None)}
+        Some("root"),
+        None,
+        None,
+        projectId = mockProjectId)}
     val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }

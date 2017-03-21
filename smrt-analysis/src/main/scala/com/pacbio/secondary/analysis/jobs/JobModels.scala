@@ -93,6 +93,9 @@ object JobModels {
     // Event that means the Job Task has changed state
     val EVENT_TYPE_JOB_TASK_STATUS = "smrtlink_job_task_status"
 
+    // Default project ID; all datasets that aren't
+    // in more specific projects get this ID
+    val GENERAL_PROJECT_ID = 1
   }
 
   object JobTypeIds {
@@ -209,7 +212,6 @@ object JobModels {
       createdAt: JodaDateTime,
       updatedAt: JodaDateTime,
       state: AnalysisJobStates.JobStates,
-      projectId: Int,
       jobTypeId: String,
       path: String,
       jsonSettings: String,
@@ -217,7 +219,8 @@ object JobModels {
       smrtlinkVersion: Option[String],
       smrtlinkToolsVersion: Option[String],
       isActive: Boolean = true,
-      errorMessage: Option[String] = None) {
+      errorMessage: Option[String] = None,
+      projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -231,7 +234,6 @@ object JobModels {
           createdAt: JodaDateTime,
           updatedAt: JodaDateTime,
           stateId: Int,
-          projectId: Int,
           jobTypeId: String,
           path: String,
           jsonSettings: String,
@@ -239,12 +241,13 @@ object JobModels {
           smrtlinkVersion: Option[String],
           smrtlinkToolsVersion: Option[String],
           isActive: Boolean = true,
-          errorMessage: Option[String] = None) = {
+          errorMessage: Option[String] = None,
+          projectId: Int = 1) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, projectId, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage, projectId)
       }
   }
 

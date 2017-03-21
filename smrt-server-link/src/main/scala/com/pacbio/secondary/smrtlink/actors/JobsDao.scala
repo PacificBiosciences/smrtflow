@@ -316,7 +316,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
     val jsonSettings = "{}"
 
-    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, projectId, jobTypeId, path, jsonSettings, None, None, None)
+    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None, None, None, projectId = projectId)
 
     val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
       val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
@@ -483,7 +483,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
     val projectId = coreJob.jobOptions.projectId
 
-    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, projectId, jobTypeId, path, jsonSetting, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy, smrtLinkVersion, smrtLinkToolsVersion, projectId = projectId)
 
     logger.info(s"Creating Job $engineJob")
 

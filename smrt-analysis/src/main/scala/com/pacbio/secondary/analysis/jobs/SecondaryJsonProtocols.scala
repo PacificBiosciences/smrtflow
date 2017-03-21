@@ -104,7 +104,6 @@ trait EngineJobProtocol
         "createdAt" -> obj.createdAt.toJson,
         "updatedAt" -> obj.updatedAt.toJson,
         "state" -> obj.state.toJson,
-        "projectId" -> JsNumber(obj.projectId),
         "jobTypeId" -> JsString(obj.jobTypeId),
         "path" -> JsString(obj.path),
         "jsonSettings" -> JsString(obj.jsonSettings),
@@ -112,14 +111,15 @@ trait EngineJobProtocol
         "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
         "smrtlinkToolsVersion" -> obj.smrtlinkToolsVersion.toJson,
         "isActive" -> obj.isActive.toJson,
-        "errorMessage" -> obj.errorMessage.toJson
+        "errorMessage" -> obj.errorMessage.toJson,
+        "projectId" -> JsNumber(obj.projectId)
       )
     }
 
     def read(value: JsValue): EngineJob = {
       val jsObj = value.asJsObject
-      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "projectId", "jobTypeId", "path", "jsonSettings") match {
-        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsNumber(projectId), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
+      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "jobTypeId", "path", "jsonSettings") match {
+        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
 
           def getBy(fieldName: String): Option[String] = {
             jsObj.getFields(fieldName) match {
@@ -131,6 +131,10 @@ trait EngineJobProtocol
           val smrtlinkVersion = getBy("smrtlinkVersion")
           val smrtlinkToolsVersion = getBy("smrtlinkToolsVersion")
           val errorMessage = getBy("errorMessage")
+          val projectId = jsObj.getFields("projectId") match {
+            case Seq(JsNumber(pid)) => pid.toInt
+            case _ => JobConstants.GENERAL_PROJECT_ID
+          }
 
           val isActive = jsObj.getFields("isActive") match {
             case Seq(JsBoolean(b)) => b
@@ -141,9 +145,9 @@ trait EngineJobProtocol
                     JodaDateTime.parse(createdAt),
                     JodaDateTime.parse(updatedAt),
                     AnalysisJobStates.toState(state).get,
-                    projectId.toInt, jobTypeId, path, jsonSettings,
+                    jobTypeId, path, jsonSettings,
                     createdBy, smrtlinkVersion, smrtlinkToolsVersion,
-                    isActive, errorMessage)
+                    isActive, errorMessage, projectId)
         case x => deserializationError(s"Expected EngineJob, got $x")
       }
     }

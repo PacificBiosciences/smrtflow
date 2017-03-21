@@ -3,7 +3,6 @@
   "updatedAt": "2016-02-02T22:31:28.126Z",
   "path": "/analysis/smrtlink/userdata/jobs_root/000/000003",
   "state": "SUCCESSFUL",
-  "projectId": 1,
   "uuid": "49618fc1-f315-4dfc-b2f4-99db9459f191",
   "jobTypeId": "pbsmrtpipe",
   "id": 3,

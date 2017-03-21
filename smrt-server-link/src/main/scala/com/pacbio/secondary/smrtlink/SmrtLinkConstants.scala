@@ -1,12 +1,14 @@
 package com.pacbio.secondary.smrtlink
 
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants
+
 
 trait SmrtLinkConstants {
   val BASE_PREFIX = "smrt-link"
 
   // Default project ID; all datasets that aren't
   // in more specific projects get this ID
-  val GENERAL_PROJECT_ID = 1
+  val GENERAL_PROJECT_ID = JobConstants.GENERAL_PROJECT_ID
 }
 
 trait JobServiceConstants {
