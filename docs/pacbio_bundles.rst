@@ -1,79 +1,46 @@
-Example Chemistry Bundle
-========================
+PacBio Data Bundle Model and Services
+=====================================
 
-Example Chemistry bundle that contains ICS, SAT related files to be used
-from SL and SL services (e.g., https://github.com/PacificBiosciences/pbpipeline-helloworld-resources)
+A PacBio Data Model is a manifest.xml with a directory for resources, such as config files, or resources used by applications within SMRT Link (and SAT applications), ICS and Primary Analysis.
+
 
 Requirements
 ~~~~~~~~~~~~
 
--  Contain chemistry related configuration files from ICS and SAT
--  OS independent (SL doesn't has a requirement that it can run on many
-   linux distros, in other words, we can't use deb or rpms)
--  Each team (ICS, SL, SAT, DEP) can own subcomponents within the bundle
+-  Contain parameter and configuration files from ICS, PA, SAT, and SL Services
+-  OS independent, standard  vanilla .tgz format
+-  Each PacBio component (ICS, SL, SAT, DEP) can own sub-components within the bundle
    and define the schemas as they see fit
--  When possible, share common config files and schemas
+-  Each single bundle represents a coherent grouping of config/parameter files that are intended to work across all components of the system.
 
-Comments:
-~~~~~~~~~
 
--  MK would prefer that ``fingerprint.md5`` from the Chemistry bundle schema is folded back into the base PacBioData manifest data model.
-   folded back into the manifest.
+Example PacBio Data Bundle
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Explicit Dependencies of Components on Chemistry Bundle Resources
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The PacBio Data Bundle is a general file format that can be used in several different usecases. For example, an extension of the PipelineTemplate, View Rule, Report Rules Data Bundle in SMRT Link, and PacBioTestData Bundle (TODO).
 
--  SAT
+The most important bundle is the "Chemistry" Bundle. This PacBio Data Bundle type that contains ICS, SAT related files to be used
+from SL and SL services is provided here http://bitbucket.nanofluidics.com:7990/users/mkocher/repos/chemistry-bundle/browse
 
-   -  CLI tools and libraries that depend on loading the chemistry.xml
-      (or similar)
-
--  SMRT Link Analysis Services
-
-   -  Call pipelines with proper ENV var to enable tools called within
-      the pipeline to extend the tools' loaded chemistry registry
-   -  Raw calls to pipelines via pbsmrtpipe should work as expected
-      using the above model
-
--  SMRT Link Services
-
-   -  Exposes raw bundle as a webservice
-   -  Exposes a web service interface to update the bundle from a
-      location (TBD)
-   -  SMRT Link Service load the most recent Chemistry Version and load the
-      PacBioAutomationConstraints.xml to SL UI RunDesign and Sample
-      Setup
-   -  Requires the default chemistry bundle to be included at build time
-
--  SMRT Link UI:
-
-   -  Run Design and Sample Setup Apps required the data from
-      PacBioAutomation Constraints exposed as a webservice from SMRT
-      Link
-
--  ICS:
-
-   -  Loads and fetches bundle from SL Services
-
-SL exporting Chemistry Bundle Interface for Pipeline Tools
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Before running an analysis job (i.e., pbsmrtpipe job) or any other
-Service Job, the absolute path to the chemistry bundle dir is exported
-as:
+Example manifest.xml
 
 ::
 
-    export PB_CHEMISTRY_BUNDLE_DIR=/path/to/chemistry-bundle
+    <?xml version='1.0' encoding='utf-8'?>
+    <Manifest>
+      <Package>chemistry</Package>
+      <Version>4.0.0</Version>
+      <Created>11/28/16 11:16:46 PM</Created>
+      <Author>build</Author>
+    </Manifest>
 
-Tools within SAT should (override, or augment?) the default loaded
-chemistry configuration.
-
-.. note:: This needs to be addressed by DEP to load the most recent chemistry bundle and export the necessary ENV var before executing any commands from "smrtcmds/bin".
 
 
-SL Bundle Services
-~~~~~~~~~~~~~~~~~~
+Note, **the version must be provided using the Semantic Version scheme**. This ensures a clear, well-defined model for ordering and comparing bundles versions.
+
+
+SMRT Link Bundle Services
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SMRT Link Web Service Bundle Interface
 
@@ -89,14 +56,17 @@ Get a List of SL Bundle by bundle type id (e.g., "chemistry")
 
     GET /smrt-link/bundles/{bundle-type-id} # Returns a list of Bundle instances of type 'bundle-type-id'
 
-Bundle Resource Data Model:
+PacBio Data Bundle Model:
+
+This model contains metadata about the bundle.
 
 -  type {String} Bundle type id (e.g., "chemistry")
--  version: {String} SemVer of the bundle. Unique Identifer to bundle
-   resource within a bundle type. The bundle version comparisions will
+-  version: {String} SemVer of the bundle. Unique Identifier to bundle
+   resource within a bundle type. The bundle version comparision will
    be performed following the semver spec.
 -  importedAt: {DateTime} When the bundle was imported at
--  url: {URL} Download Link URL for file(s) (as .tgz?) servered from SL
+-  isActive: {Boolean} If the bundle is active (For a given bundle type, only one bundle can be active)
+-  url: {URL} Download Link URL for file(s) (as .tgz?) served from SL Services
 
 Get a Specific bundle resource
 
@@ -135,19 +105,60 @@ Fetching a Git repo with a pbpipeline bundle (pipeline templates and view rules,
     POST /smrt-link/bundles {"url": "https://github.com/PacificBiosciences/pbpipeline-helloworld-resources.git""}
 
 
+
+Checking for an upgraded bundle version.
+
+::
+
+    GET /smrt-link/bundles/{bundle-type-id}/upgrade
+
+
+Returns
+
+::
+
+    { "bundle": Option[PacBioBundle]}
+
+If an upgrade is available it will return a newer version (based on the semantic version spec). If no bundle is returned, there isn't a newer bundle.
+
+
+Upgrading a Bundle
+
+::
+
+    POST /smrt-link/bundles/{bundle-type-id}/{bundle-version/upgrade
+
+
+This will mark all other bundle types with `bundle-type-id` to in active and mark bundle with version `bundle-version` as active.
+
+Returns
+
+
+::
+
+    {"bundle": PacBioBundle}
+
+
+The bundle will have *isActive* with `true` if the bundle was successfully upgraded.
+
 Bundles Stored within the SL System install
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--  TODO {DEP}: Persist location across upgrades
--  {SL}: Add configuration to smrtlink-system-conf.json to provide
+-  All PacBio Data bundles are stored with SMRT Link pbbundler. The default chemistry bundle is packaged within pbbundler SL package.
+- {DEP} Add bundleDir to `smrtlink-system-config.json`
+- {SL} Add configuration to `smrtlink-system-conf.json` to provide
    a configurable path via "smrtflow.server.bundleDir. This must be read+write by the user that launched the services.
--  TODO {SL,DEP}: This should be pulled from the Update pbbundler to build bundle with newest bundle from
-   http://mkocher@bitbucket.nanofluidics.com:7990/scm/~mkocher/chemistry-bundle.git
+- TODO The default chemistry bundle is packaged within pbbundler SL package. http://mkocher@bitbucket.nanofluidics.com:7990/scm/~mkocher/chemistry-bundle.git
 
 
+Chemistry Data Bundle Details
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Chemistry Bundle Specifics SL PartNumbers and Automation Constraints WebService
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The "Chemistry" bundle is the core PacBio data model that contains information related to chemistry parameters and configuration for SMRT Link, ICS, PA and tools from secondary analysis (i.e.,SAT)
+
+
+SMRT Link PartNumbers and Automation Constraints WebService
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``definitions/PacBioAutomationConstraints.xml`` is loaded from most
 recent chemistry bundle. This is translated from XML (via jaxb) and
@@ -160,3 +171,50 @@ RunDesign and SampleSetup UI application in SL.
 
 Note, if there is not a chemistry bundle loaded, the response will
 return a 404.
+
+
+Explicit Dependencies of PacBio Components on Chemistry Bundle Resources
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  SAT and DEP
+
+    - Tools in smrtcmds/bin have setup ENV var to expose an add-on or replacement registry from <SMRT_LINK_BUNDLE_DIR>/chemistry-latest
+    - Secondary Analysis tools can extend the pre-canned registry of config/param files by loading from the <SMRT_LINK_BUNDLE_DIR>/chemistry-latest
+
+-  SMRT Link Services
+
+   -  Exposes general PacBio Data Bundle webservice. This can be used for extend secondary-analysis pipelines, "Chemistry" bundles, or PacBio Test Data bundles (used in secondary analysis)
+   -  On startup, SMRT Link Service load the most recent Chemistry Version from the bundle directory and load the
+      PacBioAutomationConstraints.xml to SL UI RunDesign and Sample Setup
+   -  *Requires* the default chemistry bundle to be included at build (and run) time.
+   -  **TODO** An external URL can be configured to look for "Chemistry" Data Bundle updates. If a newer bundle version is detected, the bundle will be downloaded (but NOT marked as active). Once the bundle is downloaded and exposed in the registry, it can be marked as active.
+   - When a Chemistry bundle is upgrades, a new softlink is created to the bundle in <SMRT_LINK_BUNDLE_DIR/chemistry-latest. When a new pipeline or commandline tool from <SMRT_ROOT>/smrtcmds/bin is run, this tool will have access to the newer chemistry version.
+
+-  SMRT Link UI:
+
+   -  Run Design and Sample Setup Apps required the data from
+      PacBioAutomation Constraints exposed as a webservice from SMRT
+      Link. This data is loaded from the most recent (activated) chemistry bundle
+
+-  ICS:
+
+    - Look to SMRT Link for newer Chemistry Bundles
+    - Downloads newer bundles from SL
+    - Installs/Activates bundles from Instrument UI
+
+SL exporting Chemistry Bundle Interface for Pipeline Tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before running an analysis job (i.e., pbsmrtpipe job) or any other
+Service Job, the absolute path to the chemistry bundle dir is exported
+as:
+
+::
+
+    export PB_CHEMISTRY_BUNDLE_DIR=/path/to/chemistry-bundle
+
+Tools within SAT should (override, or augment?) the default loaded
+chemistry configuration.
+
+.. note:: This needs to be addressed by DEP to load the most recent chemistry bundle and export the necessary ENV var before executing any commands from "smrtcmds/bin".
+
