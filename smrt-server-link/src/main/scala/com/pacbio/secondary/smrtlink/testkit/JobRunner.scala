@@ -11,7 +11,7 @@ import com.pacbio.common.models._
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.tools.PbService
 import scopt.OptionParser
@@ -79,7 +79,7 @@ object TestkitParser {
   }
 }
 
-class TestkitRunner(sal: AnalysisServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
+class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
   import CommonModelImplicits._
   import ReportModels._
   import TestkitModels._
@@ -320,7 +320,7 @@ object TestkitRunner {
   def apply (c: TestkitParser.TestkitConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
     val url = new URL(s"http://${c.host}:${c.port}")
-    val sal = new AnalysisServiceAccessLayer(url)(actorSystem)
+    val sal = new SmrtLinkServiceAccessLayer(url)(actorSystem)
     val tk = new TestkitRunner(sal)
     try {
       if (c.testJobId > 0) {

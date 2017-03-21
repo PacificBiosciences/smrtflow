@@ -4,7 +4,7 @@ package com.pacbio.secondary.smrtlink.tools
 import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools._
-import com.pacbio.secondary.smrtlink.client.AnalysisServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
@@ -60,7 +60,7 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
 
   def acceptUserAgreement(c: AcceptUserAgreementConfig) = {
     implicit val actorSystem = ActorSystem("get-status")
-    val sal = new AnalysisServiceAccessLayer(c.host, c.port)(actorSystem)
+    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
     println(s"URL: ${sal.baseUrl}")
     val manifest = Await.result(sal.getPacBioComponentManifests, TIMEOUT)
     val version = manifest.sortWith(_.id > _.id).find(
