@@ -1,6 +1,7 @@
 *.class
 *.log
 *.swp
+*.pyc
 .DS_Store
 
 smrt-server-link/db/*
