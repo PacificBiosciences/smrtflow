@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -312,10 +312,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     val createdAt = JodaDateTime.now()
     val name = s"Runnable Job $runnableJob"
     val comment = s"Job comment for $runnableJob"
+    val projectId = runnableJob.job.jobOptions.projectId
     val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
     val jsonSettings = "{}"
 
-    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None, None, None)
+    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None, None, None, projectId = projectId)
 
     val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
       val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
@@ -336,8 +337,12 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
         job.copy(id = j.id, path = resolvedPath)
       }
     }
+    val action = projects.filter(_.id === projectId).exists.result.flatMap {
+      case true => update
+      case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
+    }
 
-    db.run(update.transactionally)
+    db.run(action.transactionally)
   }
 
   //FIXME(mpkocher)(1-25-2017) Remove this Future[Option[T]] usage
@@ -476,7 +481,9 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()
 
-    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
+    val projectId = coreJob.jobOptions.projectId
+
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy, smrtLinkVersion, smrtLinkToolsVersion, projectId = projectId)
 
     logger.info(s"Creating Job $engineJob")
 
@@ -500,7 +507,12 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
       ).map(_ => engineJob.copy(id = jobId, path = resolvedPath))
     }
 
-    db.run(updates.transactionally)
+    val action = projects.filter(_.id === projectId).exists.result.flatMap {
+      case true => updates
+      case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
+    }
+
+    db.run(action.transactionally)
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =

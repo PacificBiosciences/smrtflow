@@ -75,6 +75,7 @@ case class CoreJob(uuid: UUID, jobOptions: BaseJobOptions)
 
 
 trait BaseJobOptions {
+  val projectId: Int
   def toJob: BaseCoreJob
 
   // Validation of Job Options

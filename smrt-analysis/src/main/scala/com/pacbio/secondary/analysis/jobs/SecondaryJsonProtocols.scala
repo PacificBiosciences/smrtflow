@@ -111,7 +111,8 @@ trait EngineJobProtocol
         "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
         "smrtlinkToolsVersion" -> obj.smrtlinkToolsVersion.toJson,
         "isActive" -> obj.isActive.toJson,
-        "errorMessage" -> obj.errorMessage.toJson
+        "errorMessage" -> obj.errorMessage.toJson,
+        "projectId" -> JsNumber(obj.projectId)
       )
     }
 
@@ -130,6 +131,10 @@ trait EngineJobProtocol
           val smrtlinkVersion = getBy("smrtlinkVersion")
           val smrtlinkToolsVersion = getBy("smrtlinkToolsVersion")
           val errorMessage = getBy("errorMessage")
+          val projectId = jsObj.getFields("projectId") match {
+            case Seq(JsNumber(pid)) => pid.toInt
+            case _ => JobConstants.GENERAL_PROJECT_ID
+          }
 
           val isActive = jsObj.getFields("isActive") match {
             case Seq(JsBoolean(b)) => b
@@ -139,9 +144,10 @@ trait EngineJobProtocol
           EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
                     JodaDateTime.parse(createdAt),
                     JodaDateTime.parse(updatedAt),
-                    AnalysisJobStates.toState(state).get, jobTypeId,
-                    path, jsonSettings,  createdBy, smrtlinkVersion,
-                    smrtlinkToolsVersion, isActive, errorMessage)
+                    AnalysisJobStates.toState(state).get,
+                    jobTypeId, path, jsonSettings,
+                    createdBy, smrtlinkVersion, smrtlinkToolsVersion,
+                    isActive, errorMessage, projectId)
         case x => deserializationError(s"Expected EngineJob, got $x")
       }
     }
@@ -456,14 +462,14 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val pipelineTemplateViewRule = jsonFormat4(PipelineTemplateViewRule)
 
   // Job Options
-  implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat4(PbsmrtpipeDirectJobOptions)
-  implicit val simpleDevJobOptionsFormat = jsonFormat2(SimpleDevJobOptions)
-  implicit val simpleDataTransferOptionsFormat = jsonFormat2(SimpleDataTransferOptions)
-  implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat2(MovieMetadataToHdfSubreadOptions)
+  implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(PbsmrtpipeDirectJobOptions)
+  implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
+  implicit val simpleDataTransferOptionsFormat = jsonFormat3(SimpleDataTransferOptions)
+  implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat3(MovieMetadataToHdfSubreadOptions)
 
-  implicit val importDataSetOptionsFormat = jsonFormat2(ImportDataSetOptions)
-  implicit val importConvertFastaOptionsFormat = jsonFormat4(ConvertImportFastaOptions)
-  implicit val importDataStoreOptionsFormat = jsonFormat1(ImportDataStoreOptions)
+  implicit val importDataSetOptionsFormat = jsonFormat3(ImportDataSetOptions)
+  implicit val importConvertFastaOptionsFormat = jsonFormat5(ConvertImportFastaOptions)
+  implicit val importDataStoreOptionsFormat = jsonFormat2(ImportDataStoreOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)

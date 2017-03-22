@@ -8,6 +8,7 @@ import com.pacbio.secondary.analysis.converters.{DatasetConvertError, FastaBarco
 import com.pacbio.secondary.analysis.datasets.{DataSetMetaTypes, BarcodeSetIO}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.pacificbiosciences.pacbiodatasets.BarcodeSet
 import org.apache.commons.io.FileUtils
@@ -16,7 +17,9 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 // Import & Convert Fasta -> Barcode Dataset
-case class ConvertImportFastaBarcodesOptions(path: String, name: String) extends BaseJobOptions {
+case class ConvertImportFastaBarcodesOptions(path: String,
+                                             name: String,
+                                             override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new ConvertImportFastaBarcodesJob(this)
 
   override def validate = {

@@ -11,6 +11,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, EngineJob, JobEvent, JobTypeIds, ServiceTaskOptionBase}
 import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
+import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.{EngineManagerActorProvider, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.models._
@@ -58,7 +59,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
               val taskOptions = Seq[ServiceTaskOptionBase]()
               val workflowOptions = Seq[ServiceTaskOptionBase]()
               val envPath: Option[Path] = None
-              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath)
+              val opts = MockPbSmrtPipeJobOptions(ropts.pipelineId, entryPoints, taskOptions, workflowOptions, envPath, ropts.projectId)
               val coreJob = CoreJob(uuid, opts)
               logger.info(s"Got options $opts")
               val jsonSettings = ropts.toJson.toString()

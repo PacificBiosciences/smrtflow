@@ -75,7 +75,7 @@ trait MockUtils extends LazyLogging{
 
   val dao: JobsDao
 
-  private var mockProjectId = -1
+  private var mockProjectId = 1
   def getMockProjectId: Int = mockProjectId
 
   // This is a weak way to indentify MOCK jobs from real jobs
@@ -123,7 +123,10 @@ trait MockUtils extends LazyLogging{
         jobType,
         "path",
         "{}",
-        Some("root"), None, None)}
+        Some("root"),
+        None,
+        None,
+        projectId = mockProjectId)}
     val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }

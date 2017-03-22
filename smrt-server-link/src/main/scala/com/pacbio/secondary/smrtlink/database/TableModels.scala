@@ -150,15 +150,19 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     // Optional Error Message
     def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
 
+    def projectId: Rep[Int] = column[Int]("project_id")
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid)
 
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
+
+    def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
 
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](

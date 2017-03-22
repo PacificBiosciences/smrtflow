@@ -20,6 +20,7 @@ import com.pacbio.secondary.analysis.datasets.io._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacificbiosciences.pacbiobasedatamodel.{InputOutputDataType,ExternalResources}
@@ -27,11 +28,15 @@ import com.pacificbiosciences.pacbiobasedatamodel.{InputOutputDataType,ExternalR
 
 trait DeleteResourcesOptionsBase extends BaseJobOptions {}
 
-case class DeleteResourcesOptions(path: Path, removeFiles: Boolean = true) extends BaseJobOptions with DeleteResourcesOptionsBase {
+case class DeleteResourcesOptions(path: Path,
+                                  removeFiles: Boolean = true,
+                                  override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions with DeleteResourcesOptionsBase {
   def toJob = new DeleteResourcesJob(this)
 }
 
-case class DeleteDatasetsOptions(paths: Seq[Path], removeFiles: Boolean = true) extends BaseJobOptions with DeleteResourcesOptionsBase {
+case class DeleteDatasetsOptions(paths: Seq[Path],
+                                 removeFiles: Boolean = true,
+                                 override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions with DeleteResourcesOptionsBase {
   def toJob = new DeleteDatasetsJob(this)
 }
 

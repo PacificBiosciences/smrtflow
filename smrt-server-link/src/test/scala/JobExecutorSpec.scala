@@ -1,6 +1,9 @@
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
+import com.pacbio.common.auth.Authenticator._
+import spray.http.HttpHeaders.RawHeader
+
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
@@ -26,7 +29,7 @@ import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProv
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
+import com.pacbio.secondary.smrtlink.services.{ProjectServiceProvider, JobManagerServiceProvider, JobRunnerProvider}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import slick.driver.PostgresDriver.api._
@@ -46,6 +49,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   object TestProviders extends
   ServiceComposer with
+  ProjectServiceProvider with
   JobManagerServiceProvider with
   MockPbsmrtpipeJobTypeProvider with
   DeleteJobServiceTypeProvider with
@@ -86,6 +90,9 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
   def toJobTypeByIdWithRest(x: String, i: IdAble, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 
+  val project = ProjectRequest("mock project name", "mock project description", None, None, None)
+  var projectId = -1
+
   val rx = scala.util.Random
   val jobName = s"my-job-name-${rx.nextInt(1000)}"
 
@@ -94,7 +101,8 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     "pbsmrtpipe.pipelines.mock_dev01",
     Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
     Nil,
-    Nil)
+    Nil,
+    projectId = -1)
 
   val jobId = 1
   val taskUUID = UUID.randomUUID()
@@ -122,13 +130,21 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     var newJob: Option[EngineJob] = None
 
     "execute job" in {
+      val credentials = RawHeader(JWT_HEADER, "jsnow")
+      val projectRoutes = TestProviders.projectService().prefixedRoutes
+      Post(s"/$ROOT_SERVICE_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
+        status.isSuccess must beTrue
+        projectId = responseAs[FullProject].id
+      }
+
       val url = toJobType("mock-pbsmrtpipe")
-      Post(url, mockOpts) ~> totalRoutes ~> check {
+      Post(url, mockOpts.copy(projectId = projectId)) ~> totalRoutes ~> check {
         newJob = Some(responseAs[EngineJob])
         logger.info(s"Response to $url -> $newJob")
 
         status.isSuccess must beTrue
         newJob.get.isActive must beTrue
+        newJob.get.projectId === projectId
       }
     }
 
@@ -214,6 +230,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       Post(toJobType("delete-job"), params) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]
         job.jobTypeId must beEqualTo("delete-job")
+        job.projectId must beEqualTo(projectId)
       }
       Get(toJobTypeById("mock-pbsmrtpipe", newJob.get.id)) ~> totalRoutes ~> check {
         val job = responseAs[EngineJob]

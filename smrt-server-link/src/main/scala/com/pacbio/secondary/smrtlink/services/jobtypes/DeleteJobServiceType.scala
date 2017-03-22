@@ -55,7 +55,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
     val fx = for {
       targetJob <- confirmIsDeletable(sopts.jobId)
-      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles) }
+      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles, targetJob.projectId) }
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
       engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint, CoreJob(uuid, opts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
     } yield engineJob

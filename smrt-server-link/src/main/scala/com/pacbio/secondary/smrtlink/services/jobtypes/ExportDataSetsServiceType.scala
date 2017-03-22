@@ -25,12 +25,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOptions {
+object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOptions with ProjectIdJoiner {
 
   def validateOutputPath(path: String): Future[Path] = {
     val p = Paths.get(path)
     val dir = p.getParent
-    if (p.toFile.exists) Future.failed(new InValidJobOptionsError(s"The file ${path} already exists"))
+    if (p.toFile.exists) Future.failed(new InValidJobOptionsError(s"The file $path already exists"))
     else if (! dir.toFile.exists) Future.failed(new InValidJobOptionsError(s"The directory ${dir.toString} does not exist"))
     else if (! Files.isWritable(dir)) Future.failed(new InValidJobOptionsError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
     else Future { p }
@@ -40,15 +40,15 @@ object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOpti
     for {
       datasetType <- validateDataSetType(opts.datasetType)
       outputPath <- validateOutputPath(opts.outputPath)
-      paths <- validateDataSetsExist(opts.ids, datasetType, dbActor)
-      //  paths <- validateDataSets(paths, datasetType)
-    } yield ExportDataSetsOptions(datasetType, paths, outputPath)
+      datasets <- validateDataSetsExist(opts.ids, datasetType, dbActor)
+      paths <- Future { datasets.map(ds => Paths.get(ds.path)) }
+      projectId <- Future { joinProjectIds(datasets.map(_.projectId)) }
+    } yield ExportDataSetsOptions(datasetType, paths, outputPath, projectId)
   }
 
   def apply(opts: DataSetExportServiceOptions, dbActor: ActorRef): Future[ExportDataSetsOptions] = {
     validate(opts, dbActor)
   }
-
 }
 
 class ExportDataSetsServiceJobType(dbActor: ActorRef,

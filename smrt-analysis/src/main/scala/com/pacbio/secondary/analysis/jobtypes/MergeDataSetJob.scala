@@ -11,13 +11,15 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetMerger, DataSetWriter}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacificbiosciences.pacbiodatasets._
 
 // Merge DataSets
 case class MergeDataSetOptions(
     datasetType: String,
     paths: Seq[String],
-    name: String) extends BaseJobOptions {
+    name: String,
+    override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new MergeDataSetJob(this)
 
   override def validate = {

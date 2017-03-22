@@ -18,7 +18,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SecondaryModels.DataSetDeleteServiceOptions
-import com.pacbio.secondary.smrtlink.models.{SecondaryAnalysisJsonProtocols, _}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx.SprayJsonSupport._
@@ -31,7 +31,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
                                    authenticator: Authenticator,
                                    smrtLinkVersion: Option[String],
                                    smrtLinkToolsVersion: Option[String])
-    extends JobTypeService with LazyLogging {
+    extends JobTypeService with ProjectIdJoiner with LazyLogging {
 
   import CommonModelImplicits._
   import SecondaryAnalysisJsonProtocols._
@@ -77,14 +77,16 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
               val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(DataSetMetaTypes.Subread.dsId, x, dbActor))
 
               val fx = for {
-                uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
-                dsJobIds <- Future.sequence(fsx).map { f => f.map(sx => sx.jobId) }
+                datasets <- Future.sequence(fsx)
+                uuidPaths <- Future { datasets.map(sx => (sx.uuid, sx.path)) }
+                dsJobIds <- Future { datasets.map(sx => sx.jobId) }
                 upstreamDataSets <- getUpstreamDataSets(dsJobIds, DataSetMetaTypes.Subread.dsId)
                 resolvedPaths <- Future { uuidPaths.map(x => Paths.get(x._2)) ++ upstreamDataSets.map(ds => Paths.get(ds.path)) }
                 engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
-                coreJob <- Future { CoreJob(uuid, DeleteDatasetsOptions(resolvedPaths, true)) }
-                _ <- Future.sequence(fsx).map { f => f.map(sx => deleteDataSet(sx)) }
-                _ <- Future.sequence { upstreamDataSets.map(deleteDataSet(_)) }
+                projectId <- Future { joinProjectIds((datasets ++ upstreamDataSets).map(_.projectId)) }
+                coreJob <- Future { CoreJob(uuid, DeleteDatasetsOptions(resolvedPaths, removeFiles = true, projectId)) }
+                _ <- Future.sequence(fsx).map { f => f.map(deleteDataSet) }
+                _ <- Future.sequence { upstreamDataSets.map(deleteDataSet) }
                 engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Deleting Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
               } yield engineJob
 

@@ -93,6 +93,9 @@ object JobModels {
     // Event that means the Job Task has changed state
     val EVENT_TYPE_JOB_TASK_STATUS = "smrtlink_job_task_status"
 
+    // Default project ID; all datasets that aren't
+    // in more specific projects get this ID
+    val GENERAL_PROJECT_ID = 1
   }
 
   object JobTypeIds {
@@ -191,6 +194,7 @@ object JobModels {
     * @param createdAt when the Job was created
     * @param updatedAt when the job was last updated
     * @param state current state of the job
+    * @param projectId id of the associated project
     * @param jobTypeId job type id
     * @param path path to job output directory
     * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
@@ -215,7 +219,8 @@ object JobModels {
       smrtlinkVersion: Option[String],
       smrtlinkToolsVersion: Option[String],
       isActive: Boolean = true,
-      errorMessage: Option[String] = None) {
+      errorMessage: Option[String] = None,
+      projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
 
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
@@ -236,12 +241,13 @@ object JobModels {
           smrtlinkVersion: Option[String],
           smrtlinkToolsVersion: Option[String],
           isActive: Boolean = true,
-          errorMessage: Option[String] = None) = {
+          errorMessage: Option[String] = None,
+          projectId: Int = 1) = {
 
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage, projectId)
       }
   }
 
@@ -440,6 +446,7 @@ object JobModels {
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
   case class PbsmrtpipeDirectJobOptions(
+      projectId: Int = 1,
       pipelineId: String,
       entryPoints: Seq[BoundEntryPoint],
       taskOptions: Seq[ServiceTaskOptionBase],
