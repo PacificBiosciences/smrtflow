@@ -14,14 +14,16 @@ import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.externaltools.PbReports
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
-
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 
 /**
  * Import DataSet job options
  * @param path Path to input dataSet
  * @param datasetType DataSet type (must be consistent with the resource in `path`
  */
-case class ImportDataSetOptions(path: String, datasetType: DataSetMetaTypes.DataSetMetaType, override val projectId: Int = 1) extends BaseJobOptions {
+case class ImportDataSetOptions(path: String,
+                                datasetType: DataSetMetaTypes.DataSetMetaType,
+                                override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new ImportDataSetJob(this)
 
   override def validate = {

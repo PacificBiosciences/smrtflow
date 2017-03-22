@@ -7,6 +7,7 @@ import com.pacbio.secondary.analysis.converters.{DatasetConvertError, FastaToRef
 import com.pacbio.secondary.analysis.datasets.{DataSetMetaTypes, ReferenceDatasetFileIO, ReferenceSetIO}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.pacificbiosciences.pacbiodatasets.ReferenceSet
 import org.apache.commons.io.FileUtils
@@ -15,7 +16,11 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 
 // Import & Convert Fasta -> Reference Dataset (need to add standard Organism, ploidy options)
-case class ConvertImportFastaOptions(path: String, name: String, ploidy: String, organism: String, override val projectId: Int = 1) extends BaseJobOptions {
+case class ConvertImportFastaOptions(path: String,
+                                     name: String,
+                                     ploidy: String,
+                                     organism: String,
+                                     override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new ConvertImportFastaJob(this)
 
   override def validate = {

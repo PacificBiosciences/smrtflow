@@ -4,12 +4,15 @@ import java.nio.file.{Files, Paths}
 
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.tools.timeUtils
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 
 // DataTransfer
-case class SimpleDataTransferOptions(src: String, dest: String, override val projectId: Int = 1) extends BaseJobOptions {
+case class SimpleDataTransferOptions(src: String,
+                                     dest: String,
+                                     override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new SimpleDataTransferJob(this)
 }
 

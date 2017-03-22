@@ -9,6 +9,7 @@ import com.pacbio.secondary.analysis.bio.FastaMockUtils
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
@@ -35,7 +36,7 @@ case class MockPbSmrtPipeJobOptions(
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
     envPath: Option[Path] = None,
-    override val projectId: Int = 1) extends BaseJobOptions {
+    override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
 
   def toJob = new PbSmrtpipeMockJob(this)
 }
