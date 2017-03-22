@@ -99,10 +99,47 @@ GET /run/rqmts but these endpoints are not used at all.
 
 b) For SAT test, (reference https://jira.pacificbiosciences.com/browse/SL-953); this is WIP and for the time being it is a work around
 
-
 1. Take a SubreadSet from PacBioTestData files that has a valid (and mappable) SubreadSet and reference. Update the UUIDs to be consistent with the Run SubreadSet UUID.
 2. Run pbvalidate on SubreadSet
 3. Import SubreadSet into SL
 4. Verify RunQC
 5. Create SL SAT job with the reference from PacBioDataSet and the SubreadSet that was imported
 6. Verify Successful job and Reports are present
+
+
+### End to end testing deployment on Bamboo
+1. Bring up ICS VM (for now, test ICS VM is assumed to be up and running)
+2. On a bamboo node, set environment for SL, load sbt, git, smrttools/mainline (just future use)
+3. Create a temporary directory under /pbi/dept/secondary/siv/bamboo and clone PacBioTestData in it. This particular dataset is needed for SAT
+4. On a bamboo node, clone smrtflow and package smrt-server-sim project(using pack)
+5. start an end to end test scenario(RunDesignWithICSScenario), this test will create a run design in SL, retreive it and post it(run design) to ICS;
+ICS will run its workflow with its own PA simulator and will respond with either complete or error status (for the run, that it is playing against its simulator); following
+which this particular scenario (upon successful completion of a run) with run SAT
+6. delete temporary directory created in step 3.
+
+/** FOLLOWING IS THE SCRIPT THAT GETS RUN ON BAMBOO
+module load sbt
+module load git
+module load  smrttools/mainline
+
+currentDir=`pwd`
+echo $currentDir
+export TESTDIR=/pbi/dept/secondary/siv/bamboo
+echo $TESTDIR
+cd $TESTDIR
+mkdir tmp
+cd tmp
+git clone https://github.com/PacificBiosciences/PacBioTestData.git
+export PB_TEST_DATA_FILES=$(readlink -f PacBioTestData/data/files.json)
+echo $PB_TEST_DATA_FILES
+
+
+cd $currentDir
+git clone http://amaster@bitbucket.nanofluidics.com:7990/scm/sl/smrtflow.git
+cd smrtflow
+export TEST_CONFIG=smrt-server-sim/src/test/resources/runScenarioWithICS.config
+sbt smrt-server-sim/{compile,pack}
+smrt-server-sim/target/pack/bin/scenario-runner RunDesignWithICSScenario $TEST_CONFIG -t "5 hours"
+
+rm -rf $testDir/tmp
+*/
