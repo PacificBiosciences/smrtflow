@@ -1,399 +1,346 @@
-#!/bin/bash
-# ---- error handling
-set -o errexit;
-set -o posix;
-set -o pipefail;
-set -o errtrace;
-set -o nounset;
-
-# Primary Author: Herb Maeder
-# Migration of code from perforce (http://swarm/files/depot/software/smrtanalysis/bbmig/build/smrtlink/admin/bin/dbctl)
-
-
-unexpected_error() {
-    local errstat=$?
-    echo "${g_prog:-$(basename $0)}: Error! Encountered unexpected error at 'line $(caller)', bailing out..." 1>&2
-    exit $errstat;
-}
-trap unexpected_error ERR;
-
-# ---- error functions
-
-merror() {
-    echo "$g_prog: Error! ""$@" 1>&2;
-    exit 1;
-}
-minterror() {
-    echo "$g_prog: Internal Error! ""$@" 1>&2;
-    exit 1;
-}
-mwarn() {
-    echo "$g_prog: Warning! ""$@" 1>&2;
-}
-
-# ---- usage
-
-usage() {
-  local exitstat=2;
-  if [[ ! -z "${2:-}" ]] ; then
-      if [[ ! $2 =~ [[:digit:]]+ ]] ; then
-	   minterror "usage(): exitstat ($2) must be numeric."
-      fi
-      exitstat=$2;
-  fi
-
-  # Only redirect to stderr on non-zero exit status
-  if [[ $exitstat -ne 0 ]] ; then
-      exec 1>&2;
-  fi
-
-  if [[ ! -z "${1:-}" ]] ; then
-      echo "$g_prog: Error! $1"
-  fi
-
-  echo "Usage: $g_prog [--help] --start"
-  echo "       $g_prog [--help] --stop"
-  echo "       $g_prog [--help] --init"
-  echo "       $g_prog [--help] --status"
-  echo "       $g_prog [--help] --dbcmd --|--dbcmdargs [args [args]...] "
-  echo ""
-  echo "         --start        -- start database server"
-  echo "         --stop         -- stop database server"
-  echo "         --init         -- initialize database dir"
-  echo "         --status       -- show status of the database server"
-  echo "         --dbcmd        -- run postgres executable"
-  echo "         --|--dbcmdargs -- all remaining args passed to pgcmd "
-  echo ""
-  echo "         -h|--help     -- print this usage";
-  echo "";
-
-
-  if [[ $exitstat -ne 0 ]] ; then
-      # Print error again, useful for long usages messages
-      if [[ ! -z "${1:-}" ]] ; then
-	  echo ""
-	  echo "$g_prog: Error! $1"
-      fi
-  fi
-
-  # bash only:
-  if [[ $exitstat -ne 0 ]] ; then
-      echo "  at: $(caller)";
-  fi
-  exit $exitstat;
-}
-
-# ---- argument parsing
-
-achk() {
-    if [[ $1 -eq 0 ]] ; then usage "Missing argument to $2 option"; fi
-}
-
-parseargs() {
-    opt_start=false;
-    opt_stop=false;
-    opt_init=false;
-    opt_status=false;
-    opt_create=false;
-    opt_migrate=false;
-    opt_dbcmd="";
-    opt_dbcmdargs=();
-    while [[ $# != 0 ]]; do
-	opt="$1"; shift;
-	case "$opt" in
-	    # Flag with no argument example:
-	    #   --flag|--fla|--fl|--f)
-	    #     opt_flag=true;;
-	    # Option with argument example:
-	    #   --arg|--ar|--a)
-	    #     achk $# $opt; opt_somearg=$1; shift;;
-	    --start) opt_start=true;;
-	    --stop) opt_stop=true;;
-	    --init) opt_init=true;;
-	    --status) opt_status=true;;
-	    --create) opt_create=true;;
-	    --migrate) opt_migrate=true;;
-	    --dbcmd)  achk $# $opt; opt_dbcmd=$1; shift;;
-	    --|--dbcmdargs)  opt_dbcmdargs=${1+"$@"}; break;;
-	    -h|-help|--help|--hel|--he|--h) usage "" 0;;
-	    -*) usage "Unrecognized option: $opt";;
-	    *)
-		local argstr=${1+"$@"};
-		usage "Unexpected extraneous arguments detected: $opt $argstr"
-		;;
-	esac
-    done
-
-    if [[ ! ${opt_start}${opt_stop}${opt_init}${opt_status}${opt_create}${opt_migrate}${opt_dbcmd:+true} =~ true ]] ; then
-	usage "Must specify one of --start, --stop, --init, --status or --dbcmd"
-    elif [[ ${opt_start}${opt_stop}${opt_init}${opt_status}${opt_dbcmd:+true} =~ true.*true ]] ; then
-	usage "Must specify only one of --start, --stop, --init, --status or --dbcmd"
-    fi
-}
-
-# ---- globals
-
-set_preglobals() {
-    g_prog=$(basename $0);
-    g_progdir=$(dirname $0);
-    g_progdir_abs=$(readlink -f "$g_progdir")
-    # root directory to the bundle
-    g_bundle_root_abs=$(dirname "${g_progdir_abs}")
-    g_tools_bin=$(readlink -f "${g_bundle_root_abs}/tools/bin")
-    g_config=$(readlink -f "${g_bundle_root_abs}/smrtlink-system-config.json");
-
-    # The path to Legacy Sqlite file. This should have a single key of {PB_DB_URI: /path/to/file.db }
-    # Should we use this file to also store the status of the migration?
-    #g_legacy_db_config=$(readlink -f "${g_progdir}/../legacy-db.json")
-    # Fail this to make this explicit that this isn't yet supported
-    g_sqlite_database="${g_progdir}/LEGACY-NOT-SUPPORTED"
-}
-
-
-# ---- subroutines
-# By Convention all subroutines that have db_* will exec or exit, all other funcs will return a value
-
-read_config() {
-    # get key from smrtlink-system-config.json
-    # Is there a cleaner way to do this?
-    # I think we need a thin scala tool to do this. If a path is returned it should be absolute/resolved?
-    # with get-value <KEY> <OPTIONAL_DEFAULT> (to handle Option[T]) values
-    # Example, get-value smrtflow.server.host "http://my-host"
-
-    logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${g_config})
-
-    # This needs to have a rolling log handler
-    g_db_logfile="${logDir}/dbctrl.log"
-
-    # Create the relative dir to the root dir smrtlink-system-config.json resides
-    cd ${g_bundle_root_abs}
-    # Root Path to database files. This will have two subdirectories, dbstore and dbackup
-    g_db_root_datadir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['pgDataDir'])" ${g_config})
-
-    g_db_datadir=${g_db_root_datadir}/dbstore
-    g_db_backupdir=${g_db_root_datadir}/backups
-
-    g_db_port=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print int(d['smrtflow']['db']['properties']['portNumber'])" ${g_config})
-
-    g_db_host=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['serverName']" ${g_config})
-    # raw password
-    g_db_user=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['password']" ${g_config})
-    g_db_password=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['user']" ${g_config})
-
-    g_db_database_smrtlink=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['smrtflow']['db']['properties']['databaseName']" ${g_config})
-
-    # This shows how the password md5 is computed.  Not really needed for this
-    # temporary solution, since we are hardwiring the password anyway.
-    g_db_password_md5="md5"$(echo -n "${g_db_password}${g_db_user}" | md5sum | sed -e 's/[[:space:]].*//')
-    cd -
-}
-
-echolog() {
-    local datestr
-    datestr=$(echo $(date +"%s")": "$(date))
-    local msg="$1"
-    echo $msg
-    # FIXME, This should be a well formed log file that adheres to a standard formating scheme
-    echo "INFO::$datestr::$msg" >> "${g_db_logfile}"
-}
-
-get_status() {
-    local stat=0
-    pg_ctl status -s -D "$g_db_datadir" -o "-p $g_db_port" || stat=$?
-    return $stat
-}
-
-exe_db_cmd() {
-    # Run raw command in postgres
-    local stat=0
-    PGPASSWORD="$g_db_password" exec "$opt_dbcmd" -p "$g_db_port" -h "$g_db_host" -U "$g_db_user" "$@" || stat=$?
-    return $stat
-}
-
-# Get the db status given the db config defined in smrtlink-system-config.json
-db_status() {
-    exec pg_ctl status -s -D "$g_db_datadir" -o "-p $g_db_port"
-}
-
-db_start() {
-    echo "Starting database server..."
-    local datestr
-    datestr=$(echo $(date +"%s")": "$(date))
-    echo "===== Starting database: $datestr" >> "$g_db_logfile"
-
-    local stat=0;
-    pg_ctl start -l "$g_db_logfile" -w -D "$g_db_datadir" -o "-k '' -p $g_db_port -h $g_db_host" || stat=$?
-
-    if [[ $stat -ne 0 ]] ; then
-	    echo "Logfile Output:"
-	    sed -ne "/^===== Starting database: ${datestr%%:*}/,\$p" "$g_db_logfile"
-	    merror "Error detected in starting database server";
-    fi
-    exit $stat;
-}
-
-
-db_stop() {
-    echo "Stopping database server..."
-    # this should handle the case when connections are kept open?
-    exec pg_ctl stop -w -D "$g_db_datadir" -o "-p $g_db_port"
-}
-
-
-db_init() {
-    # initializes a PostgreSQL database cluster for the directory and creds specified in the
-    # smrtlink-system-config.json file
-    echo "Initializing database data dir in ${g_db_datadir}"
-
-    if [[ ! -e "${g_db_datadir}" ]] ; then
-        echolog "Creating database dir ${g_db_datadir}"
-        mkdir -p "${g_db_datadir}"
-    fi
-
-    local stat=0;
-    # Note, this is the same as initdb command.
-    ( set +o posix; pg_ctl init -D "$g_db_datadir" -o "-U $g_db_user --auth-host=md5 --auth-local=reject --pwfile="<(echo "$g_db_password_md5")) || stat=$?
-    exit $stat;
-}
-
-db_create() {
-    # This was migrated from apply_settings_database from installerprompt
-    # All ownership of the db will be performed within the SL services bundle
-    # This will
-    # 1. initialize the postgres database from scratch (including setting up ports, and credentials)
-    # 2. create the smrtlink database
-    #
-    # 3. Import the old sqlite.db database, and initially populate the smrtlinkdb database.
-    #
-    # 4. (TODO) Perform backups
-
-    echo "Attempting to create database (if necessary) with data dir '${g_db_datadir}'"
-
-    # Create the database datastore and backup directories
-    if [[ ! -e "$g_db_datadir" ]] ; then
-        mkdir -p "$g_db_datadir"
-    fi
-    if [[ ! -e "$g_db_backupdir" ]] ; then
-        mkdir -p "$g_db_backupdir"
-    fi
-
-    # Determine if we need to initialize the database
-    local emptydir;
-    emptydir=$( find "$g_db_datadir" -maxdepth 0 -type d -empty || true)
-    if [[ ! -z "$emptydir" ]] ; then
-        echo "    Initializing the database..."
-        db_init
-    fi
-
-    # FIXME: do we need to make a backup of the database?
-    # "$g_progdir/dbbackup"
-
-    # Start database
-    local status=0
-    get_status || status=$?
-    if [[ $status != 0 ]] ; then
-        # Stop database server if it is running (could have changed database
-        # directory or something like that).
-        db_stop
-    fi
-    echo "    Starting the database server..."
-    db_start
-
-    # Database server is stopped.  Trap any exit, and try to stop the
-    # database in order to leave us in the same state we started in.
-    exittrap() {
-        echo "  Exiting unexpectedly, Stopping the database server..."
-        db_stop || true
-    }
-    trap exittrap EXIT;
-
-    local dblist_str;
-    # Query for a list of databases in table form.  Do this in a separate
-    # line than the grep to make it clear if we happen to get an error in
-    # the actual query (vs match/non-match status from grep)
-    dblist_str=$("$g_progdir/dbctl" --dbcmd psql -- -lqtA )
-
-    if ! echo "$dblist_str" | grep -q -E "^${g_db_database_smrtlink}\|" ; then
-        echolog "Creating '$g_db_database_smrtlink' database..."
-        "$g_progdir/dbctl" --dbcmd createdb -- "$g_db_database_smrtlink" >> "$g_db_logfile" ;
-    else
-        "Found existing created database ${g_db_database_smrtlink}. Skipping creation"
-    fi
-
-    # FIXME(mpkocher)(This tool should really have a subparser to validate or validation + apply Postgres migrations
-    echolog "Validating and populating '$g_db_database_smrtlink' database..."
-    ${g_tools_bin}/smrt-db-tool -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink"  >> "$g_db_logfile"
-
-    # Unset the exittrap to stop the database server.  The next thing we will
-    # do is stop the server (if it fails, we don't need to try to stop it
-    # again).
-    trap - EXIT;
-    unset -f exittrap;
-
-    # Stop database
-    echolog "    Stopping the database server..."
-    db_stop
-}
-
-
-# Import the legacy Sqlite database into Postgres. This assumes the database has been created and is up and running.
-db_migrate() {
-
-    if [[ -e "$g_sqlite_database" ]] ; then
-        local stat=0
-		echolog "      Attempting to Importing legacy Sqlite database to Postgres DB"
-		${g_tools_bin}/bundler-migrate-legacy-config --legacy "$g_sqlite_database" -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink" >> "$g_db_logfile" || stat=$?
-
-		if [[ $stat -ne 0 ]] ; then
-		    merror "Could not import sqlite database to postgresql"
-		else
-            # Double check that the import happened ok
-            local import_outstr;
-            stat=0;
-            import_outstr=$("$g_tools_bin/bundler-migrate-legacy-config" --legacy "$g_sqlite_database" -u "$g_db_user" -p "$g_db_password" -s "$g_db_host" --port "$g_db_port" -n "$g_db_database_smrtlink" >> "$g_db_logfile" ) || stat=$?
-            if [[ $stat -ne 0 ]] ; then
-                minterror "Unexpected error from sqlite->postgres import tool, expected to be already imported"
-            fi
-            if [[ $import_outstr =~ already\ migrated\ string ]] ; then
-                local datestr;
-                datestr=$( date +"%Y%m%d_%H%M%S" )
-                mv "$g_sqlite_database" "${g_sqlite_database}.migrated.${datestr}"
-            fi
-		    fi
-	else
-        echolog "Unable to find sqlite file ${g_sqlite_database}. Skipping importing step"
-	fi
-}
-
-
-# Run any command from an exe in the postgresql bin/exe tools
-db_dbcmd() {
-    local stat=0;
-    PGPASSWORD="$g_db_password" exec "$opt_dbcmd" -p "$g_db_port" -h "$g_db_host" -U "$g_db_user" "${opt_dbcmdargs[@]+${opt_dbcmdargs[@]}}"
-}
-
-# ---- main
-
-# Save off original cmdline args, use as "${g_origargs[@]}" (with doublequotes)
-g_origargs=( ${1+"$@"} )
-
-set_preglobals ${1+"$@"};
-parseargs ${1+"$@"};
-
-read_config;
-
-if $opt_start; then
-    db_start;
-elif $opt_stop; then
-    db_stop;
-elif $opt_init; then
-    db_init;
-elif $opt_status; then
-    db_status;
-elif ${opt_create}; then
-    db_create
-elif [[ ! -z "$opt_dbcmd" ]]; then
-    db_dbcmd;
-else
-    minterror "Unknown action, specify --start, --stop, --init, --create or --status".
-fi
+#!/usr/bin/env python
+import argparse
+import logging
+import os
+import subprocess
+import sys
+import json
+import tempfile
+import datetime
+from collections import namedtuple
+
+__version__ = "0.1.0"
+__author__ = "mkocher"
+
+log = logging.getLogger(__name__)
+
+_BIN_DIR = os.path.abspath(os.path.dirname(__file__))
+_BUNDLE_ROOT = os.path.dirname(_BIN_DIR)
+# Admin tools
+_TOOLS_DIR = os.path.join(_BUNDLE_ROOT, "tools/bin")
+
+_SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
+# Migration State file
+_MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
+
+DbConfig = namedtuple("DbConfig", "db_name, pg_data_dir, host, port, user, password")
+
+
+class Migration(object):
+    def __init__(self, was_successful, updated_at, db_path, comment):
+        # should this have more than one state?
+        self.was_successful = was_successful
+        self.updated_at = updated_at
+        self.db_path = db_path
+        self.comment = comment
+
+    def __repr__(self):
+        _d = dict(s=self.was_successful, u=self.updated_at,
+                  p=self.db_path, k=self.__class__.__name__)
+        return "<{k} successful:{s} updated at:{u} sqlite:{p} >".format(**_d)
+
+    def to_dict(self):
+
+        _d = dict(was_successful=self.was_successful,
+                  updated_at=str(self.updated_at),
+                  db_path=self.db_path,
+                  comment=self.comment)
+        return _d
+
+    @staticmethod
+    def from_d(d):
+        return Migration(d['was_successful'], d['updated_at'], d['db_path'], d['comment'])
+
+    def write(self, output_file):
+        d = self.to_dict()
+        with open(output_file, 'w+') as f:
+            f.write(json.dumps(d, indent=4, sort_keys=True))
+        return d
+
+
+def subparser_builder(subparser, subparser_id, description, options_func, exe_func):
+    p = subparser.add_parser(subparser_id, help=description)
+    options_func(p)
+    p.set_defaults(func=exe_func)
+    return p
+
+
+def get_parser():
+    desc = "Tool to interact with Postgres 9.6.x"
+    p = argparse.ArgumentParser(version=__version__,
+                                description=desc,
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    f = p.add_argument
+
+    f('-c', "--config", help="Path to smrtlink-system-config.json", default=_SL_CONFIG)
+    f('--log-file', help="Log file")
+    f('--log-level', default=logging.INFO, help="Log level when emitting to a log file")
+
+    sp = p.add_subparsers(help='commands')
+
+    def builder(subparser_id, description, options_func, exe_func):
+        subparser_builder(sp, subparser_id, description, options_func, exe_func)
+
+    def null_opts(x):
+        return x
+
+    def migrate_opts(p):
+        p.add_argument('-s', '--sqlite-path', help="Path to SL >= 4.0.0 Sqlite file")
+        p.add_argument('-m', '--legacy-migration', help="Path to Legacy Migration JSON file", default=_MIGRATION_JSON)
+        return p
+
+    def args_db_status(args):
+        return db_status(load_db_config(args.config))
+
+    def args_db_start(args):
+        return db_start(load_db_config(args.config))
+
+    def args_db_stop(args):
+        return db_stop(load_db_config(args.config))
+
+    def args_db_init(args):
+        return db_init(load_db_config(args.config))
+
+    def args_db_create(args):
+        return db_create(load_db_config(args.config))
+
+    def args_db_migrate(args):
+        return db_migrate(load_db_config(args.config), args.sqlite_path, args.legacy_migration)
+
+    desc_init = "Initialize database server (will start up db and shutdown after initialization)"
+    desc_create = "Create SL database (init must be called first)"
+    desc_migrate = "Import SL >= 4.0.0 SQLite into Postgres"
+
+    builder("status", "Get status of the database", null_opts, args_db_status)
+    builder("start", "Start database server", null_opts, args_db_start)
+    builder("stop", "Stop Database server", null_opts, args_db_stop)
+    builder("init", desc_init, null_opts, args_db_init)
+    builder("create", desc_create, null_opts, args_db_create)
+    builder("migrate", desc_migrate, migrate_opts, args_db_migrate)
+
+    return p
+
+
+def load_db_config(path):
+    """Load the DB config from the smrtlink-system-config.json"""
+
+    d = json.load(open(path, 'r'))
+
+    def to_a(sx):
+        return sx.encode("utf8", "ignore")
+
+    db_name = to_a(d['smrtflow']['db']['properties']['databaseName'])
+
+    pg_data_dir = os.path.join(os.path.abspath(to_a(d['pacBioSystem']['pgDataDir'])), "dbstore")
+
+    port = int(d['smrtflow']['db']['properties']['portNumber'])
+    host = to_a(d['smrtflow']['db']['properties']['serverName'])
+
+    password = to_a(d['smrtflow']['db']['properties']['password'])
+    user = to_a(d['smrtflow']['db']['properties']['user'])
+
+    return DbConfig(db_name, pg_data_dir, host, port, user, password)
+
+
+def call_import_legacy_sqlite(sqlite_db_path, dbc):
+    """:type dbc: DbConfig"""
+
+    cmd = "bundler-migrate-legacy-config --legacy {q} -u {u} -p {p} -s {h} --port {t} -n {n}"
+    _d = dict(q=sqlite_db_path, u=dbc.user, p=dbc.password, h=dbc.host, t=dbc.port, n=dbc.db_name)
+
+    return _run_raise_on_failure(cmd.format(**_d))
+
+
+def _run_cmd(cmd):
+    log.info("Running cmd '{}'".format(cmd))
+    out = subprocess.Popen(cmd, shell=True)
+    out.wait()
+    exit_code = out.returncode
+    log.info("Completed command with exit code {}".format(exit_code))
+    return exit_code
+
+
+def _run_raise_on_failure(cmd):
+    rcode = _run_cmd(cmd)
+    if rcode != 0:
+        raise RuntimeError("Command Failed")
+    return rcode
+
+
+def _is_running(db_config):
+    """Check if Db is running"""
+    rcode = db_status(db_config)
+    return True if rcode == 0 else False
+
+
+def _start_db_or_raise(dbc):
+    """Start or raise if can't start the db"""
+    was_started = _is_running(dbc)
+    if not was_started:
+        start_success = db_start(dbc)
+        if not start_success:
+            raise RuntimeError("Unable to start db successfully")
+
+    return was_started
+
+
+def _to_cmd(dbc, action):
+    """:type dbc: DbConfig"""
+    _d = dict(l="logfile", g=dbc.pg_data_dir, p=dbc.port, h=dbc.host, a=action)
+    cmd = "pg_ctl {a} --log \"{l}\" -w --pgdata {g} -o \"-p {p} -h {h}\"".format(**_d)
+    return cmd
+
+
+def _fix_postgres_config(path, var_run_dir):
+    # workaround for config having references to /var/run/postgresq depending
+    # on how it was installed
+    if not os.path.exists(var_run_dir):
+        os.mkdir(var_run_dir)
+    # overwrite the `unix_socket_directories` value
+    with open(path, 'a') as f:
+        f.write("# Custom override\n")
+        f.write("unix_socket_directories = '{}'\n".format(var_run_dir))
+    return var_run_dir
+
+
+def db_init(dbc):
+    """Fresh/clean initialization of the database
+
+    1. Create pg data dir (if necessary)
+    2. call initdb (this will raise if the db already exists)
+
+    :type dbc: DbConfig
+    """
+    def to_p(x):
+        return os.path.join(dbc.pg_data_dir, x)
+
+    root_dir = dbc.pg_data_dir
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+
+    # write the password to tmp file
+    t = tempfile.NamedTemporaryFile().name
+    with open(t, 'w+') as f:
+        f.write(dbc.password)
+
+    _d = dict(g=dbc.pg_data_dir, u=dbc.user, t=t)
+    cmd = "initdb --pgdata {g} --username {u} --pwfile={t}".format(**_d)
+
+    rcode = _run_cmd(cmd)
+
+    # see comments above. Perhaps this should be removed
+    _fix_postgres_config(to_p("postgresql.conf"), to_p("var-run"))
+
+    if os.path.exists(t):
+        os.remove(t)
+    return rcode
+
+
+def db_create(dbc):
+    """Will create a postgres SL db
+
+    :type dbc: DbConfig
+    """
+
+    was_started = _is_running(dbc)
+    _start_db_or_raise(dbc)
+
+    # TODO. Add check for previously created tables. Is this necessary or just let createdb fail?
+    _d = dict(p=dbc.port, h=dbc.host, g=dbc.pg_data_dir, d=dbc.db_name)
+    cmd = "createdb --echo --port {p} --host {h} {d}".format(**_d)
+    rcode = _run_cmd(cmd)
+
+    # Now create a user
+    _x = dict(u=dbc.user)
+    cmd = "createuser --echo --createdb --superuser {u}".format(**_x)
+    if rcode == 0:
+        _run_cmd(cmd)
+
+    # if the db was original running, keep it running, otherwise, shut it down
+    if not was_started:
+        db_stop(dbc)
+
+    return rcode
+
+
+def db_start(dbc):
+    """:type dbc: DbConfig"""
+    return _run_cmd(_to_cmd(dbc, "start"))
+
+
+def db_stop(dbc):
+    """:type dbc: DbConfig"""
+    if _is_running(dbc):
+        return _run_cmd(_to_cmd(dbc, "stop"))
+    else:
+        log.info("Database is not running. No stopping action necessary")
+        return 0
+
+
+def db_status(dbc):
+    """Get the Status of the Database
+
+    :type dbc: DbConfig
+    """
+    _d = dict(g=dbc.pg_data_dir, h=dbc.host, p=dbc.port)
+    cmd = "pg_ctl status --silent --pgdata {g} -o \"-p {p}\"".format(**_d)
+    return _run_cmd(cmd)
+
+
+def db_migrate(dbc, sqlite_db_path, migration_json):
+    """
+
+    1. Load legacy-migration.json (if exists)
+    2. Call legacy importing tool
+    3. Write Legacy Migration JSON
+
+    :type dbc: DbConfig
+    """
+    was_successful = False
+
+    if os.path.exists(migration_json):
+        d = json.load(open(migration_json))
+        m = Migration.from_d(d)
+        if m.was_successful:
+            log.debug("Migration was successful. Skipping {}".format(m))
+            was_successful = True
+        else:
+            # Try migration again?
+            sys.stderr.write("Retries of a FAILED migration/import of a legacy SQLITE db is not supported\n")
+            was_successful = False
+    else:
+        # Try a new importing
+        was_started = _is_running(dbc)
+        _start_db_or_raise(dbc)
+
+        try:
+            _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
+            comment = "Successfully imported legacy data"
+            m = Migration(True, datetime.datetime.now(), sqlite_db_path, comment)
+            was_successful = True
+        except Exception as e:
+            comment = "Failed to import legacy data. {}".format(e)
+            m = Migration(False, datetime.datetime.now(), sqlite_db_path, comment)
+
+        m.write(migration_json)
+
+        # shutdown the db if it was not originally started
+        if not was_started:
+            db_stop(dbc)
+
+    return was_successful
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv[1:]
+
+    p = get_parser()
+    logging.basicConfig(file=sys.stdout, level=logging.DEBUG)
+
+    pargs = p.parse_args(args)
+    return pargs.func(pargs)
+
+
+if __name__ == '__main__':
+    sys.exit(main(argv=sys.argv))
