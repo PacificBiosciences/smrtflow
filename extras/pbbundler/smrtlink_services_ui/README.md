@@ -1,37 +1,57 @@
 # Run SMRT Link System
 
-### SMRT Link is composed of 3 subcomponents
+(See the CHANGELOG.md for details of API changes)
+
+### SMRT Link System is composed of 3 subcomponents
+
+1. SL Installer. Contains the SL Installer, admin tools and layers to create the proper ENV for subcomponents and tools to be called
+2. SL "pbbundle" subcomponents, SL Webservices, WSO2, Tomcat, admin commandline tools for interfacing to these components (described below)
+3. SL Tools Commandline tools (e.g, blasr, pbsmrtpipe) used in analysis pipelines 
+
+
+### SMRT Link pbbundle
+
+The container component is referred to the **pbbundle** in this doc (FIXME. This needs a better name)
+
+It contains and is managed four sub-components.
 
 1. SMRT Link Analysis Web Services (scala/java services run from secondary-analysis.jar in the root of the bundle)
 2. Tomcat webserver for serving static HTML files (the SL UI is server from)
 3. The [WSO2 API Manager](http://wso2.com/products/api-manager/) to enforce user Rights and Roles
+4. Postgres 9.6.1 DB used for SMRT Link Analysis services
 
-Note, SMRT View is started up and managed by the SL installer
+Note, SMRT View subcomponent of SL System is started up and managed by the SL installer
 
-### Bundle System Requirements
+### pbbundle System Requirements
 
 - vanilla python 2.7.x (for config parsing and processing)
 - java 1.8 (oracle recommended)
 - PostgreSQL 9.6.1 (SL Analysis Web services require). For stability and performance, the location of the database files *MUST* be stored on local disk (e.g., not on NFS).
-- TODO (minimum recommended memory and number of cores)
+- TODO (clarify minimum recommended memory and number of cores)
 
-### SL System bundle Commandline Tools
+### pbbundle Commandline Tools
 
-Several tools are included in the SL System bundle. There are internal or admin exes in *[BUNDLE_ROOT]/tools* and exes in *[BUNDLE_ROOT]/bin* that are configured to have specific defaults for getting the starting the bundle and getting the status of the bundle in [BUNDLE_ROOT]. 
+Several tools are included in the SL System bundle. There are internal or admin exes in *[BUNDLE_ROOT]/tools/bin* and exes in *[BUNDLE_ROOT]/bin* that are configured to have specific defaults for getting the starting the bundle and getting the status of the bundle in [BUNDLE_ROOT]. 
 
 #### Bin
 
-Executables in [BUNDLE_ROOT]/bin/
+Public Executables in [BUNDLE_ROOT]/bin
 
 - *start* Start the SL System
 - *stop* Stop the SL System
-- *get-status* Gets the status of SL System or gets the status of a subcomponent via `--subcomponent-id` TODO(mpkocher)(migrate to scala)
-- *apply-config* Runs and Validates the SMRT Link System configuration JSON file (*smrtlink-system-config.json*) TODO(mpkocher)(migrate get-status to scala)
+- *get-status* Gets the status of SL System or gets the status of a subcomponent via `--subcomponent-id`
+- *apply-config* Runs and Validates the SMRT Link System configuration JSON file (*smrtlink-system-config.json*)
+- *upgrade* This will start the db (if necessary), run the legacy migration, of import from SL == 4.0.0 Sqlite db into Postgres DB.(Note, only 4.0.0 importing is supported) 
 
+Private Executables in [BUNDLE_ROOT]/bin (not be directly called from SL installer)
+
+- *check-system-limits* Checks the system for required ulimits and other system related configuration
+- *dbctrl* Handles Postgres db creation, initialization, start, stop, status, and verifying functionality
+ 
 
 #### Tools
 
-Executables in [BUNDLE_ROOT]/tools
+Executables in [BUNDLE_ROOT]/tools/bin
 
 - *pbservice* Interface to the SL Analysis web services. Get status of services, jobs, import datasets, etc...
 - *smrt-db-tool* TODO(mpkocher)(Rename this tool) Db Run PostgreSQL database migrations, get the database connection status
@@ -41,9 +61,31 @@ Executables in [BUNDLE_ROOT]/tools
 
 ##### Legacy Tools
 
-- [BUNDLE_ROOT]/tools/bundler-migrate-legacy-db *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
-- [BUNDLE_ROOT]/tools/bundler-migrate-legacy-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
+- [BUNDLE_ROOT]/tools/bin/bundler-migrate-legacy-db *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
+- [BUNDLE_ROOT]/tools/bin/bundler-migrate-legacy-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
   
+  
+### SMRT Link pbbundle Installing and Upgrading
+   
+**[BUNDLE_ROOT]/bin/upgrade** can be used to setup the SL System from a fresh/clean install, **or** an upgrade a system from a previous (N - 1) version of SMRT Link.
+
+**Note** the SL 4.0.0 to SL 4.1.0 has a special case for handling the importing of the legacy 4.0.0 sqlite database to the 4.1.0 Postgres database.
+   
+A Summary of the import process
+
+1. Check for legacy JSON file in the [BUNDLE_ROOT]/legacy-db.json with the form ({PB_DB_URI: "/path/to/sqlite.file.db")
+2. If Postgres db creation and users is not been initialized, it will
+    - start up the db (if necessary)
+    - run the creation and initialization
+    - perform and Postgres to Postgres SQL migrations
+    - shut down the db (if it was not originally running)
+3. If the [BUNDLE_ROOT]/legacy-db.json file exist, nor has a non `null` for *PB_DB_URI*
+    - Check for the [BUNDLE_ROOT]/legacy-migration.json
+        - if the import was already successful, skip legacy import
+        - else perform the SQLITE to Postgres importing/migration, then write the state to [BUNDLE_ROOT]/legacy-migration.json
+    - [TODO] Clarify this. For failed SQLITE importing/migration, there is not currently a retry method (this would require dropping the tables)
+4. shut down the db (if it was not originally running)
+
 
 ### Configuration
 
@@ -106,15 +148,3 @@ Example:
 - *SL Analysis log* file is configured in the "smrtflow.pacBioSystem.logDir" key
 - *Tomcat UI Logs* file is in [BUNDLE_ROOT]/apache-tomcat-8.0.26/logs/
 - *WSO2 API Manager logs* are in [BUNDLE_ROOT]/wso2am-2.0.0/repository/logs
-
-
-### Change Log
-
-#### Version 2.0.0
-
-- Introduced in SL System 4.1.0
-- Details TODO(mpkocher)
-
-#### Version 1.0.0
-
-- Used in SL System 3.0.x - 4.0.0
