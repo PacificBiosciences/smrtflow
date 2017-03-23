@@ -71,24 +71,23 @@ def get_parser():
                                 description=desc,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    f = p.add_argument
-
-    f('-c', "--config", help="Path to smrtlink-system-config.json", default=_SL_CONFIG)
-    f('--log-file', help="Log file")
-    f('--log-level', default=logging.INFO, help="Log level when emitting to a log file")
+    def base_opts(p_):
+        f = p_.add_argument
+        f('-c', "--config", help="Path to smrtlink-system-config.json", default=_SL_CONFIG)
+        f('--log-file', help="Log file")
+        f('--log-level', default=logging.INFO, help="Log level when emitting to a log file")
+        return p_
 
     sp = p.add_subparsers(help='commands')
 
     def builder(subparser_id, description, options_func, exe_func):
         subparser_builder(sp, subparser_id, description, options_func, exe_func)
 
-    def null_opts(x):
-        return x
-
-    def migrate_opts(p):
-        p.add_argument('-s', '--sqlite-path', help="Path to SL >= 4.0.0 Sqlite file")
-        p.add_argument('-m', '--legacy-migration', help="Path to Legacy Migration JSON file", default=_MIGRATION_JSON)
-        return p
+    def migrate_opts(px):
+        base_opts(px)
+        px.add_argument('-s', '--sqlite-path', help="Path to SL >= 4.0.0 Sqlite file")
+        px.add_argument('-m', '--legacy-migration', help="Path to Legacy Migration JSON file", default=_MIGRATION_JSON)
+        return px
 
     def args_db_status(args):
         return db_status(load_db_config(args.config))
@@ -112,11 +111,11 @@ def get_parser():
     desc_create = "Create SL database (init must be called first)"
     desc_migrate = "Import SL >= 4.0.0 SQLite into Postgres"
 
-    builder("status", "Get status of the database", null_opts, args_db_status)
-    builder("start", "Start database server", null_opts, args_db_start)
-    builder("stop", "Stop Database server", null_opts, args_db_stop)
-    builder("init", desc_init, null_opts, args_db_init)
-    builder("create", desc_create, null_opts, args_db_create)
+    builder("status", "Get status of the database", base_opts, args_db_status)
+    builder("start", "Start database server", base_opts, args_db_start)
+    builder("stop", "Stop Database server", base_opts, args_db_stop)
+    builder("init", desc_init, base_opts, args_db_init)
+    builder("create", desc_create, base_opts, args_db_create)
     builder("migrate", desc_migrate, migrate_opts, args_db_migrate)
 
     return p
