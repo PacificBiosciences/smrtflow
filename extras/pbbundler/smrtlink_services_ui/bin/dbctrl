@@ -205,9 +205,9 @@ def _run_raise_on_failure(cmd):
     return rcode
 
 
-def _is_running(db_config):
+def _is_running(db_config, fail_early=True):
     """Check if Db is running"""
-    rcode = db_status(db_config)
+    rcode = db_status(db_config, fail_early=fail_early)
     return True if rcode == 0 else False
 
 
@@ -274,7 +274,7 @@ def db_init(dbc):
         os.mkdir(root_dir)
 
     # simple way to see if an existing install is present
-    if os.path.join(dbc.pg_data_dir, 'postgresql.conf'):
+    if os.path.exists(os.path.join(dbc.pg_data_dir, 'postgresql.conf')):
         log.info("Detected exiting install. Skipping init in {}".format(dbc.pg_data_dir))
         return 0
 
@@ -324,11 +324,6 @@ def db_create(dbc):
         env = dbc.to_env()
         cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {n}".format(**_d)
         rcode = _run_cmd_and_log(cmd, env=env)
-
-        # Now create a user if was successful
-        if rcode == 0:
-            cmd = "createuser --echo --createdb --superuser {u} --host={h} --port={t}".format(**_d)
-            rcode = _run_cmd(cmd, env=env)
     else:
         rcode = 0
         log.debug("Founds tables {}".format(table_names))
@@ -340,16 +335,20 @@ def db_create(dbc):
     return rcode
 
 
-def db_start(dbc):
+def db_start(dbc, fail_early=True):
     """:type dbc: DbConfig"""
 
-    _fail_status_early(dbc)
+    if fail_early:
+        _fail_status_early(dbc)
 
     if not _is_running(dbc):
         return _run_cmd(_to_cmd(dbc, "start"))
     else:
         log.info("Database is already started. Skipping startup")
         return 0
+
+def db_start_no_fail_early(dbc):
+    return db_start(dbc, fail_early=False)
 
 
 def db_stop(dbc):
@@ -361,12 +360,14 @@ def db_stop(dbc):
         return 0
 
 
-def db_status(dbc):
+def db_status(dbc, fail_early=True):
     """Get the Status of the Database
 
+    :param fail_early: Check of PGDATA path existence and fail if not found (or empty)
     :type dbc: DbConfig
     """
-    _fail_status_early(dbc)
+    if fail_early:
+        _fail_status_early(dbc)
 
     cmd = "pg_ctl status --silent --pgdata {g} -o \"-p {t}\"".format(**dbc.to_fd())
     return _run_cmd(cmd)
@@ -400,24 +401,26 @@ def db_setup_and_migrate_if_necessary(dbc):
             n = f(dbc)
             sx = to_b(n)
             if sx:
+                log.debug("db func {} was successful".format(f.__name__))
                 return _apply_funcs(funcs, sx)
             else:
-                log.error("Failed to run {}".format(f.__name__))
+                log.error("db func {} FAILED with exit code {}".format(f.__name__, n))
                 return False
         else:
             return init_state
 
-    was_started = _is_running(dbc)
+    was_started = _is_running(dbc, fail_early=False)
 
     # if the db is running, then db init, createdb was successful
     if was_started:
-        db_funcs = [db_verify, db_create]
+        db_funcs = [db_verify, db_create, db_start_no_fail_early]
         was_successful = _apply_funcs(db_funcs, True)
     else:
-        db_funcs = [db_verify, db_create, db_start, db_init]
+        db_funcs = [db_verify, db_create, db_start_no_fail_early, db_init]
         was_successful = _apply_funcs(db_funcs, True)
 
     if not was_started:
+        log.debug("Initial state of db was not running. Calling shutdown")
         return db_stop(dbc)
 
     return 0 if was_successful else 1
