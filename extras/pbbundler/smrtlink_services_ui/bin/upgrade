@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
 
-echo "Running Upgrade"
-echo "NOT IMPLEMENTED"
+set -e
+
+# 1. This will startup the db (if it's not running)
+# 2. Run dbctl migrate --sqlite-path=/path/file.sqlite -m legacy-migration.json
+# 3. Shut down db if it wasn't originally running
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+rootBundleDir=$(dirname "${__dir}")
+
+config=${rootBundleDir}/smrtlink-system-config.json
+
+if ! [ -e "$config" ]; then
+    echo "file ${config} does not exist"
+    exit 1
+fi
+
+# Exit early if we can't start the db
+${rootBundleDir}/bin/dbctrl start -c ${config}
+# Use the default output path for the legacy migration JSON file (-m) option
+${rootBundleDir}/bin/dbctrl migrate -c ${config}
