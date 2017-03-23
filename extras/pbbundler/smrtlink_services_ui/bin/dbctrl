@@ -265,6 +265,9 @@ def db_create(dbc):
 
 def db_start(dbc):
     """:type dbc: DbConfig"""
+    # Fail early
+    if not os.path.exists(dbc.pg_data_dir):
+        raise IOError("Postgres is not running. Unable to find PGDATA dir {}".format(dbc.pg_data_dir))
     return _run_cmd(_to_cmd(dbc, "start"))
 
 
