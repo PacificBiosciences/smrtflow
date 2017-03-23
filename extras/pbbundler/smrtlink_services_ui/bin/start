@@ -55,7 +55,7 @@ SL_SERVICES_TOOLS_DIR=${__root}/tools
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 MAX_RETRIES=30
 
-export PATH=${SL_SERVICES_TOOLS_DIR}/bin:$PATH
+export PATH=${SL_SERVICES_TOOLS_DIR}/bin:${SL_SERVICES_TOOLS_DIR}/tools/bin:$PATH
 
 TOMCAT_DIR="$__dir/../apache-tomcat-8.0.26"
 WSO2_DIR="$__dir/../wso2am-2.0.0"

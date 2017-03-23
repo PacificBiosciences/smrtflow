@@ -13,6 +13,8 @@ __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
 
+
+
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 
 arg1="${1:-}"

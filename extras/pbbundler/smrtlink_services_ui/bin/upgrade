@@ -18,6 +18,9 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
+# To enable tools called from dbctrl
+export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
+
 if [ -e "$legacyConfig" ]; then
     sqliteLegacyDb=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['PB_DB_URI'])" ${legacyConfig})
     # Use the default output path for the legacy migration JSON file (-m) option
