@@ -16,7 +16,5 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
-# Exit early if we can't start the db
-${rootBundleDir}/bin/dbctrl start -c ${config}
 # Use the default output path for the legacy migration JSON file (-m) option
 ${rootBundleDir}/bin/dbctrl migrate -c ${config}
