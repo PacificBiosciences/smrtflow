@@ -16,12 +16,17 @@ log = logging.getLogger(__name__)
 
 _BIN_DIR = os.path.abspath(os.path.dirname(__file__))
 _BUNDLE_ROOT = os.path.dirname(_BIN_DIR)
-# Admin tools
-_TOOLS_DIR = os.path.join(_BUNDLE_ROOT, "tools/bin")
 
+# Default config file locations. Overridable from commandline
 _SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
 # Migration State file
 _MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
+
+REQUIRED_EXES = ('initdb', 'pg_ctl', 'createdb',
+                 'createuser',
+                 'bundler-migrate-legacy-db',
+                 'bundler-migrate-legacy-config',
+                 'smrt-db-tool')
 
 DbConfig = namedtuple("DbConfig", "db_name, pg_data_dir, host, port, user, password")
 
@@ -59,14 +64,15 @@ class Migration(object):
 
 
 def subparser_builder(subparser, subparser_id, description, options_func, exe_func):
-    p = subparser.add_parser(subparser_id, help=description)
+    p = subparser.add_parser(subparser_id, help=description,
+                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     options_func(p)
     p.set_defaults(func=exe_func)
     return p
 
 
 def get_parser():
-    desc = "Tool to interact with Postgres 9.6.x"
+    desc = "Tool to interact with Postgres 9.6.x. Required exes in PATH {}".format(REQUIRED_EXES)
     p = argparse.ArgumentParser(version=__version__,
                                 description=desc,
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -75,7 +81,8 @@ def get_parser():
         f = p_.add_argument
         f('-c', "--config", help="Path to smrtlink-system-config.json", default=_SL_CONFIG)
         f('--log-file', help="Log file")
-        f('--log-level', default=logging.INFO, help="Log level when emitting to a log file")
+        f('--log-level', default=logging.ERROR, help="Log level when emitting to a log file")
+        f('--quiet', default=False, action="store_true", help="Silence output to stdout")
         return p_
 
     sp = p.add_subparsers(help='commands')
@@ -84,9 +91,10 @@ def get_parser():
         subparser_builder(sp, subparser_id, description, options_func, exe_func)
 
     def migrate_opts(px):
+        px.add_argument('-s', '--sqlite-path', required=True, help="Path to SL <= 4.0.0 Sqlite file")
+        px.add_argument('-m', '--legacy-migration', default=_MIGRATION_JSON,
+                        help="Path to Legacy Migration JSON file (to persist migration status)")
         base_opts(px)
-        px.add_argument('-s', '--sqlite-path', help="Path to SL >= 4.0.0 Sqlite file")
-        px.add_argument('-m', '--legacy-migration', help="Path to Legacy Migration JSON file", default=_MIGRATION_JSON)
         return px
 
     def args_db_status(args):
@@ -107,16 +115,25 @@ def get_parser():
     def args_db_migrate(args):
         return db_migrate(load_db_config(args.config), args.sqlite_path, args.legacy_migration)
 
-    desc_init = "Initialize database server (will start up db and shutdown after initialization)"
-    desc_create = "Create SL database (init must be called first)"
-    desc_migrate = "Import SL >= 4.0.0 SQLite into Postgres"
+    def args_db_verify(args):
+        return db_verify(load_db_config(args.config))
 
-    builder("status", "Get status of the database", base_opts, args_db_status)
-    builder("start", "Start database server", base_opts, args_db_start)
-    builder("stop", "Stop Database server", base_opts, args_db_stop)
+    desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
+    desc_start = "Start database server. Will skip startup if already running"
+    desc_stop = "Stop Database server if db is running. "
+    desc_init = "Initialize SL Postgres database server (will start up db and shutdown after initialization)"
+    desc_create = "Create SL Postgres database (init must be called first)"
+    desc_migrate = "Import SL <= 4.0.0 SQLite into Postgres"
+    desc_verify = "Verify Postgres is running, Postgres tables have been created and" \
+                  "migrations have successfully be applied."
+
+    builder("status", desc_status, base_opts, args_db_status)
+    builder("start", desc_start, base_opts, args_db_start)
+    builder("stop", desc_stop, base_opts, args_db_stop)
     builder("init", desc_init, base_opts, args_db_init)
     builder("create", desc_create, base_opts, args_db_create)
     builder("migrate", desc_migrate, migrate_opts, args_db_migrate)
+    builder("verify", desc_verify, base_opts, args_db_verify)
 
     return p
 
@@ -145,25 +162,35 @@ def load_db_config(path):
 def call_import_legacy_sqlite(sqlite_db_path, dbc):
     """:type dbc: DbConfig"""
 
-    cmd = "bundler-migrate-legacy-config --legacy {q} -u {u} -p {p} -s {h} --port {t} -n {n}"
+    cmd = "bundler-migrate-legacy-db --legacy {q} -u {u} -p {p} -s {h} --port {t} -n {n}"
     _d = dict(q=sqlite_db_path, u=dbc.user, p=dbc.password, h=dbc.host, t=dbc.port, n=dbc.db_name)
 
     return _run_raise_on_failure(cmd.format(**_d))
 
 
 def _run_cmd(cmd):
-    log.info("Running cmd '{}'".format(cmd))
-    out = subprocess.Popen(cmd, shell=True)
+    # need to redirect stdout and stderr to log
+    out = subprocess.Popen(cmd, shell=True, )
     out.wait()
     exit_code = out.returncode
-    log.info("Completed command with exit code {}".format(exit_code))
+    return exit_code
+
+
+def _run_cmd_and_log(cmd):
+    log.debug("Running cmd '{}'".format(cmd))
+    exit_code = _run_cmd(cmd)
+    msg = "command with exit code {}. cmd {}".format(exit_code, cmd)
+    if exit_code == 0:
+        log.debug("Completed " + msg)
+    else:
+        log.error("Failed " + msg)
     return exit_code
 
 
 def _run_raise_on_failure(cmd):
     rcode = _run_cmd(cmd)
     if rcode != 0:
-        raise RuntimeError("Command Failed")
+        raise RuntimeError("FAILED Command {}".format(cmd))
     return rcode
 
 
@@ -173,13 +200,27 @@ def _is_running(db_config):
     return True if rcode == 0 else False
 
 
+def _is_running_or_raise(dbc):
+    if _is_running(dbc):
+        return True
+    else:
+        raise RuntimeError("DB is not running {}".format(dbc))
+
+
+def _fail_status_early(dbc):
+    """Fail early if the PGDATA dir doesn't exist"""
+    if not os.path.exists(dbc.pg_data_dir):
+        raise IOError("Postgres is not running. Unable to find PGDATA dir {}".format(dbc.pg_data_dir))
+    return dbc
+
+
 def _start_db_or_raise(dbc):
     """Start or raise if can't start the db"""
     was_started = _is_running(dbc)
     if not was_started:
         start_success = db_start(dbc)
-        if not start_success:
-            raise RuntimeError("Unable to start db successfully")
+        if start_success != 0:
+            raise RuntimeError("Unable to start db successfully with config {}".format(dbc))
 
     return was_started
 
@@ -226,7 +267,7 @@ def db_init(dbc):
     _d = dict(g=dbc.pg_data_dir, u=dbc.user, t=t)
     cmd = "initdb --pgdata {g} --username {u} --pwfile={t}".format(**_d)
 
-    rcode = _run_cmd(cmd)
+    rcode = _run_cmd_and_log(cmd)
 
     # see comments above. Perhaps this should be removed
     _fix_postgres_config(to_p("postgresql.conf"), to_p("var-run"))
@@ -246,15 +287,15 @@ def db_create(dbc):
     _start_db_or_raise(dbc)
 
     # TODO. Add check for previously created tables. Is this necessary or just let createdb fail?
-    _d = dict(p=dbc.port, h=dbc.host, g=dbc.pg_data_dir, d=dbc.db_name)
-    cmd = "createdb --echo --port {p} --host {h} {d}".format(**_d)
-    rcode = _run_cmd(cmd)
+    _d = dict(p=dbc.port, h=dbc.host, g=dbc.pg_data_dir, d=dbc.db_name, u=dbc.user)
+    cmd = "createdb --echo --port={p} --host={h} --username={u} {d}".format(**_d)
+    rcode = _run_cmd_and_log(cmd)
 
-    # Now create a user
-    _x = dict(u=dbc.user)
-    cmd = "createuser --echo --createdb --superuser {u}".format(**_x)
+    # Now create a user if was successful
     if rcode == 0:
-        _run_cmd(cmd)
+        _x = dict(u=dbc.user)
+        cmd = "createuser --echo --createdb --superuser {u}".format(**_x)
+        rcode = _run_cmd(cmd)
 
     # if the db was original running, keep it running, otherwise, shut it down
     if not was_started:
@@ -265,10 +306,14 @@ def db_create(dbc):
 
 def db_start(dbc):
     """:type dbc: DbConfig"""
-    # Fail early
-    if not os.path.exists(dbc.pg_data_dir):
-        raise IOError("Postgres is not running. Unable to find PGDATA dir {}".format(dbc.pg_data_dir))
-    return _run_cmd(_to_cmd(dbc, "start"))
+
+    _fail_status_early(dbc)
+
+    if not _is_running(dbc):
+        return _run_cmd(_to_cmd(dbc, "start"))
+    else:
+        log.info("Database is already started. Skipping startup")
+        return 0
 
 
 def db_stop(dbc):
@@ -285,9 +330,20 @@ def db_status(dbc):
 
     :type dbc: DbConfig
     """
+    _fail_status_early(dbc)
+
     _d = dict(g=dbc.pg_data_dir, h=dbc.host, p=dbc.port)
     cmd = "pg_ctl status --silent --pgdata {g} -o \"-p {p}\"".format(**_d)
     return _run_cmd(cmd)
+
+
+def db_verify(dbc):
+    """:type dbc: DbConfig"""
+    _is_running_or_raise(dbc)
+
+    _d = dict(u=dbc.user, p=dbc.password, t=dbc.port, h=dbc.host, n=dbc.db_name)
+    cmd = "smrt-db-tool migrate --user {u} --password {p} --server {h} --port {t} --db-name {n}".format(**_d)
+    return _run_cmd_and_log(cmd)
 
 
 def db_migrate(dbc, sqlite_db_path, migration_json):
@@ -305,7 +361,7 @@ def db_migrate(dbc, sqlite_db_path, migration_json):
         d = json.load(open(migration_json))
         m = Migration.from_d(d)
         if m.was_successful:
-            log.debug("Migration was successful. Skipping {}".format(m))
+            log.info("Migration was successful. Skipping {}".format(m))
             was_successful = True
         else:
             # Try migration again?
@@ -337,11 +393,28 @@ def db_migrate(dbc, sqlite_db_path, migration_json):
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv[1:]
 
+    started_at = datetime.datetime.now()
+
     p = get_parser()
-    logging.basicConfig(file=sys.stdout, level=logging.DEBUG)
 
     pargs = p.parse_args(args)
-    return pargs.func(pargs)
+
+    if not pargs.quiet:
+        if pargs.log_file is None:
+            logging.basicConfig(file=sys.stdout, level=pargs.log_level)
+        else:
+            # this should log to the logDir defined in the smrtlink-system-config.json
+            logging.basicConfig(file=pargs.log_file, level=pargs.log_level)
+
+    try:
+        exit_code = pargs.func(pargs)
+    except Exception as e:
+        log.exception(e)
+        exit_code = 1
+
+    run_time = (datetime.datetime.now() - started_at).total_seconds()
+    log.info("Exiting with {e} in {r:.2f} sec.".format(e=exit_code, r=run_time))
+    return exit_code
 
 
 if __name__ == '__main__':
