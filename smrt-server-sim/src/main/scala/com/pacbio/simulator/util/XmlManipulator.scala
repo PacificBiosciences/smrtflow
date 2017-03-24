@@ -2,6 +2,7 @@ package com.pacbio.simulator.util
 
 import java.util.UUID
 import scala.xml.{Attribute, Elem, MetaData, Null, Text}
+import scala.language.implicitConversions
 
 /**
   * Created by amaster on 3/13/17.
