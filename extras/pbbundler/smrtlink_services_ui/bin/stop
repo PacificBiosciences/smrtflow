@@ -11,6 +11,11 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
+SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
+
+
+
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 
 arg1="${1:-}"
 
@@ -19,7 +24,7 @@ check_pid() {
   [ kill -0 "$pid" > /dev/null 2>&1 ]
 }
 
-SL_ANALYSIS_PID=$__root/sl-analysis.pid
+SL_ANALYSIS_PID=${__root}/sl-analysis.pid
 
 if [ -f ${SL_ANALYSIS_PID} ]; then
    PID=`cat ${SL_ANALYSIS_PID}`
@@ -72,10 +77,16 @@ elif [ $PID -eq 0 ]; then
   echo "WARNING: WSO2 may still be running on unknown PID"
 fi
 
-$__dir/../apache-tomcat-8.0.26/bin/shutdown.sh
+${__root}/apache-tomcat-8.0.26/bin/shutdown.sh
 if [ $? -ne 0 ]; then
   STATUS=$?
   echo "Tomcat shutdown failed"
+fi
+
+${__root}/bin/dbctrl stop -c ${SL_SERVICES_CONF} --log-level=INFO --log-file=${logDir}/dbctrl.log
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "database shutdown failed"
 fi
 
 exit $STATUS

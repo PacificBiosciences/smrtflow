@@ -25,5 +25,6 @@ else
   args="$@"
 fi
 
+# The db check should be pushed to this layer. And the db should be considers a sup-component of the system
 ${rootBundleDir}/tools/bin/bundler-get-status "$@"
 
