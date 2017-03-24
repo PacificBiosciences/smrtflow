@@ -294,7 +294,7 @@ def db_init(dbc):
     rcode = _run_cmd_and_log(cmd)
 
     # see comments above. Perhaps this should be removed
-    _fix_postgres_config(to_p("postgresql.conf"), to_p("var-run"))
+    _fix_postgres_config(to_p("postgresql.conf"))
 
     if os.path.exists(t):
         os.remove(t)
