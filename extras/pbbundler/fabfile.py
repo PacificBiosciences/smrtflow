@@ -20,6 +20,7 @@ import os
 import json
 import warnings
 import time
+import xml.dom.minidom
 from zipfile import ZipFile
 from distutils.dir_util import copy_tree
 
@@ -181,6 +182,31 @@ def _archive_tomcat_webapp_root(tomcat_output_dir):
     webapp_path = os.path.join(tomcat_output_dir, 'webapps')
     shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
+
+
+def _copy_chemistry_bundle(chemistry_bundle_dir):
+    log.info("Copying chemistry bundle from {b}".format(b=chemistry_bundle_dir))
+    xml_file = os.path.join(chemistry_bundle_dir, "manifest.xml")
+    manifest = xml.dom.minidom.parse(xml_file)
+    vtags = manifest.getElementsByTagName("Version")
+    assert len(vtags) == 1
+    version = str(vtags[0].lastChild.nodeValue)
+    target_dir = os.path.join(_RESOURCES_DIR, "pacbio-bundles",
+                              "chemistry-{v}".format(v=version))
+    current_link = os.path.join(_RESOURCES_DIR, "pacbio-bundles", "chemistry-latest")
+    tarball = target_dir + ".tar.gz"
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+    for pathname in [current_link, tarball]:
+        if os.path.exists(pathname):
+            os.remove(pathname)
+    shutil.copytree(chemistry_bundle_dir, target_dir)
+    os.symlink(target_dir, current_link)
+    git_dir = os.path.join(target_dir, ".git")
+    if os.path.exists(git_dir):
+        shutil.rmtree(git_dir)
+    local("tar czvf {t} -C {d} .".format(t=tarball, d=target_dir))
+    log.info("Chemistry bundle is {t}".format(t=tarball))
 
 
 def _copy_bundle_from_template(template_dir, bundle_version_dir):
@@ -391,7 +417,8 @@ def build_smrtlink_services_ui(version,
                                ivy_cache=None,
                                analysis_server="smrt-server-link",
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
-                               tomcat_tgz="apache-tomcat-8.0.26.tar.gz"):
+                               tomcat_tgz="apache-tomcat-8.0.26.tar.gz",
+                               chemistry_bundle_dir=None):
     """
     Build the SMRT Link UI and copy it into the Tomcat. The bundles will be
     written to ./built-bundles/
@@ -419,6 +446,7 @@ def build_smrtlink_services_ui(version,
     :param wso2_api_manager_zip: Path to the zip of the WSO2 API Manager (
     v2.0.0)
 
+    :param chemistry_bundle_dir: path to chemistry resources repo
 
     Example of running from the commandline
 
@@ -464,6 +492,9 @@ def build_smrtlink_services_ui(version,
     output_bundle_dir = os.path.join(_ROOT_BUILT_BUNDLES, name)
     log.info("Creating bundle {n} -> {d} ".format(n=name, d=output_bundle_dir))
 
+    if chemistry_bundle_dir is not None:
+        _copy_chemistry_bundle(chemistry_bundle_dir)
+
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
@@ -504,6 +535,9 @@ def build_smrtlink_services_ui(version,
     if os.path.exists(root_html_dir):
         shutil.rmtree(root_html_dir)
     shutil.copytree(root_app_dir, root_html_dir)
+
+    if chemistry_bundle_dir is not None:
+        _copy_chemistry_bundle(chemistry_bundle_dir)
 
     # Build Scala Services
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
