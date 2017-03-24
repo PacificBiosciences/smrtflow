@@ -39,7 +39,9 @@ class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, host, port, user, p
         return dict(t=self.port, h=self.host, g=self.pg_data_dir, n=self.db_name, u=self.user, p=self.password)
 
     def to_env(self):
-        return {"PGPASSWORD": self.password}
+        env = os.environ.copy()
+        env['PGPASSWORD'] = self.password
+        return env
 
 
 class Migration(object):
@@ -122,7 +124,7 @@ def get_parser():
     args_db_setup = load_and_func(db_setup_and_migrate_if_necessary)
 
     def args_db_migrate(args):
-        return db_legacy_migrate(load_db_config(args.config), args.sqlite_path, args.legacy_migration)
+        return db_legacy_migrate(load_db_config(args.config), args.sqlite_path, args.legacy_migration_json)
 
     desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
     desc_start = "Start database server. Will skip startup if already running"
@@ -172,11 +174,14 @@ def load_db_config(path):
 def call_import_legacy_sqlite(sqlite_db_path, dbc):
     """:type dbc: DbConfig"""
 
-    cmd = "bundler-migrate-legacy-db --legacy {q} -u {u} -p {p} -s {h} --port {t} -n {n}"
+    cmd = "bundler-migrate-legacy-db {q} --user {u} --password {p} --server {h} --port {t} --db-name {n}"
     _d = dbc.to_fd()
     _d['q'] = sqlite_db_path
+    # Make custom JVM_OPTS for memory reasons
+    env = os.environ.copy()
+    env["JVM_OPTS"] = "-Xmx1024m -Xms1024"
 
-    return _run_raise_on_failure(cmd.format(**dbc.to_fd()))
+    return _run_raise_on_failure(cmd.format(**_d), env=env, runner_func=_run_cmd_and_log)
 
 
 def _run_cmd(cmd, env=None):
@@ -198,8 +203,8 @@ def _run_cmd_and_log(cmd, env=None):
     return exit_code
 
 
-def _run_raise_on_failure(cmd):
-    rcode = _run_cmd(cmd)
+def _run_raise_on_failure(cmd, env=None, runner_func=_run_cmd):
+    rcode = runner_func(cmd, env=env)
     if rcode != 0:
         raise RuntimeError("FAILED Command {}".format(cmd))
     return rcode
@@ -240,9 +245,9 @@ def _start_db_or_raise(dbc):
 
 def _to_cmd(dbc, action):
     """:type dbc: DbConfig"""
-    _d = dict(l="logfile", g=dbc.pg_data_dir, p=dbc.port, h=dbc.host, a=action)
-
-    cmd = "pg_ctl {a} --log \"{l}\" -w --pgdata {g} -o \"-p {p} -h {h}\"".format(**_d)
+    _d = dbc.to_fd()
+    _d['a'] = action
+    cmd = "pg_ctl {a} -w --pgdata {g} -o \"-p {t} -h {h}\"".format(**_d)
     return cmd
 
 
@@ -346,6 +351,7 @@ def db_start(dbc, fail_early=True):
     else:
         log.info("Database is already started. Skipping startup")
         return 0
+
 
 def db_start_no_fail_early(dbc):
     return db_start(dbc, fail_early=False)
@@ -459,11 +465,13 @@ def db_legacy_migrate(dbc, sqlite_db_path, migration_json):
             try:
                 _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
                 comment = "Successfully imported legacy data"
-                m = Migration(True, datetime.datetime.now(), sqlite_db_path, comment)
                 was_successful = True
+                m = Migration(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
             except Exception as e:
-                comment = "Failed to import legacy data. {}".format(e)
-                m = Migration(False, datetime.datetime.now(), sqlite_db_path, comment)
+                was_successful = False
+                comment = "Failed to import legacy data. {}".format(str(e))
+                log.exception(e)
+                m = Migration(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
 
             m.write(migration_json)
 
@@ -471,7 +479,10 @@ def db_legacy_migrate(dbc, sqlite_db_path, migration_json):
         if not was_started:
             db_stop(dbc)
 
-    return was_successful
+    else:
+        log.error("Initial postgres setup FAILED (exit code {})".format(n))
+
+    return 0 if was_successful else 1
 
 
 def main(argv=None):
