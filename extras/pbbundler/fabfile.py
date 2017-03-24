@@ -191,16 +191,19 @@ def _copy_chemistry_bundle(chemistry_bundle_dir):
     vtags = manifest.getElementsByTagName("Version")
     assert len(vtags) == 1
     version = str(vtags[0].lastChild.nodeValue)
-    target_dir = os.path.join(_RESOURCES_DIR, "pacbio-bundles",
-                              "chemistry-{v}".format(v=version))
-    current_link = os.path.join(_RESOURCES_DIR, "pacbio-bundles", "chemistry-latest")
+    res_bundle_dir = os.path.join(_ROOT_DIR, Constants.SLS_UI, "resources",
+                              "pacbio-bundles")
+    target_dir = os.path.join(res_bundle_dir, "chemistry-{v}".format(v=version))
+    current_link = os.path.join(res_bundle_dir, "chemistry-latest")
     tarball = target_dir + ".tar.gz"
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
     for pathname in [current_link, tarball]:
-        if os.path.exists(pathname):
+        if os.path.lexists(pathname):
+            log.info("deleting old {f}".format(f=pathname))
             os.remove(pathname)
     shutil.copytree(chemistry_bundle_dir, target_dir)
+    log.info("Linking {t} to {s}".format(t=target_dir, s=current_link))
     os.symlink(target_dir, current_link)
     git_dir = os.path.join(target_dir, ".git")
     if os.path.exists(git_dir):
