@@ -49,7 +49,7 @@ object RunDesignWithICSScenarioLoader extends ScenarioLoader {
       }
 
     new RunDesignWithICSScenario(
-      c.getString("sim.mrt-link-host"),
+      c.getString("sim.smrt-link-host"),
       getInt("sim.smrt-link-port"),
       c.getString("sim.ics-host"),
       getInt("sim.ics-port"),
