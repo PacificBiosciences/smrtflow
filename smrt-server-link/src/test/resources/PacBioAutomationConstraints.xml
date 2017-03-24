@@ -7,7 +7,7 @@
 		xsi:schemaLocation="http://pacificbiosciences.com/PacBioAutomationConstraints.xsd PacBioAutomationConstraints.xsd"
 		xmlns:xi="http://www.w3.org/2001/XInclude"
 		
-		Version="3.0.0009"
+		Version="4.1.0000"
 		Description="Document the automations and part numbers recognized by the system along with their incompatibilities with one another, if applicable.">
 		
 	<AutomationConstraints>
