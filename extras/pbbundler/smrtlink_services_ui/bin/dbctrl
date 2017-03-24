@@ -250,9 +250,10 @@ def _to_cmd(dbc, action):
     return cmd
 
 
-def _fix_postgres_config(path, var_run_dir):
+def _fix_postgres_config(path, var_run_dir='/tmp'):
     # workaround for config having references to /var/run/postgresq depending
     # on how it was installed
+    # Note, there's a path length limitation of maximum 107 bytes
     if not os.path.exists(var_run_dir):
         os.mkdir(var_run_dir)
     # overwrite the `unix_socket_directories` value
