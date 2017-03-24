@@ -174,12 +174,11 @@ def load_db_config(path):
 def call_import_legacy_sqlite(sqlite_db_path, dbc):
     """:type dbc: DbConfig"""
 
-    cmd = "bundler-migrate-legacy-db {q} --user {u} --password {p} --server {h} --port {t} --db-name {n}"
+    cmd = "bundler-migrate-legacy-db {q} --user {u} --password {p} --server {h} --port {t} --db-name {n} --log-level INFO --log2stdout"
     _d = dbc.to_fd()
     _d['q'] = sqlite_db_path
-    # Make custom JVM_OPTS for memory reasons
     env = os.environ.copy()
-    env["JVM_OPTS"] = "-Xmx1024m -Xms1024"
+    env["JAVA_OPTS"] = "-Xmx1024m -Xms1024"
 
     return _run_raise_on_failure(cmd.format(**_d), env=env, runner_func=_run_cmd_and_log)
 
