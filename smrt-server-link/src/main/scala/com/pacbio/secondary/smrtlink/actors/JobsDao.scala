@@ -597,9 +597,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     else db.run(engineJobs.sortBy(_.id.desc).result)
   }
 
-  def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
-    if (!includeInactive) db.run(engineJobs.filter(j => j.isActive && (j.jobTypeId === jobTypeId)).result)
-    else db.run(engineJobs.filter(_.jobTypeId === jobTypeId).result)
+  def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false, projectId: Option[Int] = None): Future[Seq[EngineJob]] = {
+    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId)
+    val q2 = if (!includeInactive) q1.filter(_.isActive) else q1
+    val q3 = if (projectId.isDefined) q2.filter(_.projectId === projectId.get) else q2
+    db.run(q3.result)
   }
 
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =

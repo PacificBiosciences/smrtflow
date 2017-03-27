@@ -29,7 +29,7 @@ import scala.concurrent.duration._
 class JobManagerService(
     dbActor: ActorRef,
     engineConfig: EngineConfig,
-    jobTypes: Set[JobTypeService],
+    jobTypes: Set[JobTypeService[_]],
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
     pbsmrtpipeCmdTemplate: Option[CommandTemplate],
     port: Int,
@@ -50,7 +50,7 @@ class JobManagerService(
     "0.3.2",
     "Secondary Analysis Job Manager Service to run Job types. See /job-manager/job-types for available job types")
 
-  def wrap(t: JobTypeService): Route = pathPrefix(SERVICE_PREFIX / JOB_ROOT_PREFIX) { t.routes }
+  def wrap(t: JobTypeService[_]): Route = pathPrefix(SERVICE_PREFIX / JOB_ROOT_PREFIX) { t.routes }
   val jobServiceTypeRoutes = jobTypes.map(wrap).reduce(_ ~ _)
 
   val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.endpoint, x.description))
@@ -148,7 +148,7 @@ trait JobManagerServiceProvider {
         host())
     }
 
-  object JobTypes extends SetBinding[JobTypeService]
+  object JobTypes extends SetBinding[JobTypeService[_]]
 
   addService(jobManagerService)
 }

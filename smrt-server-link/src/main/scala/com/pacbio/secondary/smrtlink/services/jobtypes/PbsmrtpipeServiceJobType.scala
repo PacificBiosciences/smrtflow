@@ -9,7 +9,9 @@ import akka.pattern._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
-import com.pacbio.common.models.{CommonModelImplicits, LogMessageRecord}
+import com.pacbio.common.models.CommonModelSpraySupport
+import com.pacbio.common.models.CommonModels.{UUIDIdAble, IntIdAble}
+import com.pacbio.common.models.{LogMessageRecord, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors._
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.engine.EngineConfig
@@ -20,18 +22,16 @@ import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{SecondaryAnalysisJsonProtocols, _}
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
-
-// For serialization magic. This is required for any serialization in spray to work.
 import spray.http._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 class PbsmrtpipeServiceJobType(
@@ -45,134 +45,107 @@ class PbsmrtpipeServiceJobType(
     commandTemplate: Option[CommandTemplate] = None,
     smrtLinkVersion: Option[String],
     smrtLinkToolsVersion: Option[String])
-  extends JobTypeService with LazyLogging {
+  extends {
+    override val endpoint = JobTypeIds.PBSMRTPIPE.id
+    override val description = "Run a secondary analysis pbsmrtpipe job."
+  } with JobTypeService[PbSmrtPipeServiceOptions](dbActor, authenticator) with LazyLogging {
+
+  import CommonModelSpraySupport._
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
 
-  import CommonModelImplicits._
-  import SecondaryAnalysisJsonProtocols._
-
-  val endpoint = JobTypeIds.PBSMRTPIPE.id
-  val description = "Run a secondary analysis pbsmrtpipe job."
-
   val rootUpdateURL = new URL(s"http://$serviceStatusHost:$port/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX/jobs/pbsmrtpipe")
 
-  def toURL(baseURL: URL, uuid: UUID): URI = {
+  private def toURL(baseURL: URL, uuid: UUID): URI = {
     // there has to be a cleaner way to do this
     new URI(s"${baseURL.getProtocol}://${baseURL.getHost}:${baseURL.getPort}${baseURL.getPath}/${uuid.toString}")
   }
 
   /**
-    * Util for resolving Entry Points into create an Engine Job
-    * @param e BoundServiceEntryPoint
-    * @return
-    */
-  def resolveEntry(e: BoundServiceEntryPoint): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
+   * Util for resolving Entry Points into create an Engine Job
+   * @param e BoundServiceEntryPoint
+   */
+  private def resolveEntry(e: BoundServiceEntryPoint): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
     ValidateImportDataSetUtils.resolveDataSetByAny(e.fileTypeId, e.datasetId, dbActor).map { d =>
       (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
     }
   }
 
-  def failIfNotRunning(engineJob: EngineJob): Future[EngineJob] = {
+  private def failIfNotRunning(engineJob: EngineJob): Future[EngineJob] = {
     if (engineJob.isRunning) Future { engineJob }
     else Future.failed(new UnprocessableEntityError(s"Only terminating ${AnalysisJobStates.RUNNING} is supported"))
   }
 
   /**
-    * Hacky Workaround for terminating a job.
-    *
-    * Only supports jobs in the Running state where pbsmrtpipe has already started.
-    *
-    * @param engineJob
-    * @return
-    */
-  def terminatePbsmrtpipeJob(engineJob: EngineJob): Future[MessageResponse] = {
+   * Hacky Workaround for terminating a job.
+   *
+   * Only supports jobs in the Running state where pbsmrtpipe has already started.
+   */
+  private def terminatePbsmrtpipeJob(engineJob: EngineJob): Future[MessageResponse] = {
     for {
       runningJob <- failIfNotRunning(engineJob)
       _ <- Future { PbsmrtpipeJobUtils.terminateJobFromDir(Paths.get(runningJob.path))} // FIXME Handle failure in better well defined model
     } yield MessageResponse(s"Attempting to terminate analysis job ${runningJob.id} in ${runningJob.path}")
   }
 
-  val routes =
-    pathPrefix(endpoint) {
-      pathEndOrSingleSlash {
-        get {
-          parameter('showAll.?) { showAll =>
-            complete {
-              jobList(dbActor, endpoint, showAll.isDefined)
-            }
-          }
-        } ~
+  override def createJob(ropts: PbSmrtPipeServiceOptions, user: Option[UserRecord]): Future[CreateJobType] =
+    Future.sequence(ropts.entryPoints.map(resolveEntry)).map { xs =>
+      val uuid = UUID.randomUUID()
+      logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
+      val opts = PbSmrtPipeJobOptions(
+        ropts.pipelineId,
+        xs.map(_._2),
+        ropts.taskOptions,
+        pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption),
+        engineConfig.pbToolsEnv,
+        Some(toURL(rootUpdateURL, uuid)),
+        commandTemplate,
+        ropts.projectId)
+      CreateJobType(
+        uuid,
+        ropts.name,
+        s"pbsmrtpipe ${ropts.pipelineId}",
+        endpoint,
+        CoreJob(uuid, opts),
+        Some(xs.map(_._1)),
+        ropts.toJson.toString(),
+        user.map(_.userId),
+        smrtLinkVersion,
+        smrtLinkToolsVersion)
+    }
+
+  override def extraRoutes(dbActor: ActorRef, authenticator: Authenticator) =
+    pathPrefix(IdAbleMatcher) { jobId =>
+      path(LOG_PREFIX) {
         post {
-          optionalAuthenticate(authenticator.wso2Auth) { user =>
-            entity(as[PbSmrtPipeServiceOptions]) { ropts =>
-
-              val uuid = UUID.randomUUID()
-              val serviceUri = toURL(rootUpdateURL, uuid)
-              logger.info(s"Attempting to create pbsmrtpipe Job ${uuid.toString} from service options $ropts")
-
-              val fx = for {
-                xs <- Future.sequence(ropts.entryPoints.map(resolveEntry))
-                boundEntryPoints <- Future { xs.map(_._2) }
-                engineJobPoints <- Future { xs.map(_._1) }
-                workflowOptions <- Future { pbsmrtpipeEngineOptions.toPipelineOptions.map(_.asServiceOption) }
-                opts <- Future { PbSmrtPipeJobOptions(ropts.pipelineId, boundEntryPoints, ropts.taskOptions, workflowOptions, engineConfig.pbToolsEnv, Some(serviceUri), commandTemplate, ropts.projectId)}
-                coreJob <- Future { CoreJob(uuid, opts)}
-                engineJob <- (dbActor ? CreateJobType(uuid, ropts.name, s"pbsmrtpipe ${opts.pipelineId}", endpoint, coreJob, Some(engineJobPoints), ropts.toJson.toString(), user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
-              } yield engineJob
-
+          entity(as[LogMessageRecord]) { m =>
+            respondWithMediaType(MediaTypes.`application/json`) {
               complete {
                 created {
-                  fx
-                }
-              }
-            }
-          }
-        }
-      } ~
-      sharedJobRoutes(dbActor)
-    } ~
-    path(endpoint / IntNumber / LOG_PREFIX) { id =>
-      post {
-        entity(as[LogMessageRecord]) { m =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                val sourceId = s"job::$id::${m.sourceId}"
-                loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-                Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
-              }
-            }
-          }
-        }
-      }
-    } ~
-    path(endpoint / JavaUUID / LOG_PREFIX) { id =>
-      post {
-        entity(as[LogMessageRecord]) { m =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob].map { engineJob =>
-                  val sourceId = s"job::${engineJob.id}::${m.sourceId}"
-                  loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-                  // an "ok" message should
-                  Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+                  val f = jobId match {
+                    case IntIdAble(n) => Future.successful(n)
+                    case UUIDIdAble(_) => (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].map(_.id)
+                  }
+                  f.map { intId =>
+                    val sourceId = s"job::$intId::${m.sourceId}"
+                    loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
+                    Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+                  }
                 }
               }
             }
           }
         }
       }
-    } ~
-    path(endpoint / IntNumber / "terminate") {id =>
-      post {
-        complete {
-          ok {
-            for {
-              engineJob <- (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob]
-              message <- terminatePbsmrtpipeJob(engineJob)
-            } yield message
+      path("terminate") {
+        post {
+          complete {
+            ok {
+              for {
+                engineJob <- (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob]
+                message <- terminatePbsmrtpipeJob(engineJob)
+              } yield message
+            }
           }
         }
       }

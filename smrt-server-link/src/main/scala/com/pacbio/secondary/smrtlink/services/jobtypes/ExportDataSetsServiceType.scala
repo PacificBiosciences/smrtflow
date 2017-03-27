@@ -1,21 +1,21 @@
-
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
-import akka.pattern.ask
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.UserRecord
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
+import com.pacbio.secondary.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.models.SecondaryModels.DataSetExportServiceOptions
-import com.pacbio.secondary.smrtlink.models.{SecondaryAnalysisJsonProtocols, _}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx.SprayJsonSupport._
@@ -23,7 +23,6 @@ import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOptions with ProjectIdJoiner {
 
@@ -55,53 +54,31 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
                                    authenticator: Authenticator,
                                    smrtLinkVersion: Option[String],
                                    smrtLinkToolsVersion: Option[String])
-    extends JobTypeService with LazyLogging {
+    extends {
+      override val endpoint = JobTypeIds.EXPORT_DATASETS.id
+      override val description = "Export PacBio XML DataSets to ZIP file"
+    } with JobTypeService[DataSetExportServiceOptions](dbActor, authenticator) with LazyLogging {
 
-  import SecondaryAnalysisJsonProtocols._
-
-  val endpoint = JobTypeIds.EXPORT_DATASETS.id
-  val description = "Export PacBio XML DataSets to ZIP file"
-
-  val routes = 
-    pathPrefix(endpoint) {
-      pathEndOrSingleSlash {
-        get {
-          parameter('showAll.?) { showAll =>
-            complete {
-              jobList(dbActor, endpoint, showAll.isDefined)
-            }
-          }
-        } ~
-        post {
-          optionalAuthenticate(authenticator.wso2Auth) { user =>
-            entity(as[DataSetExportServiceOptions]) { sopts =>
-
-              val uuid = UUID.randomUUID()
-              logger.info(s"attempting to create an export-datasets job ${uuid.toString} with options $sopts")
-              // FIXME too much code duplication here
-              val fsx = sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))
-
-              val fx = for {
-                uuidPaths <- Future.sequence(fsx).map { f => f.map(sx => (sx.uuid, sx.path)) }
-                resolvedPaths <- Future { uuidPaths.map(x => x._2) }
-                engineEntryPoints <- Future { uuidPaths.map(x => EngineJobEntryPointRecord(x._1, sopts.datasetType)) }
-                //engineEntryPoints <- Future { vopts.paths.map(p => EngineJobEntryPointRecord(p, vopts.datasetType.dsId)) }
-                vopts <- ValidatorDataSetExportServiceOptions(sopts, dbActor)
-                coreJob <- Future { CoreJob(uuid, vopts) }
-                engineJob <- (dbActor ? CreateJobType(uuid, s"Job $endpoint", s"Deleting Datasets", endpoint, coreJob, Some(engineEntryPoints), sopts.toJson.toString, user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
-              } yield engineJob
-
-              complete {
-                created {
-                  fx
-                }
-              }
-            }
-          }
-        }
-      } ~
-      sharedJobRoutes(dbActor)
-    }
+  override def createJob(sopts: DataSetExportServiceOptions, user: Option[UserRecord]): Future[CreateJobType] =
+    for {
+      uuid <- Future {
+        val uuid = UUID.randomUUID()
+        logger.info(s"attempting to create an export-datasets job ${uuid.toString} with options $sopts")
+        uuid
+      }
+      datasets <- Future.sequence(sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor)))
+      vopts <- ValidatorDataSetExportServiceOptions(sopts, dbActor)
+    } yield CreateJobType(
+      uuid,
+      s"Job $endpoint",
+      s"Deleting Datasets",
+      endpoint,
+      CoreJob(uuid, vopts),
+      Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
+      sopts.toJson.toString(),
+      user.map(_.userId),
+      smrtLinkVersion,
+      smrtLinkToolsVersion)
 }
 
 trait ExportDataSetsServiceJobTypeProvider {

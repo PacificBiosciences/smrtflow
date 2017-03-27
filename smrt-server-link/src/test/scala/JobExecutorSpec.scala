@@ -137,7 +137,6 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         projectId = responseAs[FullProject].id
       }
 
-      val url = toJobType("mock-pbsmrtpipe")
       Post(url, mockOpts.copy(projectId = projectId)) ~> totalRoutes ~> check {
         newJob = Some(responseAs[EngineJob])
         logger.info(s"Response to $url -> $newJob")
@@ -147,7 +146,25 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         newJob.get.projectId === projectId
       }
     }
-
+    "access job list by project id" in {
+      Get(s"$url") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val jobs = responseAs[Seq[EngineJob]]
+        jobs.size === 1
+        jobs.head.name === jobName
+      }
+      Get(s"$url?projectId=$projectId") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val jobs = responseAs[Seq[EngineJob]]
+        jobs.size === 1
+        jobs.head.name === jobName
+      }
+      Get(s"$url?projectId=${projectId+1}") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val jobs = responseAs[Seq[EngineJob]]
+        jobs.size === 0
+      }
+    }
     "access job by id" in {
       Get(toJobTypeById("mock-pbsmrtpipe", 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
