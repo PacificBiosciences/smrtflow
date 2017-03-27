@@ -418,6 +418,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     Get(toUrl(ROOT_JOBS + "/" + jobType))
   }
 
+  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ROOT_JOBS + s"?projectId=$projectId"))
+  }
+
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
     Get(toUrl(ROOT_SERVICE_MANIFESTS))
   }

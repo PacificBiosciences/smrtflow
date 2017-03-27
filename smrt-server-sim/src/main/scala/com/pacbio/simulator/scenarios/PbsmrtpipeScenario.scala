@@ -66,8 +66,12 @@ trait PbsmrtpipeScenarioCore
   protected val subreads = Var(testdata.getFile("subreads-xml"))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
+  protected val projectName = Var("Project Name")
+  protected val projectDesc = Var("Project Description")
+  protected val projectId: Var[Int] = Var()
+
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
-  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
     PbSmrtPipeServiceOptions(
       "diagnostic-test",
       "pbsmrtpipe.pipelines.dev_diagnostic",
@@ -84,7 +88,9 @@ trait PbsmrtpipeScenarioCore
         ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
         ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
       ),
-      Seq[ServiceTaskOptionBase]()))
+      Seq[ServiceTaskOptionBase](),
+      pid)
+  }
   protected val failOpts = diagnosticOpts.mapWith(_.copy(
     taskOptions=Seq(ServiceTaskBooleanOption(toI("raise_exception"), true,
                                              BOOL.optionTypeId))))
@@ -133,7 +139,8 @@ trait PbsmrtpipeScenarioCore
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
+    projectId := CreateProject(projectName, projectDesc)
   )
 }
 
@@ -160,6 +167,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
+    fail("Wrong project id in job") IF job.mapWith(_.projectId) !=? projectId,
+    jobs := GetJobsByProject(projectId),
+    fail("Expected one job for project") IF jobs.mapWith(_.size) !=? 1,
+    fail("Wrong job found for project ") IF jobs.mapWith(_.head) !=? job,
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid,
