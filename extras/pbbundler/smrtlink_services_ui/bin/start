@@ -16,18 +16,17 @@ arg1="${1:-}"
 
 
 # Summary of Operations. Will start the core sub-components Services of the system
+# - Postgres DB
 # - SLA
 # - Tomcat
 # - wso2
-# Note, because of how services-start works, this code assumes the db is up and running, which is a bit
-# confusing. This layer should start the db and treat the db a first class sub-component.
 # Note, SMRT View is started by admin/bin/services-start
 
 # Startup Order
 # 1. Validate config via apply-config. Will raise if config is not valid or sub-component config can not be updated
 #    successfully. This is potentially bad. Perhaps apply-config should support -i {sub-component} similar to how get-status works.
 # 2. check system limits
-# 3. Check that db is up and running. If not return non-zero exit code
+# 3. Start up the db
 # 4. Check if any sub-component of the system is running.
 #    a. SLA    if is running, return non-zero
 #    b. Tomcat if is running, return non-zero
@@ -164,7 +163,6 @@ echo "Successfully completed checking WSO2 API Manager daemon is NOT running."
 
 echo "Completed check of sub-components; SLA, Tomcat and WSO2 API Manager. No sub-component is running"
 
-exit 7
 # Fire up the services
 echo "Step #5 Attempting to Start SMRTLink Analysis services daemon..."
 env "JAVA_OPTS=${SL_SERVICES_JVM_ARGS} -Dconfig.file=${SL_SERVICES_CONF}" \
