@@ -94,8 +94,8 @@ trait JobService
     }
   }
 
-  def jobList(dbActor: ActorRef, endpoint: String, includeInactive: Boolean = false)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
-    (dbActor ? GetJobsByJobType(endpoint, includeInactive)).mapTo[Seq[EngineJob]]
+  def jobList(dbActor: ActorRef, endpoint: String, includeInactive: Boolean = false, projectId: Option[Int] = None)(implicit ec: ExecutionContext): Future[Seq[EngineJob]] =
+    (dbActor ? GetJobsByJobType(endpoint, includeInactive, projectId)).mapTo[Seq[EngineJob]]
 
   def getJobIntId(jobId: IdAble, dbActor: ActorRef)(implicit ec: ExecutionContext): Future[Int] = jobId match {
     case IntIdAble(n) => Future.successful(n)

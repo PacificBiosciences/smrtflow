@@ -51,10 +51,10 @@ package object jobtypes {
         extraRoutes(dbActor, authenticator) ~
         pathEndOrSingleSlash {
           get {
-            parameter('showAll.?) { showAll =>
+            parameters('showAll.?, 'projectId.?.as[Option[Int]]) { (showAll, projectId) =>
               complete {
                 ok {
-                  jobList(dbActor, endpoint, showAll.isDefined)
+                  jobList(dbActor, endpoint, showAll.isDefined, projectId)
                 }
               }
             }
