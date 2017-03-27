@@ -182,9 +182,6 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
-  //implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
-
-  //implicit val resolvedPbSmrtPipeOptionsFormat = jsonFormat6(PbSmrtPipeServiceOptions)
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
   implicit val mergeDataSetOptionFormat = jsonFormat4(MergeDataSetOptions)
   implicit val deleteJobServiceOptions = jsonFormat3(DeleteJobServiceOptions)
