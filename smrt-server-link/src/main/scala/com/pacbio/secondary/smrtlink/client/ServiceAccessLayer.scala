@@ -4,17 +4,15 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
-import scala.concurrent.{Await,Future}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scalaj.http.Base64
-
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.auth.Authenticator._
 import com.pacbio.common.auth.JwtUtils._
@@ -23,7 +21,7 @@ import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates,JobModels}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.secondary.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -77,6 +75,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
   protected def toDataSetResourceUrl(dsType: String, dsId: IdAble,
                                      resourceType: String, resourceId: UUID) =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType/$resourceId")
+
+  protected def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
+    val segment = bundleType.map(b => s"/$b").getOrElse("")
+    toUrl(ROOT_PB_DATA_BUNDLE + segment)
+  }
 
   override def serviceStatusEndpoints: Vector[String] = Vector(
       ROOT_JOBS + "/" + IMPORT_DS,
@@ -167,6 +170,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
   def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplateViewRule]]
   def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
   def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
+
+  def getPacBioDataBundlesPipeline: HttpRequest => Future[Seq[PacBioDataBundle]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioDataBundle]]
+  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] = sendReceiveAuthenticated ~> unmarshal[PacBioDataBundle]
 
   def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
   def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
@@ -552,6 +558,16 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + PB_PIPE), pipelineOptions)
   }
+
+  // PacBio Data Bundle
+  def getPacBioDataBundles() = getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl()) }
+
+  def getPacBioDataBundleByTypeId(typeId: String) =
+    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+
+  def getPacBioDataBundleByTypeAndVersionId(typeId: String, versionId: String) =
+    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}
+
 
   /**
     * FIXME(mpkocher)(2016-8-22)
