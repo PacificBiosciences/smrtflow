@@ -24,7 +24,7 @@ class PacbioAutomationConstraintsSpec extends Specification{
   "Sanity test for Loading PacBioAutomationConstraints XML" should {
     "Load an example file Successfully" in {
       val p = getExample()
-      Option(p.getVersion) must beSome("3.0.0009")
+      Option(p.getVersion) must beSome("4.1.0000")
     }
     "Test conversion to JSON" in {
       val p = getExample()
@@ -34,13 +34,13 @@ class PacbioAutomationConstraintsSpec extends Specification{
         case JsString(version) => Some(version)
         case _ => None
       }
-      vx must beSome("3.0.0009")
+      vx must beSome("4.1.0000")
       val constraints = p.getAutomationConstraints.getAutomationConstraint
       constraints.length === 5
     }
     "Load Demo/Example Chemistry Bundle" in {
       val p = PacBioAutomationConstraintsLoader.loadExample()
-      Option(p.getVersion) must beSome("3.0.0009")
+      Option(p.getVersion) must beSome("4.1.0000")
     }
   }
 }

@@ -280,8 +280,8 @@ object GetSubSystemStatus extends GetSubSystemStatus
 trait GetSystemStatusDefaultLoader extends ConfigLoader {
 
   private lazy val defaultSmrtLinkPort = conf.getInt("smrtflow.server.port")
-  private lazy val defaultTomcatPort = Try { conf.getInt("smrtflow.pacBioSystem.tomcatPort")}.getOrElse(8080)
-  private lazy val defaultSmrtViewPort = Try { conf.getInt("smrtflow.pacBioSystem.smrtViewPort")}.getOrElse(8084)
+  private lazy val defaultTomcatPort = Try { conf.getInt("pacBioSystem.tomcatPort")}.getOrElse(8080)
+  private lazy val defaultSmrtViewPort = Try { conf.getInt("pacBioSystem.smrtViewPort")}.getOrElse(8084)
   // This needs to stop being hardcoded everywhere. The chickens will come home and roust at some point.
   private lazy val defaultWso2Port = 9443
 
