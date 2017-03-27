@@ -194,7 +194,7 @@ case class PbSmrtPipeServiceOptions(
     entryPoints: Seq[BoundServiceEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
-    projectId: Int = 1)
+    projectId: Int = JobConstants.GENERAL_PROJECT_ID)
 
 
 // New DataSet Service Models
