@@ -68,7 +68,7 @@ lazy val baseSettings = Seq(
   "com.h2database" % "h2" % "1.4.192",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
-  "com.lihaoyi" % "ammonite" % "0.7.8" % "test" cross CrossVersion.full,
+  "com.lihaoyi" % "ammonite" % "0.8.2" % "test" cross CrossVersion.full,
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
