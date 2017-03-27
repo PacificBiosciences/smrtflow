@@ -346,22 +346,15 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     if os.path.exists(samples_dir):
         shutil.rmtree(samples_dir)
 
-    # MK. Disabl'ing overwriting of files in the "pre-canned" wso2 bundle
     # Copy Custom Override files into wso2
-    # copy_template_to_wso2("logging-bridge.properties", 'repository/conf/etc/logging-bridge.properties')
-    # copy_template_to_wso2('user-mgt.xml', 'repository/conf/user-mgt.xml')
-    # copy_template_to_wso2('api-manager.xml', 'repository/conf/api-manager.xml')
-
-    # Must make this
-    userstore_dir = to_wp("repository/deployment/server/userstores")
-    if not os.path.exists(userstore_dir):
-        os.mkdir(userstore_dir)
-    #copy_template_to_wso2('nanofluidics_com.xml', 'repository/deployment/server/userstores/nanofluidics_com.xml')
-    # copy_template_to_wso2('forumsys_com.xml', 'repository/deployment/server/userstores/forumsys_com.xml')
+    copy_template_to_wso2("logging-bridge.properties", 'repository/conf/etc/logging-bridge.properties')
+    copy_template_to_wso2('user-mgt.xml', 'repository/conf/user-mgt.xml')
+    copy_template_to_wso2('api-manager.xml', 'repository/conf/api-manager.xml')
+    copy_template_to_wso2('axis2.xml', 'repository/conf/axis2/axis2.xml')
 
     # enable CORS for OAuth2 endpoints
-    # copy_template_to_wso2('_RevokeAPI_.xml', 'repository/deployment/server/synapse-configs/default/api/_RevokeAPI_.xml')
-    # copy_template_to_wso2('_TokenAPI_.xml', 'repository/deployment/server/synapse-configs/default/api/_TokenAPI_.xml')
+    copy_template_to_wso2('_RevokeAPI_.xml', 'repository/deployment/server/synapse-configs/default/api/_RevokeAPI_.xml')
+    copy_template_to_wso2('_TokenAPI_.xml', 'repository/deployment/server/synapse-configs/default/api/_TokenAPI_.xml')
 
     log.info("Completed building WSO2 manager in {:.2f} sec".format(time.time() - t0))
 
