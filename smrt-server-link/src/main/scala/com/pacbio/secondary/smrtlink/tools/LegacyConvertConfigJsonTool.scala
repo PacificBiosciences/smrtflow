@@ -92,12 +92,15 @@ object LegacyConvertConfigJsonTool extends CommandLineToolRunner[LegacyConvertOp
 
     def getSmrtflowServerConfig = {
 
+      val defaultBundleDir = Paths.get("./resources/pacbio-bundles")
+
       val port = conf.getInt("smrtflow.server.port")
       val manifest = Try { Paths.get(conf.getString("smrtflow.server.manifestFile"))}.toOption
       val eventUrl = Try { new URL(conf.getString("smrtflow.server.eventUrl"))}.toOption
       val dnsName = Try { conf.getString("smrtflow.server.dnsName")}.toOption
+      val bundleDir = Try { Paths.get(conf.getString("smrtflow.server.bundleDir"))}.getOrElse(defaultBundleDir)
 
-      SmrtflowServerConfig(port, manifest, eventUrl, dnsName)
+      SmrtflowServerConfig(port, manifest, eventUrl, dnsName, bundleDir)
     }
 
     def getSmrtflowConfig =
