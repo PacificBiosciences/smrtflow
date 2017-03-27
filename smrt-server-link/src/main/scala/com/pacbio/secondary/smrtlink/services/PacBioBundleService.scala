@@ -42,14 +42,14 @@ trait BundleUtils extends LazyLogging{
   val MANIFEST_FILE = "manifest.xml"
 
   /**
-    * Parse the Bundle XML and return a PacBioBundle.
+    * Parse the Bundle XML and return a PacBioDataBundle.
     *
     * The manifest.xml *MUST* be in the root directory of the bundle.
     *
     * @param file XML Manifest File
     * @return
     */
-  def parseBundleManifestXml(file: File): PacBioBundle = {
+  def parseBundleManifestXml(file: File): PacBioDataBundle = {
     val xs = XML.loadFile(file)
 
     val bundleTypeId = (xs \ "Package").text
@@ -57,10 +57,10 @@ trait BundleUtils extends LazyLogging{
     val author = (xs \ "Author").headOption.map(_.text)
     //val createdAt = (xs \ "Created").text
 
-    PacBioBundle(bundleTypeId, rawVersion, JodaDateTime.now(), Paths.get(file.getParent), author)
+    PacBioDataBundle(bundleTypeId, rawVersion, JodaDateTime.now(), Paths.get(file.getParent), author)
   }
 
-  def parseBundle(rootDir: Path): PacBioBundle =
+  def parseBundle(rootDir: Path): PacBioDataBundle =
     parseBundleManifestXml(rootDir.resolve(MANIFEST_FILE).toFile)
 
   def copyFile(file: File, outputDir: File): Path = {
@@ -153,7 +153,7 @@ trait BundleUtils extends LazyLogging{
     * @param outputDir
     * @return
     */
-  def downloadAndParseBundle(url: URL, outputDir: Path): PacBioBundle = {
+  def downloadAndParseBundle(url: URL, outputDir: Path): PacBioDataBundle = {
     val b = parseBundle(downloadBundle(url, outputDir))
     logger.info(s"Processed bundle $b")
     b
@@ -171,7 +171,7 @@ trait BundleUtils extends LazyLogging{
     * @param rootDir
     * @return
     */
-  def copyBundleTo(pacBioBundle: PacBioBundle, rootDir: Path): PacBioBundle = {
+  def copyBundleTo(pacBioBundle: PacBioDataBundle, rootDir: Path): PacBioDataBundle = {
     val name = s"${pacBioBundle.typeId}-${pacBioBundle.version}"
     val bundleDir = rootDir.resolve(name)
     if (Files.exists(bundleDir)) {
@@ -203,11 +203,11 @@ trait BundleUtils extends LazyLogging{
     * @param path
     * @return
     */
-  def loadBundlesFromRoot(path: Path): Seq[PacBioBundle] = {
+  def loadBundlesFromRoot(path: Path): Seq[PacBioDataBundle] = {
 
     logger.info(s"Attempting to load bundles from $path")
 
-    def getBundle(p: Path): Option[PacBioBundle] =
+    def getBundle(p: Path): Option[PacBioDataBundle] =
       getManifestXmlFromDir(p)
         .map(px => parseBundleManifestXml(px.toFile))
 
@@ -222,7 +222,7 @@ trait BundleUtils extends LazyLogging{
   }
 
 
-  def getBundlesByType(bundles: Seq[PacBioBundle], bundleType: String): Seq[PacBioBundle] =
+  def getBundlesByType(bundles: Seq[PacBioDataBundle], bundleType: String): Seq[PacBioDataBundle] =
     bundles.filter(_.typeId == bundleType)
 
   /**
@@ -230,12 +230,12 @@ trait BundleUtils extends LazyLogging{
     * @param bundleType
     * @return
     */
-  def getNewestBundleVersionByType(bundles: Seq[PacBioBundle], bundleType: String): Option[PacBioBundle] = {
-    implicit val orderBy = PacBioBundle.orderByBundleVersion
+  def getNewestBundleVersionByType(bundles: Seq[PacBioDataBundle], bundleType: String): Option[PacBioDataBundle] = {
+    implicit val orderBy = PacBioDataBundle.orderByBundleVersion
     getBundlesByType(bundles, bundleType).sorted.reverse.headOption
   }
 
-  def getBundle(bundles: Seq[PacBioBundle], bundleType: String, version: String): Option[PacBioBundle] =
+  def getBundle(bundles: Seq[PacBioDataBundle], bundleType: String, version: String): Option[PacBioDataBundle] =
     getBundlesByType(bundles, bundleType).find(_.version == version)
 
 }
@@ -243,24 +243,27 @@ trait BundleUtils extends LazyLogging{
 object BundleUtils extends BundleUtils
 
 
-class PacBioBundleDao(bundles: Seq[PacBioBundle] = Seq.empty[PacBioBundle]) {
+class PacBioBundleDao(bundles: Seq[PacBioDataBundle] = Seq.empty[PacBioDataBundle]) {
 
-  private var loadedBundles = mutable.ArrayBuffer.empty[PacBioBundle]
+  private var loadedBundles = mutable.ArrayBuffer.empty[PacBioDataBundle]
 
   bundles.foreach(b => loadedBundles += b)
 
   def getBundles = loadedBundles.toList
 
-  def getBundlesByType(bundleType: String): Seq[PacBioBundle] =
+  def getBundlesByType(bundleType: String): Seq[PacBioDataBundle] =
     BundleUtils.getBundlesByType(loadedBundles, bundleType)
 
-  def getNewestBundleVersionByType(bundleType: String): Option[PacBioBundle] =
+  def getNewestBundleVersionByType(bundleType: String): Option[PacBioDataBundle] =
     BundleUtils.getNewestBundleVersionByType(loadedBundles, bundleType)
 
-  def getBundle(bundleType: String, version: String): Option[PacBioBundle] =
+  def getActiveBundleByType(bundleType: String): Option[PacBioDataBundle] =
+    loadedBundles.filter(_.typeId == bundleType).find(_.isActive == true)
+
+  def getBundle(bundleType: String, version: String): Option[PacBioDataBundle] =
     BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version == version)
 
-  def addBundle(bundle: PacBioBundle): PacBioBundle = {
+  def addBundle(bundle: PacBioDataBundle): PacBioDataBundle = {
     loadedBundles += bundle
     bundle
   }
@@ -309,8 +312,8 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
             complete {
               created {
                 for {
-                  bundle <- fromTry[PacBioBundle](s"Failed to process $record", Try { downloadAndParseBundle(record.url, tmpBundleDir) })
-                  validBundle <- fromTry[PacBioBundle](s"Bundle Already exists.", Try { copyBundleTo(bundle, rootBundle)})
+                  bundle <- fromTry[PacBioDataBundle](s"Failed to process $record", Try { downloadAndParseBundle(record.url, tmpBundleDir) })
+                  validBundle <- fromTry[PacBioDataBundle](s"Bundle Already exists.", Try { copyBundleTo(bundle, rootBundle)})
                   addedBundle <- Future {dao.addBundle(validBundle)}
                 } yield addedBundle
               }
@@ -338,6 +341,17 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
           }
         }
       } ~
+          path(Segment / "latest") { bundleTypeId =>
+            get {
+              complete {
+                ok {
+                  Future {
+                    dao.getNewestBundleVersionByType(bundleTypeId)
+                  }.flatMap(failIfNone(s"Unable to find Newest Bundle for type '$bundleTypeId'"))
+                }
+              }
+            }
+          } ~
       path(Segment / Segment) { (bundleTypeId, bundleVersion) =>
         get {
           complete {
