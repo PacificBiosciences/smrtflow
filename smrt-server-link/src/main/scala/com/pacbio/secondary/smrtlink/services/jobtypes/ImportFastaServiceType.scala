@@ -5,9 +5,9 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
-import akka.pattern.ask
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.UserRecord
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -16,7 +16,7 @@ import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
+import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx.SprayJsonSupport._
@@ -24,7 +24,6 @@ import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 class ImportFastaServiceType(
     dbActor: ActorRef,
@@ -34,9 +33,10 @@ class ImportFastaServiceType(
     port: Int,
     smrtLinkVersion: Option[String],
     smrtLinkToolsVersion: Option[String])
-  extends JobTypeService with LazyLogging {
-
-  import SecondaryAnalysisJsonProtocols._
+  extends {
+    override val endpoint = JobTypeIds.CONVERT_FASTA_REFERENCE.id
+    override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
+  } with JobTypeService[ConvertImportFastaOptions](dbActor, authenticator) with LazyLogging {
 
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
@@ -50,18 +50,15 @@ class ImportFastaServiceType(
   final val OPT_ORGANISM = "pbcoretools.task_options.organism"
   final val OPT_PLOIDY = "pbcoretools.task_options.ploidy"
 
-  override val endpoint = JobTypeIds.CONVERT_FASTA_REFERENCE.id
-  override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
-
   // There's some common code that needs to be pulled out
-  val rootUpdateURL = new URL(s"http://$serviceStatusHost:$port/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX/jobs/pbsmrtpipe")
+  private val rootUpdateURL = new URL(s"http://$serviceStatusHost:$port/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX/jobs/pbsmrtpipe")
 
-  def toURI(baseURL: URL, uuid: UUID): URI = {
+  private def toURI(baseURL: URL, uuid: UUID): URI = {
     // there has to be a cleaner way to do this
     new URI(s"${baseURL.getProtocol}://${baseURL.getHost}:${baseURL.getPort}${baseURL.getPath}/${uuid.toString}")
   }
 
-  def toPbsmrtPipeJobOptions(opts: ConvertImportFastaOptions, serviceURI: Option[URI]): PbSmrtPipeJobOptions = {
+  private def toPbsmrtPipeJobOptions(opts: ConvertImportFastaOptions, serviceURI: Option[URI]): PbSmrtPipeJobOptions = {
 
     def toPipelineOption(id: String, value: String) = ServiceTaskStrOption(id, value)
 
@@ -76,56 +73,30 @@ class ImportFastaServiceType(
 
   }
 
-  def toCoreJob(sopts: ConvertImportFastaOptions, uuid: UUID): CoreJob = {
+  private def toCoreJob(sopts: ConvertImportFastaOptions, uuid: UUID): CoreJob = {
     val fileSizeMB = Paths.get(sopts.path).toFile.length / 1024 / 1024
     if (fileSizeMB <= LOCAL_MAX_SIZE_MB) CoreJob(uuid, sopts)
     else CoreJob(uuid, toPbsmrtPipeJobOptions(sopts, Option(toURI(rootUpdateURL, uuid))))
   }
 
-
-  override val routes =
-    pathPrefix(endpoint) {
-      pathEndOrSingleSlash {
-        get {
-          parameter('showAll.?) { showAll =>
-            complete {
-              jobList(dbActor, endpoint, showAll.isDefined)
-            }
-          }
-        } ~
-        post {
-          optionalAuthenticate(authenticator.wso2Auth) { user =>
-            entity(as[ConvertImportFastaOptions]) { sopts =>
-              val uuid = UUID.randomUUID()
-              val coreJob = CoreJob(uuid, sopts)
-              val comment = s"Import/Convert Fasta File to DataSet"
-
-              val fx = Future {sopts.validate}.flatMap {
-                case Some(e) => Future { throw new UnprocessableEntityError(s"Failed to validate: $e") }
-                case _ => (dbActor ? CreateJobType(
-                  uuid,
-                  s"Job $endpoint",
-                  comment,
-                  endpoint,
-                  toCoreJob(sopts, uuid),
-                  None,
-                  sopts.toJson.toString(),
-                  user.map(_.userId),
-                  smrtLinkVersion,
-                  smrtLinkToolsVersion)).mapTo[EngineJob]
-              }
-
-              complete {
-                created {
-                  fx
-                }
-              }
-            }
-          }
-        }
-      } ~
-      sharedJobRoutes(dbActor)
+  override def createJob(sopts: ConvertImportFastaOptions, user: Option[UserRecord]): Future[CreateJobType] = Future {
+    sopts.validate match {
+      case Some(e) => throw new UnprocessableEntityError(s"Failed to validate: $e")
+      case _ =>
+        val uuid = UUID.randomUUID()
+        CreateJobType(
+          uuid,
+          s"Job $endpoint",
+          "Import/Convert Fasta File to DataSet",
+          endpoint,
+          toCoreJob(sopts, uuid),
+          None,
+          sopts.toJson.toString(),
+          user.map(_.userId),
+          smrtLinkVersion,
+          smrtLinkToolsVersion)
     }
+  }
 }
 
 trait ImportFastaServiceTypeProvider {
