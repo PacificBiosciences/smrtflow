@@ -27,7 +27,8 @@ import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-import com.pacbio.common.models.CommonModels.MixedIdType
+import com.pacbio.common.models.CommonModels._
+import com.pacbio.common.models.CommonModelSpraySupport._
 
 import scala.reflect.ClassTag
 
@@ -62,16 +63,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL.map(_.shortName + "$").reduceLeft((a, c) => s"$a|$c")
     ("(" + xs + ")").r
-  }
-
-  // The order of JavaUUID and IntNumber are important here, as IntNumber will capture a UUID
-  val MixedId: PathMatcher1[MixedIdType] = (JavaUUID | IntNumber).hflatMap { p =>
-    val idOrUUID: Option[Either[Int, UUID]] = p.head match {
-      case id: Int => Some(Left(id))
-      case uuid: UUID => Some(Right(uuid))
-      case _ => None
-    }
-    idOrUUID.map(MixedIdType).map(HNil.::)
   }
 
   // - If a projectId is provided, return only that Id.
@@ -122,7 +113,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
             }
           }
         } ~
-        pathPrefix(MixedId) { id =>
+        pathPrefix(IdAbleMatcher) { id =>
           pathEnd {
             get {
               complete {
@@ -198,7 +189,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       }
     } ~
     pathPrefix(DATASET_PREFIX) {
-      path(MixedId) { id =>
+      path(IdAbleMatcher) { id =>
         get {
           complete {
             ok {

@@ -9,7 +9,9 @@ import akka.pattern._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
-import com.pacbio.common.models.{CommonModelImplicits, LogMessageRecord, UserRecord}
+import com.pacbio.common.models.CommonModelSpraySupport
+import com.pacbio.common.models.CommonModels.{UUIDIdAble, IntIdAble}
+import com.pacbio.common.models.{LogMessageRecord, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors._
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.engine.EngineConfig
@@ -48,7 +50,7 @@ class PbsmrtpipeServiceJobType(
     override val description = "Run a secondary analysis pbsmrtpipe job."
   } with JobTypeService[PbSmrtPipeServiceOptions](dbActor, authenticator) with LazyLogging {
 
-  import CommonModelImplicits._
+  import CommonModelSpraySupport._
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
 
@@ -113,47 +115,37 @@ class PbsmrtpipeServiceJobType(
     }
 
   override def extraRoutes(dbActor: ActorRef, authenticator: Authenticator) =
-    path(IntNumber / LOG_PREFIX) { id =>
-      post {
-        entity(as[LogMessageRecord]) { m =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                val sourceId = s"job::$id::${m.sourceId}"
-                loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-                Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
-              }
-            }
-          }
-        }
-      }
-    } ~
-    path(JavaUUID / LOG_PREFIX) { id =>
-      post {
-        entity(as[LogMessageRecord]) { m =>
-          respondWithMediaType(MediaTypes.`application/json`) {
-            complete {
-              created {
-                (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob].map { engineJob =>
-                  val sourceId = s"job::${engineJob.id}::${m.sourceId}"
-                  loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-                  // an "ok" message should
-                  Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+    pathPrefix(IdAbleMatcher) { jobId =>
+      path(LOG_PREFIX) {
+        post {
+          entity(as[LogMessageRecord]) { m =>
+            respondWithMediaType(MediaTypes.`application/json`) {
+              complete {
+                created {
+                  val f = jobId match {
+                    case IntIdAble(n) => Future.successful(n)
+                    case UUIDIdAble(_) => (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].map(_.id)
+                  }
+                  f.map { intId =>
+                    val sourceId = s"job::$intId::${m.sourceId}"
+                    loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
+                    Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
+                  }
                 }
               }
             }
           }
         }
       }
-    } ~
-    path(IntNumber / "terminate") {id =>
-      post {
-        complete {
-          ok {
-            for {
-              engineJob <- (dbActor ? GetJobByIdAble(id)).mapTo[EngineJob]
-              message <- terminatePbsmrtpipeJob(engineJob)
-            } yield message
+      path("terminate") {
+        post {
+          complete {
+            ok {
+              for {
+                engineJob <- (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob]
+                message <- terminatePbsmrtpipeJob(engineJob)
+              } yield message
+            }
           }
         }
       }
