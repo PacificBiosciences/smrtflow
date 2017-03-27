@@ -154,7 +154,6 @@ trait SmrtLinkJsonProtocols
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
   implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
-  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.importDataSetOptionsFormat
   implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
   implicit val simpleDevJobOptionsFormat  = SecondaryJobProtocols.simpleDevJobOptionsFormat
 
@@ -183,7 +182,6 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
-  implicit val mergeDataSetOptionFormat = jsonFormat4(MergeDataSetOptions)
   implicit val deleteJobServiceOptions = jsonFormat3(DeleteJobServiceOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit

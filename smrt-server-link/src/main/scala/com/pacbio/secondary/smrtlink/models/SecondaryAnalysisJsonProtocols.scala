@@ -26,9 +26,12 @@ trait SecondaryAnalysisJsonProtocols extends SmrtLinkJsonProtocols with ReportJs
   // of namespace conflicts.
   implicit val pipelineTemplateFormat = SecondaryJobProtocols.PipelineTemplateFormat
   implicit val pipelineTemplateViewRule = SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val importDataStoreOptionsFormat = SecondaryJobProtocols.importDataStoreOptionsFormat
-  implicit val importConvertFastaOptionsFormat = SecondaryJobProtocols.importConvertFastaOptionsFormat
-  implicit val movieMetadataToHdfSubreadOptionsFormat = SecondaryJobProtocols.movieMetadataToHdfSubreadOptionsFormat
+  implicit val importDataStoreOptionsFormat = SecondaryJobProtocols.ImportDataStoreOptionsFormat
+  implicit val importConvertFastaOptionsFormat = SecondaryJobProtocols.ConvertImportFastaOptionsFormat
+  implicit val movieMetadataToHdfSubreadOptionsFormat = SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
+  implicit val mergeDataSetOptionsFormat = SecondaryJobProtocols.MergeDataSetOptionsFormat
+  implicit val importConvertFastaBarcodeOptionsFormat = SecondaryJobProtocols.ConvertImportFastaBarcodesOptionsFormat
+  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.ImportDataSetOptionsFormat
 
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)

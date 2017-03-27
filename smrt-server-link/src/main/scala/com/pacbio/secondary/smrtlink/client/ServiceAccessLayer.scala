@@ -30,7 +30,11 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.models._
 
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols with SecondaryAnalysisJsonProtocols
+object ServicesClientJsonProtocol
+    extends SmrtLinkJsonProtocols
+    with ReportJsonProtocol
+    with DataSetJsonProtocols
+    with SecondaryAnalysisJsonProtocols {}
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     (implicit actorSystem: ActorSystem)
