@@ -723,4 +723,4 @@ case class TechSupportBundle(id: UUID,
                              smrtLinkSystemId: UUID,
                              smrtLinkSystemVersion: Option[String],
                              user: String,
-                             commment: Option[String])
+                             comment: Option[String])
