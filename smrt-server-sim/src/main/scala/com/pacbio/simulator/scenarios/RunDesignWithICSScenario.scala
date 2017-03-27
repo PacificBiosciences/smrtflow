@@ -37,7 +37,7 @@ import com.pacbio.secondary.smrtlink.client.ClientUtils
   */
 object RunDesignWithICSScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
-    require(config.isDefined, "Path to config file must be specified for RunDesignScenario")
+    require(config.isDefined, "Path to config file must be specified for RunDesignWithICSScenario")
     val c: Config = config.get
 
     // Resolve overrides with String
@@ -49,11 +49,11 @@ object RunDesignWithICSScenarioLoader extends ScenarioLoader {
       }
 
     new RunDesignWithICSScenario(
-      c.getString("smrt-link-host"),
-      getInt("smrt-link-port"),
-      c.getString("ics-host"),
-      getInt("ics-port"),
-      Paths.get(c.getString("run-xml-path")))
+      c.getString("sim.smrt-link-host"),
+      getInt("sim.smrt-link-port"),
+      c.getString("sim.ics-host"),
+      getInt("sim.ics-port"),
+      Paths.get(c.getString("sim.run-xml-path")))
   }
 }
 
@@ -74,7 +74,7 @@ class RunDesignWithICSScenario(host: String,
   import com.pacbio.simulator.clients.ICSState
   import ICSState._
 
-  override val name = "RunDesignScenario"
+  override val name = "RunDesignWithICSScenario"
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
   override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
