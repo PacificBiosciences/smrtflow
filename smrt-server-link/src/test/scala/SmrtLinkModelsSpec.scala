@@ -1,4 +1,8 @@
 
+import java.nio.file.Paths
+
+import scala.io.Source
+
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import org.specs2.mutable.Specification
@@ -35,6 +39,9 @@ class SmrtLinkModelsSpec extends Specification {
       val j2 = opts2.toJson
       val o2 = j2.convertTo[PbSmrtPipeServiceOptions]
       o2.projectId must beEqualTo(3)
+      val path = Paths.get(getClass.getResource(s"job-requests/pbsmrtpipe_01.json").toURI)
+      val o3 = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[PbSmrtPipeServiceOptions]
+      o3.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
   }
 }

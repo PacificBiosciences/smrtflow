@@ -1,0 +1,200 @@
+{
+  "_comment": "This request deliberately lacks 'projectId'",
+  "name": "pbsmrtpipe_4.0.0_job",
+  "entryPoints": [
+    {
+      "entryId": "eid_subread",
+      "fileTypeId": "PacBio.DataSet.SubreadSet",
+      "datasetId": 2061
+    }
+  ],
+  "workflowOptions": [],
+  "taskOptions": [
+    {
+      "optionId": "pblaa.task_options.min_length",
+      "value": 1800,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.max_length",
+      "value": 2400,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.min_read_score",
+      "value": 0.75,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.model_spec",
+      "value": "",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.result_file",
+      "value": "amplicon_analysis.fastq",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.ignore_bc",
+      "value": false,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.min_split_score",
+      "value": 500,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.barcodes",
+      "value": "",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.clustering",
+      "value": false,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.max_phasing_reads",
+      "value": 500,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.junk_file",
+      "value": "amplicon_analysis_chimeras_noise.fastq",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.min_prevalence",
+      "value": 0.09000000357627869,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.trim_ends",
+      "value": 0,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.min_split_reads",
+      "value": 20,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.min_predicted_accuracy",
+      "value": 0.949999988079071,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.min_snr",
+      "value": 3.75,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.cluster_inflation",
+      "value": 2,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.subreads_report_prefix",
+      "value": "amplicon_analysis_subreads",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.full_length",
+      "value": true,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.min_q_score",
+      "value": 20,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.fastx_by_barcode",
+      "value": false,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.input_report_file",
+      "value": "amplicon_analysis_input.csv",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.model_path",
+      "value": "",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.chimera_filter",
+      "value": true,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.log_file",
+      "value": "aa.log",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.max_clustering_reads",
+      "value": 100,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.chimera_score_threshold",
+      "value": 1,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.max_reads",
+      "value": 100,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.min_barcode_score",
+      "value": 25,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.cluster_loop_weight",
+      "value": 0.0010000000474974513,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.ignore_ends",
+      "value": 0,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.report_file",
+      "value": "amplicon_analysis_summary.csv",
+      "optionTypeId": "string"
+    },
+    {
+      "optionId": "pblaa.task_options.min_split_fraction",
+      "value": 0.10000000149011612,
+      "optionTypeId": "float"
+    },
+    {
+      "optionId": "pblaa.task_options.rng_seed",
+      "value": 42,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.take_n",
+      "value": 0,
+      "optionTypeId": "integer"
+    },
+    {
+      "optionId": "pblaa.task_options.phasing",
+      "value": false,
+      "optionTypeId": "boolean"
+    },
+    {
+      "optionId": "pblaa.task_options.do_bc",
+      "value": "",
+      "optionTypeId": "string"
+    }
+  ],
+  "pipelineId": "pbsmrtpipe.pipelines.sa3_ds_laa"
+}
