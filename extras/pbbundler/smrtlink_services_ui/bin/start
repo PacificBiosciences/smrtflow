@@ -193,7 +193,10 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 # The scala code will block here and wait for wso2 to startup. Need to make this
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
-env "JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}" \
+client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}"
+env "$client_env" \
+     ${SL_SERVICES_TOOLS_DIR}/bin/amclient create-roles --host localhost \
+     && env "$client_env" \
      ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
      --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
      --user admin --pass admin --host localhost \
