@@ -638,14 +638,12 @@ case class DataSetUpdateRequest(isActive: Boolean)
   * @param typeId     identifier for the bundle type
   * @param version    version of the bundle (Should use Semver format, 1.2.3.12334 is supported)
   * @param importedAt When the data bundle was imported
-  * @param path       Abspath to the bundle on the local file system
   * @param createdBy  User that created (not imported) the bundle
   * @param isActive   If the bundle is active (Only a single bundle type should be active at a given time)
   */
 case class PacBioDataBundle(typeId: String,
                             version: String,
                             importedAt: JodaDateTime,
-                            path: Path,
                             createdBy: Option[String],
                             isActive: Boolean = false) {
   // This is bad OO to duplicate data (version and semVersion)
@@ -678,6 +676,20 @@ object PacBioDataBundle {
   implicit val orderBySemVer = SemVersion.orderBySemVersion
   val orderByBundleVersion = Ordering.by((a: PacBioDataBundle) => a.semVersion)
 }
+
+
+/**
+  *
+  * This is to keep the object model and the IO layer separate.
+  *
+  * @param tarGzPath Path to the tgz or *.tar.gz data bundle
+  * @param path Path to the unzip, untarred Data Bundle
+  * @param bundle MetaData About the bundle
+  */
+case class PacBioDataBundleIO(tarGzPath: Path, path: Path, bundle: PacBioDataBundle)
+
+
+case class PacBioDataBundleUpgrade(bundle: Option[PacBioDataBundle])
 
 // Use to create a bundle record. All Metadata will be extracted from
 // the bundle metadata after it's been extracted
