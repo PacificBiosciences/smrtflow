@@ -280,7 +280,8 @@ trait BundleUtils extends LazyLogging{
     }
 
     // Look for any subdirectories that have 'manifest.xml' files in them
-    // And files will
+    // and have a companion tgz directory. See pacbio_bundles.rst and loadBundlesFromRoot for details
+    // "Malformed" directories not adhering to the spec will be silently ignored.
     val bundles = path.toAbsolutePath.toFile.list()
         .map(p => path.resolve(p))
         .filter(f => Files.isDirectory(f) & hasCompanionTgz(f))
