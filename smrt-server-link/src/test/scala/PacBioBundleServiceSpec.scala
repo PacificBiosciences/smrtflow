@@ -1,5 +1,5 @@
 import com.pacbio.common.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle$, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
@@ -28,23 +28,25 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
     }
     "Bundle Sanity check" in {
       Get("/smrt-link/bundles") ~> routes ~> check {
+        val bundles = responseAs[Seq[PacBioDataBundle]]
+        //println(s"All loaded bundles $bundles")
         status.isSuccess must beTrue
       }
     }
-    "Get bundle type id 'example' " in {
-      Get("/smrt-link/bundles/example") ~> routes ~> check {
+    "Get bundle type id 'chemistry' " in {
+      Get("/smrt-link/bundles/chemistry") ~> routes ~> check {
         val bundles = responseAs[Seq[PacBioDataBundle]]
         println(s"Example bundles $bundles")
         status.isSuccess must beTrue
       }
     }
-    "Get lastest bundle type id 'example' " in {
-      Get("/smrt-link/bundles/example/latest") ~> routes ~> check {
+    "Get lastest bundle type id 'chemistry' " in {
+      Get("/smrt-link/bundles/chemistry/latest") ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }
-    "Get bundle type id 'example' by version id" in {
-      Get("/smrt-link/bundles/example/4.0.0+188835") ~> routes ~> check {
+    "Get bundle type id 'chemistry' by version id" in {
+      Get("/smrt-link/bundles/chemistry/0.1.2") ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }
