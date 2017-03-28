@@ -73,13 +73,13 @@ Executables in [BUNDLE_ROOT]/tools/bin
    
 A Summary of the import process
 
-1. Check for legacy JSON file in the [BUNDLE_ROOT]/legacy-db.json with the form ({PB_DB_URI: "/path/to/sqlite.file.db")
+1. Check for legacy JSON file in the [BUNDLE_ROOT]/config.json with the form ({PB_DB_URI: "/path/to/sqlite.file.db") NOTE, this is NOT the same schema as the 4.0.0 config JSON
 2. If Postgres db creation and users is not been initialized, it will
     - start up the db (if necessary)
     - run the creation and initialization
     - perform and Postgres to Postgres SQL migrations
     - shut down the db (if it was not originally running)
-3. If the [BUNDLE_ROOT]/legacy-db.json file exist, nor has a non `null` for *PB_DB_URI*
+3. If the [BUNDLE_ROOT]/config.json file exist, nor has a non `null` for *PB_DB_URI*
     - Check for the [BUNDLE_ROOT]/legacy-migration.json
         - if the import was already successful, skip legacy import
         - else perform the SQLITE to Postgres importing/migration, then write the state to [BUNDLE_ROOT]/legacy-migration.json

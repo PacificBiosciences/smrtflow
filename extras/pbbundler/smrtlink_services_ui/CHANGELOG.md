@@ -10,7 +10,7 @@ The pbbundler version is BUNDLE_VERSION in bamboo_build.sh
 #### BUNDLE_VERSION 0.14.0
 
 - Port of SL **bin/dbctl** and apply_settings_database from installerprompt to python. 
-- Add support for SL legacy 4.0.0 sqlite to Postgres importing (legacy-db.json in root bundle dir).
+- Add support for SL legacy 4.0.0 sqlite to Postgres importing (config.json (only PB_DB_URI) in root bundle dir).
 - Added **bin/upgrade** to handle legacy 4.0.0 sqlite to Postgres conversion and future Postgres schema migrations. Results of the legacy migration are accessible in [BUNDLE_ROOT]/legacy-migration.json
 
 #### BUNDLE_VERSION 0.13.0
