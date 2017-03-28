@@ -2436,7 +2436,7 @@
           "title": "ID",
           "description": "Dataset type ID"
         },
-        "createAt": {
+        "createdAt": {
           "type": "string",
           "title": "Created At",
           "description": ""
