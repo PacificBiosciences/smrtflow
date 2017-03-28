@@ -13,9 +13,9 @@ import org.wso2.carbon.apimgt.rest.api.publisher
 import scopt.OptionParser
 import spray.json.{JsString, _}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Try, Success, Failure}
 
 
 object AmClientModes {
@@ -73,7 +73,7 @@ object AmClientParser extends CommandLineToolVersion{
     pass: String = "admin",
     apiName: String = "SMRTLink",
     target: Option[URL] = target,
-    roles: String = "Internal/PbAdmin Internal/PbLabTech Internal/PbBioinformatics",
+    roles: Seq[String] = List("Internal/PbAdmin", "Internal/PbLabTech", "Internal/PbBioinformatician"),
     swagger: Option[String] = None,
     // appConfig is required in the commands that use it, so it's not
     // an Option
@@ -164,8 +164,7 @@ object AmClientParser extends CommandLineToolVersion{
       .action((_, c) => c.copy(mode = AmClientModes.CREATE_ROLES))
       .text("create roles")
       .children(
-        opt[String]("roles")
-          .required()
+        opt[Seq[String]]("roles")
           .action((roles, c) => c.copy(roles = roles))
           .text("list of roles"))
 
@@ -195,10 +194,28 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
   val scopes = Set("apim:subscribe", "apim:api_create", "apim:api_view", "apim:api_publish")
 
   val startupTimeout = 400.seconds
+  val reqTimeout = 30.seconds
 
-  def createRoles(roles: String): Int = {
-    // TODO
-    1
+  def createRoles(c: AmClientParser.CustomConfig): Int = {
+    Await.result(am.waitForStart(), startupTimeout)
+
+    val fut = for {
+      existing <- am.getRoleNames(c.user, c.pass)
+      toCreate = c.roles.toSet -- existing.toSet
+      resultFuts = toCreate.map(r => am.addRole(c.user, c.pass, r))
+      results <- Future.sequence(resultFuts)
+    } yield (toCreate, results)
+
+    Try { Await.result(fut, reqTimeout) } match {
+      case Success((toCreate, results)) => {
+        println(s"added roles ${toCreate.mkString(", ")}")
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to add roles: $err")
+        1
+      }
+    }
   }
 
   // get DefaultApplication key from the server and save it in appConfigFile
@@ -212,7 +229,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       app = appList.list.head
       fullApp <- am.getApplication(app.applicationId.get, tok)
     } yield (clientInfo, tok, app, fullApp)
-    val (clientInfo, tok, app, fullApp) = Await.result(futs, 30.seconds)
+    val (clientInfo, tok, app, fullApp) = Await.result(futs, reqTimeout)
 
     fullApp.keys.headOption match {
       case Some(key) => {
@@ -318,7 +335,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
     } yield sub
 
-    val sub = Await.result(futs, 30.seconds)
+    val sub = Await.result(futs, reqTimeout)
 
     0
   }
@@ -342,7 +359,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       updated <- am.putApiDetails(withSwagger, token)
     } yield updated
 
-    val updated = Await.result(futs, 30.seconds)
+    val updated = Await.result(futs, reqTimeout)
 
     0
   }
@@ -383,7 +400,7 @@ object AmClient {
     try {
       c.mode match {
         case AmClientModes.CREATE_API => amClient.createApi(c.apiName, c.appConfig, c.swagger.get, c.target.get)
-        case AmClientModes.CREATE_ROLES => amClient.createRoles(c.roles)
+        case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
         case AmClientModes.SET_API => amClient.setApi(c.apiName, c.appConfig, c.target, c.swagger)
         case _ => {

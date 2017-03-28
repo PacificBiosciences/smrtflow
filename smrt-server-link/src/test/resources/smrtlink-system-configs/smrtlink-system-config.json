@@ -4,7 +4,8 @@
       "port": 8077,
       "manifestFile": "/path/to/manifest.json",
       "eventUrl": "http://my-server:8080/events",
-      "dnsName": "http://smrtlink-alpha"
+      "dnsName": "http://smrtlink-alpha",
+      "bundleDir": "./resources/pacbio-bundles"
     },
     "engine": {
       "maxWorkers": 35,

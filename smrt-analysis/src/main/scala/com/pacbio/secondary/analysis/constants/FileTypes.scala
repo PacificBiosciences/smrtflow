@@ -84,6 +84,7 @@ object FileTypes {
   final val BIGWIG = FileBaseType(toFT("bigwig"), "file", "bw", MimeTypes.BINARY)
   final val GZIP = FileBaseType(toFT("gzip"), "file", "gz", MimeTypes.GZIP)
   final val ZIP = FileBaseType(toFT("zip"), "file", "zip", MimeTypes.ZIP)
+  final val TGZ = FileBaseType(toFT("tgz"), "file", "tar.gz", MimeTypes.GZIP)
 
   final val REPORT = FileBaseType(toFT("JsonReport"), "file", "report.json", MimeTypes.JSON)
 

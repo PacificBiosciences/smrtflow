@@ -106,6 +106,14 @@ Fetching a Git repo with a pbpipeline bundle (pipeline templates and view rules,
 
 
 
+Download a PacBio Data Bundle
+
+::
+
+    GET /smrt-link/bundles/{bundle-type-id}/download
+
+
+
 **TODO** Checking for an upgraded bundle version.
 
 ::

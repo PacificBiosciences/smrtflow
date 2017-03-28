@@ -184,15 +184,16 @@ def _archive_tomcat_webapp_root(tomcat_output_dir):
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
-def _copy_chemistry_bundle(chemistry_bundle_dir):
+def _copy_chemistry_bundle(chemistry_bundle_dir, dest_dir):
     log.info("Copying chemistry bundle from {b}".format(b=chemistry_bundle_dir))
     xml_file = os.path.join(chemistry_bundle_dir, "manifest.xml")
     manifest = xml.dom.minidom.parse(xml_file)
     vtags = manifest.getElementsByTagName("Version")
     assert len(vtags) == 1
     version = str(vtags[0].lastChild.nodeValue)
-    res_bundle_dir = os.path.join(_ROOT_DIR, Constants.SLS_UI, "resources",
-                              "pacbio-bundles")
+    res_bundle_dir = os.path.join(dest_dir, "resources", "pacbio-bundles")
+    if not os.path.exists(res_bundle_dir):
+        os.makedirs(res_bundle_dir)
     target_dir = os.path.join(res_bundle_dir, "chemistry-{v}".format(v=version))
     current_link = os.path.join(res_bundle_dir, "chemistry-latest")
     tarball = target_dir + ".tar.gz"
@@ -204,7 +205,10 @@ def _copy_chemistry_bundle(chemistry_bundle_dir):
             os.remove(pathname)
     shutil.copytree(chemistry_bundle_dir, target_dir)
     log.info("Linking {t} to {s}".format(t=target_dir, s=current_link))
-    os.symlink(target_dir, current_link)
+    cwd = os.getcwd()
+    os.chdir(res_bundle_dir)
+    os.symlink(os.path.basename(target_dir), os.path.basename(current_link))
+    os.chdir(cwd)
     git_dir = os.path.join(target_dir, ".git")
     if os.path.exists(git_dir):
         shutil.rmtree(git_dir)
@@ -488,12 +492,11 @@ def build_smrtlink_services_ui(version,
     output_bundle_dir = os.path.join(_ROOT_BUILT_BUNDLES, name)
     log.info("Creating bundle {n} -> {d} ".format(n=name, d=output_bundle_dir))
 
-    if chemistry_bundle_dir is not None:
-        _copy_chemistry_bundle(chemistry_bundle_dir)
-
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
+    if chemistry_bundle_dir is not None:
+        _copy_chemistry_bundle(chemistry_bundle_dir, output_bundle_dir)
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
@@ -531,9 +534,6 @@ def build_smrtlink_services_ui(version,
     if os.path.exists(root_html_dir):
         shutil.rmtree(root_html_dir)
     shutil.copytree(root_app_dir, root_html_dir)
-
-    if chemistry_bundle_dir is not None:
-        _copy_chemistry_bundle(chemistry_bundle_dir)
 
     # Build Scala Services
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
