@@ -620,6 +620,19 @@
             "type": "string",
             "name": "type",
             "in": "path"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "showAll",
+            "in": "query",
+            "allowEmptyValue": true
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "projectId",
+            "in": "query"
           }
         ],
         "produces": [
@@ -2424,7 +2437,7 @@
           "title": "ID",
           "description": "Dataset type ID"
         },
-        "createAt": {
+        "createdAt": {
           "type": "string",
           "title": "Created At",
           "description": ""
