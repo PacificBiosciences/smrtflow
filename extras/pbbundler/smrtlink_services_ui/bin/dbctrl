@@ -21,7 +21,7 @@ _BUNDLE_ROOT = os.path.dirname(_BIN_DIR)
 _SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
 # Migration State file
 _MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
-_LEGACY_CONFIG = os.path.join(_BUNDLE_ROOT, "legacy-db.json")
+_LEGACY_CONFIG = os.path.join(_BUNDLE_ROOT, "config.json")
 
 REQUIRED_EXES = ('initdb',
                  'pg_ctl',
