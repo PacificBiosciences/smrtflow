@@ -19,6 +19,7 @@ import spray.httpx.marshalling.BasicMarshallers._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.xml._
 
 
 class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pass: String)(implicit actorSystem: ActorSystem) extends LazyLogging {
@@ -233,5 +234,38 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe.flatMap(_(request))
+  }
+
+
+  // User Store admin API
+  val userStoreUrl = "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
+
+  def soapCall(action: String, content: Elem, user: String, pass: String): Future[NodeSeq] = {
+    val body = <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
+                 <soap-env:Body>
+                   {content}
+                 </soap-env:Body>
+               </soap-env:Envelope>
+    val request = (
+      Post(userStoreUrl, body)
+        ~> addCredentials(BasicHttpCredentials(user, pass))
+        ~> addHeader("SOAPAction", action)
+    )
+    adminPipe.flatMap(_(request))
+      .map(unmarshal[NodeSeq])
+  }
+
+  def getRoleNames(user: String, pass: String): Future[Seq[String]] = {
+    val params = <wso2um:getRoleNames xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+                 </wso2um:getRoleNames>
+    soapCall("urn:getRoleNames", params, user, pass)
+      .map(x => (x \ "Body" \ "getRoleNamesResponse" \ "return").map(_.text))
+  }
+
+  def addRole(user: String, pass: String, role: String): Future[NodeSeq] = {
+    val params = <wso2um:addRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+                   <wso2um:roleName>{role}</wso2um:roleName>
+                 </wso2um:addRole>
+    soapCall("urn:addRole", params, user, pass)
   }
 }

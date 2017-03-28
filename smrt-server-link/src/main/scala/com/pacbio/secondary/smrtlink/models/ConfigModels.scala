@@ -19,7 +19,8 @@ object ConfigModels {
                                         tomcatMemory: Int = 1024,
                                         smrtViewPort: Int = 8084,
                                         smrtLinkServerMemoryMin: Int = 4096,
-                                        smrtLinkServerMemoryMax: Int = 4096
+                                        smrtLinkServerMemoryMax: Int = 4096,
+                                        remoteBundleUrl: Option[URL] = None
                                        )
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,
@@ -33,7 +34,8 @@ object ConfigModels {
   case class SmrtflowServerConfig(port: Int,
                                   manifestFile: Option[Path],
                                   eventUrl: Option[URL],
-                                  dnsName: Option[String])
+                                  dnsName: Option[String],
+                                  bundleDir: Path)
 
   case class SmrtflowEngineConfig(maxWorkers: Int = 35,
                                   jobRootDir: Path,

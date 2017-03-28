@@ -57,7 +57,6 @@ trait JodaDateTimeProtocol extends DefaultJsonProtocol {
   implicit object JodaDateTimeFormat extends JsonFormat[JodaDateTime] {
     def write(obj: JodaDateTime): JsValue = JsString(obj.toString)
 
-
     def read(json: JsValue): JodaDateTime = json match {
       case JsString(x) => JodaDateTime.parse(x)
       case _ => deserializationError("Expected DateTime as JsString")
@@ -75,6 +74,7 @@ trait PathProtocols extends DefaultJsonProtocol {
     }
   }
 }
+
 trait UrlProtocol extends DefaultJsonProtocol {
   implicit object UrlFormat extends RootJsonFormat[URL] {
     def write(u: URL): JsValue = JsString(u.toString)
@@ -430,6 +430,129 @@ trait URIJsonProtocol extends DefaultJsonProtocol {
 
 }
 
+trait JsonProjectSupport {
+  def getProjectId(jsObj: JsObject): Int = jsObj.getFields("projectId") match {
+    case Seq(JsNumber(projectId)) => projectId.toInt
+    case _ => JobConstants.GENERAL_PROJECT_ID
+  }
+}
+
+trait JobOptionsProtocols
+    extends DefaultJsonProtocol
+    with DataSetMetaTypesProtocol
+    with JsonProjectSupport {
+
+  implicit object ImportDataSetOptionsFormat extends RootJsonFormat[ImportDataSetOptions] {
+    def write(o: ImportDataSetOptions) = JsObject(
+      "path" -> o.path.toJson,
+      "datasetType" -> o.datasetType.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): ImportDataSetOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("path", "datasetType") match {
+        case Seq(JsString(path), JsString(dsType)) =>
+          ImportDataSetOptions(path, DataSetMetaTypes.toDataSetType(dsType).get,
+                               getProjectId(jsObj))
+        case x => deserializationError(s"Expected ImportDataSetOptions, got $x")
+      }
+    }
+  }
+
+  implicit object ConvertImportFastaOptionsFormat extends RootJsonFormat[ConvertImportFastaOptions] {
+    def write(o: ConvertImportFastaOptions) = JsObject(
+      "path" -> o.path.toJson,
+      "name" -> o.name.toJson,
+      "ploidy" -> o.name.toJson,
+      "organism" -> o.name.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): ConvertImportFastaOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("path", "name", "ploidy", "organism") match {
+        case Seq(JsString(path), JsString(name), JsString(ploidy),
+                 JsString(organism)) =>
+          ConvertImportFastaOptions(path, name, ploidy, organism, getProjectId(jsObj))
+        case x => deserializationError(s"Expected ConvertImportFastaOptions, got $x")
+      }
+    }
+  }
+
+  implicit object ConvertImportFastaBarcodesOptionsFormat extends RootJsonFormat[ConvertImportFastaBarcodesOptions] {
+    def write(o: ConvertImportFastaBarcodesOptions) = JsObject(
+      "path" -> o.path.toJson,
+      "name" -> o.name.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): ConvertImportFastaBarcodesOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("path", "name") match {
+        case Seq(JsString(path), JsString(name)) =>
+          ConvertImportFastaBarcodesOptions(path, name, getProjectId(jsObj))
+        case x => deserializationError(s"Expected ConvertImportFastaBarcodesOptions, got $x")
+      }
+    }
+  }
+
+  implicit object MergeDataSetOptionsFormat extends RootJsonFormat[MergeDataSetOptions] {
+    def write(o: MergeDataSetOptions) = JsObject(
+      "datasetType" -> o.datasetType.toJson,
+      "paths" -> o.paths.toJson,
+      "name" -> o.name.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): MergeDataSetOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("datasetType", "paths", "name") match {
+        case Seq(JsString(datasetType), JsArray(paths), JsString(name)) =>
+          MergeDataSetOptions(datasetType,
+                              paths.map(_.convertTo[String]),
+                              name,
+                              getProjectId(jsObj))
+        case x => deserializationError(s"Expected MergeDataSetOptions, got $x")
+      }
+    }
+  }
+
+  implicit object MovieMetadataToHdfSubreadOptionsFormat extends RootJsonFormat[MovieMetadataToHdfSubreadOptions] {
+    def write(o: MovieMetadataToHdfSubreadOptions) = JsObject(
+      "path" -> o.path.toJson,
+      "name" -> o.name.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): MovieMetadataToHdfSubreadOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("path", "name") match {
+        case Seq(JsString(path), JsString(name)) =>
+          MovieMetadataToHdfSubreadOptions(path, name, getProjectId(jsObj))
+        case x => deserializationError(s"Expected MovieMetadataToHdfSubreadOptions, got $x")
+      }
+    }
+  }
+
+  implicit object ImportDataStoreOptionsFormat extends RootJsonFormat[ImportDataStoreOptions] {
+    def write(o: ImportDataStoreOptions) = JsObject(
+      "path" -> o.path.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): ImportDataStoreOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("path") match {
+        case Seq(JsString(path)) => ImportDataStoreOptions(path, getProjectId(jsObj))
+        case x => deserializationError(s"Expected ImportDataStoreOptions, got $x")
+      }
+    }
+  }
+
+  implicit object SimpleDataTransferOptionsFormat extends RootJsonFormat[SimpleDataTransferOptions] {
+    def write(o: SimpleDataTransferOptions) = JsObject(
+      "src" -> o.src.toJson,
+      "dest" -> o.dest.toJson,
+      "projectId" -> o.projectId.toJson)
+    def read(value: JsValue): SimpleDataTransferOptions = {
+      val jsObj = value.asJsObject
+      jsObj.getFields("src", "dest") match {
+        case Seq(JsString(src), JsString(dest)) =>
+          SimpleDataTransferOptions(src, dest, getProjectId(jsObj))
+        case x => deserializationError(s"Expected SimpleDataTransferOptions, got $x")
+      }
+    }
+  }
+}
 
 
 trait JobTypeSettingProtocol extends DefaultJsonProtocol
@@ -441,6 +564,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
     with PipelineTemplateJsonProtocol
     with PipelineTemplatePresetJsonProtocol
     with URIJsonProtocol
+    with JobOptionsProtocols
     with PathProtocols {
 
 
@@ -464,12 +588,6 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(PbsmrtpipeDirectJobOptions)
   implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
-  implicit val simpleDataTransferOptionsFormat = jsonFormat3(SimpleDataTransferOptions)
-  implicit val movieMetadataToHdfSubreadOptionsFormat = jsonFormat3(MovieMetadataToHdfSubreadOptions)
-
-  implicit val importDataSetOptionsFormat = jsonFormat3(ImportDataSetOptions)
-  implicit val importConvertFastaOptionsFormat = jsonFormat5(ConvertImportFastaOptions)
-  implicit val importDataStoreOptionsFormat = jsonFormat2(ImportDataStoreOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat4(EngineConfig)

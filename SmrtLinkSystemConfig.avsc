@@ -145,52 +145,58 @@
         "name": "SmrtflowPacBioSystemConfig",
         "fields": [
           {
-            "doc": "Tomcat Port to run the SMRT Link UI on (hcon-key smrtflow.pacbiosystem.tomcatPort)",
+            "doc": "Tomcat Port to run the SMRT Link UI on (hcon-key smrtflow.pacBioSystem.tomcatPort)",
             "name": "tomcatPort",
             "type": "int",
             "default": 8080
           },
           {
-            "doc": "Maximum and Minimum memory to launch tomcat (hcon-key smrtflow.pacbiosystem.tomcatMemory)",
+            "doc": "Maximum and Minimum memory to launch tomcat (hcon-key smrtflow.pacBioSystem.tomcatMemory)",
             "name": "tomcatMemory",
             "type": "int",
             "default": 1024
           },
           {
-            "doc": "Minimum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacbiosystem.smrtLinkServerMemoryMin)",
+            "doc": "Minimum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMin)",
             "name": "smrtLinkServerMemoryMin",
             "type": "int",
             "default": 4096
           },
           {
-            "doc": "Maximum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacbiosystem.smrtLinkServerMemoryMax)",
+            "doc": "Maximum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMax)",
             "name": "smrtLinkServerMemoryMax",
             "type": "int",
             "default": 4096
           },
           {
-            "doc": "SMRT View Port (hcon-key smrtflow.pacbiosystem.smrtViewPort)",
+            "doc": "SMRT View Port (hcon-key smrtflow.pacBioSystem.smrtViewPort)",
             "name": "smrtViewPort",
             "type": "int",
             "default": 8084
           },
           {
-            "doc": "Temporary directory to write to write files to. See pbsmrtpipe preset XML for configuration the remote compute node Temp Directory  (hcon-key smrtflow.pacbiosystem.tmpDir)",
+            "doc": "Temporary directory to write to write files to. See pbsmrtpipe preset XML for configuration the remote compute node Temp Directory  (hcon-key smrtflow.pacBioSystem.tmpDir)",
             "name": "tmpDir",
             "type": "string",
             "default": "/tmp"
           },
           {
-            "doc": "Directory to write to write files to. Log files will rotate above a specific file size. (hcon-key smrtflow.pacbiosystem.tmpDir)",
+            "doc": "Directory to write to write files to. Log files will rotate above a specific file size. (hcon-key smrtflow.pacBioSystem.tmpDir)",
             "name": "logDir",
             "type": "string",
             "default": "./"
           },
           {
-            "doc": "Directory where the Postgres data files will reside. This direction should be r+w from the user that launches the Services (hcon-key smrtflow.pacbiosystem.pgDataDir)",
+            "doc": "Directory where the Postgres data files will reside. This direction should be r+w from the user that launches the Services (hcon-key smrtflow.pacBioSystem.pgDataDir)",
             "name": "pgDataDir",
             "type": "string",
             "default": "./"
+          },
+          {
+            "doc": "URL to the remote bundle service. This must be relative to the root bundle service (e.g., http://my-server:8081/smrt-link/bundles). If a URL is not provided, the remote fetching for upgrades will be disabled (hcon-key smrtflow.pacBioSystem.pgDataDir)",
+            "name": "remoteBundleUrl",
+            "type": ["string", "null"],
+            "default": null
           }
         ]
       }

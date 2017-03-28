@@ -154,7 +154,6 @@ trait SmrtLinkJsonProtocols
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
   implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
-  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.importDataSetOptionsFormat
   implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
   implicit val simpleDevJobOptionsFormat  = SecondaryJobProtocols.simpleDevJobOptionsFormat
 
@@ -183,7 +182,6 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
-  implicit val mergeDataSetOptionFormat = jsonFormat4(MergeDataSetOptions)
   implicit val deleteJobServiceOptions = jsonFormat3(DeleteJobServiceOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
@@ -198,8 +196,9 @@ trait SmrtLinkJsonProtocols
 
   implicit val pacbioBundleVersionFormat = jsonFormat5(SemVersion.apply)
   // this model has a val assigned and requires a custom serialization
-  implicit val pacbioBundleFormat = jsonFormat(PacBioBundle.apply, "typeId", "version", "importedAt", "path", "createdBy")
+  implicit val pacbioBundleFormat = jsonFormat(PacBioDataBundle.apply, "typeId", "version", "importedAt", "createdBy", "isActive")
   implicit val pacbioBundleRecordFormat = jsonFormat1(PacBioBundleRecord)
+  implicit val pacbioBundleUpgradeFormat = jsonFormat1(PacBioDataBundleUpgrade)
 
   implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
 

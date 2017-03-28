@@ -1,5 +1,6 @@
 
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.jobtypes._
 import com.pacbio.secondary.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols,AnalysisJobStates}
 
 import org.specs2.mutable.Specification
@@ -191,11 +192,11 @@ class JobModelsSpec extends Specification  {
     }
   }
 
-  "Testing EngineJob serialization including previous versions" should {
-    def getPath(name: String) = {
-      Paths.get(getClass.getResource(s"misc-json/$name").toURI)
-    }
+  private def getPath(name: String) = {
+    Paths.get(getClass.getResource(s"misc-json/$name").toURI)
+  }
 
+  "Testing EngineJob serialization including previous versions" should {
     "Serialize model to JSON and recycle" in {
       val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
         JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
@@ -245,6 +246,56 @@ class JobModelsSpec extends Specification  {
       job2.isActive must beEqualTo(false)
       job2.smrtlinkVersion must beSome("3.3.0.187723")
       job2.createdAt must beEqualTo(job.createdAt)
+    }
+  }
+
+  private def getJson(name: String) =
+    Source.fromFile(getPath(name).toFile).getLines.mkString.parseJson
+
+  "Test job type options serialization" should {
+    import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+    "ImportDataSetOptions" in {
+      val o = ImportDataSetOptions("/path/to/subreads.xml", DataSetMetaTypes.Subread, 666)
+      val oj = o.toJson.convertTo[ImportDataSetOptions]
+      oj.projectId must beEqualTo(666)
+      oj.datasetType must beEqualTo(DataSetMetaTypes.Subread)
+      val opts = getJson("import_dataset_options.json").convertTo[ImportDataSetOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+    }
+    "MovieMetadataToHdfSubreadOptions" in {
+      val o = MovieMetadataToHdfSubreadOptions("/path/to/movie.metadata.xml", "RSII dataset", 666)
+      val oj = o.toJson.convertTo[MovieMetadataToHdfSubreadOptions]
+      oj.projectId must beEqualTo(666)
+      val opts = getJson("convert_rs_movie_options.json").convertTo[MovieMetadataToHdfSubreadOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+    }
+    "MergeDataSetOptions" in {
+      val o = MergeDataSetOptions(DataSetMetaTypes.Subread.toString, Seq("/path/to/subreads1.xml", "/path/to/subreads2.xml"), "Merged dataset", 666)
+      val oj = o.toJson.convertTo[MergeDataSetOptions]
+      oj.projectId must beEqualTo(666)
+      val opts = getJson("merge_dataset_options.json").convertTo[MergeDataSetOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+    }
+    "ConvertImportFastaBarcodesOptions" in {
+      val o = ConvertImportFastaBarcodesOptions("/path/to/bc.fasta", "Barcodes", 666)
+      val oj = o.toJson.convertTo[ConvertImportFastaBarcodesOptions]
+      oj.projectId must beEqualTo(666)
+      val opts = getJson("import_barcode_options.json").convertTo[ConvertImportFastaBarcodesOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+    }
+    "ConvertImportFastaOptions" in {
+      val o = ConvertImportFastaOptions("/path/to/genome.fasta", "My Genome", "haploid", "Homo sapiens", 666)
+      val oj = o.toJson.convertTo[ConvertImportFastaOptions]
+      oj.projectId must beEqualTo(666)
+      val opts = getJson("import_fasta_options.json").convertTo[ConvertImportFastaOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+    }
+    "SimpleDataTransferOptions" in {
+      val o = SimpleDataTransferOptions("/path/to/src", "/path/to/dest", 666)
+      val oj = o.toJson.convertTo[SimpleDataTransferOptions]
+      oj.projectId must beEqualTo(666)
+      val opts = getJson("simple_transfer_options.json").convertTo[SimpleDataTransferOptions]
+      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
   }
 }
