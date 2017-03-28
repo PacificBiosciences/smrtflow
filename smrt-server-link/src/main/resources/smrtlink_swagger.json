@@ -623,9 +623,10 @@
           },
           {
             "required": false,
-            "type": "boolean",
+            "type": "string",
             "name": "showAll",
-            "in": "query"
+            "in": "query",
+            "allowEmptyValue": true
           },
           {
             "required": false,
