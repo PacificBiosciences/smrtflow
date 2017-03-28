@@ -29,6 +29,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.services._
 import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.secondary.analysis.constants.FileTypes.TGZ
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
@@ -45,7 +46,7 @@ trait BundleConstants {
   // This needs to be changed to "active"
   val ACTIVE_SUFFIX = "latest"
   // For consistency any bundle writing or reading will use the extension format
-  val EXT_TGZ = ".tar.gz"
+  val EXT_TGZ = s".${TGZ.fileExt}"
 }
 
 
