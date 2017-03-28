@@ -319,8 +319,7 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal) with
 object TestkitRunner {
   def apply (c: TestkitParser.TestkitConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
-    val url = new URL(s"http://${c.host}:${c.port}")
-    val sal = new SmrtLinkServiceAccessLayer(url)(actorSystem)
+    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
     val tk = new TestkitRunner(sal)
     try {
       if (c.testJobId > 0) {

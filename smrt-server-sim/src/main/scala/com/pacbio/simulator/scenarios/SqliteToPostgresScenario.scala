@@ -51,7 +51,7 @@ class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverte
 
   override val name = "SqliteToPostgresScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", "localhost", 8070, ""), Some("jsnow"))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer("localhost", 8070, Some("jsnow"))
 
   // TODO(smcclellan): Move these steps into ...simulator.steps package?
 

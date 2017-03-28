@@ -55,7 +55,7 @@ class ProjectsScenario(host: String, port: Int)
 
   override val name = "ProjectsScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   val MSG_PROJ_ERR = "Project database should be initially have just one project"
   val MSG_DS_ERR = "DataSet database should be initially empty"

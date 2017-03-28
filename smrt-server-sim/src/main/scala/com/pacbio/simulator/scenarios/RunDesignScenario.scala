@@ -45,7 +45,7 @@ class RunDesignScenario(host: String, port: Int, runXmlFile: Path)
 
   override val name = "RunDesignScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)
   val runXml: Var[String] = Var()

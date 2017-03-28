@@ -32,7 +32,7 @@ import com.pacbio.secondary.smrtlink.models._
 
 object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols with SecondaryAnalysisJsonProtocols
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with AnalysisJobConstants
@@ -53,8 +53,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
     .toSeq
 
-  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  def this(host: String, port: Int, authUser: Option[String] = None)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
   }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
@@ -389,8 +389,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS),
-         ProjectRequest(name, description, None, None, None))
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None))
+      .withHeaders(headers:_*)
   }
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
