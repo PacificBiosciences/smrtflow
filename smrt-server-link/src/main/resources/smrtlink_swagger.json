@@ -1990,6 +1990,202 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/bundles": {
+      "get": {
+        "description": "Get a list of all bundles (active or inactively) registered to the system",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to get bundle service. Bundle service is down"
+          },
+          "200": {
+            "description": "List of PacBio Data Bundless"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "post": {
+        "description": "Add a new bundle to the system from a URL that points to a tgz file",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to download bundle or bundle is malformed"
+          },
+          "200": {
+            "description": "Returns a PacBio Data Bundle that was successfully added to the registry"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}": {
+      "get": {
+        "description": "Get a list of all bundles by bundle type (active or inactively) registered to the system",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type"
+          },
+          "200": {
+            "description": "List of PacBio Data Bundles for provide bundle type",
+            "schema": {
+              "$ref": "#/definitions/PacBioDataBundleList"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/active": {
+      "get": {
+        "description": "Get the PacBio Data bundle that is active for provided bundle type",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type"
+          },
+          "200": {
+            "description": "List of PacBio Data Bundles for provide bundle type"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/{bundleVersion}": {
+      "get": {
+        "description": "Get a PacBio Data Bundle by Id (bundleType, bundleVersion)",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "Bundle version (e.g., 1.2.3) This should adhere to the Semantic Version scheme",
+            "required": true,
+            "type": "string",
+            "name": "bundleVersion",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
+          },
+          "200": {
+            "description": "PacBio Data Bundle",
+            "schema": {
+              "$ref": "#/definitions/PacBioDataBundle"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/{bundleVersion}/upgrade": {
+      "post": {
+        "description": "Upgrade to this Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "Bundle version (e.g., 1.2.3) This should adhere to the Semantic Version scheme",
+            "required": true,
+            "type": "string",
+            "name": "bundleVersion",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
+          },
+          "200": {
+            "description": "Returns an Activated PacBio Data Bundle"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/upgrade": {
+      "get": {
+        "description": "Check for an upgrade for a specific PacBio Bundle type version ",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle with type `bundleType`"
+          },
+          "200": {
+            "description": "PacBid Data Bundle Upgrade. If null, there is no upgrade available"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/smrt-link/automation-constraints": {
       "get": {
         "x-scope": "data-management",
@@ -4053,6 +4249,75 @@
           "state": "SUCCCESSFUL"
         }
       }
+    },
+    "PacBioDataBundle": {
+      "properties": {
+        "createdBy": {
+          "description": "Author of the PacBio Data Bundle",
+          "title": "Author",
+          "type": "string"
+        },
+        "importedAt": {
+          "description": "When the PacBio Data Bundle was imported at",
+          "title": "Imported At",
+          "type": "string"
+        },
+        "isActive": {
+          "default": false,
+          "description": "Get the activation status of PacBio Data Bundle",
+          "title": "Is Active",
+          "type": "boolean"
+        },
+        "typeId": {
+          "description": "Bundle Type Id",
+          "title": "Bundle Type",
+          "type": "string"
+        },
+        "version": {
+          "description": "Bundle Version. This should adhere to the SemVer to ensure consistent sorting of Data Bundles by Version",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "importedAt",
+        "version",
+        "isActive",
+        "createdBy",
+        "typeId"
+      ],
+      "example": {
+        "createdBy": "build",
+        "importedAt": "2017-03-28T13:16:15.048Z",
+        "isActive": true,
+        "typeId": "chemistry",
+        "version": "4.0.0"
+      },
+      "type": "object"
+    },
+    "PacBioDataBundleList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PacBioDataBundle"
+      },
+      "example": [
+        {
+          "createdBy": "build",
+          "importedAt": "2017-03-28T13:16:15.048Z",
+          "isActive": true,
+          "typeId": "chemistry",
+          "version": "4.0.0"
+        },
+        {
+          "createdBy": "mkocher",
+          "importedAt": "2017-03-28T13:16:15.062Z",
+          "isActive": false,
+          "typeId": "chemistry",
+          "version": "4.1.0"
+        }
+      ]
+
+
     }
   }
 }
