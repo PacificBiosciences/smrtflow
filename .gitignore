@@ -48,3 +48,6 @@ db/*
 
 # IntelliJ
 .idea/*
+
+# node
+node_modules/*
