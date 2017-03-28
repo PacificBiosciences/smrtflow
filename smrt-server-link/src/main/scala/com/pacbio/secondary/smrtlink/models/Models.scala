@@ -632,11 +632,22 @@ case class DataSetUpdateRequest(isActive: Boolean)
 
 // Bundle Related Models
 
-case class PacBioBundle(typeId: String,
-                        version: String,
-                        importedAt: JodaDateTime,
-                        path: Path,
-                        createdBy: Option[String]) {
+/**
+  * PacBio Data Bundle. A general contain for config files, or data files.
+  *
+  * @param typeId     identifier for the bundle type
+  * @param version    version of the bundle (Should use Semver format, 1.2.3.12334 is supported)
+  * @param importedAt When the data bundle was imported
+  * @param path       Abspath to the bundle on the local file system
+  * @param createdBy  User that created (not imported) the bundle
+  * @param isActive   If the bundle is active (Only a single bundle type should be active at a given time)
+  */
+case class PacBioDataBundle(typeId: String,
+                            version: String,
+                            importedAt: JodaDateTime,
+                            path: Path,
+                            createdBy: Option[String],
+                            isActive: Boolean = false) {
   // This is bad OO to duplicate data (version and semVersion)
   // However, this is used to sort bundles and is
   // exposed publicly, but we don't want this to leak to serialization layers (e.g., jsonFormat).
@@ -663,9 +674,9 @@ case class PacBioBundle(typeId: String,
   }
 }
 
-object PacBioBundle {
+object PacBioDataBundle {
   implicit val orderBySemVer = SemVersion.orderBySemVersion
-  val orderByBundleVersion = Ordering.by((a: PacBioBundle) => a.semVersion)
+  val orderByBundleVersion = Ordering.by((a: PacBioDataBundle) => a.semVersion)
 }
 
 // Use to create a bundle record. All Metadata will be extracted from

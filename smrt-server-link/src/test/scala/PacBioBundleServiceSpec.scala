@@ -1,5 +1,5 @@
 import com.pacbio.common.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.models.{PacBioBundle, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle$, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
@@ -33,7 +33,7 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
     }
     "Get bundle type id 'example' " in {
       Get("/smrt-link/bundles/example") ~> routes ~> check {
-        val bundles = responseAs[Seq[PacBioBundle]]
+        val bundles = responseAs[Seq[PacBioDataBundle]]
         println(s"Example bundles $bundles")
         status.isSuccess must beTrue
       }

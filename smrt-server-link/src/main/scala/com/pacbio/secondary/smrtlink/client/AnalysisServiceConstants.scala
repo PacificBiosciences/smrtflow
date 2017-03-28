@@ -22,7 +22,6 @@ trait ServiceEndpointConstants extends JobServiceConstants {
   val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX"
   val ROOT_JOBS = s"$ROOT_JM/$JOB_ROOT_PREFIX"
   val ROOT_DS = s"/$ROOT_SERVICE_PREFIX/datasets"
-  val ROOT_RUNS = "/smrt-link/runs"
   val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"
   val ROOT_PROJECTS = s"/$ROOT_SERVICE_PREFIX/projects"
   val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
@@ -33,4 +32,9 @@ trait ServiceEndpointConstants extends JobServiceConstants {
   val ROOT_DS_RULES = s"/$ROOT_SERVICE_PREFIX/pipeline-datastore-view-rules"
   // Not sure where this should go
   val TERMINATE_JOB = "terminate"
+
+  // Base smrt-link routes. Everything should migrate to use this prefix (eventually)
+  val ROOT_RUNS = s"/$ROOT_SL_PREFIX/runs"
+  val ROOT_PB_DATA_BUNDLE = s"/$ROOT_SL_PREFIX/bundles"
+
 }
