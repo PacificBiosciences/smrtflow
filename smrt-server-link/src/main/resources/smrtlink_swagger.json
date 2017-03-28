@@ -1992,7 +1992,7 @@
     },
     "/smrt-link/bundles": {
       "get": {
-        "description": "Get a list of all bundles (active or inactively) registered to the system",
+        "description": "Get a list of all registered bundles (active or inactive) in the system",
         "x-scope": "data-management",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -2028,7 +2028,7 @@
     },
     "/smrt-link/bundles/{bundleType}": {
       "get": {
-        "description": "Get a list of all bundles by bundle type (active or inactively) registered to the system",
+        "description": "Get a list of all registered bundles by bundle type (active or inactive) in the system",
         "x-scope": "data-management",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -2079,7 +2079,41 @@
             "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type"
           },
           "200": {
-            "description": "List of PacBio Data Bundles for provide bundle type"
+            "description": "Get the currently Active PacBio Data Bundle for a given bundle type",
+            "schema": {
+              "$ref": "#/definitions/PacBioDataBundle"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/latest": {
+      "get": {
+        "description": "Get the PacBio Data bundle that is most recent version for provided bundle type",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type"
+          },
+          "200": {
+            "description": "List of PacBio Data Bundles for provide bundle type",
+            "schema": {
+              "$ref": "#/definitions/PacBioDataBundle"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
