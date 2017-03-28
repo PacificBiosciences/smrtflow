@@ -601,7 +601,7 @@
             }
         }
     ], 
-    "comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic_stress with pbsmrtpipe v0.46.3", 
+    "comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic_stress with pbsmrtpipe v0.50.4", 
     "description": "Generate a simple report and plot from Reference DataSet", 
     "entryPoints": [
         {

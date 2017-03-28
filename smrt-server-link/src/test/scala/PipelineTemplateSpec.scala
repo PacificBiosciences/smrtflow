@@ -48,7 +48,7 @@ class PipelineTemplateSpec extends Specification
         status.isSuccess must beTrue
         val rpt = responseAs[PipelineTemplate]
         rpt.id must beEqualTo(mockPipelineId)
-        rpt.taskOptions.size must beEqualTo(7)
+        rpt.taskOptions.size must beEqualTo(8)
       }
     }
     //    "Get Error from bad Workflow template by id" in {
