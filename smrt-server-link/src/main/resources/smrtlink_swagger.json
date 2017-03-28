@@ -620,6 +620,18 @@
             "type": "string",
             "name": "type",
             "in": "path"
+          },
+          {
+            "required": false,
+            "type": "boolean",
+            "name": "showAll",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "projectId",
+            "in": "query"
           }
         ],
         "produces": [
