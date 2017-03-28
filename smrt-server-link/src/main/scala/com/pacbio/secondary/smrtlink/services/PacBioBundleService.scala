@@ -39,11 +39,17 @@ import spray.routing.directives.FileAndResourceDirectives
 
 import scala.util.control.NonFatal
 
-
-trait BundleUtils extends LazyLogging{
-
+trait BundleConstants {
   val FILE = "definitions/PacBioAutomationConstraints.xml"
   val MANIFEST_FILE = "manifest.xml"
+  // This needs to be changed to "active"
+  val ACTIVE_SUFFIX = "latest"
+  // For consistency any bundle writing or reading will use the extension format
+  val EXT_TGZ = ".tar.gz"
+}
+
+
+trait BundleUtils extends BundleConstants with LazyLogging{
 
   /**
     * Parse the Bundle XML and return a PacBioDataBundle.
@@ -77,7 +83,7 @@ trait BundleUtils extends LazyLogging{
     * @return
     */
   def copyFile(file: File, outputDir: File): Path = {
-    val tmpFile = File.createTempFile("pb-bundle", ".tar.gz")
+    val tmpFile = File.createTempFile("pb-bundle", EXT_TGZ)
     FileUtils.copyFile(file, tmpFile)
 
     TarGzUtil.uncompressTarGZ(file, outputDir)
@@ -106,7 +112,7 @@ trait BundleUtils extends LazyLogging{
     * @return
     */
   def downloadHttp(url: URL, outputDir: File): Path = {
-    val tmpFile = File.createTempFile("pb-bundle", ".tar.gz")
+    val tmpFile = File.createTempFile("pb-bundle", EXT_TGZ)
     downloadHttpFile(url, tmpFile)
     TarGzUtil.uncompressTarGZ(tmpFile, outputDir)
     outputDir.toPath
@@ -134,7 +140,7 @@ trait BundleUtils extends LazyLogging{
   def downloadBundle(url: URL, outputDir: Path): Path = {
 
     def isGit(sx: String) = sx.endsWith(".git")
-    def isTarGz(sx: String) = sx.endsWith(".tar.gz") | sx.endsWith(".tgz")
+    def isTarGz(sx: String) = sx.endsWith(EXT_TGZ) | sx.endsWith(".tgz")
 
     // Copy the bundle to a temporary directory
     val uuid = UUID.randomUUID()
@@ -192,7 +198,7 @@ trait BundleUtils extends LazyLogging{
     */
   def copyBundleTo(bundleSrcDir: Path, pacBioBundle: PacBioDataBundle, rootDir: Path): PacBioDataBundleIO = {
     val name = s"${pacBioBundle.typeId}-${pacBioBundle.version}"
-    val tgzName = s"$name.tgz"
+    val tgzName = s"$name.tar.gz"
     val bundleDir = rootDir.resolve(name)
     val bundleTgz = rootDir.resolve(tgzName)
     if (Files.exists(bundleDir)) {
@@ -242,20 +248,28 @@ trait BundleUtils extends LazyLogging{
     */
   def loadBundlesFromRoot(path: Path): Seq[PacBioDataBundleIO] = {
 
+    // Allow for some looseness when loading from the file system.
+    val supportedExts = Seq(".tgz", EXT_TGZ)
+
     logger.info(s"Attempting to load bundles from $path")
-    def hasCompanionTgz(path: Path): Boolean = {
-      val p = Paths.get(path.toString + ".tgz")
-      Files.exists(p)
-    }
+    def hasCompanionTgz(path: Path): Boolean =
+      getCompanionTgz(path).isDefined
+
 
     def getCompanionTgz(path: Path): Option[Path] = {
-      val p = Paths.get(path.toString + ".tgz")
-      if (Files.exists(p)) Some(p)
-      else None
+
+      def getIfExists(px: Path): Option[Path] = {
+        if (Files.exists(px)) Some(px)
+        else None
+      }
+
+      supportedExts.map(ext => Paths.get(path.toString + ext))
+          .flatMap(getIfExists)
+          .headOption
     }
 
     def isActive(rootBundlePath: Path, bundleTypeId: String): Boolean = {
-      val px = rootBundlePath.getParent.resolve(s"$bundleTypeId-latest")
+      val px = rootBundlePath.getParent.resolve(s"$bundleTypeId-$ACTIVE_SUFFIX")
       if (Files.exists(px) && Files.isSymbolicLink(px)) {
         px.toRealPath() == rootBundlePath
       } else
@@ -314,7 +328,7 @@ trait BundleUtils extends LazyLogging{
 object BundleUtils extends BundleUtils
 
 
-class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBundleIO]) {
+class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBundleIO]) extends BundleConstants{
 
   private var loadedBundles = mutable.ArrayBuffer.empty[PacBioDataBundleIO]
 
@@ -373,7 +387,7 @@ class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBun
   }
 
   private def updateActiveSymLink(rootBundleDir: Path, bundleTypeId: String, bundlePath: Path): Path = {
-    val px = rootBundleDir.resolve(s"$bundleTypeId-latest")
+    val px = rootBundleDir.resolve(s"$bundleTypeId-$ACTIVE_SUFFIX")
     if (Files.exists(px)) {
       px.toFile.delete()
     }
@@ -546,7 +560,7 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
         pathEndOrSingleSlash {
           get {
             onSuccess(getBundleByTypeAndVersion(bundleTypeId, bundleVersion)) { case b: PacBioDataBundleIO =>
-              val fileName = s"$bundleTypeId-$bundleVersion.tgz"
+              val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
               logger.info(s"Downloading bundle $b to $fileName")
               respondWithHeader(HttpHeaders.`Content-Disposition`("attachment; filename=" + fileName)) {
                 getFromFile(b.tarGzPath.toFile)
