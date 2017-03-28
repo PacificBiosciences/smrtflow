@@ -26,7 +26,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import org.eclipse.jgit.api.Git
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.services._
 import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
@@ -36,6 +36,8 @@ import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import spray.routing.directives.FileAndResourceDirectives
+
+import scala.util.control.NonFatal
 
 
 trait BundleUtils extends LazyLogging{
@@ -331,6 +333,9 @@ class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBun
   def getActiveBundleByType(bundleType: String): Option[PacBioDataBundle] =
     getBundles.filter(_.typeId == bundleType).find(_.isActive == true)
 
+  def getActiveBundleIOByType(bundleType: String): Option[PacBioDataBundleIO] =
+    loadedBundles.filter(_.bundle.typeId == bundleType).find(_.bundle.isActive == true)
+
   def getBundle(bundleType: String, version: String): Option[PacBioDataBundle] =
     BundleUtils.getBundlesByType(getBundles, bundleType).find(_.version == version)
 
@@ -366,6 +371,33 @@ class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBun
     PacBioDataBundleUpgrade(opt)
   }
 
+  private def updateActiveSymLink(rootBundleDir: Path, bundleTypeId: String, bundlePath: Path): Path = {
+    val px = rootBundleDir.resolve(s"$bundleTypeId-latest")
+    if (Files.exists(px)) {
+      px.toFile.delete()
+    }
+    Files.createSymbolicLink(px, bundlePath)
+    px
+  }
+
+  private def setBundleAsActive(bundleType: String, bundleVersion: String): Try[PacBioDataBundleIO] = {
+    val errorMessage = s"Unable to find $bundleType with version $bundleVersion"
+    val newBundles = loadedBundles.map {b =>
+      val bx = if (b.bundle.typeId == bundleType) {
+        if (b.bundle.version == bundleVersion) b.bundle.copy(isActive = true)
+        else b.bundle.copy(isActive = false)
+      } else {
+        b.bundle
+      }
+      b.copy(bundle = bx)
+    }
+    loadedBundles = newBundles
+
+    getActiveBundleIOByType(bundleType)
+        .map(b => Success(b))
+        .getOrElse(Failure(new ResourceNotFoundError(errorMessage)))
+  }
+
   /**
     * Mark the bundle as "Active" and create a symlink to the new active bundle with {bundle-type}-latest
     *
@@ -380,13 +412,19 @@ class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBun
     * @param bundleVersion
     * @return
     */
-  def upgradeBundle(bundleType: String, bundleVersion: String): Option[PacBioDataBundleIO] = {
-//    getBundleIO(bundleType, bundleVersion) match {
-//      case Some(b) => b.bundle
-//    }
-    None
-  }
+  def upgradeBundle(rootBundleDir: Path, bundleType: String, bundleVersion: String): Try[PacBioDataBundleIO] = {
+    val errorMessage = s"Unable to find $bundleType with version $bundleVersion"
 
+    getBundleIO(bundleType, bundleVersion).map { b =>
+
+      val tx = for {
+        px <- Try { updateActiveSymLink(rootBundleDir, b.bundle.typeId, b.path) }
+        b <- setBundleAsActive(bundleType, bundleVersion)
+        } yield b
+
+      tx.recoverWith { case NonFatal(ex) => Failure(new UnprocessableEntityError(errorMessage + s" ${ex.getMessage}")) }
+    }.getOrElse(Failure(new ResourceNotFoundError(s"Unable to find $bundleType with version $bundleVersion")))
+  }
 }
 
 
@@ -443,7 +481,7 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
                   pathBundle <- fromTry[(Path, PacBioDataBundle)](s"Failed to process $record", Try { downloadAndParseBundle(record.url, tmpRootBundleDir) } )
                   validBundle <- fromTry[PacBioDataBundleIO](s"Bundle Already exists.", Try { copyBundleTo(pathBundle._1, pathBundle._2, rootBundle)})
                   addedBundle <- Future {dao.addBundle(validBundle)}
-                } yield addedBundle
+                } yield addedBundle.bundle
               }
             }
           }
@@ -491,11 +529,14 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
           }
         }
       } ~
-      path(Segment / "upgrade") { bundleTypeId =>
+      path(Segment / Segment / "upgrade") { (bundleTypeId, bundleVersion) =>
         post {
           complete {
             ok {
-              Future { "NOT SUPPORTED" }
+              for {
+                b <- getBundleByTypeAndVersion(bundleTypeId, bundleVersion)
+                bio <- fromTry[PacBioDataBundleIO](s"Unable to upgrade bundle $bundleTypeId and version $bundleVersion", dao.upgradeBundle(rootBundle, b.bundle.typeId, b.bundle.version))
+              } yield bio.bundle
             }
           }
         }
@@ -517,7 +558,7 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
         get {
           complete {
             ok {
-              getBundleByTypeAndVersion(bundleTypeId, bundleVersion)
+              getBundleByTypeAndVersion(bundleTypeId, bundleVersion).map(_.bundle)
             }
           }
         }
