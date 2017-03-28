@@ -13,19 +13,20 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import sys.process._
 import collection.mutable
+import spray.http.HttpHeaders
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
+import akka.actor.ActorSystem
+import com.pacbio.common.actors.ActorSystemProvider
 
 import scala.util.{Failure, Success, Try}
 import org.joda.time.{DateTime => JodaDateTime}
 import org.eclipse.jgit.api.Git
-
 import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.semver.SemVersion
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.services._
 import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
@@ -34,6 +35,9 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
+import spray.routing.directives.FileAndResourceDirectives
+
+import scala.util.control.NonFatal
 
 
 trait BundleUtils extends LazyLogging{
@@ -42,14 +46,14 @@ trait BundleUtils extends LazyLogging{
   val MANIFEST_FILE = "manifest.xml"
 
   /**
-    * Parse the Bundle XML and return a PacBioBundle.
+    * Parse the Bundle XML and return a PacBioDataBundle.
     *
     * The manifest.xml *MUST* be in the root directory of the bundle.
     *
     * @param file XML Manifest File
     * @return
     */
-  def parseBundleManifestXml(file: File): PacBioBundle = {
+  def parseBundleManifestXml(file: File): PacBioDataBundle = {
     val xs = XML.loadFile(file)
 
     val bundleTypeId = (xs \ "Package").text
@@ -57,12 +61,21 @@ trait BundleUtils extends LazyLogging{
     val author = (xs \ "Author").headOption.map(_.text)
     //val createdAt = (xs \ "Created").text
 
-    PacBioBundle(bundleTypeId, rawVersion, JodaDateTime.now(), Paths.get(file.getParent), author)
+    PacBioDataBundle(bundleTypeId, rawVersion, JodaDateTime.now(), author)
   }
 
-  def parseBundle(rootDir: Path): PacBioBundle =
+  def parseBundle(rootDir: Path): PacBioDataBundle =
     parseBundleManifestXml(rootDir.resolve(MANIFEST_FILE).toFile)
 
+  /**
+    *
+    * Returns the directory where the output bundle was written to. This directory
+    * contains the manifest.xml file of the PacBioData Bundle
+    *
+    * @param file      Raw tgz file of the bundle
+    * @param outputDir root dir to extract tgz into (subdir will be created)
+    * @return
+    */
   def copyFile(file: File, outputDir: File): Path = {
     val tmpFile = File.createTempFile("pb-bundle", ".tar.gz")
     FileUtils.copyFile(file, tmpFile)
@@ -71,6 +84,8 @@ trait BundleUtils extends LazyLogging{
 
     val outputDirs = outputDir.list().map(x => outputDir.toPath.resolve(x))
 
+    // The untar and zipped output is expected to have a single directory with
+    // an manifest.xml file in the root level
     outputDirs
         .find(p => Files.isDirectory(p))
         .getOrElse(throw new IOException("Expected tar.gz have a single directory"))
@@ -153,10 +168,11 @@ trait BundleUtils extends LazyLogging{
     * @param outputDir
     * @return
     */
-  def downloadAndParseBundle(url: URL, outputDir: Path): PacBioBundle = {
-    val b = parseBundle(downloadBundle(url, outputDir))
+  def downloadAndParseBundle(url: URL, outputDir: Path): (Path, PacBioDataBundle) = {
+    val tmpBundleDir = downloadBundle(url, outputDir)
+    val b = parseBundle(tmpBundleDir)
     logger.info(s"Processed bundle $b")
-    b
+    (tmpBundleDir, b)
   }
 
   /**
@@ -167,19 +183,28 @@ trait BundleUtils extends LazyLogging{
     *
     * If the directory already exists, an exception will be raised.
     *
-    * @param pacBioBundle
-    * @param rootDir
+    * This is a bit messy. Trying to keep the IO layers separate from the data model.
+    *
+    * @param bundleSrcDir Source directory of the bundle (often a temp location)
+    * @param pacBioBundle Bundle that was parsed from src dir
+    * @param rootDir      root output directory. A subdir will be created with the Data Bundle
     * @return
     */
-  def copyBundleTo(pacBioBundle: PacBioBundle, rootDir: Path): PacBioBundle = {
+  def copyBundleTo(bundleSrcDir: Path, pacBioBundle: PacBioDataBundle, rootDir: Path): PacBioDataBundleIO = {
     val name = s"${pacBioBundle.typeId}-${pacBioBundle.version}"
+    val tgzName = s"$name.tgz"
     val bundleDir = rootDir.resolve(name)
+    val bundleTgz = rootDir.resolve(tgzName)
     if (Files.exists(bundleDir)) {
       throw new IOException(s"Bundle $name already exists.")
     } else {
-      FileUtils.copyDirectory(pacBioBundle.path.toFile, bundleDir.toFile)
+      FileUtils.copyDirectory(bundleSrcDir.toFile, bundleDir.toFile)
     }
-    pacBioBundle.copy(path = bundleDir)
+
+    // Create companion tgz file
+    TarGzUtil.createTarGzip(bundleDir, bundleTgz.toFile)
+
+    PacBioDataBundleIO(bundleTgz, bundleDir, pacBioBundle)
   }
 
   def getManifestXmlFromDir(path: Path):Option[Path] =
@@ -196,33 +221,79 @@ trait BundleUtils extends LazyLogging{
     * Load bundles from a root directory. Each bundle must adhere to the spec and
     * have a single manifest.xml file in the bundle directory.
     *
-    * root-dir
-    *  - bundle-01/manifest.xml
-    *  - bundle-02/manifest.xml
+    * The bundle directory names must be {BUNDLE_TYPE}-{BUNDLE_VERSION} and there must be a companion a tgz version
+    * version in the directory.
     *
-    * @param path
+    * For example, bundle type "exampleBundle" with bundle version 1.2.3 (from the Version in the manifest.xml)
+    *
+    * By default the most recent version will be marked as "Active". To override this, create a soft link of
+    * {BUNDLE_TYPE}-latest to point to the bundle that is "Active"
+    *
+    * FIXME, "latest" should be renamed to "active". Latest is a misnomer.
+    *
+    * root-dir
+    *  - exampleBundle-1.2.3
+    *  - exampleBundle-1.2.3/manifest.xml
+    *  - exampleBundle-1.2.3.tgz
+    *  - exampleBundle-latest # soft link to exampleBundle-1.2.3
+    *
+    * @param path Root Path to the bundle dir
     * @return
     */
-  def loadBundlesFromRoot(path: Path): Seq[PacBioBundle] = {
+  def loadBundlesFromRoot(path: Path): Seq[PacBioDataBundleIO] = {
 
     logger.info(s"Attempting to load bundles from $path")
+    def hasCompanionTgz(path: Path): Boolean = {
+      val p = Paths.get(path.toString + ".tgz")
+      Files.exists(p)
+    }
 
-    def getBundle(p: Path): Option[PacBioBundle] =
-      getManifestXmlFromDir(p)
-        .map(px => parseBundleManifestXml(px.toFile))
+    def getCompanionTgz(path: Path): Option[Path] = {
+      val p = Paths.get(path.toString + ".tgz")
+      if (Files.exists(p)) Some(p)
+      else None
+    }
+
+    def isActive(rootBundlePath: Path, bundleTypeId: String): Boolean = {
+      val px = rootBundlePath.getParent.resolve(s"$bundleTypeId-latest")
+      if (Files.exists(px) && Files.isSymbolicLink(px)) {
+        px.toRealPath() == rootBundlePath
+      } else
+        false
+    }
+
+    // Having trouble composing here. Doing a simple and stupid approach
+    def resolveBundleIO(rootBundlePath: Path, tgz: Option[Path], bundle: Option[PacBioDataBundle]): Option[PacBioDataBundleIO] = {
+      (tgz, bundle) match {
+        case (Some(x), Some(y)) =>
+          val isBundleActive = isActive(rootBundlePath, y.typeId)
+          Some(PacBioDataBundleIO(x, rootBundlePath, y.copy(isActive = isBundleActive)))
+        case _ => None
+      }
+    }
+
+    def getBundleIO(rootBundlePath: Path): Option[PacBioDataBundleIO] = {
+      val tgz = getCompanionTgz(rootBundlePath)
+      val b = getManifestXmlFromDir(rootBundlePath)
+          .map(px => parseBundleManifestXml(px.toFile))
+      resolveBundleIO(rootBundlePath, tgz, b)
+    }
 
     // Look for any subdirectories that have 'manifest.xml' files in them
+    // and have a companion tgz directory. See pacbio_bundles.rst and loadBundlesFromRoot for details
+    // "Malformed" directories not adhering to the spec will be silently ignored.
     val bundles = path.toAbsolutePath.toFile.list()
         .map(p => path.resolve(p))
-        .filter(f => Files.isDirectory(f))
-        .flatMap(getBundle)
+        .filter(f => Files.isDirectory(f) & hasCompanionTgz(f))
+        .flatMap(px => getBundleIO(px))
 
-    logger.info(s"Successfully loaded ${bundles.length} PacBio Bundles.")
+    logger.info(s"Successfully loaded ${bundles.length} PacBio Data Bundles.")
+    bundles.foreach(b => logger.info(s"BundleType:${b.bundle.typeId} version:${b.bundle.version} isActive:${b.bundle.isActive}"))
     bundles
   }
 
 
-  def getBundlesByType(bundles: Seq[PacBioBundle], bundleType: String): Seq[PacBioBundle] =
+  def getBundlesByType(bundles: Seq[PacBioDataBundle], bundleType: String): Seq[PacBioDataBundle] =
     bundles.filter(_.typeId == bundleType)
 
   /**
@@ -230,12 +301,12 @@ trait BundleUtils extends LazyLogging{
     * @param bundleType
     * @return
     */
-  def getNewestBundleVersionByType(bundles: Seq[PacBioBundle], bundleType: String): Option[PacBioBundle] = {
-    implicit val orderBy = PacBioBundle.orderByBundleVersion
+  def getNewestBundleVersionByType(bundles: Seq[PacBioDataBundle], bundleType: String): Option[PacBioDataBundle] = {
+    implicit val orderBy = PacBioDataBundle.orderByBundleVersion
     getBundlesByType(bundles, bundleType).sorted.reverse.headOption
   }
 
-  def getBundle(bundles: Seq[PacBioBundle], bundleType: String, version: String): Option[PacBioBundle] =
+  def getBundle(bundles: Seq[PacBioDataBundle], bundleType: String, version: String): Option[PacBioDataBundle] =
     getBundlesByType(bundles, bundleType).find(_.version == version)
 
 }
@@ -243,42 +314,137 @@ trait BundleUtils extends LazyLogging{
 object BundleUtils extends BundleUtils
 
 
-class PacBioBundleDao(bundles: Seq[PacBioBundle] = Seq.empty[PacBioBundle]) {
+class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBundleIO]) {
 
-  private var loadedBundles = mutable.ArrayBuffer.empty[PacBioBundle]
+  private var loadedBundles = mutable.ArrayBuffer.empty[PacBioDataBundleIO]
 
   bundles.foreach(b => loadedBundles += b)
 
-  def getBundles = loadedBundles.toList
+  def getBundles = loadedBundles.map(_.bundle).toList
 
-  def getBundlesByType(bundleType: String): Seq[PacBioBundle] =
-    BundleUtils.getBundlesByType(loadedBundles, bundleType)
+  def getBundlesByType(bundleType: String): Seq[PacBioDataBundle] =
+    BundleUtils.getBundlesByType(loadedBundles.map(_.bundle), bundleType)
 
-  def getNewestBundleVersionByType(bundleType: String): Option[PacBioBundle] =
-    BundleUtils.getNewestBundleVersionByType(loadedBundles, bundleType)
+  def getNewestBundleVersionByType(bundleType: String): Option[PacBioDataBundle] =
+    BundleUtils.getNewestBundleVersionByType(getBundles, bundleType)
 
-  def getBundle(bundleType: String, version: String): Option[PacBioBundle] =
-    BundleUtils.getBundlesByType(loadedBundles, bundleType).find(_.version == version)
+  def getActiveBundleVersionByType(bundleType: String): Option[PacBioDataBundle] =
+    getBundles.find(_.isActive)
 
-  def addBundle(bundle: PacBioBundle): PacBioBundle = {
+  def getActiveBundleByType(bundleType: String): Option[PacBioDataBundle] =
+    getBundles.filter(_.typeId == bundleType).find(_.isActive == true)
+
+  def getActiveBundleIOByType(bundleType: String): Option[PacBioDataBundleIO] =
+    loadedBundles.filter(_.bundle.typeId == bundleType).find(_.bundle.isActive == true)
+
+  def getBundle(bundleType: String, version: String): Option[PacBioDataBundle] =
+    BundleUtils.getBundlesByType(getBundles, bundleType).find(_.version == version)
+
+  def getBundleIO(bundleType: String, version: String): Option[PacBioDataBundleIO] =
+    loadedBundles.find(b => (b.bundle.version == version) && (b.bundle.typeId == bundleType))
+
+  def addBundle(bundle: PacBioDataBundleIO): PacBioDataBundleIO = {
     loadedBundles += bundle
     bundle
   }
 
+  /**
+    * Get the newest upgrade possible for a given bundle type.
+    *
+    * @param bundleType
+    * @return
+    */
+  def getBundleUpgrade(bundleType: String): PacBioDataBundleUpgrade = {
+    implicit val orderBy = PacBioDataBundle.orderByBundleVersion
+
+    val activeBundle = getActiveBundleByType(bundleType)
+
+    val bundles = loadedBundles.map(_.bundle)
+        .filter(_.typeId == bundleType)
+        .filter(_.isActive == false)
+
+    val opt = activeBundle match {
+      case Some(acBundle) =>
+        bundles.filter(b => b.version > acBundle.version).sorted.reverse.headOption
+      case _ => None
+    }
+
+    PacBioDataBundleUpgrade(opt)
+  }
+
+  private def updateActiveSymLink(rootBundleDir: Path, bundleTypeId: String, bundlePath: Path): Path = {
+    val px = rootBundleDir.resolve(s"$bundleTypeId-latest")
+    if (Files.exists(px)) {
+      px.toFile.delete()
+    }
+    Files.createSymbolicLink(px, bundlePath)
+    px
+  }
+
+  private def setBundleAsActive(bundleType: String, bundleVersion: String): Try[PacBioDataBundleIO] = {
+    val errorMessage = s"Unable to find $bundleType with version $bundleVersion"
+    val newBundles = loadedBundles.map {b =>
+      val bx = if (b.bundle.typeId == bundleType) {
+        if (b.bundle.version == bundleVersion) b.bundle.copy(isActive = true)
+        else b.bundle.copy(isActive = false)
+      } else {
+        b.bundle
+      }
+      b.copy(bundle = bx)
+    }
+    loadedBundles = newBundles
+
+    getActiveBundleIOByType(bundleType)
+        .map(b => Success(b))
+        .getOrElse(Failure(new ResourceNotFoundError(errorMessage)))
+  }
+
+  /**
+    * Mark the bundle as "Active" and create a symlink to the new active bundle with {bundle-type}-latest
+    *
+    * 1. Check if bundle is already active. Return bundle if so
+    * 2.
+    *
+    * FIXME. This needs to be converted to {bundle-type}-active
+    *
+    * "latest" makes no sense.
+    *
+    * @param bundleType
+    * @param bundleVersion
+    * @return
+    */
+  def upgradeBundle(rootBundleDir: Path, bundleType: String, bundleVersion: String): Try[PacBioDataBundleIO] = {
+    val errorMessage = s"Unable to find $bundleType with version $bundleVersion"
+
+    getBundleIO(bundleType, bundleVersion).map { b =>
+
+      val tx = for {
+        px <- Try { updateActiveSymLink(rootBundleDir, b.bundle.typeId, b.path) }
+        b <- setBundleAsActive(bundleType, bundleVersion)
+        } yield b
+
+      tx.recoverWith { case NonFatal(ex) => Failure(new UnprocessableEntityError(errorMessage + s" ${ex.getMessage}")) }
+    }.getOrElse(Failure(new ResourceNotFoundError(s"Unable to find $bundleType with version $bundleVersion")))
+  }
 }
 
 
-class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLinkBaseMicroService
+class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService
     with DaoFutureUtils
-    with BundleUtils{
+    with BundleUtils
+    with FileAndResourceDirectives{
 
   import SmrtLinkJsonProtocols._
+
+  // for getFromFile to work
+  implicit val routing = RoutingSettings.default
+
 
   val ROUTE_PREFIX = "bundles"
 
   // When the system is downloading bundles, they'll be placed temporarily here, the moved to
   // under the bundle root if they are valid
-  val tmpBundleDir = Files.createTempDirectory("tmp-bundles")
+  val tmpRootBundleDir = Files.createTempDirectory("tmp-bundles")
 
   val manifest = PacBioComponentManifest(
     toServiceId("pacbio_bundles"),
@@ -293,6 +459,10 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
         Future.failed(throw new UnprocessableEntityError(s"$errorMessage ${ex.getMessage}"))
     }
   }
+
+  def getBundleByTypeAndVersion(bundleTypeId: String, bundleVersion: String): Future[PacBioDataBundleIO] =
+    Future { dao.getBundleIO(bundleTypeId, bundleVersion) }
+        .flatMap(failIfNone(s"Unable to find Bundle Type '$bundleTypeId' and version '$bundleVersion'"))
 
   val routes = {
     pathPrefix(ROUTE_PREFIX) {
@@ -309,10 +479,10 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
             complete {
               created {
                 for {
-                  bundle <- fromTry[PacBioBundle](s"Failed to process $record", Try { downloadAndParseBundle(record.url, tmpBundleDir) })
-                  validBundle <- fromTry[PacBioBundle](s"Bundle Already exists.", Try { copyBundleTo(bundle, rootBundle)})
+                  pathBundle <- fromTry[(Path, PacBioDataBundle)](s"Failed to process $record", Try { downloadAndParseBundle(record.url, tmpRootBundleDir) } )
+                  validBundle <- fromTry[PacBioDataBundleIO](s"Bundle Already exists.", Try { copyBundleTo(pathBundle._1, pathBundle._2, rootBundle)})
                   addedBundle <- Future {dao.addBundle(validBundle)}
-                } yield addedBundle
+                } yield addedBundle.bundle
               }
             }
           }
@@ -333,7 +503,54 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
             ok {
               Future {
                 dao.getNewestBundleVersionByType(bundleTypeId)
-              }.flatMap(failIfNone(s"Unable to find Newest Bundle for type '$bundleTypeId'"))
+              }.flatMap(failIfNone(s"Unable to find Newest Data Bundle for type '$bundleTypeId'"))
+            }
+          }
+        }
+      } ~
+      path(Segment / "active") { bundleTypeId =>
+        get {
+          complete {
+            ok {
+              Future {
+                dao.getActiveBundleVersionByType(bundleTypeId)
+              }.flatMap(failIfNone(s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
+            }
+          }
+        }
+      } ~
+      path(Segment / "upgrade") { bundleTypeId =>
+        get {
+          complete {
+            ok {
+              Future {
+                dao.getBundleUpgrade(bundleTypeId)
+              }
+            }
+          }
+        }
+      } ~
+      path(Segment / Segment / "upgrade") { (bundleTypeId, bundleVersion) =>
+        post {
+          complete {
+            ok {
+              for {
+                b <- getBundleByTypeAndVersion(bundleTypeId, bundleVersion)
+                bio <- fromTry[PacBioDataBundleIO](s"Unable to upgrade bundle $bundleTypeId and version $bundleVersion", dao.upgradeBundle(rootBundle, b.bundle.typeId, b.bundle.version))
+              } yield bio.bundle
+            }
+          }
+        }
+      } ~
+      path(Segment / Segment / "download") { (bundleTypeId, bundleVersion) =>
+        pathEndOrSingleSlash {
+          get {
+            onSuccess(getBundleByTypeAndVersion(bundleTypeId, bundleVersion)) { case b: PacBioDataBundleIO =>
+              val fileName = s"$bundleTypeId-$bundleVersion.tgz"
+              logger.info(s"Downloading bundle $b to $fileName")
+              respondWithHeader(HttpHeaders.`Content-Disposition`("attachment; filename=" + fileName)) {
+                getFromFile(b.tarGzPath.toFile)
+              }
             }
           }
         }
@@ -342,9 +559,7 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
         get {
           complete {
             ok {
-              Future {
-                dao.getBundle(bundleTypeId, bundleVersion)
-              }.flatMap(failIfNone(s"Unable to find Bundle Type '$bundleTypeId' and version '$bundleVersion'"))
+              getBundleByTypeAndVersion(bundleTypeId, bundleVersion).map(_.bundle)
             }
           }
         }
@@ -354,10 +569,13 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path) extends SmrtLi
 }
 
 trait PacBioBundleServiceProvider {
-  this: SmrtLinkConfigProvider with ServiceComposer =>
+  this: SmrtLinkConfigProvider with ServiceComposer with ActorSystemProvider =>
 
   val pacBioBundleService: Singleton[PacBioBundleService] =
-    Singleton(() => new PacBioBundleService(new PacBioBundleDao(pacBioBundles()), pacBioBundleRoot()))
+    Singleton { () =>
+      implicit val system = actorSystem()
+      new PacBioBundleService(new PacBioBundleDao(pacBioBundles()), pacBioBundleRoot())
+    }
 
   addService(pacBioBundleService)
 }

@@ -10,7 +10,7 @@ import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
-import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioBundle}
+import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundle, PacBioDataBundleIO}
 import com.pacbio.secondary.smrtlink.services.BundleUtils
 import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
 import com.typesafe.scalalogging.LazyLogging
@@ -54,7 +54,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   val pacBioBundleRoot: Singleton[Path] =
     Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
 
-  val pacBioBundles: Singleton[Seq[PacBioBundle]] =
+  val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
     Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
 
   // Load PacBio Automation Constraints Chemistry Bundle

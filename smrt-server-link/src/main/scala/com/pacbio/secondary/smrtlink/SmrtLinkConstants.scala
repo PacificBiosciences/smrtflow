@@ -12,6 +12,7 @@ trait SmrtLinkConstants {
 }
 
 trait JobServiceConstants {
+  val ROOT_SL_PREFIX = "smrt-link"
   val ROOT_SERVICE_PREFIX = "secondary-analysis"
   val SERVICE_PREFIX = "job-manager"
   val JOB_ROOT_PREFIX = "jobs"
