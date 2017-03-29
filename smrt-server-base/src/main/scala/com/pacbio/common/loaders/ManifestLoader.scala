@@ -37,11 +37,9 @@ trait ManifestLoader extends LazyLogging{
   def loadFromConfig(config: Config): Seq[PacBioComponentManifest] =
     Try { loadFrom(Paths.get(config.getString(CONFIG_KEY)).toFile) } match {
       case Success(m) =>
-        //logger.info(s"Loaded manifests $m")
-        println(s"TEST TEST TEST --- Loaded manifests $m")
+        logger.info(s"Loaded manifests $m")
         m
       case Failure(ex) =>
-        println(s"TEST TEST TEST --- failed to load $ex")
         logger.warn(s"Failed to load pacbio-manifest.json from config key $CONFIG_KEY Error ${ex.getMessage}")
         Seq.empty[PacBioComponentManifest]
     }
