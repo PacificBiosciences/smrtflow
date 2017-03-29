@@ -10,7 +10,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootBundleDir=$(dirname "${__dir}")
 
 config=${rootBundleDir}/smrtlink-system-config.json
-legacyConfig=${rootBundleDir}/legacy-db.json
+legacyConfig=${rootBundleDir}/config.json
 migrationState=${rootBundleDir}/legacy-migration.json
 
 if ! [ -e "$config" ]; then
