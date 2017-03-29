@@ -65,22 +65,12 @@ trait PbsmrtpipeScenarioCore
   protected val refUuid = Var(dsUuidFromPath(reference.get))
   protected val subreads = Var(testdata.getFile("subreads-xml"))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
-
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
+  
   // Randomize project name to avoid collisions
   protected val projectName = Var(s"Project-${UUID.randomUUID()}")
   protected val projectDesc = Var("Project Description")
   protected val projectId: Var[Int] = Var()
 
->>>>>>> Stashed changes
-=======
-  protected val projectName = Var("Project Name")
-  protected val projectDesc = Var("Project Description")
-  protected val projectId: Var[Int] = Var()
-
->>>>>>> develop
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
     PbSmrtPipeServiceOptions(
