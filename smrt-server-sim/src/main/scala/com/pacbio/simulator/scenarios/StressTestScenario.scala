@@ -54,7 +54,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
 
   override val name = "StressTestScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   val TIMEOUT_ERR = s"Job did not complete within $maxTime seconds"
   val EXIT_SUCCESS: Var[Int] = Var(0)
