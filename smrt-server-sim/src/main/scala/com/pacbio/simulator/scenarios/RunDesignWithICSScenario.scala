@@ -76,7 +76,7 @@ class RunDesignWithICSScenario(host: String,
 
   override val name = "RunDesignWithICSScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(new URL("http", host, port, ""))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
   override val icsClient = new InstrumentControlClient(new URL("http",icsHost, icsPort,""))
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)

@@ -473,6 +473,14 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetJobsByProject(projectId: Var[Int]) extends VarStep[Seq[EngineJob]] {
+    override val name = "GetJobsByProjct"
+    override def run: Future[Result] = smrtLinkClient.getJobsByProject(projectId.get).map { j =>
+      output(j)
+      SUCCEEDED
+    }
+  }
+
   case object GetAnalysisJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetAnalysisJobs"
     override def run: Future[Result] = smrtLinkClient.getAnalysisJobs.map { j =>

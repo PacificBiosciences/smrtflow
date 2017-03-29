@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.14.1"
+BUNDLE_VERSION="0.14.2"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 

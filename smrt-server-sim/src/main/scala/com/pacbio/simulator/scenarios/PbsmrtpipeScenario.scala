@@ -66,6 +66,7 @@ trait PbsmrtpipeScenarioCore
   protected val subreads = Var(testdata.getFile("subreads-xml"))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
   // Randomize project name to avoid collisions
@@ -74,8 +75,14 @@ trait PbsmrtpipeScenarioCore
   protected val projectId: Var[Int] = Var()
 
 >>>>>>> Stashed changes
+=======
+  protected val projectName = Var("Project Name")
+  protected val projectDesc = Var("Project Description")
+  protected val projectId: Var[Int] = Var()
+
+>>>>>>> develop
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
-  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
     PbSmrtPipeServiceOptions(
       "diagnostic-test",
       "pbsmrtpipe.pipelines.dev_diagnostic",
@@ -92,7 +99,9 @@ trait PbsmrtpipeScenarioCore
         ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
         ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
       ),
-      Seq[ServiceTaskOptionBase]()))
+      Seq[ServiceTaskOptionBase](),
+      pid)
+  }
   protected val failOpts = diagnosticOpts.mapWith(_.copy(
     taskOptions=Seq(ServiceTaskBooleanOption(toI("raise_exception"), true,
                                              BOOL.optionTypeId))))
@@ -141,7 +150,8 @@ trait PbsmrtpipeScenarioCore
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
+    projectId := CreateProject(projectName, projectDesc)
   )
 }
 
@@ -153,7 +163,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   import JobModels._
 
   override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
 
   val diagnosticJobTests = Seq(
     jobId := RunAnalysisPipeline(diagnosticOpts),
