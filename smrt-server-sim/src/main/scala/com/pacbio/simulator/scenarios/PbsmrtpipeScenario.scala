@@ -66,6 +66,14 @@ trait PbsmrtpipeScenarioCore
   protected val subreads = Var(testdata.getFile("subreads-xml"))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
+<<<<<<< Updated upstream
+=======
+  // Randomize project name to avoid collisions
+  protected val projectName = Var(s"Project-${UUID.randomUUID()}")
+  protected val projectDesc = Var("Project Description")
+  protected val projectId: Var[Int] = Var()
+
+>>>>>>> Stashed changes
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
@@ -160,6 +168,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
+    fail("Wrong project id in job") IF job.mapWith(_.projectId) !=? projectId,
+    jobs := GetAnalysisJobsForProject(projectId),
+    fail("Expected one job for project") IF jobs.mapWith(_.size) !=? 1,
+    fail("Wrong job found for project ") IF jobs.mapWith(_.head) !=? job,
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid,

@@ -424,8 +424,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     Delete(toUrl(ROOT_EULA + s"/$version"))
   }
 
-  protected def getJobsByType(jobType: String): Future[Seq[EngineJob]] = getJobsPipeline {
-    Get(toUrl(ROOT_JOBS + "/" + jobType))
+  protected def getJobsByType(jobType: String,
+                              showAll: Boolean = false,
+                              projectId: Option[Int] = None): Future[Seq[EngineJob]] = getJobsPipeline {
+    val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
+    val query2 = if (projectId.isDefined) Seq(s"projectId=${projectId.get}") else Seq.empty[String]
+    val queries = query1 ++ query2
+    val queryString = if (queries.isEmpty) "" else "?" + (query1 ++ query2).reduce(_ + "&" + _)
+    Get(toUrl(ROOT_JOBS + "/" + jobType + queryString))
   }
 
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
@@ -436,12 +442,17 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String] = None)
     Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId))
   }
 
-
   def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(PB_PIPE)
   def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(IMPORT_DS)
   def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(MERGE_DS)
   def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(CONVERT_FASTA)
   def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(CONVERT_BARCODES)
+
+  def getAnalysisJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(PB_PIPE, projectId = Some(projectId))
+  def getImportJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(IMPORT_DS, projectId = Some(projectId))
+  def getMergeJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(MERGE_DS, projectId = Some(projectId))
+  def getFastaConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(CONVERT_FASTA, projectId = Some(projectId))
+  def getBarcodeConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(CONVERT_BARCODES, projectId = Some(projectId))
 
   def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
     Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString))
