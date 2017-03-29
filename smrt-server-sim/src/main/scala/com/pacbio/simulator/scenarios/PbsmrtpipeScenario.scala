@@ -65,8 +65,9 @@ trait PbsmrtpipeScenarioCore
   protected val refUuid = Var(dsUuidFromPath(reference.get))
   protected val subreads = Var(testdata.getFile("subreads-xml"))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
-
-  protected val projectName = Var("Project Name")
+  
+  // Randomize project name to avoid collisions
+  protected val projectName = Var(s"Project-${UUID.randomUUID()}")
   protected val projectDesc = Var("Project Description")
   protected val projectId: Var[Int] = Var()
 
@@ -168,7 +169,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     fail("Wrong project id in job") IF job.mapWith(_.projectId) !=? projectId,
-    jobs := GetJobsByProject(projectId),
+    jobs := GetAnalysisJobsForProject(projectId),
     fail("Expected one job for project") IF jobs.mapWith(_.size) !=? 1,
     fail("Wrong job found for project ") IF jobs.mapWith(_.head) !=? job,
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
