@@ -1,6 +1,7 @@
 import java.nio.file.Paths
 import java.util.UUID
 
+import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
@@ -32,6 +33,7 @@ import scala.concurrent.duration._
   *
   */
 class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with TestDalProvider with TestUtils{
+  import PacBioDateTimeFormat.TIME_ZONE
   import JobModels._
   import TableModels._
 
@@ -45,7 +47,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
   "Database" should {
     "Sanity test for inserting and querying the db" in {
 
-      val now = JodaDateTime.now()
+      val now = JodaDateTime.now(TIME_ZONE)
       val username = "user-name"
       val datasetTypeId = "dataset-type-id"
 
@@ -64,7 +66,10 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "job-type-id",
         "/job/path",
         "{\"foo\":true}",
-        Some("jsnow"), Some("0.1.0-SL"), Some("0.1.1-SL-TOOLS"))
+        Some("jsnow"),
+        Some("0.1.0-SL"),
+        Some("0.1.1-SL-TOOLS"),
+        projectId = -1)
       val event = JobEvent(UUID.randomUUID(), jobId = -1, AnalysisJobStates.CREATED, "job-created", createdAt = now)
       val tag = (-1, "tag-name")
       val jTag = (-1, -1)
@@ -184,12 +189,10 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       val putAll = testdb.run(
         for {
-          jid <- engineJobs returning engineJobs.map(_.id) += job
-          _   <- jobEvents += event.copy(jobId = jid)
-          tid <- jobTags returning jobTags.map(_.id) += tag
-          _   <- jobsTags += jTag.copy(_1 = jid, _2 = tid)
           pid <- projects returning projects.map(_.id) += project
           _   <- projectsUsers += projectUser.copy(projectId = pid)
+          jid <- engineJobs returning engineJobs.map(_.id) += job.copy(projectId = pid)
+          _   <- jobEvents += event.copy(jobId = jid)
           _   <- engineJobsDataSets += dataset.copy(jobId = jid)
           _   <- dsMetaData2 += metadata.copy(jobId = jid, projectId = pid)
           _   <- dsSubread2 += subread
@@ -219,8 +222,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       val ej = Await.result(testdb.run(engineJobs.filter(_.uuid === job.uuid).result.head), 1.second)
       val je = Await.result(testdb.run(jobEvents.filter(_.jobId === ej.id).result.head), 1.second)
-      val ta = Await.result(testdb.run(jobTags.result.head), 1.second)
-      val jt = Await.result(testdb.run(jobsTags.result.head), 1.second)
       val gp = Await.result(testdb.run(projects.filter(_.name === "General Project").result.head), 1.second)
       // Get the Project that this spec imported
       val pr = Await.result(testdb.run(projects.filter(_.name === projectName).result.head), 1.second)
@@ -244,7 +245,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val sa = Await.result(testdb.run(samples.filter(_.uniqueId === sample.uniqueId).result.head), 1.second)
 
       val jobId = ej.id
-      val tagId = ta._1
       val projectId = pr.id
       val metadataId = md.id
       val subreadId = su.id
@@ -257,10 +257,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       val consensusId = ca.id
       val contigId = co.id
 
-      ej === job.copy(id = jobId)
+      ej === job.copy(id = jobId, projectId = projectId)
       je === event.copy(jobId = jobId)
-      ta === tag.copy(_1 = tagId)
-      //jt === jTag.copy(_1 = jobId, _2 = tagId)
       //gp.description === "General Project"
       //pr === project.copy(id = projectId)
       //pu === projectUser.copy(projectId = projectId)

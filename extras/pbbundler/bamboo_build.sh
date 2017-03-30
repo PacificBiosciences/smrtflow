@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.11.0"
+BUNDLE_VERSION="0.14.2"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -17,6 +17,7 @@ if [ -z "$BUNDLE_DEST" ]; then
   BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-mainline"
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
+CHEM_BUNDLE="${SRC}/chemistry-bundle"
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
@@ -41,43 +42,40 @@ __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
 
-INTERNAL_BUILD=0
-SL_ANALYSIS_SERVER="smrt-server-analysis"
-arg1="${1:-}"
-if [ ! -z "$arg1" ] && [ "$arg1" = "--internal" ]; then
-  INTERNAL_BUILD=1
-  BUNDLE_VERSION="internal-${BUNDLE_VERSION}"
-  SL_ANALYSIS_SERVER="smrt-server-analysis-internal"
-fi
+SL_ANALYSIS_SERVER="smrt-server-link"
 
 echo "Starting building ${BUNDLE_VERSION}"
 
 source /mnt/software/Modules/current/init/bash
 
-module load jdk/1.8.0_40
+module load jdk/1.8.0_71
 module load sbt
 module load nodejs/4.1.2
-module load python/2.7.9
 
 echo "Running java version $(java -version)"
 echo "Running sbt $(which sbt)"
 
 cd $SRC
-ve=${SRC}/ve
-echo "Creating Virtualenv $ve"
-/opt/python-2.7.9/bin/python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
-source $ve/bin/activate
-pip install fabric
+if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
+  module load python/2.7.9
+  ve=${SRC}/ve
+  echo "Creating Virtualenv $ve"
+  python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
+  source $ve/bin/activate
+  pip install fabric
+fi
 
 RPT_JSON_PATH="${SRC}/resolved-pipeline-templates"
 if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
-  echo "Installing pbsmrtpipe to virtualenv"
-  cd ${SRC}/pbcore
-  pip install -r requirements.txt
-  python setup.py install
-  cd ..
-  (cd ${SRC}/pbcommand && make clean && python setup.py install)
-  (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
+  if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
+    echo "Installing pbsmrtpipe to virtualenv"
+    cd ${SRC}/pbcore
+    pip install -r requirements.txt
+    python setup.py install
+    cd ..
+    (cd ${SRC}/pbcommand && make clean && python setup.py install)
+    (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
+  fi
 
   if [ ! -d ${RPT_JSON_PATH} ]; then
     mkdir ${RPT_JSON_PATH}
@@ -88,31 +86,22 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   pbsmrtpipe show-templates --output-templates-json ${RPT_JSON_PATH}
 
   echo "Generating pipeline datastore view rules"
-  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/pipeline-datastore-view-rules"
+  VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/pipeline-datastore-view-rules"
   python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
 
   # FIXME this won't be run if we use build artifacts - need some other way
   # to run validation
-  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/resolved-pipeline-template-presets
+  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/resolved-pipeline-template-presets
 
 fi
 
 # don't need to do any building for this
 echo "Installing report view rules from pbreports"
-REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-analysis/src/main/resources/report-view-rules"
+REPORT_RULES="${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/report-view-rules"
 cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
-# giant hack to allow us to display internal pipelines
-if [ $INTERNAL_BUILD -eq 1 ]; then
-  echo "Making adjustments for internal build..."
-  CONFIG_FILE=`find ${UI_ROOT} -name "app-config.json"`
-  if [ -z "$CONFIG_FILE" ]; then
-    echo "Can't find app-config.json"
-    exit 1
-  fi
-  sed -i 's/"isInternalModeEnabled": false/"isInternalModeEnabled": true/;' $CONFIG_FILE
-fi
+
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP},tomcat_tgz=${TOMCAT_TGZ}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}"

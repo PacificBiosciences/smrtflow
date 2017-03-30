@@ -75,7 +75,7 @@ trait MockUtils extends LazyLogging{
 
   val dao: JobsDao
 
-  private var mockProjectId = -1
+  private var mockProjectId = 1
   def getMockProjectId: Int = mockProjectId
 
   // This is a weak way to indentify MOCK jobs from real jobs
@@ -123,7 +123,10 @@ trait MockUtils extends LazyLogging{
         jobType,
         "path",
         "{}",
-        Some("root"), None, None)}
+        Some("root"),
+        None,
+        None,
+        projectId = mockProjectId)}
     val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
@@ -248,21 +251,6 @@ trait MockUtils extends LazyLogging{
       batches = entryPoints.grouped(scala.math.min(nchunks, entryPoints.length))
       _ <- Future.sequence(batches.map(batch => dao.db.run(engineJobsDataSets ++= batch)))
     } yield ()
-  }
-
-  def insertMockJobsTags(): Future[Unit] = {
-    def randomInt(x: List[Int]) = Random.shuffle(x).head
-
-    val jobIds = (1 until MOCK_NJOBS).toList
-    val tags = Seq("filtering", "mapping", "ecoli", "lambda", "myProject") ++ (1 until 10).map(i => s"Tag $i")
-    val tagIds = tags.indices.toList
-
-    dao.db.run(
-      DBIO.seq(
-        jobTags ++= tagIds.map(i => (i, tags(i))),
-        jobsTags ++= jobIds.map( (_, randomInt(tagIds)) )
-      )
-    )
   }
 
   def insertMockProject(): Future[Int] = {

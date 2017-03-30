@@ -1,62 +1,65 @@
 package com.pacbio.secondary.smrtlink.client
 
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.jobs.{JobModels,SecondaryJobProtocols}
-import com.pacbio.secondary.analysis.reports._
-import com.pacbio.common.models._
-import com.pacbio.common.client._
-import com.pacificbiosciences.pacbiodatasets._
-
-import akka.actor.ActorSystem
-
-import spray.http._
-import spray.client.pipelining._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
-import spray.json.DefaultJsonProtocol
-
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
 import java.net.URL
+import java.nio.file.Path
 import java.util.UUID
 
-object ServicesClientJsonProtocol extends SmrtLinkJsonProtocols with ReportJsonProtocol with DataSetJsonProtocols
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
+import scalaj.http.Base64
+import akka.actor.ActorSystem
+import spray.client.pipelining._
+import spray.http._
+import spray.httpx.SprayJsonSupport
+import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.common.auth.Authenticator._
+import com.pacbio.common.auth.JwtUtils._
+import com.pacbio.common.client._
+import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.analysis.jobtypes._
+import com.pacbio.secondary.analysis.reports._
+import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.models._
 
-trait ServiceEndpointConstants extends JobServiceConstants {
-  val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX"
-  val ROOT_JOBS = s"$ROOT_JM/$JOB_ROOT_PREFIX"
-  val ROOT_DS = s"/$ROOT_SERVICE_PREFIX/datasets"
-  val ROOT_RUNS = "/smrt-link/runs"
-  val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"
-  val ROOT_PROJECTS = s"/$ROOT_SERVICE_PREFIX/projects"
-  val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
-  val ROOT_EULA = "/smrt-base/eula"
-}
 
-trait JobTypesConstants {
-  val IMPORT_DS = "import-dataset"
-  val MERGE_DS = "merge-datasets"
-  val MOCK_PB_PIPE = "mock-pbsmrtpipe"
-}
+object ServicesClientJsonProtocol
+    extends SmrtLinkJsonProtocols
+    with ReportJsonProtocol
+    with DataSetJsonProtocols
+    with SecondaryAnalysisJsonProtocols {}
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
-    with ServiceEndpointConstants
-    with JobTypesConstants {
+    with AnalysisJobConstants
+    with ServiceEndpointConstants {
 
+  import CommonModelImplicits._
+  import CommonModels._
+  import JobModels._
+  import ReportModels._
+  import SecondaryModels._
   import ServicesClientJsonProtocol._
   import SprayJsonSupport._
-  import CommonModels._
-  import CommonModelImplicits._
-  import ReportModels._
-  import JobModels._
 
+  // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth
+  val headers = authUser
+    .map(u => "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
+    .map(c => Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
+    .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
+    .toSeq
+
+  def this(host: String, port: Int, authUser: Option[String] = None)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
+  }
+
+  private def toP(path: Path) = path.toAbsolutePath.toString
   private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
   protected def toJobUrl(jobType: String, jobId: IdAble): String =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}")
@@ -77,8 +80,16 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
                                      resourceType: String, resourceId: UUID) =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType/$resourceId")
 
+  protected def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
+    val segment = bundleType.map(b => s"/$b").getOrElse("")
+    toUrl(ROOT_PB_DATA_BUNDLE + segment)
+  }
+
   override def serviceStatusEndpoints: Vector[String] = Vector(
       ROOT_JOBS + "/" + IMPORT_DS,
+      ROOT_JOBS + "/" + CONVERT_FASTA,
+      ROOT_JOBS + "/" + CONVERT_BARCODES,
+      ROOT_JOBS + "/" + PB_PIPE,
       ROOT_DS + "/" + DataSetMetaTypes.Subread.shortName,
       ROOT_DS + "/" + DataSetMetaTypes.HdfSubread.shortName,
       ROOT_DS + "/" + DataSetMetaTypes.Reference.shortName,
@@ -151,6 +162,24 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
   protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] = sendReceiveAuthenticated ~> unmarshal[Seq[EulaRecord]]
 
   protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceiveAuthenticated ~> unmarshal[MessageResponse]
+
+  def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceiveAuthenticated ~> unmarshal[EngineJob]
+  // XXX this fails when createdBy is an object instead of a string
+  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceiveAuthenticated ~> unmarshal[Seq[EngineJob]]
+  def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceiveAuthenticated ~> unmarshal[EngineJob]
+  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[ReportViewRule]]
+  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] = sendReceiveAuthenticated ~> unmarshal[ReportViewRule]
+  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplate]
+  def getPipelineTemplatesPipeline: HttpRequest => Future[Seq[PipelineTemplate]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplate]]
+  def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplateViewRule]]
+  def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
+  def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
+
+  def getPacBioDataBundlesPipeline: HttpRequest => Future[Seq[PacBioDataBundle]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioDataBundle]]
+  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] = sendReceiveAuthenticated ~> unmarshal[PacBioDataBundle]
+
+  def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
+  def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
@@ -361,19 +390,17 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
     Delete(getRunUrl(runId))
   }
 
-  // FIXME(nechols)(2016-09-21) these are currently broken pending fixes to
-  // authentication
   def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ROOT_PROJECTS))
+    Get(toUrl(ROOT_PROJECTS)).withHeaders(headers:_*)
   }
 
   def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ROOT_PROJECTS + s"/$projectId"))
+    Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers:_*)
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS),
-         ProjectRequest(name, description, None, None, None))
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None))
+      .withHeaders(headers:_*)
   }
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
@@ -395,5 +422,240 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authToken: Option[String] = None)
 
   def deleteEula(version: String) = getMessageResponsePipeline {
     Delete(toUrl(ROOT_EULA + s"/$version"))
+  }
+
+  protected def getJobsByType(jobType: String,
+                              showAll: Boolean = false,
+                              projectId: Option[Int] = None): Future[Seq[EngineJob]] = getJobsPipeline {
+    val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
+    val query2 = if (projectId.isDefined) Seq(s"projectId=${projectId.get}") else Seq.empty[String]
+    val queries = query1 ++ query2
+    val queryString = if (queries.isEmpty) "" else "?" + (query1 ++ query2).reduce(_ + "&" + _)
+    Get(toUrl(ROOT_JOBS + "/" + jobType + queryString))
+  }
+
+  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ROOT_JOBS + s"?projectId=$projectId"))
+  }
+
+  def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] = getServiceManifestsPipeline {
+    Get(toUrl(ROOT_SERVICE_MANIFESTS))
+  }
+  // Added in smrtflow 0.1.11 and SA > 3.2.0
+  def getPacBioComponentManifestById(manifestId: String): Future[PacBioComponentManifest] = getServiceManifestPipeline {
+    Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId))
+  }
+
+  def getAnalysisJobs: Future[Seq[EngineJob]] = getJobsByType(PB_PIPE)
+  def getImportJobs: Future[Seq[EngineJob]] = getJobsByType(IMPORT_DS)
+  def getMergeJobs: Future[Seq[EngineJob]] = getJobsByType(MERGE_DS)
+  def getFastaConvertJobs: Future[Seq[EngineJob]] = getJobsByType(CONVERT_FASTA)
+  def getBarcodeConvertJobs: Future[Seq[EngineJob]] = getJobsByType(CONVERT_BARCODES)
+
+  def getAnalysisJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(PB_PIPE, projectId = Some(projectId))
+  def getImportJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(IMPORT_DS, projectId = Some(projectId))
+  def getMergeJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(MERGE_DS, projectId = Some(projectId))
+  def getFastaConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(CONVERT_FASTA, projectId = Some(projectId))
+  def getBarcodeConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] = getJobsByType(CONVERT_BARCODES, projectId = Some(projectId))
+
+  def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
+    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString))
+  }
+
+  def deleteJob(jobId: UUID, removeFiles: Boolean = true, dryRun: Boolean = false): Future[EngineJob] = getJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/delete-job"),
+         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun)))
+  }
+
+  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
+    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString + "/children"))
+  }
+
+  def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] = getJobPipeline {
+    Get(toJobUrl(jobType, jobId))
+  }
+
+  def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
+    getJobByTypeAndId(PB_PIPE, jobId)
+  }
+
+  def getAnalysisJobDataStore(jobId: IdAble) = getJobDataStore(PB_PIPE, jobId)
+  def getImportFastaJobDataStore(jobId: IdAble) = getJobDataStore(CONVERT_FASTA, jobId)
+  def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(CONVERT_BARCODES, jobId)
+  def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(CONVERT_MOVIE, jobId)
+  def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(EXPORT_DS, jobId)
+
+  def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, PB_PIPE)
+
+  // FIXME I think this still only works with Int
+  def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] = getEntryPointsPipeline {
+    Get(toJobResourceUrl(PB_PIPE, jobId, ENTRY_POINTS_PREFIX))
+  }
+
+  protected def getJobReport(jobType: String, jobId: IdAble, reportId: UUID): Future[Report] = getReportPipeline {
+    Get(toJobResourceIdUrl(jobType, jobId, JOB_REPORT_PREFIX, reportId))
+  }
+
+  // FIXME there is some degeneracy in the URLs - this actually works just fine
+  // for import-dataset and merge-dataset jobs too
+  def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] = getJobReport(PB_PIPE, jobId, reportId)
+  def getAnalysisJobTasks(jobId: Int): Future[Seq[JobTask]] = getJobTasks(PB_PIPE, jobId)
+  def getAnalysisJobTask(jobId: Int, taskId: UUID): Future[JobTask] = getJobTask(PB_PIPE, jobId, taskId)
+  def getAnalysisJobEvents(jobId: Int): Future[Seq[JobEvent]] = getJobEvents(PB_PIPE, jobId)
+  def getAnalysisJobOptions(jobId: Int): Future[PipelineTemplatePreset] = getJobOptions(PB_PIPE, jobId)
+
+  def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
+    getMessageResponsePipeline { Post(toJobResourceUrl(PB_PIPE, jobId, TERMINATE_JOB))}
+
+  def getReportViewRules: Future[Seq[ReportViewRule]] = getReportViewRulesPipeline {
+    Get(toUrl(ROOT_REPORT_RULES))
+  }
+
+  def getReportViewRule(reportId: String): Future[ReportViewRule] = getReportViewRulePipeline {
+    Get(toUrl(ROOT_REPORT_RULES + s"/$reportId"))
+  }
+
+  def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
+    val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
+    Post(
+      toUrl(ROOT_JOBS + "/" + IMPORT_DS),
+      ImportDataSetOptions(toP(path), dsMetaTypeObj))
+  }
+
+  def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
+    Post(
+      toUrl(ROOT_JOBS + "/" + CONVERT_FASTA),
+      ConvertImportFastaOptions(toP(path), name, ploidy, organism))
+  }
+
+  def importFastaBarcodes(path: Path, name: String): Future[EngineJob] = runJobPipeline {
+    Post(
+      toUrl(ROOT_JOBS + "/" + CONVERT_BARCODES),
+      ConvertImportFastaBarcodesOptions(toP(path), name))
+  }
+
+  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + MERGE_DS),
+         DataSetMergeServiceOptions(datasetType, ids, name))
+  }
+
+  def convertRsMovie(path: Path, name: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + CONVERT_MOVIE),
+      MovieMetadataToHdfSubreadOptions(toP(path), name))
+  }
+
+  def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + EXPORT_DS),
+         DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
+  }
+
+  def deleteDataSets(datasetType: String, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + DELETE_DS),
+         DataSetDeleteServiceOptions(datasetType, ids, removeFiles))
+  }
+
+  def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
+    Get(toUrl(ROOT_PT + "/" + pipelineId))
+  }
+
+  def getPipelineTemplates: Future[Seq[PipelineTemplate]] = getPipelineTemplatesPipeline {
+    Get(toUrl(ROOT_PT))
+  }
+
+  def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] = getPipelineTemplateViewRulesPipeline {
+    Get(toUrl(ROOT_PTRULES))
+  }
+
+  def getPipelineTemplateViewRule(pipelineId: String): Future[PipelineTemplateViewRule] = getPipelineTemplateViewRulePipeline {
+    Get(toUrl(ROOT_PTRULES + s"/$pipelineId"))
+  }
+
+  def getPipelineDataStoreViewRules(pipelineId: String): Future[PipelineDataStoreViewRules] = getPipelineDataStoreViewRulesPipeline {
+    Get(toUrl(ROOT_DS_RULES + s"/$pipelineId"))
+  }
+
+  def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + PB_PIPE), pipelineOptions)
+  }
+
+  // PacBio Data Bundle
+  def getPacBioDataBundles() = getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl()) }
+
+  def getPacBioDataBundleByTypeId(typeId: String) =
+    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+
+  def getPacBioDataBundleByTypeAndVersionId(typeId: String, versionId: String) =
+    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}
+
+
+  /**
+    * FIXME(mpkocher)(2016-8-22)
+    * - maxTime should be Option[Duration]
+    * - replace tStart with JodaDateTime
+    * - make sleepTime configurable
+    * - Add Retry to Poll
+    * - Raise Custom Exception type for Failed job to distinquish Failed jobs and jobs that exceeded maxTime
+    * - replace while loop with recursion
+    *
+    * @param jobId Job Id or UUID
+    * @param maxTime Max time to poll for the job
+    *
+    * @return EngineJob
+    */
+  def pollForJob(jobId: IdAble, maxTime: Int = -1): Try[EngineJob] = {
+    var exitFlag = true
+    var nIterations = 0
+    val sleepTime = 5000
+    val requestTimeOut = 30.seconds
+    var runningJob: Option[EngineJob] = None
+    val tStart = java.lang.System.currentTimeMillis() / 1000.0
+
+    def failIfNotState(state: AnalysisJobStates.JobStates, job: EngineJob): Try[EngineJob] = {
+      if (job.state == state) Success(job)
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+    }
+
+    def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
+      if (job.state != AnalysisJobStates.FAILED) Success(job)
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+    }
+
+    def failIfNotSuccessfulJob(job: EngineJob) = failIfNotState(AnalysisJobStates.SUCCESSFUL, job)
+
+    def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
+      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
+      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
+        Failure(new Exception(s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
+      } else {
+        Success(job)
+      }
+    }
+
+    while(exitFlag) {
+      nIterations += 1
+      Thread.sleep(sleepTime)
+
+      val tx = for {
+        job <- Try { Await.result(getJob(jobId), requestTimeOut)}
+        notFailedJob <- failIfFailedJob(job)
+        _ <- failIfExceededMaxTime(notFailedJob)
+      } yield notFailedJob
+
+      tx match {
+        case Success(job) =>
+          if (job.state == AnalysisJobStates.SUCCESSFUL) {
+            exitFlag = false
+            runningJob = Some(job)
+          }
+        case Failure(ex) =>
+            exitFlag = false
+            runningJob = None
+      }
+    }
+
+    runningJob match {
+      case Some(job) => failIfNotSuccessfulJob(job)
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+    }
   }
 }

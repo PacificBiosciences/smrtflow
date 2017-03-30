@@ -1,8 +1,8 @@
 logLevel := Level.Warn
 
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.6.6")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.8.2")
 
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.3")
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.4")
 
 addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "1.1.1")
 
@@ -15,3 +15,9 @@ addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.1.0")
 
 // Scalastyle.org checker via `sbt scalastyle`
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
+
+// Show dependency Graph
+addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
+
+// Shows which libs can be updated
+addSbtPlugin("com.sksamuel.sbt-versions" % "sbt-versions" % "0.2.0")

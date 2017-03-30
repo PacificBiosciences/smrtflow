@@ -12,13 +12,15 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.analysis.datasets.io._
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacificbiosciences.pacbiodatasets._
 
 
 case class ExportDataSetsOptions(
     datasetType: DataSetMetaTypes.DataSetMetaType,
     paths: Seq[Path],
-    outputPath: Path) extends BaseJobOptions {
+    outputPath: Path,
+    override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new ExportDataSetsJob(this)
 
   override def validate = {

@@ -11,14 +11,24 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
+SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
+
+
+
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 
 arg1="${1:-}"
 
-SL_ANALYSIS_PID=$__root/sl-analysis.pid
+check_pid() {
+  local pid=$1; shift;
+  [ kill -0 "$pid" > /dev/null 2>&1 ]
+}
+
+SL_ANALYSIS_PID=${__root}/sl-analysis.pid
 
 if [ -f ${SL_ANALYSIS_PID} ]; then
    PID=`cat ${SL_ANALYSIS_PID}`
-   echo Killing Java PID: ${SL_ANALYSIS_PID}
+   echo Killing Java PID: ${PID}
    kill $PID || true
    rm ${SL_ANALYSIS_PID}
 elif [ ! -f ${SL_ANALYSIS_PID} ]; then
@@ -26,17 +36,57 @@ elif [ ! -f ${SL_ANALYSIS_PID} ]; then
 fi
 
 STATUS=0
-ws02_dir="$__dir/../wso2am-2.0.0"
-bash $ws02_dir/bin/wso2server.sh --stop
+wso2_dir="$__dir/../wso2am-2.0.0"
+wso2_pid="$wso2_dir/wso2carbon.pid"
+if [ -f ${wso2_pid} ]; then
+   PID=`cat ${wso2_pid}`
+   echo "WSO2 PID: ${PID}"
+else
+   PID=0
+   echo "Could not locate WSO2 PID"
+   STATUS=1
+fi
+bash $wso2_dir/bin/wso2server.sh --stop
 if [ $? -ne 0 ]; then
   STATUS=$?
   echo "WSO2 shutdown failed"
 fi
+if [ $PID -ne 0 ]; then
+  echo "Checking for lingering WSO2 process"
+  r=3
+  while [ $r -gt 0 ] && (check_pid "$PID") ; do
+    echo "WSO2 still running on PID ${PID} (${r} retries)"
+    sleep 10s
+    r=$[$r-1]
+  done
+  if check_pid "$PID"; then
+    echo "WSO2 still running on PID ${PID}"
+    echo "Sending termination signal to PID ${PID}"
+    kill $PID || true
+  fi
+  if check_pid "$PID"; then
+    echo "WSO2 still running on PID ${PID}"
+    echo "Sending kill signal to PID ${PID}"
+    kill -9 $PID || true
+  fi
+  if check_pid "$PID"; then
+    echo "WSO2 still running on PID ${PID}"
+    STATUS=2
+  fi
+elif [ $PID -eq 0 ]; then
+  echo "WARNING: WSO2 may still be running on unknown PID"
+fi
 
-$__dir/../apache-tomcat-8.0.26/bin/shutdown.sh
+${__root}/apache-tomcat-8.0.26/bin/shutdown.sh
 if [ $? -ne 0 ]; then
   STATUS=$?
   echo "Tomcat shutdown failed"
+fi
+
+${__root}/bin/dbctrl stop -c ${SL_SERVICES_CONF} --log-level=INFO --log-file=${logDir}/dbctrl.log
+if [ $? -ne 0 ]; then
+  STATUS=$?
+  echo "database shutdown failed"
 fi
 
 exit $STATUS

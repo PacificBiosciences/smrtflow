@@ -1,15 +1,18 @@
 package com.pacbio.secondary.smrtlink
 
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants
+
 
 trait SmrtLinkConstants {
   val BASE_PREFIX = "smrt-link"
 
   // Default project ID; all datasets that aren't
   // in more specific projects get this ID
-  val GENERAL_PROJECT_ID = 1
+  val GENERAL_PROJECT_ID = JobConstants.GENERAL_PROJECT_ID
 }
 
 trait JobServiceConstants {
+  val ROOT_SL_PREFIX = "smrt-link"
   val ROOT_SERVICE_PREFIX = "secondary-analysis"
   val SERVICE_PREFIX = "job-manager"
   val JOB_ROOT_PREFIX = "jobs"
@@ -31,4 +34,11 @@ trait JobServiceConstants {
   val ENTRY_POINTS_PREFIX = "entry-points"
   // All Datastore files for the system
   val DATASTORE_FILES_PREFIX = "datastore-files"
+
+  // Not completely sure about wrapping the logger service.
+  // The motivation is that the sourceId can be set/modified here so that the jobId isn't leaked to
+  // the tool
+  final val LOG_PREFIX = "log"
+  // passed to the pbsmrtpipe process to communicate back to the services to log events/updates
+  final val LOG_PB_SMRTPIPE_RESOURCE_ID = "pbsmrtpipe"
 }

@@ -5,11 +5,11 @@
       "manifestFile": null,
       "eventUrl": null,
       "dnsName": null,
-      "bundleDir": "./pacbio-bundles"
+      "bundleDir": "./resources/pacbio-bundles"
     },
     "engine": {
       "maxWorkers": 35,
-      "jobRootDir": "./jobs-root",
+      "jobRootDir": "./resources/jobs-root",
       "pbsmrtpipePresetXml": "./pbsmrtpipe-default-preset.xml"
     },
     "db": {
@@ -29,7 +29,8 @@
     "smrtLinkServerMemoryMax": 4096,
     "smrtViewPort": 8084,
     "tmpDir": "/tmp",
-    "logDir": "."
+    "logDir": "./resources/logs",
+    "pgDataDir": "./resources/pg-data"
   },
   "comment": "SL System Default config example for Schema Version 2.0"
 }

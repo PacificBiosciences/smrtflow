@@ -78,6 +78,45 @@ trait ProjectStateProtocols extends DefaultJsonProtocol {
   }
 }
 
+trait PbSmrtPipeServiceOptionsProtocol
+    extends DefaultJsonProtocol
+    with PipelineTemplateOptionProtocol
+    with EntryPointProtocols {
+  import JobModels._
+
+  implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
+  implicit object PbSmrtPipeServiceOptionsFormat extends RootJsonFormat[PbSmrtPipeServiceOptions] {
+    def write(o: PbSmrtPipeServiceOptions): JsValue = JsObject(
+      "name" -> o.name.toJson,
+      "pipelineId" -> o.pipelineId.toJson,
+      "entryPoints" -> o.entryPoints.toJson,
+      "taskOptions" -> o.taskOptions.toJson,
+      "workflowOptions" -> o.workflowOptions.toJson,
+      "projectId" -> o.projectId.toJson
+    )
+
+    def read(v: JsValue): PbSmrtPipeServiceOptions = {
+      val jsObj = v.asJsObject
+      jsObj.getFields("name", "pipelineId", "entryPoints", "taskOptions", "workflowOptions") match {
+        case Seq(JsString(name), JsString(pipelineId), JsArray(entryPoints),
+                 JsArray(taskOptions), JsArray(workflowOptions)) =>
+          val projectId = jsObj.getFields("projectId") match {
+            case Seq(JsNumber(pid)) => pid.toInt
+            case _ => JobConstants.GENERAL_PROJECT_ID
+          }
+          PbSmrtPipeServiceOptions(
+            name,
+            pipelineId,
+            entryPoints.map(_.convertTo[BoundServiceEntryPoint]),
+            taskOptions.map(_.convertTo[ServiceTaskOptionBase]),
+            workflowOptions.map(_.convertTo[ServiceTaskOptionBase]),
+            projectId)
+        case x => deserializationError(s"Expected PbSmrtPipeServiceOptions, got $x")
+      }
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
@@ -89,6 +128,7 @@ trait SmrtLinkJsonProtocols
   with ProjectUserRoleProtocols
   with ProjectStateProtocols
   with EntryPointProtocols
+  with PbSmrtPipeServiceOptionsProtocol
   with FamilyFormats {
 
   implicit val pbSampleFormat = jsonFormat5(Sample)
@@ -114,7 +154,6 @@ trait SmrtLinkJsonProtocols
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
   implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
-  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.importDataSetOptionsFormat
   implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
   implicit val simpleDevJobOptionsFormat  = SecondaryJobProtocols.simpleDevJobOptionsFormat
 
@@ -142,11 +181,7 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
-  implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
-
-  implicit val resolvedPbSmrtPipeOptionsFormat = jsonFormat5(PbSmrtPipeServiceOptions)
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
-  implicit val mergeDataSetOptionFormat = jsonFormat3(MergeDataSetOptions)
   implicit val deleteJobServiceOptions = jsonFormat3(DeleteJobServiceOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
@@ -161,8 +196,9 @@ trait SmrtLinkJsonProtocols
 
   implicit val pacbioBundleVersionFormat = jsonFormat5(SemVersion.apply)
   // this model has a val assigned and requires a custom serialization
-  implicit val pacbioBundleFormat = jsonFormat(PacBioBundle.apply, "typeId", "version", "importedAt", "path", "createdBy")
+  implicit val pacbioBundleFormat = jsonFormat(PacBioDataBundle.apply, "typeId", "version", "importedAt", "createdBy", "isActive")
   implicit val pacbioBundleRecordFormat = jsonFormat1(PacBioBundleRecord)
+  implicit val pacbioBundleUpgradeFormat = jsonFormat1(PacBioDataBundleUpgrade)
 
   implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
 

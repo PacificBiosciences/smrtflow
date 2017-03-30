@@ -5,15 +5,12 @@ import java.util.UUID
 
 import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask}
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask, MigrationStatusRow}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import slick.driver.PostgresDriver.api._
-import slick.lifted.ProvenShape
-// This must be added otherwise an PSQLException: ERROR: integer out of range will occur
-import com.github.tototoshi.slick.PostgresJodaSupport._
 
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
@@ -23,6 +20,18 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN)}
   )
 
+  /**
+    * Encapsulates status events sent from EngineJob during the runtime of the job. It does not strictly enforce
+    * a statemachine and is loose "log" of event state changes.
+    *
+    * Future iterations should leverage a state machine to avoid nonsensical state changes, e.g.,
+    * Running -> Failed -> Running -> Completed.
+    *
+    * This overlaps to some degree with JobTasks which are sub units of work from
+    * the job.
+    *
+    * @param tag
+    */
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
@@ -46,32 +55,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def idx = index("job_events_job_id", jobId)
   }
 
-  class JobTags(tag: Tag) extends Table[(Int, String)](tag, "job_tags") {
-    def id: Rep[Int] = column[Int]("job_tag_id", O.PrimaryKey, O.AutoInc)
-
-    def name: Rep[String] = column[String]("name")
-
-    def * : ProvenShape[(Int, String)] = (id, name)
-  }
-
   /**
-   * Many-to-Many table for tags for Jobs
-   * @param tag General Tags for Jobs
-   */
-  class JobsTags(tag: Tag) extends Table[(Int, Int)](tag, "jobs_tags") {
-    def jobId: Rep[Int] = column[Int]("job_id")
-
-    def tagId: Rep[Int] = column[Int]("job_tag_id")
-
-    def * : ProvenShape[(Int, Int)] = (jobId, tagId)
-
-    def jobJoin = engineJobs.filter(_.id === jobId)
-
-    def jobTagFK = foreignKey("job_tag_fk", tagId, jobTags)(a => a.id)
-
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(b => b.id)
-  }
-
+    * JobTask is a subcomputational unit of EngineJob. This can be used to propagate task level details such
+    * as detailed error message or state.
+    *
+    * Note, the JobStates in pbsmrtpipe are NOT (?) the same enum as the AnalysisJobStates.
+    *
+    * @param tag
+    */
   class JobTasks(tag: Tag) extends Table[JobTask](tag, "job_tasks") {
 
     def uuid: Rep[UUID] = column[UUID]("task_uuid", O.PrimaryKey)
@@ -112,6 +103,17 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   }
 
+  /**
+    * Core computational unit of SL Services. Contains metadata of the job, such as name, created at and
+    * description.
+    *
+    * Jobs are polymorphic in "jsonSettings".
+    *
+    * Given a specific version of SL and jobTypeId, this should map to a well-defined schema from the Job Options.
+    *
+    *
+    * @param tag
+    */
   class EngineJobsT(tag: Tag) extends Table[EngineJob](tag, "engine_jobs") {
 
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
@@ -148,34 +150,31 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     // Optional Error Message
     def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
 
+    def projectId: Rep[Int] = column[Int]("project_id")
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid)
 
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
-  }
 
-  class JobResultT(tag: Tag) extends Table[(Int, String)](tag, "job_results") {
-
-    def id: Rep[Int] = column[Int]("job_result_id")
-
-    def host: Rep[String] = column[String]("host_name")
-
-    def jobId: Rep[Int] = column[Int]("job_id")
-
-    def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-
-    def * : ProvenShape[(Int, String)] = (id, host)
+    def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
 
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
     {s => s.toString},
     {s => ProjectState.fromString(s)}
   )
+
+  /**
+    * Container for grouping EngineJob(s) to user(s) with metadata.
+    *
+    * @param tag
+    */
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
 
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
@@ -258,6 +257,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def idx = index("engine_jobs_datasets_job_id", jobId)
   }
 
+  /**
+    * Base Metadata for all PacBio DataSets
+    *
+    * For each Subclass of this, consult the XSD for details on the core fields of the DataSet type.
+    *
+    * @param tag
+    */
   class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
 
     def name: Rep[String] = column[String]("name")
@@ -272,8 +278,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def totalLength: Rep[Long] = column[Long]("total_length")
 
+    // Clarify this. This should be a comma separated value? Should this be removed until actually needed?
+    // Should be done with an array/list natively in postgres?
     def tags: Rep[String] = column[String]("tags")
 
+    // Version of the dataset schema spec? This isn't completely clear. Consult the PacBioFileFormat spec for clarification.
     def version: Rep[String] = column[String]("version")
 
     def comments: Rep[String] = column[String]("comments")
@@ -383,6 +392,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <>(ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
+  /**
+    * The general metadata container for DataStoreFile(s) produced by an EngineJob.
+    *
+    * A "DataStore" is a list of DataStoreFile(s) with a sourceId that is unique within the Job.
+    *
+    *
+    * @param tag
+    */
   class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
@@ -568,6 +585,21 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
   }
 
+  /**
+    * This is more wrong than it is correct. It's mixing up the System Config with the fundamental Message that
+    * is (optionally) sent to back to Pacbio.
+    *
+    * At a minimum, there needs to be SystemConfig table that stores the current system settings, such as configuration
+    * of the metrics to be sent back (enable_install_metrics, enable_job_metrics).
+    *
+    * Even if this is a snapshot of when the Eula is accepted, this is not clear what the options or OS version are
+    * consistent with the current state or system configuration.
+    *
+    * For example, if the user accepts the Eula at T0, then changes the system config, should this be overwritten?
+    * It seems like this should not be update-able after the acceptance of the Eula as been performed.
+    *
+    * @param tag
+    */
   class EulaRecordT(tag: Tag) extends Table[EulaRecord](tag, "eula_record") {
     def user: Rep[String] = column[String]("user")
     def acceptedAt: Rep[JodaDateTime] = column[JodaDateTime]("accepted_at")
@@ -577,6 +609,17 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def osVersion: Rep[String] = column[String]("os_version")
     def * = (user, acceptedAt, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
   }
+
+  // This is the Legacy Migration from sqlite to postgres. Adding this here for consistency (i.e.,
+  // All 4.1 installs will have this table)
+  // This can be dropped when the sqlite import is not longer supported.
+  class MigrationStatusT(tag: Tag) extends Table[MigrationStatusRow](tag, "migration_status") {
+    def timestamp: Rep[String] = column[String]("timestamp")
+    def success: Rep[Boolean] = column[Boolean]("success")
+    def error: Rep[Option[String]] = column[Option[String]]("error")
+    def * = (timestamp, success, error) <> (MigrationStatusRow.tupled, MigrationStatusRow.unapply)
+  }
+
 
   // DataSet types
   lazy val dsMetaData2 = TableQuery[DataSetMetaT]
@@ -599,8 +642,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val engineJobs = TableQuery[EngineJobsT]
   lazy val engineJobsDataSets = TableQuery[EngineJobDataSetT]
   lazy val jobEvents = TableQuery[JobEventsT]
-  lazy val jobTags = TableQuery[JobTags]
-  lazy val jobsTags = TableQuery[JobsTags]
   lazy val jobTasks = TableQuery[JobTasks]
 
   // DataSet types
@@ -617,6 +658,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   // EULA
   lazy val eulas = TableQuery[EulaRecordT]
 
+  // Legacy Import migration table
+  lazy val migrationStatus = TableQuery[MigrationStatusT]
+
   final type SlickTable = TableQuery[_ <: Table[_]]
 
   lazy val serviceTables: Set[SlickTable] = Set(
@@ -624,8 +668,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     datasetMetaTypes,
     engineJobsDataSets,
     jobEvents,
-    jobTags,
-    jobsTags,
     jobTasks,
     projectsUsers,
     projects,
@@ -640,7 +682,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eulas)
+    eulas, migrationStatus)
 
   lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata, samples)
 

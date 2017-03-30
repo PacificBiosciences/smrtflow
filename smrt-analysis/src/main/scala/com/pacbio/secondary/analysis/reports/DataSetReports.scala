@@ -94,13 +94,13 @@ object DataSetReports extends ReportJsonProtocol {
       case _ => false
     }
 
-    val reportFiles = if (PbReports.isAvailable()) {
+    val reportFiles: Seq[DataStoreFile] = if (PbReports.isAvailable()) {
       PbReports.ALL
           .filter(_.canProcess(dst, hasStatsXml))
           .flatMap(run(inPath, _, rptParent, log))
     } else {
       log.writeLineStdout("pbreports is unavailable")
-      List()
+      Seq.empty[DataStoreFile]
     }
 
     if (reportFiles.nonEmpty) {

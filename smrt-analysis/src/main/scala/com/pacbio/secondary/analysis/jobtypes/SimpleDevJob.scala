@@ -2,10 +2,11 @@ package com.pacbio.secondary.analysis.jobtypes
 
 import com.pacbio.secondary.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJobOptions}
 import com.pacbio.secondary.analysis.jobs.JobModels.{JobTypeId, JobResourceBase, ResultFailed}
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.reports.ReportUtils
 
 // Simple Dev Job for testing
-case class SimpleDevJobOptions(a: Int, b: Int) extends BaseJobOptions {
+case class SimpleDevJobOptions(a: Int, b: Int, override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new SimpleDevJob(this)
 }
 

@@ -5,37 +5,35 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import spray.json._
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class DeleteJobServiceType(dbActor: ActorRef,
                            authenticator: Authenticator,
                            smrtLinkVersion: Option[String],
                            smrtLinkToolsVersion: Option[String])
-    extends JobTypeService {
+    extends {
+      override val endpoint = JobTypeIds.DELETE_JOB.id
+      override val description = "Delete a services job and remove files"
+    } with JobTypeService[DeleteJobServiceOptions](dbActor, authenticator) {
 
-  import SmrtLinkJsonProtocols._
   import CommonModelImplicits._
-
-  override val endpoint = JobTypeIds.DELETE_JOB.id
-  override val description = "Delete a services job and remove files"
 
   private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
     (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].flatMap { job =>
@@ -48,49 +46,29 @@ class DeleteJobServiceType(dbActor: ActorRef,
     }
   }
 
-  def createJob(sopts: DeleteJobServiceOptions, createdBy: Option[String]): Future[EngineJob] = {
+  override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
-    val desc = s"Deleting job ${sopts.jobId}"
-    val name = s"Job $endpoint"
 
-    val fx = for {
+    for {
       targetJob <- confirmIsDeletable(sopts.jobId)
-      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles) }
+      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles, targetJob.projectId) }
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
-      engineJob <- (dbActor ? CreateJobType(uuid, name, desc, endpoint, CoreJob(uuid, opts), None, sopts.toJson.toString(), createdBy, smrtLinkVersion, smrtLinkToolsVersion)).mapTo[EngineJob]
-    } yield engineJob
-
-    fx
+    } yield CreateJobType(
+        uuid,
+        s"Job $endpoint",
+        s"Deleting job ${sopts.jobId}",
+        endpoint,
+        CoreJob(uuid, opts),
+        None,
+        sopts.toJson.toString(),
+        user.map(_.userId),
+        smrtLinkVersion,
+        smrtLinkToolsVersion)
   }
-
-  def dryRun(sopts: DeleteJobServiceOptions): Future[EngineJob] = confirmIsDeletable(sopts.jobId)
-
-  override val routes =
-    pathPrefix(endpoint) {
-      pathEndOrSingleSlash {
-        get {
-          complete {
-            jobList(dbActor, endpoint)
-          }
-        } ~
-        post {
-          optionalAuthenticate(authenticator.wso2Auth) { user =>
-            entity(as[DeleteJobServiceOptions]) { sopts =>
-              complete {
-                created {
-                  if (sopts.dryRun.getOrElse(false))
-                    dryRun(sopts)
-                  else
-                    createJob(sopts, user.map(_.userId))
-                }
-              }
-            }
-          }
-        }
-      } ~
-      sharedJobRoutes(dbActor)
-    }
-
+  override def createEngineJob(dbActor: ActorRef,
+                               sopts: DeleteJobServiceOptions,
+                               user: Option[UserRecord]): Future[EngineJob] =
+    if (sopts.dryRun.getOrElse(false)) confirmIsDeletable(sopts.jobId) else super.createEngineJob(dbActor, sopts, user)
 }
 
 trait DeleteJobServiceTypeProvider {

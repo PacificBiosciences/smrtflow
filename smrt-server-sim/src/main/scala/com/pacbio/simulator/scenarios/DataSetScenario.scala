@@ -18,9 +18,8 @@ import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
 import spray.httpx.UnsuccessfulResponseException
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.smrtserver.client.AnalysisServiceAccessLayer
 import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.ClientUtils
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -66,12 +65,11 @@ class DataSetScenario(host: String, port: Int)
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps
-    with SmrtAnalysisSteps
     with ClientUtils {
 
   override val name = "DataSetScenario"
 
-  override val smrtLinkClient = new AnalysisServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   import CommonModelImplicits._
 

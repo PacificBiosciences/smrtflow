@@ -47,7 +47,6 @@ class LogSpec
       SetBindings with
       LogServiceProvider with
       DatabaseLogDaoProvider with
-      BaseSmrtServerDatabaseConfigProviders with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider {
@@ -60,13 +59,7 @@ class LogSpec
     })
     
     override final val logDaoBufferSize = 4
-
-    // Database config that uses a temporary database file
-    val dbFile = File.createTempFile("log_spec_", ".db")
-    dbFile.deleteOnExit()
-    override final val logDaoDatabaseConfigProvider = DatabaseConfigProvider(
-      new DatabaseConfig.Configured(s"jdbc:sqlite:file:${dbFile.getCanonicalPath}?cache=shared", "org.sqlite.JDBC")
-    )
+    override val dbConf = "smrtflow.test-db"
   }
 
   val authenticator = TestProviders.authenticator()

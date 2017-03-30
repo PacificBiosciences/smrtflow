@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.4.4-SNAPSHOT"
+version in ThisBuild := "0.5.1-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -68,7 +68,7 @@ lazy val baseSettings = Seq(
   "com.h2database" % "h2" % "1.4.192",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
-  "com.lihaoyi" % "ammonite" % "0.7.8" % "test" cross CrossVersion.full,
+  "com.lihaoyi" % "ammonite" % "0.8.2" % "test" cross CrossVersion.full,
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
@@ -158,8 +158,8 @@ lazy val smrtflow = project.in(file("."))
        |import ammonite.ops._
        |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
        |""".stripMargin)
-    .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, smrtServerSim)
-    .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, smrtServerSim)
+    .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
+    .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
 
 
 lazy val logging = PacBioProject("smrt-server-logging")
@@ -215,30 +215,12 @@ lazy val smrtServerBase = (
 lazy val smrtServerLink = (
     PacBioProject("smrt-server-link")
         dependsOn(logging, common, smrtAnalysis, smrtServerBase)
-        settings()
-    )
-
-lazy val smrtServerLims = (
-    PacBioProject("smrt-server-lims")
-        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-        settings ()
-    )
-
-lazy val smrtServerAnalysis = (
-    PacBioProject("smrt-server-analysis")
-        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-        settings (mainClass in assembly := Some("com.pacbio.secondary.smrtserver.appcomponents.SecondaryAnalysisServer"))
-    )
-
-lazy val smrtServerAnalysisInternal = (
-    PacBioProject("smrt-server-analysis-internal")
-        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerAnalysis, logging)
-        settings (mainClass in assembly := Some("com.pacbio.secondaryinternal.SecondaryAnalysisInternalServer"))
+        settings(mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"))
     )
 
 lazy val smrtServerSim = (
     PacBioProject("smrt-server-sim")
-        dependsOn(logging, common, smrtAnalysis, smrtServerLink, smrtServerAnalysis)
+        dependsOn(logging, common, smrtAnalysis, smrtServerLink)
         settings()
     )
 

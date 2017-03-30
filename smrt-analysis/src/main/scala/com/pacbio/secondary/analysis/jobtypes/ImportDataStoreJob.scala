@@ -9,12 +9,13 @@ import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.analysis.tools.timeUtils
 
 import scala.util.{Success, Failure, Try}
 
 
-case class ImportDataStoreOptions(path: String) extends BaseJobOptions {
+case class ImportDataStoreOptions(path: String, override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
   def toJob = new ImportDataStoreJob(this)
 }
 

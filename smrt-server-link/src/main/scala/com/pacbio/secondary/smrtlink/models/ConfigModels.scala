@@ -11,13 +11,16 @@ import spray.json._
 object ConfigModels {
 
   // PacBio SMRT Link System Configuration IO. These must be consistent with the Avro Schema
+  // See the SmrtLinkSystemConfig.avsc for model details and documentation.
   case class SmrtflowPacBioSystemConfig(tmpDir: Path,
                                         logDir: Path,
+                                        pgDataDir: Path,
                                         tomcatPort: Int = 8080,
                                         tomcatMemory: Int = 1024,
                                         smrtViewPort: Int = 8084,
                                         smrtLinkServerMemoryMin: Int = 4096,
-                                        smrtLinkServerMemoryMax: Int = 4096
+                                        smrtLinkServerMemoryMax: Int = 4096,
+                                        remoteBundleUrl: Option[URL] = None
                                        )
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,
@@ -31,7 +34,8 @@ object ConfigModels {
   case class SmrtflowServerConfig(port: Int,
                                   manifestFile: Option[Path],
                                   eventUrl: Option[URL],
-                                  dnsName: Option[String])
+                                  dnsName: Option[String],
+                                  bundleDir: Path)
 
   case class SmrtflowEngineConfig(maxWorkers: Int = 35,
                                   jobRootDir: Path,

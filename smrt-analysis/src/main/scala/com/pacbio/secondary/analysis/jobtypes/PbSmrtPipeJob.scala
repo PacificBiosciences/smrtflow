@@ -4,14 +4,14 @@ import java.net.URI
 import java.nio.file.Path
 
 import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
-
-import scala.util.Try
+import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, BaseCoreJob, BaseJobOptions, _}
+import com.pacbio.secondary.analysis.pbsmrtpipe._
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, BaseCoreJob, BaseJobOptions}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs._
-import com.pacbio.secondary.analysis.pbsmrtpipe._
+
+import scala.util.Try
 
 
 // Contain for all SmrtpipeJob 'type' options
@@ -20,8 +20,10 @@ case class PbSmrtPipeJobOptions(
     entryPoints: Seq[BoundEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
-    envPath: Option[Path], serviceUri: Option[URI],
-    commandTemplate: Option[CommandTemplate] = None) extends BaseJobOptions {
+    envPath: Option[Path],
+    serviceUri: Option[URI],
+    commandTemplate: Option[CommandTemplate] = None,
+    override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
 
   def toJob = new PbSmrtPipeJob(this)
 

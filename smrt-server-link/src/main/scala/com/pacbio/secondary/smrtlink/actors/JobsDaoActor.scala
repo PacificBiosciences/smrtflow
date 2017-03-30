@@ -50,7 +50,7 @@ object JobsDaoActor {
 
   case class GetJobByIdAble(ix: IdAble) extends JobMessage
 
-  case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false) extends JobMessage
+  case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false, projectId: Option[Int] = None) extends JobMessage
 
   case class GetJobEventsByJobId(jobId: Int) extends JobMessage
 
@@ -449,7 +449,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetAllJobs => pipeWith(dao.getJobs(1000))
 
-    case GetJobsByJobType(jobTypeId, includeInactive: Boolean) => pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive))
+    case GetJobsByJobType(jobTypeId, includeInactive: Boolean, projectId: Option[Int]) =>
+      pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive, projectId))
 
     case GetJobByIdAble(ix) => pipeWith { dao.getJobByIdAble(ix) }
 
