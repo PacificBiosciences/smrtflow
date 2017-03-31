@@ -2027,6 +2027,17 @@
         "produces": [
           "text/plain; charset=UTF-8"
         ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "PacBio Data Bundle URL (ends with .tar.gz)",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PacBioBundleRecord"
+            }
+          }
+        ],
         "x-throttling-tier": "Unlimited",
         "responses": {
           "default": {
@@ -2165,6 +2176,41 @@
             "schema": {
               "$ref": "#/definitions/PacBioDataBundle"
             }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/{bundleVersion}/download": {
+      "get": {
+        "description": "Download a PacBio Data Bundle TGZ by Id (bundleType, bundleVersion)",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "Bundle version (e.g., 1.2.3) This should adhere to the Semantic Version scheme",
+            "required": true,
+            "type": "string",
+            "name": "bundleVersion",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
+          },
+          "200": {
+            "description": "PacBio Data TGZ Bundle"
           }
         },
         "x-auth-type": "Application & Application User"
@@ -4363,8 +4409,22 @@
           "version": "4.1.0"
         }
       ]
-
-
+    },
+    "PacBioBundleRecord": {
+      "properties": {
+        "url": {
+          "description": "URL to PacBio Data Bundle accessible by SL Server. This must be .tar.gz, or tgz file",
+          "title": "URL of TGZ file",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object",
+      "example": {
+        "url": "file:///home/UNIXHOME/mkocher/chemistry-tests/chemistry-9.8.7.tar.gz"
+      }
     }
   }
 }
