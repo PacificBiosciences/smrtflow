@@ -2101,6 +2101,41 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/bundles/{bundleType}/active/files/{relativePath}": {
+      "get": {
+        "description": "Get the a data file from an Active PacBio Data Bundle for a given bundle type. The mimetype will be inferred from the file extension",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "URL encoded Relative Path to file in the bundle. For example 'SampleCalculatorParams.json' or 'definitions/PacBioAutomationConstraints.xml'",
+            "required": true,
+            "type": "string",
+            "name": "relativePath",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type. Or relative Path doesn't exist in bundle"
+          },
+          "200": {
+            "description": "Get the currently Active PacBio Data Bundle for a given bundle type",
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/smrt-link/bundles/{bundleType}/latest": {
       "get": {
         "description": "Get the PacBio Data bundle that is most recent version for provided bundle type",
