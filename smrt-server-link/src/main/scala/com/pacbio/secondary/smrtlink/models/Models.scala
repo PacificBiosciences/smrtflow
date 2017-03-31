@@ -713,13 +713,19 @@ case class SmrtLinkEvent(eventTypeId: String,
                          createdAt: JodaDateTime,
                          message: JsObject)
 
+object EventTypes {
+  val EULA_ACCEPTED = "smrtlink_eula_accepted"
+  val SERVER_STARTUP = "smrt_server_startup"
+  val IMPORT_BUNDLE = "techsupport_import_bundle"
+}
 
 case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                eventTypeId: String,
                                eventTypeVersion: Int = 1,
                                uuid: UUID,
                                createdAt: JodaDateTime,
-                               message: JsObject)
+                               message: JsObject,
+                               dnsName: Option[URL] = None)
 
 
 case class ExternalEventServerConfig(host: String, port: Int)
