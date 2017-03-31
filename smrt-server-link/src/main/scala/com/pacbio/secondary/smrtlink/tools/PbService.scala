@@ -903,10 +903,11 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
+    println(s"Importing entry point $entryPoint")
     val epFields = entryPoint.split(':')
-    if (epFields.length == 2) importEntryPoint(epFields(0),
-                                               Paths.get(epFields(1)))
-    else if (epFields.length == 1) {
+    if (epFields.length == 2) {
+      importEntryPoint(epFields(0), Paths.get(epFields(1)))
+    } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsType = dsMetaTypeFromPath(xmlPath)
       val eid = entryPointsLookup(dsType)
