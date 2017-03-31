@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import sys.process._
 import collection.mutable
-import spray.http.HttpHeaders
+import spray.http.{HttpHeaders, Uri}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
@@ -475,9 +475,27 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
     }
   }
 
+  private def resolveToRoot(path: Uri.Path, rootPath: Path): Future[Path] = {
+    val realPath = java.net.URLDecoder.decode(path.toString(), "UTF-8")
+    val absPath = rootPath.resolve(Paths.get(realPath))
+    if (Files.exists(absPath)) Future.successful(absPath)
+    else Future.failed(throw new ResourceNotFoundError(s"Unable to resolve path: ${path.toString()}"))
+  }
+
   def getBundleByTypeAndVersion(bundleTypeId: String, bundleVersion: String): Future[PacBioDataBundleIO] =
     Future { dao.getBundleIO(bundleTypeId, bundleVersion) }
         .flatMap(failIfNone(s"Unable to find Bundle Type '$bundleTypeId' and version '$bundleVersion'"))
+
+  def getActiveBundle(bundleTypeId: String): Future[PacBioDataBundleIO] = Future {
+    dao.getActiveBundleIOByType(bundleTypeId)
+  }.flatMap(failIfNone(s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
+
+  def getFileInBundle(bundleTypeId: String, rest: Uri.Path):Future[Path] = {
+    for {
+      b <-  getActiveBundle(bundleTypeId)
+      resolvedPath <- resolveToRoot(rest, b.path)
+    } yield resolvedPath
+  }
 
   val routes = {
     pathPrefix(ROUTE_PREFIX) {
@@ -533,6 +551,9 @@ class PacBioBundleService(dao: PacBioBundleDao, rootBundle: Path)(implicit val a
             }
           }
         }
+      } ~
+      path(Segment / "active" / "files" / RestPath) { (bundleTypeId, uriPath) =>
+        onSuccess(getFileInBundle(bundleTypeId, uriPath)) { rPath => getFromFile(rPath.toFile) }
       } ~
       path(Segment / "upgrade") { bundleTypeId =>
         get {
