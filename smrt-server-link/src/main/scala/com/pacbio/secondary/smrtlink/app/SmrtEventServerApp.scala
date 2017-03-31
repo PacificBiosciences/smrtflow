@@ -17,7 +17,7 @@ import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusServi
 import com.pacbio.common.time.SystemClock
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent, EventTypes}
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing.{Route, RouteConcatenation}
@@ -133,7 +133,10 @@ trait EventServiceBaseMicroService extends PacBioService {
   * @param rootOutputDir root output dir for events
   * @param rootUploadFilesDir root output dir for files
   */
-class EventService(eventProcessor: EventProcessor, rootOutputDir: Path, rootUploadFilesDir: Path) extends EventServiceBaseMicroService with LazyLogging with timeUtils{
+class EventService(eventProcessor: EventProcessor,
+                   rootOutputDir: Path,
+                   rootUploadFilesDir: Path)
+    extends EventServiceBaseMicroService with LazyLogging with timeUtils{
 
   import SmrtLinkJsonProtocols._
 
@@ -189,7 +192,7 @@ class EventService(eventProcessor: EventProcessor, rootOutputDir: Path, rootUplo
     // This isn't quite correct. After the file upload, the system needs to load the tech-support-manifest.json
     // from the root level of the tgz file and propagate the message. The "message" needs to also have the local
     // path to the tech-support-manifest file "bundle".
-    SmrtLinkSystemEvent(Constants.SERVER_UUID, "techsupport_import_bundle", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
+    SmrtLinkSystemEvent(Constants.SERVER_UUID, EventTypes.IMPORT_BUNDLE, 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
   }
 
   /**
@@ -418,7 +421,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
     */
   private def postStartUpHook(): Future[String] = {
     val startUpEventMessage =
-      SmrtLinkSystemEvent(systemUUID, "smrt_server_startup", 1,
+      SmrtLinkSystemEvent(systemUUID, EventTypes.SERVER_STARTUP, 1,
         UUID.randomUUID(),
         JodaDateTime.now, JsObject.empty)
 

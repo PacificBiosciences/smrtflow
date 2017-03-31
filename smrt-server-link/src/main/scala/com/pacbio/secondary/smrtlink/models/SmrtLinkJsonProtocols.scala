@@ -201,6 +201,7 @@ trait SmrtLinkJsonProtocols
   implicit val pacbioBundleUpgradeFormat = jsonFormat1(PacBioDataBundleUpgrade)
 
   implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
+  implicit val smrtlinkSystemEventMessageFormat = jsonFormat7(SmrtLinkSystemEvent.apply)
 
   implicit val techSupportBundleFormat = jsonFormat8(TechSupportBundle.apply)
 

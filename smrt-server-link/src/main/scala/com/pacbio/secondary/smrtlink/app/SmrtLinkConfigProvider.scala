@@ -37,6 +37,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val port: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
   val host: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
+  val dnsName: Singleton[Option[URL]] = Singleton(() => Try { new URL(conf.getString("smrtflow.server.dsnName")) }.toOption)
 
   val jobEngineConfig: Singleton[EngineConfig] = Singleton(() => engineConfig)
   val cmdTemplate: Singleton[Option[CommandTemplate]] = Singleton(() => loadCmdTemplate)
