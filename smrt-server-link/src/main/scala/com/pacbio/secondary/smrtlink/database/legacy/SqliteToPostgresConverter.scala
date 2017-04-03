@@ -269,7 +269,6 @@ object LegacyModels extends SmrtLinkConstants {
       jsonSettings,
       createdBy,
       smrtlinkVersion,
-      smrtlinkToolsVersion,
       isActive,
       errorMessage = None,
       projectId = GENERAL_PROJECT_ID)

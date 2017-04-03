@@ -52,8 +52,7 @@ object ValidatorDataSetExportServiceOptions extends ValidatorDataSetServicesOpti
 
 class ExportDataSetsServiceJobType(dbActor: ActorRef,
                                    authenticator: Authenticator,
-                                   smrtLinkVersion: Option[String],
-                                   smrtLinkToolsVersion: Option[String])
+                                   smrtLinkVersion: Option[String])
     extends {
       override val endpoint = JobTypeIds.EXPORT_DATASETS.id
       override val description = "Export PacBio XML DataSets to ZIP file"
@@ -77,8 +76,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
       Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
       sopts.toJson.toString(),
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion)
+      smrtLinkVersion)
 }
 
 trait ExportDataSetsServiceJobTypeProvider {
@@ -87,5 +85,5 @@ trait ExportDataSetsServiceJobTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val exportDataSetServiceJobType: Singleton[ExportDataSetsServiceJobType] =
-    Singleton(() => new ExportDataSetsServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new ExportDataSetsServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

@@ -31,8 +31,7 @@ class ImportFastaServiceType(
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
     serviceStatusHost: String,
     port: Int,
-    smrtLinkVersion: Option[String],
-    smrtLinkToolsVersion: Option[String])
+    smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.CONVERT_FASTA_REFERENCE.id
     override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
@@ -93,8 +92,7 @@ class ImportFastaServiceType(
           None,
           sopts.toJson.toString(),
           user.map(_.userId),
-          smrtLinkVersion,
-          smrtLinkToolsVersion)
+          smrtLinkVersion)
     }
   }
 }
@@ -107,6 +105,6 @@ trait ImportFastaServiceTypeProvider {
 
   val importFastaServiceType: Singleton[ImportFastaServiceType] =
     Singleton(() => new ImportFastaServiceType(jobsDaoActor(), authenticator(), pbsmrtpipeEngineOptions(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
-      port(), smrtLinkVersion(), smrtLinkToolsVersion()))
+      port(), smrtLinkVersion()))
       .bindToSet(JobTypes)
 }

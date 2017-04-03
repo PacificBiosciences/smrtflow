@@ -23,8 +23,7 @@ import scala.concurrent.Future
 
 class ImportDataStoreServiceType(dbActor: ActorRef,
                                  authenticator: Authenticator,
-                                 smrtLinkVersion: Option[String],
-                                 smrtLinkToolsVersion: Option[String])
+                                 smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.IMPORT_DATASTORE.id
     override val description = "Import a PacBio DataStore JSON file"
@@ -41,8 +40,7 @@ class ImportDataStoreServiceType(dbActor: ActorRef,
       None,
       sopts.toJson.toString(),
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion)
+      smrtLinkVersion)
   }
 }
 
@@ -53,5 +51,5 @@ trait ImportDataStoreServiceTypeProvider {
     with SmrtLinkConfigProvider =>
 
   val importDataStoreServiceType: Singleton[ImportDataStoreServiceType] =
-    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataStoreServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

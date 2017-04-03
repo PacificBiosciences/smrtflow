@@ -49,8 +49,6 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   // Unfortunately this is duplicated in the Manifest service
   val smrtLinkVersion: Singleton[Option[String]] =
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRTLINK_ID).map(_.version))
-  val smrtLinkToolsVersion: Singleton[Option[String]] =
-    Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRT_LINK_TOOLS_ID).map(_.version))
 
   val pacBioBundleRoot: Singleton[Path] =
     Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
