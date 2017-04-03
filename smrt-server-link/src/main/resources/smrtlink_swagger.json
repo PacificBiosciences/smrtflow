@@ -2168,7 +2168,7 @@
             "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type. Or relative Path doesn't exist in bundle"
           },
           "200": {
-            "description": "Get the currently Active PacBio Data Bundle for a given bundle type",
+            "description": "Get the currently Active PacBio Data Bundle for a given bundle type"
           }
         },
         "x-auth-type": "Application & Application User"
