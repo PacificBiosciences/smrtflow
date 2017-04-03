@@ -40,7 +40,9 @@ packMain := Map(
   "bundler-get-status" -> "com.pacbio.secondary.smrtlink.tools.GetSystemStatusToolApp",
   "bundler-apply-config" -> "com.pacbio.secondary.smrtlink.tools.ApplyConfigToolApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtlink.tools.AcceptUserAgreementApp",
-  "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp"
+  "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp",
+  "smrtlink-repl" -> "com.pacbio.secondary.smrtlink.tools.SmrtLinkReplApp"
+
 )
 
 
