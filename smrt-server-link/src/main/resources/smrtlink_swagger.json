@@ -960,6 +960,33 @@
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
+      },
+      "put": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "typeOrId",
+            "in": "path"
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
       }
     },
     "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
