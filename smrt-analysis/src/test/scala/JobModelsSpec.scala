@@ -201,7 +201,7 @@ class JobModelsSpec extends Specification  {
       val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
         JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
         "pbsmrtpipe", "/tmp/0001", "{}", Some("smrtlinktest"), Some("4.0.0"),
-        Some("4.0.0"), projectId = 10)
+        projectId = 10)
       val job2 = job.toJson.convertTo[EngineJob]
       job2.toString must beEqualTo(job.toString)
       job2.isRunning must beFalse
