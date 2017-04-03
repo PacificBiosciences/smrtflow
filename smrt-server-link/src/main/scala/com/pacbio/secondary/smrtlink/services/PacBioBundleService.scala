@@ -272,7 +272,7 @@ trait BundleUtils extends BundleConstants with LazyLogging{
     def isActive(rootBundlePath: Path, bundleTypeId: String): Boolean = {
       val px = rootBundlePath.getParent.resolve(s"$bundleTypeId-$ACTIVE_SUFFIX")
       if (Files.exists(px) && Files.isSymbolicLink(px)) {
-        px.toRealPath() == rootBundlePath
+        px.toRealPath() == rootBundlePath.toRealPath()
       } else
         false
     }
