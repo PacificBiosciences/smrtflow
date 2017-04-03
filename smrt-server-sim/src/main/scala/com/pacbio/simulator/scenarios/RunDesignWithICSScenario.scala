@@ -153,13 +153,23 @@ class RunDesignWithICSScenario(host: String,
 
 
   val setupSteps = Seq(
+
     jobStatus := GetStatus,
+
     jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+
     UpdateSubreadsetXml(subreads, runInfo),
+
+    CheckIfUUIDUpdated(subreads, runInfo),
+
     jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 
