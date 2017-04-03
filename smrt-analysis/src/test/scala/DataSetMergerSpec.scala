@@ -1,15 +1,21 @@
 import java.nio.file.{Files, Paths, Path}
+import java.util.UUID
 
 import collection.JavaConversions._
 import collection.JavaConverters._
 
+import com.typesafe.scalalogging.LazyLogging
+import org.joda.time.{DateTime => JodaDateTime}
+import org.specs2.mutable._
+
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.io.{DataSetWriter, DataSetMerger, DataSetLoader}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool}
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
-
-import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mutable._
+import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
+import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
 
 /**
  *
@@ -65,7 +71,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 
 }
 
-class DataSetMergerAdvancedSpec extends Specification with LazyLogging {
+class DataSetMergerAdvancedSpec extends Specification with LazyLogging with timeUtils {
   args(skipAll = !PacBioTestData.isAvailable)
 
   sequential
@@ -74,6 +80,8 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging {
     val pbdata = PacBioTestData()
     dsIds.map(pbdata.getFile(_))
   }
+
+  val writer = new NullJobResultsWriter
 
   "Test merging additional dataset types" should {
     "Merge SubreadSets" in {
@@ -111,6 +119,22 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging {
       //mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(274217)
       //mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(133)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(2)
+    }
+    "Merge SubreadSets using jobtype API" in {
+      val paths = getData(Seq("subreads-sequel", "subreads-xml"))
+      val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
+                                     paths.map(_.toString), "merge_datasets")
+      val outputDir = Files.createTempDirectory("merge-job-test")
+      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val j = opts.toJob
+      val startedAt = JodaDateTime.now()
+      val jobResult = j.run(job, writer)
+      jobResult.isRight must beTrue
+      val elapsed = computeTimeDeltaFromNow(startedAt)
+      println(s"Merge job took $elapsed seconds")
+      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
+      val N_REPORTS = if (PbReports.isAvailable()) 3 else 1
+      datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(N_REPORTS)
     }
   }
 }
