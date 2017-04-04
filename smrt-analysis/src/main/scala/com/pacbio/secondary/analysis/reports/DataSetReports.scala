@@ -103,7 +103,7 @@ object DataSetReports extends ReportJsonProtocol {
       val reportFuncs = PbReports.ALL.filter(_.canProcess(dst, hasStatsXml))
       val makeReports = Future.traverse(reportFuncs)(x =>
         Future { run(inPath, x, rptParent, log) })
-      Await.result(makeReports, 600.seconds).flatten
+      Await.result(makeReports, 3600.seconds).flatten
     } else {
       log.writeLineStdout("pbreports is unavailable")
       Seq.empty[DataStoreFile]
