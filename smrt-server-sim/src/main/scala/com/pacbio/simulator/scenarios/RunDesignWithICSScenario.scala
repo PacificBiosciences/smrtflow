@@ -174,8 +174,11 @@ class RunDesignWithICSScenario(host: String,
   )
 
   val satSteps = Seq(
+
     jobId := RunAnalysisPipeline(satOpts),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 
