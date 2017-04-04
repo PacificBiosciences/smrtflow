@@ -169,6 +169,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => s.toString},
     {s => ProjectState.fromString(s)}
   )
+  implicit val projectPermissionsType = MappedColumnType.base[ProjectPermissions.ProjectPermissions, String](
+    {s => s.toString},
+    {s => ProjectPermissions.fromString(s)}
+  )
 
   /**
     * Container for grouping EngineJob(s) to user(s) with metadata.
@@ -194,7 +198,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive) <> (Project.tupled, Project.unapply)
+    def permissions: Rep[ProjectPermissions.ProjectPermissions] = column[ProjectPermissions.ProjectPermissions]("permissions")
+
+    def * = (id, name, description, state, createdAt, updatedAt, isActive, permissions) <> (Project.tupled, Project.unapply)
   }
 
   implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](

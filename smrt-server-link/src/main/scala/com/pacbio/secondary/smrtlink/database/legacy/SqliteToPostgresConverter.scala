@@ -344,6 +344,24 @@ object LegacyModels extends SmrtLinkConstants {
       isActive
     )
   }
+
+  case class LegacyProject(id: Int,
+                           name: String,
+                           description: String,
+                           state: ProjectState.ProjectState,
+                           createdAt: JodaDateTime,
+                           updatedAt: JodaDateTime,
+                           isActive: Boolean) {
+     def toProject = Project(
+       id,
+       name,
+       description,
+       state,
+       createdAt,
+       updatedAt,
+       isActive,
+       permissions = ProjectPermissions.USER_SPECIFIC)
+  }
 }
 
 
@@ -421,7 +439,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
   { s => s.toString }, { s => ProjectState.fromString(s) }
   )
 
-  class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
+  class ProjectsT(tag: Tag) extends Table[LegacyProject](tag, "projects") {
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
 
     def name: Rep[String] = column[String]("name")
@@ -438,7 +456,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive) <>(Project.tupled, Project.unapply)
+    def * = (id, name, description, state, createdAt, updatedAt, isActive) <>(LegacyProject.tupled, LegacyProject.unapply)
   }
 
   implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
@@ -871,7 +889,7 @@ class LegacySqliteReader(legacyDbUri: String) {
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield MigrationData(ps.filter(_.id != 1), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield MigrationData(ps.filter(_.id != 1).map(_.toProject), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }

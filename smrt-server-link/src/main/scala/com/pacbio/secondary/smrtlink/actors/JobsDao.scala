@@ -140,7 +140,7 @@ trait ProjectDataStore extends LazyLogging {
 
   def createProject(projReq: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true)
+    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true, permissions = ProjectPermissions.USER_SPECIFIC)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, projReq))
     db.run(fullAction.transactionally)
