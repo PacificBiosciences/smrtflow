@@ -185,8 +185,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    // Because slick does not support partial indexes, we index this table manually like so:
-    // sqlu"create unique index project_name_unique on projects (name) where is_active;"
+    //Marketing request that the Project name must be unique
+    def nameIdx =  index("project_name", name, unique = true)
 
     def description: Rep[String] = column[String]("description")
 
