@@ -1,4 +1,5 @@
 import java.nio.file.{Files, Paths, Path}
+import java.io.File
 import java.util.UUID
 
 import collection.JavaConversions._
@@ -13,7 +14,7 @@ import com.pacbio.secondary.analysis.datasets.io.{DataSetWriter, DataSetMerger, 
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, PrinterJobResultsWriter, AnalysisJobStates}
 import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
 
@@ -134,6 +135,42 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       println(s"Merge job took $elapsed seconds")
       val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
       val N_REPORTS = if (PbReports.isAvailable()) 3 else 1
+      datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(N_REPORTS)
+    }
+  }
+}
+
+// XXX standalone test class for debugging runtime issues - not intended to
+// be run in standard suite
+class DataSetMergerScalingSpec extends Specification with LazyLogging with timeUtils {
+  val DATA_DIR = "/unknownpath" // replace me with something useful
+  args(skipAll = !Paths.get(DATA_DIR).toFile.exists)
+
+  sequential
+
+  private def listSubreadSetFiles(f: File): Array[File] = {
+    f.listFiles.filter((fn) => fn.toString.endsWith(".subreadset.xml")).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listSubreadSetFiles)
+  }
+
+  val writer = new PrinterJobResultsWriter
+
+  "Test merging large numbers of datasets" should {
+    "Merge SubreadSets using jobtype API" in {
+      val paths = listSubreadSetFiles(Paths.get(DATA_DIR).toFile)
+      println(s"Found ${paths.size} SubreadSet XMLs")
+      val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
+                                     paths.map(_.toString), "merge_datasets")
+      val outputDir = Files.createTempDirectory("merge-job-test")
+      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      println(s"Merge job output dir is ${outputDir.toString}")
+      val j = opts.toJob
+      val startedAt = JodaDateTime.now()
+      val jobResult = j.run(job, writer)
+      jobResult.isRight must beTrue
+      val elapsed = computeTimeDeltaFromNow(startedAt)
+      println(s"Merge job took $elapsed seconds")
+      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
+      val N_REPORTS = if (PbReports.isAvailable()) 4 else 1
       datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(N_REPORTS)
     }
   }

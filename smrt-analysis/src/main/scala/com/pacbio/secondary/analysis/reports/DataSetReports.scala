@@ -7,6 +7,10 @@ import collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.Try
+import scala.concurrent.{Await, Future, ExecutionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+
 import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, SubreadSet, DataSetType}
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -69,6 +73,7 @@ object DataSetReports extends ReportJsonProtocol {
       jobPath: Path,
       jobTypeId: JobTypeId,
       log: JobResultWriter): Seq[DataStoreFile] = {
+      //(implicit ex: ExecutionContext): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
@@ -95,9 +100,10 @@ object DataSetReports extends ReportJsonProtocol {
     }
 
     val reportFiles: Seq[DataStoreFile] = if (PbReports.isAvailable()) {
-      PbReports.ALL
-          .filter(_.canProcess(dst, hasStatsXml))
-          .flatMap(run(inPath, _, rptParent, log))
+      val reportFuncs = PbReports.ALL.filter(_.canProcess(dst, hasStatsXml))
+      val makeReports = Future.traverse(reportFuncs)(x =>
+        Future { run(inPath, x, rptParent, log) })
+      Await.result(makeReports, 600.seconds).flatten
     } else {
       log.writeLineStdout("pbreports is unavailable")
       Seq.empty[DataStoreFile]
