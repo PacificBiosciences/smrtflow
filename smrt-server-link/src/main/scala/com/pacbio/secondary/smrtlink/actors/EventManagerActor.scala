@@ -44,6 +44,7 @@ class EventManagerActor(smrtLinkId: UUID,
 
   override def preStart() = {
     logger.info(s"Starting $self with smrtLinkID $smrtLinkId and External Event sServer config $externalConfig")
+    logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
   def checkExternalServerStatus(): Option[Future[String]] = {
