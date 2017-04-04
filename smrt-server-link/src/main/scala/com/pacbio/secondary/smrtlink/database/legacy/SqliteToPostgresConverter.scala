@@ -866,6 +866,25 @@ class LegacySqliteReader(legacyDbUri: String) {
     connectionPool,
     executor = AsyncExecutor("db-executor", 1, -1))
 
+  // Removed the partial unique index on name
+  /**
+    * Removed the partial unique index on name that was based on isActive
+    *
+    * To avoid making more changes to project related entities, take
+    * a simple/stupid fix of name to make it unique with a UUID
+    *
+    * All non Active project names will get converted to {name} => {name}_{UUID}
+    * to create a globally unique project name.
+    *
+    * @param projects
+    */
+  def fixProjectNames(projects: Seq[Project]):Seq[Project] = {
+    projects.map { p =>
+      if (p.isActive) p
+      else p.copy(name = s"${p.name}_${UUID.randomUUID()}")
+    }
+  }
+
   def read(): Future[MigrationData] = {
     val action = for {
       ps  <- projects.result
@@ -889,7 +908,7 @@ class LegacySqliteReader(legacyDbUri: String) {
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield MigrationData(ps.filter(_.id != 1).map(_.toProject), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield MigrationData(fixProjectNames(ps.filter(_.id != 1).map(_.toProject)), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }
