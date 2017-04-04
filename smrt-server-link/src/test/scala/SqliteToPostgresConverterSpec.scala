@@ -50,7 +50,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val data = addMetaData(MigrationData(
     Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
-    Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
+    Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), isActive = false, None)),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
     Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
     Nil, // Will be added by addMetaData
@@ -74,7 +74,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     import LegacySqliteReader._
     import slick.driver.SQLiteDriver.api._
 
-    def toLegacyEngineJob(j: EngineJob) = LegacyEngineJob(j.id, j.uuid, j.name, j.comment, j.createdAt, j.updatedAt, j.state, j.jobTypeId, j.path, j.jsonSettings, j.createdBy, j.smrtlinkVersion, j.smrtlinkToolsVersion, j.isActive)
+    def toLegacyEngineJob(j: EngineJob) = LegacyEngineJob(j.id, j.uuid, j.name, j.comment, j.createdAt, j.updatedAt, j.state, j.jobTypeId, j.path, j.jsonSettings, j.createdBy, j.smrtlinkVersion, None, j.isActive)
     def toLegacyJobEvent(e: JobEvent) = LegacyJobEvent(e.eventId, e.jobId, e.state, e.message, e.createdAt)
     def toLegacyDataSetMetaDataSet(s: DataSetMetaDataSet) = LegacyDataSetMetaDataSet(s.id, s.uuid, s.name, s.path, s.createdAt, s.updatedAt, s.numRecords, s.totalLength, s.tags, s.version, s.comments, s.md5, -1, s.jobId, s.projectId, s.isActive)
     def toLegacyCollectionMetadata(m: CollectionMetadata) = LegacyCollectionMetadata(m.runId, m.uniqueId, m.well, m.name, m.summary, m.context, m.collectionPathUri, m.status, m.instrumentId, m.instrumentName, m.movieMinutes, m.startedAt, m.completedAt, m.terminationInfo)

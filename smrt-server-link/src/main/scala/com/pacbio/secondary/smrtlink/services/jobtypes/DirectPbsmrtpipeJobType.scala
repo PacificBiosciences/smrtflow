@@ -40,8 +40,7 @@ class DirectPbsmrtpipeJobType(
     serviceStatusHost: String,
     port: Int,
     commandTemplate: Option[CommandTemplate] = None,
-    smrtLinkVersion: Option[String],
-    smrtLinkToolsVersion: Option[String])
+    smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.PBSMRTPIPE_DIRECT.id
     override val description =
@@ -94,8 +93,7 @@ class DirectPbsmrtpipeJobType(
       entryPoints,
       jsonSettings.toString(),
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion)
+      smrtLinkVersion)
   }
 
   override def extraRoutes(dbActor: ActorRef, authenticator: Authenticator) =
@@ -146,7 +144,6 @@ trait DirectPbsmrtpipeJobTypeProvider {
       if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port(),
       cmdTemplate(),
-      smrtLinkVersion(),
-      smrtLinkToolsVersion()))
+      smrtLinkVersion()))
       .bindToSet(JobTypes)
 }

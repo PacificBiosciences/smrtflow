@@ -43,8 +43,7 @@ class PbsmrtpipeServiceJobType(
     serviceStatusHost: String,
     port: Int,
     commandTemplate: Option[CommandTemplate] = None,
-    smrtLinkVersion: Option[String],
-    smrtLinkToolsVersion: Option[String])
+    smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.PBSMRTPIPE.id
     override val description = "Run a secondary analysis pbsmrtpipe job."
@@ -110,8 +109,7 @@ class PbsmrtpipeServiceJobType(
         Some(xs.map(_._1)),
         ropts.toJson.toString(),
         user.map(_.userId),
-        smrtLinkVersion,
-        smrtLinkToolsVersion)
+        smrtLinkVersion)
     }
 
   override def extraRoutes(dbActor: ActorRef, authenticator: Authenticator) =
@@ -175,5 +173,5 @@ trait PbsmrtpipeServiceJobTypeProvider {
       // for status messages to be sent back to the Server
       if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port(),
-      cmdTemplate(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+      cmdTemplate(), smrtLinkVersion())).bindToSet(JobTypes)
 }

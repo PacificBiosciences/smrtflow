@@ -109,7 +109,6 @@ trait EngineJobProtocol
         "jsonSettings" -> JsString(obj.jsonSettings),
         "createdBy" -> obj.createdBy.toJson,
         "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
-        "smrtlinkToolsVersion" -> obj.smrtlinkToolsVersion.toJson,
         "isActive" -> obj.isActive.toJson,
         "errorMessage" -> obj.errorMessage.toJson,
         "projectId" -> JsNumber(obj.projectId)
@@ -129,7 +128,6 @@ trait EngineJobProtocol
           }
           val createdBy = getBy("createdBy")
           val smrtlinkVersion = getBy("smrtlinkVersion")
-          val smrtlinkToolsVersion = getBy("smrtlinkToolsVersion")
           val errorMessage = getBy("errorMessage")
           val projectId = jsObj.getFields("projectId") match {
             case Seq(JsNumber(pid)) => pid.toInt
@@ -146,7 +144,7 @@ trait EngineJobProtocol
                     JodaDateTime.parse(updatedAt),
                     AnalysisJobStates.toState(state).get,
                     jobTypeId, path, jsonSettings,
-                    createdBy, smrtlinkVersion, smrtlinkToolsVersion,
+                    createdBy, smrtlinkVersion,
                     isActive, errorMessage, projectId)
         case x => deserializationError(s"Expected EngineJob, got $x")
       }

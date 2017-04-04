@@ -97,8 +97,7 @@ object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptio
 
 class MergeDataSetServiceJobType(dbActor: ActorRef,
                                  authenticator: Authenticator,
-                                 smrtLinkVersion: Option[String],
-                                 smrtLinkToolsVersion: Option[String])
+                                 smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.MERGE_DATASETS.id
     override val description = "Merge PacBio XML DataSets (Subread, HdfSubread datasets types are supported)"
@@ -121,8 +120,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
         Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
         mergeDataSetOptions.toJson.toString(),
         user.map(_.userId),
-        smrtLinkVersion,
-        smrtLinkToolsVersion)
+        smrtLinkVersion)
     }
   }
 }
@@ -133,5 +131,5 @@ trait MergeDataSetServiceJobTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val mergeDataSetServiceJobType: Singleton[MergeDataSetServiceJobType] =
-    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new MergeDataSetServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

@@ -200,7 +200,6 @@ object JobModels {
     * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
     * @param createdBy user that created the Job
     * @param smrtlinkVersion SL System version
-    * @param smrtlinkToolsVersion SL tools version
     * @param isActive if the job is active. Not Active jobs will not be displayed by default
     * @param errorMessage error message if the job is an Error state.
     */
@@ -217,7 +216,6 @@ object JobModels {
       jsonSettings: String,
       createdBy: Option[String],
       smrtlinkVersion: Option[String],
-      smrtlinkToolsVersion: Option[String],
       isActive: Boolean = true,
       errorMessage: Option[String] = None,
       projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
@@ -239,7 +237,6 @@ object JobModels {
           jsonSettings: String,
           createdBy: Option[String],
           smrtlinkVersion: Option[String],
-          smrtlinkToolsVersion: Option[String],
           isActive: Boolean = true,
           errorMessage: Option[String] = None,
           projectId: Int = 1) = {
@@ -247,7 +244,7 @@ object JobModels {
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, smrtlinkToolsVersion, isActive, errorMessage, projectId)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, isActive, errorMessage, projectId)
       }
   }
 

@@ -40,7 +40,6 @@ class SimpleServiceJobType(dbActor: ActorRef, authenticator: Authenticator)
       None,
       jsonSettings,
       user.map(_.userId),
-      None,
       None)
   }
 }

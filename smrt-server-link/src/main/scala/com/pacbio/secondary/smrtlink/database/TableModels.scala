@@ -118,11 +118,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def id: Rep[Int] = column[Int]("job_id", O.PrimaryKey, O.AutoInc)
 
-    // FIXME. The process engine only uses UUID
     def uuid: Rep[UUID] = column[UUID]("uuid")
 
-    // this is really comment
-    def pipelineId: Rep[String] = column[String]("pipeline_id")
+    // This should have been description, but keeping with the Underlying EngineJob data model and
+    // avoiding serialization backward compatibility issues
+    def comment: Rep[String] = column[String]("comment")
 
     def name: Rep[String] = column[String]("name")
 
@@ -137,13 +137,13 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def path: Rep[String] = column[String]("path", O.Length(500, varying=true))
 
+    // This should be stored as JSON within slick-pg
+    // https://github.com/tminglei/slick-pg
     def jsonSettings: Rep[String] = column[String]("json_settings")
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
     def smrtLinkVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_version")
-
-    def smrtLinkToolsVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_tools_version")
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
@@ -156,7 +156,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, pipelineId, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid)
 

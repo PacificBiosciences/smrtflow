@@ -26,8 +26,7 @@ import scala.concurrent.Future
 
 class DeleteJobServiceType(dbActor: ActorRef,
                            authenticator: Authenticator,
-                           smrtLinkVersion: Option[String],
-                           smrtLinkToolsVersion: Option[String])
+                           smrtLinkVersion: Option[String])
     extends {
       override val endpoint = JobTypeIds.DELETE_JOB.id
       override val description = "Delete a services job and remove files"
@@ -62,8 +61,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
         None,
         sopts.toJson.toString(),
         user.map(_.userId),
-        smrtLinkVersion,
-        smrtLinkToolsVersion)
+        smrtLinkVersion)
   }
   override def createEngineJob(dbActor: ActorRef,
                                sopts: DeleteJobServiceOptions,
@@ -77,5 +75,5 @@ trait DeleteJobServiceTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val deleteJobServiceType: Singleton[DeleteJobServiceType] =
-    Singleton(() => new DeleteJobServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), None)).bindToSet(JobTypes)
+    Singleton(() => new DeleteJobServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }
