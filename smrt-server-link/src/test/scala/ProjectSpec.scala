@@ -117,6 +117,7 @@ with SmrtLinkConstants with TestUtils{
         newProjId = proj.id
         proj.name === proj.name
         proj.state === ProjectState.CREATED
+        proj.permissions === ProjectPermissions.USER_SPECIFIC
       }
     }
 

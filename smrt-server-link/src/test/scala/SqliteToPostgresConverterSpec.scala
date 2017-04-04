@@ -48,7 +48,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   }
 
   val data = addMetaData(MigrationData(
-    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
+    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false, permissions = ProjectPermissions.USER_SPECIFIC)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), isActive = false, None)),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
@@ -78,6 +78,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     def toLegacyJobEvent(e: JobEvent) = LegacyJobEvent(e.eventId, e.jobId, e.state, e.message, e.createdAt)
     def toLegacyDataSetMetaDataSet(s: DataSetMetaDataSet) = LegacyDataSetMetaDataSet(s.id, s.uuid, s.name, s.path, s.createdAt, s.updatedAt, s.numRecords, s.totalLength, s.tags, s.version, s.comments, s.md5, -1, s.jobId, s.projectId, s.isActive)
     def toLegacyCollectionMetadata(m: CollectionMetadata) = LegacyCollectionMetadata(m.runId, m.uniqueId, m.well, m.name, m.summary, m.context, m.collectionPathUri, m.status, m.instrumentId, m.instrumentName, m.movieMinutes, m.startedAt, m.completedAt, m.terminationInfo)
+    def toLegacyProject(p: Project) = LegacyProject(p.id, p.name, p.description, p.state, p.createdAt, p.updatedAt, p.isActive)
 
     val dbFile = File.createTempFile("sqlite-test", ".db")
     val dbUri = SqliteToPostgresConverter.toSqliteURI(dbFile)
@@ -105,10 +106,10 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
     val action = schema.create >>
       // Add static rows
-      (projects forceInsert Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, now, now, isActive = true)) >>
+      (projects forceInsert LegacyProject(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, now, now, isActive = true)) >>
       (projectsUsers forceInsert ProjectUser(1, "admin", ProjectUserRole.OWNER)) >>
       // Add test data
-      (projects forceInsertAll data.projects) >>
+      (projects forceInsertAll data.projects.map(toLegacyProject)) >>
       (projectsUsers forceInsertAll data.projectsUsers) >>
       (engineJobs forceInsertAll data.engineJobs.map(toLegacyEngineJob)) >>
       (engineJobsDataSets forceInsertAll data.engineJobsDataSets) >>

@@ -536,6 +536,18 @@ object ProjectState {
   }
 }
 
+object ProjectPermissions {
+  sealed trait ProjectPermissions
+  case object ALL_CAN_EDIT extends ProjectPermissions
+  case object ALL_CAN_READ extends ProjectPermissions
+  case object USER_SPECIFIC extends ProjectPermissions
+
+  def fromString(s: String): ProjectPermissions =
+    Seq(ALL_CAN_EDIT, ALL_CAN_READ, USER_SPECIFIC)
+      .find(_.toString == s)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_READ, $USER_SPECIFIC"))
+}
+
 // We have a simpler (cheaper to query) project case class for the API
 // response that lists many projects,
 case class Project(
@@ -546,7 +558,8 @@ case class Project(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     // isActive: false if the project has been deleted, true otherwise
-    isActive: Boolean) {
+    isActive: Boolean,
+    permissions: ProjectPermissions.ProjectPermissions = ProjectPermissions.USER_SPECIFIC) {
 
   def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
     FullProject(
@@ -557,6 +570,7 @@ case class Project(
       createdAt,
       updatedAt,
       isActive,
+      permissions,
       datasets,
       members)
 }
@@ -571,6 +585,7 @@ case class FullProject(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     isActive: Boolean,
+    permissions: ProjectPermissions.ProjectPermissions,
     datasets: Seq[DataSetMetaDataSet],
     members: Seq[ProjectRequestUser]) {
 
