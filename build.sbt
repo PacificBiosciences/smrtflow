@@ -44,6 +44,8 @@ val akkaV = "2.3.6"
 
 val sprayV = "1.3.3"
 
+val slickV = "3.1.1"
+
 val bambooBuildNumberEnv = "bamboo_buildNumber"
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
@@ -65,7 +67,6 @@ lazy val baseSettings = Seq(
   "com.github.scopt" %% "scopt" % "3.5.0",
   "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
-  "com.h2database" % "h2" % "1.4.192",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
   "com.lihaoyi" % "ammonite" % "0.8.2" cross CrossVersion.full,
@@ -74,9 +75,8 @@ lazy val baseSettings = Seq(
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
   "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "com.typesafe.slick" %% "slick" % "3.1.0",
-  "com.typesafe.slick" % "slick-hikaricp_2.11" % "3.1.0",
-  "com.unboundid" % "unboundid-ldapsdk" % "2.3.3",
+  "com.typesafe.slick" %% "slick" % slickV,
+  "com.typesafe.slick" % "slick-hikaricp_2.11" % slickV,
   "commons-cli" % "commons-cli" % "1.2",
   "commons-io" % "commons-io" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
@@ -96,7 +96,7 @@ lazy val baseSettings = Seq(
   "org.apache.commons" % "commons-dbcp2" % "2.0.1",
   "org.eclipse.persistence" % "eclipselink" % "2.6.0",
   "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
-  "org.flywaydb" % "flyway-core" % "4.0",
+  "org.flywaydb" % "flyway-core" % "4.0.3",
   "org.ini4j" % "ini4j" % "0.5.4",
   "org.joda" % "joda-convert" % "1.6",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
