@@ -92,7 +92,7 @@ class RunDesignWithICSScenario(host: String,
   // for SAT - hacking from pbSmrtPipeScenario
   val testdata = PacBioTestData()
   val reference = Var(testdata.getFile("lambdaNEB"))
-  val refUuid = Var(dsUuidFromPath(reference.get))
+  def refUuid = Var(dsUuidFromPath(reference.get))
   val subreads = Var(testdata.getFile("subreads-xml"))
   def subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
@@ -102,7 +102,7 @@ class RunDesignWithICSScenario(host: String,
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
 
   println(s"subreads : ${subreads.get}")
-  val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  def satOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "site-acceptance-test",
       "pbsmrtpipe.pipelines.sa3_sat",

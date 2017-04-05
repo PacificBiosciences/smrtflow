@@ -74,7 +74,7 @@ trait IOSteps {
       val uuid = runInfo.get.subreadsetUuid.toString
 
       val dd = DataSetLoader.loadSubreadSet(subreads.get)
-      if(dd.getUniqueId() != runInfo.get.subreadsetUuid.toString)
+      if(dd.getUniqueId().equals(runInfo.get.subreadsetUuid.toString))
         FAILED(s"UUID of subreadset xml doesnt match set UUID : ${dd.getUniqueId()} != ${runInfo.get.subreadsetUuid.toString}")
       else
         SUCCEEDED
@@ -109,13 +109,6 @@ trait IOSteps {
 
       println(s"setting subreadset uuid : $uuid")
       DataSetWriter.writeSubreadSet(dd, subreads.get)
-
-      val d2 = DataSetLoader.loadSubreadSet(subreads.get)
-      println(s"uuid after writing it to the file : ${d2.getUniqueId()}")
-      if(d2.getUniqueId() != runInfo.get.subreadsetUuid.toString)
-        FAILED(s"UUID of subreadset xml doesnt match set UUID : ${d2.getUniqueId()} != ${runInfo.get.subreadsetUuid.toString}")
-      else
-        SUCCEEDED
     }
 
     override def run : Future[Result] = Future{
