@@ -5,11 +5,11 @@ import java.util.UUID
 
 import collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
+import org.apache.commons.io.FileUtils
 
 import scala.util.{Try,Success,Failure}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-import scala.io.Source
 
 import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, SubreadSet, DataSetType}
 import com.pacbio.common.models.Constants
@@ -81,7 +81,7 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
         Seq.empty[DataStoreFile]
       }
       case Right(result) => {
-        val ds = Source.fromFile(result.outputJson.toFile).getLines.mkString.parseJson.convertTo[PacBioDataStore]
+        val ds = FileUtils.readFileToString(result.outputJson.toFile, "UTF-8").parseJson.convertTo[PacBioDataStore]
         ds.files
       }
     }
