@@ -140,8 +140,7 @@ trait PbsmrtpipeScenarioCore
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
-    projectId := CreateProject(projectName, projectDesc)
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0
   )
 }
 
@@ -156,6 +155,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
 
   val diagnosticJobTests = Seq(
+    projectId := CreateProject(projectName, projectDesc),
     jobId := RunAnalysisPipeline(diagnosticOpts),
     jobStatus := WaitForJob(jobId),
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
