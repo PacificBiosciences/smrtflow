@@ -48,7 +48,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   }
 
   val data = addMetaData(MigrationData(
-    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false, permissions = ProjectPermissions.USER_SPECIFIC)),
+    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = true, permissions = ProjectPermissions.USER_SPECIFIC)),
     Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
     Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), isActive = false, None)),
     Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),

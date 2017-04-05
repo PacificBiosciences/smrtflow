@@ -185,8 +185,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    // Because slick does not support partial indexes, we index this table manually like so:
-    // sqlu"create unique index project_name_unique on projects (name) where is_active;"
+    //Marketing request that the Project name must be unique
+    def nameIdx =  index("project_name", name, unique = true)
 
     def description: Rep[String] = column[String]("description")
 
@@ -448,45 +448,45 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => s.value()},
     {s => SupportedRunStates.fromValue(s)}
   )
-  class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
+  class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "run_summaries") {
 
-    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("unique_id", O.PrimaryKey)
 
-    def name: Rep[String] = column[String]("NAME")
+    def name: Rep[String] = column[String]("name")
 
-    def summary: Rep[Option[String]] = column[Option[String]]("SUMMARY")
+    def summary: Rep[Option[String]] = column[Option[String]]("summary")
 
-    def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
+    def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
-    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("CREATED_AT")
+    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("created_at")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("started_at")
 
-    def transfersCompletedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("TRANSFERS_COMPLETED_AT")
+    def transfersCompletedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("transfers_completed_at")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("completed_at")
 
-    def status: Rep[SupportedRunStates] = column[SupportedRunStates]("STATUS")
+    def status: Rep[SupportedRunStates] = column[SupportedRunStates]("status")
 
-    def totalCells: Rep[Int] = column[Int]("TOTAL_CELLS")
+    def totalCells: Rep[Int] = column[Int]("total_cells")
 
-    def numCellsCompleted: Rep[Int] = column[Int]("NUM_CELLS_COMPLETED")
+    def numCellsCompleted: Rep[Int] = column[Int]("num_cells_completed")
 
-    def numCellsFailed: Rep[Int] = column[Int]("NUM_CELLS_FAILED")
+    def numCellsFailed: Rep[Int] = column[Int]("num_cells_failed")
 
-    def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
+    def instrumentName: Rep[Option[String]] = column[Option[String]]("instrument_name")
 
-    def instrumentSerialNumber: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SERIAL_NUMBER")
+    def instrumentSerialNumber: Rep[Option[String]] = column[Option[String]]("instrument_serial_number")
 
-    def instrumentSwVersion: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_SW_VERSION")
+    def instrumentSwVersion: Rep[Option[String]] = column[Option[String]]("instrument_sw_version")
 
-    def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("PRIMARY_ANALYSIS_SW_VERSION")
+    def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("primary_analysis_sw_version")
 
-    def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
+    def context: Rep[Option[String]] = column[Option[String]]("context")
 
-    def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
+    def terminationInfo: Rep[Option[String]] = column[Option[String]]("termination_info")
 
-    def reserved: Rep[Boolean] = column[Boolean]("RESERVED")
+    def reserved: Rep[Boolean] = column[Boolean]("reserved")
 
     def * = (
         uniqueId,
@@ -511,50 +511,50 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   }
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
-  class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
-    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+  class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "pb_data_models") {
+    def uniqueId: Rep[UUID] = column[UUID]("unique_id", O.PrimaryKey)
 
-    def dataModel: Rep[String] = column[String]("DATA_MODEL", O.SqlType("TEXT"))
+    def dataModel: Rep[String] = column[String]("data_model", O.SqlType("TEXT"))
 
     def * = (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
 
-    def summary = foreignKey("SUMMARY_FK", uniqueId, runSummaries)(_.uniqueId)
+    def summary = foreignKey("summary_fk", uniqueId, runSummaries)(_.uniqueId)
   }
 
   implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
   implicit val collectionStatusType =
     MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
-  class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "COLLECTION_METADATA") {
-    def runId: Rep[UUID] = column[UUID]("RUN_ID")
-    def run = foreignKey("RUN_FK", runId, runSummaries)(_.uniqueId)
+  class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "collection_metadata") {
+    def runId: Rep[UUID] = column[UUID]("run_id")
+    def run = foreignKey("run_fk", runId, runSummaries)(_.uniqueId)
 
-    def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
+    def uniqueId: Rep[UUID] = column[UUID]("unique_id", O.PrimaryKey)
 
-    def well: Rep[String] = column[String]("WELL")
+    def well: Rep[String] = column[String]("well")
 
-    def name: Rep[String] = column[String]("NAME")
+    def name: Rep[String] = column[String]("name")
 
-    def summary: Rep[Option[String]] = column[Option[String]]("COLUMN")
+    def summary: Rep[Option[String]] = column[Option[String]]("column")
 
-    def context: Rep[Option[String]] = column[Option[String]]("CONTEXT")
+    def context: Rep[Option[String]] = column[Option[String]]("context")
 
-    def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("COLLECTION_PATH_URI")
+    def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("collection_path_uri")
 
-    def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("STATUS")
+    def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("status")
 
-    def instrumentId: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_ID")
+    def instrumentId: Rep[Option[String]] = column[Option[String]]("instrument_id")
 
-    def instrumentName: Rep[Option[String]] = column[Option[String]]("INSTRUMENT_NAME")
+    def instrumentName: Rep[Option[String]] = column[Option[String]]("instrument_name")
 
-    def movieMinutes: Rep[Double] = column[Double]("MOVIE_MINUTES")
+    def movieMinutes: Rep[Double] = column[Double]("movie_minutes")
 
-    def createdBy: Rep[Option[String]] = column[Option[String]]("CREATED_BY")
+    def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("STARTED_AT")
+    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("started_at")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("COMPLETED_AT")
+    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("completed_at")
 
-    def terminationInfo: Rep[Option[String]] = column[Option[String]]("TERMINATION_INFO")
+    def terminationInfo: Rep[Option[String]] = column[Option[String]]("termination_info")
 
     def * = (
         runId,
