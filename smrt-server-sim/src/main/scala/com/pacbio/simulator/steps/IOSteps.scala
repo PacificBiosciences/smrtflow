@@ -74,7 +74,7 @@ trait IOSteps {
       val uuid = runInfo.get.subreadsetUuid.toString
 
       val dd = DataSetLoader.loadSubreadSet(subreads.get)
-      if(dd.getUniqueId().equals(runInfo.get.subreadsetUuid.toString))
+      if(! dd.getUniqueId().equals(runInfo.get.subreadsetUuid.toString))
         FAILED(s"UUID of subreadset xml doesnt match set UUID : ${dd.getUniqueId()} != ${runInfo.get.subreadsetUuid.toString}")
       else
         SUCCEEDED
