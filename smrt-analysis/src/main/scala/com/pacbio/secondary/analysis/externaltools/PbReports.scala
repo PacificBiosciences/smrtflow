@@ -67,4 +67,9 @@ object PbReports {
   }
 
   val ALL = List(FilterStatsXml, LoadingXml, AdapterXml, ControlRpt)
+
+  object SubreadReports extends SubreadStatsReport {
+    val reportModule = "dataset_reports"
+    val reportTaskId = "pbreports.tasks.dataset_report"
+  }
 }

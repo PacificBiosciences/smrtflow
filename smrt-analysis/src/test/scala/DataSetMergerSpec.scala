@@ -134,8 +134,15 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       val elapsed = computeTimeDeltaFromNow(startedAt)
       println(s"Merge job took $elapsed seconds")
       val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val N_REPORTS = if (PbReports.isAvailable()) 3 else 1
-      datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(N_REPORTS)
+      val REPORT_IDS = if (PbReports.isAvailable()) {
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml")
+      } else Seq("pbscala::dataset_report")
+      val reports = datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
+      reports.size must beEqualTo(REPORT_IDS.size)
+      val taskIds = reports.map(_.sourceId).sorted
+      taskIds must beEqualTo(REPORT_IDS)
     }
   }
 }
@@ -170,8 +177,16 @@ class DataSetMergerScalingSpec extends Specification with LazyLogging with timeU
       val elapsed = computeTimeDeltaFromNow(startedAt)
       println(s"Merge job took $elapsed seconds")
       val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val N_REPORTS = if (PbReports.isAvailable()) 4 else 1
-      datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId).size must beEqualTo(N_REPORTS)
+      val REPORT_IDS = if (PbReports.isAvailable()) {
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.control_report",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml")
+      } else Seq("pbscala::dataset_report")
+      val reports = datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
+      reports.size must beEqualTo(REPORT_IDS.size)
+      val taskIds = reports.map(_.sourceId).sorted
+      taskIds must beEqualTo(REPORT_IDS)
     }
   }
 }
