@@ -43,6 +43,11 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
       val rpts = DataSetReports.runAll(f, DataSetMetaTypes.Subread,
                                        tmpDir, JobTypeId("reports"), log)
       rpts.size must beEqualTo(3)
+      val reportIds = rpts.map(_.sourceId).sorted
+      reportIds must beEqualTo(
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml"))
     }
     "create a single fallback report for converted RSII dataset" in {
       val pbdata = PacBioTestData()
@@ -69,6 +74,12 @@ class PbReportsSubreadsControlSpec extends Specification with LazyLogging {
       val rpts = DataSetReports.runAll(DS_PATH, DataSetMetaTypes.Subread,
                                        tmpDir, JobTypeId("reports"), log)
       rpts.size must beEqualTo(4)
+      val reportIds = rpts.map(_.sourceId).sorted
+      reportIds must beEqualTo(
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.control_report",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml"))
     }
   }
 }
