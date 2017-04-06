@@ -9,8 +9,8 @@ import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.datasets.io._
@@ -18,32 +18,47 @@ import com.pacbio.secondary.analysis.datasets._
 import com.pacbio.secondary.analysis.constants.FileTypes
 
 
-class DataSetImportSpec extends Specification with LazyLogging {
+trait DataSetImports { self: Specification =>
+
+  protected def runImportImpl(
+      path: String,
+      dsType: DataSetMetaTypes.DataSetMetaType,
+      resultWriter: JobResultWriter) = {
+    val outputDir = Files.createTempDirectory("import-test")
+    println(outputDir)
+    val opts = ImportDataSetOptions(path, dsType)
+    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+    val j = opts.toJob
+    val jobResult = j.run(job, resultWriter)
+    jobResult.isRight must beTrue
+    jobResult.right.get
+  }
+
+  protected def checkNumReports(datastore: PacBioDataStore, nReports: Int) = {
+    datastore.files.size must beEqualTo(nReports + 2)
+    datastore.files.count(_.fileTypeId == FileTypes.REPORT.fileTypeId) must beEqualTo(nReports)
+  }
+}
+
+class DataSetImportSpec
+    extends Specification
+    with DataSetImports
+    with LazyLogging {
   args(skipAll = !PacBioTestData.isAvailable)
 
   sequential
+
+  val writer = new NullJobResultsWriter
 
   private def getData(dsIds: Seq[String]): Seq[Path] = {
     val pbdata = PacBioTestData()
     dsIds.map(pbdata.getFile)
   }
 
-  def runImport(dsId: String, dsType: DataSetMetaTypes.DataSetMetaType) = {
+  private def runImport(dsId: String, dsType: DataSetMetaTypes.DataSetMetaType) = {
     val pbdata = PacBioTestData()
     val path = pbdata.getFile(dsId).toAbsolutePath.toString
-    val outputDir = Files.createTempDirectory("import-test")
-    val opts = ImportDataSetOptions(path, dsType)
-    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
-    val j = opts.toJob
-    val writer = new NullJobResultsWriter
-    val jobResult = j.run(job, writer)
-    jobResult.isRight must beTrue
-    jobResult.right.get
-  }
-
-  def checkNumReports(datastore: PacBioDataStore, nReports: Int) = {
-    datastore.files.size must beEqualTo(nReports + 2)
-    datastore.files.count(_.fileTypeId == FileTypes.REPORT.fileTypeId) must beEqualTo(nReports)
+    runImportImpl(path, dsType, writer)
   }
 
   "Import Datasets from PacBioTestData" should {
@@ -84,6 +99,27 @@ class DataSetImportSpec extends Specification with LazyLogging {
     "Import ConsensusAlignmentSet" in {
       val datastore = runImport("rsii-ccs-aligned", DataSetMetaTypes.AlignmentCCS)
       checkNumReports(datastore, 1)
+    }
+  }
+}
+
+// XXX For internal testing and debugging
+class DataSetImportAdvancedSpec
+    extends Specification
+    with DataSetImports
+    with LazyLogging {
+  val BASE_DIR = "/unknownpath" // replace with something more useful
+  args(skipAll = !Paths.get(BASE_DIR).toFile.exists)
+
+  sequential
+
+  val writer = new PrinterJobResultsWriter
+  "Import additional datasets" should {
+    "Import recent SubreadSet" in {
+      val path = "/unknownpath"
+      val datastore = runImportImpl(path, DataSetMetaTypes.Subread, writer)
+      val N_REPORTS = if (PbReports.isAvailable()) 4 else 1
+      checkNumReports(datastore, N_REPORTS)
     }
   }
 }

@@ -35,6 +35,20 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
   args(skipAll = !(PbReports.isAvailable() && PacBioTestData.isAvailable))
 
   val log = new NullJobResultsWriter
+  "Utility functions" should {
+    "Verify sts.xml in Sequel dataset" in {
+      val pbdata = PacBioTestData()
+      val f = pbdata.getFile("subreads-sequel")
+      val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
+      hasStats must beTrue
+    }
+    "Verify NO sts.xml in RSII dataset" in {
+      val pbdata = PacBioTestData()
+      val f = pbdata.getFile("subreads-xml")
+      val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
+      hasStats must beFalse
+    }
+  }
   "SubreadSet report generation" should {
     "create three reports for Sequel dataset with sts.xml" in {
       val pbdata = PacBioTestData()
