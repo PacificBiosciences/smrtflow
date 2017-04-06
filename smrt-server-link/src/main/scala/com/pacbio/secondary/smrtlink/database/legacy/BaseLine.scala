@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.database.legacy
 import java.util.UUID
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.secondary.smrtlink.models.ProjectUserRole
 import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.PostgresDriver.api._
 
