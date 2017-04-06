@@ -195,7 +195,7 @@ def _copy_chemistry_bundle(chemistry_bundle_dir, dest_dir):
     if not os.path.exists(res_bundle_dir):
         os.makedirs(res_bundle_dir)
     target_dir = os.path.join(res_bundle_dir, "chemistry-{v}".format(v=version))
-    current_link = os.path.join(res_bundle_dir, "chemistry-latest")
+    current_link = os.path.join(res_bundle_dir, "chemistry-active")
     tarball = target_dir + ".tar.gz"
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
