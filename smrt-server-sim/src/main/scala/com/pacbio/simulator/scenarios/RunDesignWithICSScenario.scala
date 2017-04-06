@@ -100,6 +100,7 @@ class RunDesignWithICSScenario(host: String,
   val jobStatus: Var[Int] = Var()
   val childJobs: Var[Seq[EngineJob]] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+  val satOpts: Var[PbSmrtPipeServiceOptions] = Var()
 
   println(s"subreads : ${subreads.get}")
  /* def satOpts: Var[PbSmrtPipeServiceOptions] = Var(
@@ -111,7 +112,6 @@ class RunDesignWithICSScenario(host: String,
       Seq[ServiceTaskOptionBase](),
       Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
           ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))*/
-
 
   val icsEndToEndsteps = Seq(
 
@@ -175,7 +175,9 @@ class RunDesignWithICSScenario(host: String,
 
   val satSteps = Seq(
 
-    jobId := RunSAT(refUuid, subreadsUuid),//RunAnalysisPipeline(satOpts),
+    satOpts := GetSATOptions(refUuid, subreadsUuid),
+
+    jobId := RunAnalysisPipeline(satOpts),
 
     jobStatus := WaitForJob(jobId),
 

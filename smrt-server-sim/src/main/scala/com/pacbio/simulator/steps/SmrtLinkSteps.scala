@@ -598,8 +598,8 @@ trait SmrtLinkSteps {
     }
   }
 
-  case class RunSAT(refUuid : Var[UUID],
-                    subreadsUuid: Var[UUID]) extends VarStep[UUID] {
+  case class GetSATOptions(refUuid : Var[UUID],
+                    subreadsUuid: Var[UUID]) extends VarStep[PbSmrtPipeServiceOptions] {
     override val name = "RunAnalysisPipeline"
 
     def getPipelineOpts: PbSmrtPipeServiceOptions = {
@@ -618,10 +618,8 @@ trait SmrtLinkSteps {
       val pipelineOptions : PbSmrtPipeServiceOptions = getPipelineOpts
       println(s"pipelineOptions : ${pipelineOptions}")
 
-      smrtLinkClient.runAnalysisPipeline(pipelineOptions).map { j =>
-        output(j.uuid)
-        SUCCEEDED
-      }
+      output(pipelineOptions)
+      Future(SUCCEEDED)
     }
   }
 }
