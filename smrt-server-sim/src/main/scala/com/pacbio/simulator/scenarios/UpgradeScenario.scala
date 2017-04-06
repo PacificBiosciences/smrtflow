@@ -51,7 +51,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   // options need to be empty because JSON format changed since 4.0
-  private val cleanOpts = diagnosticOpts.mapWith(_.copy(
+  private val cleanOpts = Var(diagnosticOptsCore.copy(
     taskOptions=Seq.empty[ServiceTaskOptionBase],
     workflowOptions=Seq.empty[ServiceTaskOptionBase]))
   val preUpgradeSteps = setupSteps ++ Seq(
