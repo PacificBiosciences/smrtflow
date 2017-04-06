@@ -102,7 +102,7 @@ class RunDesignWithICSScenario(host: String,
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
 
   println(s"subreads : ${subreads.get}")
-  def satOpts: Var[PbSmrtPipeServiceOptions] = Var(
+ /* def satOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "site-acceptance-test",
       "pbsmrtpipe.pipelines.sa3_sat",
@@ -110,7 +110,7 @@ class RunDesignWithICSScenario(host: String,
           BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(subreadsUuid.get))),
       Seq[ServiceTaskOptionBase](),
       Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
-          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
+          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))*/
 
 
   val icsEndToEndsteps = Seq(
@@ -175,7 +175,7 @@ class RunDesignWithICSScenario(host: String,
 
   val satSteps = Seq(
 
-    jobId := RunAnalysisPipeline(satOpts),
+    jobId := RunSAT(refUuid, subreadsUuid),//RunAnalysisPipeline(satOpts),
 
     jobStatus := WaitForJob(jobId),
 

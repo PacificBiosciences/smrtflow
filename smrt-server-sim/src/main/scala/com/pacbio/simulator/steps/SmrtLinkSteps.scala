@@ -4,12 +4,12 @@ import java.util.UUID
 import java.nio.file.Path
 
 import scala.concurrent.Future
-
 import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.common.models._
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario}
@@ -595,6 +595,31 @@ trait SmrtLinkSteps {
     override def run: Future[Result] = smrtLinkClient.deleteDataSets(dsType.get, ids.get, removeFiles.get).map { j =>
       output(j.uuid)
       SUCCEEDED
+    }
+  }
+
+  case class RunSAT(refUuid : Var[UUID],
+                    subreadsUuid: Var[UUID]) extends VarStep[UUID] {
+    override val name = "RunAnalysisPipeline"
+
+    def getPipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
+      PbSmrtPipeServiceOptions(
+        "site-acceptance-test",
+        "pbsmrtpipe.pipelines.sa3_sat",
+        Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
+          BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(subreadsUuid.get))),
+        Seq[ServiceTaskOptionBase](),
+        Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
+          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
+
+    override def run: Future[Result] = {
+
+      var pipelineOptions = getPipelineOpts
+
+      smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+        output(j.uuid)
+        SUCCEEDED
+      }
     }
   }
 }
