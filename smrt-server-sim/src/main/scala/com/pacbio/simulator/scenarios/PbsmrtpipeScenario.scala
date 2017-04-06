@@ -72,25 +72,25 @@ trait PbsmrtpipeScenarioCore
   protected val projectId: Var[Int] = Var()
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
+  protected val diagnosticOptsCore = PbSmrtPipeServiceOptions(
+    "diagnostic-test",
+    "pbsmrtpipe.pipelines.dev_diagnostic",
+    Seq(BoundServiceEntryPoint("eid_ref_dataset",
+                               "PacBio.DataSet.ReferenceSet",
+                               Right(refUuid.get))),
+    Seq(
+      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
+                               BOOL.optionTypeId),
+      ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
+      ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
+      ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
+      ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
+      ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
+      ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
+    ),
+    Seq[ServiceTaskOptionBase]())
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
-    PbSmrtPipeServiceOptions(
-      "diagnostic-test",
-      "pbsmrtpipe.pipelines.dev_diagnostic",
-      Seq(BoundServiceEntryPoint("eid_ref_dataset",
-                                 "PacBio.DataSet.ReferenceSet",
-                                 Right(refUuid.get))),
-      Seq(
-        ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
-                                 BOOL.optionTypeId),
-        ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
-        ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
-        ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
-        ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
-        ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
-        ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
-      ),
-      Seq[ServiceTaskOptionBase](),
-      pid)
+    diagnosticOptsCore.copy(projectId = pid)
   }
   protected val failOpts = diagnosticOpts.mapWith(_.copy(
     taskOptions=Seq(ServiceTaskBooleanOption(toI("raise_exception"), true,
