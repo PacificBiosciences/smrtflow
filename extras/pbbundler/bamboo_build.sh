@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.14.3"
+BUNDLE_VERSION="0.14.4"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -17,7 +17,13 @@ if [ -z "$BUNDLE_DEST" ]; then
   BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-mainline"
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
-CHEM_BUNDLE="${SRC}/chemistry-bundle"
+
+CHEM_BUNDLE="${SRC}/chemistry-data-bundle"
+
+if [ ! -d "${CHEM_BUNDLE}" ]; then
+  echo "Unable to find required chemistry bundle dir. Exiting"
+  exit 1
+fi
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
