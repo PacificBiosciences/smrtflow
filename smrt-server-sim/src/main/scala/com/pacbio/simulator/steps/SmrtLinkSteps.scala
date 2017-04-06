@@ -459,9 +459,13 @@ trait SmrtLinkSteps {
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
-    override def run: Future[Result] = smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+    override def run: Future[Result] = {
+      println(s"RunAnalysisPipeline : ${pipelineOptions.get}")
+      println(s"RunAnalysisPipeline : ${pipelineOptions.get.pipelineId}")
+      smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
       output(j.uuid)
       SUCCEEDED
+     }
     }
   }
 
