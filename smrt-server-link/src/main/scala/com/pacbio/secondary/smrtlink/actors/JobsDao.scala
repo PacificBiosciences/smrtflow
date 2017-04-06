@@ -272,14 +272,19 @@ trait ProjectDataStore extends LazyLogging {
 
   def userHasProjectRole(login: String, projectId: Int, roles: Set[ProjectUserRole.ProjectUserRole]): Future[Boolean] = {
     val hasRole = projects.filter(_.id === projectId).result.flatMap(_.headOption match {
+      // If project exists and grants required role to all users, return true
       case Some(p) if roles.intersect(p.permissions.grantToAll).nonEmpty => DBIO.successful(true)
+      // If project exists, but does not grant required role to all users, check user-specific roles
       case Some(p) => projectsUsers
         .filter(pu => pu.login === login && pu.projectId === projectId)
         .result
         .map(_.headOption match {
+          // If user has required role, return true
           case Some(pu) if roles.contains(pu.role) => true
+          // User does not have required role, return false
           case _ => false
         })
+      // Project does not exist, throw ResourceNotFoundError
       case _ => DBIO.failed(new ResourceNotFoundError(s"No project with found with id $projectId"))
     })
 
