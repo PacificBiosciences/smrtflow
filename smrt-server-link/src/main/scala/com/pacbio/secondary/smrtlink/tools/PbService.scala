@@ -115,6 +115,7 @@ object PbServiceParser extends CommandLineToolVersion{
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
       presetXml: Option[Path] = None,
+      taskOptions: Option[Map[String,String]] = None,
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
@@ -295,7 +296,10 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status"
+      } text "Maximum time to poll for running job status",
+      opt[Map[String,String]]("task-options").valueName("k1=v1,k2=v2...").action{ (x, c) =>
+        c.copy(taskOptions = Some(x))
+      } text("Pipeline task options as comma-separated option_id=value list")
     ) text "Run a pbsmrtpipe pipeline by name on the server"
 
     cmd(Modes.JOB.name) action { (_, c) =>
@@ -925,15 +929,21 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
-  protected def getPipelineServiceOptions(jobTitle: String, pipelineId: String,
+  protected def getPipelineServiceOptions(jobTitle: String,
+      pipelineId: String,
       entryPoints: Seq[BoundServiceEntryPoint],
-      presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
+      presets: PipelineTemplatePreset,
+      userTaskOptions: Option[Map[String,String]] = None): PbSmrtPipeServiceOptions = {
     Try {
       logger.debug("Getting pipeline options from server")
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(pipeline) => {
-        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
+        val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
+          userTaskOptions.getOrElse(Map[String,String]()).map{
+            case (k,v) => k -> ServiceTaskStrOption(k, v)
+          }.values
+        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)
@@ -942,9 +952,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
-                  presetXml: Option[Path] = None, block: Boolean = true,
-                  validate: Boolean = true): Int = {
+  def runPipeline(pipelineId: String,
+                  entryPoints: Seq[String],
+                  jobTitle: String,
+                  presetXml: Option[Path] = None,
+                  block: Boolean = true,
+                  validate: Boolean = true,
+                  taskOptions: Option[Map[String,String]] = None): Int = {
     if (entryPoints.isEmpty) return errorExit("At least one entry point is required")
 
     val pipelineIdFull = if (pipelineId.split('.').length != 3) s"pbsmrtpipe.pipelines.$pipelineId" else pipelineId
@@ -956,7 +970,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
-      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets) }
+      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions) }
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
     } yield job
 
@@ -1066,7 +1080,8 @@ object PbService {
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
-                                              c.jobTitle, c.presetXml, c.block)
+                                              c.jobTitle, c.presetXml, c.block,
+                                              taskOptions = c.taskOptions)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)

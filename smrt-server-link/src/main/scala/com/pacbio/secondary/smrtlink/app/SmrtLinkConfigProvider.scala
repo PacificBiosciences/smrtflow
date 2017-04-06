@@ -9,7 +9,6 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
-import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
 import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundle, PacBioDataBundleIO}
 import com.pacbio.secondary.smrtlink.services.BundleUtils
 import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
@@ -37,7 +36,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val port: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
   val host: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
-  val dnsName: Singleton[Option[URL]] = Singleton(() => Try { new URL(conf.getString("smrtflow.server.dnsName")) }.toOption)
+  val dnsName: Singleton[Option[String]] = Singleton(() => Try { conf.getString("smrtflow.server.dnsName") }.toOption)
 
   val jobEngineConfig: Singleton[EngineConfig] = Singleton(() => engineConfig)
   val cmdTemplate: Singleton[Option[CommandTemplate]] = Singleton(() => loadCmdTemplate)
@@ -55,10 +54,6 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
     Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
-
-  // Load PacBio Automation Constraints Chemistry Bundle
-  val pacBioAutomationConstraints: Singleton[PacBioAutomationConstraints] =
-    Singleton(() => PacBioAutomationConstraintsLoader.loadExample())
 
   /**
     * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
