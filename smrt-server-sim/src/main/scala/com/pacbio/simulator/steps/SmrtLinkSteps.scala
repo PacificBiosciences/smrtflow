@@ -602,7 +602,7 @@ trait SmrtLinkSteps {
                     subreadsUuid: Var[UUID]) extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
 
-    def getPipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
+    def getPipelineOpts: PbSmrtPipeServiceOptions = {
       PbSmrtPipeServiceOptions(
         "site-acceptance-test",
         "pbsmrtpipe.pipelines.sa3_sat",
@@ -610,13 +610,15 @@ trait SmrtLinkSteps {
           BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(subreadsUuid.get))),
         Seq[ServiceTaskOptionBase](),
         Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
-          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
+          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId)))
+    }
 
     override def run: Future[Result] = {
 
-      var pipelineOptions = getPipelineOpts
+      val pipelineOptions : PbSmrtPipeServiceOptions = getPipelineOpts
+      println(s"pipelineOptions : ${pipelineOptions}")
 
-      smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+      smrtLinkClient.runAnalysisPipeline(pipelineOptions).map { j =>
         output(j.uuid)
         SUCCEEDED
       }
