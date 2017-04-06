@@ -271,13 +271,16 @@ trait ProjectDataStore extends LazyLogging {
   }
 
   def userHasProjectRole(login: String, projectId: Int, roles: Set[ProjectUserRole.ProjectUserRole]): Future[Boolean] = {
-    val pUser = for {
-      pu <- projectsUsers if pu.login === login && pu.projectId === projectId
-    } yield pu
-
-    val hasRole = pUser.result.map(_.headOption match {
-      case Some(pu) if roles.contains(pu.role) => true
-      case _ =>  false
+    val hasRole = projects.filter(_.id === projectId).result.flatMap(_.headOption match {
+      case Some(p) if roles.intersect(p.permissions.grantToAll).nonEmpty => DBIO.successful(true)
+      case Some(p) => projectsUsers
+        .filter(pu => pu.login === login && pu.projectId === projectId)
+        .result
+        .map(_.headOption match {
+          case Some(pu) if roles.contains(pu.role) => true
+          case _ => false
+        })
+      case _ => DBIO.failed(new ResourceNotFoundError(s"No project with found with id $projectId"))
     })
 
     db.run(hasRole)
