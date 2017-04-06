@@ -27,7 +27,6 @@ trait SmrtLinkProviders extends
   JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   PbsmrtpipeConfigLoader with
-  AutomationConstraintServiceProvider with
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
   SmrtLinkEventServiceProvider with
