@@ -732,19 +732,17 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   }
 
   object ProjectPermissions {
+    import ProjectUserRole._
 
-    sealed trait ProjectPermissions
-
-    case object ALL_CAN_EDIT extends ProjectPermissions
-
-    case object ALL_CAN_READ extends ProjectPermissions
-
-    case object USER_SPECIFIC extends ProjectPermissions
+    sealed abstract class ProjectPermissions(val grantToAll: Set[ProjectUserRole])
+    case object ALL_CAN_EDIT extends ProjectPermissions(grantToAll = Set(CAN_EDIT, CAN_VIEW))
+    case object ALL_CAN_VIEW extends ProjectPermissions(grantToAll = Set(CAN_VIEW))
+    case object USER_SPECIFIC extends ProjectPermissions(grantToAll = Set.empty)
 
     def fromString(s: String): ProjectPermissions =
-      Seq(ALL_CAN_EDIT, ALL_CAN_READ, USER_SPECIFIC)
-          .find(_.toString == s)
-          .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_READ, $USER_SPECIFIC"))
+      Seq(ALL_CAN_EDIT, ALL_CAN_VIEW, USER_SPECIFIC)
+        .find(_.toString == s)
+        .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_VIEW, $USER_SPECIFIC"))
   }
 
   // We have a simpler (cheaper to query) project case class for the API
@@ -1488,7 +1486,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
 
   // Note, the project name is a unique identifier
-  val generalProject = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, permissions = ProjectPermissions.ALL_CAN_READ)
+  val generalProject = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, permissions = ProjectPermissions.ALL_CAN_VIEW)
   // This is "admin" from the wso2 model
   val projectUser = ProjectUser(generalProject.id, "admin", ProjectUserRole.OWNER)
 

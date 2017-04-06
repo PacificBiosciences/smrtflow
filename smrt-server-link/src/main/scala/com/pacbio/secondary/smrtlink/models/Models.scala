@@ -537,15 +537,17 @@ object ProjectState {
 }
 
 object ProjectPermissions {
-  sealed trait ProjectPermissions
-  case object ALL_CAN_EDIT extends ProjectPermissions
-  case object ALL_CAN_READ extends ProjectPermissions
-  case object USER_SPECIFIC extends ProjectPermissions
+  import ProjectUserRole._
+
+  sealed abstract class ProjectPermissions(val grantToAll: Set[ProjectUserRole])
+  case object ALL_CAN_EDIT extends ProjectPermissions(grantToAll = Set(CAN_EDIT, CAN_VIEW))
+  case object ALL_CAN_VIEW extends ProjectPermissions(grantToAll = Set(CAN_VIEW))
+  case object USER_SPECIFIC extends ProjectPermissions(grantToAll = Set.empty)
 
   def fromString(s: String): ProjectPermissions =
-    Seq(ALL_CAN_EDIT, ALL_CAN_READ, USER_SPECIFIC)
+    Seq(ALL_CAN_EDIT, ALL_CAN_VIEW, USER_SPECIFIC)
       .find(_.toString == s)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_READ, $USER_SPECIFIC"))
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_VIEW, $USER_SPECIFIC"))
 }
 
 // We have a simpler (cheaper to query) project case class for the API
