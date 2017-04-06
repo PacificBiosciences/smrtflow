@@ -1,7 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import java.util.UUID
-import java.net.URL
 
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
@@ -31,7 +30,7 @@ object EventManagerActor {
 
 
 class EventManagerActor(smrtLinkId: UUID,
-                        dnsName: Option[URL],
+                        dnsName: Option[String],
                         externalConfig: Option[ExternalEventServerConfig])
     extends Actor with LazyLogging with SmrtLinkJsonProtocols{
 
