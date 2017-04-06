@@ -170,8 +170,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => ProjectState.fromString(s)}
   )
   implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
-  {r => r.toString},
-  {r => ProjectUserRole.fromString(r)}
+    {r => r.toString},
+    {r => ProjectUserRole.fromString(r)}
   )
 
   /**
