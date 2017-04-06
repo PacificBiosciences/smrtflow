@@ -61,14 +61,6 @@ trait ProjectEnumProtocols extends DefaultJsonProtocol {
     }
   }
 
-  implicit object ProjectPermissionsFormat extends RootJsonFormat[ProjectPermissions.ProjectPermissions] {
-    def write(s: ProjectPermissions.ProjectPermissions): JsValue = JsString(s.toString)
-    def read(v: JsValue): ProjectPermissions.ProjectPermissions = v match {
-      case JsString(s) => errorHandling { ProjectPermissions.fromString(s) }
-      case _ => deserializationError("Expected permissions as JsString")
-    }
-  }
-
   implicit object ProjectUserRoleFormat extends RootJsonFormat[ProjectUserRole.ProjectUserRole] {
     def write(r: ProjectUserRole.ProjectUserRole): JsValue = JsString(r.toString)
     def read(v: JsValue): ProjectUserRole.ProjectUserRole = v match {
