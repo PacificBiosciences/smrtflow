@@ -44,7 +44,7 @@ trait BundleConstants {
   val FILE = "definitions/PacBioAutomationConstraints.xml"
   val MANIFEST_FILE = "manifest.xml"
   // This needs to be changed to "active"
-  val ACTIVE_SUFFIX = "latest"
+  val ACTIVE_SUFFIX = "active"
   // For consistency any bundle writing or reading will use the extension format
   val EXT_TGZ = s".${TGZ.fileExt}"
 }
