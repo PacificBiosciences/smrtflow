@@ -787,7 +787,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                             createdAt: JodaDateTime,
                             updatedAt: JodaDateTime,
                             isActive: Boolean,
-                            permissions: Option[ProjectUserRole.ProjectUserRole],
+                            grantToAll: Option[ProjectUserRole.ProjectUserRole],
                             datasets: Seq[DataSetMetaDataSet],
                             members: Seq[ProjectRequestUser]) {
 
