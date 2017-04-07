@@ -39,7 +39,8 @@ object loadFile extends (File => String) {
 
 object loadResource extends (String => String) {
   def apply(resourcePath: String): String = {
-    val stream = getClass.getResourceAsStream(resourcePath)
+    val path = (if (resourcePath.startsWith("/")) "" else "/") + resourcePath
+    val stream = getClass.getResourceAsStream(path)
     io.Source.fromInputStream(stream).mkString
   }
 }
@@ -485,8 +486,10 @@ object AmClient {
 
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
-    try {
-      Await.result(am.waitForStart(), 400.seconds)
+
+    val result = Try {
+      Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
+
       c.mode match {
         case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
@@ -497,13 +500,15 @@ object AmClient {
           1
         }
       }
-    } catch {
-      case t: Throwable => {
-        println(t.getMessage())
+    }
+    actorSystem.shutdown()
+
+    result match {
+      case Success(code) => code
+      case Failure(e) => {
+        println(e.getMessage())
         1
       }
-    } finally {
-      actorSystem.shutdown()
     }
   }
 }
