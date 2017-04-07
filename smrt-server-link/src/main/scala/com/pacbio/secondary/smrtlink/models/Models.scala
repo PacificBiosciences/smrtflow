@@ -597,8 +597,26 @@ case class FullProject(
       name,
       description,
       Some(state),
+      Some(ProjectRequestRole.fromProjectUserRole(grantRoleToAll)),
       Some(datasets.map(ds => RequestId(ds.id))),
       Some(members.map(u => ProjectRequestUser(u.login, u.role))))
+}
+
+object ProjectRequestRole {
+  sealed abstract class ProjectRequestRole(val role: Option[ProjectUserRole.ProjectUserRole])
+  case object CAN_EDIT extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_EDIT))
+  case object CAN_VIEW extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_VIEW))
+  case object NONE extends ProjectRequestRole(role = None)
+
+  private val ALL = Seq(CAN_EDIT, CAN_VIEW, NONE)
+
+  def fromProjectUserRole(r: Option[ProjectUserRole.ProjectUserRole]): ProjectRequestRole = ALL
+    .find(_.role == r)
+    .getOrElse(throw new IllegalArgumentException(s"No corresponding ProjectRequestRole for ProjectUserRole $r"))
+
+  def fromString(r: String): ProjectRequestRole = ALL
+    .find(_.toString == r)
+    .getOrElse(throw new IllegalArgumentException(s"Unknown project request role $r, acceptable values are $CAN_EDIT, $CAN_VIEW, $NONE"))
 }
 
 // the json structures required in client requests are a subset of the
@@ -610,6 +628,7 @@ case class ProjectRequest(
     // if any of these are None in a PUT request, the corresponding
     // value will stay the same (i.e., the update will be skipped).
     state: Option[ProjectState.ProjectState],
+    grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole],
     datasets: Option[Seq[RequestId]],
     members: Option[Seq[ProjectRequestUser]]) {
 

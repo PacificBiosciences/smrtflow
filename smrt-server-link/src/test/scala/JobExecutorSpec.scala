@@ -90,7 +90,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
   def toJobTypeByIdWithRest(x: String, i: IdAble, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 
-  val project = ProjectRequest("mock project name", "mock project description", None, None, None)
+  val project = ProjectRequest("mock project name", "mock project description", None, None, None, None)
   var projectId = -1
 
   val rx = scala.util.Random

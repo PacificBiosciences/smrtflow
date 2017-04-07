@@ -68,6 +68,14 @@ trait ProjectEnumProtocols extends DefaultJsonProtocol {
       case _ => deserializationError("Expected role as JsString")
     }
   }
+
+  implicit object ProjectRequestRoleFormat extends RootJsonFormat[ProjectRequestRole.ProjectRequestRole] {
+    def write(r: ProjectRequestRole.ProjectRequestRole): JsValue = JsString(r.toString)
+    def read(v: JsValue): ProjectRequestRole.ProjectRequestRole = v match {
+      case JsString(s) => errorHandling { ProjectRequestRole.fromString(s) }
+      case _ => deserializationError("Expected role as JsString")
+    }
+  }
 }
 
 trait PbSmrtPipeServiceOptionsProtocol
