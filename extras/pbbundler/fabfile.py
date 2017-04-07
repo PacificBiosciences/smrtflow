@@ -20,6 +20,7 @@ import os
 import json
 import warnings
 import time
+import subprocess
 import xml.dom.minidom
 from zipfile import ZipFile
 from distutils.dir_util import copy_tree
@@ -254,9 +255,35 @@ def _get_smrtflow_version(root_dir):
     return load_pacbio_versions(p)
 
 
+def _get_git_sha(repo_path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(repo_path)
+        return subprocess.check_output(["git","describe","--always"]).strip()
+    except subprocess.CalledProcessError as e:
+        log.error(e)
+        return "unknown"
+    finally:
+        os.chdir(cwd)
+
+
 def _get_smrtlink_ui_version(root_dir):
     ui_manifest_path = os.path.join(root_dir, 'dist/pacbio-manifest.json')
-    return load_pacbio_versions(ui_manifest_path)
+    pbversions = load_pacbio_versions(ui_manifest_path)
+    sha = _get_git_sha(root_dir)
+    for v in pbversions:
+        if v.idx == "smrtlink_ui":
+            v.version += "." + sha
+    return pbversions
+
+
+def _get_chemistry_bundle_version(chem_bundle_dir):
+    if chem_bundle_dir is None:
+        log.warn("No chemistry bundle available")
+        return []
+    version = _get_git_sha(chem_bundle_dir)
+    return [PacBioVersion("chemistry-data-bundle", "chemistry-data-bundle",
+                          version, "Chemistry resources bundle")]
 
 
 def _chmod(file_name):
@@ -548,8 +575,9 @@ def build_smrtlink_services_ui(version,
     log.info("Versions: smrtflow -> {}".format(smrtflow_versions))
     smrtlink_ui_versions = {i for i in _get_smrtlink_ui_version(smrtlink_ui_dir)}
     log.info("Versions: smrtlink-ui -> {}".format(smrtlink_ui_versions))
+    resource_versions = {i for i in _get_chemistry_bundle_version(chemistry_bundle_dir)}
 
-    versions = list(smrtflow_versions | smrtlink_ui_versions)
+    versions = list(smrtflow_versions | smrtlink_ui_versions | resource_versions)
 
     pacbio_version_file = os.path.join(output_bundle_dir, PbConstants.MANIFEST_FILE)
     write_pacbio_versions(versions, pacbio_version_file)
