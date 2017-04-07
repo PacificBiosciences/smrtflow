@@ -91,8 +91,10 @@ class RunDesignWithICSScenario(host: String,
 
   // for SAT - hacking from pbSmrtPipeScenario
   val testdata = PacBioTestData()
+
   val reference = Var(testdata.getFile("lambdaNEB"))
   def refUuid = Var(dsUuidFromPath(reference.get))
+
   val subreads = Var(testdata.getFile("subreads-xml"))
   def subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
@@ -175,7 +177,7 @@ class RunDesignWithICSScenario(host: String,
 
   val satSteps = Seq(
 
-    satOpts := GetSATOptions(refUuid, subreadsUuid),
+    satOpts := GetSATOptions(refUuid, runInfo),
 
     jobId := RunAnalysisPipeline(satOpts),
 
