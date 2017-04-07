@@ -21,7 +21,7 @@ import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.services._
-import com.pacbio.secondary.smrtlink.actors.{DaoFutureUtils, PacBioBundleUtils}
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
@@ -143,8 +143,9 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path)(implicit val act
           complete {
             ok {
               (daoActor ? GetActiveIOBundle(bundleTypeId))
-                  .mapTo[Option[PacBioDataBundle]]
+                  .mapTo[Option[PacBioDataBundleIO]]
                   .flatMap(failIfNone(s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
+                  .map(_.bundle)
             }
           }
         }
