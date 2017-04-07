@@ -9,9 +9,8 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
-import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundle, PacBioDataBundleIO}
-import com.pacbio.secondary.smrtlink.services.BundleUtils
-import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
+import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
+import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundleIO}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.Try
@@ -53,7 +52,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
     Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
 
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
-    Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
+    Singleton(() => PacBioDataBundleIOUtils.loadBundlesFromRoot(pacBioBundleRoot()))
 
   /**
     * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
