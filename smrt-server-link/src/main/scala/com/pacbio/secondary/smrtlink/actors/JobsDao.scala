@@ -140,7 +140,7 @@ trait ProjectDataStore extends LazyLogging {
 
   def createProject(projReq: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true, grantRoleToAll = None)
+    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true, grantRoleToAll = projReq.grantRoleToAll.flatMap(_.role))
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, projReq))
     db.run(fullAction.transactionally)
@@ -181,13 +181,25 @@ trait ProjectDataStore extends LazyLogging {
 
   def updateProject(projId: Int, projReq: ProjectRequest): Future[Option[Project]] = {
     val now = JodaDateTime.now()
-    val update = projReq.state match {
-      case Some(state) =>
+
+    // TODO(smcclellan): Lots of duplication here. Is there a better way to do this?
+    val update = (projReq.state, projReq.grantRoleToAll) match {
+      case (Some(state), Some(role)) =>
+        projects
+          .filter(_.id === projId)
+          .map(p => (p.name, p.state, p.grantRoleToAll, p.description, p.updatedAt))
+          .update((projReq.name, state, role.role, projReq.description, now))
+      case (None, Some(role)) =>
+        projects
+          .filter(_.id === projId)
+          .map(p => (p.name, p.description, p.grantRoleToAll, p.updatedAt))
+          .update((projReq.name, projReq.description, role.role, now))
+      case (Some(state), None) =>
         projects
           .filter(_.id === projId)
           .map(p => (p.name, p.state, p.description, p.updatedAt))
           .update((projReq.name, state, projReq.description, now))
-      case None =>
+      case (None, None) =>
         projects
           .filter(_.id === projId)
           .map(p => (p.name, p.description, p.updatedAt))

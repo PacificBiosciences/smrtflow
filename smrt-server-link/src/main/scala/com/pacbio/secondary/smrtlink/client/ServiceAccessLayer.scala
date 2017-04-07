@@ -399,7 +399,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None))
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None))
       .withHeaders(headers:_*)
   }
 
