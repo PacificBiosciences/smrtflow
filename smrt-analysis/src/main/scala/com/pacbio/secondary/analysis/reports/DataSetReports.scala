@@ -27,6 +27,28 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
+  // all of the current reports will only work if at least one sts.xml file
+  // is present as an ExternalResource of a SubreadSet BAM file
+  def hasStatsXml(inPath: Path,
+                  dst: DataSetMetaTypes.DataSetMetaType): Boolean = dst match {
+    case DataSetMetaTypes.Subread => {
+      val ds = DataSetLoader.loadSubreadSet(inPath)
+      val extRes = ds.getExternalResources
+      if (extRes == null) false
+      else {
+        (extRes.getExternalResource.filter(_ != null).map { x =>
+          val extRes2 = x.getExternalResources
+          if (extRes2 == null) false else {
+            extRes2.getExternalResource.filter(_ != null).map { x2 =>
+              x2.getMetaType == FileTypes.STS_XML.fileTypeId
+            }.exists(_ == true)
+          }
+        }).toList.exists(_ == true)
+      }
+    }
+    case _ => false
+  }
+
   def toDataStoreFile(path: Path, taskId: String): DataStoreFile = {
     val now = JodaDateTime.now()
 
@@ -78,6 +100,7 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       case Left(failure) => {
         log.writeLineStdout("failed to generate report:")
         log.writeLineStdout(failure.msg)
+        println(failure.msg)
         Seq.empty[DataStoreFile]
       }
       case Right(result) => {
@@ -97,31 +120,13 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
 
-    // all of the current reports will only work if at least one sts.xml file
-    // is present as an ExternalResource of a SubreadSet BAM file
-    val hasStatsXml: Boolean = dst match {
-      case DataSetMetaTypes.Subread => {
-        val ds = DataSetLoader.loadSubreadSet(inPath)
-        val extRes = ds.getExternalResources
-        if (extRes == null) false
-        else {
-          (extRes.getExternalResource.filter(_ != null).map { x =>
-            val extRes2 = x.getExternalResources
-            if (extRes2 == null) false else {
-              extRes2.getExternalResource.filter(_ != null).map { x2 =>
-                x2.getMetaType == FileTypes.STS_XML.fileTypeId
-              }.exists(_ == true)
-            }
-          }).toList.exists(_ == true)
-        }
-      }
-      case _ => false
-    }
-
     val reportFiles: Seq[DataStoreFile] = if (PbReports.isAvailable()) {
-      if (PbReports.SubreadReports.canProcess(dst, hasStatsXml)) {
+      if (PbReports.SubreadReports.canProcess(dst, hasStatsXml(inPath, dst))) {
         runCombined(inPath, rptParent, log)
-      } else Seq.empty[DataStoreFile]
+      } else {
+        println("Can't process this dataset")
+        Seq.empty[DataStoreFile]
+      }
     } else {
       log.writeLineStdout("pbreports is unavailable")
       Seq.empty[DataStoreFile]

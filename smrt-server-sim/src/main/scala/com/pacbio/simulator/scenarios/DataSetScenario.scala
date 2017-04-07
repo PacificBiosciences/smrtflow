@@ -188,7 +188,9 @@ class DataSetScenario(host: String, port: Int)
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
     dataStore := GetImportJobDataStore(jobId),
     fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
-    fail("Wrong UUID in datastore") IF dataStore.mapWith(_(2).uuid) !=? subreadsUuid1.get,
+    fail("Wrong UUID in datastore") IF dataStore.mapWith {
+      dss => dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
+    } !=? subreadsUuid1.get,
     jobId := ImportDataSet(subreads2, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
