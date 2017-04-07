@@ -169,9 +169,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     {s => s.toString},
     {s => ProjectState.fromString(s)}
   )
-  implicit val projectPermissionsType = MappedColumnType.base[ProjectPermissions.ProjectPermissions, String](
-    {s => s.toString},
-    {s => ProjectPermissions.fromString(s)}
+  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
+    {r => r.toString},
+    {r => ProjectUserRole.fromString(r)}
   )
 
   /**
@@ -198,15 +198,11 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def permissions: Rep[ProjectPermissions.ProjectPermissions] = column[ProjectPermissions.ProjectPermissions]("permissions")
+    def grantRoleToAll: Rep[Option[ProjectUserRole.ProjectUserRole]] = column[Option[ProjectUserRole.ProjectUserRole]]("grant_role_to_all")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive, permissions) <> (Project.tupled, Project.unapply)
+    def * = (id, name, description, state, createdAt, updatedAt, isActive, grantRoleToAll) <> (Project.tupled, Project.unapply)
   }
 
-  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
-    {r => r.toString},
-    {r => ProjectUserRole.fromString(r)}
-  )
   class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
     def projectId: Rep[Int] = column[Int]("project_id")
 

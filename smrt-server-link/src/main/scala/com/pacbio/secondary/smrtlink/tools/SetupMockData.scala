@@ -255,7 +255,7 @@ trait MockUtils extends LazyLogging{
   def insertMockProject(): Future[Int] = {
     val f = dao.db.run(
       for {
-        pid <- (projects returning projects.map(_.id)) += Project(-1, "Mock Project", "Mock Project description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, permissions = ProjectPermissions.ALL_CAN_EDIT)
+        pid <- (projects returning projects.map(_.id)) += Project(-1, "Mock Project", "Mock Project description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, grantRoleToAll = None)
         _ <- projectsUsers += ProjectUser(pid, MOCK_USER_LOGIN, ProjectUserRole.OWNER)
       } yield pid
     )

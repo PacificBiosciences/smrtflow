@@ -536,18 +536,19 @@ object ProjectState {
   }
 }
 
-object ProjectPermissions {
-  import ProjectUserRole._
+object ProjectUserRole {
+  sealed abstract class ProjectUserRole(private val ordinal: Int) extends Ordered[ProjectUserRole] {
+    override def compare(that: ProjectUserRole) = ordinal.compare(that.ordinal)
+  }
+  case object OWNER extends ProjectUserRole(ordinal = 3)
+  case object CAN_EDIT extends ProjectUserRole(ordinal = 2)
+  case object CAN_VIEW extends ProjectUserRole(ordinal = 1)
 
-  sealed abstract class ProjectPermissions(val grantToAll: Set[ProjectUserRole])
-  case object ALL_CAN_EDIT extends ProjectPermissions(grantToAll = Set(CAN_EDIT, CAN_VIEW))
-  case object ALL_CAN_VIEW extends ProjectPermissions(grantToAll = Set(CAN_VIEW))
-  case object USER_SPECIFIC extends ProjectPermissions(grantToAll = Set.empty)
-
-  def fromString(s: String): ProjectPermissions =
-    Seq(ALL_CAN_EDIT, ALL_CAN_VIEW, USER_SPECIFIC)
-      .find(_.toString == s)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_VIEW, $USER_SPECIFIC"))
+  def fromString(r: String): ProjectUserRole = {
+    Seq(OWNER, CAN_EDIT, CAN_VIEW)
+      .find(_.toString == r)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+  }
 }
 
 // We have a simpler (cheaper to query) project case class for the API
@@ -561,7 +562,7 @@ case class Project(
     updatedAt: JodaDateTime,
     // isActive: false if the project has been deleted, true otherwise
     isActive: Boolean,
-    permissions: ProjectPermissions.ProjectPermissions = ProjectPermissions.USER_SPECIFIC) {
+    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] = None) {
 
   def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
     FullProject(
@@ -572,7 +573,7 @@ case class Project(
       createdAt,
       updatedAt,
       isActive,
-      permissions,
+      grantRoleToAll,
       datasets,
       members)
 }
@@ -587,7 +588,7 @@ case class FullProject(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     isActive: Boolean,
-    permissions: ProjectPermissions.ProjectPermissions,
+    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole],
     datasets: Seq[DataSetMetaDataSet],
     members: Seq[ProjectRequestUser]) {
 
@@ -621,24 +622,12 @@ case class ProjectRequest(
 
 case class RequestId(id: Int)
 
-object ProjectUserRole {
-  sealed trait ProjectUserRole
-  case object OWNER extends ProjectUserRole
-  case object CAN_EDIT extends ProjectUserRole
-  case object CAN_VIEW extends ProjectUserRole
-
-  def fromString(r: String): ProjectUserRole = {
-    Seq(OWNER, CAN_EDIT, CAN_VIEW)
-      .find(_.toString == r)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
-  }
-}
 case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
 case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
 
-case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], project: Project)
+case class UserProjectResponse(role: ProjectUserRole.ProjectUserRole, project: Project)
 
-case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
+case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: ProjectUserRole.ProjectUserRole)
 
 
 case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)

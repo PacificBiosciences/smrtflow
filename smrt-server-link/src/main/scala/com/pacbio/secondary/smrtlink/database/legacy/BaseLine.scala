@@ -731,18 +731,23 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     }
   }
 
-  object ProjectPermissions {
-    import ProjectUserRole._
+  object ProjectUserRole {
 
-    sealed abstract class ProjectPermissions(val grantToAll: Set[ProjectUserRole])
-    case object ALL_CAN_EDIT extends ProjectPermissions(grantToAll = Set(CAN_EDIT, CAN_VIEW))
-    case object ALL_CAN_VIEW extends ProjectPermissions(grantToAll = Set(CAN_VIEW))
-    case object USER_SPECIFIC extends ProjectPermissions(grantToAll = Set.empty)
+    sealed abstract class ProjectUserRole(private val ordinal: Int) extends Ordered[ProjectUserRole] {
+      override def compare(that: ProjectUserRole) = ordinal.compare(that.ordinal)
+    }
 
-    def fromString(s: String): ProjectPermissions =
-      Seq(ALL_CAN_EDIT, ALL_CAN_VIEW, USER_SPECIFIC)
-        .find(_.toString == s)
-        .getOrElse(throw new IllegalArgumentException(s"Unknown project permissions $s, acceptable values are $ALL_CAN_EDIT, $ALL_CAN_VIEW, $USER_SPECIFIC"))
+    case object OWNER extends ProjectUserRole(ordinal = 3)
+
+    case object CAN_EDIT extends ProjectUserRole(ordinal = 2)
+
+    case object CAN_VIEW extends ProjectUserRole(ordinal = 1)
+
+    def fromString(r: String): ProjectUserRole = {
+      Seq(OWNER, CAN_EDIT, CAN_VIEW)
+        .find(_.toString == r)
+        .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+    }
   }
 
   // We have a simpler (cheaper to query) project case class for the API
@@ -756,7 +761,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                         updatedAt: JodaDateTime,
                         // isActive: false if the project has been deleted, true otherwise
                         isActive: Boolean,
-                        permissions: ProjectPermissions.ProjectPermissions = ProjectPermissions.USER_SPECIFIC) {
+                        grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] = None) {
 
     def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
       FullProject(
@@ -767,7 +772,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
         createdAt,
         updatedAt,
         isActive,
-        permissions,
+        grantRoleToAll,
         datasets,
         members)
   }
@@ -782,7 +787,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                             createdAt: JodaDateTime,
                             updatedAt: JodaDateTime,
                             isActive: Boolean,
-                            permissions: ProjectPermissions.ProjectPermissions,
+                            grantToAll: Option[ProjectUserRole.ProjectUserRole],
                             datasets: Seq[DataSetMetaDataSet],
                             members: Seq[ProjectRequestUser]) {
 
@@ -815,23 +820,6 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   }
 
   case class RequestId(id: Int)
-
-  object ProjectUserRole {
-
-    sealed trait ProjectUserRole
-
-    case object OWNER extends ProjectUserRole
-
-    case object CAN_EDIT extends ProjectUserRole
-
-    case object CAN_VIEW extends ProjectUserRole
-
-    def fromString(r: String): ProjectUserRole = {
-      Seq(OWNER, CAN_EDIT, CAN_VIEW)
-          .find(_.toString == r)
-          .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
-    }
-  }
 
   case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
 
@@ -962,8 +950,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
     { s => s.toString }, { s => ProjectState.fromString(s) }
   )
-  implicit val projectPermissionsType = MappedColumnType.base[ProjectPermissions.ProjectPermissions, String](
-    { s => s.toString }, { s => ProjectPermissions.fromString(s) }
+  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
+  { r => r.toString }, { r => ProjectUserRole.fromString(r) }
   )
 
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
@@ -985,14 +973,10 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def permissions: Rep[ProjectPermissions.ProjectPermissions] = column[ProjectPermissions.ProjectPermissions]("permissions")
+    def grantRoleToAll: Rep[Option[ProjectUserRole.ProjectUserRole]] = column[Option[ProjectUserRole.ProjectUserRole]]("grant_role_to_all")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive, permissions) <> (Project.tupled, Project.unapply)
+    def * = (id, name, description, state, createdAt, updatedAt, isActive, grantRoleToAll) <> (Project.tupled, Project.unapply)
   }
-
-  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
-    { r => r.toString }, { r => ProjectUserRole.fromString(r) }
-  )
 
   class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
     def projectId: Rep[Int] = column[Int]("project_id")
@@ -1486,7 +1470,7 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
 
   // Note, the project name is a unique identifier
-  val generalProject = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, permissions = ProjectPermissions.ALL_CAN_VIEW)
+  val generalProject = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, grantRoleToAll = Some(ProjectUserRole.CAN_VIEW))
   // This is "admin" from the wso2 model
   val projectUser = ProjectUser(generalProject.id, "admin", ProjectUserRole.OWNER)
 

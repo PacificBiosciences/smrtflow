@@ -364,7 +364,7 @@ object LegacyModels {
        createdAt,
        updatedAt,
        isActive,
-       permissions = BaseLine.ProjectPermissions.USER_SPECIFIC)
+       grantRoleToAll = None)
   }
 }
 

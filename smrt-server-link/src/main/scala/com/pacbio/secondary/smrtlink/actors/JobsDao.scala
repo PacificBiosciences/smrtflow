@@ -140,7 +140,7 @@ trait ProjectDataStore extends LazyLogging {
 
   def createProject(projReq: ProjectRequest): Future[Project] = {
     val now = JodaDateTime.now()
-    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true, permissions = ProjectPermissions.USER_SPECIFIC)
+    val proj = Project(-99, projReq.name, projReq.description, ProjectState.CREATED, now, now, isActive = true, grantRoleToAll = None)
     val insert = projects returning projects.map(_.id) into((p, i) => p.copy(id = i)) += proj
     val fullAction = insert.flatMap(proj => setMembersAndDatasets(proj, projReq))
     db.run(fullAction.transactionally)
@@ -228,52 +228,59 @@ trait ProjectDataStore extends LazyLogging {
   def getDatasetsByProject(projId: Int): Future[Seq[DataSetMetaDataSet]] =
     db.run(dsMetaData2.filter(_.projectId === projId).result)
 
+  /**
+   * Returns a query that will only contain active projects for which the given user is granted a role.
+   *
+   * The query is for ordered pairs of (Project, Option[ProjectUser])
+   *
+   * The user may be granted a role individually by the projectsUsers table, by the project.grantRoleToAll field, or
+   * both
+   */
+  private def userProjectsQuery(login: String): Query[(ProjectsT, Rep[Option[ProjectsUsersT]]), (Project, Option[ProjectUser]), Seq] =
+    for {
+      (p, pu) <- projects.filter(_.isActive) joinLeft projectsUsers.filter(_.login === login) on (_.id === _.projectId)
+      if pu.isDefined || p.grantRoleToAll.isDefined
+    } yield (p, pu)
+
+  /**
+   * Given a project and optional projectUser (as might be returned from the query produced by {{{userProjectsQuery}}}),
+   * return the granted role with the highest permissions. E.g., if the project grants CAN_VIEW to all users, and the
+   * specific user is granted CAN_EDIT, this will return CAN_EDIT.
+   *
+   * Throws an {{{UnsupportedOperationException}}} if no role is found.
+   */
+  private def maxRole(project: Project, projectUser: Option[ProjectUser]): ProjectUserRole.ProjectUserRole = try {
+    (project.grantRoleToAll.toSet ++ projectUser.map(_.role).toSet).max
+  } catch {
+    case e: UnsupportedOperationException =>
+      throw new IllegalArgumentException(s"Project ${project.id} does not grant a role to all users, and no user-specific role found")
+  }
+
   def getUserProjects(login: String): Future[Seq[UserProjectResponse]] = {
-    val join = for {
-      (pu, p) <- projectsUsers join projects on (_.projectId === _.id)
-      if pu.login === login && p.isActive
-    } yield (pu.role, p)
-
-    val userProjects = join
+    val userProjects = userProjectsQuery(login)
       .result
-      .map(_.map(j => UserProjectResponse(Some(j._1), j._2)))
+      .map(_.map(j => UserProjectResponse(maxRole(j._1, j._2), j._1)))
 
-    val generalProject = projects
-      .filter(_.id === GENERAL_PROJECT_ID)
-      .result
-      .headOption
-      .map(_.map(UserProjectResponse(None, _)).toSeq)
-
-    db.run(userProjects.zip(generalProject).map(p => p._1 ++ p._2))
+    db.run(userProjects)
   }
 
   def getUserProjectsDatasets(login: String): Future[Seq[ProjectDatasetResponse]] = {
     val userJoin = for {
-      pu <- projectsUsers if pu.login === login
-      p <- projects if pu.projectId === p.id && p.isActive
-      d <- dsMetaData2 if pu.projectId === d.projectId
-    } yield (p, d, pu.role)
-
-    val userProjects = userJoin
-      .result
-      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, Some(j._3))))
-
-    val genJoin = for {
-      p <- projects if p.id === GENERAL_PROJECT_ID
+      (p, pu) <- userProjectsQuery(login)
       d <- dsMetaData2 if p.id === d.projectId
-    } yield (p, d)
+    } yield (p, d, pu)
 
-    val genProjects = genJoin
+    val userDatasets = userJoin
       .result
-      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, None)))
+      .map(_.map(j => ProjectDatasetResponse(j._1, j._2, maxRole(j._1, j._3))))
 
-    db.run(userProjects.zip(genProjects).map(p => p._1 ++ p._2))
+    db.run(userDatasets)
   }
 
   def userHasProjectRole(login: String, projectId: Int, roles: Set[ProjectUserRole.ProjectUserRole]): Future[Boolean] = {
     val hasRole = projects.filter(_.id === projectId).result.flatMap(_.headOption match {
       // If project exists and grants required role to all users, return true
-      case Some(p) if roles.intersect(p.permissions.grantToAll).nonEmpty => DBIO.successful(true)
+      case Some(p) if p.grantRoleToAll.exists(roles.contains) => DBIO.successful(true)
       // If project exists, but does not grant required role to all users, check user-specific roles
       case Some(p) => projectsUsers
         .filter(pu => pu.login === login && pu.projectId === projectId)
