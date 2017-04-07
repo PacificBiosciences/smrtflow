@@ -595,33 +595,4 @@ trait SmrtLinkSteps {
       SUCCEEDED
     }
   }
-
-  case class GetSATOptions(refUuid : Var[UUID],
-                           runInfo: Var[RunDesignTemplateInfo]) extends VarStep[PbSmrtPipeServiceOptions] {
-    override val name = "RunAnalysisPipeline"
-
-    def getPipelineOpts: PbSmrtPipeServiceOptions = {
-
-      println(s"refUuid : ${refUuid.get}")
-      println(s"subreadsUuid : ${runInfo.get.subreadsetUuid}")
-
-      PbSmrtPipeServiceOptions(
-        "site-acceptance-test",
-        "pbsmrtpipe.pipelines.sa3_sat",
-        Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
-          BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(runInfo.get.subreadsetUuid))),
-        Seq[ServiceTaskOptionBase](),
-        Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
-          ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId)))
-    }
-
-    override def run: Future[Result] = {
-
-      val pipelineOptions : PbSmrtPipeServiceOptions = getPipelineOpts
-      println(s"pipelineOptions : ${pipelineOptions}")
-
-      output(pipelineOptions)
-      Future(SUCCEEDED)
-    }
-  }
 }
