@@ -582,7 +582,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getPacBioDataBundles() = getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl()) }
 
   def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+    getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
 
   def getPacBioDataBundleByTypeAndVersionId(typeId: String, versionId: String) =
     getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}

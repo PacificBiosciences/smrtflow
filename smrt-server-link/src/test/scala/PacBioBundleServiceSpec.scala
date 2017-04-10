@@ -45,6 +45,11 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
         status.isSuccess must beTrue
       }
     }
+    "Get Active bundle type id 'chemistry' " in {
+      Get("/smrt-link/bundles/chemistry/active") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
     "Get bundle type id 'chemistry' by version id" in {
       Get("/smrt-link/bundles/chemistry/0.1.2") ~> routes ~> check {
         status.isSuccess must beTrue

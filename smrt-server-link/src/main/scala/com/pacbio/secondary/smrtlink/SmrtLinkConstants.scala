@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink
 
+import com.pacbio.secondary.analysis.constants.FileTypes.TGZ
 import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants
 
 
@@ -41,4 +42,13 @@ trait JobServiceConstants {
   final val LOG_PREFIX = "log"
   // passed to the pbsmrtpipe process to communicate back to the services to log events/updates
   final val LOG_PB_SMRTPIPE_RESOURCE_ID = "pbsmrtpipe"
+}
+
+trait PacBioDataBundleConstants {
+  val FILE = "definitions/PacBioAutomationConstraints.xml"
+  val MANIFEST_FILE = "manifest.xml"
+  // This needs to be changed to "active"
+  val ACTIVE_SUFFIX = "active"
+  // For consistency any bundle writing or reading will use the extension format
+  val EXT_TGZ = s".${TGZ.fileExt}"
 }
