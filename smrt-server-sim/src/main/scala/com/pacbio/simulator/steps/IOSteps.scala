@@ -67,6 +67,24 @@ trait IOSteps {
     }
   }
 
+  case class CheckIfUUIDUpdated(subreads : Var[Path], runInfo : Var[RunDesignTemplateInfo]) extends Step {
+    override val name = "CheckIfUUIDUpdated"
+
+    def checkXml  : Result = {
+      val uuid = runInfo.get.subreadsetUuid.toString
+
+      val dd = DataSetLoader.loadSubreadSet(subreads.get)
+      if(! dd.getUniqueId().equals(runInfo.get.subreadsetUuid.toString))
+        FAILED(s"UUID of subreadset xml doesnt match set UUID : ${dd.getUniqueId()} != ${runInfo.get.subreadsetUuid.toString}")
+      else
+        SUCCEEDED
+    }
+
+    override def run : Future[Result] = Future{
+      checkXml
+    }
+  }
+
   case class UpdateSubreadsetXml(subreads : Var[Path], runInfo : Var[RunDesignTemplateInfo]) extends Step{
     //with XmlAttributeManipulator{
 

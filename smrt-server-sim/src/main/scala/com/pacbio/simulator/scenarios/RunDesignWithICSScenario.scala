@@ -91,27 +91,30 @@ class RunDesignWithICSScenario(host: String,
 
   // for SAT - hacking from pbSmrtPipeScenario
   val testdata = PacBioTestData()
+
   val reference = Var(testdata.getFile("lambdaNEB"))
-  val refUuid = Var(dsUuidFromPath(reference.get))
+  def refUuid = Var(dsUuidFromPath(reference.get))
+
   val subreads = Var(testdata.getFile("subreads-xml"))
-  def subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  //def subreadsUuid = Var(dsUuidFromPath(subreads.get))
 
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
   val childJobs: Var[Seq[EngineJob]] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+  val satOpts: Var[PbSmrtPipeServiceOptions] = Var()
 
   println(s"subreads : ${subreads.get}")
-  val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
+
+ def satOpts(runTempInfo : Var[RunDesignTemplateInfo]) : Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "site-acceptance-test",
       "pbsmrtpipe.pipelines.sa3_sat",
       Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
-          BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(subreadsUuid.get))),
+          BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(runTempInfo.get.subreadsetUuid))),
       Seq[ServiceTaskOptionBase](),
       Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
           ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId))))
-
 
   val icsEndToEndsteps = Seq(
 
@@ -153,19 +156,32 @@ class RunDesignWithICSScenario(host: String,
 
 
   val setupSteps = Seq(
+
     jobStatus := GetStatus,
+
     jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+
     UpdateSubreadsetXml(subreads, runInfo),
+
+    CheckIfUUIDUpdated(subreads, runInfo),
+
     jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 
   val satSteps = Seq(
-    jobId := RunAnalysisPipeline(satOpts),
+
+    jobId := RunAnalysisPipeline(satOpts(runInfo)),
+
     jobStatus := WaitForJob(jobId),
+
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS
   )
 

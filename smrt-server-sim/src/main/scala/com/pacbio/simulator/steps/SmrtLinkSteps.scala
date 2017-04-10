@@ -4,12 +4,12 @@ import java.util.UUID
 import java.nio.file.Path
 
 import scala.concurrent.Future
-
 import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.common.models._
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario}
@@ -459,9 +459,11 @@ trait SmrtLinkSteps {
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
-    override def run: Future[Result] = smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+    override def run: Future[Result] = {
+      smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
       output(j.uuid)
       SUCCEEDED
+     }
     }
   }
 
