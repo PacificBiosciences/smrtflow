@@ -11,7 +11,7 @@ import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
 import com.typesafe.config.ConfigFactory
 import org.wso2.carbon.apimgt.rest.api.publisher
 import scopt.OptionParser
-import spray.json.{JsString, _}
+import spray.json._
 import spray.http.StatusCodes
 
 import scala.concurrent.{Await, Future}
@@ -26,6 +26,8 @@ object AmClientModes {
   case object PROXY_ADMIN extends Mode {val name = "proxy-admin"}
   case object CREATE_ROLES extends Mode {val name = "create-roles"}
   case object GET_KEY extends Mode {val name = "get-key"}
+  case object GET_ROLES_USERS extends Mode {val name = "get-roles-users"}
+  case object SET_ROLES_USERS extends Mode {val name = "set-roles-users"}
   case object SET_API extends Mode {val name = "set-api"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
@@ -78,8 +80,9 @@ object AmClientParser extends CommandLineToolVersion{
     roles: Seq[String] = List("Internal/PbAdmin", "Internal/PbLabTech", "Internal/PbBioinformatician"),
     adminService: String = "RemoteUserStoreManagerService",
     swagger: Option[String] = None,
-    // appConfig is required in the commands that use it, so it's not
-    // an Option
+    // these Files are required in the commands that use them,
+    // so they're not Options
+    roleJson: File = null,
     appConfig: File = null
   ) extends LoggerConfig
 
@@ -102,9 +105,8 @@ object AmClientParser extends CommandLineToolVersion{
       .text("API Manager admin username")
 
     opt[String]("pass")
-      .action((x, c) => c.copy(pass = x) )
+      .action((x, c) => c.copy(pass = x))
       .text("API Manager admin password")
-
 
     opt[Unit]("debug")
       .action((_, c) => c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig])
@@ -164,6 +166,27 @@ object AmClientParser extends CommandLineToolVersion{
           .required()
           .action((p, c) => c.copy(appConfig = p))
           .text("path to app-config.json file"))
+
+    cmd(AmClientModes.GET_ROLES_USERS.name)
+      .action((_, c) => c.copy(mode = AmClientModes.GET_ROLES_USERS))
+      .text("get the users assigned to each of the given roles")
+      .children(
+        opt[Seq[String]]("roles")
+          .action((roles, c) => c.copy(roles = roles))
+          .text("list of roles"),
+        opt[File]("role-json")
+          .required()
+          .action((roleJson, c) => c.copy(roleJson = roleJson))
+          .text("json output file; will contain an object with <role>: [<list of user IDs>] mappings"))
+
+    cmd(AmClientModes.SET_ROLES_USERS.name)
+      .action((_, c) => c.copy(mode = AmClientModes.SET_ROLES_USERS))
+      .text("recreate the given user/role mappings")
+      .children(
+        opt[File]("role-json")
+          .required()
+          .action((roleJson, c) => c.copy(roleJson = roleJson))
+          .text("json input file; should contain an object with <role>: [<list of user IDs>] mappings"))
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -478,6 +501,50 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
     createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
   }
+
+  def getRoles(c: AmClientParser.CustomConfig): Int = {
+    val roleMapFut = Future.sequence(c.roles.map(r => {
+      am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))
+    }))
+
+    Try { Await.result(roleMapFut, reqTimeout) } match {
+      case Success(m) => {
+        val json = m.toMap.toJson.prettyPrint
+        Files.write(c.roleJson.toPath, json.getBytes(StandardCharsets.UTF_8))
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to get roles: $err")
+        1
+      }
+    }
+  }
+
+  def setRoles(c: AmClientParser.CustomConfig): Int = {
+    // Map of <Role> -> <list of users>
+    val roleUsers = JsonParser(loadFile(c.roleJson)).convertTo[Map[String, Seq[String]]]
+
+    val addNew = (role: String, users: Seq[String]) => {
+      for {
+        existing <- am.getUserListOfRole(c.user, c.pass, role)
+        newUsers = (users.toSet -- existing.toSet).toList
+        result <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
+      } yield result
+    }
+
+    val setRoleFut = Future.sequence(roleUsers.map(addNew.tupled))
+
+    Try { Await.result(setRoleFut, reqTimeout) } match {
+      case Success(m) => {
+        println("imported roles")
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to import roles: $err")
+        1
+      }
+    }
+  }
 }
 
 object AmClient {
@@ -493,6 +560,8 @@ object AmClient {
       c.mode match {
         case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
+        case AmClientModes.GET_ROLES_USERS => amClient.getRoles(c)
+        case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
         case AmClientModes.SET_API => amClient.createOrUpdateApi(c)
         case AmClientModes.PROXY_ADMIN => amClient.proxyAdmin(c)
         case _ => {
