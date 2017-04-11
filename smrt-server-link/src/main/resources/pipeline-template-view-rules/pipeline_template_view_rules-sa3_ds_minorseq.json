@@ -1,0 +1,8 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_ds_minorseq",
+  "name": "Minor Variants Analysis",
+  "description": "Minor Variants Analysis",
+  "taskOptions": [
+    {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false}
+  ]
+}
