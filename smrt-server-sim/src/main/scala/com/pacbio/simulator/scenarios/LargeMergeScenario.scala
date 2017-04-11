@@ -41,6 +41,7 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
+  val SLEEP_TIME = 2000 // polling interval for checking import job status
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
@@ -52,7 +53,6 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
   val dsUUIDs: Seq[UUID] = (0 until nFiles).map(i => dsUuidFromPath(dsFiles(i).toPath))
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
-  val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
 
   val ftSubreads = FileTypes.DS_SUBREADS.fileTypeId
 
@@ -63,9 +63,8 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
   val importSteps = (0 until nFiles).map(i => Seq(
       jobIds(i) := ImportDataSet(Var(dsFiles(i).toPath), Var(ftSubreads))
     )).flatMap(s => s) ++ (0 until nFiles).map(i => Seq(
-      jobStatus := WaitForJob(jobIds(i)),
+      jobStatus := WaitForJob(jobIds(i), sleepTime = Var(SLEEP_TIME)),
       fail(s"Import job $i failed") IF jobStatus !=? EXIT_SUCCESS,
-      dataStore := GetImportJobDataStore(jobIds(i)),
       dsIds(i) := GetDataSetId(Var(dsUUIDs(i)))
     )).flatMap(s => s)
   val mergeSteps = Seq(
