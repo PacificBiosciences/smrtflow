@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.PacBioDataBundleClient
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.models.{ExternalServerStatus, PacBioDataBundle, PacBioDataBundleIO}
 
@@ -51,8 +51,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
 
   context.system.scheduler.schedule(initialDelay,  pollTime, self, CheckForUpdates)
 
-  val client: Option[SmrtLinkServiceAccessLayer] =
-    url.map(u => new SmrtLinkServiceAccessLayer(u, None)(context.system))
+  val client: Option[PacBioDataBundleClient] =
+    url.map(u => new PacBioDataBundleClient(u)(context.system))
 
   override def preStart(): Unit = {
     super.preStart()
@@ -70,7 +70,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def getStatus(c: SmrtLinkServiceAccessLayer): Future[ExternalServerStatus] = {
+  def getStatus(c: PacBioDataBundleClient): Future[ExternalServerStatus] = {
     c.getPacBioDataBundles().map { bs =>
       val summary = bs.map(b => s"${b.typeId}-${b.version}").reduce(_ + "," + _)
       val msg = s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.baseUrl}. All remote Bundles $summary"
@@ -89,7 +89,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param rootOutputDir System Root Bundle Directory
     * @return
     */
-  def downloadBundle(c: SmrtLinkServiceAccessLayer, b: PacBioDataBundle, rootOutputDir: Path): PacBioDataBundleIO = {
+  def downloadBundle(c: PacBioDataBundleClient, b: PacBioDataBundle, rootOutputDir: Path): PacBioDataBundleIO = {
     val ux = s"${c.baseUrl}/smrt-link/bundles/${b.typeId}/${b.version}/download"
     logger.info(s"Attempting to download Bundle ${b.typeId} ${b.version} from $ux")
     val bundleUrl = new URL(ux)
@@ -109,7 +109,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def getNewestBundle(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundle]] = {
+  def getNewestBundle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundle]] = {
     for {
       myBundles <- (daoActor ? GetAllBundlesByType(bundleType)).mapTo[Seq[PacBioDataBundle]]
       externalBundles <- c.getPacBioDataBundleByTypeId(bundleType)
@@ -127,7 +127,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkAndDownload(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
+  def checkAndDownload(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
     logger.info(s"Checking for new bundles to ${c.baseUrl}")
     getNewestBundle(c).map {
       case Some(b) =>
@@ -148,7 +148,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpdate(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
+  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
     checkAndDownload(c).flatMap {
       case Some(bio) =>
         val f = for {
@@ -167,7 +167,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpgradeAndHandle(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
+  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
     val f = checkDownloadUpdate(c)
 
     f.onSuccess {
