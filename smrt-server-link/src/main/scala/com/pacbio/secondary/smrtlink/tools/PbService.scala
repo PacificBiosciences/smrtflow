@@ -61,7 +61,7 @@ object PbServiceParser extends CommandLineToolVersion{
   import CommonModelImplicits._
   import CommonModels._
 
-  val VERSION = "0.1.0"
+  val VERSION = "0.1.1"
   var TOOL_ID = "pbscala.tools.pbservice"
 
   private def getSizeMb(fileObj: File): Double = {
@@ -433,41 +433,55 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     0
   }
 
-  protected def showNumRecords(label: String, fn: () => Future[Int]): Unit = {
+  protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
-      case Success(nrecords) => println(s"$label $nrecords")
+      case Success(nrecords) => println(s"${label.padTo(numPad, ' ')} $nrecords")
       case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
+  }
+
+  def statusSummary(status: ServiceStatus): String = {
+    val headers = Seq("ID", "UUID", "Version", "Message")
+    val table = Seq(Seq(status.id.toString, status.uuid.toString, status.version, status.message))
+    printTable(table, headers)
+    ""
   }
 
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
     if (asJson) {
       println(status.toJson.prettyPrint)
     } else{
-      println(s"SMRTLink Services Version: ${status.version} \nStatus: ${status.message}\nDataSet Summary:")
-      showNumRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
-      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
-      showNumRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
-      showNumRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
-      showNumRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
-      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
-      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
-      showNumRecords("ContigSets", () => sal.getContigSets.map(_.length))
-      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
-      println("SMRT Link Job Summary:")
-      showNumRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
-      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
-      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
-      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
+      statusSummary(status)
+      println("")
+      println("DataSet Summary:")
+      // To have the clear summary of the output
+      val numPad = 30
+      val showRecords = showNumRecords(_: String, numPad, _:() => Future[Int])
+
+      showRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
+      showRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
+      showRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
+      showRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
+      showRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
+      showRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
+      showRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
+      showRecords("ContigSets", () => sal.getContigSets.map(_.length))
+      showRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
+      println("\nSMRT Link Job Summary:")
+      showRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
+      showRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
+      showRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
+      showRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
     }
     0
   }
 
   def runStatus(asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getStatus, TIMEOUT) } match {
-      case Success(status) => printStatus(status, asJson)
-      case Failure(err) => errorExit(err.getMessage)
+    def printer(sx: ServiceStatus): String = {
+      printStatus(sx, asJson)
+      ""
     }
+    runAndBlock[ServiceStatus](sal.getStatus, printer, TIMEOUT)
   }
 
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
@@ -564,20 +578,22 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
-      case Success(engineJobs) => {
-        if (asJson) println(engineJobs.toJson.prettyPrint) else {
-          val table = engineJobs.reverse.take(maxItems).map(job =>
-            Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString))
-          printTable(table, Seq("ID", "State", "Name", "UUID"))
-        }
-        0
-      }
-      case Failure(err) => {
-        errorExit(s"Could not retrieve jobs: ${err.getMessage}")
-      }
+  def jobsSummary(maxItems: Int, asJson: Boolean, engineJobs: Seq[EngineJob]): String = {
+    if (asJson) {
+      println(engineJobs.toJson.prettyPrint)
+      ""
+    } else {
+      val table = engineJobs.sortBy(_.id).reverse.take(maxItems).map(job =>
+        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
+      printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
+      ""
     }
+  }
+
+  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
+    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs)
+
+    runAndBlock[Seq[EngineJob]](sal.getAnalysisJobs, printer, TIMEOUT)
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
