@@ -27,6 +27,11 @@ trait PacBioBundleUtils {
 
   def getBundle(bundles: Seq[PacBioDataBundle], bundleType: String, version: String): Option[PacBioDataBundle] =
     getBundlesByType(bundles, bundleType).find(_.version == version)
+
+  def sortByVersion(bundles: Seq[PacBioDataBundle]): Seq[PacBioDataBundle] = {
+    implicit val orderBy = PacBioDataBundle.orderByBundleVersion
+    bundles.sorted
+  }
 }
 
 object PacBioBundleUtils extends PacBioBundleUtils
