@@ -61,7 +61,7 @@ class ChemistryBundleScenario(host: String, port: Int)
       "chemistry-bundle-test",
       "pbsmrtpipe.pipelines.dev_verify_chemistry",
       Seq(BoundServiceEntryPoint("eid_subread",
-                                 "PacBio.DataSet.SubreadSet",
+                                 FileTypes.DS_SUBREADS.fileTypeId,
                                  Right(subreadsUuid.get))),
       Seq(ServiceTaskStrOption("pbsmrtpipe.task_options.chemistry_version",
                                version)),
