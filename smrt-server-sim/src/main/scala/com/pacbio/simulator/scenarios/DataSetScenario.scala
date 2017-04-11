@@ -15,28 +15,20 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+
+import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.MockDataSetUtils
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
-import com.pacificbiosciences.pacbiodatasets._
-
-/**
- * Example config:
- *
- * {{{
- *   smrt-link-host = "smrtlink-bihourly"
- *   smrt-link-port = 8081
- * }}}
- */
 
 object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
@@ -44,18 +36,7 @@ object DataSetScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    // Should this be in smrtflow.test.* ?
-    new DataSetScenario(
-      c.getString("smrtflow.server.host"),
-      getInt("smrtflow.server.port"))
+    new DataSetScenario(getHost(c), getPort(c))
   }
 }
 
@@ -261,7 +242,7 @@ class DataSetScenario(host: String, port: Int)
     dsReport := GetReport(getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
     fail("Wrong report ID") IF dsReport.mapWith(_.id) !=? "loading_xml_report",
     fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, RPT_PRODZMWS)) ==? None,
-    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0")) ==? None
+    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0_n")) ==? None
   ))
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,

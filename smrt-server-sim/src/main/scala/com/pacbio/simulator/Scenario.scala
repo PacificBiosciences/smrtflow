@@ -1,7 +1,7 @@
 package com.pacbio.simulator
 
 import akka.actor.ActorSystem
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigException}
 
 import scala.collection.mutable
 import scala.concurrent.{Future, ExecutionContext}
@@ -10,8 +10,23 @@ import scala.util.control.NonFatal
 
 import org.joda.time.{DateTime => JodaDateTime}
 
+object ScenarioConstants {
+  val HOST = "smrtflow.server.host"
+  val PORT = "smrtflow.server.port"
+}
+
 trait ScenarioLoader {
   def load(config: Option[Config])(implicit system: ActorSystem): Scenario
+
+  protected def getInt(c: Config, key: String) =
+    try {
+      c.getInt(key)
+    } catch {
+      case e: ConfigException.WrongType => c.getString(key).trim.toInt
+    }
+
+  protected def getHost(c: Config) = c.getString(ScenarioConstants.HOST)
+  protected def getPort(c: Config) = getInt(c, ScenarioConstants.PORT)
 }
 
 trait Scenario {
