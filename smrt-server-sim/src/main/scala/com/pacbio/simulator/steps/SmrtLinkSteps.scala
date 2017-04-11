@@ -103,6 +103,15 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetDataSetId(dsId: Var[UUID]) extends VarStep[Int] {
+    override val name = "GetDataSetId"
+
+    override def run: Future[Result] = smrtLinkClient.getDataSet(dsId.get).map { d =>
+      output(d.id)
+      SUCCEEDED
+    }
+  }
+
   case class DeleteDataSet(dsId: Var[UUID]) extends VarStep[String] {
     override val name = "DeleteDataSet"
     override def run: Future[Result] = smrtLinkClient.deleteDataSet(dsId.get).map { m =>
@@ -407,11 +416,13 @@ trait SmrtLinkSteps {
     }
   }
 
-  case class WaitForJob(jobId: Var[UUID], maxTime: Var[Int] = Var(1800)) extends VarStep[Int] {
+  case class WaitForJob(jobId: Var[UUID],
+                        maxTime: Var[Int] = Var(1800),
+                        sleepTime: Var[Int] = Var(5000)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get).map(_ => 0).getOrElse(1))
+      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get, sleepTime.get).map(_ => 0).getOrElse(1))
       SUCCEEDED
     }
   }
@@ -435,6 +446,17 @@ trait SmrtLinkSteps {
   case class MergeDataSets(dsType: Var[String], ids: Var[Seq[Int]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
     override def run: Future[Result] = smrtLinkClient.mergeDataSets(dsType.get, ids.get, dsName.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
+
+  // XXX this isn't ideal, but I can't figure out another way to convert from
+  // Seq[Var[Int]] to Var[Seq[Int]] at the appropriate time (i.e. not at
+  // program startup)
+  case class MergeDataSetsMany(dsType: Var[String], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
+    override val name = "MergeDataSets"
+    override def run: Future[Result] = smrtLinkClient.mergeDataSets(dsType.get, ids.map(_.get), dsName.get).map { j =>
       output(j.uuid)
       SUCCEEDED
     }

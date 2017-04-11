@@ -368,13 +368,15 @@ class DataSetScenario(host: String, port: Int)
     jobId := ExportDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("alignmentsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
-    // merge
+    // XXX AlignmentSet merge not currently supported
+    /*
     alignmentSets := GetAlignmentSets,
     jobId := MergeDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var("merge-alignments")),
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
     alignmentSets := GetAlignmentSets,
     fail("Expected three AlignmentSets") IF alignmentSets.mapWith(_.size) !=? 3,
+    */
     // ConsensusReadSet
     ccsSets := GetConsensusReadSets,
     fail(MSG_DS_ERR) IF ccsSets ? (_.nonEmpty),
