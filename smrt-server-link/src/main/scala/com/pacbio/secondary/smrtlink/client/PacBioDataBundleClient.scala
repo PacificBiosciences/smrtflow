@@ -59,6 +59,11 @@ class PacBioDataBundleClient(override val baseUrl: URL)(implicit val actorSystem
     val segment = bundleType.map(b => s"/$b").getOrElse("")
     toUrl(segment)
   }
+  def toPacBioBundleDownloadUrl(bundleType: String, bundleVersion: String) = {
+    val segment = s"/$bundleType/$bundleVersion/download"
+    toUrl(segment)
+  }
+
 
 
 
