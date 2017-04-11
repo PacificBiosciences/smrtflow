@@ -53,6 +53,7 @@ object Modes {
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
+  case object BUNDLES extends Mode {val name = "get-bundles"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -359,7 +360,7 @@ object PbServiceParser extends CommandLineToolVersion{
 
     cmd(Modes.MANIFESTS.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
-    } text "Get a List of SMRT Link PacBio sComponent Versions"
+    } text "Get a List of SMRT Link PacBio Component Versions"
 
     cmd(Modes.MANIFEST.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFEST)
@@ -368,6 +369,10 @@ object PbServiceParser extends CommandLineToolVersion{
           c.copy(manifestId = t)
         } text s"Manifest By Id (Default: ${defaults.manifestId})"
         ) text "Get PacBio Component Manifest version by Id."
+
+    cmd(Modes.BUNDLES.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.BUNDLES)
+    } text "Get a List of PacBio Data Bundles registered to SMRT Link"
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
@@ -1027,15 +1032,16 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
 
   def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
-    s"Components ${manifests.length}\n" + manifests.map(manifestSummary).reduce(_ + "\n" + _)
+    val headers = Seq("id", "version", "name")
+    val table = manifests.map(m => Seq(m.id, m.version, m.name))
+    printTable(table, headers)
+    ""
   }
 
-  def runGetPacBioManifests: Int = {
-    Try {Await.result[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, TIMEOUT)} match {
-      case Success(manifests) => println(manifestsSummary(manifests)); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+  def runGetPacBioManifests(): Int = {
+    runAndBlock[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, manifestsSummary, TIMEOUT)
   }
+
 
   // This is to make it backward compatiblity. Remove this when the other systems are updated
   private def getManifestById(manifestId: String): Future[PacBioComponentManifest] = {
@@ -1047,10 +1053,27 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runGetPacBioManifestById(ix: String): Int = {
-    println(s"Attempting to get PacBio Component '$ix'")
-    Try {Await.result[PacBioComponentManifest](getManifestById(ix), TIMEOUT)} match {
-      case Success(manifest) => println(manifestSummary(manifest)); 0
+  def runGetPacBioManifestById(ix: String): Int =
+    runAndBlock[PacBioComponentManifest](getManifestById(ix), manifestSummary, TIMEOUT)
+
+
+  def pacBioDataBundlesSummary(bundles: Seq[PacBioDataBundle]): String = {
+    val headers:Seq[String] = Seq("Bundle Id", "Version", "Imported At", "Is Active")
+    val table = bundles.map(b => Seq(b.typeId, b.version, b.importedAt.toString(), b.isActive.toString))
+    printTable(table, headers)
+    // The printTable func should probalby return a string, not an Int
+    ""
+  }
+
+  def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
+    runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(), pacBioDataBundlesSummary, timeOut)
+
+
+  def runAndBlock[T](fx: => Future[T], summary:(T => String), timeout: FiniteDuration): Int = {
+    Try(Await.result[T](fx, timeout)) match {
+      case Success(x) =>
+        println(summary(x))
+        0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
@@ -1092,6 +1115,7 @@ object PbService {
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
+        case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")
