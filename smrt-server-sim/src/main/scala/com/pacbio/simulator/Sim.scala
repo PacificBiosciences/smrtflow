@@ -33,7 +33,8 @@ object Sim extends App {
     "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader,
     "SqliteToPostgresScenario" -> SqliteToPostgresScenarioLoader,
     "UpgradeScenario" -> UpgradeScenarioLoader,
-    "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader
+    "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
+    "LargeMergeScenario" -> LargeMergeScenarioLoader
   )
 
   final val DESCRIPTION =

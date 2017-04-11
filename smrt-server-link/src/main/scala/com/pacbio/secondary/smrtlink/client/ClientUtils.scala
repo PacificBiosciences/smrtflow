@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.util.UUID
 import java.nio.file.{Path, Paths}
+import java.io.File
 
 import scala.xml.{Elem,XML}
 import scala.math._
@@ -20,6 +21,10 @@ import com.pacbio.secondary.analysis.tools.timeUtils
 trait ClientUtils extends timeUtils{
 
   import SmrtLinkJsonProtocols._
+
+  def listFilesByExtension(f: File, ext: String): Array[File] = {
+    f.listFiles.filter((fn) => fn.toString.endsWith(ext)).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(d => listFilesByExtension(d, ext))
+  }
 
   private def parseXml(path: Path) = {
     Try { scala.xml.XML.loadFile(path.toFile) } match {

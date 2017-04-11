@@ -103,6 +103,15 @@ trait SmrtLinkSteps {
     }
   }
 
+  case class GetDataSetId(dsId: Var[UUID]) extends VarStep[Int] {
+    override val name = "GetDataSetId"
+
+    override def run: Future[Result] = smrtLinkClient.getDataSet(dsId.get).map { d =>
+      output(d.id)
+      SUCCEEDED
+    }
+  }
+
   case class DeleteDataSet(dsId: Var[UUID]) extends VarStep[String] {
     override val name = "DeleteDataSet"
     override def run: Future[Result] = smrtLinkClient.deleteDataSet(dsId.get).map { m =>
@@ -435,6 +444,14 @@ trait SmrtLinkSteps {
   case class MergeDataSets(dsType: Var[String], ids: Var[Seq[Int]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
     override def run: Future[Result] = smrtLinkClient.mergeDataSets(dsType.get, ids.get, dsName.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
+
+  case class MergeDataSetsMany(dsType: Var[String], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
+    override val name = "MergeDataSets"
+    override def run: Future[Result] = smrtLinkClient.mergeDataSets(dsType.get, ids.map(_.get), dsName.get).map { j =>
       output(j.uuid)
       SUCCEEDED
     }
