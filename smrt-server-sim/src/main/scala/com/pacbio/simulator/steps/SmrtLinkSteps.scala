@@ -595,4 +595,12 @@ trait SmrtLinkSteps {
       SUCCEEDED
     }
   }
+
+  case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
+    override val name = "GetBundle"
+    override def run: Future[Result] = smrtLinkClient.getPacBioDataBundleByTypeId(typeId.get).map { b =>
+      output(b.filter(_.isActive == true).head)
+      SUCCEEDED
+    }
+  }
 }

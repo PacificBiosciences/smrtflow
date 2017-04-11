@@ -27,12 +27,11 @@ object ChemistryBundleScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, "PacBioTestData must be configured for ChemistryBundleScenario")
     val c: Config = config.get
 
-    new ChemistryBundleScenario(getHost(c), getPort(c),
-      Paths.get(c.getString("smrtflow.server.bundleDir")))
+    new ChemistryBundleScenario(getHost(c), getPort(c))
   }
 }
 
-class ChemistryBundleScenario(host: String, port: Int, bundlePath: Path)
+class ChemistryBundleScenario(host: String, port: Int)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -50,12 +49,14 @@ class ChemistryBundleScenario(host: String, port: Int, bundlePath: Path)
 
   val testdata = PacBioTestData()
 
-  val manifest = bundlePath.resolve("chemistry-active/manifest.xml")
-
-  val chemBundle = parseBundleManifestXml(manifest.toFile)
   val subreads = Var(testdata.getFile("subreads-sequel"))
   val subreadsUuid = Var(dsUuidFromPath(subreads.get))
-  val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
+  val bundle: Var[PacBioDataBundle] = Var()
+  val jobId: Var[UUID] = Var()
+  val jobStatus: Var[Int] = Var()
+
+  def getPipelineOpts(version: String): PbSmrtPipeServiceOptions = {
+    println(s"Chemistry bundle version is ${version}")
     PbSmrtPipeServiceOptions(
       "chemistry-bundle-test",
       "pbsmrtpipe.pipelines.dev_verify_chemistry",
@@ -63,10 +64,9 @@ class ChemistryBundleScenario(host: String, port: Int, bundlePath: Path)
                                  "PacBio.DataSet.SubreadSet",
                                  Right(subreadsUuid.get))),
       Seq(ServiceTaskStrOption("pbsmrtpipe.task_options.chemistry_version",
-                               chemBundle.version)),
-      Seq[ServiceTaskOptionBase]()))
-  val jobId: Var[UUID] = Var()
-  val jobStatus: Var[Int] = Var()
+                               version)),
+      Seq[ServiceTaskOptionBase]())
+  }
 
   val setupSteps = Seq(
     jobStatus := GetStatus,
@@ -76,7 +76,8 @@ class ChemistryBundleScenario(host: String, port: Int, bundlePath: Path)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
   val pbsmrtpipeSteps = Seq(
-    jobId := RunAnalysisPipeline(pipelineOpts),
+    bundle := GetBundle(Var("chemistry")),
+    jobId := RunAnalysisPipeline(bundle.mapWith(b => getPipelineOpts(b.version))),
     jobStatus := WaitForJob(jobId),
     fail("pbsmrtpipe job failed") IF jobStatus !=? EXIT_SUCCESS)
   override val steps = setupSteps ++ pbsmrtpipeSteps
