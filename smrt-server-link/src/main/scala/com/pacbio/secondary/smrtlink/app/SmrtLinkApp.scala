@@ -28,6 +28,7 @@ trait SmrtLinkProviders extends
   SmrtLinkConfigProvider with
   PbsmrtpipeConfigLoader with
   PacBioBundleDaoActorProvider with
+  PacBioDataBundlePollExternalActorProvider with
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
   SmrtLinkEventServiceProvider with

@@ -13,6 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 object PacBioBundleDaoActor {
   case object GetAllBundles
   case class GetAllBundlesByType(bundleType: String)
+  case class GetAllIOBundlesByType(bundleType: String)
   case class GetBundleByTypeAndVersion(bundleType: String, version: String)
   case class GetBundleIOByTypeAndVersion(bundleType: String, version: String)
   case class GetUpgradableBundle(bundleType: String)
@@ -30,6 +31,8 @@ class PacBioBundleDaoActor(dao: PacBioBundleDao, rootBundleDir: Path) extends Ac
   override def receive = {
     case GetAllBundles =>
       sender ! dao.getBundles
+    case GetAllIOBundlesByType(bundleType) =>
+      sender ! dao.getBundlesIO(bundleType)
     case GetAllBundlesByType(bundleType) =>
       sender ! dao.getBundlesByType(bundleType)
     case GetBundleIOByTypeAndVersion(bundleType, version) =>
