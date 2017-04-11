@@ -4,11 +4,12 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File, PrintWriter}
 
-import akka.actor.ActorSystem
-
 import scala.collection._
-import com.typesafe.config.{Config, ConfigException}
+
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
@@ -25,17 +26,7 @@ object UpgradeScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, "PacBioTestData must be configured for UpgradeScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    new UpgradeScenario(
-      c.getString("smrtlink.server.host"),
-      getInt("smrtlink.server.port"),
+    new UpgradeScenario(getHost(c), getPort(c),
       // FIXME I'd rather pass this as a cmdline arg but it's difficult
       c.getString("preUpgrade").toBoolean)
   }

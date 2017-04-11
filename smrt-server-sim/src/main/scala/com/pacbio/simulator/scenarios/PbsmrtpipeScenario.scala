@@ -8,18 +8,19 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File, PrintWriter}
 
-import akka.actor.ActorSystem
-
 import scala.collection._
-import com.typesafe.config.{Config, ConfigException}
+
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+
+import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
-import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
@@ -29,17 +30,7 @@ object PbsmrtpipeScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, "PacBioTestData must be configured for PbsmrtpipeScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    new PbsmrtpipeScenario(
-      c.getString("smrtflow.server.host"),
-      getInt("smrtflow.server.port"))
+    new PbsmrtpipeScenario(getHost(c), getPort(c))
   }
 }
 

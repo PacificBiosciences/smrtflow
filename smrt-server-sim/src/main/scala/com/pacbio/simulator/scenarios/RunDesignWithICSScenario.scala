@@ -4,55 +4,40 @@ import java.net.URL
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import scala.collection.Seq
+
+import spray.httpx.UnsuccessfulResponseException
 import akka.actor.ActorSystem
+import com.typesafe.config.Config
+
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
 import com.pacbio.secondary.analysis.jobs.OptionTypes.{CHOICE, CHOICE_FLOAT, _}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.clients.InstrumentControlClient
-import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario, ScenarioLoader}
-import com.typesafe.config.{Config, ConfigException}
-import com.pacbio.simulator.steps.IcsClientSteps
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
-
-import scala.collection.Seq
-import spray.httpx.UnsuccessfulResponseException
+import com.pacbio.simulator.steps._
 import com.pacbio.simulator.util._
 
 // for SAT
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
 import com.pacbio.secondary.smrtlink.client.ClientUtils
-/**
-  * Example config:
-  *
-  * {{{
-  *   smrt-link-host = "smrtlink-bihourly"
-  *   smrt-link-port = 8081
-  *   run-xml-path = "/path/to/testdata/runDataModel.xml"
-  * }}}
-  */
+
+
 object RunDesignWithICSScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for RunDesignWithICSScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
     new RunDesignWithICSScenario(
-      c.getString("sim.smrt-link-host"),
-      getInt("sim.smrt-link-port"),
+      getHost(c),
+      getPort(c),
       c.getString("sim.ics-host"),
-      getInt("sim.ics-port"),
+      getInt(c, "sim.ics-port"),
       Paths.get(c.getString("sim.run-xml-path")))
   }
 }
