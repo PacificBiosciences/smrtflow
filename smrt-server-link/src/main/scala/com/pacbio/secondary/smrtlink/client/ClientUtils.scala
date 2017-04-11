@@ -23,6 +23,7 @@ trait ClientUtils extends timeUtils{
   import SmrtLinkJsonProtocols._
 
   def listFilesByExtension(f: File, ext: String): Array[File] = {
+    if (! f.isDirectory) throw new IllegalArgumentException(s"${f.toString} is not a directory")
     f.listFiles.filter((fn) => fn.toString.endsWith(ext)).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(d => listFilesByExtension(d, ext))
   }
 
