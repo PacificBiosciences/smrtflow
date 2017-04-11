@@ -31,9 +31,9 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   import PacBioDataBundlePollExternalActor._
   import PacBioBundleDaoActor.{GetAllBundlesByType, AddBundleIO}
 
-  val initialDelay = 10.seconds
+  val initialDelay = 5.seconds
 
-  implicit val timeOut:Timeout = Timeout(FiniteDuration(60, SECONDS))
+  implicit val timeOut:Timeout = Timeout(FiniteDuration(120, SECONDS))
 
   // schedule an Initial Check on Startup
   context.system.scheduler.scheduleOnce(initialDelay, self, CheckForUpdates)
@@ -53,17 +53,31 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     logger.error(s"(preRestart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
-  // This should be encapsulated in the Bundle Client
+  /**
+    * Sanity check for the bundle service client to get a list of bundles from the external server.
+    *
+    * @param c Bundle Client
+    * @return
+    */
   def getStatus(c: SmrtLinkServiceAccessLayer): Future[ExternalServerStatus] = {
     c.getPacBioDataBundles().map { bs =>
       val msg = s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.baseUrl}"
-      logger.debug(msg)
+      logger.info(msg)
       ExternalServerStatus(msg, "UP")
     }
   }
 
-  def downloadBundle(c: SmrtLinkServiceAccessLayer ,b: PacBioDataBundle, rootOutputDir: Path): PacBioDataBundleIO = {
-    // this should be abstracted into the client layer
+  /**
+    * Download a specific bundle by type-id, version identifier to the system level PacBio Data Bundle Directory
+    *
+    * This should be better encapsulated in the Bundle Client.
+    *
+    * @param c Bundle Client
+    * @param b Bundle to download
+    * @param rootOutputDir System Root Bundle Directory
+    * @return
+    */
+  def downloadBundle(c: SmrtLinkServiceAccessLayer, b: PacBioDataBundle, rootOutputDir: Path): PacBioDataBundleIO = {
     val ux = s"${c.baseUrl}/smrt-link/bundles/${b.typeId}/${b.version}/download"
     logger.info(s"Attempting to download Bundle ${b.typeId} ${b.version} from $ux")
     val bundleUrl = new URL(ux)
@@ -77,15 +91,30 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     bs
   }
 
+  /**
+    * Get the next newest upgrade bundle
+    *
+    * @param c Bundle Client
+    * @return
+    */
   def getNewestBundle(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundle]] = {
     for {
       myBundles <- (daoActor ? GetAllBundlesByType(bundleType)).mapTo[Seq[PacBioDataBundle]]
       externalBundles <- c.getPacBioDataBundleByTypeId(bundleType)
-      _ <- Future.successful(andLog[PacBioDataBundle]("External Server Bundles", externalBundles))
-      newBundles <- Future.successful(andLog[PacBioDataBundle]("New bundles", externalBundles.filter(b => PacBioBundleUtils.getBundle(myBundles, b.typeId, b.version).isEmpty)))
+      sortedExternalBundles <- Future.successful(andLog[PacBioDataBundle]("All external Server Bundles", PacBioBundleUtils.sortByVersion(externalBundles)))
+      newBundles <- Future.successful(andLog[PacBioDataBundle]("New bundles", sortedExternalBundles.filter(b => PacBioBundleUtils.getBundle(myBundles, b.typeId, b.version).isEmpty)))
     } yield newBundles.headOption
   }
 
+  /**
+    * Get only newest bundle from external server and download to the system bundle root dir.
+    *
+    * If there are multiple upgrades available, the bundles will be downloaded sequentially.
+    *
+    *
+    * @param c Bundle Client
+    * @return
+    */
   def checkAndDownload(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
     logger.info(s"Checking for new bundles to ${c.baseUrl}")
     getNewestBundle(c).map {
@@ -98,16 +127,25 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     }
   }
 
-  def checkDownloadUpdate(c: SmrtLinkServiceAccessLayer): Unit = {
-    checkAndDownload(c).map {
+  /**
+    * Check for new bundles, download only the newest (if avail) and update the PacBio Data bundle
+    * registry with the new bundle.
+    *
+    * Note, this does NOT set the bundle as active. This must be set explicitly by the user.
+    *
+    * @param c Bundle Client
+    * @return
+    */
+  def checkDownloadUpdate(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
+    checkAndDownload(c).flatMap {
       case Some(bio) =>
-        val f = (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
-        f.onSuccess { case b: PacBioDataBundleIO => logger.info(s"Successfully added bundle to registry $b") }
-        f.onFailure {
-          case ex: Exception =>
-            logger.error(s"Failed to add bundle to registry $bio ${ex.getMessage}")
-        }
-      case _ => logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
+        val f = for {
+          b <- (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
+        } yield Some(b)
+        f
+      case _ =>
+        logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
+        Future.successful(None)
     }
   }
 
@@ -119,8 +157,17 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
       sender ! MessageResponse(msg)
       client match {
         case Some(c) =>
-          logger.info(msg)
-          checkDownloadUpdate(c)
+          val f = checkDownloadUpdate(c)
+
+          f.onSuccess {
+            case Some(b:PacBioDataBundleIO) => logger.info(s"Successfully added bundle to registry $b")
+            case None => logger.info("No bundles found to upgrade")
+          }
+
+          f.onFailure {
+            case ex: Exception =>
+              logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
+          }
         case _ =>
           logger.info("No external bundle URL provided. Skipping Check for Upgrades")
       }
