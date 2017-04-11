@@ -124,7 +124,8 @@ object PbServiceParser extends CommandLineToolVersion{
       manifestId: String = "smrtlink",
       showReports: Boolean = false,
       searchName: Option[String] = None,
-      searchPath: Option[String] = None
+      searchPath: Option[String] = None,
+      force: Boolean = false
   ) extends LoggerConfig
 
 
@@ -265,7 +266,10 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Job") } text "Job ID"
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[Unit]("force") action { (_, c) =>
+        c.copy(force = true)
+      } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -1021,15 +1025,22 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runDeleteJob(jobId: IdAble): Int = {
+  def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
-        throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first")
+        if (force) {
+          println("WARNING: job did not complete - database will be updated but files will be left in place")
+        } else {
+          throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first, or add the argument --force if you are absolutely certain the job is okay to delete")
+        }
       } else if (nChildren > 0) {
-        throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
-      } else {
-        sal.deleteJob(job.uuid)
+        if (force) {
+          println("WARNING: job output was used by $nChildren active jobs - database will be updated but files will be left in place")
+        } else {
+          throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
+        }
       }
+      sal.deleteJob(job.uuid, force = force)
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
     val fx = for {
@@ -1125,7 +1136,7 @@ object PbService {
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
+        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)

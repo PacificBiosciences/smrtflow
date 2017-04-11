@@ -34,11 +34,11 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
   import CommonModelImplicits._
 
-  private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
+  private def confirmIsDeletable(jobId: UUID, force: Boolean = false): Future[EngineJob] = {
     (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].flatMap { job =>
-      if (job.isComplete) {
+      if (job.isComplete || force) {
         (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]].map {
-          jobs => if (jobs.isEmpty) job else
+          jobs => if (jobs.isEmpty || force) job else
             throw new UnprocessableEntityError("Can't delete this job because it has active children")
         }
       } else throw new UnprocessableEntityError("Can't delete this job because it hasn't completed")
@@ -47,10 +47,12 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
   override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
+    val force = sopts.force.getOrElse(false)
+    val removeFiles = sopts.removeFiles && !force
 
     for {
-      targetJob <- confirmIsDeletable(sopts.jobId)
-      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles, targetJob.projectId) }
+      targetJob <- confirmIsDeletable(sopts.jobId, force)
+      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), removeFiles, targetJob.projectId) }
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
     } yield CreateJobType(
         uuid,

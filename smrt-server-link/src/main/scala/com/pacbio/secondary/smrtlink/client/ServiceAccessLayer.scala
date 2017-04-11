@@ -464,9 +464,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
   def deleteJob(jobId: UUID,
                 removeFiles: Boolean = true,
-                dryRun: Boolean = false): Future[EngineJob] = getJobPipeline {
+                dryRun: Boolean = false,
+                force: Boolean = false): Future[EngineJob] = getJobPipeline {
     Post(toUrl(ROOT_JOBS + "/delete-job"),
-         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun)))
+         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun), force = Some(force)))
   }
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {

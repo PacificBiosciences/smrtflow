@@ -181,7 +181,7 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
-  implicit val deleteJobServiceOptions = jsonFormat3(DeleteJobServiceOptions)
+  implicit val deleteJobServiceOptions = jsonFormat4(DeleteJobServiceOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
   implicit val fullProjectFormat: RootJsonFormat[FullProject] = cachedImplicit
