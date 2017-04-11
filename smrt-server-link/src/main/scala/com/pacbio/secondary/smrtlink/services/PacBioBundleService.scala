@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.{Files, Path, Paths}
 
-
 import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,16 +20,16 @@ import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.services._
-import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
-import com.pacbio.secondary.smrtlink.actors.{PacBioBundleDaoActorProvider, PacBioBundleDaoActor}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import spray.routing.directives.FileAndResourceDirectives
 
 
-class PacBioBundleService(daoActor: ActorRef, rootBundle: Path)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService
+class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService
     with DaoFutureUtils
     with PacBioDataBundleIOUtils
     with FileAndResourceDirectives{
@@ -94,8 +93,34 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path)(implicit val act
         .flatMap(t => fromTry[PacBioDataBundleIO](errorMessage, t))
   }
 
+  val updateRoutes:Route = {
+    pathPrefix("bundle-upgrader") {
+      path("check") {
+        pathEndOrSingleSlash {
+          get {
+            complete {
+              ok {
+                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckForUpdates).mapTo[MessageResponse]
+              }
+            }
+          }
+        }
+      } ~
+      path("status") {
+        pathEndOrSingleSlash {
+          get {
+            complete {
+              ok {
+                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckStatus).mapTo[ExternalServerStatus]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
-  val routes = {
+  val bundleRoutes:Route = {
     pathPrefix(ROUTE_PREFIX) {
       pathEndOrSingleSlash {
         get {
@@ -198,18 +223,21 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path)(implicit val act
       }
     }
   }
+
+  val routes = bundleRoutes ~ updateRoutes
 }
 
 trait PacBioBundleServiceProvider {
   this: SmrtLinkConfigProvider
       with ServiceComposer
       with ActorSystemProvider
-      with PacBioBundleDaoActorProvider =>
+      with PacBioBundleDaoActorProvider
+      with PacBioDataBundlePollExternalActorProvider =>
 
   val pacBioBundleService: Singleton[PacBioBundleService] =
     Singleton { () =>
       implicit val system = actorSystem()
-      new PacBioBundleService(pacBioBundleDaoActor(), pacBioBundleRoot())
+      new PacBioBundleService(pacBioBundleDaoActor(), pacBioBundleRoot(), externalBundleUpgraderActor())
     }
 
   addService(pacBioBundleService)

@@ -184,6 +184,19 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     PacBioDataBundleIO(bundleTgz, bundleDir, pacBioBundle)
   }
 
+  /**
+    * Copy bundle to a temp directory, the
+    *
+    * @param url
+    * @param rootBundleDir
+    * @return
+    */
+  def downloadAndProcessDataBundle(url: URL, rootBundleDir: Path): PacBioDataBundleIO = {
+    val tmpRootBundleDir = Files.createTempDirectory("tmp-bundles")
+    val result = downloadAndParseBundle(url, tmpRootBundleDir)
+    copyBundleTo(result._1, result._2, rootBundleDir)
+  }
+
   def getManifestXmlFromDir(path: Path):Option[Path] =
     if (Files.isDirectory(path)) {
       path.toFile.list()

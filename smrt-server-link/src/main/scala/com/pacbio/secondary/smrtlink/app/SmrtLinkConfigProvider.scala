@@ -13,6 +13,7 @@ import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundleIO}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.concurrent.duration._
 import scala.util.Try
 
 
@@ -70,4 +71,12 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val externalEventHost: Singleton[Option[ExternalEventServerConfig]] =
     Singleton(() => loadExternalEventHost())
+
+  val externalBundleUrl: Singleton[Option[URL]] = {
+    Singleton(() => Try {new URL(conf.getString("pacBioSystem.remoteBundleUrl"))}.toOption)
+  }
+
+  val externalBundlePollDuration: Singleton[FiniteDuration] = {
+    Singleton(() => FiniteDuration(12, HOURS))
+  }
 }

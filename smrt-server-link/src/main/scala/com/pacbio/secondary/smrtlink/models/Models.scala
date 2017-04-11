@@ -701,6 +701,9 @@ case class PacBioDataBundleUpgrade(bundle: Option[PacBioDataBundle])
 // the bundle metadata after it's been extracted
 case class PacBioBundleRecord(url: URL)
 
+//MK This is duplicated concept
+case class ExternalServerStatus(msg: String, status: String)
+
 
 // SmrtLink Events/Messages
 
