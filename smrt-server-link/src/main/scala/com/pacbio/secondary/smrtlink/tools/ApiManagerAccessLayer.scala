@@ -268,4 +268,21 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
                  </wso2um:addRole>
     soapCall("urn:addRole", params, user, pass)
   }
+
+  def getUserListOfRole(user: String, pass: String, role: String): Future[Seq[String]] = {
+    val params = <wso2um:getUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+                   <wso2um:roleName>{role}</wso2um:roleName>
+                 </wso2um:getUserListOfRole>
+    soapCall("urn:getUserListOfRole", params, user, pass)
+      .map(x => (x \ "Body" \ "getUserListOfRoleResponse" \ "return").map(_.text))
+  }
+
+  def updateUserListOfRole(user: String, pass: String, role: String, users: Seq[String]): Future[NodeSeq] = {
+    val newUserList = users.map(u => <wso2um:newUsers>{u}</wso2um:newUsers>)
+    val params = <wso2um:updateUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+                   <wso2um:roleName>{role}</wso2um:roleName>
+                   {newUserList}
+                 </wso2um:updateUserListOfRole>
+    soapCall("urn:updateUserListOfRole", params, user, pass)
+  }
 }

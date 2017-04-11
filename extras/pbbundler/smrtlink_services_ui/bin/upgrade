@@ -10,8 +10,11 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootBundleDir=$(dirname "${__dir}")
 
 config=${rootBundleDir}/smrtlink-system-config.json
-legacyConfig=${rootBundleDir}/config.json
+legacyConfig=${rootBundleDir}/migration-config.json
 migrationState=${rootBundleDir}/legacy-migration.json
+userRoles=${rootBundleDir}/user-roles.json
+# for the wso2 consumer key/secret
+appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
 
 if ! [ -e "$config" ]; then
     echo "file ${config} does not exist"
@@ -29,3 +32,71 @@ else
     # Install from a fresh install (create users/db/tables if necessary)
     ${rootBundleDir}/bin/dbctrl setup -c ${config}
 fi
+
+
+# configure/upgrade wso2
+
+function checkPid {
+    local pid=$1; shift;
+    [ kill -0 "${pid}" > /dev/null 2>&1 ]
+}
+
+function waitThenKill {
+    local pid=$1; shift;
+    r=6
+    while [ ${r} -gt 0 ] && (checkPid "${pid}") ; do
+        echo "waiting for process ${pid}"
+        sleep 10s
+        r=$[${r}-1]
+    done
+    if checkPid "${pid}"; then
+        echo "process ${pid} still running"
+        echo "Sending kill signal to PID ${pid}"
+        kill -9 ${pid} || true
+    fi
+}
+
+clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
+
+newWso2=${rootBundleDir}/wso2am-2.0.0
+amClient=${rootBundleDir}/tools/bin/amclient
+amClientArgs="--user admin --pass admin --host localhost"
+
+if [ -e "${legacyConfig}" ]; then
+    prevInstall=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})
+    oldWso2=${prevInstall}/wso2am-2.0.0
+    userstoreDir=repository/deployment/server/userstores
+
+    if [ -d "${prevInstall}" ]; then
+        # copy userstore (e.g., LDAP) config(s)
+        cp -n ${oldWso2}/${userstoreDir}/* ${newWso2}/${userstoreDir}/
+
+        if [ ! -e "${userRoles}" ]; then
+            bash ${oldWso2}/bin/wso2server.sh --start
+            env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
+            wso2Pid=$(< ${oldWso2}/wso2carbon.pid)
+            bash ${oldWso2}/bin/wso2server.sh --stop
+            waitThenKill ${wso2Pid}
+        fi
+    fi
+fi
+
+bash ${newWso2}/bin/wso2server.sh --start
+
+env "$clientEnv" ${amClient} create-roles ${amClientArgs}
+
+env "$clientEnv" ${amClient} proxy-admin ${amClientArgs} \
+    --api-name RemoteUserStoreManagerService \
+    --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
+    --app-config ${appConfig}
+
+env "$clientEnv" ${amClient} set-api ${amClientArgs} \
+    --swagger-resource /smrtlink_swagger.json --app-config ${appConfig}
+
+if [ -e "${userRoles}" ]; then
+    env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles}
+fi
+
+wso2Pid=$(< ${newWso2}/wso2carbon.pid)
+bash ${newWso2}/bin/wso2server.sh --stop
+waitThenKill ${wso2Pid}
