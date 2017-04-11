@@ -182,7 +182,7 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
         get {
           complete {
             ok {
-                (daoActor ? GetUpgradableBundle(bundleTypeId)).mapTo[Option[PacBioDataBundle]]
+                (daoActor ? GetUpgradableBundle(bundleTypeId)).mapTo[PacBioDataBundleUpgrade]
             }
           }
         }
