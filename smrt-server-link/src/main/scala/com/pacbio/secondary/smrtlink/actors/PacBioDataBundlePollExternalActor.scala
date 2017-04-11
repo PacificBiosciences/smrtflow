@@ -90,10 +90,9 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @return
     */
   def downloadBundle(c: PacBioDataBundleClient, b: PacBioDataBundle, rootOutputDir: Path): PacBioDataBundleIO = {
-    val ux = s"${c.baseUrl}/smrt-link/bundles/${b.typeId}/${b.version}/download"
-    logger.info(s"Attempting to download Bundle ${b.typeId} ${b.version} from $ux")
-    val bundleUrl = new URL(ux)
-    val bio = PacBioDataBundleIOUtils.downloadAndProcessDataBundle(bundleUrl, rootOutputDir)
+    val downloadUrl = new URL(c.toPacBioBundleDownloadUrl(b.typeId, b.version))
+    logger.info(s"Attempting to download Bundle ${b.typeId} ${b.version} from $downloadUrl")
+    val bio = PacBioDataBundleIOUtils.downloadAndProcessDataBundle(downloadUrl, rootOutputDir)
     logger.info(s"Downloaded bundle $bio")
     bio
   }
@@ -186,7 +185,9 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   override def receive = {
     case CheckForUpdates =>
       // This is just a method to trigger an check of the potential upgrade. It doesn't block
-      val msg = s"Checking $url for updates for bundle type $bundleType"
+      val msg = url
+          .map(u => s"Checking $u for updates for bundle type $bundleType")
+          .getOrElse("No external data bundle URL configured. Skipping check.")
       sender ! MessageResponse(msg)
 
       client match {

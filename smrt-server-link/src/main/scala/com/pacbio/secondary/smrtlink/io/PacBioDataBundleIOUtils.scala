@@ -59,13 +59,7 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
 
     TarGzUtil.uncompressTarGZ(file, outputDir)
 
-    val outputDirs = outputDir.list().map(x => outputDir.toPath.resolve(x))
-
-    // The untar and zipped output is expected to have a single directory with
-    // an manifest.xml file in the root level
-    outputDirs
-        .find(p => Files.isDirectory(p))
-        .getOrElse(throw new IOException("Expected tar.gz have a single directory"))
+    outputDir.toPath.toAbsolutePath
   }
 
   def downloadHttpFile(url: URL, outputFile: File): File = {
