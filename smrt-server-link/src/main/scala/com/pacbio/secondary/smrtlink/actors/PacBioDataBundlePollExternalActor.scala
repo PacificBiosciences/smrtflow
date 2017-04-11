@@ -27,6 +27,17 @@ object PacBioDataBundlePollExternalActor {
   case object CheckStatus // Sanity call to get list of bundles
 }
 
+/**
+  * Actor used to poll an external server and download newer bundles to the System root bundle dir.
+  *
+  * On startup, the system will trigger an external call to check for newer bundles.
+  *
+  * @param rootBundleDir System root bundle dir
+  * @param url           Root URL of the external bundle server
+  * @param pollTime      interval time between polling the external server
+  * @param daoActor      Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
+  * @param bundleType    Bundle type to check for upgrades
+  */
 class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], pollTime: FiniteDuration, daoActor: ActorRef, bundleType: String = "chemistry") extends Actor with LazyLogging{
   import PacBioDataBundlePollExternalActor._
   import PacBioBundleDaoActor.{GetAllBundlesByType, AddBundleIO}
@@ -61,7 +72,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     */
   def getStatus(c: SmrtLinkServiceAccessLayer): Future[ExternalServerStatus] = {
     c.getPacBioDataBundles().map { bs =>
-      val msg = s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.baseUrl}"
+      val summary = bs.map(b => s"${b.typeId}-${b.version}").reduce(_ + "," + _)
+      val msg = s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.baseUrl}. All remote Bundles $summary"
       logger.info(msg)
       ExternalServerStatus(msg, "UP")
     }
@@ -149,25 +161,36 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     }
   }
 
+  /**
+    * Check, Download, Update registry and Handle/log errors
+    *
+    * @param c Bundle Client
+    * @return
+    */
+  def checkDownloadUpgradeAndHandle(c: SmrtLinkServiceAccessLayer): Future[Option[PacBioDataBundleIO]] = {
+    val f = checkDownloadUpdate(c)
+
+    f.onSuccess {
+      case Some(b:PacBioDataBundleIO) => logger.info(s"Successfully added bundle to registry $b")
+      case None => logger.info("No bundles found to upgrade")
+    }
+
+    f.onFailure {
+      case ex: Exception =>
+        logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
+    }
+    f
+  }
+
 
   override def receive = {
     case CheckForUpdates =>
       // This is just a method to trigger an check of the potential upgrade. It doesn't block
       val msg = s"Checking $url for updates for bundle type $bundleType"
       sender ! MessageResponse(msg)
+
       client match {
-        case Some(c) =>
-          val f = checkDownloadUpdate(c)
-
-          f.onSuccess {
-            case Some(b:PacBioDataBundleIO) => logger.info(s"Successfully added bundle to registry $b")
-            case None => logger.info("No bundles found to upgrade")
-          }
-
-          f.onFailure {
-            case ex: Exception =>
-              logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
-          }
+        case Some(c) => checkDownloadUpgradeAndHandle(c)
         case _ =>
           logger.info("No external bundle URL provided. Skipping Check for Upgrades")
       }
