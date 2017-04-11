@@ -61,6 +61,10 @@ class PacBioBundleDao(bundles: Seq[PacBioDataBundleIO] = Seq.empty[PacBioDataBun
   def getBundleIO(bundleType: String, version: String): Option[PacBioDataBundleIO] =
     loadedBundles.find(b => (b.bundle.version == version) && (b.bundle.typeId == bundleType))
 
+  def getBundlesIO(bundleType: String): Seq[PacBioDataBundleIO] =
+    loadedBundles.filter(_.bundle.typeId == bundleType)
+
+
   def addBundle(bundle: PacBioDataBundleIO): PacBioDataBundleIO = {
     loadedBundles += bundle
     bundle
