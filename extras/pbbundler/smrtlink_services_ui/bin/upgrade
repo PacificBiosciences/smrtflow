@@ -38,7 +38,7 @@ fi
 
 function checkPid {
     local pid=$1; shift;
-    [ kill -0 "${pid}" > /dev/null 2>&1 ]
+    kill -0 "${pid}" > /dev/null 2>&1
 }
 
 function waitThenKill {
@@ -54,6 +54,8 @@ function waitThenKill {
         echo "Sending kill signal to PID ${pid}"
         kill -9 ${pid} || true
     fi
+    # wait for ports to go through TIME_WAIT
+    sleep 60
 }
 
 clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
@@ -73,8 +75,11 @@ if [ -e "${legacyConfig}" ]; then
 
         if [ ! -e "${userRoles}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --start
-            env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
+            sleep 5
             wso2Pid=$(< ${oldWso2}/wso2carbon.pid)
+            trap "echo 'cleaning up'; kill ${wso2Pid}; waitThenKill ${wso2Pid}" EXIT
+
+            env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
             bash ${oldWso2}/bin/wso2server.sh --stop
             waitThenKill ${wso2Pid}
         fi
@@ -82,6 +87,9 @@ if [ -e "${legacyConfig}" ]; then
 fi
 
 bash ${newWso2}/bin/wso2server.sh --start
+sleep 5
+wso2Pid=$(< ${newWso2}/wso2carbon.pid)
+trap "echo 'cleaning up'; kill ${wso2Pid}; waitThenKill ${wso2Pid}" EXIT
 
 env "$clientEnv" ${amClient} create-roles ${amClientArgs}
 
