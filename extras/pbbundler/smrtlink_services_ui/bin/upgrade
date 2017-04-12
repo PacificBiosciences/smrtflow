@@ -77,7 +77,7 @@ if [ -e "${legacyConfig}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --start
             sleep 5
             wso2Pid=$(< ${oldWso2}/wso2carbon.pid)
-            trap "echo 'cleaning up'; kill ${wso2Pid}; waitThenKill ${wso2Pid}" EXIT
+            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
 
             env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
             bash ${oldWso2}/bin/wso2server.sh --stop
@@ -89,7 +89,7 @@ fi
 bash ${newWso2}/bin/wso2server.sh --start
 sleep 5
 wso2Pid=$(< ${newWso2}/wso2carbon.pid)
-trap "echo 'cleaning up'; kill ${wso2Pid}; waitThenKill ${wso2Pid}" EXIT
+trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
 
 env "$clientEnv" ${amClient} create-roles ${amClientArgs}
 
@@ -108,3 +108,5 @@ fi
 wso2Pid=$(< ${newWso2}/wso2carbon.pid)
 bash ${newWso2}/bin/wso2server.sh --stop
 waitThenKill ${wso2Pid}
+
+trap - EXIT
