@@ -75,11 +75,17 @@ has the following structure:
 ```json
 {
     "PB_DB_URI": "/path/to/sqlite.file.db",
-    "PREVIOUS_INSTALL_DIR": "/path/to/old/smrtlink/installation",
+    "PREVIOUS_INSTALL_DIR": "/path/to/old/smrtlink/installation/smrtlink-analysis-gui",
     "_comment": <optional comment>
 }
 ```
-**Note** this is NOT the same schema as the 4.0.0 config JSON
+
+Keys
+
+- PB_DB_URI Option[Path] path to the sqlite file
+- PREVIOUS_INSTALL_DIR Path to the root directory of the SMRT Link analysis GUI subcomponent. There must be a relative `wso2am-2.0.0` directory within the root dir provided.
+
+
 
 **Note** the SL 4.0.0 to SL 4.1.0 has a special case for handling the importing of the legacy 4.0.0 sqlite database to the 4.1.0 Postgres database.
    
