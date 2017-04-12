@@ -6,6 +6,12 @@ The pbbundler version is BUNDLE_VERSION in bamboo_build.sh
 
 ## SL System Version 4.1.0
 
+### BUNDLE_VERSION 0.15.0
+
+- rename migration config to migration-config.json
+- add wso2 upgrade support
+- add PREVIOUS_INSTALL_DIR to migration-config.json
+
 
 #### BUNDLE_VERSION 0.14.0
 
