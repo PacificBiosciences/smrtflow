@@ -1436,20 +1436,8 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
        """.stripMargin
   }
 
-  def addEulaAcceptance(user: String,
-                        smrtlinkVersion: String,
-                        enableInstallMetrics: Boolean,
-                        enableJobMetrics: Boolean): Future[EulaRecord] = {
-    val now = JodaDateTime.now()
-    // FIXME this should probably move somewhere central
-    val osVersion = if (Files.exists(Paths.get("/proc/version"))) {
-      scala.io.Source.fromFile("/proc/version").mkString
-    } else {
-      s"${SystemUtils.OS_NAME}; ${SystemUtils.OS_ARCH}; ${SystemUtils.OS_VERSION}"
-    }
-    logger.info(s"OS version: $osVersion")
-    val rec = EulaRecord(user, now, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics)
-    val f = db.run(eulas += rec).map(_ => rec)
+  def addEulaRecord(eulaRecord: EulaRecord): Future[EulaRecord] = {
+    val f = db.run(eulas += eulaRecord).map(_ => eulaRecord)
     f.onSuccess {case e:EulaRecord  => sendEventToManager[EulaRecord](e)}
     f
   }

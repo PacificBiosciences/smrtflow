@@ -71,8 +71,8 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
     } match {
       case Success(eula) =>
         println(s"Skipping - SMRT Link user agreement for version $version was already accepted by ${eula.user} on ${eula.acceptedAt}")
-      case Failure(x) =>
-        val eula = Await.result(sal.acceptEula(c.user, version), TIMEOUT)
+      case Failure(_) =>
+        val eula = Await.result(sal.acceptEula(c.user), TIMEOUT)
         println(s"SMRT Link user agreement for version $version accepted by ${eula.user} on ${eula.acceptedAt}")
     }
     0

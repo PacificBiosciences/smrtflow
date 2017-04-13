@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -12,22 +12,19 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
-import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ProjectRequest, ReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ReferenceServiceDataSet, EulaRecord}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.{Await, Future}
-import scala.util.control.NonFatal
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object MessageTypes {
@@ -237,7 +234,7 @@ object JobsDaoActor {
 
   case object GetEulas extends AdminMessage
   case class GetEulaByVersion(version: String) extends AdminMessage
-  case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
+  case class AddEulaRecord(eulaRecord: EulaRecord) extends AdminMessage
   case class DeleteEula(version: String) extends AdminMessage
 
 
@@ -704,8 +701,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetEulaByVersion(version) =>
       pipeWith {dao.getEulaByVersion(version) }
 
-    case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
-      pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
+    case AddEulaRecord(eulaRecord) =>
+      pipeWith(dao.addEulaRecord(eulaRecord))
 
     case DeleteEula(version) => pipeWith {
       dao.removeEula(version).map(x =>

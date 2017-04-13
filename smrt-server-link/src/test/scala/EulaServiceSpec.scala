@@ -14,7 +14,7 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, EulaServiceProvider, JobRunnerProvider, ProjectServiceProvider}
+import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -39,6 +39,22 @@ class EulaServiceSpec extends Specification
 
   val INVALID_JWT = "invalid.jwt"
 
+  val testSmrtLinkVersion = "1.2.3"
+
+  trait TestEulaServiceProvider {
+    this: JobsDaoActorProvider
+        with SmrtLinkConfigProvider
+        with AuthenticatorProvider
+        with ServiceComposer =>
+
+    val eulaService: Singleton[EulaService] =
+      Singleton { () =>
+        new EulaService(Some(testSmrtLinkVersion), jobsDaoActor(), authenticator())
+      }
+
+    addService(eulaService)
+  }
+
   object TestProviders extends
       ServiceComposer with
       ProjectServiceProvider with
@@ -46,7 +62,7 @@ class EulaServiceSpec extends Specification
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
       JobRunnerProvider with
-      EulaServiceProvider with
+      TestEulaServiceProvider with
       DataSetServiceProvider with
       JobsDaoActorProvider with
       EventManagerActorProvider with
@@ -70,13 +86,6 @@ class EulaServiceSpec extends Specification
   override val db: Database = dao.db
   val totalRoutes = TestProviders.eulaService().prefixedRoutes
 
-  // This is a hacky workaround to make the tests not have a dep on
-  // the previous tests. Generate a random version string for the Eula
-  val r = scala.util.Random
-  val eulaVersion = (0 until 3)
-      .map(_ => r.nextInt(100).toString)
-      .reduce(_ + "." + _)
-
   step(setupDb(TestProviders.dbConfig))
 
   "EULA service" should {
@@ -88,11 +97,11 @@ class EulaServiceSpec extends Specification
       }
     }
     "accept the EULA" in {
-      val params = EulaAcceptance("smrtlinktest", eulaVersion, enableInstallMetrics = true, enableJobMetrics = false)
+      val params = EulaAcceptance("smrtlinktest", enableInstallMetrics = true)
       Post("/smrt-base/eula", params) ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
         eula.user must beEqualTo("smrtlinktest")
-        eula.smrtlinkVersion must beEqualTo(eulaVersion)
+        eula.smrtlinkVersion must beEqualTo(testSmrtLinkVersion)
       }
     }
     "retrieve the list of EULAs again" in {
@@ -102,9 +111,9 @@ class EulaServiceSpec extends Specification
       }
     }
     "retrieve the new EULA directly" in {
-      Get(s"/smrt-base/eula/$eulaVersion") ~> totalRoutes ~> check {
+      Get(s"/smrt-base/eula/$testSmrtLinkVersion") ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
-        eula.smrtlinkVersion must beEqualTo(eulaVersion)
+        eula.smrtlinkVersion must beEqualTo(testSmrtLinkVersion)
         eula.user must beEqualTo("smrtlinktest")
         eula.enableInstallMetrics must beTrue
         eula.enableJobMetrics must beFalse
