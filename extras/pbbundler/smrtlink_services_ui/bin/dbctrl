@@ -501,6 +501,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
                 m.write(migration_status_json)
         else:
             log.info("Legacy SQLITE PATH is null, skipping legacy import")
+            was_successful = True
 
         # shutdown the db if it was not originally started
         if not was_started:
