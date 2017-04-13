@@ -1,0 +1,87 @@
+#!/bin/bash -e
+
+# Script to automate deployment of signed SSL certificate to a customer's
+# SMRT Link instance.
+
+function usage {
+  cat <<EOF
+Usage: install-ssl-cert FQDN KEYSTORE TRUSTSTORE KEYPW
+
+This script will install a signed SSL certificate to SMRT Link, removing the
+browser warnings that occur when using the default certificate.  In order to
+run this script, you will need two files in Java Key Store (.jks) format, one
+containing the SSL keys and certificate, plus a separate client-truststore.jks
+required by the authentication manager.
+
+  FQDN       - fully qualified domain name appropriate to the signed SSL
+               certificate, e.g. smrtlink.university.edu
+  KEYSTORE   - path to keystore generated from SSL certifiicate (.jks
+               extension); this will be copied to the SMRT Link installation.
+  TRUSTSTORE - path to client-truststore.jks
+  KEYPW      - password used for generating keys
+EOF
+}
+
+if [ "$1" == "--help" ]; then
+  usage
+  exit 0
+fi
+
+g_progdir=$(dirname "$0");
+g_progdir_abs=$(readlink -f "$g_progdir");
+SMRTLINK_ROOT="${g_progdir_abs}/.."
+FQDN=$1
+KEYSTORE=$2
+TRUSTSTORE=$3
+KEYPW="$4"
+
+if [ -z "$FQDN" ] || [ -z "$KEYSTORE" ] || [ -z "$TRUSTSTORE" ] || [ -z "$KEYPW" ]; then
+  echo "ERROR: missing one or more required parameters"
+  usage
+  exit 1
+fi
+if [ ! -d "$SMRTLINK_ROOT" ]; then
+  echo "ERROR: $SMRTLINK_ROOT is not a directory"
+  exit 1
+fi
+if [ `echo \"$KEYPW\" | grep -c '#'` -ne 0 ]; then
+  echo "KEYPW must not contain the '#' character"
+  exit 1
+fi
+
+WSO2_ROOT="$SMRT_ROOT/wso2am-2.0.0"
+if [ ! -d "$WSO2_ROOT" ]; then
+  echo "ERROR: Can't find path to WSO2 install (expected at $WSO2_ROOT)"
+  exit 1
+fi
+
+set -x
+# backup conf files
+JKS_DIR="${WSO2_ROOT}/repository/resources/security"
+cp -r ${WSO2_ROOT}/repository/conf ${WSO2_ROOT}/repository/conf.bak
+mv "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.bak"
+
+# install JKS files
+cp "${KEYSTORE}" "${JKS_DIR}/"
+cp "${TRUSTSTORE}" "${JKS_DIR}/client-truststore.jks"
+
+JKS_FILE=$(basename "$KEYSTORE")
+
+# modify conf files
+cd ${WSO2_ROOT}/repository/conf
+find . -type f -print0 | xargs -0 sed -i "s/wso2carbon.jks/${JKS_FILE}/;"
+find . -type f -print0 | xargs -0 sed -i "s/localhost/$FQDN/g;"
+sed -i "s/\${carbon.local.ip}/$FQDN/g" api-manager.xml
+sed -i "s#<\!--HostName>www.wso2.org</HostName-->#<HostName>$FQDN</HostName>#;" carbon.xml
+sed -i "s#<KeyAlias>wso2carbon</KeyAlias>#<KeyAlias>server</KeyAlias>#;" carbon.xml
+sed -i "s#<\!--<parameter name=\"HostnameVerifier\">REPLACEME</parameter>-->#<parameter name=\"HostnameVerifier\">DefaultAndLocalhost</parameter>#;" axis2/axis2.xml
+if [ ! -z "$KEYPW" ]; then
+  sed -i "s#<Password>wso2carbon</Password>#<Password>$KEYPW</Password>#; s#<KeyPassword>wso2carbon</KeyPassword>#<KeyPassword>$KEYPW</KeyPassword>#;" carbon.xml
+  sed -i "s#<Password>wso2carbon</Password>#<Password>$KEYPW</Password>#; s#<KeyPassword>wso2carbon</KeyPassword>#<KeyPassword>$KEYPW</KeyPassword>#;" identity/identity.xml
+  sed -i "s#<Password>wso2carbon</Password>#<Password>$KEYPW</Password>#; s#<KeyPassword>wso2carbon</KeyPassword>#<KeyPassword>$KEYPW</KeyPassword>#;" axis2/axis2.xml
+  sed -i "s#Password=wso2carbon#Password=$KEYPW#;" identity/EndpointConfig.properties
+  sed -i "s#\[wso2carbon\]#\[$KEYPW\]#;" ./security/cipher-text.properties
+  sed -i "s#<password>wso2carbon</password>#<password>$KEYPW</password>#;" broker.xml
+  sed -i "s#<Parameter name=\"TrustStorePassword\">wso2carbon</Parameter>#<Parameter name=\"TrustStorePassword\">$KEYPW</Parameter>#;" ./identity/application-authentication.xml
+  sed -i "s/keystorePass=\"wso2carbon\"/keystorePass=\"$KEYPW\"/;" ./tomcat/catalina-server.xml
+fi
