@@ -36,13 +36,19 @@ class EventManagerActor(smrtLinkId: UUID,
 
   import EventManagerActor._
 
+  // This state will be updated when/if a "Eula" message is sent. This will enable/disable sending messages
+  // to the external server.
+  var enableExternalMessages = false
+
+  // If the system is not configured with an event server. No external messages will ever be sent
   val client: Option[EventServerClient] = externalConfig.map(x => new EventServerClient(x.host, x.port)(context.system))
 
   context.system.scheduler.scheduleOnce(10.seconds, self, CheckExternalServerStatus)
 
 
   override def preStart() = {
-    logger.info(s"Starting $self with smrtLinkID $smrtLinkId and External Event sServer config $externalConfig")
+    val dns = dnsName.map(n => s"dns name $n").getOrElse("")
+    logger.info(s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server config $externalConfig")
     logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
@@ -60,7 +66,12 @@ class EventManagerActor(smrtLinkId: UUID,
     SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.eventTypeVersion, e.uuid, e.createdAt, e.message, dnsName)
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
-    Try {client.map(c => c.sendSmrtLinkSystemEvent(e))}
+    Try {
+      client.map { c =>
+        logger.info(s"Attempting to send message to external Server $e")
+        c.sendSmrtLinkSystemEvent(e)
+      }
+    }
   }
 
   override def receive: Receive = {
@@ -69,15 +80,31 @@ class EventManagerActor(smrtLinkId: UUID,
       checkExternalServerStatus()
 
     case CreateEvent(e) =>
-      val systemEvent = toSystemEvent(e)
-      sender ! systemEvent
-      sendSystemEvent(systemEvent)
+      if (enableExternalMessages) {
+        val systemEvent = toSystemEvent(e)
+        sender ! systemEvent
+        sendSystemEvent(systemEvent)
+      } else {
+        logger.warn("Enabling external message sending id disabled.")
+      }
 
     case e: EulaRecord =>
-      val event = SmrtLinkEvent(EventTypes.EULA_ACCEPTED, 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
+      // This has some legacy/historical cruft. This is no longer a "EULA". It's an notification message
+      // for tech support to schedule a Instrument Upgrade
+
+      enableExternalMessages = e.enableInstallMetrics
+      val event = SmrtLinkEvent(EventTypes.INST_UPGRADE_NOTIFICATION, 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
       val systemEvent = toSystemEvent(event)
-      logger.info(s"EventManager $systemEvent")
-      sendSystemEvent(systemEvent)
+
+      if (e.enableInstallMetrics) {
+        sendSystemEvent(systemEvent)
+        sender ! systemEvent
+      } else {
+        logger.warn(s"Eula installMetrics is false. Skipping sending to external server. $e")
+        // This is to have a consistent interface, but this is making it a bit unclear that
+        // the message isn't sent. Should clarify this interface
+        sender ! systemEvent
+      }
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }
