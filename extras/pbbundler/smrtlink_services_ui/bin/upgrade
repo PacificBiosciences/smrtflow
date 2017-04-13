@@ -63,7 +63,7 @@ amClient=${rootBundleDir}/tools/bin/amclient
 amClientArgs="--user admin --pass admin --host localhost"
 
 if [ -e "${legacyConfig}" ]; then
-    prevInstall=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})
+    prevInstall=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print ('' if (d['PREVIOUS_INSTALL_DIR'] is None) else d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})
     oldWso2=${prevInstall}/wso2am-2.0.0
     userstoreDir=repository/deployment/server/userstores
 
