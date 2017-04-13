@@ -2,17 +2,21 @@
 package com.pacbio.secondary.smrtlink.tools
 
 import akka.actor.ActorSystem
+import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
-import com.typesafe.config.ConfigFactory
-import org.joda.time.{DateTime => JodaDateTime}
+import com.pacbio.secondary.smrtlink.models.EulaRecord
 import scopt.OptionParser
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
+import scala.util.control.NonFatal
+import scala.util.Try
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 case class AcceptUserAgreementConfig(
@@ -20,15 +24,17 @@ case class AcceptUserAgreementConfig(
     port: Int = 8070,
     user: String = System.getProperty("user.name")) extends LoggerConfig
 
-object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConfig] {
+object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConfig] with ConfigLoader{
   final val TIMEOUT = 10 seconds
+  final val SMRTLINK_SYSTEM_ID = "smrtlink"
+
   val toolId = "pbscala.tools.accept_user_agreement"
   val VERSION = "0.1.0"
   val DESCRIPTION = "PacBio SMRTLink User Agreement Acceptance Tool"
-  lazy val conf = ConfigFactory.load()
   lazy val defaultHost: String = Try { conf.getString("smrtflow.server.dnsName") }.getOrElse("localhost")
   lazy val defaultPort: Int = conf.getInt("smrtflow.server.port")
   lazy val defaults = AcceptUserAgreementConfig(defaultHost, defaultPort)
+
 
   lazy val parser = new OptionParser[AcceptUserAgreementConfig]("accept-user-agreement") {
     head(DESCRIPTION, VERSION)
@@ -58,37 +64,40 @@ object AcceptUserAgreement extends CommandLineToolRunner[AcceptUserAgreementConf
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def acceptUserAgreement(c: AcceptUserAgreementConfig) = {
-    implicit val actorSystem = ActorSystem("get-status")
-    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
-    println(s"URL: ${sal.baseUrl}")
-    val manifest = Await.result(sal.getPacBioComponentManifests, TIMEOUT)
-    val version = manifest.sortWith(_.id > _.id).find(
-      m => m.id == "smrtlink-analysisservices-gui" || m.id == "pacbio.services.eula").getOrElse(
-      throw new RuntimeException("Can't determine SMRT Link version")).version
-    Try {
-      Await.result(sal.getEula(version), TIMEOUT)
-    } match {
-      case Success(eula) =>
-        println(s"Skipping - SMRT Link user agreement for version $version was already accepted by ${eula.user} on ${eula.acceptedAt}")
-      case Failure(_) =>
-        val eula = Await.result(sal.acceptEula(c.user), TIMEOUT)
-        println(s"SMRT Link user agreement for version $version accepted by ${eula.user} on ${eula.acceptedAt}")
-    }
-    0
+  def getSmrtLinkSystemVersion(ms: Seq[PacBioComponentManifest]): Future[String] = {
+    ms.sortWith(_.id > _.id)
+        .find(m => m.id == SMRTLINK_SYSTEM_ID)
+        .map(v => Future.successful(v.version))
+        .getOrElse(Future.failed(throw new Exception("Can't determine SMRT Link version")))
   }
 
-  def run(c: AcceptUserAgreementConfig): Either[ToolFailure, ToolSuccess] = {
-    val startedAt = JodaDateTime.now()
-    Try { acceptUserAgreement(c) } match {
-      case Success(rc) => Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
-      case Failure(err) =>
-        Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), err.getMessage))
-    }
+  def getOrAcceptEula(sal: SmrtLinkServiceAccessLayer, user: String, smrtLinkVersion: String, enableInstallMetrics: Boolean): Future[EulaRecord] = {
+    sal.getEula(smrtLinkVersion)
+        .recoverWith { case NonFatal(_) => sal.acceptEula(user, enableInstallMetrics) }
   }
+
+  override def runTool(c: AcceptUserAgreementConfig): Try[String] = {
+
+    implicit val actorSystem = ActorSystem("get-status")
+
+    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+
+    val fx = for {
+      manifests <- sal.getPacBioComponentManifests
+      smrtLinkVersion <- getSmrtLinkSystemVersion(manifests)
+      eula <- getOrAcceptEula(sal, c.user, smrtLinkVersion, enableInstallMetrics = true)
+    }  yield s"Accepted Eula $eula"
+
+    fx.onComplete { _ => actorSystem.shutdown()}
+
+    Try { Await.result(fx, TIMEOUT)}
+  }
+
+  // Legacy interface
+  def run(c: AcceptUserAgreementConfig) = Left(ToolFailure(toolId, 1, "NOT SUPPORTED"))
 }
 
 object AcceptUserAgreementApp extends App {
   import AcceptUserAgreement._
-  runner(args)
+  runnerWithArgsAndExit(args)
 }
