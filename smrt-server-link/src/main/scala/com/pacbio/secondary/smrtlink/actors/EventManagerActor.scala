@@ -66,7 +66,12 @@ class EventManagerActor(smrtLinkId: UUID,
     SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.eventTypeVersion, e.uuid, e.createdAt, e.message, dnsName)
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
-    Try {client.map(c => c.sendSmrtLinkSystemEvent(e))}
+    Try {
+      client.map { c =>
+        logger.info(s"Attempting to send message to external Server $e")
+        c.sendSmrtLinkSystemEvent(e)
+      }
+    }
   }
 
   override def receive: Receive = {
@@ -79,6 +84,8 @@ class EventManagerActor(smrtLinkId: UUID,
         val systemEvent = toSystemEvent(e)
         sender ! systemEvent
         sendSystemEvent(systemEvent)
+      } else {
+        logger.warn("Enabling external message sending id disabled.")
       }
 
     case e: EulaRecord =>
@@ -86,14 +93,17 @@ class EventManagerActor(smrtLinkId: UUID,
       // for tech support to schedule a Instrument Upgrade
 
       enableExternalMessages = e.enableInstallMetrics
+      val event = SmrtLinkEvent(EventTypes.INST_UPGRADE_NOTIFICATION, 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
+      val systemEvent = toSystemEvent(event)
 
       if (e.enableInstallMetrics) {
-        val event = SmrtLinkEvent(EventTypes.INST_UPGRADE_NOTIFICATION, 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
-        val systemEvent = toSystemEvent(event)
-        logger.info(s"EventManager $systemEvent")
         sendSystemEvent(systemEvent)
+        sender ! systemEvent
       } else {
         logger.warn(s"Eula installMetrics is false. Skipping sending to external server. $e")
+        // This is to have a consistent interface, but this is making it a bit unclear that
+        // the message isn't sent. Should clarify this interface
+        sender ! systemEvent
       }
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
