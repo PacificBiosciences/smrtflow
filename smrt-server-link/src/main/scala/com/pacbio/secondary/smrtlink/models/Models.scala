@@ -742,7 +742,7 @@ case class SmrtLinkEvent(eventTypeId: String,
                          message: JsObject)
 
 object EventTypes {
-  val EULA_ACCEPTED = "smrtlink_eula_accepted"
+  val INST_UPGRADE_NOTIFICATION = "smrtlink_inst_upgrade_notification"
   val SERVER_STARTUP = "smrt_server_startup"
   val IMPORT_BUNDLE = "techsupport_import_bundle"
 }
