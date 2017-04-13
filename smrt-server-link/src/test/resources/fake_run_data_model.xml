@@ -166,6 +166,7 @@
           </pbdm:SubreadSets>
         </pbdm:Outputs>
 		  <pbdm:RecordedEvents>
+			<pbdm:RecordedEvent Name="AcquisitionInitializeInfo" CreatedAt="{ACQ_1_STARTED_AT}" SimpleValue="{&quot;RunReferenceName&quot;:&quot;{RUN_NAME}&quot;,&quot;CollectionNumber&quot;:0,&quot;Cell&quot;:{&quot;TraySlot&quot;:1,&quot;CellNumber&quot;:1,&quot;SerialNumber&quot;:&quot;BA031566&quot;,&quot;PartNumber&quot;:&quot;101-008-000&quot;,&quot;Lot&quot;:&quot;320574&quot;,&quot;ExpirationDate&quot;:&quot;2017 April 22&quot;},&quot;MovieContext&quot;:&quot;m54119_170412_194541&quot;,&quot;MovieMinutes&quot;:600,&quot;PreExtensionMinutes&quot;:120,&quot;WellPlateSlot&quot;:1,&quot;Well&quot;:&quot;C01&quot;,&quot;WellUsage&quot;:1}" Context="{SUBREAD_ID_1}" />
 			<pbdm:RecordedEvent Name="AcquisitionCompletion" CreatedAt="{ACQ_1_COMPLETED_AT}" SimpleValue="Complete" Context="{SUBREAD_ID_1}" />
 			<pbdm:RecordedEvent Name="RunTransfersCompletion" CreatedAt="{RUN_TRANS_COMPLETED_AT}" SimpleValue="AllSucceeded" Context="{RUN_ID}" />
 			<pbdm:RecordedEvent Name="RunCompletion" CreatedAt="{RUN_COMPLETED_AT}" SimpleValue="Complete" Context="{RUN_ID}" />

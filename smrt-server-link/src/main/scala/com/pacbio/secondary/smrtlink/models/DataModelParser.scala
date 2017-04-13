@@ -114,6 +114,12 @@ object DataModelParserImpl extends DataModelParser {
         pa <- Option(Paths.get(ur))
       } yield pa
 
+      val acqStartedAt = events
+        .filter(_.getContext == s.getUniqueId)
+        .find(_.getName == "AcquisitionInitializeInfo")
+        .map(_.getCreatedAt)
+        .map(toDateTime)
+
       val acqCompletedAt = events
         .filter(_.getContext == s.getUniqueId)
         .find(_.getName == "AcquisitionCompletion")
@@ -133,7 +139,7 @@ object DataModelParserImpl extends DataModelParser {
         Option(collectionMetadataModel.getInstrumentName),
         movieMinutes,
         Option(collectionMetadataModel.getRunDetails.getCreatedBy),
-        Option(collectionMetadataModel.getRunDetails.getWhenStarted).map(toDateTime),
+        acqStartedAt,
         acqCompletedAt,
         terminationInfo = None) // TODO(smcclellan): Populate terminationInfo field when upstream data is available
     }
