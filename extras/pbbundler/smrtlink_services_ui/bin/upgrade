@@ -69,7 +69,10 @@ if [ -e "${legacyConfig}" ]; then
 
     if [ -d "${prevInstall}" ]; then
         # copy userstore (e.g., LDAP) config(s)
-        cp -n ${oldWso2}/${userstoreDir}/* ${newWso2}/${userstoreDir}/
+        N_USERSTORE_FILES=`find "${oldWso2}/${userstoreDir}" -type f | wc -l`
+        if [ "$N_USERSTORE_FILES" != "0" ]; then
+            cp -n ${oldWso2}/${userstoreDir}/* ${newWso2}/${userstoreDir}/
+        fi
 
         if [ ! -e "${userRoles}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --start
