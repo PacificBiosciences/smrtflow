@@ -465,7 +465,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
     migration_conf = MigrationConfig.from_d(config_d)
     log.info("Loaded migration config {}".format(migration_conf))
 
-    sqlite_db_path = migration_conf
+    sqlite_db_path = migration_conf.sqlite_path
     n = db_setup_and_migrate_if_necessary(dbc)
 
     if n == 0:
