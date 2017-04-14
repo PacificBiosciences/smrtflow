@@ -66,8 +66,19 @@ if [ -e "${legacyConfig}" ]; then
     prevInstall=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print ('' if (d['PREVIOUS_INSTALL_DIR'] is None) else d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})
     oldWso2=${prevInstall}/wso2am-2.0.0
     userstoreDir=repository/deployment/server/userstores
+    sslDir=repository/resources/security
+    confDir=repository/conf
 
     if [ -d "${prevInstall}" ]; then
+        # copy SSL cert and related info (if applicable)
+        KEYSTORE=`grep "<Location>" "$confDir"/carbon.xml | head -1 | sed 's#</Location>##; s#.*security/##;'`
+        KEYPW=`grep "<KeyPassword>" "$confDir"/carbon.xml | head -1 | sed 's#.*<KeyPassword>##; s#</KeyPassword>##;'`
+        if [ "$KEYSTORE" != "wso2carbon.jks" ] || [ "$KEYPW" != "wso2carbon" ]; then
+            HOSTNAME=`grep "<HostName>" "$confDir"/carbon.xml | head -1 | sed 's#.*<HostName>##; s#</HostName>##;'`
+            echo "Transferring SSL certificate config for $HOSTNAME"
+            install-ssl-cert $HOSTNAME "$sslDir"/$KEYSTORE "$sslDir"/client-truststore.jks "$KEYPW"
+        fi
+
         # copy userstore (e.g., LDAP) config(s)
         N_USERSTORE_FILES=`find "${oldWso2}/${userstoreDir}" -type f | wc -l`
         if [ "$N_USERSTORE_FILES" != "0" ]; then
