@@ -68,7 +68,6 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "{\"foo\":true}",
         Some("jsnow"),
         Some("0.1.0-SL"),
-        Some("0.1.1-SL-TOOLS"),
         projectId = -1)
       val event = JobEvent(UUID.randomUUID(), jobId = -1, AnalysisJobStates.CREATED, "job-created", createdAt = now)
       val tag = (-1, "tag-name")
@@ -80,7 +79,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         ProjectState.CREATED,
         createdAt = now,
         updatedAt = now,
-        isActive = true)
+        isActive = true,
+        grantRoleToAll = Some(ProjectUserRole.CAN_EDIT))
       val projectUser = ProjectUser(projectId = -1, username, ProjectUserRole.OWNER)
       val dataset = EngineJobEntryPoint(jobId = -1, UUID.randomUUID(), datasetTypeId)
       val metadata = DataSetMetaDataSet(

@@ -9,12 +9,11 @@ import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, Pbsm
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
-import com.pacbio.secondary.smrtlink.loaders.PacBioAutomationConstraintsLoader
-import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundle, PacBioDataBundleIO}
-import com.pacbio.secondary.smrtlink.services.BundleUtils
-import com.pacificbiosciences.pacbioautomationconstraints.PacBioAutomationConstraints
+import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
+import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundleIO}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.concurrent.duration._
 import scala.util.Try
 
 
@@ -37,6 +36,7 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val port: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
   val host: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
+  val dnsName: Singleton[Option[String]] = Singleton(() => Try { conf.getString("smrtflow.server.dnsName") }.toOption)
 
   val jobEngineConfig: Singleton[EngineConfig] = Singleton(() => engineConfig)
   val cmdTemplate: Singleton[Option[CommandTemplate]] = Singleton(() => loadCmdTemplate)
@@ -48,18 +48,12 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   // Unfortunately this is duplicated in the Manifest service
   val smrtLinkVersion: Singleton[Option[String]] =
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRTLINK_ID).map(_.version))
-  val smrtLinkToolsVersion: Singleton[Option[String]] =
-    Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRT_LINK_TOOLS_ID).map(_.version))
 
   val pacBioBundleRoot: Singleton[Path] =
     Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
 
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
-    Singleton(() => BundleUtils.loadBundlesFromRoot(pacBioBundleRoot()))
-
-  // Load PacBio Automation Constraints Chemistry Bundle
-  val pacBioAutomationConstraints: Singleton[PacBioAutomationConstraints] =
-    Singleton(() => PacBioAutomationConstraintsLoader.loadExample())
+    Singleton(() => PacBioDataBundleIOUtils.loadBundlesFromRoot(pacBioBundleRoot()))
 
   /**
     * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
@@ -77,4 +71,12 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val externalEventHost: Singleton[Option[ExternalEventServerConfig]] =
     Singleton(() => loadExternalEventHost())
+
+  val externalBundleUrl: Singleton[Option[URL]] = {
+    Singleton(() => Try {new URL(conf.getString("pacBioSystem.remoteBundleUrl"))}.toOption)
+  }
+
+  val externalBundlePollDuration: Singleton[FiniteDuration] = {
+    Singleton(() => FiniteDuration(12, HOURS))
+  }
 }

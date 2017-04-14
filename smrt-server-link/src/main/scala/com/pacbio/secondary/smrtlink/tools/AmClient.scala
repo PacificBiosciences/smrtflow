@@ -11,7 +11,8 @@ import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
 import com.typesafe.config.ConfigFactory
 import org.wso2.carbon.apimgt.rest.api.publisher
 import scopt.OptionParser
-import spray.json.{JsString, _}
+import spray.json._
+import spray.http.StatusCodes
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -22,9 +23,11 @@ object AmClientModes {
   sealed trait Mode {
     val name: String
   }
-  case object CREATE_API extends Mode {val name = "create-api"}
+  case object PROXY_ADMIN extends Mode {val name = "proxy-admin"}
   case object CREATE_ROLES extends Mode {val name = "create-roles"}
   case object GET_KEY extends Mode {val name = "get-key"}
+  case object GET_ROLES_USERS extends Mode {val name = "get-roles-users"}
+  case object SET_ROLES_USERS extends Mode {val name = "set-roles-users"}
   case object SET_API extends Mode {val name = "set-api"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
@@ -38,7 +41,8 @@ object loadFile extends (File => String) {
 
 object loadResource extends (String => String) {
   def apply(resourcePath: String): String = {
-    val stream = getClass.getResourceAsStream(resourcePath)
+    val path = (if (resourcePath.startsWith("/")) "" else "/") + resourcePath
+    val stream = getClass.getResourceAsStream(path)
     io.Source.fromInputStream(stream).mkString
   }
 }
@@ -74,9 +78,11 @@ object AmClientParser extends CommandLineToolVersion{
     apiName: String = "SMRTLink",
     target: Option[URL] = target,
     roles: Seq[String] = List("Internal/PbAdmin", "Internal/PbLabTech", "Internal/PbBioinformatician"),
+    adminService: String = "RemoteUserStoreManagerService",
     swagger: Option[String] = None,
-    // appConfig is required in the commands that use it, so it's not
-    // an Option
+    // these Files are required in the commands that use them,
+    // so they're not Options
+    roleJson: File = null,
     appConfig: File = null
   ) extends LoggerConfig
 
@@ -99,9 +105,8 @@ object AmClientParser extends CommandLineToolVersion{
       .text("API Manager admin username")
 
     opt[String]("pass")
-      .action((x, c) => c.copy(pass = x) )
+      .action((x, c) => c.copy(pass = x))
       .text("API Manager admin password")
-
 
     opt[Unit]("debug")
       .action((_, c) => c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig])
@@ -117,27 +122,6 @@ object AmClientParser extends CommandLineToolVersion{
           .required()
           .action((p, c) => c.copy(appConfig = p))
           .text("path to app-config.json file"))
-
-    cmd(AmClientModes.CREATE_API.name)
-      .action((_, c) => c.copy(mode = AmClientModes.CREATE_API))
-      .text("create API from swagger")
-      .children(
-        opt[String]("api-name")
-          .action((a, c) => c.copy(apiName = a))
-          .text("API Name"),
-        opt[String]("target")
-          .action((x, c) => c.copy(target = Some(new URL(x))))
-          .text("backend URL"),
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file"),
-        opt[File]("swagger-file")
-          .action((f, c) => c.copy(swagger = Some(loadFile(f))))
-          .text("Path to swagger json file"),
-        opt[String]("swagger-resource")
-          .action((p, c) => c.copy(swagger = Some(loadResource(p))))
-          .text("Path to swagger json resource"))
 
     cmd(AmClientModes.SET_API.name)
       .action((_, c) => c.copy(mode = AmClientModes.SET_API))
@@ -168,6 +152,42 @@ object AmClientParser extends CommandLineToolVersion{
           .action((roles, c) => c.copy(roles = roles))
           .text("list of roles"))
 
+    cmd(AmClientModes.PROXY_ADMIN.name)
+      .action((_, c) => c.copy(mode = AmClientModes.PROXY_ADMIN))
+      .text("create a passthrough proxy for an admin service")
+      .children(
+        opt[String]("api-name")
+          .action((a, c) => c.copy(apiName = a))
+          .text("API Name"),
+        opt[String]("target")
+          .action((x, c) => c.copy(target = Some(new URL(x))))
+          .text("backend URL"),
+        opt[File]("app-config")
+          .required()
+          .action((p, c) => c.copy(appConfig = p))
+          .text("path to app-config.json file"))
+
+    cmd(AmClientModes.GET_ROLES_USERS.name)
+      .action((_, c) => c.copy(mode = AmClientModes.GET_ROLES_USERS))
+      .text("get the users assigned to each of the given roles")
+      .children(
+        opt[Seq[String]]("roles")
+          .action((roles, c) => c.copy(roles = roles))
+          .text("list of roles"),
+        opt[File]("role-json")
+          .required()
+          .action((roleJson, c) => c.copy(roleJson = roleJson))
+          .text("json output file; will contain an object with <role>: [<list of user IDs>] mappings"))
+
+    cmd(AmClientModes.SET_ROLES_USERS.name)
+      .action((_, c) => c.copy(mode = AmClientModes.SET_ROLES_USERS))
+      .text("recreate the given user/role mappings")
+      .children(
+        opt[File]("role-json")
+          .required()
+          .action((roleJson, c) => c.copy(roleJson = roleJson))
+          .text("json input file; should contain an object with <role>: [<list of user IDs>] mappings"))
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -193,12 +213,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   val scopes = Set("apim:subscribe", "apim:api_create", "apim:api_view", "apim:api_publish")
 
-  val startupTimeout = 400.seconds
   val reqTimeout = 30.seconds
 
   def createRoles(c: AmClientParser.CustomConfig): Int = {
-    Await.result(am.waitForStart(), startupTimeout)
-
     val fut = for {
       existing <- am.getRoleNames(c.user, c.pass)
       toCreate = c.roles.toSet -- existing.toSet
@@ -220,8 +237,6 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   // get DefaultApplication key from the server and save it in appConfigFile
   def getKey(appConfigFile: File): Int = {
-    Await.result(am.waitForStart(), startupTimeout)
-
     val futs = for {
       clientInfo <- am.register()
       tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
@@ -261,7 +276,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     }
   }
 
-  def createApi(apiName: String, appConfigFile: File, swagger: String, target: URL): Int = {
+  def createApi(apiName: String, swagger: String, target: URL,
+                endpointSecurity: Option[publisher.models.API_endpointSecurity] = None,
+                token: OauthToken): Int = {
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -298,7 +315,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       visibleRoles = Some(List()),
       visibleTenants = Some(List()),
       endpointConfig = endpointConfig(target),
-      endpointSecurity = None,
+      endpointSecurity = endpointSecurity,
       gatewayEnvironments = None,
       sequences = Some(List()),
       subscriptionAvailability = None,
@@ -322,12 +339,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
           "PATCH",
           "OPTIONS")))))
 
-    val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
-
-    Await.result(am.waitForStart(), startupTimeout)
-
     val futs = for {
-      token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
       created <- am.postApiDetails(api, token)
       pub <- am.apiChangeLifecycle(created.id.get, am.ApiLifecycleAction.PUBLISH, token)
       appList <- am.searchApplications("DefaultApplication", token)
@@ -335,33 +347,62 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
     } yield sub
 
-    val sub = Await.result(futs, reqTimeout)
-
-    0
+    Try { Await.result(futs, reqTimeout) } match {
+      case Success(sub) => {
+        println(s"created ${apiName} definition")
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to create ${apiName} definition: $err")
+        1
+      }
+    }
   }
 
   // update target endpoints for the API with the given name
-  def setApi(apiName: String, appConfigFile: File, target: Option[URL], swagger: Option[String]): Int = {
-    val clientInfo = JsonParser(loadFile(appConfigFile)).convertTo[ClientInfo]
-
-    Await.result(am.waitForStart(), startupTimeout)
-
+  def setApi(apiId: String, target: Option[URL], swagger: Option[String],
+             endpointSecurity: Option[publisher.models.API_endpointSecurity] = None,
+             token: OauthToken): Int = {
     val futs = for {
-      token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
-      apiList <- am.searchApis(apiName, token)
-      // Note, this assumes there's exactly one API with the given
-      // name.  If we want to manage different versions of this API,
-      // we'll have to do more work here.
-      api = apiList.list.get.head
-      details <- am.getApiDetails(api.id.get, token)
+      details <- am.getApiDetails(apiId, token)
       withEndpoints = setEndpoints(details, target)
       withSwagger = setSwagger(withEndpoints, swagger)
-      updated <- am.putApiDetails(withSwagger, token)
+      withSecurity = withSwagger.copy(endpointSecurity = endpointSecurity)
+      updated <- am.putApiDetails(withSecurity, token)
     } yield updated
 
-    val updated = Await.result(futs, reqTimeout)
+    Try { Await.result(futs, reqTimeout) } match {
+      case Success(updated) => {
+        println(s"updated API ${apiId}")
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to update API ${apiId}: $err")
+        1
+      }
+    }
+  }
 
-    0
+  def createOrUpdateApi(conf: AmClientParser.CustomConfig,
+                        endpointSecurity: Option[publisher.models.API_endpointSecurity] = None): Int = {
+    val clientInfo = JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo]
+
+    val fut = for {
+      token <- am.login(clientInfo.consumerKey, clientInfo.consumerSecret, scopes)
+      apiList <- am.searchApis(conf.apiName, token)
+    } yield (token, apiList)
+
+    val (token, apiList): (OauthToken, publisher.models.APIList) = Await.result(fut, reqTimeout)
+
+    if (apiList.list.get.isEmpty) {
+      createApi(conf.apiName, conf.swagger.get, conf.target.get, endpointSecurity, token)
+    } else {
+      // Note, this assumes there's exactly one API with the given
+      // name.  If we want to manage different API versions,
+      // we'll have to do more work here.
+      val api = apiList.list.get.head
+      setApi(api.id.get, conf.target, conf.swagger, endpointSecurity, token)
+    }
   }
 
   def setSwagger(details: publisher.models.API, swaggerOpt: Option[String]): publisher.models.API =
@@ -389,6 +430,121 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     targetOpt
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
+
+  def proxyAdmin(conf: AmClientParser.CustomConfig): Int = {
+    // API manager uses a generic swagger definition for SOAP endpoints
+    val soapSwagger = s"""
+{
+  "paths": {
+    "/*": {
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "SOAP request.",
+            "name": "SOAP Request",
+            "required": true,
+            "in": "body"
+          },
+          {
+            "description": "SOAPAction header for soap 1.1",
+            "name": "SOAPAction",
+            "type": "string",
+            "required": false,
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "x-scope": "admin"
+      }
+    }
+  },
+  "swagger": "2.0",
+  "consumes": [
+    "text/xml",
+    "application/soap+xml"
+  ],
+  "produces": [
+    "text/xml",
+    "application/soap+xml"
+  ],
+  "info": {
+    "title": "${conf.apiName}",
+    "version": "1"
+  },
+  "x-wso2-security": {
+    "apim": {
+      "x-wso2-scopes": [
+        {
+          "name": "admin",
+          "description": "",
+          "key": "admin",
+          "roles": "Internal/PbAdmin"
+        }
+      ]
+    }
+  }
+}
+    """
+
+    val security = publisher.models.API_endpointSecurity(
+      Some(publisher.models.API_endpointSecurityEnums.`Type`.Basic),
+      Some(conf.user), Some(conf.pass))
+
+    createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
+  }
+
+  def getRoles(c: AmClientParser.CustomConfig): Int = {
+    val roleMapFut = Future.sequence(c.roles.map(r => {
+      am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))
+    }))
+
+    Try { Await.result(roleMapFut, reqTimeout) } match {
+      case Success(m) => {
+        val json = m.toMap.toJson.prettyPrint
+        Files.write(c.roleJson.toPath, json.getBytes(StandardCharsets.UTF_8))
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to get roles: $err")
+        1
+      }
+    }
+  }
+
+  def setRoles(c: AmClientParser.CustomConfig): Int = {
+    // Map of <Role> -> <list of users>
+    val roleUsers = JsonParser(loadFile(c.roleJson)).convertTo[Map[String, Seq[String]]]
+
+    val addNew = (role: String, users: Seq[String]) => {
+      for {
+        existing <- am.getUserListOfRole(c.user, c.pass, role)
+        newUsers = (users.toSet -- existing.toSet).toList
+        result <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
+      } yield result
+    }
+
+    val setRoleFut = Future.sequence(roleUsers.map(addNew.tupled))
+
+    Try { Await.result(setRoleFut, reqTimeout) } match {
+      case Success(m) => {
+        println("imported roles")
+        0
+      }
+      case Failure(err) => {
+        println(s"failed to import roles: $err")
+        1
+      }
+    }
+  }
 }
 
 object AmClient {
@@ -397,19 +553,31 @@ object AmClient {
 
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
-    try {
+
+    val result = Try {
+      Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
+
       c.mode match {
-        case AmClientModes.CREATE_API => amClient.createApi(c.apiName, c.appConfig, c.swagger.get, c.target.get)
         case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
-        case AmClientModes.SET_API => amClient.setApi(c.apiName, c.appConfig, c.target, c.swagger)
+        case AmClientModes.GET_ROLES_USERS => amClient.getRoles(c)
+        case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
+        case AmClientModes.SET_API => amClient.createOrUpdateApi(c)
+        case AmClientModes.PROXY_ADMIN => amClient.proxyAdmin(c)
         case _ => {
           println("Unsupported action")
           1
         }
       }
-    } finally {
-      actorSystem.shutdown()
+    }
+    actorSystem.shutdown()
+
+    result match {
+      case Success(code) => code
+      case Failure(e) => {
+        println(e.getMessage())
+        1
+      }
     }
   }
 }

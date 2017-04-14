@@ -6,14 +6,14 @@ import java.util.UUID
 
 import com.pacbio.common.time.{SystemClock, Clock, PacBioDateTimeDatabaseFormat}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, MigrationStatusRow}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
-import com.pacbio.secondary.smrtlink.SmrtLinkConstants
-import com.pacbio.secondary.smrtlink.database.TableModels.DataModelAndUniqueId
-import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils, TableModels}
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils}
+
+
+import com.pacbio.secondary.smrtlink.database.legacy.BaseLine.{DataModelAndUniqueId, AnalysisJobStates}
+// This is a problem
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+
 import org.apache.commons.dbcp2.BasicDataSource
 import org.joda.time.{DateTime => JodaDateTime}
 import resource._
@@ -157,31 +157,32 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
 }
 
-case class MigrationData(projects: Seq[Project],
-                         projectsUsers: Seq[ProjectUser],
-                         engineJobs: Seq[EngineJob],
-                         engineJobsDataSets: Seq[EngineJobEntryPoint],
-                         jobEvents: Seq[JobEvent],
-                         dsMetaData2: Seq[DataSetMetaDataSet],
-                         dsSubread2: Seq[SubreadServiceSet],
-                         dsHdfSubread2: Seq[HdfSubreadServiceSet],
-                         dsReference2: Seq[ReferenceServiceSet],
-                         dsAlignment2: Seq[AlignmentServiceSet],
-                         dsBarcode2: Seq[BarcodeServiceSet],
-                         dsCCSread2: Seq[ConsensusReadServiceSet],
-                         dsGmapReference2: Seq[GmapReferenceServiceSet],
-                         dsCCSAlignment2: Seq[ConsensusAlignmentServiceSet],
-                         dsContig2: Seq[ContigServiceSet],
-                         datastoreServiceFiles: Seq[DataStoreServiceFile],
-                         /* eulas: Seq[EulaRecord], */
-                         runSummaries: Seq[RunSummary],
-                         dataModels: Seq[DataModelAndUniqueId],
-                         collectionMetadata: Seq[CollectionMetadata],
-                         samples:Seq[Sample])
+// Postgres Baseline Schema compatable models
+case class MigrationData(projects: Seq[BaseLine.Project],
+                         projectsUsers: Seq[BaseLine.ProjectUser],
+                         engineJobs: Seq[BaseLine.EngineJob],
+                         engineJobsDataSets: Seq[BaseLine.EngineJobEntryPoint],
+                         jobEvents: Seq[BaseLine.JobEvent],
+                         dsMetaData2: Seq[BaseLine.DataSetMetaDataSet],
+                         dsSubread2: Seq[BaseLine.SubreadServiceSet],
+                         dsHdfSubread2: Seq[BaseLine.HdfSubreadServiceSet],
+                         dsReference2: Seq[BaseLine.ReferenceServiceSet],
+                         dsAlignment2: Seq[BaseLine.AlignmentServiceSet],
+                         dsBarcode2: Seq[BaseLine.BarcodeServiceSet],
+                         dsCCSread2: Seq[BaseLine.ConsensusReadServiceSet],
+                         dsGmapReference2: Seq[BaseLine.GmapReferenceServiceSet],
+                         dsCCSAlignment2: Seq[BaseLine.ConsensusAlignmentServiceSet],
+                         dsContig2: Seq[BaseLine.ContigServiceSet],
+                         datastoreServiceFiles: Seq[BaseLine.DataStoreServiceFile],
+                         runSummaries: Seq[BaseLine.RunSummary],
+                         dataModels: Seq[BaseLine.DataModelAndUniqueId],
+                         collectionMetadata: Seq[BaseLine.CollectionMetadata],
+                         samples:Seq[BaseLine.Sample])
 
 class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String, clock: Clock) {
-  import TableModels._
   import slick.driver.PostgresDriver.api._
+  // The BaseLine Postgres V1 schema and models
+  import BaseLine._
 
   val timestamp = clock.dateNow().toString("YYYY-MM-dd HH:mm:ss.SSS")
 
@@ -240,7 +241,10 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
   }
 }
 
-object LegacyModels extends SmrtLinkConstants {
+/**
+  * The naming convention of LegacyX Refers to the last Sqlite system of model X
+  */
+object LegacyModels {
   case class LegacyEngineJob(
                           id: Int,
                           uuid: UUID,
@@ -256,7 +260,7 @@ object LegacyModels extends SmrtLinkConstants {
                           smrtlinkVersion: Option[String],
                           smrtlinkToolsVersion: Option[String],
                           isActive: Boolean = true) {
-    def toEngineJob: EngineJob = EngineJob(
+    def toEngineJob: BaseLine.EngineJob = BaseLine.EngineJob(
       id,
       uuid,
       name,
@@ -269,10 +273,9 @@ object LegacyModels extends SmrtLinkConstants {
       jsonSettings,
       createdBy,
       smrtlinkVersion,
-      smrtlinkToolsVersion,
       isActive,
       errorMessage = None,
-      projectId = GENERAL_PROJECT_ID)
+      projectId = 1)
   }
 
   case class LegacyJobEvent(
@@ -281,7 +284,7 @@ object LegacyModels extends SmrtLinkConstants {
                          state: AnalysisJobStates.JobStates,
                          message: String,
                          createdAt: JodaDateTime) {
-    def toJobEvent: JobEvent = JobEvent(eventId, jobId, state, message, createdAt)
+    def toJobEvent: BaseLine.JobEvent = BaseLine.JobEvent(eventId, jobId, state, message, createdAt)
   }
 
   case class LegacyCollectionMetadata(
@@ -299,7 +302,7 @@ object LegacyModels extends SmrtLinkConstants {
                                        startedAt: Option[JodaDateTime],
                                        completedAt: Option[JodaDateTime],
                                        terminationInfo: Option[String]) {
-    def toCollectionMetadata: CollectionMetadata = CollectionMetadata(
+    def toCollectionMetadata = BaseLine.CollectionMetadata(
       runId,
       uniqueId,
       well,
@@ -324,9 +327,9 @@ object LegacyModels extends SmrtLinkConstants {
     val isActive: Boolean
   }
 
-  case class LegacyDataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with LegacyProjectAble {
+  case class LegacyDataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, userId: Int, jobId: Int, projectId: Int, isActive: Boolean) extends BaseLine.UniqueIdAble with LegacyProjectAble {
 
-    def toDataSetaMetaDataSet = DataSetMetaDataSet(
+    def toDataSetaMetaDataSet = BaseLine.DataSetMetaDataSet(
       id,
       uuid,
       name,
@@ -345,11 +348,30 @@ object LegacyModels extends SmrtLinkConstants {
       isActive
     )
   }
+
+  case class LegacyProject(id: Int,
+                           name: String,
+                           description: String,
+                           state: BaseLine.ProjectState.ProjectState, // This remained unchanged. Reusing this model
+                           createdAt: JodaDateTime,
+                           updatedAt: JodaDateTime,
+                           isActive: Boolean) {
+     def toProject = BaseLine.Project(
+       id,
+       name,
+       description,
+       state,
+       createdAt,
+       updatedAt,
+       isActive,
+       grantRoleToAll = None)
+  }
 }
 
 
 object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
+  // Any model that is the didn't have a change is referenced from the BaseLine
   import LegacyModels._
   import slick.driver.SQLiteDriver.api._
 
@@ -358,7 +380,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
   )
 
 
-  class JobEventsT(tag: Tag) extends Table[LegacyJobEvent](tag, "job_events") {
+  class JobEventsT(tag: Tag) extends Table[LegacyModels.LegacyJobEvent](tag, "job_events") {
     def id: Rep[UUID] = column[UUID]("job_event_id", O.PrimaryKey)
 
     def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
@@ -418,11 +440,11 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
   }
 
-  implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
-  { s => s.toString }, { s => ProjectState.fromString(s) }
+  implicit val projectStateType = MappedColumnType.base[BaseLine.ProjectState.ProjectState, String](
+  { s => s.toString }, { s => BaseLine.ProjectState.fromString(s) }
   )
 
-  class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
+  class ProjectsT(tag: Tag) extends Table[LegacyProject](tag, "projects") {
     def id: Rep[Int] = column[Int]("project_id", O.PrimaryKey, O.AutoInc)
 
     def name: Rep[String] = column[String]("name")
@@ -431,7 +453,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def state: Rep[ProjectState.ProjectState] = column[ProjectState.ProjectState]("state")
+    def state: Rep[BaseLine.ProjectState.ProjectState] = column[BaseLine.ProjectState.ProjectState]("state")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
@@ -439,23 +461,23 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive) <>(Project.tupled, Project.unapply)
+    def * = (id, name, description, state, createdAt, updatedAt, isActive) <>(LegacyProject.tupled, LegacyProject.unapply)
   }
 
-  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
-  { r => r.toString }, { r => ProjectUserRole.fromString(r) }
+  implicit val projectUserRoleType = MappedColumnType.base[BaseLine.ProjectUserRole.ProjectUserRole, String](
+  { r => r.toString }, { r => BaseLine.ProjectUserRole.fromString(r) }
   )
 
-  class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
+  class ProjectsUsersT(tag: Tag) extends Table[BaseLine.ProjectUser](tag, "projects_users") {
     def projectId: Rep[Int] = column[Int]("project_id")
 
     def login: Rep[String] = column[String]("login")
 
-    def role: Rep[ProjectUserRole.ProjectUserRole] = column[ProjectUserRole.ProjectUserRole]("role")
+    def role: Rep[BaseLine.ProjectUserRole.ProjectUserRole] = column[BaseLine.ProjectUserRole.ProjectUserRole]("role")
 
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
 
-    def * = (projectId, login, role) <>(ProjectUser.tupled, ProjectUser.unapply)
+    def * = (projectId, login, role) <>(BaseLine.ProjectUser.tupled, BaseLine.ProjectUser.unapply)
 
     def loginIdx = index("projects_users_login", login)
 
@@ -468,14 +490,14 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class EngineJobDataSetT(tag: Tag) extends Table[EngineJobEntryPoint](tag, "engine_jobs_datasets") {
+  class EngineJobDataSetT(tag: Tag) extends Table[BaseLine.EngineJobEntryPoint](tag, "engine_jobs_datasets") {
     def jobId: Rep[Int] = column[Int]("job_id")
 
     def datasetUUID: Rep[UUID] = column[UUID]("dataset_uuid")
 
     def datasetType: Rep[String] = column[String]("dataset_type")
 
-    def * = (jobId, datasetUUID, datasetType) <>(EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
+    def * = (jobId, datasetUUID, datasetType) <>(BaseLine.EngineJobEntryPoint.tupled, BaseLine.EngineJobEntryPoint.unapply)
 
     def idx = index("engine_jobs_datasets_job_id", jobId)
   }
@@ -516,7 +538,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
     def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
 
-  class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
+  class SubreadDataSetT(tag: Tag) extends IdAbleTable[BaseLine.SubreadServiceSet](tag, "dataset_subreads") {
     def cellId: Rep[String] = column[String]("cell_id")
 
     def metadataContextId: Rep[String] = column[String]("metadata_context_id")
@@ -537,10 +559,10 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
-    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(SubreadServiceSet.tupled, SubreadServiceSet.unapply)
+    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(BaseLine.SubreadServiceSet.tupled, BaseLine.SubreadServiceSet.unapply)
   }
 
-  class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
+  class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[BaseLine.HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
     def cellId: Rep[String] = column[String]("cell_id")
 
     def metadataContextId: Rep[String] = column[String]("metadata_context_id")
@@ -561,46 +583,46 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
 
-    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
+    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <>(BaseLine.HdfSubreadServiceSet.tupled, BaseLine.HdfSubreadServiceSet.unapply)
   }
 
-  class ReferenceDataSetT(tag: Tag) extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
+  class ReferenceDataSetT(tag: Tag) extends IdAbleTable[BaseLine.ReferenceServiceSet](tag, "dataset_references") {
     def ploidy: Rep[String] = column[String]("ploidy")
 
     def organism: Rep[String] = column[String]("organism")
 
-    def * = (id, uuid, ploidy, organism) <>(ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
+    def * = (id, uuid, ploidy, organism) <>(BaseLine.ReferenceServiceSet.tupled, BaseLine.ReferenceServiceSet.unapply)
   }
 
-  class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
+  class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[BaseLine.GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
     def ploidy: Rep[String] = column[String]("ploidy")
 
     def organism: Rep[String] = column[String]("organism")
 
-    def * = (id, uuid, ploidy, organism) <>(GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
+    def * = (id, uuid, ploidy, organism) <>(BaseLine.GmapReferenceServiceSet.tupled, BaseLine.GmapReferenceServiceSet.unapply)
   }
 
-  class AlignmentDataSetT(tag: Tag) extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
-    def * = (id, uuid) <>(AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
+  class AlignmentDataSetT(tag: Tag) extends IdAbleTable[BaseLine.AlignmentServiceSet](tag, "datasets_alignments") {
+    def * = (id, uuid) <>(BaseLine.AlignmentServiceSet.tupled, BaseLine.AlignmentServiceSet.unapply)
   }
 
-  class BarcodeDataSetT(tag: Tag) extends IdAbleTable[BarcodeServiceSet](tag, "datasets_barcodes") {
-    def * = (id, uuid) <>(BarcodeServiceSet.tupled, BarcodeServiceSet.unapply)
+  class BarcodeDataSetT(tag: Tag) extends IdAbleTable[BaseLine.BarcodeServiceSet](tag, "datasets_barcodes") {
+    def * = (id, uuid) <>(BaseLine.BarcodeServiceSet.tupled, BaseLine.BarcodeServiceSet.unapply)
   }
 
-  class CCSreadDataSetT(tag: Tag) extends IdAbleTable[ConsensusReadServiceSet](tag, "datasets_ccsreads") {
-    def * = (id, uuid) <>(ConsensusReadServiceSet.tupled, ConsensusReadServiceSet.unapply)
+  class CCSreadDataSetT(tag: Tag) extends IdAbleTable[BaseLine.ConsensusReadServiceSet](tag, "datasets_ccsreads") {
+    def * = (id, uuid) <>(BaseLine.ConsensusReadServiceSet.tupled, BaseLine.ConsensusReadServiceSet.unapply)
   }
 
-  class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
-    def * = (id, uuid) <>(ConsensusAlignmentServiceSet.tupled, ConsensusAlignmentServiceSet.unapply)
+  class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[BaseLine.ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
+    def * = (id, uuid) <>(BaseLine.ConsensusAlignmentServiceSet.tupled, BaseLine.ConsensusAlignmentServiceSet.unapply)
   }
 
-  class ContigDataSetT(tag: Tag) extends IdAbleTable[ContigServiceSet](tag, "datasets_contigs") {
-    def * = (id, uuid) <>(ContigServiceSet.tupled, ContigServiceSet.unapply)
+  class ContigDataSetT(tag: Tag) extends IdAbleTable[BaseLine.ContigServiceSet](tag, "datasets_contigs") {
+    def * = (id, uuid) <>(BaseLine.ContigServiceSet.tupled, BaseLine.ContigServiceSet.unapply)
   }
 
-  class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
+  class PacBioDataStoreFileT(tag: Tag) extends Table[BaseLine.DataStoreServiceFile](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
     def fileTypeId: Rep[String] = column[String]("file_type_id")
@@ -627,7 +649,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active", O.Default(true))
 
-    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <>(BaseLine.DataStoreServiceFile.tupled, BaseLine.DataStoreServiceFile.unapply)
 
     def uuidIdx = index("datastore_files_uuid", uuid)
 
@@ -640,7 +662,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
   { s => s.value() }, { s => SupportedRunStates.fromValue(s) }
   )
 
-  class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "RUN_SUMMARIES") {
+  class RunSummariesT(tag: Tag) extends Table[BaseLine.RunSummary](tag, "RUN_SUMMARIES") {
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
 
     def name: Rep[String] = column[String]("NAME")
@@ -698,10 +720,8 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
       primaryAnalysisSwVersion,
       context,
       terminationInfo,
-      reserved) <>(RunSummary.tupled, RunSummary.unapply)
+      reserved) <>(BaseLine.RunSummary.tupled, BaseLine.RunSummary.unapply)
   }
-
-  import TableModels.DataModelAndUniqueId
 
   class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "DATA_MODELS") {
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
@@ -767,7 +787,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
     def idx = index("collection_metadata_run_id", runId)
   }
 
-  class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
+  class SampleT(tag: Tag) extends Table[BaseLine.Sample](tag, "SAMPLE") {
     def details: Rep[String] = column[String]("DETAILS")
 
     def uniqueId: Rep[UUID] = column[UUID]("UNIQUE_ID", O.PrimaryKey)
@@ -778,23 +798,7 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
 
-    def * = (details, uniqueId, name, createdBy, createdAt) <>(Sample.tupled, Sample.unapply)
-  }
-
-  class EulaRecordT(tag: Tag) extends Table[EulaRecord](tag, "eula_record") {
-    def user: Rep[String] = column[String]("user")
-
-    def acceptedAt: Rep[JodaDateTime] = column[JodaDateTime]("accepted_at")
-
-    def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version", O.PrimaryKey)
-
-    def enableInstallMetrics: Rep[Boolean] = column[Boolean]("enable_install_metrics")
-
-    def enableJobMetrics: Rep[Boolean] = column[Boolean]("enable_job_metrics")
-
-    def osVersion: Rep[String] = column[String]("os_version")
-
-    def * = (user, acceptedAt, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics) <>(EulaRecord.tupled, EulaRecord.unapply)
+    def * = (details, uniqueId, name, createdBy, createdAt) <>(BaseLine.Sample.tupled, BaseLine.Sample.unapply)
   }
 
   // DataSet types
@@ -827,8 +831,6 @@ object LegacySqliteReader extends PacBioDateTimeDatabaseFormat {
   // Samples
   lazy val samples = TableQuery[SampleT]
 
-  // EULA
-  lazy val eulas = TableQuery[EulaRecordT]
 
   final type SlickTable = TableQuery[_ <: Table[_]]
 }
@@ -849,7 +851,27 @@ class LegacySqliteReader(legacyDbUri: String) {
     connectionPool,
     executor = AsyncExecutor("db-executor", 1, -1))
 
+  // Removed the partial unique index on name
+  /**
+    * Removed the partial unique index on name that was based on isActive
+    *
+    * To avoid making more changes to project related entities, take
+    * a simple/stupid fix of name to make it unique with a UUID
+    *
+    * All non Active project names will get converted to {name} => {name}_{UUID}
+    * to create a globally unique project name.
+    *
+    * @param projects
+    */
+  def fixProjectNames(projects: Seq[BaseLine.Project]):Seq[BaseLine.Project] = {
+    projects.map { p =>
+      if (p.isActive) p
+      else p.copy(name = s"${p.name}_${UUID.randomUUID()}")
+    }
+  }
+
   def read(): Future[MigrationData] = {
+    val adminProject = BaseLine.ProjectUser(1, "admin", BaseLine.ProjectUserRole.OWNER)
     val action = for {
       ps  <- projects.result
       psu <- (projectsUsers join projects on (_.projectId === _.id)).result
@@ -872,7 +894,7 @@ class LegacySqliteReader(legacyDbUri: String) {
       dm  <- (dataModels join runSummaries on (_.uniqueId === _.uniqueId)).result
       cm  <- (collectionMetadata join runSummaries on (_.runId === _.uniqueId)).result
       sa  <- samples.result
-    } yield MigrationData(ps.filter(_.id != 1), psu.map(_._1).filter(_ != ProjectUser(1, "admin", ProjectUserRole.OWNER)), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
+    } yield MigrationData(fixProjectNames(ps.filter(_.id != 1).map(_.toProject)), psu.map(_._1).filter(_ != adminProject), ej.map(_.toEngineJob), ejd, je.map(_._1.toJobEvent), dmd.map(_.toDataSetaMetaDataSet), dsu, dhs, dre, dal, dba, dcc, dgr, dca, dco, dsf, /* eu, */ rs, dm.map(_._1), cm.map(_._1.toCollectionMetadata), sa)
     db.run(action).andThen { case _ => db.close() }.andThen { case _ => connectionPool.close() }
   }
 }

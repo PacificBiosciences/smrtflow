@@ -35,6 +35,20 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
   args(skipAll = !(PbReports.isAvailable() && PacBioTestData.isAvailable))
 
   val log = new NullJobResultsWriter
+  "Utility functions" should {
+    "Verify sts.xml in Sequel dataset" in {
+      val pbdata = PacBioTestData()
+      val f = pbdata.getFile("subreads-sequel")
+      val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
+      hasStats must beTrue
+    }
+    "Verify NO sts.xml in RSII dataset" in {
+      val pbdata = PacBioTestData()
+      val f = pbdata.getFile("subreads-xml")
+      val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
+      hasStats must beFalse
+    }
+  }
   "SubreadSet report generation" should {
     "create three reports for Sequel dataset with sts.xml" in {
       val pbdata = PacBioTestData()
@@ -43,6 +57,11 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
       val rpts = DataSetReports.runAll(f, DataSetMetaTypes.Subread,
                                        tmpDir, JobTypeId("reports"), log)
       rpts.size must beEqualTo(3)
+      val reportIds = rpts.map(_.sourceId).sorted
+      reportIds must beEqualTo(
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml"))
     }
     "create a single fallback report for converted RSII dataset" in {
       val pbdata = PacBioTestData()
@@ -69,6 +88,12 @@ class PbReportsSubreadsControlSpec extends Specification with LazyLogging {
       val rpts = DataSetReports.runAll(DS_PATH, DataSetMetaTypes.Subread,
                                        tmpDir, JobTypeId("reports"), log)
       rpts.size must beEqualTo(4)
+      val reportIds = rpts.map(_.sourceId).sorted
+      reportIds must beEqualTo(
+        Seq("pbreports.tasks.adapter_report_xml",
+            "pbreports.tasks.control_report",
+            "pbreports.tasks.filter_stats_report_xml",
+            "pbreports.tasks.loading_report_xml"))
     }
   }
 }

@@ -8,18 +8,19 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.{File, PrintWriter}
 
-import akka.actor.ActorSystem
-
 import scala.collection._
-import com.typesafe.config.{Config, ConfigException}
+
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+
+import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
-import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
@@ -29,17 +30,7 @@ object PbsmrtpipeScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, "PacBioTestData must be configured for PbsmrtpipeScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    new PbsmrtpipeScenario(
-      c.getString("smrtflow.server.host"),
-      getInt("smrtflow.server.port"))
+    new PbsmrtpipeScenario(getHost(c), getPort(c))
   }
 }
 
@@ -72,25 +63,25 @@ trait PbsmrtpipeScenarioCore
   protected val projectId: Var[Int] = Var()
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
+  protected val diagnosticOptsCore = PbSmrtPipeServiceOptions(
+    "diagnostic-test",
+    "pbsmrtpipe.pipelines.dev_diagnostic",
+    Seq(BoundServiceEntryPoint("eid_ref_dataset",
+                               "PacBio.DataSet.ReferenceSet",
+                               Right(refUuid.get))),
+    Seq(
+      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
+                               BOOL.optionTypeId),
+      ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
+      ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
+      ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
+      ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
+      ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
+      ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
+    ),
+    Seq[ServiceTaskOptionBase]())
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
-    PbSmrtPipeServiceOptions(
-      "diagnostic-test",
-      "pbsmrtpipe.pipelines.dev_diagnostic",
-      Seq(BoundServiceEntryPoint("eid_ref_dataset",
-                                 "PacBio.DataSet.ReferenceSet",
-                                 Right(refUuid.get))),
-      Seq(
-        ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
-                                 BOOL.optionTypeId),
-        ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
-        ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
-        ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
-        ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
-        ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
-        ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
-      ),
-      Seq[ServiceTaskOptionBase](),
-      pid)
+    diagnosticOptsCore.copy(projectId = pid)
   }
   protected val failOpts = diagnosticOpts.mapWith(_.copy(
     taskOptions=Seq(ServiceTaskBooleanOption(toI("raise_exception"), true,
@@ -140,8 +131,7 @@ trait PbsmrtpipeScenarioCore
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0,
-    projectId := CreateProject(projectName, projectDesc)
+    fail("There should not be any child jobs") IF childJobs.mapWith(_.size) !=? 0
   )
 }
 
@@ -156,6 +146,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
 
   val diagnosticJobTests = Seq(
+    projectId := CreateProject(projectName, projectDesc),
     jobId := RunAnalysisPipeline(diagnosticOpts),
     jobStatus := WaitForJob(jobId),
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -167,7 +158,6 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(_(0).dataStoreFile.uuid) !=? report.mapWith(_.uuid),
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     fail("Wrong project id in job") IF job.mapWith(_.projectId) !=? projectId,
     jobs := GetAnalysisJobsForProject(projectId),
     fail("Expected one job for project") IF jobs.mapWith(_.size) !=? 1,
@@ -194,7 +184,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobEvents := GetAnalysisJobEvents(job.mapWith(_.id)),
     fail("Expected at least one job event") IF jobEvents.mapWith(_.size) ==? 0,
     // FIXME the task status events never leave CREATED state...
-    fail("Expected two task_status events") IF jobEvents.mapWith(_.filter(e => e.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS).size) !=? 2,
+    fail("Expected at least two task_status events") IF jobEvents.mapWith(_.filter(e => e.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS).size) ==? 0,
     //fail("Expected FAILED task_status event") IF jobEvents.mapWith(_.filter(e => (e.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS) && (e.state == AnalysisJobStates.FAILED)).size) !=? 1,
     fail("Expected FAILED job_status event") IF jobEvents.mapWith(_.filter(e => (e.eventTypeId == JobConstants.EVENT_TYPE_JOB_STATUS) && (e.state == AnalysisJobStates.FAILED)).size) !=? 1,
     // FIXME this is broken because of wrong Content-Type

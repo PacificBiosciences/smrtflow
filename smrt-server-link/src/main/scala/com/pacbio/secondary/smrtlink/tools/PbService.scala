@@ -53,6 +53,7 @@ object Modes {
   case object CREATE_PROJECT extends Mode {val name = "create-project"}
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
+  case object BUNDLES extends Mode {val name = "get-bundles"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -60,7 +61,7 @@ object PbServiceParser extends CommandLineToolVersion{
   import CommonModelImplicits._
   import CommonModels._
 
-  val VERSION = "0.1.0"
+  val VERSION = "0.1.1"
   var TOOL_ID = "pbscala.tools.pbservice"
 
   private def getSizeMb(fileObj: File): Double = {
@@ -115,6 +116,7 @@ object PbServiceParser extends CommandLineToolVersion{
       jobTitle: String = "",
       entryPoints: Seq[String] = Seq(),
       presetXml: Option[Path] = None,
+      taskOptions: Option[Map[String,String]] = None,
       maxTime: Int = -1,
       project: Option[String] = None,
       description: String = "",
@@ -295,7 +297,10 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status"
+      } text "Maximum time to poll for running job status",
+      opt[Map[String,String]]("task-options").valueName("k1=v1,k2=v2...").action{ (x, c) =>
+        c.copy(taskOptions = Some(x))
+      } text("Pipeline task options as comma-separated option_id=value list")
     ) text "Run a pbsmrtpipe pipeline by name on the server"
 
     cmd(Modes.JOB.name) action { (_, c) =>
@@ -355,7 +360,7 @@ object PbServiceParser extends CommandLineToolVersion{
 
     cmd(Modes.MANIFESTS.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
-    } text "Get a List of SMRT Link PacBio sComponent Versions"
+    } text "Get a List of SMRT Link PacBio Component Versions"
 
     cmd(Modes.MANIFEST.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFEST)
@@ -364,6 +369,10 @@ object PbServiceParser extends CommandLineToolVersion{
           c.copy(manifestId = t)
         } text s"Manifest By Id (Default: ${defaults.manifestId})"
         ) text "Get PacBio Component Manifest version by Id."
+
+    cmd(Modes.BUNDLES.name) action {(_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.BUNDLES)
+    } text "Get a List of PacBio Data Bundles registered to SMRT Link"
 
     // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
     /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
@@ -424,41 +433,55 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     0
   }
 
-  protected def showNumRecords(label: String, fn: () => Future[Int]): Unit = {
+  protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
-      case Success(nrecords) => println(s"$label $nrecords")
+      case Success(nrecords) => println(s"${label.padTo(numPad, ' ')} $nrecords")
       case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
+  }
+
+  def statusSummary(status: ServiceStatus): String = {
+    val headers = Seq("ID", "UUID", "Version", "Message")
+    val table = Seq(Seq(status.id.toString, status.uuid.toString, status.version, status.message))
+    printTable(table, headers)
+    ""
   }
 
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
     if (asJson) {
       println(status.toJson.prettyPrint)
     } else{
-      println(s"SMRTLink Services Version: ${status.version} \nStatus: ${status.message}\nDataSet Summary:")
-      showNumRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
-      showNumRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
-      showNumRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
-      showNumRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
-      showNumRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
-      showNumRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
-      showNumRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
-      showNumRecords("ContigSets", () => sal.getContigSets.map(_.length))
-      showNumRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
-      println("SMRT Link Job Summary:")
-      showNumRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
-      showNumRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
-      showNumRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
-      showNumRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
+      statusSummary(status)
+      println("")
+      println("DataSet Summary:")
+      // To have the clear summary of the output
+      val numPad = 30
+      val showRecords = showNumRecords(_: String, numPad, _:() => Future[Int])
+
+      showRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
+      showRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
+      showRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
+      showRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
+      showRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
+      showRecords("ConsensusReadSets", () => sal.getConsensusReadSets.map(_.length))
+      showRecords("ConsensusAlignmentSets", () => sal.getConsensusAlignmentSets.map(_.length))
+      showRecords("ContigSets", () => sal.getContigSets.map(_.length))
+      showRecords("GmapReferenceSets", () => sal.getGmapReferenceSets.map(_.length))
+      println("\nSMRT Link Job Summary:")
+      showRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
+      showRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
+      showRecords("convert-fasta-reference Jobs", () => sal.getFastaConvertJobs.map(_.length))
+      showRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
     }
     0
   }
 
   def runStatus(asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getStatus, TIMEOUT) } match {
-      case Success(status) => printStatus(status, asJson)
-      case Failure(err) => errorExit(err.getMessage)
+    def printer(sx: ServiceStatus): String = {
+      printStatus(sx, asJson)
+      ""
     }
+    runAndBlock[ServiceStatus](sal.getStatus, printer, TIMEOUT)
   }
 
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
@@ -555,20 +578,22 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getAnalysisJobs, TIMEOUT) } match {
-      case Success(engineJobs) => {
-        if (asJson) println(engineJobs.toJson.prettyPrint) else {
-          val table = engineJobs.reverse.take(maxItems).map(job =>
-            Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString))
-          printTable(table, Seq("ID", "State", "Name", "UUID"))
-        }
-        0
-      }
-      case Failure(err) => {
-        errorExit(s"Could not retrieve jobs: ${err.getMessage}")
-      }
+  def jobsSummary(maxItems: Int, asJson: Boolean, engineJobs: Seq[EngineJob]): String = {
+    if (asJson) {
+      println(engineJobs.toJson.prettyPrint)
+      ""
+    } else {
+      val table = engineJobs.sortBy(_.id).reverse.take(maxItems).map(job =>
+        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
+      printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
+      ""
     }
+  }
+
+  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
+    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs)
+
+    runAndBlock[Seq[EngineJob]](sal.getAnalysisJobs, printer, TIMEOUT)
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
@@ -903,10 +928,11 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
+    println(s"Importing entry point $entryPoint")
     val epFields = entryPoint.split(':')
-    if (epFields.length == 2) importEntryPoint(epFields(0),
-                                               Paths.get(epFields(1)))
-    else if (epFields.length == 1) {
+    if (epFields.length == 2) {
+      importEntryPoint(epFields(0), Paths.get(epFields(1)))
+    } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsType = dsMetaTypeFromPath(xmlPath)
       val eid = entryPointsLookup(dsType)
@@ -924,15 +950,21 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
-  protected def getPipelineServiceOptions(jobTitle: String, pipelineId: String,
+  protected def getPipelineServiceOptions(jobTitle: String,
+      pipelineId: String,
       entryPoints: Seq[BoundServiceEntryPoint],
-      presets: PipelineTemplatePreset): PbSmrtPipeServiceOptions = {
+      presets: PipelineTemplatePreset,
+      userTaskOptions: Option[Map[String,String]] = None): PbSmrtPipeServiceOptions = {
     Try {
       logger.debug("Getting pipeline options from server")
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(pipeline) => {
-        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, presets.taskOptions)
+        val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
+          userTaskOptions.getOrElse(Map[String,String]()).map{
+            case (k,v) => k -> ServiceTaskStrOption(k, v)
+          }.values
+        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
         val workflowOptions = Seq[ServiceTaskOptionBase]()
         PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
                                  workflowOptions)
@@ -941,9 +973,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runPipeline(pipelineId: String, entryPoints: Seq[String], jobTitle: String,
-                  presetXml: Option[Path] = None, block: Boolean = true,
-                  validate: Boolean = true): Int = {
+  def runPipeline(pipelineId: String,
+                  entryPoints: Seq[String],
+                  jobTitle: String,
+                  presetXml: Option[Path] = None,
+                  block: Boolean = true,
+                  validate: Boolean = true,
+                  taskOptions: Option[Map[String,String]] = None): Int = {
     if (entryPoints.isEmpty) return errorExit("At least one entry point is required")
 
     val pipelineIdFull = if (pipelineId.split('.').length != 3) s"pbsmrtpipe.pipelines.$pipelineId" else pipelineId
@@ -955,7 +991,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
-      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets) }
+      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions) }
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
     } yield job
 
@@ -1012,15 +1048,16 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
 
   def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
-    s"Components ${manifests.length}\n" + manifests.map(manifestSummary).reduce(_ + "\n" + _)
+    val headers = Seq("id", "version", "name")
+    val table = manifests.map(m => Seq(m.id, m.version, m.name))
+    printTable(table, headers)
+    ""
   }
 
-  def runGetPacBioManifests: Int = {
-    Try {Await.result[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, TIMEOUT)} match {
-      case Success(manifests) => println(manifestsSummary(manifests)); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+  def runGetPacBioManifests(): Int = {
+    runAndBlock[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests, manifestsSummary, TIMEOUT)
   }
+
 
   // This is to make it backward compatiblity. Remove this when the other systems are updated
   private def getManifestById(manifestId: String): Future[PacBioComponentManifest] = {
@@ -1032,10 +1069,27 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runGetPacBioManifestById(ix: String): Int = {
-    println(s"Attempting to get PacBio Component '$ix'")
-    Try {Await.result[PacBioComponentManifest](getManifestById(ix), TIMEOUT)} match {
-      case Success(manifest) => println(manifestSummary(manifest)); 0
+  def runGetPacBioManifestById(ix: String): Int =
+    runAndBlock[PacBioComponentManifest](getManifestById(ix), manifestSummary, TIMEOUT)
+
+
+  def pacBioDataBundlesSummary(bundles: Seq[PacBioDataBundle]): String = {
+    val headers:Seq[String] = Seq("Bundle Id", "Version", "Imported At", "Is Active")
+    val table = bundles.map(b => Seq(b.typeId, b.version, b.importedAt.toString(), b.isActive.toString))
+    printTable(table, headers)
+    // The printTable func should probalby return a string, not an Int
+    ""
+  }
+
+  def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
+    runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(), pacBioDataBundlesSummary, timeOut)
+
+
+  def runAndBlock[T](fx: => Future[T], summary:(T => String), timeout: FiniteDuration): Int = {
+    Try(Await.result[T](fx, timeout)) match {
+      case Success(x) =>
+        println(summary(x))
+        0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
@@ -1065,7 +1119,8 @@ object PbService {
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
-                                              c.jobTitle, c.presetXml, c.block)
+                                              c.jobTitle, c.presetXml, c.block,
+                                              taskOptions = c.taskOptions)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
@@ -1076,6 +1131,7 @@ object PbService {
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
+        case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")

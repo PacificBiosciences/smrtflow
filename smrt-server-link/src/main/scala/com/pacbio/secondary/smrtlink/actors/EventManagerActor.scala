@@ -29,7 +29,10 @@ object EventManagerActor {
 }
 
 
-class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventServerConfig]) extends Actor with LazyLogging with SmrtLinkJsonProtocols{
+class EventManagerActor(smrtLinkId: UUID,
+                        dnsName: Option[String],
+                        externalConfig: Option[ExternalEventServerConfig])
+    extends Actor with LazyLogging with SmrtLinkJsonProtocols{
 
   import EventManagerActor._
 
@@ -40,6 +43,7 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
 
   override def preStart() = {
     logger.info(s"Starting $self with smrtLinkID $smrtLinkId and External Event sServer config $externalConfig")
+    logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
   def checkExternalServerStatus(): Option[Future[String]] = {
@@ -53,7 +57,7 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
   }
 
   def toSystemEvent(e: SmrtLinkEvent) =
-    SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.eventTypeVersion, e.uuid, e.createdAt, e.message)
+    SmrtLinkSystemEvent(smrtLinkId, e.eventTypeId, e.eventTypeVersion, e.uuid, e.createdAt, e.message, dnsName)
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
     Try {client.map(c => c.sendSmrtLinkSystemEvent(e))}
@@ -70,8 +74,7 @@ class EventManagerActor(smrtLinkId: UUID, externalConfig: Option[ExternalEventSe
       sendSystemEvent(systemEvent)
 
     case e: EulaRecord =>
-      // maybe these eventTypeId(s) should be bolted back on the case class to centralize?
-      val event = SmrtLinkEvent("smrtlink_eula_accepted", 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
+      val event = SmrtLinkEvent(EventTypes.EULA_ACCEPTED, 1, UUID.randomUUID(), JodaDateTime.now(), e.toJson.asJsObject)
       val systemEvent = toSystemEvent(event)
       logger.info(s"EventManager $systemEvent")
       sendSystemEvent(systemEvent)
@@ -84,5 +87,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], Constants.SERVER_UUID, externalEventHost()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], Constants.SERVER_UUID, dnsName(), externalEventHost()), "EventManagerActor"))
 }

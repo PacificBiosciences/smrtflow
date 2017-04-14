@@ -29,6 +29,7 @@ packMain := Map(
   "smrt-server-link" -> "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer", // Remove this. There is no longer a concept of an "Analysis"-less SL
   "smrt-server-link-analysis" -> mainServer,
   "smrt-server-events" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
+  "smrt-server-data-bundle" -> "com.pacbio.secondary.smrtlink.app.SmrtPacBioDataBundleServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
   "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtlink.testkit.TestkitRunnerApp",
@@ -40,7 +41,9 @@ packMain := Map(
   "bundler-get-status" -> "com.pacbio.secondary.smrtlink.tools.GetSystemStatusToolApp",
   "bundler-apply-config" -> "com.pacbio.secondary.smrtlink.tools.ApplyConfigToolApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtlink.tools.AcceptUserAgreementApp",
-  "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp"
+  "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp",
+  "smrtlink-repl" -> "com.pacbio.secondary.smrtlink.tools.SmrtLinkReplApp"
+
 )
 
 

@@ -23,8 +23,7 @@ import scala.concurrent.Future
 
 class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
                                          authenticator: Authenticator,
-                                         smrtLinkVersion: Option[String],
-                                         smrtLinkToolsVersion: Option[String])
+                                         smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.CONVERT_RS_MOVIE.id
     override val description = "Import RS metadata.xml and create an HdfSubread DataSet XML file"
@@ -41,7 +40,8 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
       coreJob,
       None,
       jsonSettings,
-      user.map(_.userId), smrtLinkVersion, smrtLinkToolsVersion)
+      user.map(_.userId),
+      smrtLinkVersion)
   }
 }
 
@@ -52,5 +52,5 @@ trait RsConvertMovieToDataSetServiceTypeProvider {
     with SmrtLinkConfigProvider =>
 
   val rsConvertMovieToDataSetServiceType: Singleton[RsConvertMovieToDataSetServiceType] =
-    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new RsConvertMovieToDataSetServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

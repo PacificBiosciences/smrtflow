@@ -63,11 +63,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     Set(ProjectUserRole.OWNER)
 
   private def userCanRead(login: String, projectId: Int) =
-    if (projectId == GENERAL_PROJECT_ID) {
-      Future.successful(true)
-    } else {
-      jobsDao.userHasProjectRole(login, projectId, readRoles)
-    }
+    jobsDao.userHasProjectRole(login, projectId, readRoles)
 
   private def userCanWrite(login: String, projectId: Int) =
     jobsDao.userHasProjectRole(login, projectId, writeRoles)

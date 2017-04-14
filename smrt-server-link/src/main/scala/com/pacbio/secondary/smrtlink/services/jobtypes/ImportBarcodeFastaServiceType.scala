@@ -27,8 +27,7 @@ class ImportFastaBarcodesServiceType(
     authenticator: Authenticator,
     serviceStatusHost: String,
     port: Int,
-    smrtLinkVersion: Option[String],
-    smrtLinkToolsVersion: Option[String])
+    smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.CONVERT_FASTA_BARCODES.id
     override val description = "Import fasta reference and create a generated a Reference DataSet XML file."
@@ -48,8 +47,7 @@ class ImportFastaBarcodesServiceType(
           None,
           sopts.toJson.toString(),
           user.map(_.userId),
-          smrtLinkVersion,
-          smrtLinkToolsVersion)
+          smrtLinkVersion)
     }
   }
 }
@@ -63,7 +61,6 @@ trait ImportFastaBarcodesServiceTypeProvider {
   val importFastaBarcodesServiceType: Singleton[ImportFastaBarcodesServiceType] =
     Singleton(() => new ImportFastaBarcodesServiceType(jobsDaoActor(), authenticator(), if (host() != "0.0.0.0") host() else java.net.InetAddress.getLocalHost.getCanonicalHostName,
       port(),
-      smrtLinkVersion(),
-      smrtLinkToolsVersion()))
+      smrtLinkVersion()))
       .bindToSet(JobTypes)
 }

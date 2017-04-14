@@ -536,6 +536,21 @@ object ProjectState {
   }
 }
 
+object ProjectUserRole {
+  sealed abstract class ProjectUserRole(private val ordinal: Int) extends Ordered[ProjectUserRole] {
+    override def compare(that: ProjectUserRole) = ordinal.compare(that.ordinal)
+  }
+  case object OWNER extends ProjectUserRole(ordinal = 3)
+  case object CAN_EDIT extends ProjectUserRole(ordinal = 2)
+  case object CAN_VIEW extends ProjectUserRole(ordinal = 1)
+
+  def fromString(r: String): ProjectUserRole = {
+    Seq(OWNER, CAN_EDIT, CAN_VIEW)
+      .find(_.toString == r)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+  }
+}
+
 // We have a simpler (cheaper to query) project case class for the API
 // response that lists many projects,
 case class Project(
@@ -546,7 +561,8 @@ case class Project(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     // isActive: false if the project has been deleted, true otherwise
-    isActive: Boolean) {
+    isActive: Boolean,
+    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] = None) {
 
   def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
     FullProject(
@@ -557,6 +573,7 @@ case class Project(
       createdAt,
       updatedAt,
       isActive,
+      grantRoleToAll,
       datasets,
       members)
 }
@@ -571,6 +588,7 @@ case class FullProject(
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
     isActive: Boolean,
+    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole],
     datasets: Seq[DataSetMetaDataSet],
     members: Seq[ProjectRequestUser]) {
 
@@ -579,8 +597,26 @@ case class FullProject(
       name,
       description,
       Some(state),
+      Some(ProjectRequestRole.fromProjectUserRole(grantRoleToAll)),
       Some(datasets.map(ds => RequestId(ds.id))),
       Some(members.map(u => ProjectRequestUser(u.login, u.role))))
+}
+
+object ProjectRequestRole {
+  sealed abstract class ProjectRequestRole(val role: Option[ProjectUserRole.ProjectUserRole])
+  case object CAN_EDIT extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_EDIT))
+  case object CAN_VIEW extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_VIEW))
+  case object NONE extends ProjectRequestRole(role = None)
+
+  private val ALL = Seq(CAN_EDIT, CAN_VIEW, NONE)
+
+  def fromProjectUserRole(r: Option[ProjectUserRole.ProjectUserRole]): ProjectRequestRole = ALL
+    .find(_.role == r)
+    .getOrElse(throw new IllegalArgumentException(s"No corresponding ProjectRequestRole for ProjectUserRole $r"))
+
+  def fromString(r: String): ProjectRequestRole = ALL
+    .find(_.toString == r)
+    .getOrElse(throw new IllegalArgumentException(s"Unknown project request role $r, acceptable values are $CAN_EDIT, $CAN_VIEW, $NONE"))
 }
 
 // the json structures required in client requests are a subset of the
@@ -592,6 +628,7 @@ case class ProjectRequest(
     // if any of these are None in a PUT request, the corresponding
     // value will stay the same (i.e., the update will be skipped).
     state: Option[ProjectState.ProjectState],
+    grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole],
     datasets: Option[Seq[RequestId]],
     members: Option[Seq[ProjectRequestUser]]) {
 
@@ -604,24 +641,12 @@ case class ProjectRequest(
 
 case class RequestId(id: Int)
 
-object ProjectUserRole {
-  sealed trait ProjectUserRole
-  case object OWNER extends ProjectUserRole
-  case object CAN_EDIT extends ProjectUserRole
-  case object CAN_VIEW extends ProjectUserRole
-
-  def fromString(r: String): ProjectUserRole = {
-    Seq(OWNER, CAN_EDIT, CAN_VIEW)
-      .find(_.toString == r)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
-  }
-}
 case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
 case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
 
-case class UserProjectResponse(role: Option[ProjectUserRole.ProjectUserRole], project: Project)
+case class UserProjectResponse(role: ProjectUserRole.ProjectUserRole, project: Project)
 
-case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: Option[ProjectUserRole.ProjectUserRole])
+case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: ProjectUserRole.ProjectUserRole)
 
 
 case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
@@ -695,6 +720,9 @@ case class PacBioDataBundleUpgrade(bundle: Option[PacBioDataBundle])
 // the bundle metadata after it's been extracted
 case class PacBioBundleRecord(url: URL)
 
+//MK This is duplicated concept
+case class ExternalServerStatus(msg: String, status: String)
+
 
 // SmrtLink Events/Messages
 
@@ -713,13 +741,19 @@ case class SmrtLinkEvent(eventTypeId: String,
                          createdAt: JodaDateTime,
                          message: JsObject)
 
+object EventTypes {
+  val EULA_ACCEPTED = "smrtlink_eula_accepted"
+  val SERVER_STARTUP = "smrt_server_startup"
+  val IMPORT_BUNDLE = "techsupport_import_bundle"
+}
 
 case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                eventTypeId: String,
                                eventTypeVersion: Int = 1,
                                uuid: UUID,
                                createdAt: JodaDateTime,
-                               message: JsObject)
+                               message: JsObject,
+                               dnsName: Option[String] = None)
 
 
 case class ExternalEventServerConfig(host: String, port: Int)

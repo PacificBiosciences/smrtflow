@@ -24,8 +24,7 @@ import scala.concurrent.Future
 
 class ImportDataSetServiceType(dbActor: ActorRef,
                                authenticator: Authenticator,
-                               smrtLinkVersion: Option[String],
-                               smrtLinkToolsVersion: Option[String])
+                               smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.IMPORT_DATASET.id
     override val description = "Import a Pacbio DataSet XML file"
@@ -51,8 +50,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
       None,
       sopts.toJson.toString(),
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion)
+      smrtLinkVersion)
   }
 }
 
@@ -62,5 +60,5 @@ trait ImportDataSetServiceTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val importDataSetServiceType: Singleton[ImportDataSetServiceType] =
-    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new ImportDataSetServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.14.2"
+BUNDLE_VERSION="0.15.0"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -17,7 +17,13 @@ if [ -z "$BUNDLE_DEST" ]; then
   BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-mainline"
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
-CHEM_BUNDLE="${SRC}/chemistry-bundle"
+
+CHEM_BUNDLE="${SRC}/chemistry-data-bundle"
+
+if [ ! -d "${CHEM_BUNDLE}" ]; then
+  echo "Unable to find required chemistry bundle dir. Exiting"
+  exit 1
+fi
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
@@ -35,12 +41,6 @@ set -o errexit
 set -o pipefail
 #set -o nounset # this makes virtualenv fail
 # set -o xtrace
-
-# Set magic variables for current file & dir
-__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-__root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this
-__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
-__base="$(basename ${__file} .sh)"
 
 SL_ANALYSIS_SERVER="smrt-server-link"
 

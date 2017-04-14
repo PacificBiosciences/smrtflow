@@ -5,7 +5,13 @@ import java.net.URL
 import java.nio.file.{Paths, Path}
 import java.util.UUID
 
+import scala.concurrent.duration._
+import scala.concurrent.Future
+import scala.util.Try
+
 import akka.actor.ActorSystem
+import com.typesafe.config.Config
+
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
@@ -14,24 +20,11 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.simulator.StepResult.{FAILED, SUCCEEDED, Result}
 import com.pacbio.simulator.steps.{BasicSteps, ConditionalSteps, VarSteps, SmrtLinkSteps}
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
-import com.typesafe.config.{ConfigException, Config}
-
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import scala.util.Try
 
 object SqliteToPostgresScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for SqliteToPostgresScenario")
     val c: Config = config.get
-
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
 
     val opts = SqliteToPostgresConverterOptions(
       // TODO(smcclellan): Construct golden sqlite db file (See SL-985)
@@ -40,7 +33,7 @@ object SqliteToPostgresScenarioLoader extends ScenarioLoader {
       c.getString("password"),
       c.getString("db-name"),
       c.getString("server"),
-      getInt("port"))
+      getInt(c, "port"))
 
     new SqliteToPostgresScenario(Paths.get(c.getString("smrt-link-exe-file")), opts)
   }

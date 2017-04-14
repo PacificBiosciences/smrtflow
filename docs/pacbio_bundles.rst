@@ -114,7 +114,7 @@ Download a PacBio Data Bundle
 
 
 
-**TODO** Checking for an upgraded bundle version.
+Checking for an upgraded bundle version.
 
 ::
 
@@ -130,7 +130,7 @@ Returns
 If an upgrade is available it will return a newer version (based on the semantic version spec). If no bundle is returned, there isn't a newer bundle.
 
 
-**TODO** Upgrading a Bundle
+Upgrading a Bundle
 
 ::
 
@@ -153,10 +153,10 @@ Bundles Stored within the SL System install
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  All PacBio Data bundles are stored with SMRT Link pbbundler. The default chemistry bundle is packaged within pbbundler SL package.
-- {DEP} Add bundleDir to `smrtlink-system-config.json`
+- {DEP} Adds bundleDir to `smrtlink-system-config.json`
 - {SL} Add configuration to `smrtlink-system-conf.json` to provide
    a configurable path via "smrtflow.server.bundleDir. This must be read+write by the user that launched the services.
-- TODO The default chemistry bundle is packaged within pbbundler SL package. http://mkocher@bitbucket.nanofluidics.com:7990/scm/~mkocher/chemistry-bundle.git
+- TODOThe default chemistry bundle is packaged within pbbundler SL package. http://mkocher@bitbucket.nanofluidics.com:7990/scm/~mkocher/chemistry-bundle.git
 
 
 Chemistry Data Bundle Details

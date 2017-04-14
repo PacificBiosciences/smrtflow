@@ -2,11 +2,15 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.util.UUID
 import java.nio.file.{Path, Paths}
+import java.io.File
 
-import scala.xml.XML
+import scala.xml.{Elem,XML}
 import scala.math._
+import scala.util.{Try,Failure,Success}
 import spray.httpx.SprayJsonSupport
 import spray.json._
+
+
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels._
@@ -18,17 +22,31 @@ trait ClientUtils extends timeUtils{
 
   import SmrtLinkJsonProtocols._
 
-  // FIXME this should probably return a DataSetMetaType
-  def dsMetaTypeFromPath(path: Path): String = {
-    val ds = scala.xml.XML.loadFile(path.toFile)
-    ds.attributes("MetaType").toString
+  def listFilesByExtension(f: File, ext: String): Array[File] = {
+    if (! f.isDirectory) throw new IllegalArgumentException(s"${f.toString} is not a directory")
+    f.listFiles.filter((fn) => fn.toString.endsWith(ext)).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(d => listFilesByExtension(d, ext))
   }
 
-  def dsUuidFromPath(path: Path): UUID = {
-    val ds = scala.xml.XML.loadFile(path.toFile)
-    val uniqueId = ds.attributes("UniqueId").toString
-    java.util.UUID.fromString(uniqueId)
+  private def parseXml(path: Path) = {
+    Try { scala.xml.XML.loadFile(path.toFile) } match {
+      case Success(x) => x
+      case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
+    }
   }
+
+  private def getAttribute(e: Elem, attr: String): String = {
+    Try { e.attributes(attr).toString } match {
+      case Success(a) => a
+      case Failure(err) => throw new Exception(s"Can't retrieve $attr attribute from XML: ${err.getMessage}.  Please make sure this is a valid PacBio DataSet XML file.")
+    }
+  }
+
+  // FIXME this should probably return a DataSetMetaType
+  def dsMetaTypeFromPath(path: Path): String =
+    getAttribute(parseXml(path), "MetaType")
+
+  def dsUuidFromPath(path: Path): UUID =
+    java.util.UUID.fromString(getAttribute(parseXml(path), "UniqueId"))
 
   def dsNameFromMetadata(path: Path): String = {
     if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")

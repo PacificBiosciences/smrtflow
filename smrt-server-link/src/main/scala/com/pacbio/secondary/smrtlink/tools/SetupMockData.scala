@@ -125,7 +125,6 @@ trait MockUtils extends LazyLogging{
         "{}",
         Some("root"),
         None,
-        None,
         projectId = mockProjectId)}
     val jobChunks = (0 until numJobs).grouped(scala.math.min(nchunks, numJobs))
     Future.sequence(jobChunks.map(jobIds => dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
@@ -256,7 +255,7 @@ trait MockUtils extends LazyLogging{
   def insertMockProject(): Future[Int] = {
     val f = dao.db.run(
       for {
-        pid <- (projects returning projects.map(_.id)) += Project(-1, "Mock Project", "Mock Project description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true)
+        pid <- (projects returning projects.map(_.id)) += Project(-1, "Mock Project", "Mock Project description", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, grantRoleToAll = None)
         _ <- projectsUsers += ProjectUser(pid, MOCK_USER_LOGIN, ProjectUserRole.OWNER)
       } yield pid
     )

@@ -81,9 +81,10 @@ with SmrtLinkConstants with TestUtils{
   override val db: Database = dao.db
   val totalRoutes = TestProviders.projectService().prefixedRoutes
 
-  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
-  val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None)
-  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
+  val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
+  val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None, None)
+  val newProject3 = ProjectRequest("TestProject3", "Test Description", Some(ProjectState.ACTIVE), None, None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
+  val newProject4 = ProjectRequest("TestProject4", "Test Description", Some(ProjectState.ACTIVE), Some(ProjectRequestRole.CAN_VIEW), None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
 
   val newUser = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_EDIT)
   val newUser2 = ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_VIEW)
@@ -117,6 +118,7 @@ with SmrtLinkConstants with TestUtils{
         newProjId = proj.id
         proj.name === proj.name
         proj.state === ProjectState.CREATED
+        proj.grantRoleToAll.isEmpty must beTrue
       }
     }
 
@@ -435,6 +437,59 @@ with SmrtLinkConstants with TestUtils{
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets.size === dsCount
+      }
+    }
+
+    "create a project that grants a role to all users" in {
+      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject4) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val proj = responseAs[FullProject]
+        newProjId = proj.id
+        proj.grantRoleToAll === Some(ProjectUserRole.CAN_VIEW)
+      }
+    }
+
+    "view a project that grants view rights to all users as a non-member" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val proj = responseAs[FullProject]
+        proj.id === newProjId
+        proj.grantRoleToAll === Some(ProjectUserRole.CAN_VIEW)
+        proj.members.length === 1
+        proj.members.head.login === ADMIN_USER_1_LOGIN
+        proj.members.head.role === ProjectUserRole.OWNER
+      }
+    }
+
+    "view a project that grants view rights to all users as a non-member in a list" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val projs = responseAs[Seq[Project]]
+        projs.map(_.id) must contain(newProjId)
+      }
+    }
+
+    "fail to update a project that grants view rights to all users as a non-member" in {
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject4) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
+      }
+    }
+
+    "revoke role granted to all users" in {
+      val update = newProject4.copy(grantRoleToAll = Some(ProjectRequestRole.NONE), state = None, members = None)
+      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val proj = responseAs[FullProject]
+        proj.id === newProjId
+        proj.grantRoleToAll === None
+      }
+    }
+
+    "fail to view a project that revoked view rights fom all users as a non-member" in {
+      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+        handled must beFalse
+        rejection === AuthorizationFailedRejection
       }
     }
   }

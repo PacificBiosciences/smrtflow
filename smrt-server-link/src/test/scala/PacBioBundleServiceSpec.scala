@@ -45,8 +45,33 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
         status.isSuccess must beTrue
       }
     }
+    "Get Active bundle type id 'chemistry' " in {
+      Get("/smrt-link/bundles/chemistry/active") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "Get upgrade bundle type id 'chemistry' " in {
+      Get("/smrt-link/bundles/chemistry/upgrade") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
     "Get bundle type id 'chemistry' by version id" in {
       Get("/smrt-link/bundles/chemistry/0.1.2") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "Get manifest.xml file in 'chemistry'" in {
+      Get("/smrt-link/bundles/chemistry/active/files/manifest.xml") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "Get SampleCalculatorParams.json file in 'chemistry'" in {
+      Get("/smrt-link/bundles/chemistry/active/files/SampleCalculatorParams.json") ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
+    "Get PacBioAutomationConstraints.xml file in 'chemistry'" in {
+      Get("/smrt-link/bundles/chemistry/active/files/definitions/PacBioAutomationConstraints.xml") ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }

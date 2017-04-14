@@ -15,28 +15,20 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+
+import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobtypes.MockDataSetUtils
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
-import com.pacificbiosciences.pacbiodatasets._
-
-/**
- * Example config:
- *
- * {{{
- *   smrt-link-host = "smrtlink-bihourly"
- *   smrt-link-port = 8081
- * }}}
- */
 
 object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
@@ -44,18 +36,7 @@ object DataSetScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    // Should this be in smrtflow.test.* ?
-    new DataSetScenario(
-      c.getString("smrtflow.server.host"),
-      getInt("smrtflow.server.port"))
+    new DataSetScenario(getHost(c), getPort(c))
   }
 }
 
@@ -181,7 +162,6 @@ class DataSetScenario(host: String, port: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     dsMeta := GetDataSet(subreadsUuid1),
     subreadSetDetails := GetSubreadSetDetails(subreadsUuid1),
     fail(s"Wrong UUID") IF subreadSetDetails.mapWith(_.getUniqueId) !=? subreadsUuid1.get.toString,
@@ -189,7 +169,9 @@ class DataSetScenario(host: String, port: Int)
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
     dataStore := GetImportJobDataStore(jobId),
     fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
-    fail("Wrong UUID in datastore") IF dataStore.mapWith(_(2).uuid) !=? subreadsUuid1.get,
+    fail("Wrong UUID in datastore") IF dataStore.mapWith {
+      dss => dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
+    } !=? subreadsUuid1.get,
     jobId := ImportDataSet(subreads2, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
@@ -207,7 +189,7 @@ class DataSetScenario(host: String, port: Int)
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
+
     subreadSets := GetSubreadSets,
     fail("Expected three SubreadSets") IF subreadSets.mapWith(_.size) !=? 3,
     dataStore := GetMergeJobDataStore(jobId),
@@ -260,7 +242,7 @@ class DataSetScenario(host: String, port: Int)
     dsReport := GetReport(getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
     fail("Wrong report ID") IF dsReport.mapWith(_.id) !=? "loading_xml_report",
     fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, RPT_PRODZMWS)) ==? None,
-    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0")) ==? None
+    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0_n")) ==? None
   ))
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,
@@ -281,7 +263,6 @@ class DataSetScenario(host: String, port: Int)
     fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     referenceSets := GetReferenceSets,
     fail("Expected two ReferenceSets") IF referenceSets.mapWith(_.size) !=? 2,
     referenceSetDetails := GetReferenceSetDetails(referenceSets.mapWith(_.last.uuid)),
@@ -295,7 +276,6 @@ class DataSetScenario(host: String, port: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     barcodeSets := GetBarcodeSets,
     fail("Expected one BarcodeSet") IF barcodeSets.mapWith(_.size) !=? 1,
     barcodeSetDetails := GetBarcodeSetDetails(barcodeSets.mapWith(_.last.uuid)),
@@ -341,7 +321,6 @@ class DataSetScenario(host: String, port: Int)
     fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
-    fail("Expected non-blank smrtlinkToolsVersion") IF job.mapWith(_.smrtlinkToolsVersion) ==? None,
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Expected two HdfSubreadSets") IF hdfSubreadSets.mapWith(_.size) !=? 2,
     // export HdfSubreadSet
@@ -389,13 +368,15 @@ class DataSetScenario(host: String, port: Int)
     jobId := ExportDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var(Paths.get("alignmentsets.zip").toAbsolutePath)),
     jobStatus := WaitForJob(jobId),
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
-    // merge
+    // XXX AlignmentSet merge not currently supported
+    /*
     alignmentSets := GetAlignmentSets,
     jobId := MergeDataSets(ftAlign, alignmentSets.mapWith(_.map(d => d.id)), Var("merge-alignments")),
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
     alignmentSets := GetAlignmentSets,
     fail("Expected three AlignmentSets") IF alignmentSets.mapWith(_.size) !=? 3,
+    */
     // ConsensusReadSet
     ccsSets := GetConsensusReadSets,
     fail(MSG_DS_ERR) IF ccsSets ? (_.nonEmpty),

@@ -69,22 +69,50 @@ Executables in [BUNDLE_ROOT]/tools/bin
    
 **[BUNDLE_ROOT]/bin/upgrade** can be used to setup the SL System from a fresh/clean install, **or** an upgrade a system from a previous (N - 1) version of SMRT Link.
 
+The upgrade script is configured by [BUNDLE_ROOT]/migration-config.json, which
+has the following structure:
+
+```json
+{
+    "PB_DB_URI": "/path/to/sqlite.file.db",
+    "PREVIOUS_INSTALL_DIR": "/path/to/old/smrtlink/installation/smrtlink-analysis-gui",
+    "_comment": <optional comment>
+}
+```
+
+Keys
+
+- PB_DB_URI Option[Path] path to the sqlite file
+- PREVIOUS_INSTALL_DIR Path to the root directory of the SMRT Link analysis GUI subcomponent. There must be a relative `wso2am-2.0.0` directory within the root dir provided.
+
+
+
 **Note** the SL 4.0.0 to SL 4.1.0 has a special case for handling the importing of the legacy 4.0.0 sqlite database to the 4.1.0 Postgres database.
    
 A Summary of the import process
 
-1. Check for legacy JSON file in the [BUNDLE_ROOT]/config.json with the form ({PB_DB_URI: "/path/to/sqlite.file.db") NOTE, this is NOT the same schema as the 4.0.0 config JSON
-2. If Postgres db creation and users is not been initialized, it will
+1. If Postgres db creation and users is not been initialized, it will
     - start up the db (if necessary)
     - run the creation and initialization
     - perform and Postgres to Postgres SQL migrations
     - shut down the db (if it was not originally running)
-3. If the [BUNDLE_ROOT]/config.json file exist, nor has a non `null` for *PB_DB_URI*
+2. If the [BUNDLE_ROOT]/migration-config.json file exists, and has a non `null` for *PB_DB_URI*
     - Check for the [BUNDLE_ROOT]/legacy-migration.json
         - if the import was already successful, skip legacy import
         - else perform the SQLITE to Postgres importing/migration, then write the state to [BUNDLE_ROOT]/legacy-migration.json
     - [TODO] Clarify this. For failed SQLITE importing/migration, there is not currently a retry method (this would require dropping the tables)
-4. shut down the db (if it was not originally running)
+3. shut down the db (if it was not originally running)
+
+4. If [BUNDLE_ROOT]/migration-config.json exists and has a PREVIOUS_INSTALL_DIR that points to an existing directory,
+    - start the wso2 from the old installation
+    - pull out the user-role assignments
+    - shut down the old wso2
+5. Start the new wso2 and do initial configuration
+    - create roles
+    - configure API definitions
+6. If we got user-role assignments in step 4,
+    - import those into the new wso2
+8. Shut down the new wso2
 
 
 ### Configuration

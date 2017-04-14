@@ -84,8 +84,7 @@ object JobsDaoActor {
       engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
       jsonSettings: String,
       createdBy: Option[String],
-      smrtLinkVersion: Option[String],
-      smrtLinkToolsVersion: Option[String]) extends JobMessage
+      smrtLinkVersion: Option[String]) extends JobMessage
 
   case class GetJobChildrenByUUID(jobId: UUID) extends JobMessage
   case class GetJobChildrenById(jobId: Int) extends JobMessage
@@ -685,8 +684,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion) =>
-      val fx = dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion, smrtLinkToolsVersion)
+    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion) =>
+      val fx = dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion)
       fx onSuccess { case _ => self ! CheckForRunnableJob}
       //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
       pipeWith(fx)

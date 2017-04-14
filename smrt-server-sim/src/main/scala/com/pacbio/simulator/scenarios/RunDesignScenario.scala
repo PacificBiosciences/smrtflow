@@ -5,37 +5,19 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import com.typesafe.config.Config
+
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models.{RunSummary, Run}
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
-import com.typesafe.config.{Config, ConfigException}
 
-/**
- * Example config:
- *
- * {{{
- *   smrt-link-host = "smrtlink-bihourly"
- *   smrt-link-port = 8081
- *   run-xml-path = "/path/to/testdata/runDataModel.xml"
- * }}}
- */
 object RunDesignScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
     require(config.isDefined, "Path to config file must be specified for RunDesignScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    new RunDesignScenario(
-      c.getString("smrt-link-host"),
-      getInt("smrt-link-port"),
+    new RunDesignScenario(getHost(c), getPort(c),
       Paths.get(c.getString("run-xml-path")))
   }
 }

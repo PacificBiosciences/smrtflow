@@ -29,8 +29,7 @@ import scala.concurrent.Future
 
 class DeleteDataSetsServiceJobType(dbActor: ActorRef,
                                    authenticator: Authenticator,
-                                   smrtLinkVersion: Option[String],
-                                   smrtLinkToolsVersion: Option[String])
+                                   smrtLinkVersion: Option[String])
     extends {
       override val endpoint = JobTypeIds.DELETE_DATASETS.id
       override val description = "Delete PacBio XML DataSets and associated resources"
@@ -81,8 +80,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
       Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, opts.datasetType))),
       opts.toJson.toString(),
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion)
+      smrtLinkVersion)
 }
 
 trait DeleteDataSetsServiceJobTypeProvider {
@@ -91,5 +89,5 @@ trait DeleteDataSetsServiceJobTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val deleteDataSetServiceJobType: Singleton[DeleteDataSetsServiceJobType] =
-    Singleton(() => new DeleteDataSetsServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new DeleteDataSetsServiceJobType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

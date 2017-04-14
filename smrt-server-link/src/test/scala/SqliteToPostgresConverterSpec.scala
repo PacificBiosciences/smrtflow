@@ -3,14 +3,9 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import com.pacbio.common.time.FakeClock
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.Subread
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
-import com.pacbio.secondary.smrtlink.database.TableModels
-import com.pacbio.secondary.smrtlink.database.TableModels.DataModelAndUniqueId
 import com.pacbio.secondary.smrtlink.database.legacy._
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.database.legacy.BaseLine
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.specs2.mutable.Specification
@@ -21,6 +16,14 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.language.reflectiveCalls
 
+/**
+  *
+  * To avoid confusing with the models from the Sqlite models and the Postgresql base models, the models that have
+  * not been changed are prefixed with BaseLine. Models that have changed are LegacyX.
+  *
+  * This also avoid imports within functions or classes
+  *
+  */
 class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest with TestDalProvider with TestUtils {
 
   sequential
@@ -32,7 +35,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val projectId = 2
   val runId = UUID.randomUUID()
 
-  val baseMetaData = DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = true)
+  val baseMetaData = BaseLine.DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = true)
   def idAbleToMetaData(idAble: {val id: Int; val uuid: UUID}) = baseMetaData.copy(id = idAble.id, uuid = idAble.uuid)
   def addMetaData(data: MigrationData) = {
     val meta = (data.dsSubread2 ++
@@ -48,36 +51,37 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   }
 
   val data = addMetaData(MigrationData(
-    Seq(Project(projectId, "name", "description", ProjectState.UPDATED, now, now, isActive = false)),
-    Seq(ProjectUser(projectId, "jsnow", ProjectUserRole.OWNER)),
-    Seq(EngineJob(jobId, jobUUID, "name", "comment", now, now, AnalysisJobStates.FAILED, JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), Some("3.2.1"), isActive = false, None)),
-    Seq(EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
-    Seq(JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.FAILED, "oops", now, JobConstants.EVENT_TYPE_JOB_STATUS)),
+    Seq(BaseLine.Project(projectId, "name", "description", BaseLine.ProjectState.UPDATED, now, now, isActive = true, grantRoleToAll = None)),
+    Seq(BaseLine.ProjectUser(projectId, "jsnow", BaseLine.ProjectUserRole.OWNER)),
+    Seq(BaseLine.EngineJob(jobId, jobUUID, "name", "comment", now, now, BaseLine.AnalysisJobStates.FAILED, BaseLine.JobTypeIds.PBSMRTPIPE.id, "/path/to", "{}", Some("jsnow"), Some("1.2.3"), isActive = false, None)),
+    Seq(BaseLine.EngineJobEntryPoint(jobId, UUID.randomUUID(), "type")),
+    Seq(BaseLine.JobEvent(UUID.randomUUID(), jobId, BaseLine.AnalysisJobStates.FAILED, "oops", now, BaseLine.JobConstants.EVENT_TYPE_JOB_STATUS)),
     Nil, // Will be added by addMetaData
-    Seq(SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
-    Seq(HdfSubreadServiceSet(2, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
-    Seq(ReferenceServiceSet(3, UUID.randomUUID(), "ploidy", "organism")),
-    Seq(AlignmentServiceSet(4, UUID.randomUUID())),
-    Seq(BarcodeServiceSet(5, UUID.randomUUID())),
-    Seq(ConsensusReadServiceSet(6, UUID.randomUUID())),
-    Seq(GmapReferenceServiceSet(7, UUID.randomUUID(), "ploidy", "organism")),
-    Seq(ConsensusAlignmentServiceSet(8, UUID.randomUUID())),
-    Seq(ContigServiceSet(9, UUID.randomUUID())),
-    Seq(DataStoreServiceFile(UUID.randomUUID(), Subread.toString, "sourceId", 1, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
-    Seq(RunSummary(runId, "name", Some("summary"), Some("jsnow"), Some(now), Some(now), Some(now), Some(now), SupportedRunStates.COMPLETE, 1, 1, 0, Some("instrumentName"), Some("instrumentSerialNumber"), Some("instrumentSwVersion"), Some("primaryAnalysisSwVersion"), Some("context"), Some("terminationInfo"), reserved = false)),
-    Seq(DataModelAndUniqueId("<xml></xml>", runId)),
-    Seq(CollectionMetadata(runId, UUID.randomUUID(), "well", "name", Some("summary"), Some("context"), Some(Paths.get("/path/to")), SupportedAcquisitionStates.COMPLETE, Some("instrumentId"), Some("instrumentName"), 1.0, None, Some(now), Some(now), Some("terminationInfo"))),
-    Seq(Sample("details", UUID.randomUUID(), "name", "jsnow", now))))
+    Seq(BaseLine.SubreadServiceSet(1, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
+    Seq(BaseLine.HdfSubreadServiceSet(2, UUID.randomUUID(), "cellId", "metadataContextId", "wellSampleName", "wellName", "bioSampleName", 1, "instrumentId", "instrumentName", "runName", "instrumentControlVersion")),
+    Seq(BaseLine.ReferenceServiceSet(3, UUID.randomUUID(), "ploidy", "organism")),
+    Seq(BaseLine.AlignmentServiceSet(4, UUID.randomUUID())),
+    Seq(BaseLine.BarcodeServiceSet(5, UUID.randomUUID())),
+    Seq(BaseLine.ConsensusReadServiceSet(6, UUID.randomUUID())),
+    Seq(BaseLine.GmapReferenceServiceSet(7, UUID.randomUUID(), "ploidy", "organism")),
+    Seq(BaseLine.ConsensusAlignmentServiceSet(8, UUID.randomUUID())),
+    Seq(BaseLine.ContigServiceSet(9, UUID.randomUUID())),
+    Seq(BaseLine.DataStoreServiceFile(UUID.randomUUID(), "PacBio.DataSet.SubreadSet", "sourceId", 1, now, now, now, "/path/to", jobId, jobUUID, "name", "description", isActive = false)),
+    Seq(BaseLine.RunSummary(runId, "name", Some("summary"), Some("jsnow"), Some(now), Some(now), Some(now), Some(now), SupportedRunStates.COMPLETE, 1, 1, 0, Some("instrumentName"), Some("instrumentSerialNumber"), Some("instrumentSwVersion"), Some("primaryAnalysisSwVersion"), Some("context"), Some("terminationInfo"), reserved = false)),
+    Seq(BaseLine.DataModelAndUniqueId("<xml></xml>", runId)),
+    Seq(BaseLine.CollectionMetadata(runId, UUID.randomUUID(), "well", "name", Some("summary"), Some("context"), Some(Paths.get("/path/to")), SupportedAcquisitionStates.COMPLETE, Some("instrumentId"), Some("instrumentName"), 1.0, None, Some(now), Some(now), Some("terminationInfo"))),
+    Seq(BaseLine.Sample("details", UUID.randomUUID(), "name", "jsnow", now))))
 
   def createTestSqliteDb(): File = {
     import LegacyModels._
     import LegacySqliteReader._
     import slick.driver.SQLiteDriver.api._
 
-    def toLegacyEngineJob(j: EngineJob) = LegacyEngineJob(j.id, j.uuid, j.name, j.comment, j.createdAt, j.updatedAt, j.state, j.jobTypeId, j.path, j.jsonSettings, j.createdBy, j.smrtlinkVersion, j.smrtlinkToolsVersion, j.isActive)
-    def toLegacyJobEvent(e: JobEvent) = LegacyJobEvent(e.eventId, e.jobId, e.state, e.message, e.createdAt)
-    def toLegacyDataSetMetaDataSet(s: DataSetMetaDataSet) = LegacyDataSetMetaDataSet(s.id, s.uuid, s.name, s.path, s.createdAt, s.updatedAt, s.numRecords, s.totalLength, s.tags, s.version, s.comments, s.md5, -1, s.jobId, s.projectId, s.isActive)
-    def toLegacyCollectionMetadata(m: CollectionMetadata) = LegacyCollectionMetadata(m.runId, m.uniqueId, m.well, m.name, m.summary, m.context, m.collectionPathUri, m.status, m.instrumentId, m.instrumentName, m.movieMinutes, m.startedAt, m.completedAt, m.terminationInfo)
+    def toLegacyEngineJob(j: BaseLine.EngineJob) = LegacyEngineJob(j.id, j.uuid, j.name, j.comment, j.createdAt, j.updatedAt, j.state, j.jobTypeId, j.path, j.jsonSettings, j.createdBy, j.smrtlinkVersion, None, j.isActive)
+    def toLegacyJobEvent(e: BaseLine.JobEvent) = LegacyJobEvent(e.eventId, e.jobId, e.state, e.message, e.createdAt)
+    def toLegacyDataSetMetaDataSet(s: BaseLine.DataSetMetaDataSet) = LegacyDataSetMetaDataSet(s.id, s.uuid, s.name, s.path, s.createdAt, s.updatedAt, s.numRecords, s.totalLength, s.tags, s.version, s.comments, s.md5, -1, s.jobId, s.projectId, s.isActive)
+    def toLegacyCollectionMetadata(m: BaseLine.CollectionMetadata) = LegacyCollectionMetadata(m.runId, m.uniqueId, m.well, m.name, m.summary, m.context, m.collectionPathUri, m.status, m.instrumentId, m.instrumentName, m.movieMinutes, m.startedAt, m.completedAt, m.terminationInfo)
+    def toLegacyProject(p: BaseLine.Project) = LegacyProject(p.id, p.name, p.description, p.state, p.createdAt, p.updatedAt, p.isActive)
 
     val dbFile = File.createTempFile("sqlite-test", ".db")
     val dbUri = SqliteToPostgresConverter.toSqliteURI(dbFile)
@@ -105,10 +109,10 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
     val action = schema.create >>
       // Add static rows
-      (projects forceInsert Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, now, now, isActive = true)) >>
-      (projectsUsers forceInsert ProjectUser(1, "admin", ProjectUserRole.OWNER)) >>
+      (projects forceInsert LegacyProject(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", BaseLine.ProjectState.CREATED, now, now, isActive = true)) >>
+      (projectsUsers forceInsert BaseLine.ProjectUser(1, "admin", BaseLine.ProjectUserRole.OWNER)) >>
       // Add test data
-      (projects forceInsertAll data.projects) >>
+      (projects forceInsertAll data.projects.map(toLegacyProject)) >>
       (projectsUsers forceInsertAll data.projectsUsers) >>
       (engineJobs forceInsertAll data.engineJobs.map(toLegacyEngineJob)) >>
       (engineJobsDataSets forceInsertAll data.engineJobsDataSets) >>
@@ -129,9 +133,9 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
       (collectionMetadata forceInsertAll data.collectionMetadata.map(toLegacyCollectionMetadata)) >>
       (samples forceInsertAll data.samples) >>
       // Add rows with broken foreign keys that should be ignored
-      (jobEvents forceInsert LegacyJobEvent(UUID.randomUUID(), 999, AnalysisJobStates.RUNNING, "ignore", now)) >>
-      (projectsUsers forceInsert ProjectUser(999, "ignore", ProjectUserRole.OWNER)) >>
-      (dataModels forceInsert DataModelAndUniqueId("<xml>ignore</xml>", UUID.randomUUID())) >>
+      (jobEvents forceInsert LegacyJobEvent(UUID.randomUUID(), 999, BaseLine.AnalysisJobStates.RUNNING, "ignore", now)) >>
+      (projectsUsers forceInsert BaseLine.ProjectUser(999, "ignore", BaseLine.ProjectUserRole.OWNER)) >>
+      (dataModels forceInsert BaseLine.DataModelAndUniqueId("<xml>ignore</xml>", UUID.randomUUID())) >>
       (collectionMetadata forceInsert LegacyCollectionMetadata(UUID.randomUUID(), UUID.randomUUID(), "ignore", "ignore", None, None, None, SupportedAcquisitionStates.ABORTED, None, None, 1.0, None, None, None))
 
     val sqliteDb = Database.forURL(dbUri)
@@ -141,29 +145,29 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   }
 
   def writeResultAssertions(db: slick.driver.PostgresDriver.api.Database) = {
-    import TableModels._
     import slick.driver.PostgresDriver.api._
 
-    Await.result(db.run(projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
-    Await.result(db.run(projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
-    Await.result(db.run(engineJobs.result), Duration.Inf) === data.engineJobs
-    Await.result(db.run(engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
-    Await.result(db.run(jobEvents.result), Duration.Inf) === data.jobEvents
-    Await.result(db.run(dsMetaData2.result), Duration.Inf) === data.dsMetaData2
-    Await.result(db.run(dsSubread2.result), Duration.Inf) === data.dsSubread2
-    Await.result(db.run(dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
-    Await.result(db.run(dsReference2.result), Duration.Inf) === data.dsReference2
-    Await.result(db.run(dsAlignment2.result), Duration.Inf) === data.dsAlignment2
-    Await.result(db.run(dsBarcode2.result), Duration.Inf) === data.dsBarcode2
-    Await.result(db.run(dsCCSread2.result), Duration.Inf) === data.dsCCSread2
-    Await.result(db.run(dsGmapReference2.result), Duration.Inf) === data.dsGmapReference2
-    Await.result(db.run(dsCCSAlignment2.result), Duration.Inf) === data.dsCCSAlignment2
-    Await.result(db.run(dsContig2.result), Duration.Inf) === data.dsContig2
-    Await.result(db.run(datastoreServiceFiles.result), Duration.Inf) === data.datastoreServiceFiles
-    Await.result(db.run(runSummaries.result), Duration.Inf) === data.runSummaries
-    Await.result(db.run(dataModels.result), Duration.Inf) === data.dataModels
-    Await.result(db.run(collectionMetadata.result), Duration.Inf) === data.collectionMetadata
-    Await.result(db.run(samples.result), Duration.Inf) === data.samples
+
+    Await.result(db.run(BaseLine.projects.filter(_.id =!= 1).result), Duration.Inf) === data.projects
+    Await.result(db.run(BaseLine.projectsUsers.filter(_.projectId =!= 1).result), Duration.Inf) === data.projectsUsers
+    Await.result(db.run(BaseLine.engineJobs.result), Duration.Inf) === data.engineJobs
+    Await.result(db.run(BaseLine.engineJobsDataSets.result), Duration.Inf) === data.engineJobsDataSets
+    Await.result(db.run(BaseLine.jobEvents.result), Duration.Inf) === data.jobEvents
+    Await.result(db.run(BaseLine.dsMetaData2.result), Duration.Inf) === data.dsMetaData2
+    Await.result(db.run(BaseLine.dsSubread2.result), Duration.Inf) === data.dsSubread2
+    Await.result(db.run(BaseLine.dsHdfSubread2.result), Duration.Inf) === data.dsHdfSubread2
+    Await.result(db.run(BaseLine.dsReference2.result), Duration.Inf) === data.dsReference2
+    Await.result(db.run(BaseLine.dsAlignment2.result), Duration.Inf) === data.dsAlignment2
+    Await.result(db.run(BaseLine.dsBarcode2.result), Duration.Inf) === data.dsBarcode2
+    Await.result(db.run(BaseLine.dsCCSread2.result), Duration.Inf) === data.dsCCSread2
+    Await.result(db.run(BaseLine.dsGmapReference2.result), Duration.Inf) === data.dsGmapReference2
+    Await.result(db.run(BaseLine.dsCCSAlignment2.result), Duration.Inf) === data.dsCCSAlignment2
+    Await.result(db.run(BaseLine.dsContig2.result), Duration.Inf) === data.dsContig2
+    Await.result(db.run(BaseLine.datastoreServiceFiles.result), Duration.Inf) === data.datastoreServiceFiles
+    Await.result(db.run(BaseLine.runSummaries.result), Duration.Inf) === data.runSummaries
+    Await.result(db.run(BaseLine.dataModels.result), Duration.Inf) === data.dataModels
+    Await.result(db.run(BaseLine.collectionMetadata.result), Duration.Inf) === data.collectionMetadata
+    Await.result(db.run(BaseLine.samples.result), Duration.Inf) === data.samples
 
     // Test autoinc values
     Await.result(db.run(sql"SELECT last_value FROM projects_project_id_seq;".as[Int].map(_.head)), Duration.Inf) === 3
@@ -211,7 +215,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     }
 
     "write to postgres" in {
-      import TableModels._
       import slick.driver.PostgresDriver.api._
 
       setupDb(dbConfig)
@@ -223,10 +226,10 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         writeResultAssertions(db)
 
         // Test migration status table
-        Await.result(db.run(migrationStatus.result), Duration.Inf) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+        Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf) === Seq(BaseLine.MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
 
         // Test autoinc works with new insertions
-        Await.result(db.run((dsContig2 returning dsContig2.map(_.id)) += ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 11
+        Await.result(db.run((BaseLine.dsContig2 returning BaseLine.dsContig2.map(_.id)) += BaseLine.ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 11
         Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 11
       }
     }
@@ -254,7 +257,6 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
     }
 
     "handle failed write" in {
-      import TableModels._
       import slick.driver.PostgresDriver.api._
 
       setupDb(dbConfig)
@@ -263,13 +265,13 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
         val dupId = UUID.randomUUID()
         val badData = MigrationData(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil,
-          Seq(DataModelAndUniqueId("<xml>bad</xml>", dupId), DataModelAndUniqueId("<xml>bad</xml>", dupId)), Nil, Nil)
+          Seq(BaseLine.DataModelAndUniqueId("<xml>bad</xml>", dupId), BaseLine.DataModelAndUniqueId("<xml>bad</xml>", dupId)), Nil, Nil)
 
         // Try to write bad data
         Await.ready(writer.write(Future.successful(badData)), Duration.Inf)
 
         // Test migration status table
-        val row = Await.result(db.run(migrationStatus.result), Duration.Inf).head
+        val row = Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf).head
         row.timestamp === now.toString("YYYY-MM-dd HH:mm:ss.SSS")
         row.success === false
         row.error must beSome
@@ -280,9 +282,9 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         writeResultAssertions(db)
 
         // Test migration status table
-        val rows = Await.result(db.run(migrationStatus.result), Duration.Inf)
+        val rows = Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf)
         rows.size === 2
-        rows.filter(_.success == true) === Seq(MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+        rows.filter(_.success == true) === Seq(BaseLine.MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
       }
     }
   }

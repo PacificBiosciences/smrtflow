@@ -6,12 +6,13 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.Config
+
+import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
@@ -31,17 +32,7 @@ object ProjectsScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable, "PacBioTestData must be configured for ProjectsScenario")
     val c: Config = config.get
 
-    // Resolve overrides with String
-    def getInt(key: String): Int =
-      try {
-        c.getInt(key)
-      } catch {
-        case e: ConfigException.WrongType => c.getString(key).trim.toInt
-      }
-
-    new ProjectsScenario(
-      c.getString("smrt-link-host"),
-      getInt("smrt-link-port"))
+    new ProjectsScenario(getHost(c), getPort(c))
   }
 }
 

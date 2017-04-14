@@ -9,7 +9,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, host, port, user, p
         return env
 
 
-class Migration(object):
+class MigrationStatus(object):
     def __init__(self, was_successful, updated_at, db_path, comment):
         # should this have more than one state?
         self.was_successful = was_successful
@@ -68,13 +68,29 @@ class Migration(object):
 
     @staticmethod
     def from_d(d):
-        return Migration(d['was_successful'], d['updated_at'], d['db_path'], d['comment'])
+        return MigrationStatus(d['was_successful'], d['updated_at'], d['db_path'], d['comment'])
 
     def write(self, output_file):
         d = self.to_dict()
         with open(output_file, 'w+') as f:
             f.write(json.dumps(d, indent=4, sort_keys=True))
         return d
+
+
+class MigrationConfig(object):
+    def __init__(self, wso2_root_path, sqlite_path=None):
+        self.wso2_root_dir = wso2_root_path
+        self.sqlite_path = sqlite_path
+
+    def __repr__(self):
+        _d = dict(k=self.__class__.__name__, w=self.wso2_root_dir, s=self.sqlite_path)
+        return "<{k} sqlite:{s} wso2 root:{w} >".format(**_d)
+
+    @staticmethod
+    def from_d(d):
+        wso2_root_path = d['PREVIOUS_INSTALL_DIR']
+        sqlite_path = d['PB_DB_URI']
+        return MigrationConfig(wso2_root_path, sqlite_path)
 
 
 def subparser_builder(subparser, subparser_id, description, options_func, exe_func):
@@ -105,9 +121,10 @@ def get_parser():
         subparser_builder(sp, subparser_id, description, options_func, exe_func)
 
     def migrate_opts(px):
-        px.add_argument('-s', '--sqlite-path', required=True, help="Path to SL <= 4.0.0 Sqlite file")
+        px.add_argument('--migration-config', required=True,
+                        help="Path to SL <= 4.0.0 Migration Config JSON file")
         px.add_argument('-m', '--legacy-migration-json', default=_MIGRATION_JSON,
-                        help="Path to Legacy Migration JSON file (to persist migration status)")
+                        help="Output path to Legacy Migration Status JSON file (to persist migration status)")
         base_opts(px)
         return px
 
@@ -125,7 +142,7 @@ def get_parser():
     args_db_setup = load_and_func(db_setup_and_migrate_if_necessary)
 
     def args_db_migrate(args):
-        return db_legacy_migrate(load_db_config(args.config), args.sqlite_path, args.legacy_migration_json)
+        return db_legacy_migrate(load_db_config(args.config), args.migration_config, args.legacy_migration_json)
 
     desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
     desc_start = "Start database server. Will skip startup if already running"
@@ -433,7 +450,7 @@ def db_setup_and_migrate_if_necessary(dbc):
     return 0 if was_successful else 1
 
 
-def db_legacy_migrate(dbc, sqlite_db_path, migration_json):
+def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
     """
 
     1. Load legacy-migration.json (if exists)
@@ -443,45 +460,55 @@ def db_legacy_migrate(dbc, sqlite_db_path, migration_json):
     :type dbc: DbConfig
     """
     was_successful = False
+    config_d = json.load(open(migration_config_json))
 
+    migration_conf = MigrationConfig.from_d(config_d)
+    log.info("Loaded migration config {}".format(migration_conf))
+
+    sqlite_db_path = migration_conf.sqlite_path
     n = db_setup_and_migrate_if_necessary(dbc)
 
     if n == 0:
         was_started = _is_running(dbc)
-        if os.path.exists(migration_json):
-            d = json.load(open(migration_json))
-            m = Migration.from_d(d)
-            if m.was_successful:
-                log.info("Migration was successful. Skipping {}".format(m))
-                was_successful = True
+
+        if sqlite_db_path is not None:
+            if os.path.exists(migration_status_json):
+                d = json.load(open(migration_status_json))
+                m = MigrationStatus.from_d(d)
+                if m.was_successful:
+                    log.info("Migration was successful. Skipping {}".format(m))
+                    was_successful = True
+                else:
+                    # Try migration again?
+                    sys.stderr.write("Retries of a FAILED migration/import of a legacy SQLITE db is not supported\n")
+                    was_successful = False
             else:
-                # Try migration again?
-                sys.stderr.write("Retries of a FAILED migration/import of a legacy SQLITE db is not supported\n")
-                was_successful = False
+                # Try a new importing
+                was_started = _is_running(dbc)
+                _start_db_or_raise(dbc)
+
+                try:
+                    _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
+                    comment = "Successfully imported legacy data"
+                    was_successful = True
+                    m = MigrationStatus(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
+                except Exception as e:
+                    was_successful = False
+                    comment = "Failed to import legacy data. {}".format(str(e))
+                    log.exception(e)
+                    m = MigrationStatus(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
+
+                m.write(migration_status_json)
         else:
-            # Try a new importing
-            was_started = _is_running(dbc)
-            _start_db_or_raise(dbc)
-
-            try:
-                _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
-                comment = "Successfully imported legacy data"
-                was_successful = True
-                m = Migration(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
-            except Exception as e:
-                was_successful = False
-                comment = "Failed to import legacy data. {}".format(str(e))
-                log.exception(e)
-                m = Migration(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
-
-            m.write(migration_json)
+            log.info("Legacy SQLITE PATH is null, skipping legacy import")
+            was_successful = True
 
         # shutdown the db if it was not originally started
         if not was_started:
             db_stop(dbc)
 
     else:
-        log.error("Initial postgres setup FAILED (exit code {})".format(n))
+        log.error("Initial postgres startup or setup FAILED (exit code {})".format(n))
 
     return 0 if was_successful else 1
 

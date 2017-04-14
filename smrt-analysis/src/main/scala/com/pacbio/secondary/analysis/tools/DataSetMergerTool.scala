@@ -30,7 +30,7 @@ object DataSetMergerTool extends CommandLineToolRunner[DataSetMergerOptions]{
 
   val defaults = DataSetMergerOptions("", Seq[File](), "")
 
-  val parser = new OptionParser[DataSetMergerOptions]("validate-datasets") {
+  val parser = new OptionParser[DataSetMergerOptions]("merge-datasets") {
     head(DESCRIPTION, VERSION)
 
     arg[String]("dataset-type") required() action { (x, c) =>

@@ -5,8 +5,12 @@ import java.util.UUID
 
 import collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
+import org.apache.commons.io.FileUtils
 
-import scala.util.Try
+import scala.util.{Try,Success,Failure}
+import spray.httpx.SprayJsonSupport._
+import spray.json._
+
 import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, SubreadSet, DataSetType}
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.analysis.constants.FileTypes
@@ -14,13 +18,36 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.externaltools.{CallPbReport, PbReport, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.analysis.reports.ReportModels._
 
 
-object DataSetReports extends ReportJsonProtocol {
+object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
+
+  // all of the current reports will only work if at least one sts.xml file
+  // is present as an ExternalResource of a SubreadSet BAM file
+  def hasStatsXml(inPath: Path,
+                  dst: DataSetMetaTypes.DataSetMetaType): Boolean = dst match {
+    case DataSetMetaTypes.Subread => {
+      val ds = DataSetLoader.loadSubreadSet(inPath)
+      val extRes = ds.getExternalResources
+      if (extRes == null) false
+      else {
+        (extRes.getExternalResource.filter(_ != null).map { x =>
+          val extRes2 = x.getExternalResources
+          if (extRes2 == null) false else {
+            extRes2.getExternalResource.filter(_ != null).map { x2 =>
+              x2.getMetaType == FileTypes.STS_XML.fileTypeId
+            }.exists(_ == true)
+          }
+        }).toList.exists(_ == true)
+      }
+    }
+    case _ => false
+  }
 
   def toDataStoreFile(path: Path, taskId: String): DataStoreFile = {
     val now = JodaDateTime.now()
@@ -63,6 +90,26 @@ object DataSetReports extends ReportJsonProtocol {
     }
   }
 
+  def runCombined(srcPath: Path,
+                  parentDir: Path,
+                  log: JobResultWriter): Seq[DataStoreFile] = {
+    val dsFile = parentDir.resolve("datastore.json")
+    val rpt = PbReports.SubreadReports
+    log.writeLineStdout(s"running report ${rpt.reportModule}")
+    rpt.run(srcPath, dsFile) match {
+      case Left(failure) => {
+        log.writeLineStdout("failed to generate report:")
+        log.writeLineStdout(failure.msg)
+        println(failure.msg)
+        Seq.empty[DataStoreFile]
+      }
+      case Right(result) => {
+        val ds = FileUtils.readFileToString(result.outputJson.toFile, "UTF-8").parseJson.convertTo[PacBioDataStore]
+        ds.files
+      }
+    }
+  }
+
   def runAll(
       inPath: Path,
       dst: DataSetMetaTypes.DataSetMetaType,
@@ -73,31 +120,13 @@ object DataSetReports extends ReportJsonProtocol {
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
 
-    // all of the current reports will only work if at least one sts.xml file
-    // is present as an ExternalResource of a SubreadSet BAM file
-    val hasStatsXml: Boolean = dst match {
-      case DataSetMetaTypes.Subread => {
-        val ds = DataSetLoader.loadSubreadSet(inPath)
-        val extRes = ds.getExternalResources
-        if (extRes == null) false
-        else {
-          (extRes.getExternalResource.filter(_ != null).map { x =>
-            val extRes2 = x.getExternalResources
-            if (extRes2 == null) false else {
-              extRes2.getExternalResource.filter(_ != null).map { x2 =>
-                x2.getMetaType == FileTypes.STS_XML.fileTypeId
-              }.exists(_ == true)
-            }
-          }).toList.exists(_ == true)
-        }
-      }
-      case _ => false
-    }
-
     val reportFiles: Seq[DataStoreFile] = if (PbReports.isAvailable()) {
-      PbReports.ALL
-          .filter(_.canProcess(dst, hasStatsXml))
-          .flatMap(run(inPath, _, rptParent, log))
+      if (PbReports.SubreadReports.canProcess(dst, hasStatsXml(inPath, dst))) {
+        runCombined(inPath, rptParent, log)
+      } else {
+        println("Can't process this dataset")
+        Seq.empty[DataStoreFile]
+      }
     } else {
       log.writeLineStdout("pbreports is unavailable")
       Seq.empty[DataStoreFile]

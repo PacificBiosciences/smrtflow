@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.models
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
 import com.pacbio.secondary.analysis.jobs._
-import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import spray.json._
 import fommil.sjs.FamilyFormats
@@ -48,11 +47,19 @@ trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
   }
 }
 
-trait ProjectUserRoleProtocols extends DefaultJsonProtocol {
+trait ProjectEnumProtocols extends DefaultJsonProtocol {
   import scala.util.control.Exception._
 
-  private val errorHandling: Catch[ProjectUserRole.ProjectUserRole] =
-    handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project user role", ex) }
+  private def errorHandling[E]: Catch[E] =
+    handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project enum", ex) }
+
+  implicit object ProjectStateFormat extends RootJsonFormat[ProjectState.ProjectState] {
+    def write(s: ProjectState.ProjectState): JsValue = JsString(s.toString)
+    def read(v: JsValue): ProjectState.ProjectState = v match {
+      case JsString(s) => errorHandling { ProjectState.fromString(s) }
+      case _ => deserializationError("Expected state as JsString")
+    }
+  }
 
   implicit object ProjectUserRoleFormat extends RootJsonFormat[ProjectUserRole.ProjectUserRole] {
     def write(r: ProjectUserRole.ProjectUserRole): JsValue = JsString(r.toString)
@@ -61,19 +68,12 @@ trait ProjectUserRoleProtocols extends DefaultJsonProtocol {
       case _ => deserializationError("Expected role as JsString")
     }
   }
-}
 
-trait ProjectStateProtocols extends DefaultJsonProtocol {
-  import scala.util.control.Exception._
-
-  private val errorHandling: Catch[ProjectState.ProjectState] =
-    handling(classOf[IllegalArgumentException]) by { ex => deserializationError("Unknown project state", ex) }
-
-  implicit object ProjectStateFormat extends RootJsonFormat[ProjectState.ProjectState] {
-    def write(s: ProjectState.ProjectState): JsValue = JsString(s.toString)
-    def read(v: JsValue): ProjectState.ProjectState = v match {
-      case JsString(s) => errorHandling { ProjectState.fromString(s) }
-      case _ => deserializationError("Expected state as JsString")
+  implicit object ProjectRequestRoleFormat extends RootJsonFormat[ProjectRequestRole.ProjectRequestRole] {
+    def write(r: ProjectRequestRole.ProjectRequestRole): JsValue = JsString(r.toString)
+    def read(v: JsValue): ProjectRequestRole.ProjectRequestRole = v match {
+      case JsString(s) => errorHandling { ProjectRequestRole.fromString(s) }
+      case _ => deserializationError("Expected role as JsString")
     }
   }
 }
@@ -125,8 +125,7 @@ trait SmrtLinkJsonProtocols
   with SupportedAcquisitionStatesProtocols
   with PathProtocols
   with UrlProtocol
-  with ProjectUserRoleProtocols
-  with ProjectStateProtocols
+  with ProjectEnumProtocols
   with EntryPointProtocols
   with PbSmrtPipeServiceOptionsProtocol
   with FamilyFormats {
@@ -201,6 +200,9 @@ trait SmrtLinkJsonProtocols
   implicit val pacbioBundleUpgradeFormat = jsonFormat1(PacBioDataBundleUpgrade)
 
   implicit val smrtlinkEventMessageFormat = jsonFormat5(SmrtLinkEvent.apply)
+  implicit val smrtlinkSystemEventMessageFormat = jsonFormat7(SmrtLinkSystemEvent.apply)
+
+  implicit val externalServerStatusFormat = jsonFormat2(ExternalServerStatus.apply)
 
   implicit val techSupportBundleFormat = jsonFormat8(TechSupportBundle.apply)
 

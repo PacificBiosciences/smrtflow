@@ -201,7 +201,7 @@ class JobModelsSpec extends Specification  {
       val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
         JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
         "pbsmrtpipe", "/tmp/0001", "{}", Some("smrtlinktest"), Some("4.0.0"),
-        Some("4.0.0"), projectId = 10)
+        projectId = 10)
       val job2 = job.toJson.convertTo[EngineJob]
       job2.toString must beEqualTo(job.toString)
       job2.isRunning must beFalse
@@ -213,30 +213,10 @@ class JobModelsSpec extends Specification  {
       val job4 = job2.copy(state = AnalysisJobStates.SUCCESSFUL)
       job4.isSuccessful must beTrue
     }
-    "Load 3.1.1 model from JSON" in {
-      val path = getPath("engine_job_01.json")
-      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion must beEqualTo(None)
-      job.id must beEqualTo(3)
-      job.isActive must beEqualTo(true)
-      job.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-      val s = job.toJson
-      val job2 = s.convertTo[EngineJob]
-      job2.isActive must beEqualTo(true)
-      job2.createdBy must beNone
-    }
-    "Load 3.2.0 model from JSON" in {
-      val path = getPath("engine_job_02.json")
-      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion must beSome("3.2.0.187627")
-      job.id must beEqualTo(3)
-      job.isActive must beEqualTo(true)
-      job.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
-    "Load 3.3+ model from JSON" in {
+    "Load SMRT Link 4.0 model from JSON" in {
       val path = getPath("engine_job_03.json")
       val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion must beSome("3.3.0.187723")
+      job.smrtlinkVersion must beSome("4.0.0.190159")
       job.id must beEqualTo(3)
       job.createdBy must beSome("root")
       job.isActive must beEqualTo(false)
@@ -244,7 +224,7 @@ class JobModelsSpec extends Specification  {
       val s = job.toJson
       val job2 = s.convertTo[EngineJob]
       job2.isActive must beEqualTo(false)
-      job2.smrtlinkVersion must beSome("3.3.0.187723")
+      job2.smrtlinkVersion must beSome("4.0.0.190159")
       job2.createdAt must beEqualTo(job.createdAt)
     }
   }

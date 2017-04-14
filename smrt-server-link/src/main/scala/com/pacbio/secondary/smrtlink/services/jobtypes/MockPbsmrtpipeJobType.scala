@@ -25,8 +25,7 @@ import scala.concurrent.Future
 
 class MockPbsmrtpipeJobType(dbActor: ActorRef,
                             authenticator: Authenticator,
-                            smrtLinkVersion: Option[String],
-                            smrtLinkToolsVersion: Option[String])
+                            smrtLinkVersion: Option[String])
   extends {
     override val endpoint = JobTypeIds.MOCK_PBSMRTPIPE.id
     override val description = "Mock Pbmsrtpipe Job used for Development purposes"
@@ -51,8 +50,7 @@ class MockPbsmrtpipeJobType(dbActor: ActorRef,
       None,
       jsonSettings,
       user.map(_.userId),
-      smrtLinkVersion,
-      smrtLinkToolsVersion
+      smrtLinkVersion
     )
   }
 }
@@ -63,5 +61,5 @@ trait MockPbsmrtpipeJobTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val mockPbsmrtpipeJobType: Singleton[MockPbsmrtpipeJobType] =
-    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), authenticator(), smrtLinkVersion(), smrtLinkToolsVersion())).bindToSet(JobTypes)
+    Singleton(() => new MockPbsmrtpipeJobType(jobsDaoActor(), authenticator(), smrtLinkVersion())).bindToSet(JobTypes)
 }

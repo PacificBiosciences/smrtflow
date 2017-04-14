@@ -4,12 +4,12 @@ import java.util.UUID
 import java.nio.file.Path
 
 import scala.concurrent.Future
-
 import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.common.models._
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario}
@@ -99,6 +99,15 @@ trait SmrtLinkSteps {
 
     override def run: Future[Result] = smrtLinkClient.getDataSet(dsId.get).map { d =>
       output(d)
+      SUCCEEDED
+    }
+  }
+
+  case class GetDataSetId(dsId: Var[UUID]) extends VarStep[Int] {
+    override val name = "GetDataSetId"
+
+    override def run: Future[Result] = smrtLinkClient.getDataSet(dsId.get).map { d =>
+      output(d.id)
       SUCCEEDED
     }
   }
@@ -407,11 +416,13 @@ trait SmrtLinkSteps {
     }
   }
 
-  case class WaitForJob(jobId: Var[UUID], maxTime: Var[Int] = Var(1800)) extends VarStep[Int] {
+  case class WaitForJob(jobId: Var[UUID],
+                        maxTime: Var[Int] = Var(1800),
+                        sleepTime: Var[Int] = Var(5000)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get).map(_ => 0).getOrElse(1))
+      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get, sleepTime.get).map(_ => 0).getOrElse(1))
       SUCCEEDED
     }
   }
@@ -440,6 +451,17 @@ trait SmrtLinkSteps {
     }
   }
 
+  // XXX this isn't ideal, but I can't figure out another way to convert from
+  // Seq[Var[Int]] to Var[Seq[Int]] at the appropriate time (i.e. not at
+  // program startup)
+  case class MergeDataSetsMany(dsType: Var[String], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
+    override val name = "MergeDataSets"
+    override def run: Future[Result] = smrtLinkClient.mergeDataSets(dsType.get, ids.map(_.get), dsName.get).map { j =>
+      output(j.uuid)
+      SUCCEEDED
+    }
+  }
+
   case class ConvertRsMovie(path: Var[Path]) extends VarStep[UUID] {
     override val name = "ConvertRsMovie"
     override def run: Future[Result] = smrtLinkClient.convertRsMovie(path.get,
@@ -459,9 +481,11 @@ trait SmrtLinkSteps {
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
-    override def run: Future[Result] = smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
+    override def run: Future[Result] = {
+      smrtLinkClient.runAnalysisPipeline(pipelineOptions.get).map { j =>
       output(j.uuid)
       SUCCEEDED
+     }
     }
   }
 
@@ -590,6 +614,14 @@ trait SmrtLinkSteps {
     override val name = "DeleteDataSets"
     override def run: Future[Result] = smrtLinkClient.deleteDataSets(dsType.get, ids.get, removeFiles.get).map { j =>
       output(j.uuid)
+      SUCCEEDED
+    }
+  }
+
+  case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
+    override val name = "GetBundle"
+    override def run: Future[Result] = smrtLinkClient.getPacBioDataBundleByTypeId(typeId.get).map { b =>
+      output(b.filter(_.isActive == true).head)
       SUCCEEDED
     }
   }

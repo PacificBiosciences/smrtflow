@@ -399,7 +399,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None))
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None))
       .withHeaders(headers:_*)
   }
 
@@ -462,7 +462,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString))
   }
 
-  def deleteJob(jobId: UUID, removeFiles: Boolean = true, dryRun: Boolean = false): Future[EngineJob] = getJobPipeline {
+  def deleteJob(jobId: UUID,
+                removeFiles: Boolean = true,
+                dryRun: Boolean = false): Future[EngineJob] = getJobPipeline {
     Post(toUrl(ROOT_JOBS + "/delete-job"),
          DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun)))
   }
@@ -582,7 +584,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getPacBioDataBundles() = getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl()) }
 
   def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+    getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
 
   def getPacBioDataBundleByTypeAndVersionId(typeId: String, versionId: String) =
     getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}
@@ -602,10 +604,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     *
     * @return EngineJob
     */
-  def pollForJob(jobId: IdAble, maxTime: Int = -1): Try[EngineJob] = {
+  def pollForJob(jobId: IdAble,
+                 maxTime: Int = -1,
+                 sleepTime: Int = 5000): Try[EngineJob] = {
     var exitFlag = true
     var nIterations = 0
-    val sleepTime = 5000
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
