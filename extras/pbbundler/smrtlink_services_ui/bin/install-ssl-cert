@@ -49,7 +49,7 @@ if [ `echo \"$KEYPW\" | grep -c '#'` -ne 0 ]; then
   exit 1
 fi
 
-WSO2_ROOT="$SMRT_ROOT/wso2am-2.0.0"
+WSO2_ROOT="$SMRTLINK_ROOT/wso2am-2.0.0"
 if [ ! -d "$WSO2_ROOT" ]; then
   echo "ERROR: Can't find path to WSO2 install (expected at $WSO2_ROOT)"
   exit 1
