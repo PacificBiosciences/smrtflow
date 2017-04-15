@@ -26,6 +26,7 @@ trait SmrtLinkProviders extends
   AuthenticatedCoreProviders with
   JobManagerServiceProvider with
   SmrtLinkConfigProvider with
+  SwaggerFileServiceProvider with
   PbsmrtpipeConfigLoader with
   PacBioBundleDaoActorProvider with
   PacBioDataBundlePollExternalActorProvider with

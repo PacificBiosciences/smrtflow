@@ -79,4 +79,8 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   val externalBundlePollDuration: Singleton[FiniteDuration] = {
     Singleton(() => FiniteDuration(12, HOURS))
   }
+
+  val swaggerResource: Singleton[String] =
+    Singleton(() => "smrtlink_swagger.json")
+
 }
