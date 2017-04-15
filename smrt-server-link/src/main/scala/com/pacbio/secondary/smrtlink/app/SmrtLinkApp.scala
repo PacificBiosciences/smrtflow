@@ -32,6 +32,7 @@ trait SmrtLinkProviders extends
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
   SmrtLinkEventServiceProvider with
+  TechSupportServiceProvider with
   JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
