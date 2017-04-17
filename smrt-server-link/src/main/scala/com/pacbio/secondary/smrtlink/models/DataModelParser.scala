@@ -66,7 +66,7 @@ object DataModelParserImpl extends DataModelParser {
 
     def eventTimeByName(es: Seq[RecordedEventType], name: String): Option[JodaDateTime] =
       es.find(_.getName == name)
-        .map(_.getCreatedAt)
+        .flatMap(e => Option(e.getCreatedAt))
         .map(toDateTime)
 
     val completedAt = eventTimeByName(events, "RunCompletion")
