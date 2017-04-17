@@ -88,7 +88,7 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
     "Generate ZIP file from multiple SubreadSets" in {
       val datasets = getData(Seq("subreads-sequel", "subreads-xml"))
       val zipPath = Files.createTempFile("subreadsets", ".zip")
-      //val zipPath = Paths.get("subreadsets.zip")
+      println(zipPath)
       val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
       n must beGreaterThan(0)
     }
@@ -131,7 +131,7 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
     "Export two SubreadSets that reference the same BarcodeSet" in {
       val pbdata = PacBioTestData()
       val tmpDir = Files.createTempDirectory("dataset-contents")
-      println(tmpDir)
+      //println(tmpDir)
       val barcodesSrc = pbdata.getFile("barcodeset")
       val barcodesDir = barcodesSrc.getParent.toFile
       val barcodesDestDir = new File(tmpDir.toString + "/BarcodeSet")
@@ -145,7 +145,7 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
           val filename = FilenameUtils.getName(f.toString)
           if (filename.startsWith(prefix)) {
             val dest = new File(subreadsDestDir.toString + "/" + filename)
-            println(dest)
+            //println(dest)
             FileUtils.copyFile(f, dest)
           }
         }
@@ -158,7 +158,7 @@ class DataSetExportSpecAdvanced extends Specification with LazyLogging {
       val dsSubreads = DataSetLoader.loadAndResolveSubreadSet(subreadsTmp)
       val datasets = Seq(subreadsTmp)
       val zipPath = Files.createTempFile("subreadsets", ".zip")
-      println(zipPath)
+      //println(zipPath)
       val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
       n must beGreaterThan(0)
     }
