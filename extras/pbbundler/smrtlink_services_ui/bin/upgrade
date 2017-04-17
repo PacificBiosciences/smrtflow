@@ -71,12 +71,12 @@ if [ -e "${legacyConfig}" ]; then
 
     if [ -d "${prevInstall}" ]; then
         # copy SSL cert and related info (if applicable)
-        KEYSTORE=`grep "<Location>" "$confDir"/carbon.xml | head -1 | sed 's#</Location>##; s#.*security/##;'`
-        KEYPW=`grep "<KeyPassword>" "$confDir"/carbon.xml | head -1 | sed 's#.*<KeyPassword>##; s#</KeyPassword>##;'`
+        KEYSTORE=`grep "<Location>" "${oldWso2}/$confDir"/carbon.xml | head -1 | sed 's#</Location>##; s#.*security/##;'`
+        KEYPW=`grep "<KeyPassword>" "${oldWso2}/$confDir"/carbon.xml | head -1 | sed 's#.*<KeyPassword>##; s#</KeyPassword>##;'`
         if [ "$KEYSTORE" != "wso2carbon.jks" ] || [ "$KEYPW" != "wso2carbon" ]; then
-            HOSTNAME=`grep "<HostName>" "$confDir"/carbon.xml | head -1 | sed 's#.*<HostName>##; s#</HostName>##;'`
+            HOSTNAME=`grep "<HostName>" "${oldWso2}/$confDir"/carbon.xml | head -1 | sed 's#.*<HostName>##; s#</HostName>##;'`
             echo "Transferring SSL certificate config for $HOSTNAME"
-            install-ssl-cert $HOSTNAME "$sslDir"/$KEYSTORE "$sslDir"/client-truststore.jks "$KEYPW"
+            install-ssl-cert $HOSTNAME "${oldWso2}/$sslDir"/$KEYSTORE "${oldWso2}/$sslDir"/client-truststore.jks "$KEYPW"
         fi
 
         # copy userstore (e.g., LDAP) config(s)
