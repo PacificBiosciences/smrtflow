@@ -379,7 +379,6 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
 
     # Copy Custom Override files into wso2
     copy_template_to_wso2("logging-bridge.properties", 'repository/conf/etc/logging-bridge.properties')
-    copy_template_to_wso2('user-mgt.xml', 'repository/conf/user-mgt.xml')
     copy_template_to_wso2('api-manager.xml', 'repository/conf/api-manager.xml')
     copy_template_to_wso2('axis2.xml', 'repository/conf/axis2/axis2.xml')
 

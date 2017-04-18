@@ -20,7 +20,9 @@ object ConfigModels {
                                         smrtViewPort: Int = 8084,
                                         smrtLinkServerMemoryMin: Int = 4096,
                                         smrtLinkServerMemoryMax: Int = 4096,
-                                        remoteBundleUrl: Option[URL] = None
+                                        remoteBundleUrl: Option[URL] = None,
+                                        wso2User: String = "admin",
+                                        wso2Password: String = "admin"
                                        )
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,

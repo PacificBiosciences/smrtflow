@@ -51,6 +51,7 @@ object ApplyConfigConstants {
 
   val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
   val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
+  val REL_WSO2_CONF_DIR = s"$WSO2_VERSION/repository/conf"
 
   // Templates
   val T_WSO2_TEMPLATES = "templates-wso2"
@@ -60,6 +61,7 @@ object ApplyConfigConstants {
   val T_INDEX_JSP = "index.jsp"
 
   // Wso2 Related Templates
+  val USER_MGT_XML = "user-mgt.xml"
 }
 
 trait Resolver {
@@ -73,9 +75,6 @@ trait Resolver {
   * @param rootDir
   */
 class BundleOutputResolver(override val rootDir: Path) extends Resolver{
-
-  private def resolveToWso2ApiDir(fileName: String) = wso2ApiDir.resolve(fileName)
-
   val jvmArgs = resolve(ApplyConfigConstants.JVM_ARGS)
 
   val jvmLogArgs = resolve(ApplyConfigConstants.JVM_LOG_ARGS)
@@ -94,8 +93,11 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val wso2ApiDir = resolve(ApplyConfigConstants.REL_WSO2_API_DIR)
 
-  val uiProxyConfig = resolveToWso2ApiDir(ApplyConfigConstants.UI_PROXY_FILE)
+  val wso2ConfDir = resolve(ApplyConfigConstants.REL_WSO2_CONF_DIR)
 
+  val uiProxyConfig = wso2ApiDir.resolve(ApplyConfigConstants.UI_PROXY_FILE)
+
+  val userMgtConfig = wso2ConfDir.resolve(ApplyConfigConstants.USER_MGT_XML)
 }
 
 class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
@@ -110,6 +112,7 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val tomcatUsers = resolve(ApplyConfigConstants.T_TOMCAT_USERS_XML)
 
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
+  val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
 }
 
 
@@ -256,17 +259,31 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
-    *
-    * 1. Load and Validate smrtlink-system-config.json
-    * 2. Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
-    * 3. Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
-    * 4. (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
-    * 5. (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
-    * 6. (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
-    * 7. (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
-    * 8. (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
-    * 9. (update_redirect) write index.jsp to tomcat root
-    */
+   * #10 (update_user_mgt)
+   * - Write user-mgt.xml to the root WSO2 conf dir with the WSO2 username and password
+   */
+  def updateUserMgtXml(outputFile: File, smrtLinkStaticUITemplateXml: File, wso2User: String, wso2Password: String): File = {
+    val xmlNode = XmlTemplateReader.
+      fromFile(smrtLinkStaticUITemplateXml)
+      .globally().substitute("${WSO2_USER}", wso2User)
+      .globally().substitute("${WSO2_PASSWORD}", wso2Password)
+      .result()
+
+    writeAndLog(outputFile, xmlNode.mkString)
+  }
+
+  /**
+   * 1.  Load and Validate smrtlink-system-config.json
+   * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
+   * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
+   * 4.  (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
+   * 5.  (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
+   * 6.  (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
+   * 7.  (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
+   * 8.  (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
+   * 9.  (update_redirect) write index.jsp to tomcat root
+   * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
+   */
   def run(opts: ApplyConfigToolOptions): String = {
 
     // if templateDir is not provided, a dir "templates" dir within
@@ -331,6 +348,9 @@ object ApplyConfigUtils extends LazyLogging{
     updateWso2Redirect(resolver.tomcatIndexJsp.toFile, templateResolver.indexJsp.toFile, host, wso2Port, ApplyConfigConstants.STATIC_FILE_DIR)
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
+
+    // #10
+    updateUserMgtXml(resolver.userMgtConfig.toFile, templateResolver.userMgtXml.toFile, c.pacBioSystem.wso2User, c.pacBioSystem.wso2Password)
 
     "Successfully Completed apply-config"
   }
