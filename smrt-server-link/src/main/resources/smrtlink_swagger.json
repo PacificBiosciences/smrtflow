@@ -98,6 +98,70 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/tech-support/system-status": {
+      "post": {
+        "description": "Submit a Request to Create a TS System Status TGZ bundle and upload to PacBio (Only supported if an external URL is configured)",
+        "responses": {
+          "201": {
+            "description": "Returns a SmrtLink SystemEvent"
+          },
+          "default": {
+            "description": "Returns a SmrtLink SystemEvent"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/TechSupportSystemStatusRecord"
+            }
+          }
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/tech-support/job": {
+      "post": {
+        "description": "Submit a Request to Create a TS Job TGZ bundle and upload to PacBio (Only supported if an external URL is configured)",
+        "responses": {
+          "201": {
+            "description": "Returns a SmrtLink SystemEvent"
+          },
+          "default": {
+            "description": "Returns a SmrtLink SystemEvent"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/TechSupportJobRecord"
+            }
+          }
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/secondary-analysis/pipeline-template-view-rules": {
       "get": {
         "x-scope": "data-management",
@@ -4469,6 +4533,46 @@
       "example": {
         "url": "file:///home/UNIXHOME/mkocher/chemistry-tests/chemistry-9.8.7.tar.gz"
       }
+    },
+    "TechSupportJobRecord": {
+      "properties": {
+        "comment": {
+          "description": "User Comment",
+          "title": "User Comment",
+          "type": "string"
+        },
+        "jobId": {
+          "description": "SMRT Link Job Id",
+          "title": "Job Id",
+          "type": "integer"
+        },
+        "name": {
+          "default": "A green door",
+          "description": "An explanation about the purpose of this instance.",
+          "title": "The Name Schema",
+          "type": "string"
+        }
+      },
+      "required": ["name", "jobId", "comment"],
+      "type": "object"
+    },
+    "TechSupportSystemStatusRecord": {
+      "properties": {
+        "comment": {
+          "description": "User Comment",
+          "title": "User Comment",
+          "type": "string"
+        },
+        "name": {
+          "default": "A green door",
+          "description": "An explanation about the purpose of this instance.",
+          "title": "The Name Schema",
+          "type": "string"
+        }
+      },
+      "required": ["name", "comment"],
+      "type": "object"
     }
+
   }
 }
