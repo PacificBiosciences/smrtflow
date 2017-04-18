@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
@@ -50,6 +50,7 @@ object ApplyConfigConstants {
   val REL_TOMCAT_UI_API_SERVER_CONFIG = s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_API_SERVER_CONFIG_JSON"
 
   val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
+  val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
 
   // Templates
   val T_WSO2_TEMPLATES = "templates-wso2"
@@ -139,6 +140,17 @@ object ApplyConfigUtils extends LazyLogging{
   def writeJvmLogArgs(outputFile: File, logDir: Path, logLevel: String): File = {
     val sx = s"--log-file $logDir/secondary-smrt-server.log --log-level $logLevel"
     writeAndLog(outputFile, sx)
+  }
+
+  def setupWso2LogDir(rootDir: Path, logDir: Path): Path = {
+    val wso2LogDir = rootDir.resolve(ApplyConfigConstants.REL_WSO2_LOG_DIR)
+    val symlink = logDir.resolve("wso2")
+    if (! Files.exists(symlink)) {
+      Files.createSymbolicLink(symlink, wso2LogDir)
+    } else {
+      logger.warn(s"Path $symlink already exists")
+      symlink
+    }
   }
 
   type M = Map[String, Option[String]]
@@ -317,6 +329,8 @@ object ApplyConfigUtils extends LazyLogging{
 
     // #9
     updateWso2Redirect(resolver.tomcatIndexJsp.toFile, templateResolver.indexJsp.toFile, host, wso2Port, ApplyConfigConstants.STATIC_FILE_DIR)
+
+    setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
     "Successfully Completed apply-config"
   }
