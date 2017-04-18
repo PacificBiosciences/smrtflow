@@ -21,7 +21,7 @@ arg1="${1:-}"
 
 check_pid() {
   local pid=$1; shift;
-  [ kill -0 "$pid" > /dev/null 2>&1 ]
+  kill -0 "$pid" > /dev/null 2>&1
 }
 
 SL_ANALYSIS_PID=${__root}/sl-analysis.pid
