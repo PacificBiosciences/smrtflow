@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
