@@ -761,30 +761,6 @@ case class ExternalEventServerConfig(host: String, port: Int) {
   def toUrl(): URL = new URL(s"http://$host:$port")
 }
 
-
-// TechSupport
-/**
-  * Tech Support metadata "Bundle"
-  *
-  * General Tech Support Manifest
-  *
-  * @param id                    Globally unique if of the bundle
-  * @param bundleTypeId          Bundle type id (e.g, "failed_smrtlink_install", "failed_smrtlink_analysis_job"
-  * @param bundleTypeVersion     Version of this Schema
-  * @param createdAt             When the bundle was created
-  * @param smrtLinkSystemId      Unique id of the SL System
-  * @param smrtLinkSystemVersion SL System Version
-  * @param user                  User who created the bundle
-  */
-case class TechSupportBundle(id: UUID,
-                             bundleTypeId: String,
-                             bundleTypeVersion: Int,
-                             createdAt: JodaDateTime,
-                             smrtLinkSystemId: UUID,
-                             smrtLinkSystemVersion: Option[String],
-                             user: String,
-                             comment: Option[String])
-
 // Request to create a System Status bundle
 case class TechSupportSystemStatusRecord(name: String, comment: String)
 

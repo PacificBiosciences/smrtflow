@@ -594,6 +594,9 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val datastoreFileViewRules = jsonFormat5(DataStoreFileViewRule)
   implicit val pipelineDataStoreViewRules = jsonFormat3(PipelineDataStoreViewRules)
 
+  implicit val tsSystemStatusManifest = jsonFormat9(TsSystemStatusManifest.apply)
+  implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
+
 }
 
 

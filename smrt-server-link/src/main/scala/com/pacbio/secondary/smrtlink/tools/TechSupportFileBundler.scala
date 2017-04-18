@@ -10,7 +10,7 @@ import scopt.OptionParser
 
 import scala.util.{Failure, Success, Try}
 
-case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path) extends LoggerConfig
+case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user: Option[String]) extends LoggerConfig
 
 
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] {
@@ -21,7 +21,8 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
 
   val defaults = TechSupportFileBundlerOptions(
     Paths.get("userdata"),
-    Paths.get("tech-support-bundle.tgz")
+    Paths.get("tech-support-bundle.tgz"),
+    None
   )
 
   val parser = new OptionParser[TechSupportFileBundlerOptions]("techsupport-bundler") {
@@ -39,6 +40,11 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
         .action { (x, c) => c.copy(output = Paths.get(x).toAbsolutePath)}
         .validate(validateDoesNotExist)
         .text(s"Output TechSupport bundle output (tgz) file. Default '${defaults.output.toAbsolutePath}'")
+
+    opt[String]("user")
+        .action { (x, c) => c.copy(user = Some(x))}
+        .validate(validateDoesNotExist)
+        .text(s"Optional user to create TechSupport bundle output (tgz) file. Default ${defaults.user}")
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -72,7 +78,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
   }
 
   override def runTool(c: TechSupportFileBundlerOptions): Try[String] =
-      Try { TechSupportFailedInstallBuilder(c.rootUserData, c.output) }
+      Try { TechSupportFailedInstallBuilder(c.rootUserData, c.output, c.user) }
           .map(output => s"Successfully wrote TechSupport Bundle to $output (${output.toFile.length() / 1024} Kb)")
 
   // To adhere to the fundamental interface. Other tools need to migrate to use

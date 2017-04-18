@@ -11,8 +11,9 @@ import scala.util.{Failure, Success, Try}
 import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.common.file.JFileSystemUtil
+import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
-import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, TechSupportBundle}
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import spray.json._
 
 
@@ -62,7 +63,7 @@ object TechSupportFailedInstallBuilder {
 
   }
 
-  private def writeManifest(m: TechSupportBundle, output: Path): Path = {
+  private def writeManifest(m: TsSystemStatusManifest, output: Path): Path = {
     JFileSystemUtil.writeToFile(m.toJson.prettyPrint, output)
     output
   }
@@ -96,7 +97,7 @@ object TechSupportFailedInstallBuilder {
     * @param outputFile output file of tgz file
     * @return
     */
-  def apply(rootSmrtLinkDir: Path, outputFile: Path): Path = {
+  def apply(rootSmrtLinkDir: Path, outputFile: Path, user: Option[String]): Path = {
 
     val techSupportBundleId =  UUID.randomUUID()
     val smrtLinkSystemId = Constants.SERVER_UUID
@@ -135,14 +136,17 @@ object TechSupportFailedInstallBuilder {
     val smrtLinkSystemVersion = loadSmrtLinkVersionFromConfig(smrtLinkSystemConfigPath.toFile)
 
     val comment = s"Created by smrtflow version ${Constants.SMRTFLOW_VERSION}"
+    // Mocked out
+    val dnsName: Option[String] = None
 
     // Create and Write Manifest
-    val manifest = TechSupportBundle(
+    val manifest = TsSystemStatusManifest(
       techSupportBundleId,
       TechSupportBundleTypes.FAILED_SL_INSTALL ,
       1,
       JodaDateTime.now(),
       smrtLinkSystemId,
+      dnsName,
       smrtLinkSystemVersion,
       userName,
       Some(comment))
