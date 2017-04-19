@@ -26,17 +26,12 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
   type Out = PacBioDataStore
   val jobTypeId = JobTypeId("ts_bundle_job")
 
-  def writeTo(jx: String, path: Path):Path = {
-    FileUtils.writeStringToFile(path.toFile, jx)
-    path
-  }
-
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
     resultsWriter.writeLineStdout(s"TechSupport Bundle Opts $opts")
     val tempDir = Files.createTempDirectory("ts-manifest")
     val manifestPath = tempDir.resolve("ts-manifest.json")
-    writeTo(opts.manifest.toJson.prettyPrint, manifestPath)
+    FileUtils.writeStringToFile(manifestPath.toFile, opts.manifest.toJson.prettyPrint)
 
     val outputTgz = job.path.resolve("ts-bundle.tgz")
     val outputDs = job.path.resolve("datastore.json")
@@ -53,7 +48,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
 
     // This should add the stdout as the "log"
     val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile))
-    writeTo(ds.toJson.prettyPrint, outputDs)
+    FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
 
     resultsWriter.writeLineStdout(s"Successfully create TS TGZ bundle ${opts.manifest.id}")
     Right(ds)

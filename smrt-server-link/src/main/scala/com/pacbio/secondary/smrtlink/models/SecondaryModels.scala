@@ -24,5 +24,7 @@ object SecondaryModels {
 
   case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
 
+  case class TsSystemStatusServiceOptions(user: String, comment: String)
+
 
 }
