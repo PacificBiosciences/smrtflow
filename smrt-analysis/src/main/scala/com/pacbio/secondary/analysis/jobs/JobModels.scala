@@ -302,7 +302,9 @@ object JobModels {
       entryPointsJson: Path,
       jobReportJson: Path)
 
-  trait ImportAble
+  trait ImportAble {
+    def summary: String
+  }
 
   /**
    * Core DataStore File
@@ -331,6 +333,8 @@ object JobModels {
       description: String) extends ImportAble {
 
     def fileExists: Boolean = Paths.get(path).toFile.exists
+
+    def summary: String = toString
   }
 
   // Container for file created from a Job
@@ -340,7 +344,11 @@ object JobModels {
 
 
 
-  case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble
+  case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble {
+    override def summary = {
+      s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" + files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
+    }
+  }
 
   // Should think about making this a Path
   case class BoundEntryPoint(entryId: String, path: String)
