@@ -28,7 +28,7 @@ import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
 
-class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenticator, smrtLinkVersion: Option[String], smrtLinkSystemId: UUID, dnsName: Option[String]) extends {
+class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenticator, smrtLinkVersion: Option[String], smrtLinkSystemId: UUID, dnsName: Option[String], smrtLinkSystemRoot: Option[Path]) extends {
   override val endpoint = JobTypeIds.TS_SYSTEM_STATUS.id
   override val description = "TechSupport Job to create a TGZ bundle of an SMRT Link System Status that can be sent to PacBio for TroubleShooting help"
 } with JobTypeService[TsSystemStatusServiceOptions](dbActor, authenticator) with ProjectIdJoiner with LazyLogging {
@@ -42,7 +42,6 @@ class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenti
 
   override def createJob(opts: TsSystemStatusServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
 
-    val smrtLinkSystemRoot: Option[Path] = Some(Paths.get("/"))
     val errorMessage = "System is not configured with SMRT Link System Root. Can NOT create TS Status Job"
 
     // This isn't great and might create confusion, but re-using the
@@ -59,7 +58,7 @@ class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenti
         smrtLinkVersion)
     }
 
-    // If the system isn't configured, we fail to create the Job
+    // If the system isn't configured, we fail to create a Job
     jobOpt.map(j => Future.successful(j))
         .getOrElse(Future.failed(throw new UnprocessableEntityError(errorMessage)))
   }
@@ -71,5 +70,5 @@ trait TsSystemStatusBundleServiceTypeProvider {
       with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val tsSystemStatusBundleJobServiceType: Singleton[TsSystemStatusBundleServiceType] =
-    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName())).bindToSet(JobTypes)
+    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName(), smrtLinkSystemRoot())).bindToSet(JobTypes)
 }
