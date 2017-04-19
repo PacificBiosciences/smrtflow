@@ -55,6 +55,10 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
     Singleton(() => PacBioDataBundleIOUtils.loadBundlesFromRoot(pacBioBundleRoot()))
 
+  // Optional SMRT Link System level Root Dir e.g., /path/to/smrtsuite/
+  val smrtLinkSystemRoot: Singleton[Option[Path]] =
+    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.smrtLinkSystemRoot"))}.toOption)
+
   /**
     * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
     *
