@@ -47,6 +47,7 @@ object AnalysisJobStates {
   val VALID_STATES = Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
 
   val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED)
+  val FAILURE_STATES = Seq(TERMINATED, FAILED)
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
 
@@ -225,6 +226,7 @@ object JobModels {
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
       def isRunning: Boolean = this.state == AnalysisJobStates.RUNNING
+      def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains(this.state)
 
       def apply(
           id: Int,

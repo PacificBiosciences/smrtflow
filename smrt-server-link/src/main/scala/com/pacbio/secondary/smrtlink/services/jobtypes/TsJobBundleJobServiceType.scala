@@ -7,8 +7,9 @@ import akka.actor.ActorRef
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{CommonModelImplicits, Constants, UserRecord}
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, JobTypeIds, TsJobManifest}
+import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, EngineJob, JobTypeIds, TsJobManifest}
 import com.pacbio.secondary.analysis.jobtypes.{TsJobBundleJob, TsJobBundleJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
@@ -37,6 +38,12 @@ class TsJobBundleJobServiceType(dbActor: ActorRef, authenticator: Authenticator,
       dnsName, smrtLinkVersion, user, Some(comment), endpoint, jobId)
   }
 
+  // Only Failure jobs can be submitted to TS for troubleshooting
+  def onlyAllowFailed(job: EngineJob): Future[EngineJob] = {
+    if (job.hasFailed) Future.successful(job)
+    else Future.failed(throw new UnprocessableEntityError(s"Can only can send failed jobs. Job ${job.id} type:${job.jobTypeId} state:${job.state}"))
+  }
+
   override def createJob(opts: TsJobBundleJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
 
     // This isn't great and might create confusion, but re-using the
@@ -45,11 +52,12 @@ class TsJobBundleJobServiceType(dbActor: ActorRef, authenticator: Authenticator,
 
     for {
       engineJob <- getJob(opts.jobId)
+      validJob <- onlyAllowFailed(engineJob)
     } yield CreateJobType(jobId, "Tech Support Job bundle", opts.comment, endpoint,
       CoreJob(jobId,
         TsJobBundleJobOptions(
           Paths.get(engineJob.path),
-          toTsManifest(jobId, opts.user, opts.comment, smrtLinkSystemId, engineJob.id, engineJob.jobTypeId, dnsName)
+          toTsManifest(jobId, opts.user, opts.comment, smrtLinkSystemId, validJob.id, validJob.jobTypeId, dnsName)
         )),
         None,
         opts.toJson.toString(),
