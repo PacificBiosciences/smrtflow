@@ -28,7 +28,7 @@ import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 
 
-class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenticator, smrtLinkVersion: Option[String], smrtLinkSystemId: UUID, dnsName: Option[String], smrtLinkSystemRoot: Option[Path], smrtLinkLogDir: Option[Path]) extends {
+class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenticator, smrtLinkVersion: Option[String], smrtLinkSystemId: UUID, dnsName: Option[String], smrtLinkSystemRoot: Option[Path]) extends {
   override val endpoint = JobTypeIds.TS_SYSTEM_STATUS.id
   override val description = "TechSupport Job to create a TGZ bundle of an SMRT Link System Status that can be sent to PacBio for TroubleShooting help"
 } with JobTypeService[TsSystemStatusServiceOptions](dbActor, authenticator) with ProjectIdJoiner with LazyLogging {
@@ -70,5 +70,5 @@ trait TsSystemStatusBundleServiceTypeProvider {
       with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val tsSystemStatusBundleJobServiceType: Singleton[TsSystemStatusBundleServiceType] =
-    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName(), smrtLinkSystemRoot(), logDir())).bindToSet(JobTypes)
+    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName(), smrtLinkSystemRoot())).bindToSet(JobTypes)
 }
