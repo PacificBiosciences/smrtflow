@@ -1,16 +1,15 @@
 package com.pacbio.secondary.analysis.jobtypes
 
 import java.nio.file.Path
-import java.nio.file.Files
 import java.util.UUID
 
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.{BaseCoreJob, BaseJobOptions, JobResultWriter}
 import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
+import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
 import org.apache.commons.io.FileUtils
 
 
@@ -29,16 +28,17 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
     resultsWriter.writeLineStdout(s"TechSupport Bundle Opts $opts")
-    val tempDir = Files.createTempDirectory("ts-manifest")
-    val manifestPath = tempDir.resolve("ts-manifest.json")
-    FileUtils.writeStringToFile(manifestPath.toFile, opts.manifest.toJson.prettyPrint)
 
-    val outputTgz = job.path.resolve("ts-bundle.tgz")
+    val outputTgz = job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
     val outputDs = job.path.resolve("datastore.json")
 
-    TarGzUtil.createTarGzip(tempDir, outputTgz.toFile)
-    resultsWriter.writeLineStdout(s"Wrote TGZ to ${outputTgz.toAbsolutePath}")
 
+    TechSupportUtils.writeJobBundleTgz(opts.jobRoot, opts.manifest, outputTgz)
+
+    val totalSizeMB = outputTgz.toFile.length / 1024.0 / 1024.0
+    resultsWriter.writeLineStdout(s"Total file size $totalSizeMB MB")
+
+    // Create DataStore
     val createdAt = JodaDateTime.now()
     val name = s"TS Job ${opts.manifest.jobTypeId} id:${opts.manifest.jobId} Bundle "
     val description = s"TechSupport Bundle for Job type:${opts.manifest.jobTypeId} id: ${opts.manifest.jobTypeId}"

@@ -56,7 +56,7 @@ class TsJobBundleJobServiceType(dbActor: ActorRef, authenticator: Authenticator,
     } yield CreateJobType(jobId, "Tech Support Job bundle", opts.comment, endpoint,
       CoreJob(jobId,
         TsJobBundleJobOptions(
-          Paths.get(engineJob.path),
+          Paths.get(validJob.path),
           toTsManifest(jobId, opts.user, opts.comment, smrtLinkSystemId, validJob.id, validJob.jobTypeId, dnsName)
         )),
         None,

@@ -11,6 +11,7 @@ import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.{BaseCoreJob, BaseJobOptions, JobResultWriter}
 import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
+import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
 import org.apache.commons.io.FileUtils
 
 
@@ -29,14 +30,22 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
     resultsWriter.writeLineStdout(s"TechSupport System Status Bundle Opts $opts")
-    val tempDir = Files.createTempDirectory("ts-manifest")
-    val manifestPath = tempDir.resolve("ts-manifest.json")
-    FileUtils.writeStringToFile(manifestPath.toFile, opts.manifest.toJson.prettyPrint)
 
-    val outputTgz = job.path.resolve("ts-bundle.tgz")
+    val outputTgz = job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
     val outputDs = job.path.resolve("datastore.json")
 
-    TarGzUtil.createTarGzip(tempDir, outputTgz.toFile)
+
+    // Should clean this up. There's inconsistencies where the the SL Root is used
+    // and where smrt-link-system/userdata is used. I believe we only need userdata
+    val smrtLinkUserData = opts.smrtLinkSystemRoot.resolve("userdata")
+
+    TechSupportUtils.writeSmrtLinkSystemStatusTgz(smrtLinkUserData, outputTgz, opts.manifest.user,
+      opts.manifest.smrtLinkSystemVersion, opts.manifest.dnsName)
+
+    val totalSize = outputTgz.toFile.length()
+    val totalSizeMB = totalSize / 1024.0 / 1024.0
+    resultsWriter.writeLineStdout(s"Total file size $totalSizeMB MB")
+
     resultsWriter.writeLineStdout(s"Wrote TGZ to ${outputTgz.toAbsolutePath}")
 
     val createdAt = JodaDateTime.now()
