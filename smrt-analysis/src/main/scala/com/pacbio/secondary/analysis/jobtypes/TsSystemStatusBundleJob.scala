@@ -53,7 +53,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
     val name = "TechSupport System Status"
     val description = s"Tech Support System Status TGZ bundle for SL System Root ${opts.smrtLinkSystemRoot}"
 
-    val dsFile = DataStoreFile(UUID.randomUUID(), "ts-bundle-job-0", FileTypes.TGZ.fileTypeId,
+    val dsFile = DataStoreFile(UUID.randomUUID(), "ts-bundle-job-0", FileTypes.TS_TGZ.fileTypeId,
       outputTgz.toFile.length(), createdAt, createdAt, outputTgz.toAbsolutePath.toString, isChunked = false, name, description)
 
     val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile))

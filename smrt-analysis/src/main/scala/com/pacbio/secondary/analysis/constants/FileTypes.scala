@@ -85,6 +85,8 @@ object FileTypes {
   final val GZIP = FileBaseType(toFT("gzip"), "file", "gz", MimeTypes.GZIP)
   final val ZIP = FileBaseType(toFT("zip"), "file", "zip", MimeTypes.ZIP)
   final val TGZ = FileBaseType(toFT("tgz"), "file", "tar.gz", MimeTypes.GZIP)
+  // This should not be used by pipelines or TCs
+  final val TS_TGZ = FileBaseType(toFT("ts_tgz"), "tech-support", "tar.gz", MimeTypes.GZIP)
 
   final val REPORT = FileBaseType(toFT("JsonReport"), "file", "report.json", MimeTypes.JSON)
 

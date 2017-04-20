@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
+import java.nio.file.Path
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
@@ -26,6 +27,8 @@ import scala.util.control.NonFatal
 object EventManagerActor {
   case object CheckExternalServerStatus
   case class CreateEvent(event: SmrtLinkEvent)
+  // Upload a TGZ file
+  case class UploadTgz(path: Path)
 }
 
 
@@ -105,6 +108,9 @@ class EventManagerActor(smrtLinkId: UUID,
         // the message isn't sent. Should clarify this interface
         sender ! systemEvent
       }
+
+    case UploadTgz(tgzPath) =>
+      logger.info(s"Triggering upload of $tgzPath")
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }

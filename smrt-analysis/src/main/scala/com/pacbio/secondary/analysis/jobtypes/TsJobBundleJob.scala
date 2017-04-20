@@ -43,7 +43,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
     val name = s"TS Job ${opts.manifest.jobTypeId} id:${opts.manifest.jobId} Bundle "
     val description = s"TechSupport Bundle for Job type:${opts.manifest.jobTypeId} id: ${opts.manifest.jobTypeId}"
 
-    val dsFile = DataStoreFile(UUID.randomUUID(), "ts-bundle-job-0", FileTypes.TGZ.fileTypeId,
+    val dsFile = DataStoreFile(UUID.randomUUID(), "ts-bundle-job-0", FileTypes.TS_TGZ.fileTypeId,
       outputTgz.toFile.length(), createdAt, createdAt, outputTgz.toAbsolutePath.toString, isChunked = false, name, description)
 
     // This should add the stdout as the "log"
