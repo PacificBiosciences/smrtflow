@@ -66,8 +66,8 @@ start-smrt-server-link:
 	sbt "smrt-server-link/run"
 
 start-smrt-server-link-jar:
-	sbt "smrt-server-link/assembly"
-	java -jar smrt-server-link/target/scala-2.11/smrt-server-link-assembly*.jar
+	sbt "smrt-server-link/{compile,pack}"
+	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
 test:
 	sbt -batch "test-only -- junitxml html console"
