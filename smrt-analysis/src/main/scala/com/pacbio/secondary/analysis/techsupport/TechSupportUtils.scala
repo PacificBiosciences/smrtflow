@@ -8,6 +8,7 @@ import com.pacbio.common.models.Constants
 import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsJobManifest, TsSystemStatusManifest}
 import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -19,7 +20,7 @@ trait TechSupportConstants {
 
 object TechSupportConstants extends TechSupportConstants
 
-trait TechSupportUtils extends TechSupportConstants{
+trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
   // White listed files
   final val JOB_EXTS = Set("sh", "stderr", "stdout", "log", "json", "html", "css", "png", "dot")
@@ -115,7 +116,6 @@ trait TechSupportUtils extends TechSupportConstants{
         .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
         .filter(_.toFile.isDirectory)
 
-    println(s"Userdata dirs $userDataDirs")
     // Nat's original script was grabbing the services stderr and stdout. I'm not doing that here.
     // It should be fundamentally fixed at the log level. Everything from stderr and stdout should be in the logs
 
@@ -124,8 +124,7 @@ trait TechSupportUtils extends TechSupportConstants{
       val srcRelPath = smrtLinkUserDataRoot.relativize(srcPath)
       val destPath = dest.resolve(srcRelPath)
       FileUtils.forceMkdir(destPath.toFile)
-      println(s"Src  $srcPath")
-      println(s"Dest $destPath")
+      logger.debug(s"Copying $srcPath to $destPath")
       FileUtils.copyDirectory(srcPath.toFile, destPath.toFile)
     }
 
