@@ -116,6 +116,10 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
         .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
         .filter(_.toFile.isDirectory)
 
+    if (userDataDirs.isEmpty) {
+      logger.warn(s"Unable to find required directories ($TS_REQ_INSTALL) in SL UserRoot $smrtLinkUserDataRoot")
+    }
+
     // Nat's original script was grabbing the services stderr and stdout. I'm not doing that here.
     // It should be fundamentally fixed at the log level. Everything from stderr and stdout should be in the logs
 
