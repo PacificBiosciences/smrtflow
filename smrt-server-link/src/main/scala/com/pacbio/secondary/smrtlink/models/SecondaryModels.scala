@@ -7,13 +7,6 @@ import spray.json._
 
 object SecondaryModels {
 
-  // Secondary Analysis System Configuration
-  case class SecondaryAnalysisConfig(
-      engineConfig: EngineConfig,
-      pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
-      dbURI: String,
-      cmdTemplate: Option[CommandTemplate])
-
   // POST creation of a job event
   case class JobEventRecord(
       state: String,
@@ -28,4 +21,10 @@ object SecondaryModels {
                                          outputPath: String)
   case class DataSetDeleteServiceOptions(datasetType: String, ids: Seq[Int],
                                          removeFiles: Boolean = true)
+
+  case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
+
+  case class TsSystemStatusServiceOptions(user: String, comment: String)
+
+
 }

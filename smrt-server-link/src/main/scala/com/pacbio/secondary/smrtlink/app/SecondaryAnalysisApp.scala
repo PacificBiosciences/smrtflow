@@ -25,6 +25,8 @@ trait SecondaryAnalysisProviders
   with SimpleServiceJobTypeProvider
   with ExportDataSetsServiceJobTypeProvider
   with DeleteDataSetsServiceJobTypeProvider
+  with TsJobBundleJobServiceTypeProvider
+  with TsSystemStatusBundleServiceTypeProvider
   with LoggerFactoryProvider {
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")

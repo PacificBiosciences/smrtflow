@@ -238,7 +238,9 @@ class EventService(eventProcessor: EventProcessor,
   }
 
   def resolveOutputFile(fileName: String): File = {
-    val f = rootUploadFilesDir.resolve(fileName).toFile
+    //FIXME(mpkocher)(5-20-2017) Workaround to UUID to make unique within the root dir. This needs a better, more principled solution
+    val i = UUID.randomUUID()
+    val f = rootUploadFilesDir.resolve(s"$i-$fileName").toFile
     logger.info(s"Resolved $fileName to local output $f")
     f.createNewFile()
     logger.info(s"Creating file $f")

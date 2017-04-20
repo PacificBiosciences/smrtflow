@@ -172,7 +172,7 @@ class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUti
             Right(x) // pass through
           case Right(x:ImportAble) =>
             // Only Mark as Successful if all the Files are imported Successfully
-            writer.writeLineStdout(s"attempting to import $x")
+            writer.writeLineStdout(s"attempting to import\n${x.summary}")
             val fx = importAbleFile(x, pbJob.jobId)
 
             // Block until the db import is completed

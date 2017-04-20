@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
+import java.nio.file.Path
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
@@ -26,6 +27,8 @@ import scala.util.control.NonFatal
 object EventManagerActor {
   case object CheckExternalServerStatus
   case class CreateEvent(event: SmrtLinkEvent)
+  // Upload a TGZ file
+  case class UploadTgz(path: Path)
 }
 
 
@@ -74,6 +77,18 @@ class EventManagerActor(smrtLinkId: UUID,
     }
   }
 
+  // Should this spawn a "worker" actor to run this call?
+  private def upload(c: EventServerClient, tgz: Path):Future[SmrtLinkSystemEvent] = {
+    logger.info(s"Client ${c.toUploadUrl} Attempting to upload $tgz")
+
+    val f = c.upload(tgz)
+
+    f.onSuccess { case e:SmrtLinkSystemEvent => logger.info(s"Upload successful. Event $e")}
+    f.onFailure { case NonFatal(e) => logger.error(s"Failed to upload $tgz Error ${e.getMessage}") }
+
+    f
+  }
+
   override def receive: Receive = {
 
     case CheckExternalServerStatus =>
@@ -104,6 +119,15 @@ class EventManagerActor(smrtLinkId: UUID,
         // This is to have a consistent interface, but this is making it a bit unclear that
         // the message isn't sent. Should clarify this interface
         sender ! systemEvent
+      }
+
+    case UploadTgz(tgzPath) =>
+      logger.info(s"Triggering upload of $tgzPath")
+      client match {
+        case Some(c) =>
+          upload(c, tgzPath)
+        case _ =>
+          logger.warn("Unable to upload. System is not configured with a external server URL")
       }
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")

@@ -204,9 +204,6 @@ trait SmrtLinkJsonProtocols
 
   implicit val externalServerStatusFormat = jsonFormat2(ExternalServerStatus.apply)
 
-  // Tech Support Related marshallers
-  implicit val techSupportBundleFormat = jsonFormat8(TechSupportBundle.apply)
-
   implicit val techSupportSystemStatusRecordFormat = jsonFormat2(TechSupportSystemStatusRecord.apply)
   implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
