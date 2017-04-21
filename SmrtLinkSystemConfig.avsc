@@ -203,12 +203,6 @@
             "name": "wso2User",
             "type": "string",
             "default": "admin"
-          },
-          {
-            "doc": "Password for the WSO2 Admin user (hcon-key smrtflow.pacBioSystem.wso2Password)",
-            "name": "wso2Password",
-            "type": "string",
-            "default": "admin"
           }
         ]
       }

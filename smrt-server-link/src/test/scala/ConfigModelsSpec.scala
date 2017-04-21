@@ -7,8 +7,6 @@ import spray.json._
 import com.pacbio.secondary.smrtlink.models.ConfigModels._
 import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 
-
-
 /**
   * Created by mkocher on 1/4/17.
   */
@@ -25,7 +23,6 @@ class ConfigModelsSpec extends Specification{
 
   "Sanity serialization of SL System config 2.0" should {
     "Load test file successfully" in {
-
       val name = "smrtlink-system-config.json"
       val p = getTestResource(name)
       val sx = Source.fromFile(p.toFile).mkString
@@ -34,7 +31,15 @@ class ConfigModelsSpec extends Specification{
       config.comment must beSome
       config.smrtflow.server.port === 8077
     }
+
+    "Load credentials file successfully" in {
+      val name = "credentials.json"
+      val p = getTestResource(name)
+      val sx = Source.fromFile(p.toFile).mkString
+      val jx = sx.parseJson
+      val creds = jx.convertTo[Wso2Credentials]
+      creds.wso2User === "jsnow"
+      creds.wso2Password === "r+l=j"
+    }
   }
-
-
 }

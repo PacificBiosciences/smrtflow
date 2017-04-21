@@ -38,7 +38,7 @@ trait ConfigModelsJsonProtocol extends DefaultJsonProtocol with PathProtocols wi
   implicit val smrtflowEngineConfigFormat = jsonFormat3(SmrtflowEngineConfig)
   implicit val smrtflowConfigFormat = jsonFormat3(SmrtflowConfig)
   implicit val rootSmrtflowConfigFormat = jsonFormat3(RootSmrtflowConfig)
-
+  implicit val wso2CredentialsFormat = jsonFormat2(Wso2Credentials)
 }
 
 object ConfigModelsJsonProtocol extends ConfigModelsJsonProtocol

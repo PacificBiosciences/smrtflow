@@ -31,8 +31,6 @@
     "tmpDir": "/tmp",
     "logDir": "./resources/logs",
     "pgDataDir": "./resources/pg-data",
-    "wso2User": "admin",
-    "wso2Password": "admin"
   },
   "comment": "SL System Default config example for Schema Version 2.0"
 }
