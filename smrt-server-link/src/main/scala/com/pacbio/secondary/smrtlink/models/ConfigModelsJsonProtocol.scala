@@ -31,7 +31,7 @@ import ConfigModels._
   */
 trait ConfigModelsJsonProtocol extends DefaultJsonProtocol with PathProtocols with UrlProtocol {
 
-  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat9(SmrtflowPacBioSystemConfig)
+  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat10(SmrtflowPacBioSystemConfig)
   implicit val smrtflowDbPropertiesConfigFormat = jsonFormat5(SmrtflowDbPropertiesConfig)
   implicit val smrtflowDbConfigFormat = jsonFormat1(SmrtflowDbConfig)
   implicit val smrtflowServerConfigFormat = jsonFormat5(SmrtflowServerConfig)

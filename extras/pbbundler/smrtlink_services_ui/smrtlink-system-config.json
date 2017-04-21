@@ -30,7 +30,8 @@
     "smrtViewPort": 8084,
     "tmpDir": "/tmp",
     "logDir": "./resources/logs",
-    "pgDataDir": "./resources/pg-data"
+    "pgDataDir": "./resources/pg-data",
+    "smrtLinkSystemRoot": "./resources/smrtlink-root"
   },
   "comment": "SL System Default config example for Schema Version 2.0"
 }
