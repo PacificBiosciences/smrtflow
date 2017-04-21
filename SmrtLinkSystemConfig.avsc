@@ -199,10 +199,10 @@
             "default": null
           },
           {
-            "doc": "Username for the WSO2 Admin user (hcon-key smrtflow.pacBioSystem.wso2User)",
-            "name": "wso2User",
-            "type": "string",
-            "default": "admin"
+            "doc": "Path to SMRT Link System Root Directory",
+            "name": "smrtLinkSystemRoot",
+            "type": ["string", "null"],
+            "default": null
           }
         ]
       }

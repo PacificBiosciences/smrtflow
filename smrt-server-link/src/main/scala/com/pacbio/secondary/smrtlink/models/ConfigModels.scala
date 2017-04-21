@@ -20,7 +20,8 @@ object ConfigModels {
                                         smrtViewPort: Int = 8084,
                                         smrtLinkServerMemoryMin: Int = 4096,
                                         smrtLinkServerMemoryMax: Int = 4096,
-                                        remoteBundleUrl: Option[URL] = None
+                                        remoteBundleUrl: Option[URL] = None,
+                                        smrtLinkSystemRoot: Option[Path] = None
                                        )
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,
