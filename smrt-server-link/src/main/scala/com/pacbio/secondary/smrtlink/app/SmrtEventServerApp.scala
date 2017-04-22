@@ -203,7 +203,6 @@ class EventService(eventProcessor: EventProcessor,
     * data to the "message" body. Specfically,
     *
     * An SmrtLink System Event will be created by:
-    * - Re-use the UUID of the TS bundle as the Event UUID
     * - passing through the TS Manifest as the "message"
     * - adding "updloadedBundlePath" to the root level of the "message"
     *
@@ -239,10 +238,9 @@ class EventService(eventProcessor: EventProcessor,
 
     val bundleJson = JsObject(eventJson.fields ++ bundleJx)
 
-    // To avoid UUID mania, the UUID of the TS Manifest is used as the UUID of the Event.
-    // However, This can create confusion/problems with bundles trying to be re-uploaded depending on how
-    // the events/files are written to the file system
-    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, manifest.id, JodaDateTime.now(), bundleJson, manifest.dnsName)
+    val eventId = UUID.randomUUID()
+
+    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, eventId, JodaDateTime.now(), bundleJson, manifest.dnsName)
   }
 
   /**
