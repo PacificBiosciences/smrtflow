@@ -242,7 +242,7 @@ class EventService(eventProcessor: EventProcessor,
     // To avoid UUID mania, the UUID of the TS Manifest is used as the UUID of the Event.
     // However, This can create confusion/problems with bundles trying to be re-uploaded depending on how
     // the events/files are written to the file system
-    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, manifest.id, JodaDateTime.now(), bundleJson)
+    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, manifest.id, JodaDateTime.now(), bundleJson, manifest.dnsName)
   }
 
   /**
