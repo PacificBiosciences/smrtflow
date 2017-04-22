@@ -33,7 +33,7 @@ class ConfigModelsSpec extends Specification{
     }
 
     "Load credentials file successfully" in {
-      val name = "credentials.json"
+      val name = "wso2-credentials.json"
       val p = getTestResource(name)
       val sx = FileUtils.readFileToString(p.toFile, "UTF-8")
       val jx = sx.parseJson
