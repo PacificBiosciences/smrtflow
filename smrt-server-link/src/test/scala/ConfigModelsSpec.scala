@@ -1,6 +1,6 @@
 import java.nio.file.{Path, Paths}
 
-import scala.io.Source
+import org.apache.commons.io.FileUtils
 
 import org.specs2.mutable.Specification
 import spray.json._
@@ -25,7 +25,7 @@ class ConfigModelsSpec extends Specification{
     "Load test file successfully" in {
       val name = "smrtlink-system-config.json"
       val p = getTestResource(name)
-      val sx = Source.fromFile(p.toFile).mkString
+      val sx = FileUtils.readFileToString(p.toFile, "UTF-8")
       val jx = sx.parseJson
       val config = jx.convertTo[RootSmrtflowConfig]
       config.comment must beSome
@@ -35,7 +35,7 @@ class ConfigModelsSpec extends Specification{
     "Load credentials file successfully" in {
       val name = "credentials.json"
       val p = getTestResource(name)
-      val sx = Source.fromFile(p.toFile).mkString
+      val sx = FileUtils.readFileToString(p.toFile, "UTF-8")
       val jx = sx.parseJson
       val creds = jx.convertTo[Wso2Credentials]
       creds.wso2User === "jsnow"
