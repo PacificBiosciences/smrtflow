@@ -477,7 +477,8 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
     val startUpEventMessage =
       SmrtLinkSystemEvent(systemUUID, EventTypes.SERVER_STARTUP, 1,
         UUID.randomUUID(),
-        JodaDateTime.now, JsObject(message))
+        JodaDateTime.now, JsObject(message),
+        Some(java.net.InetAddress.getLocalHost.getCanonicalHostName))
 
     for {
       status <- eventServiceClient.getStatus
