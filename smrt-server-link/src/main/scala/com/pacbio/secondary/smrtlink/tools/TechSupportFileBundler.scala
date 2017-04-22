@@ -7,7 +7,7 @@ import java.util.UUID
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.analysis.techsupport.TechSupportUtils
+import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
@@ -18,28 +18,42 @@ import spray.json._
 import scala.util.{Failure, Success, Try}
 
 case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user: String,
-                                         dnsName: Option[String], smrtLinkVersion: Option[String]) extends LoggerConfig
+                                         dnsName: Option[String],
+                                         smrtLinkVersion: Option[String],
+                                         smrtLinkSystemId: Option[UUID]
+                                        ) extends LoggerConfig
 
 
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader {
 
-  override val VERSION = "0.1.1"
-  override val DESCRIPTION = "Create TechSupport bundle for failed SMRT Link Installs"
+  override val VERSION = "0.2.0"
+  override val DESCRIPTION =
+    s"""
+      |Tech Support Bundler $VERSION
+      |
+      |Create TechSupport bundle for failed SMRT Link Install
+      |
+      |Default values for Smrt Link Version, System Id and DNS will be extracted from
+      |the smrtlink-system-config.json in the userdata/config.
+      |
+      |If all of these values are overridden, the smrtlink-system-config.json will not be used (or required).
+    """.stripMargin
   override val toolId: String = "smrtflow.tools.tech_support_bundler"
 
   def getDefault(sx: String): Option[String] = Try { conf.getString(sx)}.toOption
 
   val defaults = TechSupportFileBundlerOptions(
     Paths.get("userdata"),
-    Paths.get("tech-support-bundle.tgz"),
+    Paths.get(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ),
     System.getProperty("user.name"),
     getDefault("smrtflow.server.dnsName"),
+    None,
     None
   )
 
   val parser = new OptionParser[TechSupportFileBundlerOptions]("techsupport-bundler") {
 
-    head(DESCRIPTION, VERSION)
+    head(DESCRIPTION)
 
     arg[File]("userdata")
         .action { (x, c) => c.copy(rootUserData = x.toPath) }
@@ -56,11 +70,23 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
         .validate(validateDoesNotExist)
         .text(s"Optional user to create TechSupport bundle output (tgz) file. Default ${defaults.user}")
 
-    // I'm not sure these make sense, but I've added this for testing. These should be configured globally via
-    // the smrtlink-system-config.json
+    def overrideMessage(sx: String) = s"Override for $sx. (pulled from userdata/smrtlink-system-config.json)"
+    // I'm not sure these make sense, but I've added this for testing and for access by DEP. Ideally, all of these
+    // These values should be configured globally from the smrtlink-system-config.json file. Adding these overrides
+    // adds flexibility at the cost of having a single location where this data
+    // is pulled from. This can result in inconsistent state between the three values.
     opt[String]("dns")
         .action { (x, c) => c.copy(dnsName = Some(x)) }
-        .text("Override for DNS Name of the SL Instance")
+        .text(overrideMessage("SMRT Link System DNS name"))
+
+    opt[String]("smrtlink-id")
+        .validate(validateUUID)
+        .action{ (x, c) => c.copy(smrtLinkSystemId = Some(UUID.fromString(x)))}
+        .text(overrideMessage("SMRT Link System Id"))
+
+    opt[String]("smrtlink-version")
+        .action{ (x, c) => c.copy(smrtLinkVersion = Some(x))}
+        .text(overrideMessage("SMRT Link System Version"))
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -77,6 +103,12 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     override def errorOnUnknownArgument = false
 
     override def showUsageOnError = false
+
+    def validateUUID(sx: String): Either[String, Unit] = {
+      Try (UUID.fromString(sx))
+          .map(_ => success)
+          .getOrElse(Left(s"Invalid uuid format for $sx"))
+    }
 
   }
 
@@ -102,7 +134,6 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     for {
       _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(0)))
       _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(1)))
-      _ <- hasRequiredFile(resolveTo("config/smrtlink-system-config.json"))
     } yield rootPath
   }
 
@@ -146,12 +177,27 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     opt.map(v => Success(v)).getOrElse(Failure(throw new Exception(s"Unable to get required value, $field, from config")))
   }
 
+  def getOr[T](rawOpt: Option[T], p: Path, f:(Path => Option[T])): Option[T] =
+    rawOpt.map(x => Some(x)).getOrElse(f(p))
+
+  def getSmrtLinkVersionFromConfigFile(p: Path): Option[String] =
+    getSmrtLinkVersionFromConfig(loadSystemConfig(p.toFile))
+
+  def getSmrtLinkIdFromConfigFile(p: Path): Option[UUID] =
+    loadSystemConfig(p.toFile).pacBioSystem.smrtLinkSystemId
+
+  def getDnsNameFromConfigFile(p: Path): Option[String] =
+    loadSystemConfig(p.toFile).smrtflow.server.dnsName
+
   override def runTool(c: TechSupportFileBundlerOptions): Try[String] = {
+    // This will only be used if necessary
+    val configPath = c.rootUserData.resolve(s"config/smrtlink-system-config.json")
+
     for {
-      systemConfig <- Try {loadSystemConfig(c.rootUserData.resolve(s"config/smrtlink-system-config.json").toFile)}
-      systemId <- getRequired[UUID]("SMRT Link System Id", systemConfig.pacBioSystem.smrtLinkSystemId)
-      systemVersion <- getRequired[String]("System Version", getSmrtLinkVersionFromConfig(systemConfig))
-      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, c.rootUserData, c.output, c.user, Some(systemVersion), c.dnsName)}
+      systemId <- getRequired[UUID]("SMRT Link System Id", getOr[UUID](c.smrtLinkSystemId, configPath, getSmrtLinkIdFromConfigFile))
+      systemVersion <- getRequired[String]("SMRT Link System Version", getOr[String](c.smrtLinkVersion, configPath, getSmrtLinkVersionFromConfigFile))
+      dnsName <- getRequired[String]("SMRT Link DNS Name", getOr[String](c.dnsName, configPath, getDnsNameFromConfigFile))
+      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, c.rootUserData, c.output, c.user, Some(systemVersion), Some(dnsName))}
     } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${tgzPath.toFile.length() / 1024} Kb)"
   }
 
