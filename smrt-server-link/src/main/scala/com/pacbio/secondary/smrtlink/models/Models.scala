@@ -753,7 +753,7 @@ case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                uuid: UUID,
                                createdAt: JodaDateTime,
                                message: JsObject,
-                               dnsName: Option[String] = None)
+                               dnsName: Option[String])
 
 
 // This should be removed. Only the URL should be used

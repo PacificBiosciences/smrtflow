@@ -33,7 +33,7 @@ class TechSupportService(eventServerUrl: Option[URL]) extends SmrtLinkBaseMicroS
 
   def toMockEvent(): Future[SmrtLinkSystemEvent] = {
     eventServerUrl.map { url =>
-      Future.successful(SmrtLinkSystemEvent(UUID.randomUUID(), "event_type", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty))
+      Future.successful(SmrtLinkSystemEvent(UUID.randomUUID(), "event_type", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty, None))
     }.getOrElse(Future.failed(throw new UnprocessableEntityError("System is not configured with an external TechSupport event server")))
   }
 
