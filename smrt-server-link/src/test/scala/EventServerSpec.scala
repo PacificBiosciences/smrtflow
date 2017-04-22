@@ -6,6 +6,9 @@ import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import akka.actor.ActorRefFactory
+import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
@@ -17,7 +20,6 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._
 import scala.concurrent.duration._
-
 import collection.JavaConversions._
 import collection.JavaConverters._
 
@@ -38,6 +40,9 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
   lazy val totalRoutes = SmrtEventServer.allRoutes
   lazy val eventMessageDir = SmrtEventServer.eventMessageDir
   lazy val fileUploadOutputDir = SmrtEventServer.eventUploadFilesDir
+
+  val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(), "test_bundle", 1, JodaDateTime.now(),
+    UUID.randomUUID(), None, None, "testuser", Some("Test/Mock Message"))
 
   // This is blocking
   def setupApp() = {
@@ -79,10 +84,17 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
     }
     "Sanity test for file uploading Service" in {
       val f = Files.createTempDirectory("example-upload")
-      val tgzPath = f.resolve("example.tgz").toAbsolutePath
+
+      val tsManifestPath = f.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+
+      FileUtils.write(tsManifestPath.toFile, exampleTsManifest.toJson.prettyPrint)
+
+      val tgzPath = f.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ).toAbsolutePath
+
       val numTimes = 1000
       val data:CharSequence = (0 until numTimes).map(i => s"Line $i").reduce(_ + "\n" + _)
-      FileUtils.write(tgzPath.toFile, data, "UTF-8")
+
+      TarGzUtil.createTarGzip(f, tgzPath.toFile)
       logger.info(s"Created tmp file $tgzPath")
 
       val multiForm = MultipartFormData(
