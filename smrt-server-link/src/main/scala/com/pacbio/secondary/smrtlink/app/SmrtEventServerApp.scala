@@ -5,11 +5,27 @@ import java.net.BindException
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
+
+import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
+import org.apache.commons.io.FileUtils
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
+
+import spray.can.Http
+import spray.routing.{Route, RouteConcatenation}
+import spray.http._
+import spray.httpx.SprayJsonSupport._
+import spray.json._
+import spray.routing._
+import DefaultJsonProtocol._
+
 import com.pacbio.common.app.StartupFailedException
 import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.common.services.utils.StatusGenerator
@@ -18,27 +34,13 @@ import com.pacbio.common.time.SystemClock
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
-import com.typesafe.scalalogging.LazyLogging
-import spray.can.Http
-import spray.routing.{Route, RouteConcatenation}
-import spray.http._
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-import spray.routing._
-import DefaultJsonProtocol._
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.analysis.jobs.JobModels.{TsManifest, TsSystemStatusManifest}
+import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.analysis.tools.timeUtils
-import org.apache.commons.io.FileUtils
 
-import scala.concurrent._
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
