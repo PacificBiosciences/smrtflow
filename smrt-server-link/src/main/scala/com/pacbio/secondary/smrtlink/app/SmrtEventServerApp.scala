@@ -9,7 +9,6 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
-
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.io.FileUtils
@@ -17,7 +16,6 @@ import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
-
 import spray.can.Http
 import spray.routing.{Route, RouteConcatenation}
 import spray.http._
@@ -25,7 +23,6 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-
 import com.pacbio.common.app.StartupFailedException
 import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.common.services.utils.StatusGenerator
@@ -35,7 +32,7 @@ import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtil}
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
@@ -384,11 +381,11 @@ class EventService(eventProcessor: EventProcessor,
   * cake pattern correctly.
   */
 
-trait BaseServiceConfigCakeProvider extends ConfigLoader {
+trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val systemName = "smrt-server"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
-  lazy val systemUUID = Constants.SERVER_UUID
+  lazy val systemUUID = getSystemUUID(conf)
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{

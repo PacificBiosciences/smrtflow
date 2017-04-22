@@ -39,7 +39,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
     // and where smrt-link-system/userdata is used. I believe we only need userdata
     val smrtLinkUserData = opts.smrtLinkSystemRoot.resolve("userdata")
 
-    TechSupportUtils.writeSmrtLinkSystemStatusTgz(smrtLinkUserData, outputTgz, opts.manifest.user,
+    TechSupportUtils.writeSmrtLinkSystemStatusTgz(opts.manifest.smrtLinkSystemId, smrtLinkUserData, outputTgz, opts.manifest.user,
       opts.manifest.smrtLinkSystemVersion, opts.manifest.dnsName)
 
     val totalSize = outputTgz.toFile.length()

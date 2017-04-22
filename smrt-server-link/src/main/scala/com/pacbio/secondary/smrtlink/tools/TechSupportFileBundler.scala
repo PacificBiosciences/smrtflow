@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.{File, IOException}
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
@@ -10,10 +11,8 @@ import com.pacbio.secondary.analysis.techsupport.TechSupportUtils
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
-
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
-
 import spray.json._
 
 import scala.util.{Failure, Success, Try}
@@ -24,7 +23,7 @@ case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user:
 
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader {
 
-  override val VERSION = "0.1.0"
+  override val VERSION = "0.1.1"
   override val DESCRIPTION = "Create TechSupport bundle for failed SMRT Link Installs"
   override val toolId: String = "smrtflow.tools.tech_support_bundler"
 
@@ -81,18 +80,29 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
 
   }
 
-  def hasRequiredDir(path: Path): Try[Path] = {
-    if (Files.exists(path) && Files.isDirectory(path)) Success(path)
-    else Failure(throw new IOException(s"Unable to find required directory $path"))
+  def hasRequired(fx:(Path => Boolean))(path: Path) = {
+    if (Files.exists(path: Path) && fx(path)) Success(path)
+    else Failure(throw new IOException(s"Unable to find required resource $path"))
   }
 
+  val hasRequiredDir = hasRequired(Files.isDirectory(_))(_)
+  val hasRequiredFile = hasRequired(Files.exists(_))(_)
+
+  /**
+    * Validate the the config and log subdirs under userdata exist.
+    * This is the minimal data that is required.
+    *
+    * @param rootPath SL Userdata root path
+    * @return
+    */
   def hasRequiredSubdirs(rootPath: Path): Try[Path] = {
-    // there has to be cleaner way to do this.
+
+    def resolveTo(sx: String) = rootPath.resolve(sx)
+
     for {
-      _ <- hasRequiredDir(rootPath.resolve(TechSupportUtils.TS_REQ_INSTALL(0)))
-      _ <- hasRequiredDir(rootPath.resolve(TechSupportUtils.TS_REQ_INSTALL(1)))
-      _ <- hasRequiredDir(rootPath.resolve(TechSupportUtils.TS_REQ_INSTALL(2)))
-      _ <- hasRequiredDir(rootPath.resolve(TechSupportUtils.TS_REQ_INSTALL(3)))
+      _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(0)))
+      _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(1)))
+      _ <- hasRequiredFile(resolveTo("config/smrtlink-system-config.json"))
     } yield rootPath
   }
 
@@ -110,35 +120,39 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     else Right(Unit)
   }
 
-  // This is pretty painful to load the SMRT Link System version
+  // This is pretty painful to load the SMRT Link System version and System Id
 
   private def loadManifest(file: File): Seq[PacBioComponentManifest] = {
     val sx = FileUtils.readFileToString(file, "UTF-8")
     sx.parseJson.convertTo[Seq[PacBioComponentManifest]]
   }
 
-  private def loadSmrtLinkVersionFromConfig(file: File): Option[String] = {
-
+  private def loadSystemConfig(file: File): RootSmrtflowConfig = {
     val sx = FileUtils.readFileToString(file, "UTF-8")
-    val smrtLinkSystemConfig = sx.parseJson.convertTo[RootSmrtflowConfig]
+    val c = sx.parseJson.convertTo[RootSmrtflowConfig]
+    println(s"Successfully Loaded config from $file")
+    c
+  }
 
+
+  private def getSmrtLinkVersionFromConfig(smrtLinkSystemConfig: RootSmrtflowConfig): Option[String] = {
     smrtLinkSystemConfig.smrtflow.server.manifestFile
         .map(p => loadManifest(p.toFile))
         .flatMap(manifests => manifests.find(m => m.id == "smrtlink"))
         .map(n => n.version)
-
   }
 
-  def getSmrtLinkVersion(rootSmrtLinkDir: Path): Option[String] = {
-    val smrtLinkSystemConfigPath = rootSmrtLinkDir.resolve(s"userdata/config/smrtlink-system-config.json")
-    loadSmrtLinkVersionFromConfig(smrtLinkSystemConfigPath.toFile)
+  def getRequired[T](field: String, opt: Option[T]): Try[T] = {
+    opt.map(v => Success(v)).getOrElse(Failure(throw new Exception(s"Unable to get required value, $field, from config")))
   }
 
   override def runTool(c: TechSupportFileBundlerOptions): Try[String] = {
-    val slVersion = Try { getSmrtLinkVersion(c.rootUserData)}.toOption.flatten
-
-    Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(c.rootUserData, c.output, c.user, slVersion, c.dnsName) }
-      .map(output => s"Successfully wrote TechSupport Bundle to $output (${output.toFile.length() / 1024} Kb)")
+    for {
+      systemConfig <- Try {loadSystemConfig(c.rootUserData.resolve(s"config/smrtlink-system-config.json").toFile)}
+      systemId <- getRequired[UUID]("SMRT Link System Id", systemConfig.pacBioSystem.smrtLinkSystemId)
+      systemVersion <- getRequired[String]("System Version", getSmrtLinkVersionFromConfig(systemConfig))
+      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, c.rootUserData, c.output, c.user, Some(systemVersion), c.dnsName)}
+    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${tgzPath.toFile.length() / 1024} Kb)"
   }
 
   // To adhere to the fundamental interface. Other tools need to migrate to use

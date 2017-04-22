@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits, Constants, UserRecord}
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, JobTypeIds, TsSystemStatusManifest}
@@ -70,5 +70,5 @@ trait TsSystemStatusBundleServiceTypeProvider {
       with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val tsSystemStatusBundleJobServiceType: Singleton[TsSystemStatusBundleServiceType] =
-    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName(), smrtLinkSystemRoot())).bindToSet(JobTypes)
+    Singleton(() => new TsSystemStatusBundleServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), serverId(), dnsName(), smrtLinkSystemRoot())).bindToSet(JobTypes)
 }
