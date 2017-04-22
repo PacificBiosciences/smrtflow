@@ -50,5 +50,5 @@ object ConfigModels {
                                 pacBioSystem: SmrtflowPacBioSystemConfig,
                                 comment: Option[String])
 
-
+  case class Wso2Credentials(wso2User: String, wso2Password: String)
 }

@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
-import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{Wso2Credentials, RootSmrtflowConfig}
 import com.pacbio.common.models.XmlTemplateReader
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
@@ -26,6 +26,7 @@ object ApplyConfigConstants {
 
   // This must be relative as
   val SL_CONFIG_JSON = "smrtlink-system-config.json"
+  val WSO2_CREDENTIALS_JSON = "wso2-credentials.json"
 
   val JVM_ARGS = "services-jvm-args"
   val JVM_LOG_ARGS = "services-log-args"
@@ -51,6 +52,7 @@ object ApplyConfigConstants {
 
   val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
   val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
+  val REL_WSO2_CONF_DIR = s"$WSO2_VERSION/repository/conf"
 
   // Templates
   val T_WSO2_TEMPLATES = "templates-wso2"
@@ -60,6 +62,8 @@ object ApplyConfigConstants {
   val T_INDEX_JSP = "index.jsp"
 
   // Wso2 Related Templates
+  val USER_MGT_XML = "user-mgt.xml"
+  val JNDI_PROPERTIES = "jndi.properties"
 }
 
 trait Resolver {
@@ -73,9 +77,6 @@ trait Resolver {
   * @param rootDir
   */
 class BundleOutputResolver(override val rootDir: Path) extends Resolver{
-
-  private def resolveToWso2ApiDir(fileName: String) = wso2ApiDir.resolve(fileName)
-
   val jvmArgs = resolve(ApplyConfigConstants.JVM_ARGS)
 
   val jvmLogArgs = resolve(ApplyConfigConstants.JVM_LOG_ARGS)
@@ -94,8 +95,13 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val wso2ApiDir = resolve(ApplyConfigConstants.REL_WSO2_API_DIR)
 
-  val uiProxyConfig = resolveToWso2ApiDir(ApplyConfigConstants.UI_PROXY_FILE)
+  val wso2ConfDir = resolve(ApplyConfigConstants.REL_WSO2_CONF_DIR)
 
+  val uiProxyConfig = wso2ApiDir.resolve(ApplyConfigConstants.UI_PROXY_FILE)
+
+  val userMgtConfig = wso2ConfDir.resolve(ApplyConfigConstants.USER_MGT_XML)
+
+  val jndiPropertiesConfig = wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
 class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
@@ -110,6 +116,8 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val tomcatUsers = resolve(ApplyConfigConstants.T_TOMCAT_USERS_XML)
 
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
+  val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
+  val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
 
@@ -126,6 +134,10 @@ object ApplyConfigUtils extends LazyLogging{
   def loadSmrtLinkSystemConfig(path: Path): RootSmrtflowConfig =
     FileUtils.readFileToString(path.toFile, "UTF-8")
         .parseJson.convertTo[RootSmrtflowConfig]
+
+  def loadWso2Credentials(path: Path): Wso2Credentials =
+    FileUtils.readFileToString(path.toFile, "UTF-8")
+      .parseJson.convertTo[Wso2Credentials]
 
   def validateConfig(c: RootSmrtflowConfig): RootSmrtflowConfig = {
     logger.warn(s"validation of config not implemented $c")
@@ -256,17 +268,31 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
-    *
-    * 1. Load and Validate smrtlink-system-config.json
-    * 2. Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
-    * 3. Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
-    * 4. (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
-    * 5. (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
-    * 6. (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
-    * 7. (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
-    * 8. (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
-    * 9. (update_redirect) write index.jsp to tomcat root
-    */
+   * #10, #11 (update_user_mgt, update_jndi_properties)
+   * - Sub WSO2 username and password in conf files
+   */
+  def updateWso2ConfFile(outputFile: File, inputTemplateFile: File, wso2User: String, wso2Password: String): File = {
+    val out = FileUtils
+      .readFileToString(inputTemplateFile, "UTF-8")
+      .replaceAllLiterally("${WSO2_USER}", wso2User)
+      .replaceAllLiterally("${WSO2_PASSWORD}", wso2Password)
+
+    writeAndLog(outputFile, out)
+  }
+
+  /**
+   * 1.  Load and Validate smrtlink-system-config.json
+   * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
+   * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
+   * 4.  (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
+   * 5.  (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
+   * 6.  (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
+   * 7.  (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
+   * 8.  (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
+   * 9.  (update_redirect) write index.jsp to tomcat root
+   * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
+   * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
+   */
   def run(opts: ApplyConfigToolOptions): String = {
 
     // if templateDir is not provided, a dir "templates" dir within
@@ -280,6 +306,10 @@ object ApplyConfigUtils extends LazyLogging{
     val smrtLinkConfig = loadSmrtLinkSystemConfig(smrtLinkConfigPath)
 
     val c = validateConfig(smrtLinkConfig)
+
+    val wso2CredentialsPath = rootBundleDir.resolve(ApplyConfigConstants.WSO2_CREDENTIALS_JSON)
+
+    val wso2Credentials = loadWso2Credentials(wso2CredentialsPath)
 
     // If the DNS name is None, resolve the FQDN of the host and log a warning. This interface
     // needs to be well-defined.
@@ -329,6 +359,12 @@ object ApplyConfigUtils extends LazyLogging{
 
     // #9
     updateWso2Redirect(resolver.tomcatIndexJsp.toFile, templateResolver.indexJsp.toFile, host, wso2Port, ApplyConfigConstants.STATIC_FILE_DIR)
+
+    // #10
+    updateWso2ConfFile(resolver.userMgtConfig.toFile, templateResolver.userMgtXml.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
+
+    // #11
+    updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile, templateResolver.jndiProperties.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
