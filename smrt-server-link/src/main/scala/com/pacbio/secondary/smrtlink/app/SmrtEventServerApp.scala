@@ -211,10 +211,6 @@ class EventService(eventProcessor: EventProcessor,
     * @return
     */
   def createImportEvent(file: File) = {
-    // This isn't quite correct. After the file upload, the system needs to load the tech-support-manifest.json
-    // from the root level of the tgz file and propagate the message. The "message" needs to also have the local
-    // path to the tech-support-manifest file "bundle".
-
 
     val parent:Path = file.toPath.toAbsolutePath.getParent
 
