@@ -12,7 +12,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 
-import scala.io.Source
 import scala.util.Try
 import spray.json._
 import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
@@ -273,9 +272,8 @@ object ApplyConfigUtils extends LazyLogging{
    * - Sub WSO2 username and password in conf files
    */
   def updateWso2ConfFile(outputFile: File, inputTemplateFile: File, wso2User: String, wso2Password: String): File = {
-    val out = Source
-      .fromFile(inputTemplateFile)
-      .mkString
+    val out = FileUtils
+      .readFileToString(inputTemplateFile, "UTF-8")
       .replaceAllLiterally("${WSO2_USER}", wso2User)
       .replaceAllLiterally("${WSO2_PASSWORD}", wso2Password)
 
