@@ -1,6 +1,7 @@
 package com.pacbio.common.utils;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,18 +25,25 @@ public class TarGzUtil {
         tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(new FileInputStream(tarFile))));
 
         TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
-        // tarIn is a TarArchiveInputStream
-        while (tarEntry != null) {// create a file with the same name as the tarEntry
+
+        while (tarEntry != null) {
+            // create a file with the same name as the tarEntry
             File destPath = new File(dest, tarEntry.getName());
-            System.out.println("working: " + destPath.getCanonicalPath());
+
             if (tarEntry.isDirectory()) {
                 destPath.mkdirs();
             } else {
+
+                // Create any necessary parent dirs
+                File parent = destPath.getParentFile();
+                if (!Files.exists(parent.toPath())) {
+                    parent.mkdirs();
+                }
+
                 destPath.createNewFile();
-                //byte [] btoRead = new byte[(int)tarEntry.getSize()];
+
                 byte[] btoRead = new byte[1024];
-                //FileInputStream fin
-                //  = new FileInputStream(destPath.getCanonicalPath());
+
                 BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath));
                 int len = 0;
 
