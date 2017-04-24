@@ -52,7 +52,6 @@ public class TarGzUtil {
                 }
 
                 bout.close();
-                btoRead = null;
 
             }
             tarEntry = tarIn.getNextTarEntry();
