@@ -138,5 +138,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], Constants.SERVER_UUID, dnsName(), externalEventHost()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEventHost()), "EventManagerActor"))
 }

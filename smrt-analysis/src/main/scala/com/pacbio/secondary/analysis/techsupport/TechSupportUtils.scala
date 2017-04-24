@@ -136,9 +136,8 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     dest
   }
 
-  def writeSmrtLinkSystemStatusTgz(smrtLinkUserDataRoot: Path, dest: Path, user: String, smrtLinkVersion: Option[String], dnsName: Option[String]): Path = {
+  def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID, smrtLinkUserDataRoot: Path, dest: Path, user: String, smrtLinkVersion: Option[String], dnsName: Option[String]): Path = {
     val techSupportBundleId =  UUID.randomUUID()
-    val smrtLinkSystemId = Constants.SERVER_UUID
 
     val tmpDir = Files.createTempDirectory(s"sl-status-$techSupportBundleId")
 

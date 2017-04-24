@@ -2,6 +2,7 @@ package com.pacbio.secondary.smrtlink.models
 
 import java.net.URL
 import java.nio.file.Path
+import java.util.UUID
 
 import spray.json._
 
@@ -21,7 +22,8 @@ object ConfigModels {
                                         smrtLinkServerMemoryMin: Int = 4096,
                                         smrtLinkServerMemoryMax: Int = 4096,
                                         remoteBundleUrl: Option[URL] = None,
-                                        smrtLinkSystemRoot: Option[Path] = None
+                                        smrtLinkSystemRoot: Option[Path] = None,
+                                        smrtLinkSystemId: Option[UUID] = None // This needs to be made required after DEP changes
                                        )
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,

@@ -72,7 +72,7 @@ trait TsJobBundleJobServiceTypeProvider {
     with JobManagerServiceProvider with SmrtLinkConfigProvider =>
 
   val tsJobBundleJobServiceType: Singleton[TsJobBundleJobServiceType] =
-    Singleton(() => new TsJobBundleJobServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), Constants.SERVER_UUID, dnsName())).bindToSet(JobTypes)
+    Singleton(() => new TsJobBundleJobServiceType(jobsDaoActor(), authenticator(), smrtLinkVersion(), serverId(), dnsName())).bindToSet(JobTypes)
 
 }
 
