@@ -9,6 +9,7 @@ import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
+import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
 import org.wso2.carbon.apimgt.rest.api.publisher
@@ -87,6 +88,8 @@ object AmClientParser extends CommandLineToolVersion{
     roleJson: File = null,
     appConfig: File = null
   ) extends LoggerConfig {
+    import ConfigModelsJsonProtocol._
+
     def validate(): CustomConfig = (user, pass, credsJson) match {
       case (null, null, None) =>
         copy(user = "admin", pass = "admin")
