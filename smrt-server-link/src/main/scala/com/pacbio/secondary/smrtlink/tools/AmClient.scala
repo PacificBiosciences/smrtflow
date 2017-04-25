@@ -8,11 +8,12 @@ import java.nio.file.Files
 import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
+import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.typesafe.config.ConfigFactory
+import org.apache.commons.io.FileUtils
 import org.wso2.carbon.apimgt.rest.api.publisher
 import scopt.OptionParser
 import spray.json._
-import spray.http.StatusCodes
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -73,8 +74,9 @@ object AmClientParser extends CommandLineToolVersion{
     mode: AmClientModes.Mode = AmClientModes.UNKNOWN,
     host: String = "localhost",
     portOffset: Int = 0,
-    user: String = "admin",
-    pass: String = "admin",
+    credsJson: Option[File] = None,
+    user: String = null,
+    pass: String = null,
     apiName: String = "SMRTLink",
     target: Option[URL] = target,
     roles: Seq[String] = List("Internal/PbAdmin", "Internal/PbLabTech", "Internal/PbBioinformatician"),
@@ -84,7 +86,19 @@ object AmClientParser extends CommandLineToolVersion{
     // so they're not Options
     roleJson: File = null,
     appConfig: File = null
-  ) extends LoggerConfig
+  ) extends LoggerConfig {
+    def validate(): CustomConfig = (user, pass, credsJson) match {
+      case (null, null, None) =>
+        copy(user = "admin", pass = "admin")
+      case (_: String, _: String, None) =>
+        this
+      case (null, null, Some(f)) =>
+        val creds = FileUtils.readFileToString(f, "UTF-8").parseJson.convertTo[Wso2Credentials]
+        copy(user = creds.wso2User, pass = creds.wso2Password)
+      case _ =>
+        throw new IllegalStateException("Failed to validate credentials")
+    }
+  }
 
   lazy val defaults = CustomConfig()
 
@@ -108,9 +122,20 @@ object AmClientParser extends CommandLineToolVersion{
       .action((x, c) => c.copy(pass = x))
       .text("API Manager admin password")
 
+    opt[File]("creds-json")
+      .action((x, c) => c.copy(credsJson = Some(x)))
+      .text("Path to API Manager admin credentials json file")
+
     opt[Unit]("debug")
       .action((_, c) => c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig])
       .text("Display debugging log output")
+
+    checkConfig (c =>
+      if (c.user == null && c.pass == null && c.credsJson.isEmpty) success
+      else if (c.user == null && c.pass == null && c.credsJson.isDefined) success
+      else if (c.user != null && c.pass != null && c.credsJson.isEmpty) success
+      else failure("If you supply credentials, you must supply either a username and password or a credentials JSON file")
+    )
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
@@ -548,9 +573,10 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 }
 
 object AmClient {
-  def apply (c: AmClientParser.CustomConfig): Int = {
+  def apply (conf: AmClientParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("amclient")
 
+    val c = conf.validate()
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
 
