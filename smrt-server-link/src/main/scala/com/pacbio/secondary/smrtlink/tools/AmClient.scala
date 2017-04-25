@@ -50,7 +50,7 @@ object loadResource extends (String => String) {
 
 object AmClientParser extends CommandLineToolVersion{
 
-  val VERSION = "0.1.0"
+  val VERSION = "0.1.1"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: CustomConfig): Unit = {
