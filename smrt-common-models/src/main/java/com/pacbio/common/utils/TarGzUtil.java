@@ -1,6 +1,7 @@
 package com.pacbio.common.utils;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,37 +20,55 @@ import org.apache.commons.io.filefilter.RegexFileFilter;
 public class TarGzUtil {
     public static File uncompressTarGZ(File tarFile, File dest) throws IOException {
         dest.mkdir();
+
         TarArchiveInputStream tarIn = null;
 
-        tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(new FileInputStream(tarFile))));
+        try {
 
-        TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
-        // tarIn is a TarArchiveInputStream
-        while (tarEntry != null) {// create a file with the same name as the tarEntry
-            File destPath = new File(dest, tarEntry.getName());
-            System.out.println("working: " + destPath.getCanonicalPath());
-            if (tarEntry.isDirectory()) {
-                destPath.mkdirs();
-            } else {
-                destPath.createNewFile();
-                //byte [] btoRead = new byte[(int)tarEntry.getSize()];
-                byte[] btoRead = new byte[1024];
-                //FileInputStream fin
-                //  = new FileInputStream(destPath.getCanonicalPath());
-                BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath));
-                int len = 0;
+            tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(new FileInputStream(tarFile))));
+            TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
 
-                while ((len = tarIn.read(btoRead)) != -1) {
-                    bout.write(btoRead, 0, len);
+            while (tarEntry != null) {
+                // create a file with the same name as the tarEntry
+                File destPath = new File(dest, tarEntry.getName());
+
+                if (tarEntry.isDirectory()) {
+                    destPath.mkdirs();
+                } else {
+
+                    // Create any necessary parent dirs
+                    File parent = destPath.getParentFile();
+                    if (!Files.exists(parent.toPath())) {
+                        parent.mkdirs();
+                    }
+
+                    destPath.createNewFile();
+
+                    byte[] btoRead = new byte[1024];
+
+
+                    BufferedOutputStream bout = null;
+                    try {
+                        bout = new BufferedOutputStream(new FileOutputStream(destPath));
+                        int len = 0;
+
+                        while ((len = tarIn.read(btoRead)) != -1) {
+                            bout.write(btoRead, 0, len);
+                        }
+                    } finally {
+                        if (bout != null) {
+                            bout.close();
+                        }
+                    }
+
                 }
-
-                bout.close();
-                btoRead = null;
-
+                tarEntry = tarIn.getNextTarEntry();
             }
-            tarEntry = tarIn.getNextTarEntry();
+        } finally {
+            if (tarIn != null) {
+                tarIn.close();
+            }
         }
-        tarIn.close();
 
         return dest;
     }

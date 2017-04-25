@@ -34,6 +34,10 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
     val outputTgz = job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
     val outputDs = job.path.resolve("datastore.json")
 
+    val manifestPath = job.path.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+
+    FileUtils.writeStringToFile(manifestPath.toFile, opts.manifest.toJson.prettyPrint)
+
 
     // Should clean this up. There's inconsistencies where the the SL Root is used
     // and where smrt-link-system/userdata is used. I believe we only need userdata
@@ -50,13 +54,22 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
 
     val createdAt = JodaDateTime.now()
 
-    val name = "TechSupport System Status"
-    val description = s"Tech Support System Status TGZ bundle for SL System Root ${opts.smrtLinkSystemRoot}"
+    // Output DataStore Files.
+
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+    val logDsFile = toMasterDataStoreFile(logPath, s"Job Master log of ${jobTypeId.id}")
+
+    // Write the manifest for adding in debugging and to avoid having to unzip the tgz
+
+    val manifestDs = DataStoreFile(UUID.randomUUID(), "ts-manifest-0", FileTypes.JSON.fileTypeId, manifestPath.toFile.length(),
+      createdAt, createdAt, manifestPath.toAbsolutePath.toString, false, "TS System Status Manifest",
+      "Tech Support System Status Manifest")
 
     val dsFile = DataStoreFile(UUID.randomUUID(), "ts-bundle-job-0", FileTypes.TS_TGZ.fileTypeId,
-      outputTgz.toFile.length(), createdAt, createdAt, outputTgz.toAbsolutePath.toString, isChunked = false, name, description)
+      outputTgz.toFile.length(), createdAt, createdAt, outputTgz.toAbsolutePath.toString, isChunked = false,
+      "TechSupport System Status", s"Tech Support System Status TGZ bundle for SL System Root ${opts.smrtLinkSystemRoot}")
 
-    val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile))
+    val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile, logDsFile, manifestDs))
     FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
 
     resultsWriter.writeLineStdout(s"Successfully create TS TGZ bundle ${opts.manifest.id}")

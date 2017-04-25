@@ -37,6 +37,7 @@ import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.analysis.tools.timeUtils
+import org.joda.time.format.DateTimeFormat
 
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
@@ -201,7 +202,7 @@ class EventService(eventProcessor: EventProcessor,
     *
     * An SmrtLink System Event will be created by:
     * - passing through the TS Manifest as the "message"
-    * - adding "updloadedBundlePath" to the root level of the "message"
+    * - adding "uploadedBundlePath" to the root level of the "message"
     *
     * @param file Path to the TS manifest JSON file
     * @return
@@ -214,6 +215,8 @@ class EventService(eventProcessor: EventProcessor,
     val name = file.getName.replace(".tar.gz", "").replace(".tgz", "")
     val outputDir = parent.resolve(name)
 
+    logger.info(s"Uncompressing $file")
+    // This will create the output dir
     TarGzUtil.uncompressTarGZ(file, outputDir.toFile)
 
     val manifestPath = outputDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
@@ -282,13 +285,29 @@ class EventService(eventProcessor: EventProcessor,
     else Future.failed(throw new UnprocessableEntityError(errorMessage))
   }
 
+  /**
+    * Resolve Output files to a directory structure by date YYYY/MM/DD/UUID-filename relative to the root directory
+    *
+    * @param fileName file name (not path) of the tgz file
+    * @return
+    */
   def resolveOutputFile(fileName: String): File = {
-    //FIXME(mpkocher)(5-20-2017) Workaround to UUID to make unique within the root dir. This needs a better, more principled solution
+    val now = JodaDateTime.now()
+
+    val fm = DateTimeFormat.forPattern("MM")
+    val fd = DateTimeFormat.forPattern("dd")
+
+    val outputDir = rootUploadFilesDir.resolve(s"${now.getYear}/${fm.print(now)}/${fd.print(now)}")
+
+    logger.info(s"Resolved to output dir $outputDir")
+
+    if (!Files.exists(outputDir)) {
+      Files.createDirectories(outputDir)
+    }
+
     val i = UUID.randomUUID()
-    val f = rootUploadFilesDir.resolve(s"$i-$fileName").toFile
+    val f = outputDir.resolve(s"$i-$fileName").toFile
     logger.info(s"Resolved $fileName to local output $f")
-    f.createNewFile()
-    logger.info(s"Creating file $f")
     f
   }
 
@@ -356,7 +375,7 @@ class EventService(eventProcessor: EventProcessor,
     Try {
       writeFile(content, fos)
       val runTime = computeTimeDeltaFromNow(startedAt)
-      logger.info(s"Successfully processed content (${outputFile.length() / 1024} Kb) in $runTime sec to $outputFile")
+      logger.info(s"Successfully saved content (${outputFile.length() / 1024} Kb) in $runTime sec to $outputFile")
       fos.close()
       outputFile
     } match {
