@@ -289,32 +289,31 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
+  // Takes the given RunnableJobWithId and starts it with the given worker.  If
+  // the job can't be started, re-adds the worker to the workerQueue
   // This should return a Future
-  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
+  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef], worker: ActorRef): Unit = {
+    log.info(s"Adding job ${runnableJobWithId.job.uuid} to worker ${worker}.  numWorkers ${workers.size}, numQuickWorkers ${quickWorkers.size}")
+    log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
-    if (workerQueue.nonEmpty) {
-      log.info(s"Checking for work. numWorkers ${workerQueue.size}, numQuickWorkers ${quickWorkers.size}")
-      log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
+    // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
+    // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
+    val f = for {
+      m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
+      m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
+    } yield s"$m1,$m2"
 
-      // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
-      // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-      val f = for {
-        m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
-        m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
-      } yield s"$m1,$m2"
-
-      f onComplete {
-        case Success(_) =>
-          val worker = workerQueue.dequeue()
-          val outputDir = resolver.resolve(runnableJobWithId)
-          val rjob = RunJob(runnableJobWithId.job, outputDir)
-          log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
-          worker ! rjob
-        case Failure(ex) =>
-          val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
-          log.error(emsg)
-          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
-      }
+    f onComplete {
+      case Success(_) =>
+        val outputDir = resolver.resolve(runnableJobWithId)
+        val rjob = RunJob(runnableJobWithId.job, outputDir)
+        log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
+        worker ! rjob
+      case Failure(ex) =>
+        workerQueue.enqueue(worker)
+        val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
+        log.error(emsg)
+        self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
     }
   }
 
@@ -323,27 +322,37 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     //log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
 
     if (workers.nonEmpty) {
+      val worker = workers.dequeue()
       val f = dao.getNextRunnableJobWithId
 
       f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, workers)
-        case Left(e) => log.debug(s"No work found. ${e.message}")
+        case Right(runnableJob) => addJobToWorker(runnableJob, workers, worker)
+        case Left(e) =>
+          workers.enqueue(worker)
+          log.debug(s"No work found. ${e.message}")
       }
 
       f onFailure {
-        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+        case e => 
+          workers.enqueue(worker)
+          log.error(s"Failure checking for new work ${e.getMessage}")
       }
     } else {
       log.debug("No available workers.")
     }
     if (quickWorkers.nonEmpty) {
+      val worker = quickWorkers.dequeue()
       val f = dao.getNextRunnableQuickJobWithId
       f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers)
-        case Left(e) => log.debug(s"No work found. ${e.message}")
+        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers, worker)
+        case Left(e) => 
+          quickWorkers.enqueue(worker)
+          log.debug(s"No work found. ${e.message}")
       }
       f onFailure {
-        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+        case e =>
+          quickWorkers.enqueue(worker)
+          log.error(s"Failure checking for new work ${e.getMessage}")
       }
     } else {
       log.debug("No available workers.")
@@ -368,7 +377,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       }
 
     case UpdateJobCompletedResult(result, workerType) =>
-      log.info(s"Worker $workerType completed $result")
+      log.info(s"Worker $sender completed $result")
       workerType match {
         case QuickWorkType => quickWorkers.enqueue(sender)
         case StandardWorkType => workers.enqueue(sender)
