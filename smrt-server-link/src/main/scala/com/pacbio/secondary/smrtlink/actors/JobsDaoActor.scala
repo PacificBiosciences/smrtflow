@@ -289,6 +289,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
+  // Takes the given RunnableJobWithId and starts it with the given worker.  If
+  // the job can't be started, re-adds the worker to the workerQueue
   // This should return a Future
   def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef], worker: ActorRef): Unit = {
     log.info(s"Adding job ${runnableJobWithId.job.uuid} to worker ${worker}.  numWorkers ${workers.size}, numQuickWorkers ${quickWorkers.size}")
