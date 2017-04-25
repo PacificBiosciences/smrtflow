@@ -131,11 +131,13 @@ object AmClientParser extends CommandLineToolVersion{
       .text("Display debugging log output")
 
     checkConfig (c =>
-      if (c.user == null && c.pass == null && c.credsJson.isEmpty) success
-      else if (c.user == null && c.pass == null && c.credsJson.isDefined) success
-      else if (c.user != null && c.pass != null && c.credsJson.isEmpty) success
-      else failure("If you supply credentials, you must supply either a username and password or a credentials JSON file")
-    )
+      try {
+        c.validate()
+        success
+      } catch {
+        case e: IllegalStateException =>
+          failure("If you supply credentials, you must supply either a username and password or a credentials JSON file")
+      })
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
