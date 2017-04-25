@@ -18,7 +18,7 @@ object SetPasswordConstants {
   val JNDI_PROPERTIES = "jndi.properties"
 }
 
-case class SetPasswordArgs(rootDir: Path, user: String = null, pass: String = null)
+case class SetPasswordArgs(rootDir: Path = null, user: String = null, pass: String = null)
 
 object SetPasswordToolParser extends CommandLineToolVersion {
   val VERSION = "0.1.0"
