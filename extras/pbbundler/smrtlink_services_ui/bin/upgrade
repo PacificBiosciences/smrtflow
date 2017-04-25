@@ -13,6 +13,7 @@ config=${rootBundleDir}/smrtlink-system-config.json
 legacyConfig=${rootBundleDir}/migration-config.json
 migrationState=${rootBundleDir}/legacy-migration.json
 userRoles=${rootBundleDir}/user-roles.json
+adminCreds=${rootBundleDir}/wso2-credentials.json
 # for the wso2 consumer key/secret
 appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
 
@@ -60,7 +61,7 @@ clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
 
 newWso2=${rootBundleDir}/wso2am-2.0.0
 amClient=${rootBundleDir}/tools/bin/amclient
-amClientArgs="--user admin --pass admin --host localhost"
+amClientArgs="--creds-json ${adminCreds} --host localhost"
 
 if [ -e "${legacyConfig}" ]; then
     prevInstall=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print ('' if (d['PREVIOUS_INSTALL_DIR'] is None) else d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})

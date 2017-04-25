@@ -387,33 +387,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     fx.flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
   }
 
-  def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
-    val noWork = NoAvailableWorkError("No Available work to run.")
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
-      case Some(job) => {
-        _runnableJobs.remove(job.job.uuid)
-        getJobById(job.id).map {
-          case Some(j) =>
-            Right(RunnableJob(job.job, j.state))
-          case None => Left(noWork)
-        }
-      }
-      case None => Future(Left(noWork))
-    }
-  }
-
   private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
     _runnableJobs.values.find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) => {
+        logger.info(s"dequeueing job ${job.job.uuid}")
         _runnableJobs.remove(job.job.uuid)
-        getJobById(job.id).map {
-          case Some(j) =>
-            Right(RunnableJobWithId(job.id, job.job, j.state))
-          case None => Left(noWork)
-        }
+        Future(Right(job))
       }
       case None => Future(Left(noWork))
     }
@@ -515,7 +497,6 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
       val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
-      _runnableJobs.update(uuid, rJob)
 
       val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
       val jobEvent = JobEvent(
@@ -537,7 +518,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
       case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
     }
 
-    db.run(action.transactionally)
+    db.run(action.transactionally).map(job => {
+      val rJob = RunnableJobWithId(job.id, coreJob, AnalysisJobStates.CREATED)
+      _runnableJobs.update(uuid, rJob)
+      job
+    })
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =

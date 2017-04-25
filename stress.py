@@ -27,6 +27,10 @@ log = logging.getLogger(__name__)
 
 __version__ = "0.1.4"
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+pbservice = dir_path + "/smrt-server-link/target/pack/bin/pbservice"
+
 
 def _process_original_dataset(path, output_dir_prefix):
     # copy to new output dir
@@ -83,7 +87,7 @@ def runner(args, **kwargs):
 
 @register
 def get_status(host, port):
-    return _run_cmd("pbservice status --host={h} --port={p}".format(h=host, p=port))
+    return _run_cmd("{pbservice} status --host={h} --port={p}".format(pbservice=pbservice, h=host, p=port))
 
 
 @register
@@ -91,7 +95,7 @@ def import_dataset(host, port, original_dataset_path, output_dir_prefix):
     new_dataset = _process_original_dataset(original_dataset_path, output_dir_prefix)
     ds = openDataSet(new_dataset)
     log.info("Importing dataset {u} -> {p}".format(u=ds.uuid, p=new_dataset))
-    return _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=new_dataset))
+    return _run_cmd("{pbservice} import-dataset --host={h} --port={p} --timeout 120 {x}".format(pbservice=pbservice, h=host, p=port, x=new_dataset))
 
 
 @register
@@ -117,7 +121,7 @@ def add_run_design(host, port, run_design_path):
 
 @register
 def run_analysis(host, port, path):
-    return _run_cmd("pbservice run-analysis --host={h} --port={p} --block {x}".format(h=host, p=port, x=path))
+    return _run_cmd("{pbservice} run-analysis --host={h} --port={p} --timeout 600 --block {x}".format(pbservice=pbservice, h=host, p=port, x=path))
 
 
 def _generate_data(host, port, dataset_paths, analysis_json,
@@ -184,14 +188,14 @@ def run_main(host, port, nprocesses, ntimes, profile_csv):
     run_design_path = to_p("smrt-server-link/src/test/resources/runCreate2.xml")
 
     # Dev Diagnostic
-    analysis_json = to_p("smrt-server-analysis/src/test/resources/analysis-dev-diagnostic-stress-01.json")
+    analysis_json = to_p("smrt-server-link/src/test/resources/analysis-dev-diagnostic-stress-01.json")
 
     output_dir_prefix = to_p("test-output")
     if not os.path.exists(output_dir_prefix):
         os.mkdir(output_dir_prefix)
 
     # import referenceset with original UUID for the dev_diagnostic run
-    _run_cmd("pbservice import-dataset --host={h} --port={p} {x}".format(h=host, p=port, x=referenceset_path))
+    _run_cmd("{pbservice} import-dataset --host={h} --port={p} {x}".format(pbservice=pbservice, h=host, p=port, x=referenceset_path))
 
     xs = _generate_data(host, port, [referenceset_path, subreadset_path],
                         analysis_json, run_design_path, output_dir_prefix, ntimes)
