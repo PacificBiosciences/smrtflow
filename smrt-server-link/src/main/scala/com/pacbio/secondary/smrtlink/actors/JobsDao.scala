@@ -393,6 +393,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) => {
+        logger.info(s"dequeueing job ${job.job.uuid}")
         _runnableJobs.remove(job.job.uuid)
         Future(Right(job))
       }
