@@ -33,7 +33,7 @@ object SetPasswordToolParser extends CommandLineToolVersion {
       .text("WSO2 Admin Username")
       .required()
 
-    opt[String]('p', "pass")
+    opt[String]('p', "password")
       .action((x, c) => c.copy(pass = x))
       .text("WSO2 Admin Password")
       .required()
