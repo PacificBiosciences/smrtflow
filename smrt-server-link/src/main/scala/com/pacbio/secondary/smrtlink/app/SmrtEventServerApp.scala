@@ -49,7 +49,7 @@ import scala.util.control.NonFatal
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
 
-case class EveAccount(email: String, secret: String)
+case class EveAccount(secret: String)
 
 case class EveAuth(a: Option[EveAccount], s: Option[String]) extends Authentication[EveAccount] with DefaultSigner with SignerConfig {
   def accountAndSecret(uuid: String): (Option[EveAccount], Option[String]) = (a, s)
@@ -156,7 +156,7 @@ class EventService(eventProcessor: EventProcessor,
 
   import SmrtLinkJsonProtocols._
 
-  implicit var auth = EveAuth(Some(EveAccount("uid", apiSecret)), Some(apiSecret))
+  implicit var auth = EveAuth(Some(EveAccount(apiSecret)), Some(apiSecret))
 
   val PREFIX_EVENTS = "events"
   val PREFIX_FILES = "files"
