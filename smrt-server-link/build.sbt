@@ -31,6 +31,7 @@ packMain := Map(
   "smrt-server-eve" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "smrt-server-data-bundle" -> "com.pacbio.secondary.smrtlink.app.SmrtPacBioDataBundleServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
+  "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
   "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtlink.testkit.TestkitRunnerApp",
   "smrt-db-tool" -> "com.pacbio.secondary.smrtlink.tools.DatabaseToolApp",
