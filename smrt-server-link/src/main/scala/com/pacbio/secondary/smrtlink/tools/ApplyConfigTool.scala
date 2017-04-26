@@ -52,6 +52,7 @@ object ApplyConfigConstants {
 
   val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
   val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
+  val REL_WSO2_CONF_DIR = s"$WSO2_VERSION/repository/conf"
 
   // Templates
   val T_WSO2_TEMPLATES = "templates-wso2"
@@ -59,6 +60,10 @@ object ApplyConfigConstants {
   val T_TOMCAT_USERS_XML = "tomcat-users.xml"
   val T_TOMCAT_SERVER_XML = "server.xml"
   val T_INDEX_JSP = "index.jsp"
+
+  // Wso2 Related Templates
+  val USER_MGT_XML = "user-mgt.xml"
+  val JNDI_PROPERTIES = "jndi.properties"
 }
 
 trait Resolver {
@@ -90,7 +95,13 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val wso2ApiDir = resolve(ApplyConfigConstants.REL_WSO2_API_DIR)
 
+  val wso2ConfDir = resolve(ApplyConfigConstants.REL_WSO2_CONF_DIR)
+
   val uiProxyConfig = wso2ApiDir.resolve(ApplyConfigConstants.UI_PROXY_FILE)
+
+  val userMgtConfig = wso2ConfDir.resolve(ApplyConfigConstants.USER_MGT_XML)
+
+  val jndiPropertiesConfig = wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
 class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
@@ -105,6 +116,8 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val tomcatUsers = resolve(ApplyConfigConstants.T_TOMCAT_USERS_XML)
 
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
+  val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
+  val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
 
@@ -255,6 +268,19 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
+   * #10, #11 (update_user_mgt, update_jndi_properties)
+   * - Sub WSO2 username and password in conf files
+   */
+  def updateWso2ConfFile(outputFile: File, inputTemplateFile: File, wso2User: String, wso2Password: String): File = {
+    val out = FileUtils
+      .readFileToString(inputTemplateFile, "UTF-8")
+      .replaceAllLiterally("${WSO2_USER}", wso2User)
+      .replaceAllLiterally("${WSO2_PASSWORD}", wso2Password)
+
+    writeAndLog(outputFile, out)
+  }
+
+  /**
    * 1.  Load and Validate smrtlink-system-config.json
    * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
    * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
@@ -264,7 +290,8 @@ object ApplyConfigUtils extends LazyLogging{
    * 7.  (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
    * 8.  (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
    * 9.  (update_redirect) write index.jsp to tomcat root
-   * 10. (update_wso2_conf) Updates wso2-2.0.0/repository/conf/user-mgt.xml and wso2-2.0.0/repository/conf/jndi.properties
+   * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
+   * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
    */
   def run(opts: ApplyConfigToolOptions): String = {
 
@@ -334,7 +361,10 @@ object ApplyConfigUtils extends LazyLogging{
     updateWso2Redirect(resolver.tomcatIndexJsp.toFile, templateResolver.indexJsp.toFile, host, wso2Port, ApplyConfigConstants.STATIC_FILE_DIR)
 
     // #10
-    new SetPasswordTool(SetPasswordArgs(opts.rootDir, wso2Credentials.wso2User, wso2Credentials.wso2Password)).updateWso2ConfFiles()
+    updateWso2ConfFile(resolver.userMgtConfig.toFile, templateResolver.userMgtXml.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
+
+    // #11
+    updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile, templateResolver.jndiProperties.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
