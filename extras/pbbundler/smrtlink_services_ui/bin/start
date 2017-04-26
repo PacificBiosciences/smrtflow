@@ -199,7 +199,7 @@ env "$client_env" \
      ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
-       --host localhost \
+       --host localhost
 
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
