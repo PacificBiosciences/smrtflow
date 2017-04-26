@@ -91,4 +91,7 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val swaggerResource: Singleton[String] =
     Singleton(() => "smrtlink_swagger.json")
 
+  val apiSecret: Singleton[String] =
+    Singleton(() => conf.getString("smrtflow.event.apiSecret"))
+
 }

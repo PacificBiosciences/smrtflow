@@ -4,6 +4,9 @@ import java.io._
 import java.net.BindException
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import javax.xml.bind.DatatypeConverter
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -11,6 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
+import org.joda.time.format.DateTimeFormat
 import org.apache.commons.io.FileUtils
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
@@ -23,6 +27,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
+import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
 import com.pacbio.common.app.StartupFailedException
 import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.common.services.utils.StatusGenerator
@@ -37,11 +42,18 @@ import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.analysis.tools.timeUtils
-import org.joda.time.format.DateTimeFormat
+
+import scala.util.control.NonFatal
 
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
+
+case class EveAccount(secret: String)
+
+case class EveAuth(a: Option[EveAccount], s: Option[String]) extends Authentication[EveAccount] with DefaultSigner with SignerConfig {
+  def accountAndSecret(uuid: String): (Option[EveAccount], Option[String]) = (a, s)
+}
 
 // Push this back to FileSystemUtils in common
 trait EveFileUtils extends LazyLogging{
@@ -139,10 +151,12 @@ trait EventServiceBaseMicroService extends PacBioService {
   */
 class EventService(eventProcessor: EventProcessor,
                    rootOutputDir: Path,
-                   rootUploadFilesDir: Path)
+                   rootUploadFilesDir: Path, apiSecret: String)
     extends EventServiceBaseMicroService with LazyLogging with timeUtils{
 
   import SmrtLinkJsonProtocols._
+
+  implicit var auth = EveAuth(Some(EveAccount(apiSecret)), Some(apiSecret))
 
   val PREFIX_EVENTS = "events"
   val PREFIX_FILES = "files"
@@ -160,11 +174,13 @@ class EventService(eventProcessor: EventProcessor,
   def eventRoutes: Route =
     pathPrefix(PREFIX_EVENTS) {
       pathEndOrSingleSlash {
-        post {
+        Directives.authenticate[EveAccount] { account =>
+          post {
             entity(as[SmrtLinkSystemEvent]) { event =>
-            complete {
-              created {
-               eventProcessor.process(event)
+              complete {
+                created {
+                  eventProcessor.process(event)
+                }
               }
             }
           }
@@ -175,12 +191,14 @@ class EventService(eventProcessor: EventProcessor,
   def filesRoute: Route =
     pathPrefix(PREFIX_FILES) {
       pathEndOrSingleSlash {
-        post {
-          respondWithMediaType(MediaTypes.`application/json`) {
-            entity(as[MultipartFormData]) { formData =>
-              complete {
-                created {
-                  processUpload(formData)
+        Directives.authenticate[EveAccount] { account =>
+          post {
+            respondWithMediaType(MediaTypes.`application/json`) {
+              entity(as[MultipartFormData]) { formData =>
+                complete {
+                  created {
+                    processUpload(formData)
+                  }
                 }
               }
             }
@@ -405,11 +423,12 @@ trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
   lazy val systemUUID = getSystemUUID(conf)
+  lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
 
-  override lazy val systemName = "smrt-event"
+  override lazy val systemName = "smrt-eve"
   // This should be loaded from the application.conf with an ENV var mapping
   lazy val eventMessageDir: Path = Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
   // Make this independently configurable
@@ -429,7 +448,7 @@ trait EventServicesCakeProvider {
   lazy val eventProcessor = new EventFileWriterProcessor(eventMessageDir)
   // All Service instances go here
   lazy val services: Seq[PacBioService] = Seq(
-    new EventService(eventProcessor, eventMessageDir, eventUploadFilesDir),
+    new EventService(eventProcessor, eventMessageDir, eventUploadFilesDir, apiSecret),
     new StatusService(statusGenerator)
   )
 }
@@ -450,7 +469,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
   implicit val timeout = Timeout(10.seconds)
 
   lazy val startupTimeOut = 10.seconds
-  lazy val eventServiceClient = new EventServerClient(systemHost, systemPort)
+  lazy val eventServiceClient = new EventServerClient(systemHost, systemPort, apiSecret)
 
   // Mocked out. Fail the future if any invalid option is detected
   def validateOption(): Future[String] =
@@ -481,25 +500,45 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
   }
 
   /**
+    * See comments in postStartUpHook
+    *
+    * @return
+    */
+  def attemptSendSelfEvent(e: SmrtLinkSystemEvent): Future[String] = {
+    eventServiceClient.sendSmrtLinkSystemEvent(e)
+        .map(e => s"Self Client successfully created startup event $e")
+        .recover { case NonFatal(ex) => s"WARNING Unable to create self start up message from client. ${ex.getMessage}"}
+  }
+
+  def attemptSelfStatus: Future[String] = {
+    eventServiceClient.getStatus
+        .map(status => s"Self Client Successfully got Status ${status.version} ${status.message}")
+        .recover { case NonFatal(ex) => s"WARNING Unable to create self start up message from client. ${ex.getMessage}"}
+  }
+
+  /**
     * Run a Sanity Check from out Client to make sure the client lib
     * and Server can successfully communicate.
+    *
+    * (mpkocher)(5-23-2017) From feedback from Chris, this will only raise warnings on startup
+    * and not fail the startup. Not clear why this is failing on startup in his env.
+    *
     * @return
     */
   private def postStartUpHook(): Future[String] = {
-    val message: Map[String, JsValue] = Map("eveSystemStartup" -> JsString("Successfully Started up"))
 
-    val startUpEventMessage =
+    def toMessage(m: String): Map[String, JsValue] = Map("eveSystemStartup" -> JsString(m))
+
+    def toEvent(m: String) =
       SmrtLinkSystemEvent(systemUUID, EventTypes.SERVER_STARTUP, 1,
         UUID.randomUUID(),
-        JodaDateTime.now, JsObject(message),
+        JodaDateTime.now, JsObject(toMessage(m)),
         Some(java.net.InetAddress.getLocalHost.getCanonicalHostName))
 
     for {
-      status <- eventServiceClient.getStatus
-      m <- Future {s"Client Successfully got Status ${status.version} ${status.message}"}
-      sentEvent <- eventServiceClient.sendSmrtLinkSystemEvent(startUpEventMessage)
-      msgEvent <- Future {s"Successfully sent message $sentEvent"}
-    } yield s"$m\nSuccessfully ran PostStartup Hook"
+      statusMsg <- attemptSelfStatus
+      sentEventMsg <- attemptSendSelfEvent(toEvent(statusMsg))
+    } yield s"$statusMsg\n$sentEventMsg\nSuccessfully ran PostStartup Hook"
   }
 
 
