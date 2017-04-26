@@ -363,15 +363,6 @@ object GetSystemStatusTool extends CommandLineToolRunner[GetSystemStatusToolOpti
       SubComponentIds.WSO2 -> opts.wso2Port)
 
 
-  /**
-    * Util to block and run tool
-    * @param fx func to run
-    * @param timeOut timeout for the blocking call
-    * @return
-    */
-  def runAndBlock(fx: => Future[String], timeOut: Duration): Try[String] =
-    Try { Await.result(fx, timeOut) }
-
   override def runTool(opts: GetSystemStatusToolOptions): Try[String] = {
 
     val timeOutSec = (opts.maxRetries + 1) * opts.sleepTimeSec

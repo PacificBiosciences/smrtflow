@@ -13,6 +13,8 @@ import scopt.OptionParser
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import collection.JavaConverters._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 
 
 object CommandLineUtils extends LazyLogging {
@@ -203,6 +205,18 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
 
 
 trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtils with CommandLineToolBase[T]{
+
+
+  /**
+    * Util to block and run tool
+    * @param fx func to run
+    * @param timeOut timeout for the blocking call
+    * @return
+    */
+  def runAndBlock(fx: => Future[String], timeOut: Duration): Try[String] =
+    Try { Await.result(fx, timeOut) }
+
+
 
   // It's too much effort to update all of the tools. Adding this hack to create
   // a provide an intermediate model. This should be abstract once runner(args) and and run(config) has been
