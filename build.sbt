@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.6.5-SNAPSHOT"
+version in ThisBuild := "0.6.6-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -47,6 +47,10 @@ val sprayV = "1.3.3"
 val slickV = "3.1.1"
 
 val bambooBuildNumberEnv = "bamboo_buildNumber"
+
+
+resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
+
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
@@ -108,7 +112,8 @@ lazy val baseSettings = Seq(
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
-  "com.github.zafarkhaja" % "java-semver" % "0.9.0"
+  "com.github.zafarkhaja" % "java-semver" % "0.9.0",
+  "mbilski" % "spray-hmac_2.11" % "1.0.1"
 )
 
 def PacBioProject(name: String): Project = (

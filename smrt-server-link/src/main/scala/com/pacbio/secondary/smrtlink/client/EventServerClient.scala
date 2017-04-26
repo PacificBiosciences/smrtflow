@@ -2,6 +2,9 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.net.URL
 import java.nio.file.Path
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import javax.xml.bind.DatatypeConverter
 
 import spray.json._
 import spray.client.pipelining._
@@ -11,9 +14,11 @@ import spray.httpx.SprayJsonSupport
 import akka.actor.ActorSystem
 import com.pacbio.common.client.{ServiceAccessLayer, UrlUtils}
 import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
 
 /**
   * Create a Client for the Event Server.
@@ -24,16 +29,40 @@ import scala.concurrent.duration.FiniteDuration
   * @param baseUrl note, this is the base URL of the system, not http://my-server:8080/my-events.
   * @param actorSystem
   */
-class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) {
+class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) with DefaultSigner with SignerConfig with LazyLogging{
 
   import SprayJsonSupport._
   import SmrtLinkJsonProtocols._
 
-  val BASE_PREFIX = "/api/v1"
-  private val EVENTS_SEGMENT = "events"
+  private val SEGMENT_EVENTS = "events"
+  private val SEGMENT_FILES = "files"
 
-  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  val PREFIX_BASE = "/api/v1"
+  val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
+  val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
+
+  def this(host: String, port: Int, apiSecret: String)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
+  }
+
+  val sender = sendReceive
+
+  // Useful for debugging
+  val logRequest: HttpRequest => HttpRequest = { r => println(r.toString); r }
+  val logResponse: HttpResponse => HttpResponse = { r => println(r.toString); r }
+
+    /**
+    * Add the HMAC auth key
+    *
+    * @param method HTTP method
+    * @param segment Segment of the URL
+    * @return
+    */
+  def sendReceiveAuthenticated(method: String, segment: String):HttpRequest => Future[HttpResponse] = {
+    val key = generate(apiSecret, s"$method+$segment", timestamp)
+    val authHeader = s"hmac uid:$key"
+    // addHeader("Authentication", s"hmac uid:$key") ~> logRequest ~> sender ~> logResponse
+    addHeader("Authentication", authHeader) ~> sender
   }
 
   /**
@@ -45,19 +74,19 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
     * @return
     */
   def toApiUrl(segment: String): URL = {
-    new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$BASE_PREFIX/$EVENTS_SEGMENT")
+    new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$PREFIX_BASE/$segment")
   }
 
-  val toUploadUrl: URL = new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$BASE_PREFIX/files")
+  val toUploadUrl: URL = new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, PREFIX_FILES)
 
-  // Base Events url
-  val eventsUrl = toApiUrl(EVENTS_SEGMENT)
+  val eventsUrl = toApiUrl(SEGMENT_EVENTS)
+  val filesUrl = toApiUrl(SEGMENT_FILES)
 
-  def smrtLinkSystemEventPipeline: HttpRequest => Future[SmrtLinkSystemEvent] =
-    sendReceive ~> unmarshal[SmrtLinkSystemEvent]
+  def smrtLinkSystemEventPipeline(method: String, segment: String): HttpRequest => Future[SmrtLinkSystemEvent] =
+    sendReceiveAuthenticated(method, segment) ~> unmarshal[SmrtLinkSystemEvent]
 
   def sendSmrtLinkSystemEvent(event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline { Post(eventsUrl.toString, event)}
+    smrtLinkSystemEventPipeline("POST", PREFIX_EVENTS) { Post(eventsUrl.toString, event)}
 
   def sendSmrtLinkSystemEventWithBlockingRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3, timeOutPerCall: FiniteDuration) =
     callWithBlockingRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries, timeOutPerCall)
@@ -71,7 +100,7 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
       Seq(BodyPart(pathTgz.toFile, "techsupport_tgz", ContentType(MediaTypes.`application/octet-stream`)))
     )
 
-    smrtLinkSystemEventPipeline { Post(toUploadUrl.toString, multiForm) }
+    smrtLinkSystemEventPipeline("POST", PREFIX_FILES) { Post(toUploadUrl.toString, multiForm) }
   }
 
 }
