@@ -197,6 +197,7 @@ echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}"
 env "$client_env" \
      ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
+       --api-name SMRTLink \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
        --host localhost
@@ -204,6 +205,8 @@ env "$client_env" \
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
      ${SL_SERVICES_TOOLS_DIR}/bin/amclient proxy-admin \
+       --api-name RemoteUserStoreManagerService \
+       --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
        --host localhost \
