@@ -1,18 +1,13 @@
 package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
-import java.nio.file.{Path, Files}
 
 import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 
-object SetPasswordConstants {
-  val WSO2_CREDENTIALS_JSON = "wso2-credentials.json"
-}
-
-case class SetPasswordArgs(rootDir: Path = null, user: String = null, pass: String = null)
+case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null)
 
 object SetPasswordToolParser extends CommandLineToolVersion {
   val VERSION = "0.1.0"
@@ -23,10 +18,9 @@ object SetPasswordToolParser extends CommandLineToolVersion {
   val parser = new OptionParser[SetPasswordArgs]("bundler-set-password") {
     head("Set WSO2 Admin Credentials", VERSION)
 
-    arg[File]("root-dir")
-      .action((x, c) => c.copy(rootDir = x.toPath.toAbsolutePath))
-      .validate(p => if (Files.isDirectory(p.toPath)) success else failure(s"$p must be a directory"))
-      .text("Root directory of the SMRT Link Analysis GUI bundle")
+    arg[File]("creds-json")
+      .action((x, c) => c.copy(credsJson = x))
+      .text("Location of the WSO2 credentials JSON file")
 
     opt[String]('u', "user")
       .action((x, c) => c.copy(user = x))
@@ -55,8 +49,6 @@ object SetPasswordToolParser extends CommandLineToolVersion {
 }
 
 class SetPasswordTool(args: SetPasswordArgs) extends LazyLogging {
-  import SetPasswordConstants._
-
   def run(): Int = {
     val jsonString =
       s"""
@@ -66,9 +58,7 @@ class SetPasswordTool(args: SetPasswordArgs) extends LazyLogging {
         |}
       """.stripMargin
 
-    val wso2CredentialsPath = args.rootDir.resolve(WSO2_CREDENTIALS_JSON)
-
-    FileUtils.write(wso2CredentialsPath.toFile, jsonString, "UTF-8")
+    FileUtils.write(args.credsJson, jsonString, "UTF-8")
     0
   }
 }
