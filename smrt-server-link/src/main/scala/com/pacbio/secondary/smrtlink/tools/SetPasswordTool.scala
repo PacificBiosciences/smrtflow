@@ -15,7 +15,7 @@ import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
 case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null) extends LoggerConfig
 
 object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
-  override val VERSION = "0.1.0"
+  override val VERSION = "0.1.1"
   override val toolId = "pbscala.tools.bundler-set-password"
   override val DESCRIPTION =
     """
@@ -68,7 +68,7 @@ object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
 
   override def runTool(opts: SetPasswordArgs): Try[String] = {
     Try { writeCreds(opts.user, opts.pass, opts.credsJson)}
-        .map(f => s"Successfully sWrote credentials to $f")
+        .map(f => s"Successfully Wrote credentials to $f")
   }
 
   // Legacy interface
