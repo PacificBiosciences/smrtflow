@@ -3,26 +3,27 @@ package com.pacbio.secondary.smrtlink.services.jobtypes
 import java.nio.file.Paths
 import java.util.UUID
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 import akka.actor.ActorRef
 import akka.pattern.ask
+
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
+import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, PbsmrtpipeJobUtils}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class DeleteJobServiceType(dbActor: ActorRef,
                            authenticator: Authenticator,
@@ -45,6 +46,16 @@ class DeleteJobServiceType(dbActor: ActorRef,
     }
   }
 
+  private def terminateJobIfNecessary(engineJob: EngineJob): Future[EngineJob] = {
+    if ((! engineJob.isRunning) || (engineJob.jobTypeId != "pbsmrtpipe")) {
+      Future { engineJob }
+    } else {
+      for {
+        _ <- Future { PbsmrtpipeJobUtils.terminateJobFromDir(Paths.get(engineJob.path))}
+      } yield engineJob
+    }
+  }
+
   override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
     val force = sopts.force.getOrElse(false)
@@ -54,6 +65,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
     for {
       targetJob <- confirmIsDeletable(sopts.jobId, force)
       opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), removeFiles, targetJob.projectId) }
+      _ <- terminateJobIfNecessary(targetJob)
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
     } yield CreateJobType(
         uuid,
