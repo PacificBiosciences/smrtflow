@@ -953,40 +953,38 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   private def validateEntryPointIds(
       entryPoints: Seq[BoundServiceEntryPoint],
-      pipeline: PipelineTemplate): Unit = {
+      pipeline: PipelineTemplate): Try[Seq[BoundServiceEntryPoint]] = Try {
     val eidsInput = entryPoints.map(_.entryId).sorted.mkString(", ")
     val eidsTemplate = pipeline.entryPoints.map(_.entryId).sorted.mkString(", ")
     if (eidsInput != eidsTemplate) throw new Exception(
       "Mismatch between supplied and expected entry points: the input "+
       s"datasets correspond to entry points ($eidsInput), while the pipeline "+
       s"${pipeline.id} requires entry points ($eidsTemplate)")
+    entryPoints
   }
 
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
-  protected def getPipelineServiceOptions(jobTitle: String,
+  protected def getPipelineServiceOptions(
+      jobTitle: String,
       pipelineId: String,
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset,
-      userTaskOptions: Option[Map[String,String]] = None): PbSmrtPipeServiceOptions = {
-    Try {
-      logger.debug("Getting pipeline options from server")
-      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
-    } match {
-      case Success(pipeline) => {
-        validateEntryPointIds(entryPoints, pipeline)
-        val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
-          userTaskOptions.getOrElse(Map[String,String]()).map{
-            case (k,v) => k -> ServiceTaskStrOption(k, v)
-          }.values
-        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
-        val workflowOptions = Seq[ServiceTaskOptionBase]()
-        PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
-                                 workflowOptions)
-      }
-      case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
-    }
+      userTaskOptions: Option[Map[String,String]] = None):
+      Try[PbSmrtPipeServiceOptions] = {
+    val workflowOptions = Seq[ServiceTaskOptionBase]()
+    val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
+      userTaskOptions.getOrElse(Map[String,String]()).map{
+        case (k,v) => k -> ServiceTaskStrOption(k, v)
+      }.values
+    for {
+      _ <- Try {logger.debug("Getting pipeline options from server")}
+      pipeline <- Try { Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT) }
+      eps <- validateEntryPointIds(entryPoints, pipeline)
+      taskOptions <- Try {PipelineUtils.getPresetTaskOptions(pipeline, userOptions)}
+    } yield PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints,
+                                     taskOptions, workflowOptions)
   }
 
   def runPipeline(pipelineId: String,
@@ -1007,7 +1005,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
-      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions) }
+      opts <- getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions)
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
     } yield job
 
