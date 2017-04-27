@@ -64,8 +64,6 @@ trait CoreProviders extends
   CommonFilesServiceProvider with
   DiskSpaceServiceProvider with
   MimeTypeDetectors with
-  SubSystemComponentServiceProvider with
-  SubSystemResourceServiceProvider with
   ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
@@ -108,8 +106,6 @@ trait AuthenticatedCoreProviders extends
   CommonFilesServiceProviderx with
   DiskSpaceServiceProviderx with
   MimeTypeDetectors with
-  SubSystemComponentServiceProviderx with
-  SubSystemResourceServiceProviderx with
   ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
