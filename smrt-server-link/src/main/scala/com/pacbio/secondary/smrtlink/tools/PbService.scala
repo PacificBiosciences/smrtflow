@@ -951,6 +951,17 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  private def validateEntryPointIds(
+      entryPoints: Seq[BoundServiceEntryPoint],
+      pipeline: PipelineTemplate): Unit = {
+    val eidsInput = entryPoints.map(_.entryId).sorted.mkString(", ")
+    val eidsTemplate = pipeline.entryPoints.map(_.entryId).sorted.mkString(", ")
+    if (eidsInput != eidsTemplate) throw new Exception(
+      "Mismatch between supplied and expected entry points: the input "+
+      s"datasets correspond to entry points ($eidsInput), while the pipeline "+
+      s"${pipeline.id} requires entry points ($eidsTemplate)")
+  }
+
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
@@ -964,6 +975,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(pipeline) => {
+        validateEntryPoints(entryPoints, pipeline)
         val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
           userTaskOptions.getOrElse(Map[String,String]()).map{
             case (k,v) => k -> ServiceTaskStrOption(k, v)
