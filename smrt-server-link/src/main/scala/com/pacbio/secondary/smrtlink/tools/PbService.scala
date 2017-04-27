@@ -975,7 +975,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
       case Success(pipeline) => {
-        validateEntryPoints(entryPoints, pipeline)
+        validateEntryPointIds(entryPoints, pipeline)
         val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
           userTaskOptions.getOrElse(Map[String,String]()).map{
             case (k,v) => k -> ServiceTaskStrOption(k, v)
