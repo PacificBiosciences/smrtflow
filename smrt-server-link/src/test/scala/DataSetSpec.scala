@@ -118,11 +118,6 @@ with JobServiceConstants with TestUtils{
         subreads.size === 0
       }
     }
-    "Secondary analysis Subread Schema resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/_schema") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
     "Secondary analysis Subread DataSet resource by id" in {
       Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -152,11 +147,6 @@ with JobServiceConstants with TestUtils{
         status.isSuccess must beTrue
         //val dst = responseAs[DataSetType]
         //dst.id must be_==("pacbio.datasets.subread")
-      }
-    }
-    "Secondary analysis Reference Schema resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/references/_schema") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
       }
     }
     // TODO(smcclellan): Turn test case on once dataset ids use autoinc (see TODOs in JobsDao)

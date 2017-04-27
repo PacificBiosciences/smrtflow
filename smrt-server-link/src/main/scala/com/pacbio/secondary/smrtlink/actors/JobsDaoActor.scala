@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -11,7 +10,6 @@ import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
@@ -209,11 +207,6 @@ object JobsDaoActor {
 
   // Import a GMAP reference
   case class ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) extends DataSetMessage
-
-  // This should probably be a different actor
-  // Convert a Reference to a Dataset and Import
-  case class ConvertReferenceInfoToDataset(path: String, dsPath: Path) extends DataSetMessage
-
 
   // DataStore Files
   case class GetDataStoreFileByUUID(uuid: UUID) extends DataStoreMessage
@@ -553,16 +546,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetGmapReferenceDataSetDetailsByUUID(id: UUID) =>
       pipeWith {dao.getGmapReferenceDataSetDetailsByUUID(id)}
 
-    case ImportReferenceDataSet(ds: ReferenceServiceDataSet) => pipeWith {
-      log.debug("inserting reference dataset")
-      dao.insertReferenceDataSet(ds)
-    }
-
-    case ImportGmapReferenceDataSet(ds: GmapReferenceServiceDataSet) => pipeWith {
-      log.debug("inserting reference dataset")
-      dao.insertGmapReferenceDataSet(ds)
-    }
-
     // get Alignments
     case GetAlignmentDataSets(limit: Int, includeInactive: Boolean, projectIds: Seq[Int]) =>
       pipeWith(dao.getAlignmentDataSets(limit, includeInactive, projectIds))
@@ -658,14 +641,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetContigDataSetDetailsById(i) =>
       pipeWith {dao.getContigDataSetDetailsById(i)}
-
-    case ConvertReferenceInfoToDataset(path: String, dsPath: Path) => respondWith {
-      log.info(s"Converting reference.info.xml to dataset XML $path")
-      ReferenceInfoConverter.convertReferenceInfoXMLToDataset(path, dsPath) match {
-        case Right(ds) => s"Successfully converted reference.info.xml to dataset and imported ${ds.dataset.metadata.uuid} path:$dsPath"
-        case Left(e) => throw new Exception(s"DataSetConversionError: Unable to convert and import $path. Error ${e.msg}")
-      }
-    }
 
     // DataStore Files
     case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreInactive))
