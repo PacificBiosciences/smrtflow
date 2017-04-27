@@ -2,16 +2,25 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 
-import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
-import com.typesafe.scalalogging.LazyLogging
+import scala.util.Try
+
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
+import spray.json._
+import DefaultJsonProtocol._
 
-case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null)
+import com.pacbio.logging.LoggerConfig
+import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
 
-object SetPasswordToolParser extends CommandLineToolVersion {
-  val VERSION = "0.1.0"
-  val TOOL_ID = "pbscala.tools.bundler-set-password"
+case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null) extends LoggerConfig
+
+object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
+  override val VERSION = "0.1.0"
+  override val toolId = "pbscala.tools.bundler-set-password"
+  override val DESCRIPTION =
+    """
+      |Update the WSO2 user and password Credentials JSON file
+    """.stripMargin
 
   val defaults = SetPasswordArgs()
 
@@ -41,35 +50,34 @@ object SetPasswordToolParser extends CommandLineToolVersion {
 
     opt[Unit]("version")
       .action { (x, c) =>
-        showToolVersion(TOOL_ID, VERSION)
-        sys.exit(0)
+          showVersion
+          sys.exit(0)
       }
       .text("Show tool version and exit")
   }
-}
 
-class SetPasswordTool(args: SetPasswordArgs) extends LazyLogging {
-  def run(): Int = {
-    val jsonString =
-      s"""
-        |{
-        |  "wso2User": "${args.user}",
-        |  "wso2Password": "${args.pass}"
-        |}
-      """.stripMargin
+  def writeCreds(user: String, password: String, credsFile: File): File = {
+    val jx: Map[String, JsValue] = Map(
+      "wso2User" -> JsString(user),
+      "wso2Password" -> JsString(password))
 
-    FileUtils.write(args.credsJson, jsonString, "UTF-8")
-    0
+    val sx = JsObject(jx).toJson.prettyPrint
+    FileUtils.write(credsFile, sx, "UTF-8")
+    credsFile
   }
+
+  override def runTool(opts: SetPasswordArgs): Try[String] = {
+    Try { writeCreds(opts.user, opts.pass, opts.credsJson)}
+        .map(f => s"Successfully sWrote credentials to $f")
+  }
+
+  // Legacy interface
+  def run(c: SetPasswordArgs) = Left(ToolFailure(toolId, 1, "NOT SUPPORTED"))
+
 }
+
 
 object SetPasswordToolApp extends App {
-  def run(args: Seq[String]) = {
-    val xc = SetPasswordToolParser.parser.parse(args.toSeq, SetPasswordToolParser.defaults) match {
-      case Some(a) => new SetPasswordTool(a).run()
-      case _ => 1
-    }
-    sys.exit(xc)
-  }
-  run(args)
+  import SetPasswordToolParser._
+  runnerWithArgsAndExit(args)
 }
