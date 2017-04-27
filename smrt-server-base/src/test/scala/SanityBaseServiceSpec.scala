@@ -17,11 +17,6 @@ class SanityBaseServiceSpec extends Specification with Directives with Specs2Rou
   val routes = Api.routes
 
   "Service list" should {
-    "return a list of services" in {
-      Get("/subsystem_resources") ~> routes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
     "Uptime should be >0" in {
       Get("/status") ~> routes ~> check {
         val status = responseAs[ServiceStatus]
