@@ -3,6 +3,7 @@
   "name": "Minor Variants Analysis With Barcoding",
   "description": "Minor Variants Analysis With Barcoding",
   "taskOptions": [
+    {"id": "pbcoretools.task_options.score_mode", "hidden": false, "advanced": false},
     {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false},
     {"id": "juliet.task_options.target_config_json", "hidden": true, "advanced": true},
     {"id": "juliet.task_options.target_config_file", "hidden": true, "advanced": true},
