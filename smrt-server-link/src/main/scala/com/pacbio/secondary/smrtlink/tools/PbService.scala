@@ -1041,8 +1041,10 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
         if (force) {
-          println("WARNING: job did not complete - deleting it may fail if tasks are still running")
-          Thread.sleep(5000)
+          println("WARNING: job did not complete - attempting to terminate")
+          if (runTerminateAnalysisJob(jobId) != 0) {
+            println("Job termination failed; will delete anyway, but this may have unpredictable side effects")
+          }
         } else {
           throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first, or add the argument --force if you are absolutely certain the job is okay to delete")
         }

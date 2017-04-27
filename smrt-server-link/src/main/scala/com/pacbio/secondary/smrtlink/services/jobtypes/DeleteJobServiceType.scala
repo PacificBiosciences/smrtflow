@@ -17,7 +17,7 @@ import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, PbsmrtpipeJobUtils}
+import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -46,16 +46,6 @@ class DeleteJobServiceType(dbActor: ActorRef,
     }
   }
 
-  private def terminateJobIfNecessary(engineJob: EngineJob): Future[EngineJob] = {
-    if ((! engineJob.isRunning) || (engineJob.jobTypeId != "pbsmrtpipe")) {
-      Future { engineJob }
-    } else {
-      for {
-        _ <- Future { PbsmrtpipeJobUtils.terminateJobFromDir(Paths.get(engineJob.path))}
-      } yield engineJob
-    }
-  }
-
   override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
     val force = sopts.force.getOrElse(false)
@@ -65,7 +55,6 @@ class DeleteJobServiceType(dbActor: ActorRef,
     for {
       targetJob <- confirmIsDeletable(sopts.jobId, force)
       opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), removeFiles, targetJob.projectId) }
-      _ <- terminateJobIfNecessary(targetJob)
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
     } yield CreateJobType(
         uuid,
