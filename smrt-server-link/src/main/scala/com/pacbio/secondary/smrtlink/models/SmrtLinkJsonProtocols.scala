@@ -189,7 +189,7 @@ trait SmrtLinkJsonProtocols
   implicit val projectUserRequestFormat: RootJsonFormat[ProjectRequestUser] = cachedImplicit
 
   implicit val eulaFormat = jsonFormat6(EulaRecord)
-  implicit val eulaAcceptanceFormat = jsonFormat4(EulaAcceptance)
+  implicit val eulaAcceptanceFormat = jsonFormat2(EulaAcceptance)
 
   implicit val datasetUpdateFormat = jsonFormat1(DataSetUpdateRequest)
 
@@ -204,7 +204,8 @@ trait SmrtLinkJsonProtocols
 
   implicit val externalServerStatusFormat = jsonFormat2(ExternalServerStatus.apply)
 
-  implicit val techSupportBundleFormat = jsonFormat8(TechSupportBundle.apply)
+  implicit val techSupportSystemStatusRecordFormat = jsonFormat2(TechSupportSystemStatusRecord.apply)
+  implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
 }
 

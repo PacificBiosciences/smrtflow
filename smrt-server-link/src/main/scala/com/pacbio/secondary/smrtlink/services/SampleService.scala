@@ -65,10 +65,12 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
           }
         } ~
           post {
-            entity(as[SampleCreate]) { create =>
-              complete {
-                created {
-                  (sampleActor ? CreateSample("root", create)).mapTo[Sample]
+            authenticate(authenticator.wso2Auth) { user =>
+              entity(as[SampleCreate]) { create =>
+                complete {
+                  created {
+                    (sampleActor ? CreateSample(user.userId, create)).mapTo[Sample]
+                  }
                 }
               }
             }

@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
@@ -20,10 +20,8 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.jobtypes.MergeDataSetServiceJobType
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
-import org.apache.commons.lang.SystemUtils
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
@@ -38,6 +36,7 @@ import java.sql.SQLException
 import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
 
@@ -388,33 +387,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     fx.flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
   }
 
-  def getNextRunnableJob: Future[Either[NoAvailableWorkError, RunnableJob]] = {
-    val noWork = NoAvailableWorkError("No Available work to run.")
-    _runnableJobs.values.find(_.state == AnalysisJobStates.CREATED) match {
-      case Some(job) => {
-        _runnableJobs.remove(job.job.uuid)
-        getJobById(job.id).map {
-          case Some(j) =>
-            Right(RunnableJob(job.job, j.state))
-          case None => Left(noWork)
-        }
-      }
-      case None => Future(Left(noWork))
-    }
-  }
-
   private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
     _runnableJobs.values.find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) => {
+        logger.info(s"dequeueing job ${job.job.uuid}")
         _runnableJobs.remove(job.job.uuid)
-        getJobById(job.id).map {
-          case Some(j) =>
-            Right(RunnableJobWithId(job.id, job.job, j.state))
-          case None => Left(noWork)
-        }
+        Future(Right(job))
       }
       case None => Future(Left(noWork))
     }
@@ -516,7 +497,6 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
       val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
-      _runnableJobs.update(uuid, rJob)
 
       val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
       val jobEvent = JobEvent(
@@ -538,7 +518,11 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
       case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
     }
 
-    db.run(action.transactionally)
+    db.run(action.transactionally).map(job => {
+      val rJob = RunnableJobWithId(job.id, coreJob, AnalysisJobStates.CREATED)
+      _runnableJobs.update(uuid, rJob)
+      job
+    })
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
@@ -751,6 +735,11 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     val modifiedAt = createdAt
     val importedAt = createdAt
 
+    // Tech Support TGZ need to be uploaded
+    if (ds.fileTypeId == FileTypes.TS_TGZ.fileTypeId) {
+      sendEventToManager[UploadTgz](UploadTgz(Paths.get(ds.path)))
+    }
+
     if (ds.isChunked) {
       Future(MessageResponse(s"Skipping inserting of Chunked DataStoreFile $ds"))
     } else {
@@ -768,11 +757,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
             val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
             datastoreServiceFiles += dss
         }
+
+        //FIXME(mpkocher)(5-19-2017) We should try to clarify this model and make this consistent across all job types.
+        // Context from mskinner
+        // for imported datasets, createdBy comes from CollectionMetadata/RunDetails/CreatedBy (set in Converters.convert).
+        // for merged datasets, createdBy comes from the user who initiated the merge job
         val createdBy = if (engineJob.jobTypeId == JobTypeIds.MERGE_DATASETS.id) {
           engineJob.createdBy
         } else {
           None
         }
+
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
           case Some(typ) =>
@@ -1436,20 +1431,8 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
        """.stripMargin
   }
 
-  def addEulaAcceptance(user: String,
-                        smrtlinkVersion: String,
-                        enableInstallMetrics: Boolean,
-                        enableJobMetrics: Boolean): Future[EulaRecord] = {
-    val now = JodaDateTime.now()
-    // FIXME this should probably move somewhere central
-    val osVersion = if (Files.exists(Paths.get("/proc/version"))) {
-      scala.io.Source.fromFile("/proc/version").mkString
-    } else {
-      s"${SystemUtils.OS_NAME}; ${SystemUtils.OS_ARCH}; ${SystemUtils.OS_VERSION}"
-    }
-    logger.info(s"OS version: $osVersion")
-    val rec = EulaRecord(user, now, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics)
-    val f = db.run(eulas += rec).map(_ => rec)
+  def addEulaRecord(eulaRecord: EulaRecord): Future[EulaRecord] = {
+    val f = db.run(eulas += eulaRecord).map(_ => eulaRecord)
     f.onSuccess {case e:EulaRecord  => sendEventToManager[EulaRecord](e)}
     f
   }

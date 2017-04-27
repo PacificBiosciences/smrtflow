@@ -416,8 +416,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Get(toUrl(ROOT_EULA))
   }
 
-  def acceptEula(user: String, version: String, enableInstallMetrics: Boolean = true, enableJobMetrics: Boolean = true) = getEulaPipeline {
-    Post(toUrl(ROOT_EULA), EulaAcceptance(user, version, enableInstallMetrics, enableJobMetrics))
+  def acceptEula(user: String, enableInstallMetrics: Boolean = true) = getEulaPipeline {
+    Post(toUrl(ROOT_EULA), EulaAcceptance(user, enableInstallMetrics))
   }
 
   def deleteEula(version: String) = getMessageResponsePipeline {

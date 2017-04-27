@@ -64,7 +64,8 @@ class RunSpec
   val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
   val MOVIE_MINUTES_2 = 120.0
 
-  val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(1)
+  val ACQ_1_STARTED_AT = CREATED_AT.plusHours(1)
+  val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(2)
   val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
   val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
@@ -96,6 +97,7 @@ class RunSpec
       "{STATUS_2}"               -> (() => STATUS_2.value()),
       "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2),
 
+      "{ACQ_1_STARTED_AT}"       -> (() => ACQ_1_STARTED_AT),
       "{ACQ_1_COMPLETED_AT}"     -> (() => ACQ_1_COMPLETED_AT),
       "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
       "{RUN_COMPLETED_AT}"       -> (() => RUN_COMPLETED_AT)
@@ -226,7 +228,7 @@ class RunSpec
         collect1.instrumentId === Some(INSTRUMENT_ID_1)
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
         collect1.movieMinutes === MOVIE_MINUTES_1
-        collect1.startedAt === Some(STARTED_AT_1)
+        collect1.startedAt === Some(ACQ_1_STARTED_AT)
         collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
 
@@ -262,7 +264,7 @@ class RunSpec
         collect1.instrumentId === Some(INSTRUMENT_ID_1)
         collect1.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
         collect1.movieMinutes === MOVIE_MINUTES_1
-        collect1.startedAt === Some(STARTED_AT_1)
+        collect1.startedAt === Some(ACQ_1_STARTED_AT)
         collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
       }

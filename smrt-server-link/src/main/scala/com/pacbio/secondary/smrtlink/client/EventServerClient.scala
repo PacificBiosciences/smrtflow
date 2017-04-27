@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.client
 
 import java.net.URL
+import java.nio.file.Path
 
 import spray.json._
 import spray.client.pipelining._
@@ -47,6 +48,8 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$BASE_PREFIX/$EVENTS_SEGMENT")
   }
 
+  val toUploadUrl: URL = new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$BASE_PREFIX/files")
+
   // Base Events url
   val eventsUrl = toApiUrl(EVENTS_SEGMENT)
 
@@ -61,6 +64,14 @@ class EventServerClient(baseUrl: URL)(implicit actorSystem: ActorSystem) extends
 
   def sendSmrtLinkSystemWithRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3): Future[SmrtLinkSystemEvent] = {
     callWithRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries)
+  }
+
+  def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
+    val multiForm = MultipartFormData(
+      Seq(BodyPart(pathTgz.toFile, "techsupport_tgz", ContentType(MediaTypes.`application/octet-stream`)))
+    )
+
+    smrtLinkSystemEventPipeline { Post(toUploadUrl.toString, multiForm) }
   }
 
 }

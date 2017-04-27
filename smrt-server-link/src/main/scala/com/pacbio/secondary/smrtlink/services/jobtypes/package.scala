@@ -3,15 +3,15 @@ package com.pacbio.secondary.smrtlink.services
 import akka.actor.ActorRef
 import akka.pattern.ask
 import com.pacbio.common.auth.Authenticator
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.UserRecord
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
-import com.pacbio.secondary.smrtlink.{SmrtLinkConstants, JobServiceConstants}
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.{CreateJobType, GetJobByIdAble}
+import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.unmarshalling._
 import spray.json._
-
 import spray.routing.Route
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -45,6 +45,9 @@ package object jobtypes {
 
     // Subclasses may override to add custom job routes
     protected def extraRoutes(dbActor: ActorRef, authenticator: Authenticator): Route = reject
+
+    def getJob(i: IdAble): Future[EngineJob] =
+      (dbActor ? GetJobByIdAble(i)).mapTo[EngineJob]
 
     val routes =
       pathPrefix(endpoint) {

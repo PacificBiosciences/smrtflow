@@ -1,11 +1,12 @@
 import org.specs2.mutable.Specification
-
 import java.util.UUID
-import org.joda.time.{DateTime => JodaDateTime}
 
+import org.joda.time.{DateTime => JodaDateTime}
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
-import akka.actor.ActorRefFactory
+import akka.actor.{ActorRef, ActorRefFactory}
+import akka.util.Timeout
+import akka.pattern._
 import spray.json._
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.auth._
@@ -22,6 +23,9 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api.Database
+
+import concurrent.duration._
+import scala.concurrent.Await
 
 
 class SmrtLinkEventSpec extends Specification
@@ -72,7 +76,16 @@ class SmrtLinkEventSpec extends Specification
 
   val exampleEvent = SmrtLinkEvent("test_event", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
 
-    step(setupDb(TestProviders.dbConfig))
+  step(setupDb(TestProviders.dbConfig))
+  step(enableInstallMetrics(TestProviders.eventManagerActor()))
+
+  def enableInstallMetrics(evManager: ActorRef): Unit = {
+    val dt = FiniteDuration(5, SECONDS)
+    implicit val timeout = Timeout(dt)
+    val record = EulaRecord("test-user", JodaDateTime.now(), "1.2.3", "linux", enableInstallMetrics = true, enableJobMetrics = false)
+    val fx = (evManager ? record).mapTo[SmrtLinkSystemEvent]
+    Await.result(fx, dt)
+  }
 
   "SmrtLink Event endpoint test" should {
     "Create an Event" in {

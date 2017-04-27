@@ -47,6 +47,7 @@ object AnalysisJobStates {
   val VALID_STATES = Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
 
   val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED)
+  val FAILURE_STATES = Seq(TERMINATED, FAILED)
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
 
@@ -112,6 +113,8 @@ object JobModels {
     val PBSMRTPIPE = JobTypeId("pbsmrtpipe")
     val PBSMRTPIPE_DIRECT = JobTypeId("pbsmrtpipe-direct")
     val SIMPLE = JobTypeId("simple")
+    val TS_JOB = JobTypeId("tech-support-job")
+    val TS_SYSTEM_STATUS = JobTypeId("tech-support-status")
   }
 
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
@@ -223,6 +226,7 @@ object JobModels {
       def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
       def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
       def isRunning: Boolean = this.state == AnalysisJobStates.RUNNING
+      def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains(this.state)
 
       def apply(
           id: Int,
@@ -298,7 +302,9 @@ object JobModels {
       entryPointsJson: Path,
       jobReportJson: Path)
 
-  trait ImportAble
+  trait ImportAble {
+    def summary: String
+  }
 
   /**
    * Core DataStore File
@@ -327,6 +333,8 @@ object JobModels {
       description: String) extends ImportAble {
 
     def fileExists: Boolean = Paths.get(path).toFile.exists
+
+    def summary: String = toString
   }
 
   // Container for file created from a Job
@@ -336,7 +344,11 @@ object JobModels {
 
 
 
-  case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble
+  case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble {
+    override def summary = {
+      s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" + files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
+    }
+  }
 
   // Should think about making this a Path
   case class BoundEntryPoint(entryId: String, path: String)
@@ -483,4 +495,68 @@ object JobModels {
   case class PipelineDataStoreViewRules(pipelineId: String, rules: Seq[DataStoreFileViewRule], smrtlinkVersion: String)
 
   case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
+
+
+  // Tech Support Related Models. These really belong on "common"
+
+  object BundleTypes {
+    val FAILED_INSTALL = "ts_bundle_failed_install"
+    val SYSTEM_STATUS = "ts_bundle_system_status"
+    val JOB = "ts_bundle_job"
+  }
+
+  trait TsManifest {
+    val id: UUID
+    val bundleTypeId: String
+    val bundleTypeVersion: Int
+    val createdAt: JodaDateTime
+    val smrtLinkSystemId: UUID
+    val smrtLinkSystemVersion: Option[String]
+    val user: String
+    val comment: Option[String]
+    // I don't like dragging this around. This shouldn't be used as a primary key
+    val dnsName: Option[String]
+
+  }
+
+  /**
+    * Tech Support metadata "Bundle"
+    *
+    * General Tech Support Manifest
+    *
+    * The bundle type id should map to well defined schema of files within the tgz.
+    * When that schema changes, the bundle type version should be incremented.
+    *
+    * @param id                    Globally unique if of the bundle
+    * @param bundleTypeId          Bundle type id (e.g, "failed_smrtlink_install", "failed_smrtlink_analysis_job"
+    * @param bundleTypeVersion     Version of this Schema
+    * @param createdAt             When the bundle was created
+    * @param smrtLinkSystemId      Unique id of the SL System
+    * @param smrtLinkSystemVersion SL System Version
+    * @param user                  User who created the bundle
+    */
+  case class TsSystemStatusManifest(id: UUID,
+                                    bundleTypeId: String,
+                                    bundleTypeVersion: Int,
+                                    createdAt: JodaDateTime,
+                                    smrtLinkSystemId: UUID,
+                                    dnsName: Option[String],
+                                    smrtLinkSystemVersion: Option[String],
+                                    user: String,
+                                    comment: Option[String]) extends TsManifest
+
+  case class TsJobManifest(id: UUID,
+                           bundleTypeId: String,
+                           bundleTypeVersion: Int,
+                           createdAt: JodaDateTime,
+                           smrtLinkSystemId: UUID,
+                           dnsName: Option[String],
+                           smrtLinkSystemVersion: Option[String],
+                           user: String,
+                           comment: Option[String],
+                           jobTypeId: String,
+                           jobId: Int) extends TsManifest
+
+
+
 }

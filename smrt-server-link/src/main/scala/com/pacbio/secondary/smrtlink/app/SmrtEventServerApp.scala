@@ -5,20 +5,17 @@ import java.net.BindException
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
+import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
+import org.apache.commons.io.FileUtils
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
-import com.pacbio.common.app.StartupFailedException
-import com.pacbio.common.models.{Constants, PacBioComponentManifest}
-import com.pacbio.common.services.utils.StatusGenerator
-import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
-import com.pacbio.common.time.SystemClock
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent, EventTypes}
-import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing.{Route, RouteConcatenation}
 import spray.http._
@@ -26,21 +23,28 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.common.app.StartupFailedException
+import com.pacbio.common.models.{Constants, PacBioComponentManifest}
+import com.pacbio.common.services.utils.StatusGenerator
+import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
+import com.pacbio.common.time.SystemClock
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.client.EventServerClient
+import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtil}
 import com.pacbio.logging.LoggerOptions
+import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.analysis.tools.timeUtils
+import org.joda.time.format.DateTimeFormat
 
-import scala.concurrent._
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
 
 // Push this back to FileSystemUtils in common
-trait FileUtils extends LazyLogging{
+trait EveFileUtils extends LazyLogging{
   def createDirIfNotExists(p: Path): Path = {
     if (!Files.exists(p)) {
       logger.info(s"Creating dir(s) $p")
@@ -101,7 +105,7 @@ class EventLoggingProcessor extends EventProcessor with LazyLogging{
   *
   * @param rootDir
   */
-class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLogging with FileUtils{
+class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLogging with EveFileUtils{
 
   import SmrtLinkJsonProtocols._
 
@@ -188,11 +192,55 @@ class EventService(eventProcessor: EventProcessor,
   def routes = eventRoutes ~ filesRoute
 
 
+  /**
+    * Unzip the .tar.gz or .tgz file next to the tar-zipped file. Then extract the TS Bundle manifest from the
+    * tech-support-manifest.json in the root directory. The TS manifest json file must adhere to the
+    * base data model.
+    *
+    * The general model is to treat the TS Manifest schema as a pass through layer and add the minimal necessary
+    * data to the "message" body. Specfically,
+    *
+    * An SmrtLink System Event will be created by:
+    * - passing through the TS Manifest as the "message"
+    * - adding "uploadedBundlePath" to the root level of the "message"
+    *
+    * @param file Path to the TS manifest JSON file
+    * @return
+    */
   def createImportEvent(file: File) = {
-    // This isn't quite correct. After the file upload, the system needs to load the tech-support-manifest.json
-    // from the root level of the tgz file and propagate the message. The "message" needs to also have the local
-    // path to the tech-support-manifest file "bundle".
-    SmrtLinkSystemEvent(Constants.SERVER_UUID, EventTypes.IMPORT_BUNDLE, 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
+
+    val parent:Path = file.toPath.toAbsolutePath.getParent
+
+    // this is kinda sloppy
+    val name = file.getName.replace(".tar.gz", "").replace(".tgz", "")
+    val outputDir = parent.resolve(name)
+
+    logger.info(s"Uncompressing $file")
+    // This will create the output dir
+    TarGzUtil.uncompressTarGZ(file, outputDir.toFile)
+
+    val manifestPath = outputDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+
+    val mxStr = FileUtils.readFileToString(manifestPath.toFile, "UTF-8")
+
+    val manifestJson = mxStr.parseJson
+
+    // Casting to TsSystem because this is the "base" concrete type.
+    val manifest = manifestJson.convertTo[TsSystemStatusManifest]
+
+
+    // The model here is to try to be a pass-through layer. There's chances for collisions here
+    // depending on models defined by users. Here we create the event and
+    // add the unzipped bundle path to the event. See comments above
+    val eventJson = manifestJson.asJsObject
+
+    val bundleJx:Map[String, JsValue] = Map("uploadedBundlePath" -> JsString(outputDir.toAbsolutePath.toString))
+
+    val bundleJson = JsObject(eventJson.fields ++ bundleJx)
+
+    val eventId = UUID.randomUUID()
+
+    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, eventId, JodaDateTime.now(), bundleJson, manifest.dnsName)
   }
 
   /**
@@ -237,11 +285,29 @@ class EventService(eventProcessor: EventProcessor,
     else Future.failed(throw new UnprocessableEntityError(errorMessage))
   }
 
+  /**
+    * Resolve Output files to a directory structure by date YYYY/MM/DD/UUID-filename relative to the root directory
+    *
+    * @param fileName file name (not path) of the tgz file
+    * @return
+    */
   def resolveOutputFile(fileName: String): File = {
-    val f = rootUploadFilesDir.resolve(fileName).toFile
+    val now = JodaDateTime.now()
+
+    val fm = DateTimeFormat.forPattern("MM")
+    val fd = DateTimeFormat.forPattern("dd")
+
+    val outputDir = rootUploadFilesDir.resolve(s"${now.getYear}/${fm.print(now)}/${fd.print(now)}")
+
+    logger.info(s"Resolved to output dir $outputDir")
+
+    if (!Files.exists(outputDir)) {
+      Files.createDirectories(outputDir)
+    }
+
+    val i = UUID.randomUUID()
+    val f = outputDir.resolve(s"$i-$fileName").toFile
     logger.info(s"Resolved $fileName to local output $f")
-    f.createNewFile()
-    logger.info(s"Creating file $f")
     f
   }
 
@@ -309,7 +375,7 @@ class EventService(eventProcessor: EventProcessor,
     Try {
       writeFile(content, fos)
       val runTime = computeTimeDeltaFromNow(startedAt)
-      logger.info(s"Successfully processed content (${outputFile.length() / 1024} Kb) in $runTime sec to $outputFile")
+      logger.info(s"Successfully saved content (${outputFile.length() / 1024} Kb) in $runTime sec to $outputFile")
       fos.close()
       outputFile
     } match {
@@ -334,11 +400,11 @@ class EventService(eventProcessor: EventProcessor,
   * cake pattern correctly.
   */
 
-trait BaseServiceConfigCakeProvider extends ConfigLoader {
+trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val systemName = "smrt-server"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
-  lazy val systemUUID = Constants.SERVER_UUID
+  lazy val systemUUID = getSystemUUID(conf)
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
@@ -376,7 +442,7 @@ trait RootEventServerCakeProvider extends RouteConcatenation{
   lazy val rootService = actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
-trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
+trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUtils{
   this: RootEventServerCakeProvider
       with EventServiceConfigCakeProvider
       with ActorSystemCakeProvider =>
@@ -420,10 +486,13 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with FileUtils{
     * @return
     */
   private def postStartUpHook(): Future[String] = {
+    val message: Map[String, JsValue] = Map("eveSystemStartup" -> JsString("Successfully Started up"))
+
     val startUpEventMessage =
       SmrtLinkSystemEvent(systemUUID, EventTypes.SERVER_STARTUP, 1,
         UUID.randomUUID(),
-        JodaDateTime.now, JsObject.empty)
+        JodaDateTime.now, JsObject(message),
+        Some(java.net.InetAddress.getLocalHost.getCanonicalHostName))
 
     for {
       status <- eventServiceClient.getStatus

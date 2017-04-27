@@ -22,8 +22,8 @@
 		<AddAdmin>true</AddAdmin>
             <AdminRole>admin</AdminRole>
             <AdminUser>
-                <UserName>admin</UserName>
-                <Password>admin</Password>
+                <UserName>${WSO2_USER}</UserName>
+                <Password>${WSO2_PASSWORD}</Password>
             </AdminUser>
             <EveryOneRoleName>everyone</EveryOneRoleName> <!-- By default users in this role sees the registry root -->
             <Property name="isCascadeDeleteEnabled">true</Property>

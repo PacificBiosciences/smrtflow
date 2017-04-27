@@ -1,6 +1,5 @@
 SHELL=/bin/bash
 STRESS_RUNS=1
-SOURCE_DB=test-data/smrtserver-testdata/database/latest
 STRESS_NAME=run
 
 clean:
@@ -66,8 +65,8 @@ start-smrt-server-link:
 	sbt "smrt-server-link/run"
 
 start-smrt-server-link-jar:
-	sbt "smrt-server-link/assembly"
-	java -jar smrt-server-link/target/scala-2.11/smrt-server-link-assembly*.jar
+	sbt "smrt-server-link/{compile,pack}"
+	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
 test:
 	sbt -batch "test-only -- junitxml html console"
@@ -119,8 +118,9 @@ validate-pipeline-view-rules:
 
 validate-resources: validate-report-view-rules validate-pipeline-view-rules
 
-# e.g., make full-stress-run STRESS_RUNS=2 SOURCE_DB=~/analysis_services_beta_3.1.1.db
-full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
+# e.g., make full-stress-run STRESS_RUNS=2
+full-stress-run: test-data/smrtserver-testdata
+	sbt smrt-server-link/pack
 	@for i in `seq 1 $(STRESS_RUNS)`; do \
 	    RUN=$(STRESS_NAME)-$$(date +%F-%T) && \
 	    RUNDIR=test-output/stress-runs && \
@@ -128,11 +128,15 @@ full-stress-run: test-data/smrtserver-testdata $(SOURCE_DB)
 	    mkdir -p $$OUTDIR && \
 	    rm -f $$RUNDIR/latest && \
 	    ln -s $$RUN $$RUNDIR/latest && \
-	    sbt smrt-server-link/compile && \
-	    SERVERPID=$$(bash -i -c "sbt -no-colors \"smrt-server-link/run --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log\" > $$OUTDIR/smrt-server-link.out 2> $$OUTDIR/smrt-server-link.err & echo \$$!") && \
-	    sleep 360 && \
-	    ./stress.py -x 10 --nprocesses 20 --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
+	    psql < extras/db-drop.sql && \
+	    psql < extras/db-init.sql && \
+	    rm -rf jobs_root/* && \
+	    SERVERPID=$$(bash -i -c "export PB_ENGINE_JOB_ROOT=$$OUTDIR/jobs_root; smrt-server-link/target/pack/bin/smrt-server-link-analysis --log-file $(CURDIR)/$$OUTDIR/secondary-smrt-server.log > $$OUTDIR/smrt-server-link.out 2> $$OUTDIR/smrt-server-link.err & echo \$$!") && \
+	    sleep 30 && \
+	    ./stress.py -x 30 --nprocesses 20 --profile $$OUTDIR/profile.json > $$OUTDIR/stress.out 2> $$OUTDIR/stress.err ; \
 	    sleep 2 ; \
 	    pkill -g $$SERVERPID ; \
 	    sleep 2 ; \
-        done
+	    psql -tAF$$'\t' smrtlink -c "select * from engine_jobs where state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-jobs ; \
+	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
+	done

@@ -156,5 +156,14 @@ class SampleSpec extends
         samples.size === 2
       }
     }
+
+    "create a sample" in new daoSetup {
+      val newSample = SampleCreate(FAKE_SAMPLE, UUID.randomUUID(), "Created Sample")
+      Post(SAMPLE_PATH, newSample) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+        val sample = responseAs[Sample]
+        sample.name === "Created Sample"
+        sample.createdBy === ADMIN_USER_1_LOGIN
+      }
+    }
   }
 }

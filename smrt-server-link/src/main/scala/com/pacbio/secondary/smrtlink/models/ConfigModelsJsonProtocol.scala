@@ -1,8 +1,9 @@
 package com.pacbio.secondary.smrtlink.models
 
-import com.pacbio.secondary.analysis.jobs.{PathProtocols,UrlProtocol}
+import com.pacbio.secondary.analysis.jobs.{PathProtocols, UrlProtocol}
 import spray.json._
 import ConfigModels._
+import com.pacbio.common.models.UUIDJsonProtocol
 
 /**
   * Created by mkocher on 1/4/17.
@@ -29,16 +30,16 @@ import ConfigModels._
   * with the Schema that is defined.
   *
   */
-trait ConfigModelsJsonProtocol extends DefaultJsonProtocol with PathProtocols with UrlProtocol {
+trait ConfigModelsJsonProtocol extends DefaultJsonProtocol with PathProtocols with UrlProtocol with UUIDJsonProtocol{
 
-  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat9(SmrtflowPacBioSystemConfig)
+  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat11(SmrtflowPacBioSystemConfig)
   implicit val smrtflowDbPropertiesConfigFormat = jsonFormat5(SmrtflowDbPropertiesConfig)
   implicit val smrtflowDbConfigFormat = jsonFormat1(SmrtflowDbConfig)
   implicit val smrtflowServerConfigFormat = jsonFormat5(SmrtflowServerConfig)
   implicit val smrtflowEngineConfigFormat = jsonFormat3(SmrtflowEngineConfig)
   implicit val smrtflowConfigFormat = jsonFormat3(SmrtflowConfig)
   implicit val rootSmrtflowConfigFormat = jsonFormat3(RootSmrtflowConfig)
-
+  implicit val wso2CredentialsFormat = jsonFormat2(Wso2Credentials)
 }
 
 object ConfigModelsJsonProtocol extends ConfigModelsJsonProtocol

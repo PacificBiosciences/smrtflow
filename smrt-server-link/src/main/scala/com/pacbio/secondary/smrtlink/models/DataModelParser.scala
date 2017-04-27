@@ -12,7 +12,7 @@ import javax.xml.validation.SchemaFactory
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.common.time.PacBioDateTimeFormat
-import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
+import com.pacificbiosciences.pacbiobasedatamodel.{RecordedEventType, SupportedAcquisitionStates}
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -64,14 +64,14 @@ object DataModelParserImpl extends DataModelParser {
       .map(asScalaBuffer)
       .getOrElse(Nil)
 
-    val completedAt = events
-      .find(_.getName == "RunCompletion")
-      .map(_.getCreatedAt)
-      .map(toDateTime)
-    val transfersCompletedAt = events
-      .find(_.getName == "RunTransfersCompletion")
-      .map(_.getCreatedAt)
-      .map(toDateTime)
+    def eventTimeByName(es: Seq[RecordedEventType], name: String): Option[JodaDateTime] =
+      es.find(_.getName == name)
+        .flatMap(e => Option(e.getCreatedAt))
+        .map(toDateTime)
+
+    val completedAt = eventTimeByName(events, "RunCompletion")
+
+    val transfersCompletedAt = eventTimeByName(events, "RunTransfersCompletion")
 
     val subreadModels = runModel
       .getOutputs
@@ -114,11 +114,11 @@ object DataModelParserImpl extends DataModelParser {
         pa <- Option(Paths.get(ur))
       } yield pa
 
-      val acqCompletedAt = events
-        .filter(_.getContext == s.getUniqueId)
-        .find(_.getName == "AcquisitionCompletion")
-        .map(_.getCreatedAt)
-        .map(toDateTime)
+      val acqEvents = events.filter(_.getContext == s.getUniqueId)
+
+      val acqStartedAt = eventTimeByName(acqEvents, "AcquisitionInitializeInfo")
+
+      val acqCompletedAt = eventTimeByName(acqEvents, "AcquisitionCompletion")
 
       CollectionMetadata(
         UUID.fromString(runModel.getUniqueId),
@@ -133,7 +133,7 @@ object DataModelParserImpl extends DataModelParser {
         Option(collectionMetadataModel.getInstrumentName),
         movieMinutes,
         Option(collectionMetadataModel.getRunDetails.getCreatedBy),
-        Option(collectionMetadataModel.getRunDetails.getWhenStarted).map(toDateTime),
+        acqStartedAt,
         acqCompletedAt,
         terminationInfo = None) // TODO(smcclellan): Populate terminationInfo field when upstream data is available
     }

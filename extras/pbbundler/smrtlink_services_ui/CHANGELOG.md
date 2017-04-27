@@ -4,7 +4,11 @@ This file tracks changes to the public interface.
 
 The pbbundler version is BUNDLE_VERSION in bamboo_build.sh
 
-## SL System Version 4.1.0
+## SL System Version 5.0.0
+
+## BUNDLE_VERSION 0.15.1
+
+- add pacBioSystem.smrtLinkSystemRoot to smrtlink-system-config.json
 
 ### BUNDLE_VERSION 0.15.0
 

@@ -2,9 +2,11 @@ package com.pacbio.secondary.smrtlink.app
 
 import java.net.URL
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.loaders.ManifestLoader
+import com.pacbio.common.utils.SmrtServerIdUtils
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
@@ -17,7 +19,7 @@ import scala.concurrent.duration._
 import scala.util.Try
 
 
-trait SmrtLinkConfigProvider extends LazyLogging {
+trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
 
   /**
@@ -33,6 +35,8 @@ trait SmrtLinkConfigProvider extends LazyLogging {
     }
     p
   }
+
+  val serverId: Singleton[UUID] = Singleton(() => getSystemUUID(conf))
 
   val port: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
   val host: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
@@ -54,6 +58,10 @@ trait SmrtLinkConfigProvider extends LazyLogging {
 
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
     Singleton(() => PacBioDataBundleIOUtils.loadBundlesFromRoot(pacBioBundleRoot()))
+
+  // Optional SMRT Link System level Root Dir e.g., /path/to/smrtsuite/
+  val smrtLinkSystemRoot: Singleton[Option[Path]] =
+    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.smrtLinkSystemRoot"))}.toOption)
 
   /**
     * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
@@ -79,4 +87,8 @@ trait SmrtLinkConfigProvider extends LazyLogging {
   val externalBundlePollDuration: Singleton[FiniteDuration] = {
     Singleton(() => FiniteDuration(12, HOURS))
   }
+
+  val swaggerResource: Singleton[String] =
+    Singleton(() => "smrtlink_swagger.json")
+
 }

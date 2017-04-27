@@ -651,7 +651,7 @@ case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet,
 
 case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
 
-case class EulaAcceptance(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
+case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
 
 case class DataSetUpdateRequest(isActive: Boolean)
 
@@ -742,7 +742,7 @@ case class SmrtLinkEvent(eventTypeId: String,
                          message: JsObject)
 
 object EventTypes {
-  val EULA_ACCEPTED = "smrtlink_eula_accepted"
+  val INST_UPGRADE_NOTIFICATION = "smrtlink_inst_upgrade_notification"
   val SERVER_STARTUP = "smrt_server_startup"
   val IMPORT_BUNDLE = "techsupport_import_bundle"
 }
@@ -753,31 +753,16 @@ case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                uuid: UUID,
                                createdAt: JodaDateTime,
                                message: JsObject,
-                               dnsName: Option[String] = None)
+                               dnsName: Option[String])
 
 
-case class ExternalEventServerConfig(host: String, port: Int)
+// This should be removed. Only the URL should be used
+case class ExternalEventServerConfig(host: String, port: Int) {
+  def toUrl(): URL = new URL(s"http://$host:$port")
+}
 
+// Request to create a System Status bundle
+case class TechSupportSystemStatusRecord(name: String, comment: String)
 
-// TechSupport
-/**
-  * Tech Support metadata "Bundle"
-  *
-  * General Tech Support Manifest
-  *
-  * @param id                    Globally unique if of the bundle
-  * @param bundleTypeId          Bundle type id (e.g, "failed_smrtlink_install", "failed_smrtlink_analysis_job"
-  * @param bundleTypeVersion     Version of this Schema
-  * @param createdAt             When the bundle was created
-  * @param smrtLinkSystemId      Unique id of the SL System
-  * @param smrtLinkSystemVersion SL System Version
-  * @param user                  User who created the bundle
-  */
-case class TechSupportBundle(id: UUID,
-                             bundleTypeId: String,
-                             bundleTypeVersion: Int,
-                             createdAt: JodaDateTime,
-                             smrtLinkSystemId: UUID,
-                             smrtLinkSystemVersion: Option[String],
-                             user: String,
-                             comment: Option[String])
+// Request to create a Job (any job type is supported) bundle
+case class TechSupportJobRecord(name: String, comment: String, jobId: Int)

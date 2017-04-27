@@ -3,6 +3,14 @@
   "name": "Minor Variants Analysis With Barcoding",
   "description": "Minor Variants Analysis With Barcoding",
   "taskOptions": [
-    {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false}
+    {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false},
+    {"id": "juliet.task_options.target_config_json", "hidden": true, "advanced": true},
+    {"id": "juliet.task_options.target_config_file", "hidden": true, "advanced": true},
+    {"id": "juliet.task_options.mode_error","hidden": true, "advanced": true},
+    {"id": "juliet.task_options.substitution_rate","hidden": true, "advanced": true},
+    {"id": "juliet.task_options.deletion_rate","hidden": true, "advanced": true},
+    {"id": "juliet.task_options.verbose","hidden": true, "advanced": true},
+    {"id": "juliet.task_options.merge_outliers","hidden": true, "advanced": true},
+    {"id": "juliet.task_options.debug", "hidden": true, "advanced": true}
   ]
 }

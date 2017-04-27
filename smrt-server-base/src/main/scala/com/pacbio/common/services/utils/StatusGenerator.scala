@@ -4,9 +4,11 @@ import java.util.UUID
 
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{Constants, ServiceStatus}
-import com.pacbio.common.time.{ClockProvider, Clock}
+import com.pacbio.common.time.{Clock, ClockProvider}
+import com.pacbio.common.utils.SmrtServerIdUtils
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import org.joda.time.format.PeriodFormatterBuilder
-import org.joda.time.{Duration => JodaDuration, Instant => JodaInstant, Period}
+import org.joda.time.{Period, Duration => JodaDuration, Instant => JodaInstant}
 
 class StatusGenerator(clock: Clock,
                       baseServiceId: String,
@@ -48,7 +50,7 @@ class StatusGenerator(clock: Clock,
   }
 }
 
-trait StatusGeneratorProvider {
+trait StatusGeneratorProvider extends ConfigLoader with SmrtServerIdUtils{
   this: ClockProvider =>
 
   /**
@@ -64,7 +66,7 @@ trait StatusGeneratorProvider {
    */
   val baseServiceId: Singleton[String]
 
-  val uuid: Singleton[UUID] = Singleton(Constants.SERVER_UUID)
+  val uuid: Singleton[UUID] = Singleton(getSystemUUID(conf))
 
   val buildVersion: Singleton[String] = Singleton(() => Constants.SMRTFLOW_VERSION)
 

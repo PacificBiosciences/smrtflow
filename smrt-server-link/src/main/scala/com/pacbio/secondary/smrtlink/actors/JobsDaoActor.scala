@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -12,22 +12,19 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter
-import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates.Completed
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{Converters, EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ProjectRequest, ReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ReferenceServiceDataSet, EulaRecord}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.{Await, Future}
-import scala.util.control.NonFatal
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object MessageTypes {
@@ -237,7 +234,7 @@ object JobsDaoActor {
 
   case object GetEulas extends AdminMessage
   case class GetEulaByVersion(version: String) extends AdminMessage
-  case class AcceptEula(user: String, smrtlinkVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean) extends AdminMessage
+  case class AddEulaRecord(eulaRecord: EulaRecord) extends AdminMessage
   case class DeleteEula(version: String) extends AdminMessage
 
 
@@ -292,32 +289,31 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
+  // Takes the given RunnableJobWithId and starts it with the given worker.  If
+  // the job can't be started, re-adds the worker to the workerQueue
   // This should return a Future
-  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef]): Unit = {
+  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef], worker: ActorRef): Unit = {
+    log.info(s"Adding job ${runnableJobWithId.job.uuid} to worker ${worker}.  numWorkers ${workers.size}, numQuickWorkers ${quickWorkers.size}")
+    log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
 
-    if (workerQueue.nonEmpty) {
-      log.info(s"Checking for work. numWorkers ${workerQueue.size}, numQuickWorkers ${quickWorkers.size}")
-      log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
+    // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
+    // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
+    val f = for {
+      m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
+      m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
+    } yield s"$m1,$m2"
 
-      // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
-      // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-      val f = for {
-        m1 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
-        m2 <- dao.updateJobStateByUUID(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
-      } yield s"$m1,$m2"
-
-      f onComplete {
-        case Success(_) =>
-          val worker = workerQueue.dequeue()
-          val outputDir = resolver.resolve(runnableJobWithId)
-          val rjob = RunJob(runnableJobWithId.job, outputDir)
-          log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
-          worker ! rjob
-        case Failure(ex) =>
-          val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
-          log.error(emsg)
-          self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
-      }
+    f onComplete {
+      case Success(_) =>
+        val outputDir = resolver.resolve(runnableJobWithId)
+        val rjob = RunJob(runnableJobWithId.job, outputDir)
+        log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
+        worker ! rjob
+      case Failure(ex) =>
+        workerQueue.enqueue(worker)
+        val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
+        log.error(emsg)
+        self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
     }
   }
 
@@ -326,27 +322,37 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     //log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
 
     if (workers.nonEmpty) {
+      val worker = workers.dequeue()
       val f = dao.getNextRunnableJobWithId
 
       f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, workers)
-        case Left(e) => log.debug(s"No work found. ${e.message}")
+        case Right(runnableJob) => addJobToWorker(runnableJob, workers, worker)
+        case Left(e) =>
+          workers.enqueue(worker)
+          log.debug(s"No work found. ${e.message}")
       }
 
       f onFailure {
-        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+        case e => 
+          workers.enqueue(worker)
+          log.error(s"Failure checking for new work ${e.getMessage}")
       }
     } else {
       log.debug("No available workers.")
     }
     if (quickWorkers.nonEmpty) {
+      val worker = quickWorkers.dequeue()
       val f = dao.getNextRunnableQuickJobWithId
       f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers)
-        case Left(e) => log.debug(s"No work found. ${e.message}")
+        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers, worker)
+        case Left(e) => 
+          quickWorkers.enqueue(worker)
+          log.debug(s"No work found. ${e.message}")
       }
       f onFailure {
-        case e => log.error(s"Failure checking for new work ${e.getMessage}")
+        case e =>
+          quickWorkers.enqueue(worker)
+          log.error(s"Failure checking for new work ${e.getMessage}")
       }
     } else {
       log.debug("No available workers.")
@@ -371,7 +377,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       }
 
     case UpdateJobCompletedResult(result, workerType) =>
-      log.info(s"Worker $workerType completed $result")
+      log.info(s"Worker $sender completed $result")
       workerType match {
         case QuickWorkType => quickWorkers.enqueue(sender)
         case StandardWorkType => workers.enqueue(sender)
@@ -704,8 +710,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetEulaByVersion(version) =>
       pipeWith {dao.getEulaByVersion(version) }
 
-    case AcceptEula(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics) =>
-      pipeWith(dao.addEulaAcceptance(user, smrtlinkVersion, enableInstallMetrics, enableJobMetrics))
+    case AddEulaRecord(eulaRecord) =>
+      pipeWith(dao.addEulaRecord(eulaRecord))
 
     case DeleteEula(version) => pipeWith {
       dao.removeEula(version).map(x =>

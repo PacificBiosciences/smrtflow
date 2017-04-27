@@ -25,14 +25,21 @@ class ExportDataSets(
 
   val dest = new FileOutputStream(zipPath.toFile)
   val out = new ZipOutputStream(new BufferedOutputStream(dest))
+  private val BUFFER_SIZE = 2048
   private val haveFiles = Set.empty[String]
 
   private def writeFile(path: Path, zipOutPath: String): Int = {
     val ze = new ZipEntry(zipOutPath)
     out.putNextEntry(ze)
-    val data = Files.readAllBytes(path)
-    out.write(data, 0, data.size)
-    data.size
+    val input = new FileInputStream(path.toString)
+    val data = new Array[Byte](BUFFER_SIZE)
+    var nRead = -1
+    var nWritten = 0
+    while ({nRead = input.read(data); nRead > 0}) {
+      out.write(data, 0, nRead)
+      nWritten += nRead
+    }
+    nWritten
   }
 
   private def writeResourceFile(dsId: UUID,
