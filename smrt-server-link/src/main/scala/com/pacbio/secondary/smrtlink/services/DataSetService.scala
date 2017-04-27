@@ -4,6 +4,21 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+
+import shapeless.HNil
+import spray.httpx.marshalling.Marshaller
+import spray.routing.{PathMatcher1, Route}
+import spray.http.MediaTypes
+import spray.json._
+import spray.httpx.SprayJsonSupport
+import SprayJsonSupport._
+
+
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{UserRecord, PacBioComponentManifest}
@@ -15,21 +30,8 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
-import shapeless.HNil
-import spray.httpx.marshalling.Marshaller
-import spray.routing.{PathMatcher1, Route}
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.postfixOps
-import spray.http.MediaTypes
-import spray.json._
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelSpraySupport._
-
-import scala.reflect.ClassTag
 
 
 /**
