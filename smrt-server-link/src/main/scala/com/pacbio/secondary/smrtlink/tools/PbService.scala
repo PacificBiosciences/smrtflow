@@ -1029,15 +1029,17 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
         if (force) {
-          println("WARNING: job did not complete - database will be updated but files will be left in place")
+          println("WARNING: job did not complete - deleting it may fail if tasks are still running")
+          Thread.sleep(5000)
         } else {
           throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first, or add the argument --force if you are absolutely certain the job is okay to delete")
         }
       } else if (nChildren > 0) {
         if (force) {
-          println("WARNING: job output was used by $nChildren active jobs - database will be updated but files will be left in place")
+          println("WARNING: job output was used by $nChildren active jobs - deleting it may have unintended side effects")
+          Thread.sleep(5000)
         } else {
-          throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
+          throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input; add --force if you are absolutely certain the job is okay to delete")
         }
       }
       sal.deleteJob(job.uuid, force = force)

@@ -48,7 +48,8 @@ class DeleteJobServiceType(dbActor: ActorRef,
   override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
     val force = sopts.force.getOrElse(false)
-    val removeFiles = sopts.removeFiles && !force
+    // XXX This is not really a good idea, but that's what marketing and TS want
+    val removeFiles = sopts.removeFiles //&& !force
 
     for {
       targetJob <- confirmIsDeletable(sopts.jobId, force)
