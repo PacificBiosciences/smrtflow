@@ -424,9 +424,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Delete(toUrl(ROOT_EULA + s"/$version"))
   }
 
-  protected def getJobsByType(jobType: String,
-                              showAll: Boolean = false,
-                              projectId: Option[Int] = None): Future[Seq[EngineJob]] = getJobsPipeline {
+  def getJobsByType(jobType: String,
+                    showAll: Boolean = false,
+                    projectId: Option[Int] = None): Future[Seq[EngineJob]] = getJobsPipeline {
     val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
     val query2 = if (projectId.isDefined) Seq(s"projectId=${projectId.get}") else Seq.empty[String]
     val queries = query1 ++ query2

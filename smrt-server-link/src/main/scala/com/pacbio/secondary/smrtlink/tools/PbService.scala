@@ -12,6 +12,7 @@ import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.client._
@@ -109,6 +110,8 @@ object PbServiceParser extends CommandLineToolVersion{
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
+      jobType: String = "pbsmrtpipe",
+      jobState: Option[String] = None,
       nonLocal: Option[String] = None,
       asJson: Boolean = false,
       dumpJobSettings: Boolean = false,
@@ -326,7 +329,13 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of jobs to show"
+      } text "Max number of jobs to show",
+      opt[String]("job-type") action { (t, c) =>
+        c.copy(jobType = t)
+      } text "Only retrieve jobs of specified type",
+      opt[String]("job-state") action { (s, c) =>
+        c.copy(jobState = Some(s))
+      } text "Only display jobs in specified state"
     )
 
     cmd(Modes.DATASET.name) action { (_, c) =>
@@ -582,22 +591,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def jobsSummary(maxItems: Int, asJson: Boolean, engineJobs: Seq[EngineJob]): String = {
+  def jobsSummary(maxItems: Int,
+                  asJson: Boolean,
+                  engineJobs: Seq[EngineJob],
+                  jobState: Option[String] = None): String = {
     if (asJson) {
       println(engineJobs.toJson.prettyPrint)
       ""
     } else {
-      val table = engineJobs.sortBy(_.id).reverse.take(maxItems).map(job =>
+      val table = engineJobs.sortBy(_.id).reverse.filter( job =>
+        jobState.map(_ == job.state.toString).getOrElse(true)
+      ).take(maxItems).map( job =>
         Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
       printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
       ""
     }
   }
 
-  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs)
+  def runGetJobs(maxItems: Int,
+                 asJson: Boolean = false,
+                 jobType: String = "pbsmrtpipe",
+                 jobState: Option[String] = None): Int = {
+    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs, jobState)
 
-    runAndBlock[Seq[EngineJob]](sal.getAnalysisJobs, printer, TIMEOUT)
+    runAndBlock[Seq[EngineJob]](sal.getJobsByType(jobType), printer, TIMEOUT)
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
@@ -1148,7 +1165,7 @@ object PbService {
                                               taskOptions = c.taskOptions)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
-        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
