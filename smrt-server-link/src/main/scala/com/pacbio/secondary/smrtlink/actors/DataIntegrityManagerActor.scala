@@ -35,13 +35,20 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], i
     logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} and interval $interval and SMRT Link System version $smrtLinkSystemVersion")
   }
 
+  def andLog(m: String): String = {
+    logger.info(m)
+    m
+  }
+
   private def executeRunner(runner: BaseDataIntegrity): Future [MessageResponse] = {
     val f = for {
-      startedAt <- Future { JodaDateTime.now()}
+      startedAt <- Future.successful(JodaDateTime.now())
+      _ <- Future.successful(s"Starting to run ${runner.runnerId}")
       result <- runner.run() // Wrap this in a Try
       message <- Future {s"Completed running ${runner.runnerId} in ${computeTimeDelta(JodaDateTime.now(), startedAt)} sec"}
     } yield MessageResponse(s"${result.message} $message")
 
+    f.onSuccess { case MessageResponse(m) => s"Successfully ran ${runner.runnerId} $m"}
     f.onFailure { case ex => logger.error(s"Failed run Integrity Runner ${runner.runnerId}. ${ex.getMessage}")}
     f
   }
