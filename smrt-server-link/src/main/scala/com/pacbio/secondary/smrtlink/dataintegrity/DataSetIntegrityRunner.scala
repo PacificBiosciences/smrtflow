@@ -16,12 +16,12 @@ class DataSetIntegrityRunner(dao: JobsDao) extends BaseDataIntegrity {
 
   // This needs to do more, for real subclasses of DataSets, it should
   // check the external resources for
-  private def isValid(ds: DataSetMetaDataSet): Boolean = Files.exists(Paths.get(ds.path))
+  private def hasPathNotFound(ds: DataSetMetaDataSet): Boolean = !Files.exists(Paths.get(ds.path))
 
   def run(): Future[MessageResponse] =  {
     for {
       results <- dao.getDataSetMetas(None, activity = Some(true))
-      inValidIds <- Future { results.filter(isValid).map(_.id).toSet }
+      inValidIds <- Future { results.filter(hasPathNotFound).map(_.id).toSet }
       resultsMessage <- dao.updatedDataSetMetasAsInActive(inValidIds)
     } yield resultsMessage
   }
