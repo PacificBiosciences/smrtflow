@@ -379,6 +379,19 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   override def getJobById(jobId: Int): Future[Option[EngineJob]] =
     db.run(engineJobs.filter(_.id === jobId).result.headOption)
 
+  /**
+    * Raw Insert of an Engine Job into the system. This will not run a job.
+    *
+    * Use the RunnableJob interface to create a job that should be run.
+    *
+    * @param job Engine Job instance
+    * @return
+    */
+  def insertJob(job: EngineJob): Future[EngineJob] = {
+    val action = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i))) += job
+    db.run(action.transactionally)
+  }
+
   def getJobByIdAble(ix: IdAble): Future[EngineJob] = {
     val fx = ix match {
       case IntIdAble(i) => getJobById(i)
