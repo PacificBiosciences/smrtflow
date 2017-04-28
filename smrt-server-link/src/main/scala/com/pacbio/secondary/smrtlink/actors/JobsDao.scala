@@ -841,6 +841,32 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(action)
   }
 
+  val qDsMetaDataIsActive = dsMetaData2.filter(_.isActive)
+  /**
+    * Get the Base PacBioDataSet data for DataSets imported into the system
+    * @param limit Maximum number of returned results
+    * @return
+    */
+  def getDataSetMetas(limit: Option[Int] = None, activity: Option[Boolean]): Future[Seq[DataSetMetaDataSet]] = {
+    val qActive = activity.map(activity => dsMetaData2.filter(_.isActive === activity)).getOrElse(dsMetaData2)
+    val q = limit.map(x => qActive.take(x)).getOrElse(qActive)
+    db.run(q.sortBy(_.id).result)
+  }
+
+  /**
+    * Update the
+    * @param ids DataSetMetaSets that are to marked as InActive.
+    * @return
+    */
+  def updatedDataSetMetasAsInActive(ids: Set[Int]): Future[MessageResponse] = {
+    val q = qDsMetaDataIsActive
+        .filter(_.id inSet ids)
+        .map(d => (d.isActive, d.updatedAt))
+        .update((false,  JodaDateTime.now()))
+    // Is there a better way to do this?
+    db.run(q.map(_ => MessageResponse(s"Marked ${ids.size} MetaDataSet as inActive")))
+  }
+
   private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
     db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
 
