@@ -32,7 +32,7 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], i
   context.system.scheduler.schedule(20.seconds, interval, self, RunIntegrityChecks)
 
   override def preStart() = {
-    logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} and interval $interval")
+    logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} and interval $interval and SMRT Link System version $smrtLinkSystemVersion")
   }
 
   private def executeRunner(runner: BaseDataIntegrity): Future [MessageResponse] = {
