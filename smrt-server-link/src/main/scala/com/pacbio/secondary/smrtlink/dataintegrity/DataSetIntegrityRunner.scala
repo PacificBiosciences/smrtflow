@@ -16,7 +16,7 @@ class DataSetIntegrityRunner(dao: JobsDao) extends BaseDataIntegrity {
 
   // This needs to do more, for real subclasses of DataSets, it should
   // check the external resources for
-  private def isValid(ds: DataSetMetaDataSet): Boolean = Files.exists(Paths.get(ds.path))
+  private def isValid(ds: DataSetMetaDataSet): Boolean = !Files.exists(Paths.get(ds.path))
 
   def run(): Future[MessageResponse] =  {
     for {
