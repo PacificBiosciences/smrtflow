@@ -22,13 +22,15 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
 
   override val runnerId = "smrtflow.dataintegrity.jobstate"
 
+  final val STUCK_STATES = Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING)
+
   /**
     * Only Interested in Jobs that are "stuck" in the Created, or Running state
     * @param job SL Engine Job
     * @return
     */
   def filterByState(job: EngineJob): Boolean =
-    Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING) contains job.state
+    STUCK_STATES contains job.state
 
   /**
     * Jobs that are not the same version as the current SL System version
@@ -38,9 +40,9 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
     * @param job             Engine Job
     * @return
     */
-  def filterByVersion(expectedVersion: String, job: EngineJob): Boolean = {
+  def filterByNotEqualVersion(expectedVersion: String, job: EngineJob): Boolean = {
     job.smrtlinkVersion
-        .map(v => v == expectedVersion)
+        .map(v => v != expectedVersion)
         .getOrElse(false)
   }
 
@@ -54,7 +56,7 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
   def jobFilter(job: EngineJob): Boolean = {
     def filterWithVersion(j: EngineJob): Boolean = {
       smrtLinkVersion
-          .map(v => filterByVersion(v, j))
+          .map(v => filterByNotEqualVersion(v, j))
           .getOrElse(false)
     }
 
@@ -81,7 +83,7 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
   }
 
   def toSummary(jobs: Seq[EngineJob]) = {
-    val m = s"Detected ${jobs.length} 'STUCK' jobs."
+    val m = s"Detected ${jobs.length} 'STUCK' job in states $STUCK_STATES."
     val msg = if (jobs.isEmpty) m else m + "Updated state of jobs to FAILED"
     logger.info(msg)
     msg
