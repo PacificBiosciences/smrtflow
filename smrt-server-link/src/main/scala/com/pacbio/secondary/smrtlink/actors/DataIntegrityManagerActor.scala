@@ -1,20 +1,20 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import com.typesafe.scalalogging.LazyLogging
+
 import org.joda.time.{DateTime => JodaDateTime}
+
 import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.dataintegrity.{BaseDataIntegrity, DataSetIntegrityRunner}
-import com.typesafe.scalalogging.LazyLogging
-
-import scala.util.{Failure, Success, Try}
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.dataintegrity.{BaseDataIntegrity, DataSetIntegrityRunner, JobStateIntegrityRunner}
 
 
 object DataIntegrityManagerActor {
@@ -23,7 +23,7 @@ object DataIntegrityManagerActor {
   case class RunIntegrityCheckById(id: String)
 }
 
-class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], interval: FiniteDuration) extends Actor with LazyLogging with timeUtils{
+class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], interval: FiniteDuration, smrtLinkSystemVersion: Option[String]) extends Actor with LazyLogging with timeUtils{
 
   import DataIntegrityManagerActor._
 
@@ -69,15 +69,18 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], i
 }
 
 trait DataIntegrityManagerActorProvider {
-  this: ActorRefFactoryProvider with JobsDaoProvider =>
+  this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val runners: Singleton[Seq[BaseDataIntegrity]] =
-    Singleton(() => Seq(new DataSetIntegrityRunner(jobsDao())))
+    Singleton(() => Seq(
+      new DataSetIntegrityRunner(jobsDao()),
+      new JobStateIntegrityRunner(jobsDao(), smrtLinkVersion()))
+    )
 
   // This is for local testing. This needs to be put in the application.conf file
   // and set to a reasonable default of once or twice a day.
   val dataIntegrityInterval = 1.hour
 
   val dataIntegrityManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor], jobsDao(), runners(), dataIntegrityInterval), "DataIntegrityManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor], jobsDao(), runners(), dataIntegrityInterval, smrtLinkVersion()), "DataIntegrityManagerActor"))
 }
