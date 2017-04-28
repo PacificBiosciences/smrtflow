@@ -1449,7 +1449,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
          |--------
          |Jobs
          |--------
-         | ${jobCounts.map(x => f"${x._1}%15s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
+         | ${jobCounts.map(x => f"${x._1}%25s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
          |--------
          |Total JobEvents      : $jobEvents
          |Total entryPoints    : $entryPoints
