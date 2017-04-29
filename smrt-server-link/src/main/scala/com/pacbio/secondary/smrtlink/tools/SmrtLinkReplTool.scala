@@ -27,7 +27,7 @@ trait SmrtLinkReplTool {
                  |
                  |import com.pacbio.secondary.smrtlink.models._
                  |import com.pacbio.common.models.CommonModelImplicits._
-                 |import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+                 |import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer => S}
                  |import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetIOLoader._
                  |import com.pacbio.secondary.analysis.datasets.io.DataSetLoader._
                  |import com.pacbio.secondary.analysis.engine.EngineConfig
