@@ -145,6 +145,13 @@ object PbServiceParser extends CommandLineToolVersion{
       }
     }
 
+    private def validateJobType(jobType: String): Either[String,Unit] = {
+      JobTypeIds.fromString(jobType) match {
+        case Some(s) => success
+        case None => failure(s"Unrecognized job type $jobType")
+      }
+    }
+
     head("PacBio SMRTLink Services Client", VERSION)
 
     opt[String]("host") action { (x, c) =>
@@ -330,8 +337,10 @@ object PbServiceParser extends CommandLineToolVersion{
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
       } text "Max number of jobs to show",
-      opt[String]("job-type") action { (t, c) =>
+      opt[String]('t', "job-type") action { (t, c) =>
         c.copy(jobType = t)
+      } validate {
+        t => validateJobType(t)
       } text "Only retrieve jobs of specified type",
       opt[String]("job-state") action { (s, c) =>
         c.copy(jobState = Some(s))
