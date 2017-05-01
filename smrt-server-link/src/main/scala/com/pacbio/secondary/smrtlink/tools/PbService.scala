@@ -12,6 +12,7 @@ import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.client._
@@ -109,6 +110,8 @@ object PbServiceParser extends CommandLineToolVersion{
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
+      jobType: String = "pbsmrtpipe",
+      jobState: Option[String] = None,
       nonLocal: Option[String] = None,
       asJson: Boolean = false,
       dumpJobSettings: Boolean = false,
@@ -124,7 +127,8 @@ object PbServiceParser extends CommandLineToolVersion{
       manifestId: String = "smrtlink",
       showReports: Boolean = false,
       searchName: Option[String] = None,
-      searchPath: Option[String] = None
+      searchPath: Option[String] = None,
+      force: Boolean = false
   ) extends LoggerConfig
 
 
@@ -138,6 +142,13 @@ object PbServiceParser extends CommandLineToolVersion{
       entityIdOrUuid(entityId) match {
         case IntIdAble(x) => if (x > 0) success else failure(s"${entityType} ID must be a positive integer or a UUID string")
         case UUIDIdAble(x) => success
+      }
+    }
+
+    private def validateJobType(jobType: String): Either[String,Unit] = {
+      JobTypeIds.fromString(jobType) match {
+        case Some(s) => success
+        case None => failure(s"Unrecognized job type $jobType")
       }
     }
 
@@ -265,7 +276,10 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Job") } text "Job ID"
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[Unit]("force") action { (_, c) =>
+        c.copy(force = true)
+      } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -322,7 +336,15 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of jobs to show"
+      } text "Max number of jobs to show",
+      opt[String]('t', "job-type") action { (t, c) =>
+        c.copy(jobType = t)
+      } validate {
+        t => validateJobType(t)
+      } text "Only retrieve jobs of specified type",
+      opt[String]("job-state") action { (s, c) =>
+        c.copy(jobState = Some(s))
+      } text "Only display jobs in specified state"
     )
 
     cmd(Modes.DATASET.name) action { (_, c) =>
@@ -578,22 +600,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def jobsSummary(maxItems: Int, asJson: Boolean, engineJobs: Seq[EngineJob]): String = {
+  def jobsSummary(maxItems: Int,
+                  asJson: Boolean,
+                  engineJobs: Seq[EngineJob],
+                  jobState: Option[String] = None): String = {
     if (asJson) {
       println(engineJobs.toJson.prettyPrint)
       ""
     } else {
-      val table = engineJobs.sortBy(_.id).reverse.take(maxItems).map(job =>
+      val table = engineJobs.sortBy(_.id).reverse.filter( job =>
+        jobState.map(_ == job.state.toString).getOrElse(true)
+      ).take(maxItems).map( job =>
         Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
       printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
       ""
     }
   }
 
-  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs)
+  def runGetJobs(maxItems: Int,
+                 asJson: Boolean = false,
+                 jobType: String = "pbsmrtpipe",
+                 jobState: Option[String] = None): Int = {
+    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs, jobState)
 
-    runAndBlock[Seq[EngineJob]](sal.getAnalysisJobs, printer, TIMEOUT)
+    runAndBlock[Seq[EngineJob]](sal.getJobsByType(jobType), printer, TIMEOUT)
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
@@ -947,30 +977,40 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  private def validateEntryPointIds(
+      entryPoints: Seq[BoundServiceEntryPoint],
+      pipeline: PipelineTemplate): Try[Seq[BoundServiceEntryPoint]] = Try {
+    val eidsInput = entryPoints.map(_.entryId).sorted.mkString(", ")
+    val eidsTemplate = pipeline.entryPoints.map(_.entryId).sorted.mkString(", ")
+    if (eidsInput != eidsTemplate) throw new Exception(
+      "Mismatch between supplied and expected entry points: the input "+
+      s"datasets correspond to entry points ($eidsInput), while the pipeline "+
+      s"${pipeline.id} requires entry points ($eidsTemplate)")
+    entryPoints
+  }
+
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
-  protected def getPipelineServiceOptions(jobTitle: String,
+  protected def getPipelineServiceOptions(
+      jobTitle: String,
       pipelineId: String,
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset,
-      userTaskOptions: Option[Map[String,String]] = None): PbSmrtPipeServiceOptions = {
-    Try {
-      logger.debug("Getting pipeline options from server")
-      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
-    } match {
-      case Success(pipeline) => {
-        val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
-          userTaskOptions.getOrElse(Map[String,String]()).map{
-            case (k,v) => k -> ServiceTaskStrOption(k, v)
-          }.values
-        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
-        val workflowOptions = Seq[ServiceTaskOptionBase]()
-        PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
-                                 workflowOptions)
-      }
-      case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
-    }
+      userTaskOptions: Option[Map[String,String]] = None):
+      Try[PbSmrtPipeServiceOptions] = {
+    val workflowOptions = Seq[ServiceTaskOptionBase]()
+    val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
+      userTaskOptions.getOrElse(Map[String,String]()).map{
+        case (k,v) => k -> ServiceTaskStrOption(k, v)
+      }.values
+    for {
+      _ <- Try {logger.debug("Getting pipeline options from server")}
+      pipeline <- Try { Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT) }
+      eps <- validateEntryPointIds(entryPoints, pipeline)
+      taskOptions <- Try {PipelineUtils.getPresetTaskOptions(pipeline, userOptions)}
+    } yield PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints,
+                                     taskOptions, workflowOptions)
   }
 
   def runPipeline(pipelineId: String,
@@ -991,7 +1031,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
-      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions) }
+      opts <- getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions)
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
     } yield job
 
@@ -1021,15 +1061,26 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runDeleteJob(jobId: IdAble): Int = {
+  def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
-        throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first")
+        if (force) {
+          println("WARNING: job did not complete - attempting to terminate")
+          if (runTerminateAnalysisJob(jobId) != 0) {
+            println("Job termination failed; will delete anyway, but this may have unpredictable side effects")
+          }
+        } else {
+          throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first, or add the argument --force if you are absolutely certain the job is okay to delete")
+        }
       } else if (nChildren > 0) {
-        throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
-      } else {
-        sal.deleteJob(job.uuid)
+        if (force) {
+          println("WARNING: job output was used by $nChildren active jobs - deleting it may have unintended side effects")
+          Thread.sleep(5000)
+        } else {
+          throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input; add --force if you are absolutely certain the job is okay to delete")
+        }
       }
+      sal.deleteJob(job.uuid, force = force)
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
     val fx = for {
@@ -1123,9 +1174,9 @@ object PbService {
                                               taskOptions = c.taskOptions)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
-        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
+        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)

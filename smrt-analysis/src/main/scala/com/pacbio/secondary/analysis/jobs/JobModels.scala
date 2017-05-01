@@ -115,6 +115,14 @@ object JobModels {
     val SIMPLE = JobTypeId("simple")
     val TS_JOB = JobTypeId("tech-support-job")
     val TS_SYSTEM_STATUS = JobTypeId("tech-support-status")
+
+    val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
+                  CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
+                  EXPORT_DATASETS, IMPORT_DATASET, IMPORT_DATASTORE,
+                  MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
+                  PBSMRTPIPE_DIRECT, SIMPLE, TS_JOB, TS_SYSTEM_STATUS)
+
+    def fromString(s: String) = ALL.map(x => (x.id, x)).toMap.get(s)
   }
 
   // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")

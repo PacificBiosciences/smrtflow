@@ -3,8 +3,14 @@ package com.pacbio.secondary.smrtlink.services.jobtypes
 import java.nio.file.Paths
 import java.util.UUID
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 import akka.actor.ActorRef
 import akka.pattern.ask
+
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
@@ -18,11 +24,6 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class DeleteJobServiceType(dbActor: ActorRef,
                            authenticator: Authenticator,
@@ -34,11 +35,11 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
   import CommonModelImplicits._
 
-  private def confirmIsDeletable(jobId: UUID): Future[EngineJob] = {
+  private def confirmIsDeletable(jobId: UUID, force: Boolean = false): Future[EngineJob] = {
     (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].flatMap { job =>
-      if (job.isComplete) {
+      if (job.isComplete || force) {
         (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]].map {
-          jobs => if (jobs.isEmpty) job else
+          jobs => if (jobs.isEmpty || force) job else
             throw new UnprocessableEntityError("Can't delete this job because it has active children")
         }
       } else throw new UnprocessableEntityError("Can't delete this job because it hasn't completed")
@@ -47,10 +48,13 @@ class DeleteJobServiceType(dbActor: ActorRef,
 
   override def createJob(sopts: DeleteJobServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
+    val force = sopts.force.getOrElse(false)
+    // XXX This is not really a good idea, but that's what marketing and TS want
+    val removeFiles = sopts.removeFiles //&& !force
 
     for {
-      targetJob <- confirmIsDeletable(sopts.jobId)
-      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), sopts.removeFiles, targetJob.projectId) }
+      targetJob <- confirmIsDeletable(sopts.jobId, force)
+      opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), removeFiles, targetJob.projectId) }
       _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
     } yield CreateJobType(
         uuid,
