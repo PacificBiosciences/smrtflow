@@ -1,4 +1,4 @@
-import java.nio.file.Paths
+import java.nio.file.{Paths,Files}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDataTime}
@@ -33,17 +33,7 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
 
   val createdAt = JodaDataTime.now()
   val updatedAt = JodaDataTime.now()
-  val uuid = UUID.fromString("bee60b12-2c50-11e7-8ce2-3c15c2cc8f88")
-  val path = Paths.get("/tmp/subreadset.xml")
-
-  val sset = SubreadServiceDataSet(-1, uuid, "Test", path.toString, createdAt, updatedAt, 1L, 1L,
-    "1.0.0", "Comments", "tag,tag2", "md5", "inst-name", "mcontext", "well-s-name", "well-name",
-    "bio-sample", 1, "run-name", None, 1, 1)
-
-  val jobId = UUID.fromString("d221ac68-2c73-11e7-9243-3c15c2cc8f88")
-  val engineJob = EngineJob(-1, jobId, "Test Job", "comment", createdAt, createdAt,
-    AnalysisJobStates.CREATED, "import-dataset", "/tmp/job-dir", "{}", None,
-    Some(smrtLinkSystemVersion))
+  val timeOut = 10.seconds
 
   val testdb = dbConfig.toDatabase
   step(setupDb(dbConfig))
@@ -51,30 +41,62 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
   "Sanity Test for Job Integrity " should {
     "Test to Detect datasets where the paths have been deleted" in {
 
+      val u1 = UUID.fromString("bee60b12-2c50-11e7-8ce2-3c15c2cc8f88")
+      val u2 = UUID.fromString("456f0dec-2e7b-11e7-9a48-3c15c2cc8f88")
+
+      val p1 = Paths.get("/tmp/path-that-does-not-exist.xml")
+      val p2 = Files.createTempFile("subreadset", "s1")
+
+      val s1 = SubreadServiceDataSet(-1, u1, "Test", p1.toString, createdAt, updatedAt, 1L, 1L,
+        "1.0.0", "Comments", "tag,tag2", "md5", "inst-name", "mcontext", "well-s-name", "well-name",
+        "bio-sample", 1, "run-name", None, 1, 1)
+
+      val s2 = s1.copy(path = p2.toString, uuid = u2)
+
+
       val runner = new DataSetIntegrityRunner(dao)
 
       val fx = for {
-        m <- dao.insertSubreadDataSet(sset)
+        m <- dao.insertSubreadDataSet(s1)
+        _ <- dao.insertSubreadDataSet(s2)
         msg <- runner.run()
-        dsMetaData <- dao.getDataSetByUUID(sset.uuid)
+        dsMetaData <- dao.getDataSetByUUID(s1.uuid)
       } yield dsMetaData
 
-      val dsMeta = Await.result(fx, 10.seconds)
+      val dsMeta = Await.result(fx, timeOut)
       dsMeta.isActive must beFalse
+
+      val dsMeta2 = Await.result(dao.getDataSetByUUID(s2.uuid), timeOut)
+      dsMeta2.isActive must beTrue
     }
     "Sanity Test to Detect Stuck Jobs that don't have the same SL version" in {
+
+      val u1 = UUID.fromString("d221ac68-2c73-11e7-9243-3c15c2cc8f88")
+      val u2 = UUID.fromString("217daf0a-2e7c-11e7-905d-3c15c2cc8f88")
+
+      val j1 = EngineJob(-1, u1, "Test Job", "comment", createdAt, createdAt,
+        AnalysisJobStates.CREATED, "import-dataset", "/tmp/job-dir", "{}", None,
+        Some(smrtLinkSystemVersion))
+
+      val j2 = j1.copy(state = AnalysisJobStates.SUCCESSFUL, uuid = u2)
 
       val runner = new JobStateIntegrityRunner(dao, Some("9.9.9"))
 
       val fx = for {
-        j <- dao.insertJob(engineJob)
+        ej1 <- dao.insertJob(j1)
+        ej2 <- dao.insertJob(j2)
         m <- runner.run()
-        updatedJob <- dao.getJobByIdAble(j.id)
+        updatedJob <- dao.getJobByIdAble(ej1.id)
       } yield updatedJob
 
-      val updatedJob = Await.result(fx, 10.seconds)
 
-      updatedJob.state must beEqualTo(AnalysisJobStates.FAILED)
+      val uj1 = Await.result(fx, timeOut)
+
+      uj1.state must beEqualTo(AnalysisJobStates.FAILED)
+
+      val uj2 = Await.result(dao.getJobByIdAble(j2.uuid), timeOut)
+      uj2.state must beEqualTo(j2.state)
+
     }
   }
 }
