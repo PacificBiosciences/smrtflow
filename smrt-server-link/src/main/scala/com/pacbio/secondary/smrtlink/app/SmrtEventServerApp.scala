@@ -29,6 +29,7 @@ import spray.routing._
 import DefaultJsonProtocol._
 import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
 import com.pacbio.common.app.StartupFailedException
+import com.pacbio.common.file.FileSizeFormatterUtil
 import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.common.services.utils.StatusGenerator
 import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
@@ -152,7 +153,7 @@ trait EventServiceBaseMicroService extends PacBioService {
 class EventService(eventProcessor: EventProcessor,
                    rootOutputDir: Path,
                    rootUploadFilesDir: Path, apiSecret: String)
-    extends EventServiceBaseMicroService with LazyLogging with timeUtils{
+    extends EventServiceBaseMicroService with LazyLogging with timeUtils with FileSizeFormatterUtil{
 
   import SmrtLinkJsonProtocols._
 
@@ -393,7 +394,7 @@ class EventService(eventProcessor: EventProcessor,
     Try {
       writeFile(content, fos)
       val runTime = computeTimeDeltaFromNow(startedAt)
-      logger.info(s"Successfully saved content (${outputFile.length() / 1024} Kb) in $runTime sec to $outputFile")
+      logger.info(s"Successfully saved content ${humanReadableByteSize(outputFile.length())} in $runTime sec to $outputFile")
       fos.close()
       outputFile
     } match {
@@ -466,7 +467,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
       with EventServiceConfigCakeProvider
       with ActorSystemCakeProvider =>
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(30.seconds)
 
   lazy val startupTimeOut = 10.seconds
   lazy val eventServiceClient = new EventServerClient(systemHost, systemPort, apiSecret)
