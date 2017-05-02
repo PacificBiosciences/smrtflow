@@ -9,6 +9,18 @@ import org.apache.commons.io.FileUtils
 import collection.JavaConversions._
 
 
+trait FileSizeFormatterUtil {
+
+  def humanReadableByteSize(fileSize: Long): String = {
+    if(fileSize <= 0) return "0 B"
+    // kilo, Mega, Giga, Tera, Peta, Exa, Zetta, Yotta
+    val units: Array[String] = Array("B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    val digitGroup: Int = (Math.log10(fileSize)/Math.log10(1024)).toInt
+    f"${fileSize/Math.pow(1024, digitGroup)}%3.3f ${units(digitGroup)}"
+  }
+}
+
+
 trait FileSystemUtil {
   def createDirIfNotExists(p: Path): Path
   def writeToFile(sx: String, path: Path): Path

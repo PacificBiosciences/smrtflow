@@ -10,15 +10,15 @@ import scopt.OptionParser
 import scala.util.Try
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.client.EventServerClient
+import com.pacbio.common.file.FileSizeFormatterUtil
 
 
-case class TechSupportUploaderOptions(url: URL, apiSecret: String, path: Path, timeOut: Duration = 120.seconds) extends LoggerConfig
+case class TechSupportUploaderOptions(url: URL, apiSecret: String, path: Path, timeOut: Duration = 300.seconds) extends LoggerConfig
 /**
   * Created by mkocher on 4/25/17.
   *
@@ -26,7 +26,7 @@ case class TechSupportUploaderOptions(url: URL, apiSecret: String, path: Path, t
   *
   *
   */
-object TechSupportUploaderTool extends CommandLineToolRunner[TechSupportUploaderOptions] with ConfigLoader{
+object TechSupportUploaderTool extends CommandLineToolRunner[TechSupportUploaderOptions] with ConfigLoader with FileSizeFormatterUtil{
 
   override val VERSION = "0.1.0"
   override val toolId: String = "tech_support_uploader"
@@ -38,7 +38,12 @@ object TechSupportUploaderTool extends CommandLineToolRunner[TechSupportUploader
 
   lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
 
-  val defaults = TechSupportUploaderOptions(new URL("http://localhost:9999"), apiSecret, Paths.get(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ))
+  lazy val eveUrl = Try {
+    new URL(conf.getString("smrtflow.server.eventUrl"))}
+      .toOption
+      .getOrElse(new URL("http://localhost:8083"))
+
+  val defaults = TechSupportUploaderOptions(eveUrl, apiSecret, Paths.get(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ))
 
   val parser = new OptionParser[TechSupportUploaderOptions]("tech-support-uploader") {
     head(DESCRIPTION)
@@ -49,7 +54,7 @@ object TechSupportUploaderTool extends CommandLineToolRunner[TechSupportUploader
 
     opt[String]("url")
         .action({(x, c) => c.copy(url = new URL(x))})
-        .text(s"Remote Server URL (Default: ${defaults.url})")
+        .text(s"Remote PacBio Server URL (Default: ${defaults.url})")
 
     opt[Int]("timeout")
         .action({(x, c) => c.copy(timeOut = Duration(x, SECONDS))})
@@ -80,7 +85,15 @@ object TechSupportUploaderTool extends CommandLineToolRunner[TechSupportUploader
     implicit val actorSystem = ActorSystem("ts-uploader")
     val client = new EventServerClient(c.url, c.apiSecret)
 
-    val fx = client.upload(c.path).map(e => s"Create System Event ${e.uuid}")
+    val fileSize = humanReadableByteSize(c.path.toFile.length())
+
+    logger.debug(s"Getting status from ${client.statusUrl}")
+    logger.debug(s"Attempting to upload $fileSize to ${client.toUploadUrl}")
+
+    val fx = for {
+      _ <- client.getStatus.map { status => logger.info(s"Got Server ${status.id} ${status.uuid} ${status.message}") ; status}
+      event <- client.upload(c.path)
+    } yield s"Create System Event ${event.uuid}"
 
     fx.onComplete { _ => actorSystem.shutdown()}
 

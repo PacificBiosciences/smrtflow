@@ -4,6 +4,13 @@ import java.io.{File, IOException}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import org.apache.commons.io.FileUtils
+import scopt.OptionParser
+import spray.json._
+
+import scala.util.{Failure, Success, Try}
+
+import com.pacbio.common.file.FileSizeFormatterUtil
 import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
@@ -11,11 +18,7 @@ import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupp
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
-import org.apache.commons.io.FileUtils
-import scopt.OptionParser
-import spray.json._
 
-import scala.util.{Failure, Success, Try}
 
 case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user: String,
                                          dnsName: Option[String],
@@ -24,7 +27,7 @@ case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user:
                                         ) extends LoggerConfig
 
 
-object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader {
+object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader with FileSizeFormatterUtil {
 
   override val VERSION = "0.2.1"
   override val DESCRIPTION =
@@ -193,17 +196,12 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     // This will only be used if necessary
     val configPath = px.resolve(s"config/smrtlink-system-config.json")
 
-    def toFileSize(n: Long): String = {
-      val xs = n / 1024.0
-      f"$xs%.2f"
-    }
-
     for {
       systemId <- getRequired[UUID]("SMRT Link System Id", getOr[UUID](c.smrtLinkSystemId, configPath, getSmrtLinkIdFromConfigFile))
       systemVersion <- getRequired[String]("SMRT Link System Version", getOr[String](c.smrtLinkVersion, configPath, getSmrtLinkVersionFromConfigFile))
       dnsName <- getRequired[String]("SMRT Link DNS Name", getOr[String](c.dnsName, configPath, getDnsNameFromConfigFile))
       tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, px, c.output, c.user, Some(systemVersion), Some(dnsName))}
-    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${toFileSize(tgzPath.toFile.length())} KB)"
+    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${humanReadableByteSize(tgzPath.toFile.length())})"
   }
 
   // To adhere to the fundamental interface. Other tools need to migrate to use
