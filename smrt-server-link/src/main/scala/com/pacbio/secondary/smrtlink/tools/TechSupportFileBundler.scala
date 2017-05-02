@@ -26,7 +26,7 @@ case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user:
 
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader {
 
-  override val VERSION = "0.2.0"
+  override val VERSION = "0.2.1"
   override val DESCRIPTION =
     s"""
       |Tech Support Bundler $VERSION
@@ -63,7 +63,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     opt[String]("output")
         .action { (x, c) => c.copy(output = Paths.get(x).toAbsolutePath) }
         .validate(validateDoesNotExist)
-        .text(s"Output TechSupport bundle output (tgz) file. Default '${defaults.output.toAbsolutePath}'")
+        .text(s"Output TechSupport bundle output (tar.gz) file. Default '${defaults.output.toAbsolutePath}'")
 
     opt[String]("user")
         .action { (x, c) => c.copy(user = x) }
@@ -121,20 +121,17 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
   val hasRequiredFile = hasRequired(Files.exists(_))(_)
 
   /**
-    * Validate the the config and log subdirs under userdata exist.
+    * Validate the the log subdir under userdata exist.
     * This is the minimal data that is required.
+    *
     *
     * @param rootPath SL Userdata root path
     * @return
     */
   def hasRequiredSubdirs(rootPath: Path): Try[Path] = {
-
-    def resolveTo(sx: String) = rootPath.resolve(sx)
-
-    for {
-      _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(0)))
-      _ <- hasRequiredDir(resolveTo(TechSupportUtils.TS_REQ_INSTALL(1)))
-    } yield rootPath
+    // Only make sure the log dir exists. The smrtlink-system-config.json
+    // will be dynamically load from the userdata/conf dir.
+    hasRequiredDir(rootPath.resolve(TechSupportUtils.TS_REQ_INSTALL(1)))
   }
 
   // Wrap for validation at the Scopt level to fail early
@@ -161,7 +158,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
   private def loadSystemConfig(file: File): RootSmrtflowConfig = {
     val sx = FileUtils.readFileToString(file, "UTF-8")
     val c = sx.parseJson.convertTo[RootSmrtflowConfig]
-    println(s"Successfully Loaded config from $file")
+    logger.info(s"Successfully Loaded config from $file")
     c
   }
 
@@ -190,15 +187,23 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     loadSystemConfig(p.toFile).smrtflow.server.dnsName
 
   override def runTool(c: TechSupportFileBundlerOptions): Try[String] = {
+
+    val px = c.rootUserData.toAbsolutePath()
+
     // This will only be used if necessary
-    val configPath = c.rootUserData.resolve(s"config/smrtlink-system-config.json")
+    val configPath = px.resolve(s"config/smrtlink-system-config.json")
+
+    def toFileSize(n: Long): String = {
+      val xs = n / 1024.0
+      f"$xs%.2f"
+    }
 
     for {
       systemId <- getRequired[UUID]("SMRT Link System Id", getOr[UUID](c.smrtLinkSystemId, configPath, getSmrtLinkIdFromConfigFile))
       systemVersion <- getRequired[String]("SMRT Link System Version", getOr[String](c.smrtLinkVersion, configPath, getSmrtLinkVersionFromConfigFile))
       dnsName <- getRequired[String]("SMRT Link DNS Name", getOr[String](c.dnsName, configPath, getDnsNameFromConfigFile))
-      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, c.rootUserData, c.output, c.user, Some(systemVersion), Some(dnsName))}
-    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${tgzPath.toFile.length() / 1024} Kb)"
+      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, px, c.output, c.user, Some(systemVersion), Some(dnsName))}
+    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${toFileSize(tgzPath.toFile.length())} Kb)"
   }
 
   // To adhere to the fundamental interface. Other tools need to migrate to use
