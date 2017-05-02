@@ -51,7 +51,7 @@ object loadResource extends (String => String) {
 
 object AmClientParser extends CommandLineToolVersion{
 
-  val VERSION = "0.1.1"
+  val VERSION = "0.1.2"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: CustomConfig): Unit = {
@@ -259,7 +259,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         0
       }
       case Failure(err) => {
-        println(s"failed to add roles: $err")
+        System.err.println(s"failed to add roles: $err")
         1
       }
     }
@@ -383,7 +383,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         0
       }
       case Failure(err) => {
-        println(s"failed to create ${apiName} definition: $err")
+        System.err.println(s"failed to create ${apiName} definition: $err")
         1
       }
     }
@@ -407,7 +407,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         0
       }
       case Failure(err) => {
-        println(s"failed to update API ${apiId}: $err")
+        System.err.println(s"failed to update API ${apiId}: $err")
         1
       }
     }
@@ -544,7 +544,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         0
       }
       case Failure(err) => {
-        println(s"failed to get roles: $err")
+        System.err.println(s"failed to get roles: $err")
         1
       }
     }
@@ -570,7 +570,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         0
       }
       case Failure(err) => {
-        println(s"failed to import roles: $err")
+        System.err.println(s"failed to import roles: $err")
         1
       }
     }
@@ -595,8 +595,8 @@ object AmClient {
         case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
         case AmClientModes.SET_API => amClient.createOrUpdateApi(c)
         case AmClientModes.PROXY_ADMIN => amClient.proxyAdmin(c)
-        case _ => {
-          println("Unsupported action")
+        case x => {
+          System.err.println(s"Unsupported action '$x'")
           1
         }
       }
@@ -606,7 +606,7 @@ object AmClient {
     result match {
       case Success(code) => code
       case Failure(e) => {
-        println(e.getMessage())
+        System.err.println(e.getMessage())
         1
       }
     }
