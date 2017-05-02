@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 import collection.JavaConversions._
 import collection.JavaConverters._
 
-import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
@@ -105,7 +105,7 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
       val numTimes = 1000
       val data:CharSequence = (0 until numTimes).map(i => s"Line $i").reduce(_ + "\n" + _)
 
-      TarGzUtil.createTarGzip(f, tgzPath.toFile)
+      TarGzUtils.createTarGzip(f, tgzPath.toFile)
       logger.info(s"Created tmp file $tgzPath")
 
       val multiForm = MultipartFormData(

@@ -37,7 +37,7 @@ import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtil}
+import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtils}
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
@@ -235,7 +235,7 @@ class EventService(eventProcessor: EventProcessor,
 
     logger.info(s"Uncompressing $file")
     // This will create the output dir
-    TarGzUtil.uncompressTarGZ(file, outputDir.toFile)
+    TarGzUtils.uncompressTarGZ(file, outputDir.toFile)
 
     val manifestPath = outputDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
 

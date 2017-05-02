@@ -8,7 +8,7 @@ import java.util.UUID
 import sys.process._
 
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.PacBioDataBundleConstants
 import com.pacbio.secondary.smrtlink.actors.PacBioBundleUtils
 import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, PacBioDataBundleIO}
@@ -57,7 +57,7 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     val tmpFile = File.createTempFile("pb-bundle", EXT_TGZ)
     FileUtils.copyFile(file, tmpFile)
 
-    TarGzUtil.uncompressTarGZ(file, outputDir)
+    TarGzUtils.uncompressTarGZ(file, outputDir)
 
     outputDir.toPath.toAbsolutePath
   }
@@ -79,7 +79,7 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
   def downloadHttp(url: URL, outputDir: File): Path = {
     val tmpFile = File.createTempFile("pb-bundle", EXT_TGZ)
     downloadHttpFile(url, tmpFile)
-    TarGzUtil.uncompressTarGZ(tmpFile, outputDir)
+    TarGzUtils.uncompressTarGZ(tmpFile, outputDir)
     outputDir.toPath
   }
 
@@ -173,7 +173,7 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     }
 
     // Create companion tgz file
-    TarGzUtil.createTarGzip(bundleDir, bundleTgz.toFile)
+    TarGzUtils.createTarGzip(bundleDir, bundleTgz.toFile)
 
     PacBioDataBundleIO(bundleTgz, bundleDir, pacBioBundle)
   }
