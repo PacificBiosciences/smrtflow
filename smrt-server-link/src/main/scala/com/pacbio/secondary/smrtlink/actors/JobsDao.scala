@@ -784,7 +784,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
           case Some(typ) =>
-            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, createdBy, DEFAULT_PROJECT_ID))
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, createdBy, engineJob.projectId))
           case None =>
             existing match {
               case Some(_) =>
