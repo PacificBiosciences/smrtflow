@@ -31,7 +31,7 @@ amLogFile=${logDir}/amclient.log
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 if [ -e "$legacyConfig" ]; then
-    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-level=INFO --log-file=${logFile}
+    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile}
 else
     # Install from a fresh install (create users/db/tables if necessary)
     ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile}
