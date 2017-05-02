@@ -1,6 +1,6 @@
 package com.pacbio.common.utils
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import java.io._
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
@@ -8,7 +8,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
-import org.apache.commons.compress.utils.IOUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.DirectoryFileFilter
 import org.apache.commons.io.filefilter.RegexFileFilter
@@ -74,7 +73,7 @@ trait TarGzUtils {
     dest
   }
 
-  def createTarGzip(inputDirectoryPath: Path, outputFile: File, bufferSize: Int = 2048): File = {
+  def createTarGzip(inputDirectoryPath: Path, outputFile: File, bufferSize: Int = 4096): File = {
 
     val fileOutputStream: FileOutputStream = null
     val bufferedOutputStream: BufferedOutputStream = null
