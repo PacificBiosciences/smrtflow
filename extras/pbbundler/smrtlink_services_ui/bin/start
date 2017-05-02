@@ -51,6 +51,7 @@ SL_SERVICES_JVM_ARGS=$(cat ${__root}/services-jvm-args)
 SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
 SL_SERVICES_TOOLS_DIR=${__root}/tools
+AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 MAX_RETRIES=30
@@ -195,8 +196,11 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}"
+env "$client_env" ${AMCLIENT} create-roles \
+       --creds-json ${WSO2_CREDS} --host localhost
+
 env "$client_env" \
-     ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
+     ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \
        --api-name SMRTLink \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
@@ -204,7 +208,7 @@ env "$client_env" \
 
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
-     ${SL_SERVICES_TOOLS_DIR}/bin/amclient proxy-admin \
+     ${AMCLIENT} proxy-admin \
        --api-name RemoteUserStoreManagerService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \

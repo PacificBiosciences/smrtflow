@@ -11,20 +11,16 @@ import akka.actor.ActorSystem
 import com.typesafe.config.Config
 
 import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
-import com.pacbio.secondary.analysis.jobs.OptionTypes.{CHOICE, CHOICE_FLOAT, _}
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.analysis.jobs.OptionTypes
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.clients.InstrumentControlClient
 import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
-import com.pacbio.simulator.util._
 
 // for SAT
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 
 
@@ -97,8 +93,8 @@ class RunDesignWithICSScenario(host: String,
    Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
        BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(runTempInfo.subreadsetUuid))),
    Seq[ServiceTaskOptionBase](),
-   Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, BOOL.optionTypeId),
-       ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, INT.optionTypeId)))
+   Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, OptionTypes.BOOL.optionTypeId),
+       ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, OptionTypes.INT.optionTypeId)))
 
   val icsEndToEndsteps = Seq(
 

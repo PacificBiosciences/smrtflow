@@ -66,7 +66,7 @@ clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
 
 newWso2=${rootBundleDir}/wso2am-2.0.0
 amClient=${rootBundleDir}/tools/bin/amclient
-amClientArgs="--creds-json ${adminCreds} --host localhost"
+amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${amLogFile}"
 
 if [ -e "${legacyConfig}" ]; then
     prevInstall=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print ('' if (d['PREVIOUS_INSTALL_DIR'] is None) else d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})
@@ -101,30 +101,25 @@ if [ -e "${legacyConfig}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --stop
             waitThenKill ${wso2Pid}
         fi
+
+        # If user roles from the previous install are available, start WSO2 and
+        # add them.  Additional configuration steps will be done when services
+        # are started
+        if [ -e "${userRoles}" ]; then
+            bash ${newWso2}/bin/wso2server.sh --start
+            sleep 5
+            wso2Pid=$(< ${newWso2}/wso2carbon.pid)
+            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
+
+            env "$clientEnv" ${amClient} create-roles ${amClientArgs}
+            env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles}
+
+            wso2Pid=$(< ${newWso2}/wso2carbon.pid)
+            bash ${newWso2}/bin/wso2server.sh --stop
+            waitThenKill ${wso2Pid}
+        fi
+
     fi
 fi
-
-bash ${newWso2}/bin/wso2server.sh --start
-sleep 5
-wso2Pid=$(< ${newWso2}/wso2carbon.pid)
-trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
-
-env "$clientEnv" ${amClient} create-roles ${amClientArgs} --log-file=${amLogFile}
-
-env "$clientEnv" ${amClient} proxy-admin ${amClientArgs} \
-    --api-name RemoteUserStoreManagerService \
-    --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
-    --app-config ${appConfig} --log-file=${amLogFile}
-
-env "$clientEnv" ${amClient} set-api ${amClientArgs} \
-    --swagger-resource /smrtlink_swagger.json --app-config ${appConfig} --log-file=${amLogFile}
-
-if [ -e "${userRoles}" ]; then
-    env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles} --log-file=${amLogFile}
-fi
-
-wso2Pid=$(< ${newWso2}/wso2carbon.pid)
-bash ${newWso2}/bin/wso2server.sh --stop
-waitThenKill ${wso2Pid}
 
 trap - EXIT

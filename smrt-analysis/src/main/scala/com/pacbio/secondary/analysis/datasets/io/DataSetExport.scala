@@ -7,7 +7,7 @@ import java.net.URI
 import java.util.UUID
 import java.util.zip._
 
-import scala.collection.mutable.Set
+import scala.collection.mutable
 
 import com.typesafe.scalalogging.LazyLogging
 import collection.JavaConversions._
@@ -26,7 +26,7 @@ class ExportDataSets(
   val dest = new FileOutputStream(zipPath.toFile)
   val out = new ZipOutputStream(new BufferedOutputStream(dest))
   private val BUFFER_SIZE = 2048
-  private val haveFiles = Set.empty[String]
+  private val haveFiles = mutable.Set.empty[String]
 
   private def writeFile(path: Path, zipOutPath: String): Int = {
     val ze = new ZipEntry(zipOutPath)

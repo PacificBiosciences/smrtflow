@@ -1,12 +1,10 @@
 package com.pacbio.secondary.analysis.jobtypes
 
 import java.nio.file.Path
-import java.nio.file.Files
 import java.util.UUID
 
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacbio.common.utils.TarGzUtil
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.{BaseCoreJob, BaseJobOptions, JobResultWriter}

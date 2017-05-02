@@ -52,7 +52,7 @@ trait timeUtils {
     // Do this to scope the imports
     import com.github.nscala_time.time.Implicits._
     val dt = (ti to tf).toInterval
-    (dt.millis / 1000).toInt
+    Math.ceil(dt.millis / 1000.0).toInt
   }
 
   def computeTimeDeltaFromNow(t: JodaDateTime): Int = {

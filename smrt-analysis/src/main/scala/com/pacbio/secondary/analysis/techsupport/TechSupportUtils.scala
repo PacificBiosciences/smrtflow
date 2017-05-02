@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import com.pacbio.common.models.Constants
-import com.pacbio.common.utils.TarGzUtil
+import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsJobManifest, TsSystemStatusManifest}
 import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
 import com.typesafe.scalalogging.LazyLogging
@@ -84,7 +84,7 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     TechSupportUtils.copyFilesTo(jobRoot, tempDir, TechSupportUtils.JOB_EXTS)
 
-    TarGzUtil.createTarGzip(tempDir, outputTgz.toFile)
+    TarGzUtils.createTarGzip(tempDir, outputTgz.toFile)
 
     FileUtils.deleteQuietly(tempDir.toFile)
 
@@ -152,7 +152,7 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     FileUtils.writeStringToFile(manifestPath.toFile, manifest.toJson.prettyPrint)
 
-    TarGzUtil.createTarGzip(tmpDir, dest.toFile)
+    TarGzUtils.createTarGzip(tmpDir, dest.toFile)
 
     FileUtils.deleteQuietly(tmpDir.toFile)
 

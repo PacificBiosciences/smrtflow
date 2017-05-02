@@ -9,8 +9,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import com.pacbio.common.models.{XmlTemplateReader => GenTemplateReader}
-import com.pacbio.simulator.RunDesignTemplateInfo
-import scala.xml.{Node, XML}
+import scala.xml.Node
 
 class RunDesignTemplateReader(xmlFile: Path) {
   private def randomId(): UUID = UUID.randomUUID()
