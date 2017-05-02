@@ -9,7 +9,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ _SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
 _MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
 _LEGACY_CONFIG = os.path.join(_BUNDLE_ROOT, "config.json")
 _JAVA_OPTS = "-Xmx1024m -Xms1024m"
+_DEFAULT_LOG_FILE_NAME = "dbctrl.log"
 
 REQUIRED_EXES = ('initdb',
                  'pg_ctl',
@@ -110,8 +111,8 @@ def get_parser():
     def base_opts(p_):
         f = p_.add_argument
         f('-c', "--config", help="Path to smrtlink-system-config.json", default=_SL_CONFIG)
-        f('--log-file', help="Log file")
-        f('--log-level', default=logging.ERROR, help="Log level when emitting to a log file")
+        f('--log-file', help="Log file. The default value will be pulled from the {}".format(_SL_CONFIG))
+        f('--log-level', default=logging.INFO, help="Log level when emitting to a log file")
         f('--quiet', default=False, action="store_true", help="Silence output to stdout")
         return p_
 
@@ -189,6 +190,18 @@ def load_db_config(path):
     return DbConfig(db_name, pg_data_dir, host, port, user, password)
 
 
+def load_log_dir(path):
+    """Load the System Level Logging dir from the System config.
+
+    Black hole exception. Return None if any exception is raised
+    """
+    try:
+        d = json.load(open(path, 'r'))
+        return d['pacBioSystem']['logDir']
+    except Exception:
+        return None
+
+
 def call_import_legacy_sqlite(sqlite_db_path, dbc):
     """:type dbc: DbConfig"""
 
@@ -202,10 +215,31 @@ def call_import_legacy_sqlite(sqlite_db_path, dbc):
 
 
 def _run_cmd(cmd, env=None):
-    # need to redirect stdout and stderr to log
-    out = subprocess.Popen(cmd, shell=True, env=env)
-    out.wait()
+    """
+    Run a cmd string and log the error (if an error occurs)
+
+    :param cmd: Command string to run
+    :param env: dict or None override ENV to run cmd in
+    :return: exit code
+    """
+
+    std_out = tempfile.NamedTemporaryFile()
+    std_err = tempfile.NamedTemporaryFile()
+
+    with open(std_out, 'w') as s_out:
+        with open(std_err, 'w') as s_err:
+            out = subprocess.Popen(cmd, shell=True, env=env, stdout=s_out, stderr=s_err)
+            out.wait()
+
     exit_code = out.returncode
+    if exit_code != 0:
+        log.error("Command {} failed with exit code {}".format(cmd, exit_code))
+        with open(std_err, 'r') as f:
+            for line in f:
+                log.error(line)
+
+    os.remove(std_out)
+    os.remove(std_err)
     return exit_code
 
 
@@ -523,10 +557,17 @@ def main(argv=None):
     pargs = p.parse_args(args)
 
     if not pargs.quiet:
+
+        # If an explicit log file is not provided, then default to loading
+        # from the system config JSON file.
         if pargs.log_file is None:
-            logging.basicConfig(file=sys.stdout, level=pargs.log_level)
+            log_dir = load_log_dir(pargs.config)
+            if log_dir is not None:
+                log_file = os.path.join(log_dir, _DEFAULT_LOG_FILE_NAME)
+            else:
+                log_file = sys.stdout
+            logging.basicConfig(file=log_file, level=pargs.log_level)
         else:
-            # this should log to the logDir defined in the smrtlink-system-config.json
             logging.basicConfig(file=pargs.log_file, level=pargs.log_level)
 
     try:
