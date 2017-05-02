@@ -72,7 +72,7 @@ ${__dir}/check-system-limits
 echo "Successfully completed checking system requirements"
 
 echo "Step #3 Checking if db is up and running"
-${__dir}/dbctrl start -c ${SL_SERVICES_CONF} --log-level=INFO --log-file=${logDir}/dbctl.log
+${__dir}/dbctrl start -c ${SL_SERVICES_CONF} --log-level=INFO --log-file=${logDir}/dbctrl.log
 echo "Successfully completed check for Postgres database (db is up and running)"
 
 
