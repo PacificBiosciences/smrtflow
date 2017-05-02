@@ -22,14 +22,19 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
+# TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
+logFile=${logDir}/bundle-upgrade.log
+amLogFile=${logDir}/amclient.log
+
 # To enable tools called from dbctrl
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 if [ -e "$legacyConfig" ]; then
-    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-level=DEBUG
+    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-level=INFO --log-file=${logFile}
 else
     # Install from a fresh install (create users/db/tables if necessary)
-    ${rootBundleDir}/bin/dbctrl setup -c ${config}
+    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile}
 fi
 
 
@@ -104,18 +109,18 @@ sleep 5
 wso2Pid=$(< ${newWso2}/wso2carbon.pid)
 trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
 
-env "$clientEnv" ${amClient} create-roles ${amClientArgs}
+env "$clientEnv" ${amClient} create-roles ${amClientArgs} --log-file=${amLogFile}
 
 env "$clientEnv" ${amClient} proxy-admin ${amClientArgs} \
     --api-name RemoteUserStoreManagerService \
     --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
-    --app-config ${appConfig}
+    --app-config ${appConfig} --log-file=${amLogFile}
 
 env "$clientEnv" ${amClient} set-api ${amClientArgs} \
-    --swagger-resource /smrtlink_swagger.json --app-config ${appConfig}
+    --swagger-resource /smrtlink_swagger.json --app-config ${appConfig} --log-file=${amLogFile}
 
 if [ -e "${userRoles}" ]; then
-    env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles}
+    env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles} --log-file=${amLogFile}
 fi
 
 wso2Pid=$(< ${newWso2}/wso2carbon.pid)
