@@ -203,7 +203,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
       systemVersion <- getRequired[String]("SMRT Link System Version", getOr[String](c.smrtLinkVersion, configPath, getSmrtLinkVersionFromConfigFile))
       dnsName <- getRequired[String]("SMRT Link DNS Name", getOr[String](c.dnsName, configPath, getDnsNameFromConfigFile))
       tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, px, c.output, c.user, Some(systemVersion), Some(dnsName))}
-    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${toFileSize(tgzPath.toFile.length())} Kb)"
+    } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${toFileSize(tgzPath.toFile.length())} KB)"
   }
 
   // To adhere to the fundamental interface. Other tools need to migrate to use

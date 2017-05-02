@@ -113,7 +113,7 @@ trait TarGzUtils {
           tarArchiveOutputStream.write(data, 0, nRead)
           nWritten += nRead
         }
-
+        input.close()
         tarArchiveOutputStream.closeArchiveEntry()
       }
       tarArchiveOutputStream.close()

@@ -52,7 +52,7 @@ class EngineManagerActor(val daoActor: ActorRef,
                          val jobRunner: JobRunner)
     extends Actor with EngineActorCore with ActorLogging {
 
-  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+  final val QUICK_TASK_IDS = Seq("import_dataset", "merge_dataset", "ts_bundle_system_status", "ts_bundle_job").map(JobTypeId).toSet
 
   implicit val timeout = Timeout(16.seconds)
 
