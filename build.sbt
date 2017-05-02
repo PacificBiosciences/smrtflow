@@ -73,7 +73,7 @@ lazy val baseSettings = Seq(
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
-  "com.lihaoyi" % "ammonite" % "0.8.2" cross CrossVersion.full,
+  "com.lihaoyi" % "ammonite" % "0.8.4" cross CrossVersion.full,
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
