@@ -10,6 +10,9 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
+logStartFile=${logDir}/get-status.log
+
 export JAVA_OPTS="-Dconfig.file=${config}"
 
 # This interface is a bit odd. Perhaps should change the
@@ -26,5 +29,5 @@ else
 fi
 
 # The db check should be pushed to this layer. And the db should be considers a sup-component of the system
-${rootBundleDir}/tools/bin/bundler-get-status "$@"
+${rootBundleDir}/tools/bin/bundler-get-status --log-file ${logStartFile} "$@"
 
