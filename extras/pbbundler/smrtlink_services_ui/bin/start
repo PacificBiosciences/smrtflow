@@ -64,8 +64,7 @@ WSO2_DIR="$__dir/../wso2am-2.0.0"
 
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
-logStartFile=${logDir}/bundle-start.log
-amLogFile=${logDir}/amclient.log
+logStartFile=${logDir}/start.log
 
 
 echo "Step #2 Checking system requirements (e.g., ulimits)"
@@ -198,14 +197,14 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}"
 env "$client_env" ${AMCLIENT} create-roles \
-       --creds-json ${WSO2_CREDS} --host localhost --log-file ${amLogFile}
+       --creds-json ${WSO2_CREDS} --host localhost --log-file ${logStartFile}
 
 env "$client_env" \
      ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \
        --api-name SMRTLink \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${amLogFile}
+       --host localhost --log-file ${logStartFile}
 
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
@@ -214,7 +213,7 @@ env "$client_env" \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${amLogFile} \
+       --host localhost --log-file ${logStartFile} \
      && echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"
 
 # This is a bit odd, SMRT View is started by a different layer of the software stack.
