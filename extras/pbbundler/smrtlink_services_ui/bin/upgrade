@@ -24,8 +24,7 @@ fi
 
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
-logFile=${logDir}/bundle-upgrade.log
-amLogFile=${logDir}/amclient.log
+logFile=${logDir}/upgrade.log
 
 # To enable tools called from dbctrl
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
@@ -66,7 +65,7 @@ clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
 
 newWso2=${rootBundleDir}/wso2am-2.0.0
 amClient=${rootBundleDir}/tools/bin/amclient
-amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${amLogFile}"
+amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${logFile}"
 
 if [ -e "${legacyConfig}" ]; then
     prevInstall=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print ('' if (d['PREVIOUS_INSTALL_DIR'] is None) else d['PREVIOUS_INSTALL_DIR'])" ${legacyConfig})

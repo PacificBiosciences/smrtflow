@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import subprocess
 import sys
@@ -213,6 +214,13 @@ def call_import_legacy_sqlite(sqlite_db_path, dbc):
 
 
 def _run_cmd(cmd, env=None):
+    """Run cmd with no logging and return exit code"""
+    px = subprocess.Popen(cmd, shell=True, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    px.wait()
+    return px.returncode
+
+
+def _run_cmd_and_log(cmd, env=None):
     """
     Run a cmd string and log the error (if an error occurs)
 
@@ -239,32 +247,27 @@ def _run_cmd(cmd, env=None):
     return exit_code
 
 
-def _run_cmd_and_log(cmd, env=None):
-    log.debug("Running cmd '{}'".format(cmd))
-    exit_code = _run_cmd(cmd, env=env)
-    msg = "command with exit code {}. cmd {}".format(exit_code, cmd)
-    if exit_code == 0:
-        log.debug("Completed " + msg)
-    else:
-        log.error("Failed " + msg)
-    return exit_code
-
-
-def _run_raise_on_failure(cmd, env=None, runner_func=_run_cmd):
+def _run_raise_on_failure(cmd, env=None, runner_func=_run_cmd_and_log):
     rcode = runner_func(cmd, env=env)
     if rcode != 0:
         raise RuntimeError("FAILED Command {}".format(cmd))
     return rcode
 
 
-def _is_running(db_config, fail_early=True):
-    """Check if Db is running"""
-    rcode = db_status(db_config, fail_early=fail_early)
+def check_if_running(db_config, fail_early=True, runner_func=_run_cmd):
+    """
+    Test to see if the db is up and running.
+
+    :type db_config: DbConfig
+    :type fail_early: Boolean
+    :rtype: Boolean
+    """
+    rcode = db_status(db_config, fail_early=fail_early, runner_func=runner_func)
     return True if rcode == 0 else False
 
 
-def _is_running_or_raise(dbc):
-    if _is_running(dbc):
+def check_if_running_or_raise(dbc):
+    if check_if_running(dbc, runner_func=_run_cmd_and_log):
         return True
     else:
         raise RuntimeError("DB is not running {}".format(dbc))
@@ -281,7 +284,7 @@ def _fail_status_early(dbc):
 
 def _start_db_or_raise(dbc):
     """Start or raise if can't start the db"""
-    was_started = _is_running(dbc)
+    was_started = check_if_running(dbc)
     if not was_started:
         start_success = db_start(dbc)
         if start_success != 0:
@@ -339,7 +342,7 @@ def db_init(dbc):
     _d = dict(g=dbc.pg_data_dir, u=dbc.user, t=t)
     cmd = "initdb --pgdata {g} --username {u} --pwfile={t}".format(**_d)
 
-    rcode = _run_cmd(cmd)
+    rcode = _run_cmd_and_log(cmd)
 
     # see comments above. Perhaps this should be removed
     _fix_postgres_config(to_p("postgresql.conf"))
@@ -367,7 +370,7 @@ def db_create(dbc):
     :type dbc: DbConfig
     """
 
-    was_started = _is_running(dbc)
+    was_started = check_if_running(dbc)
     _start_db_or_raise(dbc)
 
     table_names = _get_tables(dbc)
@@ -394,8 +397,8 @@ def db_start(dbc, fail_early=True):
     if fail_early:
         _fail_status_early(dbc)
 
-    if not _is_running(dbc):
-        return _run_cmd(_to_cmd(dbc, "start"))
+    if not check_if_running(dbc):
+        return _run_cmd_and_log(_to_cmd(dbc, "start"))
     else:
         log.info("Database is already started. Skipping startup")
         return 0
@@ -407,14 +410,14 @@ def db_start_no_fail_early(dbc):
 
 def db_stop(dbc):
     """:type dbc: DbConfig"""
-    if _is_running(dbc):
-        return _run_cmd(_to_cmd(dbc, "stop"))
+    if check_if_running(dbc):
+        return _run_cmd_and_log(_to_cmd(dbc, "stop"))
     else:
         log.info("Database is not running. No stopping action necessary")
         return 0
 
 
-def db_status(dbc, fail_early=True):
+def db_status(dbc, fail_early=True, runner_func=_run_cmd_and_log):
     """Get the Status of the Database
 
     :param fail_early: Check of PGDATA path existence and fail if not found (or empty)
@@ -424,12 +427,12 @@ def db_status(dbc, fail_early=True):
         _fail_status_early(dbc)
 
     cmd = "pg_ctl status --silent --pgdata {g} -o \"-p {t}\"".format(**dbc.to_fd())
-    return _run_cmd(cmd)
+    return runner_func(cmd)
 
 
 def db_verify(dbc):
     """:type dbc: DbConfig"""
-    _is_running_or_raise(dbc)
+    check_if_running_or_raise(dbc)
 
     cmd = "smrt-db-tool migrate --log2stdout --user {u} --password {p} --server {h} --port {t} --db-name {n}".format(**dbc.to_fd())
     return _run_cmd_and_log(cmd)
@@ -463,7 +466,7 @@ def db_setup_and_migrate_if_necessary(dbc):
         else:
             return init_state
 
-    was_started = _is_running(dbc, fail_early=False)
+    was_started = check_if_running(dbc, fail_early=False)
 
     # if the db is running, then db init, createdb was successful
     if was_started:
@@ -499,7 +502,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
     n = db_setup_and_migrate_if_necessary(dbc)
 
     if n == 0:
-        was_started = _is_running(dbc)
+        was_started = check_if_running(dbc)
 
         if sqlite_db_path is not None:
             if os.path.exists(migration_status_json):
@@ -514,7 +517,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
                     was_successful = False
             else:
                 # Try a new importing
-                was_started = _is_running(dbc)
+                was_started = check_if_running(dbc)
                 _start_db_or_raise(dbc)
 
                 try:
@@ -563,7 +566,8 @@ def setup_logger(alog, level=logging.INFO, file_name=None,
     if file_name is None:
         handler = logging.StreamHandler(sys.stdout)
     else:
-        handler = logging.FileHandler(file_name)
+        max_bytes = 1000 * 1000
+        handler = RotatingFileHandler(file_name, backupCount=5, maxBytes=max_bytes)
 
     formatter = logging.Formatter(str_formatter)
     handler.setFormatter(formatter)
@@ -608,7 +612,7 @@ def main(argv=None):
     # Setup Logger to file
     setup_logger(log, log_level_file, file_name=apply_config_log, str_formatter=_LOG_FORMAT)
 
-    # Setup logger to stdout
+    # Setup logger to stdout. This is not quite right. Errors won't get written to stderr
     setup_logger(log, log_level_stdout, file_name=None, str_formatter=_LOG_STDOUT_FORMAT)
 
     log.debug("Parsed args: {}".format(pargs))
