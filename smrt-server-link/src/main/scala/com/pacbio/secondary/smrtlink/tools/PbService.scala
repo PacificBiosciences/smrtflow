@@ -131,7 +131,7 @@ object PbServiceParser extends CommandLineToolVersion{
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
       force: Boolean = false,
-      user: Option[String] = Properties.envOrNone("USER"),
+      user: String = System.getProperty("user.name"),
       comment: String = "Sent via pbservice"
   ) extends LoggerConfig
 
@@ -416,8 +416,8 @@ object PbServiceParser extends CommandLineToolVersion{
       c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
     } children(
       opt[String]("user") action { (u, c) =>
-        c.copy(user = Some(u))
-      } text s"User name to send (default: " + defaults.user.getOrElse("None") + ")",
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
@@ -430,8 +430,8 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(jobId = entityIdOrUuid(i))
       } text "ID of job whose details should be sent to tech support",
       opt[String]("user") action { (u, c) =>
-        c.copy(user = Some(u))
-      } text s"User name to send (default: " + defaults.user.getOrElse("None") + ")",
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
@@ -1173,39 +1173,32 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  private def failIfNoUser(user: Option[String]): Try[String] = user match {
-      case Some(u) => Success(u)
-      case None => Failure(new UnprocessableEntityError("User name/ID is mandatory"))
-  }
-
-  def runTsSystemStatus(user: Option[String],
+  def runTsSystemStatus(user: String,
                         comment: String): Int = {
     println(s"Attempting to send tech support status bundle")
     val fx = for {
-      u <- failIfNoUser(user)
-      job <- Try { Await.result(sal.runTsSystemStatus(u, comment), TIMEOUT) }
+      job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
       _ <- sal.pollForJob(job.uuid, maxTime)
     } yield job
 
     fx match {
-      case Success(j) => println(s"Tech support bundle sent.\nUser = ${user.get}\nComments: $comment"); 0
+      case Success(j) => println(s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"); 0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
 
   def runTsJobBundle(jobId: IdAble,
-                     user: Option[String],
+                     user: String,
                      comment: String): Int = {
     println(s"Attempting to send tech support failed job bundle")
     val fx = for {
-      u <- failIfNoUser(user)
       failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
-      job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, u, comment), TIMEOUT) }
+      job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
       _ <- sal.pollForJob(job.uuid, maxTime)
     } yield failedJob
 
     fx match {
-      case Success(j) => println(s"Tech support job bundle sent.\nJob = ${j.id}; name = ${j.name}\nUser = ${user.get}\nComments: $comment"); 0
+      case Success(j) => println(s"Tech support job bundle sent.\nJob = ${j.id}; name = ${j.name}\nUser = ${user}\nComments: $comment"); 0
       case Failure(ex) => errorExit(ex.getMessage, 1)
     }
   }
