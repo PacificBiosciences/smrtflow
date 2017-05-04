@@ -9,7 +9,7 @@
       "doc": "Root Namespace for smrtflow HCON config",
       "type": {
         "type": "record",
-        "doc": "SMRT Flow root namespace (hcon-key smrtflow)",
+        "doc": "SMRT Flow root namespace (hocon-key smrtflow)",
         "name": "SmrtflowConfig",
         "fields": [
           {
@@ -28,7 +28,7 @@
                 },
                 {
                   "name": "manifestFile",
-                  "doc": "Absolute path to PacBio Manifest JSON file to load on startup. Will enable setting the SMRT Link System and SMRT Tool Version (hcon-key: smrtflow.server.manifestFile)",
+                  "doc": "Absolute path to PacBio Manifest JSON file to load on startup. Will enable setting the SMRT Link System and SMRT Tool Version (hocon-key: smrtflow.server.manifestFile)",
                   "default": null,
                   "type": ["string", "null"]
                 },
@@ -40,13 +40,13 @@
                 },
                 {
                   "name": "eventUrl",
-                  "doc": "External Event URL to send messages to. (example, \"http://my-event-server:8888/events\", hcon-kkey: smrtflow.server.eventUrl)",
+                  "doc": "External Event URL to send messages to. (example, \"http://my-event-server:8083\", hocon-key: smrtflow.server.eventUrl)",
                   "default": null,
                   "type": ["string", "null"]
                 },
                 {
                   "name": "dnsName",
-                  "doc": "Host name that is accessible externally by the SL UI and pbsmrtpipe during Analyis jobs. If null, the FDQN of the host will be used. The port will be pulled from smrtflow.server.port (e.g., \"http://my-event-server\") to construct the full URL. (hcon-key: smrtflow.server.dnsName)",
+                  "doc": "Host name that is accessible externally by the SL UI and pbsmrtpipe during Analyis jobs. If null, the FDQN of the host will be used. The port will be pulled from smrtflow.server.port (e.g., \"http://my-event-server\") to construct the full URL. (hocon-key: smrtflow.server.dnsName)",
                   "type": ["string", "null"],
                   "default": null
                 }
@@ -63,19 +63,19 @@
               "fields": [
                 {
                   "name": "maxWorkers",
-                  "doc": "Maximum number of workers to run jobs within SMRT Link. This can be used to throttle the resource usage on the host (hcon-key smrtflow.engine.maxWorkers)",
+                  "doc": "Maximum number of workers to run jobs within SMRT Link. This can be used to throttle the resource usage on the host (hocon-key smrtflow.engine.maxWorkers)",
                   "type": "int",
                   "default": 32
                 },
                 {
                   "name": "jobRootDir",
-                  "doc": "Root path to the output job directory. If the directory isn't absolute, it will be assumed relative to the cwd. If the supplied directory doesn't exist, it will be created (hcon-key smrtflow.engine.jobRootDir)",
+                  "doc": "Root path to the output job directory. If the directory isn't absolute, it will be assumed relative to the cwd. If the supplied directory doesn't exist, it will be created (hocon-key smrtflow.engine.jobRootDir)",
                   "type": "string",
                   "default": "job-root"
                 },
                 {
                   "name": "pbsmrtpipePresetXml",
-                  "doc": "Root path to the pbsmrtpipe Preset XML. (hcon-key smrtflow.engine.pbsmrtpipePresetXml)",
+                  "doc": "Root path to the pbsmrtpipe Preset XML. (hocon-key smrtflow.engine.pbsmrtpipePresetXml)",
                   "type": ["null", "string"]
                 }
               ]
@@ -83,7 +83,7 @@
           },
           {
             "name": "db",
-            "doc": "SMRT Link PostgreSQL database configuration (hcon-key: smrtflow.db)",
+            "doc": "SMRT Link PostgreSQL database configuration (hocon-key: smrtflow.db)",
             "type": {
               "type": "record",
               "doc": "SMRT Link database Configuration container",
@@ -99,31 +99,31 @@
                     "fields": [
                       {
                         "name": "databaseName",
-                        "doc": "SMRT Link PostgreSQL Database Name (hcon-key: smrtflow.db.properties.databaseName)",
+                        "doc": "SMRT Link PostgreSQL Database Name (hocon-key: smrtflow.db.properties.databaseName)",
                         "type": "string",
                         "default": "smrtlink"
                       },
                       {
                         "name": "user",
-                        "doc": "SMRT Link PostgreSQL user name. User must have read+write access (hcon-key: smrtflow.db.properties.user)",
+                        "doc": "SMRT Link PostgreSQL user name. User must have read+write access (hocon-key: smrtflow.db.properties.user)",
                         "type": "string",
                         "default": "smrtlink_user"
                       },
                       {
                         "name": "password",
-                        "doc": "SMRT Link PostgreSQL user password. User must have read+write access. (hcon-key: smrtflow.db.properties.password)",
+                        "doc": "SMRT Link PostgreSQL user password. User must have read+write access. (hocon-key: smrtflow.db.properties.password)",
                         "type": "string",
                         "default": "password"
                       },
                       {
                         "name": "portNumber",
-                        "doc": "SMRT Link PostgreSQL port (hcon-key: smrtflow.db.properties.portNumber)",
+                        "doc": "SMRT Link PostgreSQL port (hocon-key: smrtflow.db.properties.portNumber)",
                         "type": "int",
                         "default": 5432
                       },
                       {
                         "name": "serverName",
-                        "doc": "SMRT Link PostgreSQL server host name (hcon-key: smrtflow.db.properties.serverName)",
+                        "doc": "SMRT Link PostgreSQL server host name (hocon-key: smrtflow.db.properties.serverName)",
                         "type": "string",
                         "default": "localhost"
                       }
@@ -138,62 +138,62 @@
     },
     {
       "name": "pacBioSystem",
-      "doc": "Root PacBio System hcon namespace (hcon-key smrtflow.pbsystem)",
+      "doc": "Root PacBio System hocon namespace (hocon-key smrtflow.pacBioSystem)",
       "type": {
         "type": "record",
         "doc": "PacBio System configuration settings, such as UI tomcat webserver, SL Analysis server memory, SMRT View Port, temporary directory and log output directory",
         "name": "SmrtflowPacBioSystemConfig",
         "fields": [
           {
-            "doc": "Tomcat Port to run the SMRT Link UI on (hcon-key smrtflow.pacBioSystem.tomcatPort)",
+            "doc": "Tomcat Port to run the SMRT Link UI on (hocon-key smrtflow.pacBioSystem.tomcatPort)",
             "name": "tomcatPort",
             "type": "int",
             "default": 8080
           },
           {
-            "doc": "Maximum and Minimum memory to launch tomcat (hcon-key smrtflow.pacBioSystem.tomcatMemory)",
+            "doc": "Maximum and Minimum memory to launch tomcat (hocon-key smrtflow.pacBioSystem.tomcatMemory)",
             "name": "tomcatMemory",
             "type": "int",
             "default": 1024
           },
           {
-            "doc": "Minimum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMin)",
+            "doc": "Minimum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hocon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMin)",
             "name": "smrtLinkServerMemoryMin",
             "type": "int",
             "default": 4096
           },
           {
-            "doc": "Maximum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hcon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMax)",
+            "doc": "Maximum Memory used to launch SMRT Link Analysis Services java process. It it recommended to set smrtLinkServerMemoryMin to smrtLinkServerMemoryMax. (hocon-key smrtflow.pacBioSystem.smrtLinkServerMemoryMax)",
             "name": "smrtLinkServerMemoryMax",
             "type": "int",
             "default": 4096
           },
           {
-            "doc": "SMRT View Port (hcon-key smrtflow.pacBioSystem.smrtViewPort)",
+            "doc": "SMRT View Port (hocon-key smrtflow.pacBioSystem.smrtViewPort)",
             "name": "smrtViewPort",
             "type": "int",
             "default": 8084
           },
           {
-            "doc": "Temporary directory to write to write files to. See pbsmrtpipe preset XML for configuration the remote compute node Temp Directory  (hcon-key smrtflow.pacBioSystem.tmpDir)",
+            "doc": "Temporary directory to write to write files to. See pbsmrtpipe preset XML for configuration the remote compute node Temp Directory  (hocon-key smrtflow.pacBioSystem.tmpDir)",
             "name": "tmpDir",
             "type": "string",
             "default": "/tmp"
           },
           {
-            "doc": "Directory to write to write files to. Log files will rotate above a specific file size. (hcon-key smrtflow.pacBioSystem.tmpDir)",
+            "doc": "Directory to write to write files to. Log files will rotate above a specific file size. (hocon-key smrtflow.pacBioSystem.tmpDir)",
             "name": "logDir",
             "type": "string",
             "default": "./"
           },
           {
-            "doc": "Directory where the Postgres data files will reside. This direction should be r+w from the user that launches the Services (hcon-key smrtflow.pacBioSystem.pgDataDir)",
+            "doc": "Directory where the Postgres data files will reside. This direction should be r+w from the user that launches the Services (hocon-key smrtflow.pacBioSystem.pgDataDir)",
             "name": "pgDataDir",
             "type": "string",
             "default": "./"
           },
           {
-            "doc": "URL to the remote bundle service. This must be relative to the root bundle service (e.g., http://my-server:8081/smrt-link/bundles). If a URL is not provided, the remote fetching for upgrades will be disabled (hcon-key smrtflow.pacBioSystem.pgDataDir)",
+            "doc": "URL to the remote bundle service. This must be relative to the root bundle service (e.g., http://my-server:8081/smrt-link/bundles). If a URL is not provided, the remote fetching for upgrades will be disabled (hocon-key smrtflow.pacBioSystem.remoteBundleUrl)",
             "name": "remoteBundleUrl",
             "type": ["string", "null"],
             "default": null
