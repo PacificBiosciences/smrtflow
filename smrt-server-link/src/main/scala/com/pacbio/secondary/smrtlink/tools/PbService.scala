@@ -11,6 +11,7 @@ import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, Un
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.converters._
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.pipelines._
@@ -55,6 +56,8 @@ object Modes {
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
   case object BUNDLES extends Mode {val name = "get-bundles"}
+  case object TS_STATUS extends Mode {val name = "ts-status"}
+  case object TS_JOB extends Mode {val name = "ts-failed-job"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -128,7 +131,9 @@ object PbServiceParser extends CommandLineToolVersion{
       showReports: Boolean = false,
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
-      force: Boolean = false
+      force: Boolean = false,
+      user: String = System.getProperty("user.name"),
+      comment: String = "Sent via pbservice"
   ) extends LoggerConfig
 
 
@@ -408,6 +413,31 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Project description"
     ) text "Start a new project"*/
 
+    cmd(Modes.TS_STATUS.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
+    } children(
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send system status report to PacBio Tech Support"
+
+    cmd(Modes.TS_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } text "ID of job whose details should be sent to tech support",
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send failed job information to PacBio Tech Support"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -445,21 +475,33 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
-  protected def errorExit(msg: String, exitCode: Int = -1): Int = {
+  private def printAndExit(msg: String, exitCode: Int): Int = {
     println(msg)
     exitCode
   }
 
-  protected def printMsg(msg: String): Int = {
-    println(msg)
-    0
-  }
+  protected def errorExit(msg: String, exitCode: Int = -1) = printAndExit(msg, exitCode)
+
+  protected def printMsg(msg: String) = printAndExit(msg, 0)
 
   protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
       case Success(nrecords) => println(s"${label.padTo(numPad, ' ')} $nrecords")
       case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
+  }
+
+  protected def runAndSummary[T](fx: Try[T], summary:(T => String)): Int = {
+    fx match {
+      case Success(result) => printMsg(summary(result))
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  protected def runAndBlock[T](fx: => Future[T],
+                               summary:(T => String),
+                               timeout: FiniteDuration): Int = {
+    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
   }
 
   def statusSummary(status: ServiceStatus): String = {
@@ -1042,23 +1084,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
+    def toSummary(m: MessageResponse) = m.message
     println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
-    // Only Int Job ids are supported
-    def failIfUUID(i: IdAble): Future[Int] = {
-      i match {
-        case IntIdAble(n) => Future {n}
-        case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
-      }
-    }
     val fx = for {
-      i <- failIfUUID(jobId)
-      messageResponse <- sal.terminatePbsmrtpipeJob(i)
+      job <- sal.getJob(jobId)
+      messageResponse <- sal.terminatePbsmrtpipeJob(job.id)
     } yield messageResponse
-
-    Try {Await.result(fx, TIMEOUT) } match {
-      case Success(m) => println(m.message); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    runAndBlock(fx, toSummary, TIMEOUT)
   }
 
   def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
@@ -1135,14 +1167,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
     runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(), pacBioDataBundlesSummary, timeOut)
 
+  def runTsSystemStatus(user: String,
+                        comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"
+    println(s"Attempting to send tech support status bundle")
+    val fx = for {
+      job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield job
+    runAndSummary(fx, toSummary)
+  }
 
-  def runAndBlock[T](fx: => Future[T], summary:(T => String), timeout: FiniteDuration): Int = {
-    Try(Await.result[T](fx, timeout)) match {
-      case Success(x) =>
-        println(summary(x))
-        0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+  def runTsJobBundle(jobId: IdAble,
+                     user: String,
+                     comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = ${user}\nComments: $comment"
+    println(s"Attempting to send tech support failed job bundle")
+    val fx = for {
+      failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield failedJob
+    runAndSummary(fx, toSummary)
   }
 
 }
@@ -1183,6 +1231,8 @@ object PbService {
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
         case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
+        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
+        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")
