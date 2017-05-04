@@ -417,7 +417,7 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       opt[String]("user") action { (u, c) =>
         c.copy(user = Some(u))
-      } text s"User name to send (default: ${defaults.user})",
+      } text s"User name to send (default: " + defaults.user.getOrElse("None") + ")",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
@@ -431,7 +431,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "ID of job whose details should be sent to tech support",
       opt[String]("user") action { (u, c) =>
         c.copy(user = Some(u))
-      } text s"User name to send (default: ${defaults.user})",
+      } text s"User name to send (default: " + defaults.user.getOrElse("None") + ")",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
