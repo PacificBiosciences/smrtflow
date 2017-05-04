@@ -11,6 +11,7 @@ import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, Un
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.converters._
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.pipelines._
@@ -474,21 +475,33 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
-  protected def errorExit(msg: String, exitCode: Int = -1): Int = {
+  private def printAndExit(msg: String, exitCode: Int): Int = {
     println(msg)
     exitCode
   }
 
-  protected def printMsg(msg: String): Int = {
-    println(msg)
-    0
-  }
+  protected def errorExit(msg: String, exitCode: Int = -1) = printAndExit(msg, exitCode)
+
+  protected def printMsg(msg: String) = printAndExit(msg, 0)
 
   protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
       case Success(nrecords) => println(s"${label.padTo(numPad, ' ')} $nrecords")
       case Failure(err) => println(s"ERROR: couldn't retrieve $label")
     }
+  }
+
+  protected def runAndSummary[T](fx: Try[T], summary:(T => String)): Int = {
+    fx match {
+      case Success(result) => printMsg(summary(result))
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  protected def runAndBlock[T](fx: => Future[T],
+                               summary:(T => String),
+                               timeout: FiniteDuration): Int = {
+    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
   }
 
   def statusSummary(status: ServiceStatus): String = {
@@ -1070,23 +1083,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  // Only Int Job ids are supported for some API endpoints
-  private def failIfUUID(i: IdAble): Future[Int] = i match {
-    case IntIdAble(n) => Future {n}
-    case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
-  }
-
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
+    def toSummary(m: MessageResponse) = m.message
     println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
     val fx = for {
-      i <- failIfUUID(jobId)
-      messageResponse <- sal.terminatePbsmrtpipeJob(i)
+      job <- sal.getJob(jobId)
+      messageResponse <- sal.terminatePbsmrtpipeJob(job.id)
     } yield messageResponse
-
-    Try {Await.result(fx, TIMEOUT) } match {
-      case Success(m) => println(m.message); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    runAndBlock(fx, toSummary, TIMEOUT)
   }
 
   def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
@@ -1163,44 +1167,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
     runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(), pacBioDataBundlesSummary, timeOut)
 
-
-  def runAndBlock[T](fx: => Future[T], summary:(T => String), timeout: FiniteDuration): Int = {
-    Try(Await.result[T](fx, timeout)) match {
-      case Success(x) =>
-        println(summary(x))
-        0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
-  }
-
   def runTsSystemStatus(user: String,
                         comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"
     println(s"Attempting to send tech support status bundle")
     val fx = for {
       job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
       _ <- sal.pollForJob(job.uuid, maxTime)
     } yield job
-
-    fx match {
-      case Success(j) => println(s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    runAndSummary(fx, toSummary)
   }
 
   def runTsJobBundle(jobId: IdAble,
                      user: String,
                      comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = ${user}\nComments: $comment"
     println(s"Attempting to send tech support failed job bundle")
     val fx = for {
       failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
       _ <- sal.pollForJob(job.uuid, maxTime)
     } yield failedJob
-
-    fx match {
-      case Success(j) => println(s"Tech support job bundle sent.\nJob = ${j.id}; name = ${j.name}\nUser = ${user}\nComments: $comment"); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    runAndSummary(fx, toSummary)
   }
 
 }
