@@ -589,6 +589,15 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getPacBioDataBundleByTypeAndVersionId(typeId: String, versionId: String) =
     getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}
 
+  def runTsSystemStatus(user: String, comment: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
+         TsSystemStatusServiceOptions(user, comment))
+  }
+
+  def runTsJobBundle(jobId: Int, user: String, comment: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
+        TsJobBundleJobServiceOptions(jobId, user, comment))
+  }
 
   /**
     * FIXME(mpkocher)(2016-8-22)

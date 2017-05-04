@@ -55,6 +55,8 @@ object Modes {
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
   case object BUNDLES extends Mode {val name = "get-bundles"}
+  case object TS_STATUS extends Mode {val name = "ts-status"}
+  case object TS_JOB extends Mode {val name = "ts-failed-job"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -128,7 +130,9 @@ object PbServiceParser extends CommandLineToolVersion{
       showReports: Boolean = false,
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
-      force: Boolean = false
+      force: Boolean = false,
+      user: Option[String] = Properties.envOrNone("USER"),
+      comment: String = "Sent via pbservice"
   ) extends LoggerConfig
 
 
@@ -407,6 +411,31 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(description = d)
       } text "Project description"
     ) text "Start a new project"*/
+
+    cmd(Modes.TS_STATUS.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
+    } children(
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = Some(u))
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send system status report to PacBio Tech Support"
+
+    cmd(Modes.TS_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } text "ID of job whose details should be sent to tech support",
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = Some(u))
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send failed job information to PacBio Tech Support"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -1041,15 +1070,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  // Only Int Job ids are supported for some API endpoints
+  private def failIfUUID(i: IdAble): Future[Int] = i match {
+    case IntIdAble(n) => Future {n}
+    case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
+  }
+
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
     println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
-    // Only Int Job ids are supported
-    def failIfUUID(i: IdAble): Future[Int] = {
-      i match {
-        case IntIdAble(n) => Future {n}
-        case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
-      }
-    }
     val fx = for {
       i <- failIfUUID(jobId)
       messageResponse <- sal.terminatePbsmrtpipeJob(i)
@@ -1145,6 +1173,43 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  private def failIfNoUser(user: Option[String]): Try[String] = user match {
+      case Some(u) => Success(u)
+      case None => Failure(new UnprocessableEntityError("User name/ID is mandatory"))
+  }
+
+  def runTsSystemStatus(user: Option[String],
+                        comment: String): Int = {
+    println(s"Attempting to send tech support status bundle")
+    val fx = for {
+      u <- failIfNoUser(user)
+      job <- Try { Await.result(sal.runTsSystemStatus(u, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield job
+
+    fx match {
+      case Success(j) => println(s"Tech support bundle sent.\nUser = ${user.get}\nComments: $comment"); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  def runTsJobBundle(jobId: IdAble,
+                     user: Option[String],
+                     comment: String): Int = {
+    println(s"Attempting to send tech support failed job bundle")
+    val fx = for {
+      u <- failIfNoUser(user)
+      failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, u, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield failedJob
+
+    fx match {
+      case Success(j) => println(s"Tech support job bundle sent.\nJob = ${j.id}; name = ${j.name}\nUser = ${user.get}\nComments: $comment"); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
 }
 
 object PbService {
@@ -1183,6 +1248,8 @@ object PbService {
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
         case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
+        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
+        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")
