@@ -67,6 +67,8 @@ trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
 
     DatabaseConfig(dbName, user, password, server, port, maxConnections)
   }
+  // this is duplicated for the cake vs provider model
+  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
 
   override val db: Singleton[Database] =
     Singleton(() => Database.forConfig("smrtflow.db"))

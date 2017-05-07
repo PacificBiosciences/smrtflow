@@ -12,9 +12,6 @@ object SecondaryModels {
       state: String,
       message: String)
 
-  // Need to find a better way to do this
-  case class PacBioSchema(id: String, content: String)
-
   case class ReportViewRule(id: String, rules: JsObject)
 
   case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
@@ -25,6 +22,8 @@ object SecondaryModels {
   case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
 
   case class TsSystemStatusServiceOptions(user: String, comment: String)
+
+  case class DbBackUpServiceJobOptions(user: String, comment: String)
 
 
 }
