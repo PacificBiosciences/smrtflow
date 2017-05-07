@@ -101,7 +101,9 @@ class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJo
   def deleteMaxBackups(rootDir: Path, maxBackUps: Int, backupExt: String): Seq[Path] = {
 
     def deleteBackUp(file: File): File = {
+      logger.info(s"Deleting DB backup $file")
       Files.delete(file.toPath)
+      logger.info(s"Successfully deleted DB backup $file")
       file
     }
 
