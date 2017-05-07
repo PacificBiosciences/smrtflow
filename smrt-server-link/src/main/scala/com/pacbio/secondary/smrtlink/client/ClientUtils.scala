@@ -90,8 +90,10 @@ trait ClientUtils extends timeUtils{
       println(s"        uuid: ${job.uuid}")
       println(s"        name: ${job.name}")
       println(s"       state: ${job.state}")
+      println(s"  project id: ${job.projectId}")
       println(s"        path: ${job.path}")
       println(s"   jobTypeId: ${job.jobTypeId}")
+      println(s"   is active: ${job.isActive}")
       println(s"   createdAt: ${job.createdAt}")
       println(s"   updatedAt: ${job.updatedAt}")
       println(s"    run time: $runTimeSec sec")
@@ -100,7 +102,7 @@ trait ClientUtils extends timeUtils{
 
       println(s"     comment: ${job.comment}")
       if (job.state == AnalysisJobStates.FAILED) {
-        println(s"Error :\n ${job.errorMessage}")
+        println(s"Error :\n ${job.errorMessage.getOrElse("Unknown")}")
       }
     }
     0
