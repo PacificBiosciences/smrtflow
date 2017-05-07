@@ -1,19 +1,17 @@
 package com.pacbio.secondary.analysis.jobs
 
-import java.io.{FileWriter, File, PrintWriter, StringWriter}
+import java.io.{FileWriter, PrintWriter, StringWriter}
 import java.net.InetAddress
-import java.nio.file.Path
 import java.util.UUID
 
 import JobModels._
 import akka.pattern.ask
 import akka.actor.ActorRef
 import akka.util.Timeout
-import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile, FailedMessage, SuccessMessage}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.{Await, Future, ExecutionContext}
@@ -29,17 +27,37 @@ trait JobResultWriter {
   def writeLineStderr(msg: String) = writeStderr(msg + "\n")
 }
 
+/**
+  * Don't Write any outputs
+  */
 class NullJobResultsWriter extends JobResultWriter{
   def writeStdout(msg: String) = {}
   def writeStderr(msg: String) = {}
 }
 
+/**
+  * Write Stdout to console, stderr to Stderr
+  */
 class PrinterJobResultsWriter extends JobResultWriter {
   def writeStdout(msg: String) = println(msg)
 
   def writeStderr(msg: String) = System.err.println(msg)
 }
 
+/**
+  * Write stdout and stderr to Log
+  */
+class LogJobResultsWriter extends JobResultWriter with LazyLogging{
+  def writeStdout(msg: String): Unit = logger.info(msg)
+  def writeStderr(msg: String): Unit = logger.error(msg)
+}
+
+/**
+  * Write to output streams and err to file AND stderr with a prefixed Timestamp
+  *
+  * @param stdout
+  * @param stderr
+  */
 class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobResultWriter {
 
   // This is a temporary hacky logging-ish model.
