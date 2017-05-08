@@ -22,7 +22,7 @@ class UserService(authenticator: Authenticator) extends PacBioService {
     "User Service",
     "0.1.0", "User Service")
 
-  val routes =
+  val userRoute =
     path("user") {
       authenticate(authenticator.wso2Auth) { user =>
         get {
@@ -34,6 +34,8 @@ class UserService(authenticator: Authenticator) extends PacBioService {
         }
       }
     }
+
+  val routes = userRoute ~ pathPrefix("smrt-link") {userRoute}
 }
 
 /**
