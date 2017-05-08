@@ -103,6 +103,8 @@ object JobsDaoActor {
   case class DeleteDataSetById(id: Int) extends DataSetMessage
   case class DeleteDataSetByUUID(uuid: UUID) extends DataSetMessage
 
+  case class UpdateDataSetByUUID(uuid: UUID, path: String, setIsActive: Boolean = true) extends DataSetMessage
+
   // DS Subreads
   case class GetSubreadDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
@@ -492,6 +494,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case DeleteDataSetById(id: Int) => pipeWith(dao.deleteDataSetById(id))
     case DeleteDataSetByUUID(uuid: UUID) => pipeWith(dao.deleteDataSetByUUID(uuid))
+
+    case UpdateDataSetByUUID(uuid: UUID, path: String, setIsActive: Boolean) =>
+      pipeWith(dao.updateDataSetByUUID(uuid, path, setIsActive))
 
     // DataSet Types
     case GetDataSetTypes => pipeWith(dao.getDataSetTypes)

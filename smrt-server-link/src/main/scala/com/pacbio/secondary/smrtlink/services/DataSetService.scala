@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.services
 
 import java.util.UUID
+import java.nio.file.Path
 
 import akka.actor.ActorRef
 import akka.pattern.ask
