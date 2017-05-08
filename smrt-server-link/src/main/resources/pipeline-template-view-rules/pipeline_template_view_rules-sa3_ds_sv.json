@@ -5,6 +5,6 @@
   "taskOptions": [
     {"id": "pbsvtools.task_options.svlength", "hidden": false, "advanced": true},
     {"id": "pbsvtools.task_options.min_readcount", "hidden": false, "advanced": false},
-    {"id": "pbsvtools.task_options.min_readfraction", "hidden": false, "advanced": false},
+    {"id": "pbsvtools.task_options.min_readfraction", "hidden": false, "advanced": false}
   ]
 }
