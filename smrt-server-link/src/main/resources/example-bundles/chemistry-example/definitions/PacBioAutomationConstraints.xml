@@ -7,7 +7,7 @@
 		xsi:schemaLocation="http://pacificbiosciences.com/PacBioAutomationConstraints.xsd PacBioAutomationConstraints.xsd" 
 		xmlns:xi="http://www.w3.org/2001/XInclude"
 		
-		Version="4.1.0000"
+		Version="5.0.0000"
 		Description="Document the automations and part numbers recognized by the system along with their incompatibilities with one another, if applicable.">
 		
 	<AutomationConstraints>
@@ -140,7 +140,16 @@
 				<pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
 				<pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
 			</pbpn:TemplatePrepKit>
-			
+
+			<pbpn:TemplatePrepKit Name="SMRTbell&#8482; Bulk Temp Prep Kit 1.0 (100 rxn)" Description="SMRTbell&#8482; Bulk Temp Prep Kit 1.0 (100 rxn) contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb." 
+				 Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-946-300" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+				<pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+				<pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+				<pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+				<pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+			</pbpn:TemplatePrepKit>
+      
+
 			<pbpn:TemplatePrepKit Name="SMRTbell&#8482; HT Template Prep Kit" Description="The SMRTbell HT Template Prep Kit contains reagent supplies to perform 96 automated SMRTbell non-size-selected library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb. Reagents come in 4 x 24 reaction sets."  
 				Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-286-300" MinInsertSize="500" MaxInsertSize="20000" IsRestricted="true" IsObsolete="true">
 				<pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
@@ -158,7 +167,7 @@
 			</pbpn:TemplatePrepKit>
 
       <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Asym Template Prep 1.0" Description="The SMRTbell&#8482; Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb."
-        Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-902-400" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+        Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-902-400" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="true" IsRestricted="true">
         <pbbase:LeftAdaptorSequence>ATCTCTCTCAATTTTTTTTTTTTTTTTTTTTTTTAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
         <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
         <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
@@ -166,7 +175,7 @@
       </pbpn:TemplatePrepKit>
 
       <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Template Prep Kit 2.0" Description="The SMRTbell&#8482; Template Prep Kit contains reagent supplies to perform 96 automated SMRTbell non-size-selected library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb. Reagents come in 4 x 24 reaction sets."
-		    Tags="Template Prep Kit, TPK" Version="2.0" PartNumber="TPK-100-938-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+		    Tags="Template Prep Kit, TPK" Version="2.0" PartNumber="TPK-100-938-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false" IsRestricted="true">
         <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
         <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
         <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
@@ -188,7 +197,32 @@
         <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
         <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
       </pbpn:TemplatePrepKit>      
+
+      <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Asymmetric Auxiliary TPK " Description="The SMRTbell&#8482; Asymmetric Auxiliary TPK contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."
+		    Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-101-080-400" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+        <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+        <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+        <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+        <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+      </pbpn:TemplatePrepKit>      
+
+       <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Bulk Asym Auxiliary TPK" Description="The SMRTbell&#8482; Bulk Asym Auxiliary TPK contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."
+		    Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-101-080-800" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+        <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+        <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+        <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+        <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+      </pbpn:TemplatePrepKit>      
+
+       <pbpn:TemplatePrepKit Name="SMRTbell&#8482; Barcoded Adapter Prep-96" Description="The SMRTbell&#8482; Barcoded Adapter Prep-96 contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."
+		    Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-465-800" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+        <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+        <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+        <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+        <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+      </pbpn:TemplatePrepKit>      
       
+    
 		</pbpn:TemplatePrepKits>
 		
 		<pbpn:SequencingKits>
@@ -210,16 +244,20 @@
          Tags="Sequencing Kit, SQK" Version="1.0" PartNumber="SQK-100-925-300" IsRestricted="true"  IsObsolete="false" MaxCollections="8"/>
       <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 2.0" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 8 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (8 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
 				 Tags="Sequencing Kit, SQK" Version="2.0" PartNumber="SQK-100-861-800"  IsObsolete="false" MaxCollections="8"/>
-      <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 2.0- 4rxn" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 4 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (4 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
+      <pbpn:SequencingKit Name="Sequel&#8482; Sequencing Plate 2.0, (4Rxn)" Description="The DNA Sequencing Kit contains a sequencing reagent plate with chemistry for single molecule real-time sequencing on the PacBio RS. Reagent quantities support 4 sequencing reactions to be used in conjunction with SMRT&#174; Cell 4Pac(s).  (4 Cells max/Each Row supplies reagents for 1 Sequel SMRT Cell)"
 				 Tags="Sequencing Kit, SQK" Version="2.0" PartNumber="SQK-101-093-700"  IsObsolete="false" MaxCollections="4"/>
         </pbpn:SequencingKits>
 		
 		<pbpn:ControlKits>
-			<pbpn:ControlKit Name="Sequel&#8482; DNA Internal Control 2.0" Description="The Sequel DNA Internal Control 2.0 contains a fixed template of 2 kb length bound to Sequel Binding Kit 1.0 for use as an internal sequencing control. Reagent quantities provide spike-in controls for a minimum of 24 samples."  
-				Tags="Control Kit, CCK" Version="2.0" PartNumber="CCK-100-619-900"  IsObsolete="false">
+			<pbpn:ControlKit Name="Sequel&#8482; DNA Internal Control 1.0" Description="The Sequel DNA Internal Control 2.0 contains a fixed template of 2 kb length bound to Sequel Binding Kit 1.0 for use as an internal sequencing control. Reagent quantities provide spike-in controls for a minimum of 24 samples."  
+				Tags="Control Kit, CCK" Version="1.0" PartNumber="CCK-100-619-900"  IsObsolete="false" IsRestricted="true">
         <pbbase:CustomSequence>&gt;left_adapter\nTAGAGAGAGAAAAGGAGGAGGAGGCAACAACAACAACTCTCTCTA\n&gt;right_adapter\nTAGAGAGAGAAAAGGAGGAGGAGGCAACAACAACAACTCTCTCTA\n&gt;custom_sequence\nTGTCTAGGTCATCTCAACGTAGCTTTGACATATAACTTATCTAAAGTAATCCCTGCACACCTGTATGCATTATGCTTGCTATACACGCGGACACAGGCATATCATTTATTTTTTGCCATGTCCATTAATTGTTCAATAATTTTACTCACGGTATTTAATTTGATGTTGTGTTATATAGAATTGGAATTAAACTTATAAGGATGCTTAGACGTTGCATTATAAAAGTTTATGTACTAAGTATTTAAGACATTGGCATATGATTATAGCTTGACATTATTAAAAATTAATTAATTAAATCTCACACAATACTTATTCAAGACATTTTTACTAAGATAACCAAAGGAATGCGAACAAAATAATACTTAAAATATAAGACTTAGAAGTAATATGATCCAATAGTTACATATAGTACACTAAGTTCCTAAATTATATAACTTTAAAACAAAGTTACGAAATTTGGAAATAATTTTATTTAATCATATTTTCATAATAATGAAATACTGTTTATTTCAGTGGCGAAAAGAGATAATACGATTTTATAGTGATAGAATATCCTTGAAATATCTAAAGATAAAATTAGAAACTTTCTCTTTTCGCTGTAAAGCTATATGACTTAAAAATAACTTATACGCAAAGTATATTGCAGTGGAAACCCAAGAGTATAGTAGCCATGTAATCTCGGGTTCGAAACTACACGCCGCGCACGTAGTCAGATGGTCTGAAACTTGTCTGGGGCTGTTTGTTGACGGATGGAGACTTCACTAAGTGGCGTCAGGCGATGCGCACACACGGGACTCAATCCCGTAGCATGTTATGTGTCGTTCGAAACTCGTGCGTTCGAGATTTACGCCACATTGCCGGCTGGTCCAAGGACGTTATCTACCAGATGATACGGTCCAATTCGTAAGTTTGACTCACATAGTCGCGAACCGCGGAGCTGGAGAACAATAATTACCGGATGATTAGTTGACCATACGCACTATCATGCTCCGTGACTCAGTTTCCGCCATGGAGTTCTCACAGCCCCGTGTGTACCATAACTGCAGTAAGTAAGGACCTTGTTCGGAGGCCGACTCGTATTTCATATGATCTTAGTCTCGCCACCTTATCGCACGAATTGGGGGTGTCTTTTAGCCGACTCCGGCACGATCCGCCGGGAAGTTACTCGACCAGTTGCGGGACGCCCTAGTATGTTCGTATTACGTTCGATGCGTAAGCACCCCAGAGATTTTTGGCGGACGTTTCGGTAAATCATAGTAGAACCGGAGCGGTAAAGCTATTGATAACACGCAGGGACGAGCCAGTCGTCTAAGCTCCTCAGGGGTACCGTTCGCCGGACTACAGCCTGTCCCCGGCGGCCGCAACTGGGCTGCGATCCAGCCCCCGCTCCAAAAGGATGACTCGACCTTGCGCCTCGCGTACTCTGCTCTCGAGCTGTCTCCGTGGGCAATGCCGGCTCACGCTGTGGGGAACCCTGGACGCCCGGGCCGAGCCGACGTGGCCCCGCCCAGGCCTTTTCGTCGATCGCAGCTATGTACCCTGTGCTGGCCAGCGCTACTGCGCCGGCCATTAGCGGTGCGCTCTCGACTCGGCCCCAACGTAGACGGCGTCGCTGGCCGGATTCAAAGAAGTGAGCTACTACCATCGCGTGACGCCCTGCGGGCCTGAGTAACCGTGCACGAAGGACACCCCGTTCGTGGCGGGGGTTGCCTCCGCGACGGTCGCCAACGTTGGGGGTCGGTGCATTCAGGCGACGAGGGACCGCTGGTTTCCGGAGAGCGGCCTGTGCTCACACAGGTGCGGTCCATGGGGCCTGTGGATCCGGTTCTCCCACGCGTAGCGCCGGCGTTAGCATGGACGCTAAATAAGTATACGCCGGCAAAGGGAGTGTAGGCCGGCCCGAGGGCAATCGCGGTTACCGGGGTGGGGGAGCTCCCCGCACCAGCCTTGATGTGGTGTGCGAGCG</pbbase:CustomSequence>
       </pbpn:ControlKit>			
 			<pbpn:ControlKit Name="Sequel&#8482; SMRT&#174;Cell Control Complex 1.0" Description="The Sequel SMRT Cell Control Complex 1.0 contains Lambda library DNA template sheared to a peak size of 2 kb and bound to Sequel Binding Kit 1.0. It acts as a complete Sequel SMRT Cell control." Version="1.0" PartNumber="CCK-100-620-100" IsRestricted="true" IsObsolete="true"/>
+			<pbpn:ControlKit Name="Sequel&#8482; DNA Internal Control 2.0" Description="The Sequel DNA Internal Control 2.0 contains a fixed template of 2 kb length bound to Sequel Binding Kit 1.0 for use as an internal sequencing control. Reagent quantities provide spike-in controls for a minimum of 24 samples."  
+				Tags="Control Kit, CCK" Version="2.0" PartNumber="CCK-101-084-300"  IsObsolete="false">
+        <pbbase:CustomSequence>&gt;left_adapter\nTAGAGAGAGAAAAGGAGGAGGAGGCAACAACAACAACTCTCTCTA\n&gt;right_adapter\nTAGAGAGAGAAAAGGAGGAGGAGGCAACAACAACAACTCTCTCTA\n&gt;custom_sequence\nTGTCTAGGTCATCTCAACGTAGCTTTGACATATAACTTATCTAAAGTAATCCCTGCACACCTGTATGCATTATGCTTGCTATACACGCGGACACAGGCATATCATTTATTTTTTGCCATGTCCATTAATTGTTCAATAATTTTACTCACGGTATTTAATTTGATGTTGTGTTATATAGAATTGGAATTAAACTTATAAGGATGCTTAGACGTTGCATTATAAAAGTTTATGTACTAAGTATTTAAGACATTGGCATATGATTATAGCTTGACATTATTAAAAATTAATTAATTAAATCTCACACAATACTTATTCAAGACATTTTTACTAAGATAACCAAAGGAATGCGAACAAAATAATACTTAAAATATAAGACTTAGAAGTAATATGATCCAATAGTTACATATAGTACACTAAGTTCCTAAATTATATAACTTTAAAACAAAGTTACGAAATTTGGAAATAATTTTATTTAATCATATTTTCATAATAATGAAATACTGTTTATTTCAGTGGCGAAAAGAGATAATACGATTTTATAGTGATAGAATATCCTTGAAATATCTAAAGATAAAATTAGAAACTTTCTCTTTTCGCTGTAAAGCTATATGACTTAAAAATAACTTATACGCAAAGTATATTGCAGTGGAAACCCAAGAGTATAGTAGCCATGTAATCTCGGGTTCGAAACTACACGCCGCGCACGTAGTCAGATGGTCTGAAACTTGTCTGGGGCTGTTTGTTGACGGATGGAGACTTCACTAAGTGGCGTCAGGCGATGCGCACACACGGGACTCAATCCCGTAGCATGTTATGTGTCGTTCGAAACTCGTGCGTTCGAGATTTACGCCACATTGCCGGCTGGTCCAAGGACGTTATCTACCAGATGATACGGTCCAATTCGTAAGTTTGACTCACATAGTCGCGAACCGCGGAGCTGGAGAACAATAATTACCGGATGATTAGTTGACCATACGCACTATCATGCTCCGTGACTCAGTTTCCGCCATGGAGTTCTCACAGCCCCGTGTGTACCATAACTGCAGTAAGTAAGGACCTTGTTCGGAGGCCGACTCGTATTTCATATGATCTTAGTCTCGCCACCTTATCGCACGAATTGGGGGTGTCTTTTAGCCGACTCCGGCACGATCCGCCGGGAAGTTACTCGACCAGTTGCGGGACGCCCTAGTATGTTCGTATTACGTTCGATGCGTAAGCACCCCAGAGATTTTTGGCGGACGTTTCGGTAAATCATAGTAGAACCGGAGCGGTAAAGCTATTGATAACACGCAGGGACGAGCCAGTCGTCTAAGCTCCTCAGGGGTACCGTTCGCCGGACTACAGCCTGTCCCCGGCGGCCGCAACTGGGCTGCGATCCAGCCCCCGCTCCAAAAGGATGACTCGACCTTGCGCCTCGCGTACTCTGCTCTCGAGCTGTCTCCGTGGGCAATGCCGGCTCACGCTGTGGGGAACCCTGGACGCCCGGGCCGAGCCGACGTGGCCCCGCCCAGGCCTTTTCGTCGATCGCAGCTATGTACCCTGTGCTGGCCAGCGCTACTGCGCCGGCCATTAGCGGTGCGCTCTCGACTCGGCCCCAACGTAGACGGCGTCGCTGGCCGGATTCAAAGAAGTGAGCTACTACCATCGCGTGACGCCCTGCGGGCCTGAGTAACCGTGCACGAAGGACACCCCGTTCGTGGCGGGGGTTGCCTCCGCGACGGTCGCCAACGTTGGGGGTCGGTGCATTCAGGCGACGAGGGACCGCTGGTTTCCGGAGAGCGGCCTGTGCTCACACAGGTGCGGTCCATGGGGCCTGTGGATCCGGTTCTCCCACGCGTAGCGCCGGCGTTAGCATGGACGCTAAATAAGTATACGCCGGCAAAGGGAGTGTAGGCCGGCCCGAGGGCAATCGCGGTTACCGGGGTGGGGGAGCTCCCCGCACCAGCCTTGATGTGGTGTGCGAGCG</pbbase:CustomSequence>
+      </pbpn:ControlKit>			
 		</pbpn:ControlKits>
 		
 		<pbpn:CellPackKits>
@@ -331,9 +369,9 @@
             <pbpn:IncompatiblePart Name="SQK v2.0/CPK v1.0 Incompatibility 5" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-100-861-800" PartB="CPK-100-692-600"/>
 
             <!-- v2.0 Control kit is incompatible with with binding kits 1.0 and 1.1-->
-            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.0 Incompatibility" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.0" Version="4.1" PartA="CCK-100-619-900" PartB="BDK-100-619-300"/>
-            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.1 Incompatibility 1" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.1" Version="4.1" PartA="CCK-100-619-900" PartB="BDK-100-867-500"/>
-            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.1 Incompatibility 2" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.1" Version="4.1" PartA="CCK-100-619-900" PartB="BDK-100-867-400"/>
+            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.0 Incompatibility" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.0" Version="4.1" PartA="CCK-101-084-300" PartB="BDK-100-619-300"/>
+            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.1 Incompatibility 1" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.1" Version="4.1" PartA="CCK-101-084-300" PartB="BDK-100-867-500"/>
+            <pbpn:IncompatiblePart Name="CCK v2.0/BDK v1.1 Incompatibility 2" Description="Control Kit Incompatibility v2.0 and Binding Kit v1.1" Version="4.1" PartA="CCK-101-084-300" PartB="BDK-100-867-400"/>
 
             <!-- v2.0-4rxn Sequencing plate is incompatible with 1.0 cells-->
             <pbpn:IncompatiblePart Name="SQK v2.0-4rxn/CPK v1.0 Incompatibility 1" Description="Sequencing Kit Incompatibility v2.0 and Cell v1.0" Version="3.0" PartA="SQK-101-093-700" PartB="CPK-100-513-100"/>
