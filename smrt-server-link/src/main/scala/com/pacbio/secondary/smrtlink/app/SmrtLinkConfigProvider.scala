@@ -94,4 +94,10 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val apiSecret: Singleton[String] =
     Singleton(() => conf.getString("smrtflow.event.apiSecret"))
 
+  val rootDataBaseDir: Singleton[Option[Path]] =
+    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir"))}.toOption )
+
+  val rootDataBaseBackUpDir: Singleton[Option[Path]] =
+    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir"))}.toOption.map(p => p.resolve("backups")))
+
 }

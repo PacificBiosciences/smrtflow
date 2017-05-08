@@ -14,5 +14,6 @@ import com.typesafe.scalalogging.LazyLogging
 trait JobsBaseMicroService extends PacBioService with JobServiceConstants with LazyLogging {
   implicit val timeout = Timeout(30.seconds)
 
-  override def prefixedRoutes = pathPrefix(ROOT_SERVICE_PREFIX) { super.prefixedRoutes }
+  // Duplicate the Routes here to have backward compatibility
+  override def prefixedRoutes = pathPrefix(ROOT_SERVICE_PREFIX) { super.prefixedRoutes } ~ pathPrefix(ROOT_SL_PREFIX) { super.prefixedRoutes }
 }

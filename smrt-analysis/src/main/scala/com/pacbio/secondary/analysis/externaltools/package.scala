@@ -50,14 +50,15 @@ package object externaltools {
     }
 
     /**
-     * Core util to run external command
-     *
-     * @param cmd
-     * @param stdout
-     * @param stderr
-     * @return
-     */
-    def runUnixCmd(cmd: Seq[String], stdout: Path, stderr: Path): (Int, String) = {
+      * Core util to run external command
+      *
+      * @param cmd      Command as a seq of Strings
+      * @param stdout   Path to stdout
+      * @param stderr   Path to Stderr
+      * @param extraEnv Env to be added to the process env
+      * @return
+      */
+    def runUnixCmd(cmd: Seq[String], stdout: Path, stderr: Path, extraEnv: Option[Map[String, String]] = None): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
       val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
@@ -78,7 +79,11 @@ package object externaltools {
       )
 
       logger.info(s"Starting cmd $cmd")
-      val rcode = Process(cmd).!(pxl)
+
+      val px = extraEnv.map(x => Process(cmd, cwd = None, extraEnv = x.toSeq:_*)).getOrElse(Process(cmd))
+
+      val rcode = px.!(pxl)
+
       val completedAt = JodaDateTime.now()
       val runTime = computeTimeDelta(completedAt, startedAt)
       logger.info(s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
