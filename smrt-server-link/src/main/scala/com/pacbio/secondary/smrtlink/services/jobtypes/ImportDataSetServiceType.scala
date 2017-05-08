@@ -76,7 +76,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     override def createEngineJob(dbActor: ActorRef,
                                  opts: ImportDataSetOptions,
                                  user: Option[UserRecord]): Future[EngineJob] = {
-      updateDbIfNecessary(opts).recoverWith { case err: Exception =>
+      updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError =>
         createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob] }
       }
   }
