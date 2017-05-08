@@ -213,6 +213,8 @@ object JobsDaoActor {
   // DataStore Files
   case class GetDataStoreFileByUUID(uuid: UUID) extends DataStoreMessage
 
+  case class UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean = true) extends DataStoreMessage
+
   case class GetDataStoreServiceFilesByJobId(i: Int) extends DataStoreMessage
   case class GetDataStoreServiceFilesByJobUuid(uuid: UUID) extends DataStoreMessage
 
@@ -485,6 +487,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetJobTask(taskId: UUID) => pipeWith { dao.getJobTask(taskId) }
 
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
+
+    case UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean) =>
+      dao.updateDataStoreFile(uuid, path, setIsActive)
 
     case GetDataSetMetaById(i: Int) => pipeWith { dao.getDataSetById(i) }
 

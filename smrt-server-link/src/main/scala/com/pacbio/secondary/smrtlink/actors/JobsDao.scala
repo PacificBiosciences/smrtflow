@@ -1395,6 +1395,11 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
   }
 
+  def updateDataStoreFile(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.path, f.modifiedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
+  }
+
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB

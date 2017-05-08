@@ -52,6 +52,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
       uuid <- Future { dsUuidFromPath(Paths.get(sopts.path)) }
       ds <- (dbActor ? GetDataSetMetaByUUID(uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
+      _ <- (dbActor ? UpdateDataStoreFile(uuid, sopts.path, true)).mapTo[MessageResponse]
       msg <- (dbActor ? UpdateDataSetByUUID(uuid, sopts.path, true)).mapTo[MessageResponse]
     } yield engineJob
   }
