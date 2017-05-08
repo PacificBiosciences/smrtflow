@@ -7,6 +7,7 @@ import java.util.UUID
 import collection.JavaConversions._
 import collection.JavaConverters._
 import org.joda.time.{DateTime => JodaDateTime}
+import org.joda.time.format.DateTimeFormat
 import spray.json._
 
 import scala.util.{Failure, Success, Try}
@@ -22,7 +23,7 @@ import com.pacbio.secondary.analysis.tools.timeUtils
 
 case class DbBackUpJobOptions(rootBackUpDir: Path,
                               baseBackUpName: String = "smrtlink-db-backup",
-                              backUpExt: String = "_db.tar",
+                              backUpExt: String = "_db.bak",
                               maxNumBackups: Int = 5,
                               dbName: String,
                               dbUser: String,
@@ -79,13 +80,23 @@ class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJo
       path.toAbsolutePath.toString, isChunked = false, name, description)
   }
 
+  // For pg_dump use -F t to write to tar
+  // env PGPASSWORD=my-password pg_dumpall --file={output-file} --database={database-name} --port={port} \
+  // --username={user-name} --no-password --verbose
   def backUpCmd(output: Path, dbName: String, port: Int, user: String, exe: String = "pg_dumpall"): Seq[String] =
-    Seq(exe, "-F", "t", s"--file=${output.toAbsolutePath}", s"--database=$dbName", s"--port=$port", s"--username=$user", "--no-password", "--verbose")
+    Seq(exe,
+      s"--file=${output.toAbsolutePath}",
+      s"--database=$dbName",
+      s"--port=$port",
+      s"--username=$user",
+      "--no-password",
+      "--verbose")
 
-  // env PGPASSWORD=my-password pg_dumpall -F t -f --database={database-name} --port={port} --username={user-name} --no-password --verbose
+
   def runBackUp(output: Path, dbName: String, port: Int, user: String, password: String, stdout: Path, stderr: Path, exe: String = "pg_dumpall"): Try[String] = {
     val cmd = backUpCmd(output, dbName, port, user, exe)
-    ExternalToolsUtils.runUnixCmd(cmd, stdout, stderr) match {
+    val extraEnv = Map("PGPASSWORD" -> password)
+    ExternalToolsUtils.runUnixCmd(cmd, stdout, stderr, Some(extraEnv)) match {
       case Tuple2(0, _) => Success("Completed backup")
       case Tuple2(exitCode, message) => Failure(new Exception(s"Failed to run Command with exit code $exitCode $message"))
     }
@@ -156,7 +167,9 @@ class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJo
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logDsFile = toMasterDataStoreFile(logPath, s"Job Master log of ${jobTypeId.id}")
 
-    val timeStamp = createdAt.formatted("YYYY-MM-DD")
+    val pattern = "yyyy_MM_dd-HH_mm_ss"
+    val formatter = DateTimeFormat.forPattern(pattern)
+    val timeStamp = formatter.print(createdAt)
     val name = s"${opts.baseBackUpName}-$timeStamp${opts.backUpExt}"
 
     val backUpPath = opts.rootBackUpDir.resolve(name)
