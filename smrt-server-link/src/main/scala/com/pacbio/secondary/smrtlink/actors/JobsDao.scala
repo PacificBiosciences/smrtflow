@@ -228,8 +228,12 @@ trait ProjectDataStore extends LazyLogging {
       // move the datasets from this project into the general project
       dsMetaData2
         .filter(_.projectId === projId)
-        .map(ds => (ds.projectId, ds.updatedAt))
-        .update((GENERAL_PROJECT_ID, now))
+        .map(ds => (ds.isActive, ds.projectId, ds.updatedAt))
+        .update((false, GENERAL_PROJECT_ID, now)),
+      engineJobs
+        .filter(_.projectId === projId)
+        .map(j => (j.isActive, j.updatedAt))
+        .update(false, now)
     ).andThen(
       projects.filter(_.id === projId).result.headOption
     ))

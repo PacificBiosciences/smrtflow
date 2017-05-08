@@ -437,6 +437,7 @@ with SmrtLinkConstants with TestUtils{
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets.size === dsCount
+        dsets.filter(_.id == movingDsId).head.isActive must beFalse
       }
     }
 
