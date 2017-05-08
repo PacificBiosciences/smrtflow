@@ -1,0 +1,11 @@
+{
+  "akka": {
+    "loggers": [
+      "akka.event.slf4j.Slf4jLogger"
+    ],
+    "loglevel": "INFO",
+    "jvm-exit-on-fatal-error": false,
+    "stdout-loglevel":"OFF"
+  },
+  "org.terracotta.quartz.skipUpdateCheck": true
+}

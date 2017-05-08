@@ -3,10 +3,10 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootBundleDir=$(dirname "${__dir}")
 
-config=${rootBundleDir}/smrtlink-system-config.json
+config=${rootBundleDir}/application.json
 
 if ! [ -e "$config" ]; then
-    echo "file ${config} does not exist"
+    echo "file ${config} does not exist. Run apply-config"
     exit 1
 fi
 
