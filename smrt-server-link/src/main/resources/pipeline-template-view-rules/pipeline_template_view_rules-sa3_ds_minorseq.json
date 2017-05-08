@@ -11,6 +11,17 @@
     {"id": "juliet.task_options.deletion_rate","hidden": true, "advanced": true},
     {"id": "juliet.task_options.verbose","hidden": true, "advanced": true},
     {"id": "juliet.task_options.merge_outliers","hidden": true, "advanced": true},
-    {"id": "juliet.task_options.debug", "hidden": true, "advanced": true}
+    {"id": "juliet.task_options.debug", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.model_path", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.report_file", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.by_strand", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.max_drop_fraction", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.min_passes", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.min_read_score", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.min_snr", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.min_zscore", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.polish", "hidden": true, "advanced": true},
+    {"id": "pbccs.task_options.rich_qvs", "hidden": true, "advanced": true}
   ]
 }
