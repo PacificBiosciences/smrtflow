@@ -79,6 +79,13 @@ test-int-install-pytools:
 	pip install -r INT_REQUIREMENTS.txt
 	@echo "successfully installed integration testing tools"
 
+jsontest:
+	$(eval JSON := `find . -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	@for j in $(JSON); do \
+		echo $$j ;\
+		python -m json.tool $$j >/dev/null || exit 1 ;\
+	done
+
 test-data/smrtserver-testdata:
 	mkdir -p test-data
 	rsync --progress -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
