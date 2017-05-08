@@ -158,8 +158,8 @@
 				<pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
 			</pbpn:TemplatePrepKit>
 			
-			<pbpn:TemplatePrepKit Name="SMRTbell&#8482; Barcoded Adapter Prep-96" Description="The SMRTbell Barcoded Adapter Complete Prep Kit- 96 contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."  
-				Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-514-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false">
+			<pbpn:TemplatePrepKit Name="SMRTbell&#8482; Barcoded Adapter Prep-96(Internal)" Description="The SMRTbell Barcoded Adapter Complete Prep Kit- 96 contains both SMRTbell Barcoded Adapter Prep Kit and Barcoded Adapter Plate - 96. Reagent quantities support 96 complete Barcoded Adapter End Repair and Ligation reactions. Use with SMRTbell Damage Repair Kit to complete template preparation and yield primer-annealed SMRTbell libraries."  
+				Tags="Template Prep Kit, TPK" Version="1.0" PartNumber="TPK-100-514-900" MinInsertSize="500" MaxInsertSize="20000" IsObsolete="false" IsRestricted="true">
 				<pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
 				<pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
 				<pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
