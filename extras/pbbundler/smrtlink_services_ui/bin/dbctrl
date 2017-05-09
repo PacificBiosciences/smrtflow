@@ -10,7 +10,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -38,10 +38,10 @@ REQUIRED_EXES = ('initdb',
                  'smrt-db-tool')
 
 
-class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, host, port, user, password")):
+class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, pg_backup_dir, host, port, user, password")):
     def to_fd(self):
         # used in .format(**_d)
-        return dict(t=self.port, h=self.host, g=self.pg_data_dir, n=self.db_name, u=self.user, p=self.password)
+        return dict(t=self.port, h=self.host, g=self.pg_data_dir, b=self.pg_backup_dir, n=self.db_name, u=self.user, p=self.password)
 
     def to_env(self):
         env = os.environ.copy()
@@ -184,7 +184,10 @@ def load_db_config(path):
 
     db_name = to_a(d['smrtflow']['db']['properties']['databaseName'])
 
+    # Note these root prefixes are stored within the scala code as well
     pg_data_dir = os.path.join(os.path.abspath(to_a(d['pacBioSystem']['pgDataDir'])), "dbstore")
+
+    pg_backup_dir = os.path.join(os.path.abspath(to_a(d['pacBioSystem']['pgDataDir'])), "backups")
 
     port = int(d['smrtflow']['db']['properties']['portNumber'])
     host = to_a(d['smrtflow']['db']['properties']['serverName'])
@@ -192,7 +195,7 @@ def load_db_config(path):
     password = to_a(d['smrtflow']['db']['properties']['password'])
     user = to_a(d['smrtflow']['db']['properties']['user'])
 
-    return DbConfig(db_name, pg_data_dir, host, port, user, password)
+    return DbConfig(db_name, pg_data_dir, pg_backup_dir, host, port, user, password)
 
 
 def load_log_dir(path):
@@ -325,9 +328,14 @@ def db_init(dbc):
     def to_p(x):
         return os.path.join(dbc.pg_data_dir, x)
 
+    # Create the PG dbstore dir if it doesn't exist.
     root_dir = dbc.pg_data_dir
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
+
+    # create backup dir
+    if not os.path.exists(dbc.pg_backup_dir):
+        os.mkdir(dbc.pg_backup_dir)
 
     # simple way to see if an existing install is present
     if os.path.exists(os.path.join(dbc.pg_data_dir, 'postgresql.conf')):
