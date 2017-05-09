@@ -324,7 +324,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   import CommonModelImplicits._
 
-  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
 
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 

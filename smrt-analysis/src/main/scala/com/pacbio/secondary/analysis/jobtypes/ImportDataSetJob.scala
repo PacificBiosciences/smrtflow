@@ -45,6 +45,8 @@ class ImportDataSetJob(opts: ImportDataSetOptions) extends BaseCoreJob(opts: Imp
 with MockJobUtils with timeUtils {
 
   type Out = PacBioDataStore
+  // Note, this is inconsistent with the id defined in JobTypeIds "import-dataset"
+  // Changing this will break backward compatibility with the source id in the datastore
   val jobTypeId = JobTypeId("import_dataset")
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {

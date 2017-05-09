@@ -94,10 +94,15 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val apiSecret: Singleton[String] =
     Singleton(() => conf.getString("smrtflow.event.apiSecret"))
 
+  private def getAndCreateIfProvided(sx: String): Option[Path] = {
+    Try { Paths.get(conf.getString(sx))}.toOption.map(createDirIfNotExist)
+  }
+
+  // This directory creation might be better to be done at the App startup + validation step
   val rootDataBaseDir: Singleton[Option[Path]] =
-    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir"))}.toOption )
+    Singleton(() => getAndCreateIfProvided("pacBioSystem.pgDataDir"))
 
   val rootDataBaseBackUpDir: Singleton[Option[Path]] =
-    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir"))}.toOption.map(p => p.resolve("backups")))
+    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir")).resolve("backups") }.toOption.map(createDirIfNotExist) )
 
 }
