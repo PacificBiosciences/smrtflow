@@ -868,7 +868,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      matchRsMovieName(fn) && Try { dsNameRsFromMetadata(fn.toPath) }.isSuccess
+      matchRsMovieName(fn) && Try { dsNameFromRsMetadata(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
