@@ -511,6 +511,15 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     ""
   }
 
+  protected def isCompatibleVersion: Try[Boolean] = {
+    val pbserviceVersion = Constants.SMRTFLOW_VERSION.split('+')(0)
+    for {
+      status <- Try { Await.result(sal.getStatus, TIMEOUT) }
+      version <- Try { status.version.split('+')(0) }
+      isCompatible <- Try { version == pbserviceVersion }
+    } yield isCompatible
+  }
+
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
     if (asJson) {
       println(status.toJson.prettyPrint)
@@ -548,8 +557,12 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     runAndBlock[ServiceStatus](sal.getStatus, printer, TIMEOUT)
   }
 
+  def getDataSet(datasetId: IdAble): Try[DataSetMetaDataSet] = Try {
+    Await.result(sal.getDataSet(datasetId), TIMEOUT)
+  }
+
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
+    getDataSet(datasetId) match {
       case Success(ds) => printDataSetInfo(ds, asJson)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: $err")
     }
@@ -759,22 +772,42 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
+    val dsType = dsMetaTypeFromPath(path)
+    def importDs = {
+      val rc = runImportDataSet(path, dsType)
+      if (rc == 0) {
+        runGetDataSetInfo(dsUuid)
+        if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
+      } else rc
+    }
     println(s"UUID: ${dsUuid.toString}")
-    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
+    def errorIfNewPath(dsInfo: DataSetMetaDataSet) = println(
+      s"ERROR: The dataset UUID (${dsInfo.uuid.toString}) is already "+
+      "present in the database but associated with a different path; if you "+
+      "want to re-import with the new path, run this command:\n\n  dataset "+
+      s"newuuid ${path.toString}\n\nthen run the pbservice command again to "+
+      "import the modified dataset.\n")
+    def warnIfNewPath(dsInfo: DataSetMetaDataSet) = {
+      println(
+        s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already "+
+        "present in the database but associated with a different path; will "+
+        "re-import with a different path, but this will overwrite the "+
+        "existing record.")
+      Thread.sleep(5000)
+    }
+    getDataSet(dsUuid) match {
       case Success(dsInfo) => {
         if (Paths.get(dsInfo.path) != path) {
-          println(s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already present in the database but associated with a different path; if you want to re-import with the new path, run this command:\n\n  dataset newuuid ${path.toString}\n\nthen run the pbservice command again to import the modified dataset.\n")
+          if (isCompatibleVersion.getOrElse(false)) {
+            warnIfNewPath(dsInfo)
+            importDs
+          } else errorIfNewPath(dsInfo)
         } else println(s"Dataset ${dsUuid.toString} already imported.")
         printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
         println(s"No existing dataset record found")
-        val dsType = dsMetaTypeFromPath(path)
-        val rc = runImportDataSet(path, dsType)
-        if (rc == 0) {
-          runGetDataSetInfo(dsUuid)
-          if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
-        } else rc
+        importDs
       }
     }
   }
@@ -857,7 +890,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                           verbose: Boolean = false): Int = {
     val tx = for {
       project <- Try { Await.result(sal.getProject(projectId), TIMEOUT) }
-      ds <- Try { Await.result(sal.getDataSet(dsId), TIMEOUT) }
+      ds <- getDataSet(dsId)
       request <- Try { project.asRequest.appendDataSet(ds.id) }
       projectWithDataSet <- Try { Await.result(sal.updateProject(projectId, request), TIMEOUT) }
       } yield projectWithDataSet
@@ -935,9 +968,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         case Left(id) => IntIdAble(id)
         case Right(uuid) => UUIDIdAble(uuid)
       }
-      Try {
-        Await.result(sal.getDataSet(datasetId), TIMEOUT)
-      } match {
+      getDataSet(datasetId) match {
         case Success(dsInfo) => {
           // TODO check metatype against input
           println(s"Found entry point ${entryPoint.entryId} (datasetId = ${datasetId})")
@@ -990,9 +1021,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     var xc = runImportDataSetSafe(xmlPath)
     if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
     // this is stupidly inefficient
-    val dsId = Try {
-      Await.result(sal.getDataSet(dsUuid), TIMEOUT)
-    } match {
+    val dsId = getDataSet(dsUuid) match {
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
     }

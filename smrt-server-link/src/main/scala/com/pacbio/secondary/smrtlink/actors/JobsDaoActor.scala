@@ -103,6 +103,8 @@ object JobsDaoActor {
   case class DeleteDataSetById(id: Int) extends DataSetMessage
   case class DeleteDataSetByUUID(uuid: UUID) extends DataSetMessage
 
+  case class UpdateDataSetByUUID(uuid: UUID, path: String, setIsActive: Boolean = true) extends DataSetMessage
+
   // DS Subreads
   case class GetSubreadDataSets(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil) extends DataSetMessage
 
@@ -210,6 +212,8 @@ object JobsDaoActor {
 
   // DataStore Files
   case class GetDataStoreFileByUUID(uuid: UUID) extends DataStoreMessage
+
+  case class UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean = true) extends DataStoreMessage
 
   case class GetDataStoreServiceFilesByJobId(i: Int) extends DataStoreMessage
   case class GetDataStoreServiceFilesByJobUuid(uuid: UUID) extends DataStoreMessage
@@ -484,6 +488,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
+    case UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean) =>
+      dao.updateDataStoreFile(uuid, path, setIsActive)
+
     case GetDataSetMetaById(i: Int) => pipeWith { dao.getDataSetById(i) }
 
     case GetDataSetMetaByUUID(i: UUID) => pipeWith { dao.getDataSetByUUID(i) }
@@ -492,6 +499,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case DeleteDataSetById(id: Int) => pipeWith(dao.deleteDataSetById(id))
     case DeleteDataSetByUUID(uuid: UUID) => pipeWith(dao.deleteDataSetByUUID(uuid))
+
+    case UpdateDataSetByUUID(uuid: UUID, path: String, setIsActive: Boolean) =>
+      pipeWith(dao.updateDataSetByUUID(uuid, path, setIsActive))
 
     // DataSet Types
     case GetDataSetTypes => pipeWith(dao.getDataSetTypes)
