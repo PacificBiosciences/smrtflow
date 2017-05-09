@@ -239,7 +239,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
   import JobsDaoActor._
 
-  final val QUICK_TASK_IDS = Set("import_dataset", "merge_dataset", "mock-pbsmrtpipe").map(JobTypeId)
+  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
 
   implicit val timeout = Timeout(5.second)
 

@@ -40,6 +40,8 @@ class MergeDataSetJob(opts: MergeDataSetOptions) extends BaseCoreJob(opts: Merge
 with MockJobUtils with timeUtils {
 
   type Out = PacBioDataStore
+  // Note, this is inconsistent with the id defined in JobTypeIds "merge-datasets"
+  // Changing this will break backward compatibility with the source id in the datastore
   val jobTypeId = JobTypeId("merge_dataset")
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
