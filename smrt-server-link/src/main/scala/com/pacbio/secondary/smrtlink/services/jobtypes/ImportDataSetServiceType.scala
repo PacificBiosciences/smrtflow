@@ -16,7 +16,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{CommonModelImplicits,UserRecord}
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,UnprocessableEntityError}
-import com.pacbio.secondary.analysis.DataSetFileUtils
+import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
