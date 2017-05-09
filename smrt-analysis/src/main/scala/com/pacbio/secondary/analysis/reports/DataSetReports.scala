@@ -124,7 +124,7 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       if (PbReports.SubreadReports.canProcess(dst, hasStatsXml(inPath, dst))) {
         runCombined(inPath, rptParent, log)
       } else {
-        println("Can't process this dataset")
+        log.writeLineStdout("Can't process this dataset")
         Seq.empty[DataStoreFile]
       }
     } else {

@@ -165,17 +165,28 @@ trait ProjectDataStore extends LazyLogging {
 
   def setProjectDatasets(projId: Int, ids: Seq[RequestId]): DBIO[Unit] = {
     val now = JodaDateTime.now()
+    val dsIds = ids.map(_.id)
+    val jobIdsFromDatasets = for {
+      (ejds, ds) <- engineJobsDataSets join dsMetaData2 on (_.datasetUUID === _.uuid)
+                    if ds.id inSet dsIds
+    } yield ejds.jobId
+
     DBIO.seq(
       // move datasets not in the list of ids back to the general project
       dsMetaData2
         .filter(_.projectId === projId)
-        .filterNot(_.id inSet ids.map(_.id))
+        .filterNot(_.id inSet dsIds)
         .map(ds => (ds.projectId, ds.updatedAt))
         .update((GENERAL_PROJECT_ID, now)),
       // move datasets that *are* in the list of IDs into this project
       dsMetaData2
-        .filter(_.id inSet ids.map(_.id))
+        .filter(_.id inSet dsIds)
         .map(ds => (ds.projectId, ds.updatedAt))
+        .update((projId, now)),
+      // move analyses that use one of the given input datasets into this project
+      engineJobs
+        .filter(_.id in jobIdsFromDatasets)
+        .map(ej => (ej.projectId, ej.updatedAt))
         .update((projId, now))
     )
   }

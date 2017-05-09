@@ -1,20 +1,26 @@
 import java.nio.file.Paths
+import java.util.UUID
 
 import akka.actor.ActorRefFactory
-import com.pacbio.common.actors.ActorRefFactoryProvider
+import com.pacbio.common.actors.{ActorRefFactoryProvider, ActorSystemProvider}
 import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{SetBindings, Singleton}
+import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
 import com.pacbio.common.time.FakeClockProvider
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
+import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
+import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ProjectServiceProvider}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ProjectServiceProvider}
+import com.pacbio.secondary.smrtlink.services.jobtypes.SimpleServiceJobTypeProvider
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
+import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import spray.http.HttpHeaders.RawHeader
@@ -25,6 +31,7 @@ import spray.routing.{AuthenticationFailedRejection, AuthorizationFailedRejectio
 import spray.testkit.Specs2RouteTest
 import slick.driver.PostgresDriver.api._
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class ProjectSpec extends Specification
@@ -53,12 +60,15 @@ with SmrtLinkConstants with TestUtils{
 
   object TestProviders extends
       ServiceComposer with
+      ActorSystemProvider with
+      ConfigProvider with
+      JobManagerServiceProvider with
+      SimpleServiceJobTypeProvider with
       ProjectServiceProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
       JobRunnerProvider with
-      DataSetServiceProvider with
       JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
@@ -74,12 +84,13 @@ with SmrtLinkConstants with TestUtils{
       override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
 
+    override val config: Singleton[Config] = Singleton(testConfig)
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.projectService().prefixedRoutes
+  val totalRoutes = TestProviders.routes()
 
   val newProject = ProjectRequest("TestProject", "Test Description", Some(ProjectState.CREATED), None, None, Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
   val newProject2 = ProjectRequest("TestProject2", "Test Description", Some(ProjectState.ACTIVE), None, None, None)
@@ -315,16 +326,38 @@ with SmrtLinkConstants with TestUtils{
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
-        // avoid a messy NoSuchElementException stacktrace that is not very useful
-        if (proj.datasets.nonEmpty) {
-          movingDsId = proj.datasets.head.id
-        }
         dsCount = proj.datasets.size
         dsCount >= 1
       }
     }
 
     "move datasets to a new project" in {
+      val jobType = JobTypeIds.SIMPLE.id
+      val opts = SimpleDevJobOptions(1, 7)
+      val jsonSettings = opts.toJson.toString()
+
+      val jobFut = for {
+        // getting datasets here because the project dataset list
+        // doesn't include the dataset type
+        ds <- dao.getSubreadDataSets(projectIds = List(GENERAL_PROJECT_ID))
+        dsToMove = ds.head
+        entryPoint = EngineJobEntryPointRecord(dsToMove.uuid, dsToMove.datasetType)
+        cJob = CoreJob(UUID.randomUUID(), opts)
+        jobToMove <- dao.createJob(
+          cJob.uuid, "test", "", jobType, cJob, Some(List(entryPoint)),
+          jsonSettings, None, None)
+      } yield (jobToMove, dsToMove)
+
+      val (jobToMove, dsToMove) = Await.result(jobFut, 30 seconds)
+
+      movingDsId = dsToMove.id
+
+      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$jobType/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val movedJob = responseAs[EngineJob]
+        movedJob.projectId === GENERAL_PROJECT_ID
+      }
+
       Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
@@ -345,6 +378,13 @@ with SmrtLinkConstants with TestUtils{
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.datasets.size === (dsCount - 1)
+      }
+
+      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$jobType/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val movedJob = responseAs[EngineJob]
+        movedJob.id === jobToMove.id
+        movedJob.projectId === newProjId
       }
     }
 
