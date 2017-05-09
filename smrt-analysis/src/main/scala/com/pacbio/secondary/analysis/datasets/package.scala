@@ -43,7 +43,13 @@ package object datasets {
     def dsUuidFromPath(path: Path): UUID =
       java.util.UUID.fromString(getAttribute(parseXml(path), "UniqueId"))
 
-    def dsNameFromMetadata(path: Path): String = {
+  /**
+   * Parse an RSII metadata.xml file to extract the run name.
+   *
+   * @param path RSII movie.metadata.xml
+   * @return
+   */
+    def dsNameFromRsMetadata(path: Path): String = {
       if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
       val md = scala.xml.XML.loadFile(path.toFile)
       if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
