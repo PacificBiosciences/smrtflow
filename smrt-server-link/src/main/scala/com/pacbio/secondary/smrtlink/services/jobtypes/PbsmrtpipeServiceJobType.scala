@@ -134,7 +134,7 @@ class PbsmrtpipeServiceJobType(
             }
           }
         }
-      }
+      } ~
       path("terminate") {
         post {
           complete {
