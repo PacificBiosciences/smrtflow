@@ -848,7 +848,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       return errorExit(s"--name argument is required when an FOFN is input")
     }
     val tx = for {
-      finalName <- Try { if (name == "") dsNameFromMetadata(path) else name }
+      finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
       job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
       job <- sal.pollForJob(job.uuid)
       dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
@@ -868,7 +868,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      matchRsMovieName(fn) && Try { dsNameFromMetadata(fn.toPath) }.isSuccess
+      matchRsMovieName(fn) && Try { dsNameFromRsMetadata(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 

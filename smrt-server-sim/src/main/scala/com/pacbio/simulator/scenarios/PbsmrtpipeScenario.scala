@@ -40,8 +40,7 @@ trait PbsmrtpipeScenarioCore
     with VarSteps
     with ConditionalSteps
     with IOSteps
-    with SmrtLinkSteps
-    with ClientUtils {
+    with SmrtLinkSteps {
   import JobModels._
   import OptionTypes._
 
@@ -52,9 +51,9 @@ trait PbsmrtpipeScenarioCore
 
   private val testdata = PacBioTestData()
 
-  protected val reference = Var(testdata.getFile("lambdaNEB"))
+  protected val reference = Var(testdata.getTempDataSet("lambdaNEB"))
   protected val refUuid = Var(dsUuidFromPath(reference.get))
-  protected val subreads = Var(testdata.getFile("subreads-xml"))
+  protected val subreads = Var(testdata.getTempDataSet("subreads-xml", true))
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
   
   // Randomize project name to avoid collisions
@@ -216,7 +215,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     fail("Reference dataset file should not have been deleted") IF referenceSets.mapWith(rs => fileExists(rs.filter(_.uuid == refUuid.get).head.path)) !=? true,
     referenceSets := GetReferenceSets,
-    fail("There should be zero ReferenceSets") IF referenceSets.mapWith(_.size) !=? 0
+    fail("Reference dataset should not appear in list") IF referenceSets.mapWith(_.filter(_.uuid == refUuid.get).size) !=? 0
   )
   // these are probably overkill...
   val miscTests = Seq(
