@@ -5,6 +5,7 @@ import java.nio.file.{Path,Paths}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Try,Success,Failure}
 
 import akka.actor.ActorRef
 import akka.pattern.ask
@@ -47,9 +48,20 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     }
   }
 
+  // Hack to allow invalid inputs to be passed through to a new job (which will
+  // subsequently fail)
+  private def getUuid(path: String): UUID = Try {
+    dsUuidFromPath(Paths.get(path))
+  } match {
+    case Success(uuid) => uuid
+    case Failure(err: IllegalArgumentException) =>
+      throw new ResourceNotFoundError("Not an XML file, will default to standard failure mode")
+    case Failure(err: Throwable) => throw err
+  }
+
   private def updateDbIfNecessary(sopts: ImportDataSetOptions): Future[EngineJob] = {
     for {
-      uuid <- Future { dsUuidFromPath(Paths.get(sopts.path)) }
+      uuid <- Future { getUuid(sopts.path) }
       ds <- (dbActor ? GetDataSetMetaByUUID(uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
       _ <- (dbActor ? UpdateDataStoreFile(uuid, sopts.path, true)).mapTo[MessageResponse]
