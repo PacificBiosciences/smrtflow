@@ -12,8 +12,9 @@ import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes._
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
 import com.typesafe.scalalogging.LazyLogging
-import spray.servlet.WebBoot
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -71,6 +72,23 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     // Is this necessary because there's not an explicit dep on this?
     val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
 
+    // Setup Quartz Schedule
+    // ALl the cron-esque tasks in SL should be folded back here
+    // for consistency. For example, checking for chemistry bundle,
+    // triggering alarm checks, checking status of event server,
+    // data integrity checks.
+    val scheduler = QuartzSchedulerExtension(system)
+
+    providers.rootDataBaseBackUpDir() match {
+      case Some(rootBackUpDir) =>
+        val dbBackupKey = providers.conf.getString("pacBioSystem.dbBackUpSchedule")
+        val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
+        logger.info(s"Scheduling '$dbBackupKey' db backup $m")
+        scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+      case _ =>
+        logger.warn("System is not configured with a root database directory. Skipping scheduling Automated backups.")
+    }
+
     def createJobDir(path: Path): Path = {
       if (!Files.exists(path)) {
         logger.info(s"Creating root job dir $path")
@@ -120,14 +138,4 @@ object SmrtLinkSmrtServer extends App with BaseServer with SmrtLinkApi {
   LoggerOptions.parseAddDebug(args)
 
   start
-}
-
-/**
- * Build our servlet app using tomcat
- *
- * <p> Note that the port used here is set in build.sbt when running locally
- * Used for running within tomcat via 'container:start'
- */
-class SmrtLinkSmrtServerServlet extends WebBoot with SmrtLinkApi {
-  override val serviceActor = rootService
 }
