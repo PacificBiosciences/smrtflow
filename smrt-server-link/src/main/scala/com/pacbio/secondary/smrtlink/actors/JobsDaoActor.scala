@@ -1,11 +1,17 @@
 package com.pacbio.secondary.smrtlink.actors
 
+import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.UUID
+
+import org.joda.time.{DateTime => JodaDateTime}
 
 import akka.actor.{ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import akka.util.Timeout
+
+import spray.json._
+
 import com.pacbio.common.actors.{ActorRefFactoryProvider, PacBioActor}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.CommonModels.IdAble
@@ -15,9 +21,12 @@ import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.engine.actors.{EngineActorCore, EngineWorkerActor, QuickEngineWorkerActor}
 import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.analysis.jobs._
+import com.pacbio.secondary.analysis.jobtypes.DbBackUpJobOptions
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, GmapReferenceServiceDataSet, ReferenceServiceDataSet, EulaRecord}
-import org.joda.time.{DateTime => JodaDateTime}
+import com.pacbio.secondary.smrtlink.database.DatabaseConfig
+import com.pacbio.secondary.smrtlink.models.SecondaryModels.DbBackUpServiceJobOptions
+import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, EulaRecord, GmapReferenceServiceDataSet, ReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -233,6 +242,9 @@ object JobsDaoActor {
   case class GetEulaByVersion(version: String) extends AdminMessage
   case class AddEulaRecord(eulaRecord: EulaRecord) extends AdminMessage
   case class DeleteEula(version: String) extends AdminMessage
+
+  // Quartz Scheduled Messages
+  case class SubmitDbBackUpJob(user: String, dbConfig: DatabaseConfig, rootBackUpDir: Path)
 
 
   // Projects Messages
@@ -675,8 +687,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion) =>
-      val fx = dao.createJob(uuid, name, pipelineId, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion)
+    case CreateJobType(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion) =>
+      val fx = dao.createJob(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion)
       fx onSuccess { case _ => self ! CheckForRunnableJob}
       //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
       pipeWith(fx)
@@ -706,6 +718,31 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     }
 
     case GetUserProjects(login) => pipeWith(dao.getUserProjects(login))
+
+    case SubmitDbBackUpJob(user: String, dbConfig: DatabaseConfig, rootBackUpDir: Path) => {
+
+      val uuid = UUID.randomUUID()
+      val name = s"Automated DB BackUp Job by $user"
+      val comment = s"Quartz Scheduled Automated DB BackUp Job by $user"
+
+      val opts = DbBackUpServiceJobOptions(user, comment)
+
+      val jobOpts = DbBackUpJobOptions(rootBackUpDir,
+        dbName = dbConfig.dbName,
+        dbUser = dbConfig.username,
+        dbPort = dbConfig.port,
+        dbPassword = dbConfig.password)
+
+      val coreJob = CoreJob(uuid, jobOpts)
+      val cJob = CreateJobType(uuid, name, comment, JobTypeIds.DB_BACKUP.id, coreJob, None,
+        opts.toJson.toString(), Some(user), None)
+
+      log.info(s"Automated DB backup request created $cJob")
+
+      self ! cJob
+
+    }
+
 
     case x => log.warning(s"Unhandled message $x to database actor.")
   }
