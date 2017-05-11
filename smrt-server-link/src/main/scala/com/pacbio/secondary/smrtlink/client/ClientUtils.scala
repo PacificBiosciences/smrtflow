@@ -6,13 +6,19 @@ import scala.math._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import com.pacbio.secondary.analysis.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels._
 import com.pacbio.common.client._
+import com.pacbio.common.models.{Constants, ServiceStatus}
+import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.tools.timeUtils
+
 
 trait ClientUtils extends timeUtils with DataSetFileUtils {
 
@@ -88,14 +94,25 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     0
   }
 
-  def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
+
+  // Create a Table as String. This should be better model with a streaming
+  // solution that passes in the "printer"
+  def toTable(table: Seq[Seq[String]], headers: Seq[String]): String = {
+
     val columns = table.transpose
     val widths = (columns zip headers).map{ case (col, header) =>
-      max(header.length, col.map(_.length).reduceLeft(_ max _))
+      max(header.length, col.map(_.length).max)
     }
+
     val mkline = (row: Seq[String]) => (row zip widths).map{ case (c,w) => c.padTo(w, ' ') }
-    println(mkline(headers).mkString(" "))
-    table.foreach(row => println(mkline(row).mkString(" ")))
+
+    mkline(headers).mkString(" ") ++ "\n" ++
+        table.map(row => mkline(row).mkString(" ") + "\n")
+            .reduceLeft(_ + "\n" + _)
+  }
+
+  def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
+    println(toTable(table, headers))
     0
   }
 
@@ -106,4 +123,27 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     }
     0
   }
+
+  /**
+    * Check V1 gte V2 and return v1
+    *
+    * @param v1
+    * @param v2
+    * @return
+    */
+  private def versionGte(v1: SemVersion, v2: SemVersion): Future[SemVersion] = {
+    if (v1.gte(v2)) Future.successful(v1)
+    else Future.failed(throw new Exception(s"Incompatible version ${v1.toSemVerString} < ${v2.toSemVerString}"))
+  }
+
+  def isVersionGte(status: ServiceStatus, v:SemVersion): Future[SemVersion] = {
+    for {
+      remoteSystemVersion <- Future.successful(SemVersion.fromString(status.version))
+      validatedRemoteSystemVersion <- versionGte(remoteSystemVersion, v)
+    } yield validatedRemoteSystemVersion
+  }
+
+  def isVersionGteSystemVersion(status: ServiceStatus): Future[SemVersion] =
+    isVersionGte(status, SemVersion.fromString(Constants.SMRTFLOW_VERSION))
+
 }
