@@ -29,6 +29,7 @@ import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 import scala.math._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Properties, Success, Try}
 
 
@@ -123,7 +124,7 @@ object PbServiceParser extends CommandLineToolVersion{
       entryPoints: Seq[String] = Seq(),
       presetXml: Option[Path] = None,
       taskOptions: Option[Map[String,String]] = None,
-      maxTime: Int = -1,
+      maxTime: FiniteDuration = 30.minutes, // This probably needs to be tuned on a per subparser.
       project: Option[String] = None,
       description: String = "",
       authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
@@ -139,7 +140,7 @@ object PbServiceParser extends CommandLineToolVersion{
 
   lazy val defaultHost: String = Properties.envOrElse("PB_SERVICE_HOST", "localhost")
   lazy val defaultPort: Int = Properties.envOrElse("PB_SERVICE_PORT", "8070").toInt
-  lazy val defaults = CustomConfig(null, defaultHost, defaultPort, maxTime=1800)
+  lazy val defaults = CustomConfig(null, defaultHost, defaultPort)
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
@@ -174,7 +175,7 @@ object PbServiceParser extends CommandLineToolVersion{
 
     opt[Unit]("json") action { (_, c) =>
       c.copy(asJson = true)
-    } text "Display output as raw JSON"
+    } text "Display output as JSON"
 
     opt[Unit]("debug") action { (_, c) =>
       c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig]
@@ -193,8 +194,8 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(path = p.toPath)
       } text "DataSet XML path (or directory containing datasets)",
       opt[Int]("timeout") action { (t, c) =>
-        c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status",
+        c.copy(maxTime = t.seconds)
+      } text s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})",
       opt[String]("non-local") action { (t, c) =>
         c.copy(nonLocal = Some(t))
       } text "Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)" /*,
@@ -219,8 +220,8 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(ploidy = ploidy)
       } text "Ploidy",
       opt[Int]("timeout") action { (t, c) =>
-        c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status" /*,
+        c.copy(maxTime = t.seconds)
+      } text s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})" /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
       } text "Name of project associated with this reference" */
@@ -264,8 +265,8 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(block = true)
       } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
-        c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status"
+        c.copy(maxTime = t.seconds)
+      } text s"Maximum time (in seconds) to poll for running job status (Default ${defaults.maxTime})"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
 
     cmd(Modes.TERMINATE_JOB.name) action { (_, c) =>
@@ -315,8 +316,8 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(block = true)
       } text "Block until job completes",
       opt[Int]("timeout") action { (t, c) =>
-        c.copy(maxTime = t)
-      } text "Maximum time to poll for running job status",
+        c.copy(maxTime = t.seconds)
+      } text s"Maximum time (in seconds) to poll for running job status (Default ${defaults.maxTime})",
       opt[Map[String,String]]("task-options").valueName("k1=v1,k2=v2...").action{ (x, c) =>
         c.copy(taskOptions = Some(x))
       } text("Pipeline task options as comma-separated option_id=value list")
@@ -453,11 +454,12 @@ object PbServiceParser extends CommandLineToolVersion{
 
 // TODO consolidate Try behavior
 class PbService (val sal: SmrtLinkServiceAccessLayer,
-                 val maxTime: Int = -1) extends LazyLogging with ClientUtils {
+                 val maxTime: FiniteDuration) extends LazyLogging with ClientUtils {
   import CommonModelImplicits._
   import CommonModels._
   import ServicesClientJsonProtocol._
 
+  // the is the default for timeout for common tasks
   protected val TIMEOUT = 30 seconds
   private lazy val entryPointsLookup = Map(
     "PacBio.DataSet.SubreadSet" -> "eid_subread",
@@ -480,7 +482,10 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     exitCode
   }
 
-  protected def errorExit(msg: String, exitCode: Int = -1) = printAndExit(msg, exitCode)
+  protected def errorExit(msg: String, exitCode: Int = -1) = {
+    System.err.println(msg)
+    exitCode
+  }
 
   protected def printMsg(msg: String) = printAndExit(msg, 0)
 
@@ -511,13 +516,61 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     ""
   }
 
-  protected def isCompatibleVersion: Try[Boolean] = {
-    val pbserviceVersion = Constants.SMRTFLOW_VERSION.split('+')(0)
+  protected def isCompatibleVersion(): Boolean = {
+    val fx = for {
+      status <- sal.getStatus
+      version <- isVersionGteSystemVersion(status)
+    } yield true
+
+    Try(Await.result(fx, TIMEOUT)).getOrElse(false)
+  }
+
+  def systemDataSetSummary(): Future[String] = {
     for {
-      status <- Try { Await.result(sal.getStatus, TIMEOUT) }
-      version <- Try { status.version.split('+')(0) }
-      isCompatible <- Try { version == pbserviceVersion }
-    } yield isCompatible
+      numSubreadSets <- sal.getSubreadSets.map(_.length)
+      numHdfSubreadSets <- sal.getHdfSubreadSets.map(_.length)
+      numReferenceSets <- sal.getHdfSubreadSets.map(_.length)
+      numGmapReferenceSets <- sal.getGmapReferenceSets.map(_.length)
+      numAlignmenSets <- sal.getAlignmentSets.map(_.length)
+      numBarcodeSets <- sal.getBarcodeSets.map(_.length)
+      numConsensusReadSets <- sal.getConsensusReadSets.map(_.length)
+      numConsensusAlignmentSets <- sal.getConsensusAlignmentSets.map(_.length)
+      numContigSets <- sal.getContigSets.map(_.length)
+    } yield
+      s"""
+        |DataSet Summary (active datasets) :
+        |
+        |SubreadSets            : $numSubreadSets
+        |HdfSubreadSets         : $numHdfSubreadSets
+        |ReferenceSets          : $numReferenceSets
+        |GmapReferenceSets      : $numGmapReferenceSets
+        |AlignmentSets          : $numAlignmenSets
+        |ConsensusAlignmentSets : $numConsensusAlignmentSets
+        |ConsensusReadSets      : $numConsensusReadSets
+        |ContigSets             : $numContigSets
+      """.stripMargin
+  }
+
+  def systemJobSummary(): Future[String] = {
+    for {
+      numImportJobs <- sal.getImportJobs.map(_.length)
+      numMergeJobs <- sal.getMergeJobs.map(_.length)
+      numAnalysisJobs <- sal.getAnalysisJobs.map(_.length)
+      numConvertFastaJobs <- sal.getFastaConvertJobs.map(_.length)
+      numConvertFastaBarcodeJobs <- sal.getBarcodeConvertJobs.map(_.length)
+      numTsSystemBundleJobs <- Future.successful(0) // These need to be added
+      numTsFailedJobBundleJob <- Future.successful(0)
+      numDbBackUpJobs <- Future.successful(0)
+    } yield
+      s"""
+        |System Job Summary by job type:
+        |
+        |Import DataSet                    : $numImportJobs
+        |Merge DataSet                     : $numMergeJobs
+        |Analysis                          : $numAnalysisJobs
+        |Convert Fasta to ReferenceSet     : $numConvertFastaJobs
+        |Convert Fasta to BarcodeSet       : $numConvertFastaBarcodeJobs
+      """.stripMargin
   }
 
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
@@ -547,6 +600,53 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       showRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
     }
     0
+  }
+
+
+  /**
+    * Util to get the Pbservice Client and Server compatibility status
+    *
+    * @param status Remote SMRT Link Server status
+    * @return
+    */
+  def compatibilitySummary(status: ServiceStatus): Future[String] = {
+    def msg(sx: String) =
+      s"Pbservice ${Constants.SMRTFLOW_VERSION} $sx compatible with Server ${status.version}"
+
+    val fx = isVersionGteSystemVersion(status).map(_ => msg("IS"))
+
+    fx.recover { case NonFatal(_) => Future.successful(msg("IS NOT"))}
+
+    fx
+  }
+
+
+  /**
+    * Core Summary for the Server Status
+    *
+    * If asJson is provided, the system summary is no longer relevent and will
+    * be skipped.
+    *
+    * @param asJson to emit the System Status as JSON.
+    * @return
+    */
+  def exeStatus(asJson: Boolean = false): Future[String] = {
+
+    // This isn't quite correct, but statusSummary is doing the printing
+    def statusFullSummary(status: ServiceStatus): Future[String] = {
+      for {
+        statusSummaryMsg <- Future.successful(status).map(status => statusSummary(status))
+        compatSummaryMsg <- compatibilitySummary(status)
+        dataSetSummaryMsg  <- systemDataSetSummary()
+        jobSummaryMsg <- systemJobSummary()
+      } yield s"$statusSummaryMsg\n$compatSummaryMsg\n$dataSetSummaryMsg\n$jobSummaryMsg"
+    }
+
+    def statusJsonSummary(status: ServiceStatus): Future[String] =
+      Future.successful(status.toJson.prettyPrint.toString)
+
+    val summary: (ServiceStatus => Future[String]) = if (asJson) statusJsonSummary else statusFullSummary
+    sal.getStatus.flatMap(summary)
   }
 
   def runStatus(asJson: Boolean = false): Int = {
@@ -682,8 +782,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
-    println(s"waiting for job ${jobId.toIdString} to complete...")
-    sal.pollForJob(jobId, maxTime) match {
+    logger.info(s"waiting for job ${jobId.toIdString} to complete...")
+    sal.pollForJob(jobId, Some(maxTime)) match {
       case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
         runGetJobInfo(jobId)
@@ -703,7 +803,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
       job <- Try { Await.result(runJob(), TIMEOUT) }
-      job <- sal.pollForJob(job.uuid, maxTime)
+      job <- sal.pollForJob(job.uuid, Some(maxTime))
       dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
 
@@ -798,7 +898,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     getDataSet(dsUuid) match {
       case Success(dsInfo) => {
         if (Paths.get(dsInfo.path) != path) {
-          if (isCompatibleVersion.getOrElse(false)) {
+          if (isCompatibleVersion()) {
             warnIfNewPath(dsInfo)
             importDs
           } else errorIfNewPath(dsInfo)
@@ -812,7 +912,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runImportDataSet(path: Path, dsType: String): Int = {
+  def runImportDataSet(path: Path, dsType: String, asJson: Boolean = false): Int = {
     logger.info(dsType)
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
@@ -828,13 +928,15 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   def runImportDataSets(path: Path,
                         nonLocal: Option[String],
-                        projectName: Option[String] = None): Int = {
+                        projectName: Option[String] = None,
+                        asJson: Boolean = false): Int = {
+
     val projectId = getProjectIdByName(projectName)
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     nonLocal match {
       case Some(dsType) =>
         logger.info(s"Non-local file, importing as type $dsType")
-        runImportDataSet(path, dsType)
+        runImportDataSet(path, dsType, asJson)
       case _ =>
         importXmlRecursive(path, listDataSetFiles,
                            (p) => runImportDataSetSafe(p, projectId),
@@ -1148,7 +1250,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       children <- Try { Await.result(sal.getJobChildren(job.uuid), TIMEOUT) }
       deleteJob <- Try { Await.result(deleteJob(job, children.size), TIMEOUT) }
-      _ <- sal.pollForJob(deleteJob.uuid, maxTime)
+      _ <- sal.pollForJob(deleteJob.uuid, Some(maxTime))
     } yield deleteJob
 
     fx match {
@@ -1203,7 +1305,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     println(s"Attempting to send tech support status bundle")
     val fx = for {
       job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
-      _ <- sal.pollForJob(job.uuid, maxTime)
+      _ <- sal.pollForJob(job.uuid, Some(maxTime))
     } yield job
     runAndSummary(fx, toSummary)
   }
@@ -1217,27 +1319,53 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val fx = for {
       failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
-      _ <- sal.pollForJob(job.uuid, maxTime)
+      _ <- sal.pollForJob(job.uuid, Some(maxTime))
     } yield failedJob
     runAndSummary(fx, toSummary)
   }
 
 }
 
-object PbService {
+object PbService extends LazyLogging{
+
+
+  // Introducing a new pattern to remove duplication. Each Subparser
+  // should return a Future[String] where the string is the terse summary of the output
+  // and use recoverWith or recover to handle any handle-able exceptions
+  // and add local context to the error. The Future Should encapsulate all the necessary
+  // steps.
+
+  // These are the ONLY place that should have a blocking call
+  // and explicit case match to Success/Failure handing for Try
+
+  def executeBlockAndSummary(fx: Future[String], timeout: FiniteDuration): Int = {
+    executeAndSummary(Try(Await.result(fx, timeout)))
+  }
+
+  def executeAndSummary(tx: Try[String]): Int = {
+    tx match {
+      case Success(sx) =>
+        println(sx)
+        0
+      case Failure(ex) =>
+        logger.error(s"${ex.getMessage}")
+        System.err.println(s"${ex.getMessage}")
+        1
+    }
+  }
+
+
   def apply (c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
-    // FIXME we need some kind of hostname validation here - supposedly URL
-    // creation includes validation, but it wasn't failing on extra 'http://'
-    val host = c.host.replaceFirst("http://", "")
-    val url = new URL(s"http://$host:${c.port}")
-    val sal = new SmrtLinkServiceAccessLayer(url, c.authToken)(actorSystem)
+
+    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port, c.authToken)(actorSystem)
     val ps = new PbService(sal, c.maxTime)
+
     try {
       c.mode match {
-        case Modes.STATUS => ps.runStatus(c.asJson)
+        case Modes.STATUS => executeBlockAndSummary(ps.exeStatus(c.asJson), c.maxTime)
         case Modes.IMPORT_DS => ps.runImportDataSets(c.path, c.nonLocal,
-                                                     c.project)
+                                                     c.project, c.asJson)
         case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism,
                                                      c.ploidy, c.project)
         case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name,
@@ -1264,7 +1392,7 @@ object PbService {
         case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
-          println(s"Unsupported action '$x'")
+          System.err.println(s"Unsupported action '$x'")
           1
         }
       }
@@ -1274,10 +1402,12 @@ object PbService {
   }
 }
 
-object PbServiceApp extends App {
+object PbServiceApp extends App with LazyLogging{
   def run(args: Seq[String]) = {
     val xc = PbServiceParser.parser.parse(args.toSeq, PbServiceParser.defaults) match {
-      case Some(config) => PbService(config)
+      case Some(config) =>
+        logger.debug(s"Args $config")
+        PbService(config)
       case _ => 1
     }
     sys.exit(xc)
