@@ -614,7 +614,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     * @return EngineJob
     */
   def pollForJob(jobId: IdAble,
-                 maxTime: Int = -1,
+                 maxTime: Option[FiniteDuration] = None,
                  sleepTime: Int = 5000): Try[EngineJob] = {
     var exitFlag = true
     var nIterations = 0
@@ -636,7 +636,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
     def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
-      if ((maxTime > 0) && (tCurrent - tStart > maxTime)) {
+
+      // This could be cleaned up, but these changes are turning into
+      // a large yakk shaving exercise
+      val maxTimeSec: Int = maxTime.map(_.toSeconds.toInt).getOrElse(-1)
+
+      if ((maxTimeSec > 0) && (tCurrent - tStart > maxTimeSec)) {
         Failure(new Exception(s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
       } else {
         Success(job)
