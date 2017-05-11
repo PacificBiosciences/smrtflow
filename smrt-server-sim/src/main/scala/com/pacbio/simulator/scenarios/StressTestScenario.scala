@@ -53,7 +53,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
 
   val testdata = PacBioTestData()
 
-  val reference = Var(testdata.getFile("lambdaNEB"))
+  val reference = Var(testdata.getTempDataSet("lambdaNEB"))
   val refUuid = Var(dsUuidFromPath(reference.get))
   val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
