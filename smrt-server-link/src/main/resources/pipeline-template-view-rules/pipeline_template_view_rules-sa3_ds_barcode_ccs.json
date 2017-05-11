@@ -3,6 +3,7 @@
   "name": "CCS with Barcoding",
   "description": "Override Description",
   "taskOptions": [
+    {"id": "pbcoretools.task_options.score_mode", "hidden": false, "advanced": false},
     {"id": "pbccs.task_options.min_passes", "hidden": false, "advanced": false},
     {"id": "pbccs.task_options.min_predicted_accuracy", "hidden": false, "advanced": false},
     {"id": "pbccs.task_options.model_path", "hidden": true, "advanced": true},

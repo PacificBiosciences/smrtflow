@@ -50,7 +50,10 @@ SL_SERVICES_STDERR=${__root}/${SL_PREFIX}.stderr
 SL_SERVICES_JVM_ARGS=$(cat ${__root}/services-jvm-args)
 SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
+SL_SERVICES_APP_CONF=${__root}/application.json
+
 SL_SERVICES_TOOLS_DIR=${__root}/tools
+AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 MAX_RETRIES=30
@@ -63,7 +66,7 @@ WSO2_DIR="$__dir/../wso2am-2.0.0"
 
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
-logStartFile=${logDir}/bundle-start.log
+logStartFile=${logDir}/start.log
 
 
 echo "Step #2 Checking system requirements (e.g., ulimits)"
@@ -71,7 +74,7 @@ ${__dir}/check-system-limits
 echo "Successfully completed checking system requirements"
 
 echo "Step #3 Checking if db is up and running"
-${__dir}/dbctrl start -c ${SL_SERVICES_CONF} --log-level=INFO --log-file=${logDir}/dbctl.log
+${__dir}/dbctrl start -c ${SL_SERVICES_APP_CONF} --log-level=INFO --log-file=${logDir}/dbctrl.log
 echo "Successfully completed check for Postgres database (db is up and running)"
 
 
@@ -166,7 +169,7 @@ echo "Completed check of sub-components; SLA, Tomcat and WSO2 API Manager. No su
 
 # Fire up the services
 echo "Step #5 Attempting to Start SMRTLink Analysis services daemon..."
-env "JAVA_OPTS=${SL_SERVICES_JVM_ARGS} -Dconfig.file=${SL_SERVICES_CONF}" \
+env "JAVA_OPTS=${SL_SERVICES_JVM_ARGS} -Dconfig.file=${SL_SERVICES_APP_CONF}" \
     ${SL_SERVICES_TOOLS_DIR}/bin/smrt-server-link-analysis ${SL_SERVICES_LOG_ARGS} \
      > ${SL_SERVICES_STDOUT} \
      2> ${SL_SERVICES_STDERR} &
@@ -177,13 +180,13 @@ echo "Successfully started up SMRT Link Analysis services on PID ${sl_services_p
  # block until system is up and running. The get-status layer currently only
  # checks for the services, it doesn't check for the PID.
  # FIXME(mpkocher)(2017-3-13) A future version should check the pid and process are running, then check for the services.
-${__dir}/get-status --subcomponent-id smrtlink-analysis --max-retries ${MAX_RETRIES}
+${__dir}/get-status --subcomponent-id smrtlink-analysis --max-retries ${MAX_RETRIES} --log-file ${logStartFile}
 
 
 # Fire up the GUI webserver
 echo "Step #6 Attempting to start Tomcat GUI webserver daemon..."
 ${TOMCAT_DIR}/bin/startup.sh
-${__dir}/get-status --subcomponent-id tomcat --max-retries ${MAX_RETRIES}
+${__dir}/get-status --subcomponent-id tomcat --max-retries ${MAX_RETRIES} --log-file ${logStartFile}
 echo "Successfully started up tomcat GUI webserver"
 
 echo "Attempting to start WSO2 API Manager..."
@@ -194,22 +197,25 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 # The scala code will block here and wait for wso2 to startup. Need to make this
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
-client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_CONF}"
+client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF}"
+env "$client_env" ${AMCLIENT} create-roles \
+       --creds-json ${WSO2_CREDS} --host localhost --log-file ${logStartFile}
+
 env "$client_env" \
-     ${SL_SERVICES_TOOLS_DIR}/bin/amclient set-api --swagger-resource /smrtlink_swagger.json \
+     ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \
        --api-name SMRTLink \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
-       --host localhost
+       --host localhost --log-file ${logStartFile}
 
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
-     ${SL_SERVICES_TOOLS_DIR}/bin/amclient proxy-admin \
+     ${AMCLIENT} proxy-admin \
        --api-name RemoteUserStoreManagerService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
-       --host localhost \
+       --host localhost --log-file ${logStartFile} \
      && echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"
 
 # This is a bit odd, SMRT View is started by a different layer of the software stack.

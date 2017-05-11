@@ -1,0 +1,20 @@
+{
+  "akka": {
+    "loggers": [
+      "akka.event.slf4j.Slf4jLogger"
+    ],
+    "loglevel": "INFO",
+    "jvm-exit-on-fatal-error": false,
+    "stdout-loglevel":"OFF",
+    "quartz": {
+      "schedules": {
+        "EverySaturdayMorning": {
+          "description": "Run a backup every Saturday Morning at 3 AM",
+          "expression": "0 0 3 ? * SAT",
+          "excludeWeekends": false
+        }
+      }
+    }
+  },
+  "org.terracotta.quartz.skipUpdateCheck": true
+}

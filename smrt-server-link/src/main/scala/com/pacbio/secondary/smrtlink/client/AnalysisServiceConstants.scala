@@ -5,18 +5,6 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 /**
   * Created by mkocher on 3/1/17.
   */
-trait AnalysisJobConstants {
-  val IMPORT_DSTORE = "import-datastore"
-  val CONVERT_FASTA = "convert-fasta-reference"
-  val CONVERT_BARCODES = "convert-fasta-barcodes"
-  val CONVERT_MOVIE = "convert-rs-movie"
-  val EXPORT_DS = "export-datasets"
-  val DELETE_DS = "delete-datasets"
-  val PB_PIPE = "pbsmrtpipe"
-  val IMPORT_DS = "import-dataset"
-  val MERGE_DS = "merge-datasets"
-  val MOCK_PB_PIPE = "mock-pbsmrtpipe"
-}
 
 trait ServiceEndpointConstants extends JobServiceConstants {
   val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX"

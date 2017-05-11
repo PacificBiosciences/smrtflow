@@ -1,16 +1,12 @@
 package com.pacbio.secondary.smrtlink.client
 
-import java.util.UUID
-import java.nio.file.{Path, Paths}
 import java.io.File
 
-import scala.xml.{Elem,XML}
 import scala.math._
-import scala.util.{Try,Failure,Success}
 import spray.httpx.SprayJsonSupport
 import spray.json._
 
-
+import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels._
@@ -18,41 +14,13 @@ import com.pacbio.common.client._
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.tools.timeUtils
 
-trait ClientUtils extends timeUtils{
+trait ClientUtils extends timeUtils with DataSetFileUtils {
 
   import SmrtLinkJsonProtocols._
 
   def listFilesByExtension(f: File, ext: String): Array[File] = {
     if (! f.isDirectory) throw new IllegalArgumentException(s"${f.toString} is not a directory")
     f.listFiles.filter((fn) => fn.toString.endsWith(ext)).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(d => listFilesByExtension(d, ext))
-  }
-
-  private def parseXml(path: Path) = {
-    Try { scala.xml.XML.loadFile(path.toFile) } match {
-      case Success(x) => x
-      case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
-    }
-  }
-
-  private def getAttribute(e: Elem, attr: String): String = {
-    Try { e.attributes(attr).toString } match {
-      case Success(a) => a
-      case Failure(err) => throw new Exception(s"Can't retrieve $attr attribute from XML: ${err.getMessage}.  Please make sure this is a valid PacBio DataSet XML file.")
-    }
-  }
-
-  // FIXME this should probably return a DataSetMetaType
-  def dsMetaTypeFromPath(path: Path): String =
-    getAttribute(parseXml(path), "MetaType")
-
-  def dsUuidFromPath(path: Path): UUID =
-    java.util.UUID.fromString(getAttribute(parseXml(path), "UniqueId"))
-
-  def dsNameFromMetadata(path: Path): String = {
-    if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
-    val md = scala.xml.XML.loadFile(path.toFile)
-    if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
-    (md \ "Run" \ "Name").text
   }
 
   def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
@@ -90,8 +58,10 @@ trait ClientUtils extends timeUtils{
       println(s"        uuid: ${job.uuid}")
       println(s"        name: ${job.name}")
       println(s"       state: ${job.state}")
+      println(s"  project id: ${job.projectId}")
       println(s"        path: ${job.path}")
       println(s"   jobTypeId: ${job.jobTypeId}")
+      println(s"   is active: ${job.isActive}")
       println(s"   createdAt: ${job.createdAt}")
       println(s"   updatedAt: ${job.updatedAt}")
       println(s"    run time: $runTimeSec sec")
@@ -100,7 +70,7 @@ trait ClientUtils extends timeUtils{
 
       println(s"     comment: ${job.comment}")
       if (job.state == AnalysisJobStates.FAILED) {
-        println(s"Error :\n ${job.errorMessage}")
+        println(s"Error :\n ${job.errorMessage.getOrElse("Unknown")}")
       }
     }
     0

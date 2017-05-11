@@ -243,7 +243,7 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal) with
       case _ => getPipelinePresets(None)
     }
     val pipelineOptions = getPipelineServiceOptions(cfg.testId, pipelineId,
-                                                    entryPoints, presets)
+                                                    entryPoints, presets).get
     var jobId = 0
     Await.result(sal.runAnalysisPipeline(pipelineOptions), TIMEOUT)
   }

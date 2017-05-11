@@ -1,6 +1,6 @@
 {
     "bindings": [], 
-    "comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic with pbsmrtpipe v0.50.4", 
+    "comment": "Created pipeline pbsmrtpipe.pipelines.dev_diagnostic with pbsmrtpipe v0.50.6", 
     "description": "Generate a simple report and plot from Reference DataSet", 
     "entryPoints": [
         {

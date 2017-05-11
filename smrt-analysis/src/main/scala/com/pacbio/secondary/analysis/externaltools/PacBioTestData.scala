@@ -8,10 +8,12 @@ package com.pacbio.secondary.analysis.externaltools
 
 import java.nio.file.{Files, Path, Paths}
 
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import scala.io.Source
+
 import spray.json._
 
-import scala.io.Source
+import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.analysis.datasets.{MockDataSetUtils,DataSetFileUtils,DataSetMetaTypes}
 
 
 case class TestDataFile(id: String, path: String, fileTypeId: String,
@@ -21,12 +23,21 @@ trait TestDataJsonProtocol extends DefaultJsonProtocol {
   implicit val testDataFileFormat = jsonFormat4(TestDataFile)
 }
 
-class PacBioTestData(files: Seq[TestDataFile], base: Path) {
+class PacBioTestData(files: Seq[TestDataFile], base: Path)
+    extends DataSetFileUtils {
   private val fileLookup = files.map(f => (f.id, f)).toMap
 
   def getFile(id: String): Path = {
     val relPath = fileLookup(id).path
     Paths.get(base.toString, relPath)
+  }
+
+  // Copy a dataset to a temporary directory, optionally including all
+  // associated files.
+  def getTempDataSet(id: String, copyFiles: Boolean = false): Path = {
+    val path = getFile(id)
+    val dst = DataSetMetaTypes.toDataSetType(dsMetaTypeFromPath(path))
+    MockDataSetUtils.makeTmpDataset(path, dst.getOrElse(throw new Exception("Unrecognized dataset type")), copyFiles = copyFiles)
   }
 }
 

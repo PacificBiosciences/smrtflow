@@ -34,7 +34,7 @@ object EventManagerActor {
 
 class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
-                        externalConfig: Option[ExternalEventServerConfig])
+                        externalConfig: Option[ExternalEventServerConfig], apiSecret: String)
     extends Actor with LazyLogging with SmrtLinkJsonProtocols{
 
   import EventManagerActor._
@@ -44,7 +44,7 @@ class EventManagerActor(smrtLinkId: UUID,
   var enableExternalMessages = false
 
   // If the system is not configured with an event server. No external messages will ever be sent
-  val client: Option[EventServerClient] = externalConfig.map(x => new EventServerClient(x.host, x.port)(context.system))
+  val client: Option[EventServerClient] = externalConfig.map(x => new EventServerClient(x.host, x.port, apiSecret)(context.system))
 
   context.system.scheduler.scheduleOnce(10.seconds, self, CheckExternalServerStatus)
 
@@ -138,5 +138,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEventHost()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEventHost(), apiSecret()), "EventManagerActor"))
 }

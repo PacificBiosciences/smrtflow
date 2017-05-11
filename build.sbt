@@ -12,7 +12,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.6.5-SNAPSHOT"
+version in ThisBuild := "0.6.7-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -48,6 +48,10 @@ val slickV = "3.1.1"
 
 val bambooBuildNumberEnv = "bamboo_buildNumber"
 
+
+resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
+
+
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 publishTo in ThisBuild := {
@@ -69,7 +73,7 @@ lazy val baseSettings = Seq(
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
-  "com.lihaoyi" % "ammonite" % "0.8.2" cross CrossVersion.full,
+  "com.lihaoyi" % "ammonite" % "0.8.4" cross CrossVersion.full,
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
@@ -108,7 +112,8 @@ lazy val baseSettings = Seq(
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
-  "com.github.zafarkhaja" % "java-semver" % "0.9.0"
+  "com.github.zafarkhaja" % "java-semver" % "0.9.0",
+  "mbilski" % "spray-hmac_2.11" % "1.0.1"
 )
 
 def PacBioProject(name: String): Project = (

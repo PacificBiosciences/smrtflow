@@ -1,21 +1,17 @@
 import java.util.UUID
-import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 
 import org.specs2.mutable.Specification
-import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
-import akka.actor.ActorRefFactory
-import com.pacbio.common.utils.TarGzUtil
-import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
-import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
-import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
+import mbilski.spray.hmac.{DefaultSigner, SignerConfig}
 import org.apache.commons.io.FileUtils
+
 import spray.json._
 import spray.http._
+import spray.client.pipelining._
+import spray.testkit.Specs2RouteTest
+import spray.httpx.SprayJsonSupport._
+
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._
@@ -23,10 +19,17 @@ import scala.concurrent.duration._
 import collection.JavaConversions._
 import collection.JavaConverters._
 
+import com.pacbio.common.utils.TarGzUtils
+import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.app._
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.models._
+
 /**
   * Created by mkocher on 2/19/17.
   */
-class EventServerSpec extends Specification with Specs2RouteTest with LazyLogging{
+class EventServerSpec extends Specification with Specs2RouteTest with LazyLogging with DefaultSigner with SignerConfig{
 
   // Run Tests sequentially
   sequential
@@ -40,6 +43,7 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
   lazy val totalRoutes = SmrtEventServer.allRoutes
   lazy val eventMessageDir = SmrtEventServer.eventMessageDir
   lazy val fileUploadOutputDir = SmrtEventServer.eventUploadFilesDir
+  lazy val apiSecret = SmrtEventServer.apiSecret
 
   val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(), "test_bundle", 1, JodaDateTime.now(),
     UUID.randomUUID(), None, None, "testuser", Some("Test/Mock Message"))
@@ -57,6 +61,13 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
     FileUtils.deleteQuietly(fileUploadOutputDir.toFile)
   }
 
+  val sender = sendReceive
+
+  def toAuth(method: String, segment: String): String = {
+    val key = generate(apiSecret, s"$method+$segment", timestamp)
+    s"hmac uid:$key"
+  }
+
   step(setupApp())
 
   "Event/Message Server tests" should {
@@ -70,7 +81,7 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
       }
     }
     "Successfully Post Event to Server" in {
-      Post("/api/v1/events", exampleMessage) ~> totalRoutes ~> check {
+      Post("/api/v1/events", exampleMessage) ~> addHeader("Authentication", toAuth("POST", "/api/v1/events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
@@ -94,14 +105,14 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
       val numTimes = 1000
       val data:CharSequence = (0 until numTimes).map(i => s"Line $i").reduce(_ + "\n" + _)
 
-      TarGzUtil.createTarGzip(f, tgzPath.toFile)
+      TarGzUtils.createTarGzip(f, tgzPath.toFile)
       logger.info(s"Created tmp file $tgzPath")
 
       val multiForm = MultipartFormData(
         Seq(BodyPart(tgzPath.toFile, "techsupport_tgz", ContentType(MediaTypes.`application/octet-stream`)))
       )
 
-      Post("/api/v1/files", multiForm) ~> totalRoutes ~> check {
+      Post("/api/v1/files", multiForm) ~> addHeader("Authentication", toAuth("POST", "/api/v1/files")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         FileUtils.deleteQuietly(f.toFile)
       }

@@ -67,6 +67,8 @@ trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
 
     DatabaseConfig(dbName, user, password, server, port, maxConnections)
   }
+  // this is duplicated for the cake vs provider model
+  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
 
   override val db: Singleton[Database] =
     Singleton(() => Database.forConfig("smrtflow.db"))
@@ -163,17 +165,28 @@ trait ProjectDataStore extends LazyLogging {
 
   def setProjectDatasets(projId: Int, ids: Seq[RequestId]): DBIO[Unit] = {
     val now = JodaDateTime.now()
+    val dsIds = ids.map(_.id)
+    val jobIdsFromDatasets = for {
+      (ejds, ds) <- engineJobsDataSets join dsMetaData2 on (_.datasetUUID === _.uuid)
+                    if ds.id inSet dsIds
+    } yield ejds.jobId
+
     DBIO.seq(
       // move datasets not in the list of ids back to the general project
       dsMetaData2
         .filter(_.projectId === projId)
-        .filterNot(_.id inSet ids.map(_.id))
+        .filterNot(_.id inSet dsIds)
         .map(ds => (ds.projectId, ds.updatedAt))
         .update((GENERAL_PROJECT_ID, now)),
       // move datasets that *are* in the list of IDs into this project
       dsMetaData2
-        .filter(_.id inSet ids.map(_.id))
+        .filter(_.id inSet dsIds)
         .map(ds => (ds.projectId, ds.updatedAt))
+        .update((projId, now)),
+      // move analyses that use one of the given input datasets into this project
+      engineJobs
+        .filter(_.id in jobIdsFromDatasets)
+        .map(ej => (ej.projectId, ej.updatedAt))
         .update((projId, now))
     )
   }
@@ -226,8 +239,12 @@ trait ProjectDataStore extends LazyLogging {
       // move the datasets from this project into the general project
       dsMetaData2
         .filter(_.projectId === projId)
-        .map(ds => (ds.projectId, ds.updatedAt))
-        .update((GENERAL_PROJECT_ID, now))
+        .map(ds => (ds.isActive, ds.projectId, ds.updatedAt))
+        .update((false, GENERAL_PROJECT_ID, now)),
+      engineJobs
+        .filter(_.projectId === projId)
+        .map(j => (j.isActive, j.updatedAt))
+        .update(false, now)
     ).andThen(
       projects.filter(_.id === projId).result.headOption
     ))
@@ -318,7 +335,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   import CommonModelImplicits._
 
-  final val QUICK_TASK_IDS = Set(JobTypeId("import_dataset"), JobTypeId("merge_dataset"))
+  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
 
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
@@ -378,6 +395,19 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   override def getJobById(jobId: Int): Future[Option[EngineJob]] =
     db.run(engineJobs.filter(_.id === jobId).result.headOption)
+
+  /**
+    * Raw Insert of an Engine Job into the system. This will not run a job.
+    *
+    * Use the RunnableJob interface to create a job that should be run.
+    *
+    * @param job Engine Job instance
+    * @return
+    */
+  def insertJob(job: EngineJob): Future[EngineJob] = {
+    val action = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i))) += job
+    db.run(action.transactionally)
+  }
 
   def getJobByIdAble(ix: IdAble): Future[EngineJob] = {
     val fx = ix match {
@@ -771,7 +801,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
         // 2 of 3: insert of the data set, if it is a known/supported file type
         val optionalInsert = DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
           case Some(typ) =>
-            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, createdBy, DEFAULT_PROJECT_ID))
+            DBIO.from(insertDataSet(typ, ds.path, engineJob.id, createdBy, engineJob.projectId))
           case None =>
             existing match {
               case Some(_) =>
@@ -839,6 +869,32 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       case None => None
     }
     db.run(action)
+  }
+
+  val qDsMetaDataIsActive = dsMetaData2.filter(_.isActive)
+  /**
+    * Get the Base PacBioDataSet data for DataSets imported into the system
+    * @param limit Maximum number of returned results
+    * @return
+    */
+  def getDataSetMetas(limit: Option[Int] = None, activity: Option[Boolean]): Future[Seq[DataSetMetaDataSet]] = {
+    val qActive = activity.map(activity => dsMetaData2.filter(_.isActive === activity)).getOrElse(dsMetaData2)
+    val q = limit.map(x => qActive.take(x)).getOrElse(qActive)
+    db.run(q.sortBy(_.id).result)
+  }
+
+  /**
+    * Update the
+    * @param ids DataSetMetaSets that are to marked as InActive.
+    * @return
+    */
+  def updatedDataSetMetasAsInActive(ids: Set[Int]): Future[MessageResponse] = {
+    val q = qDsMetaDataIsActive
+        .filter(_.id inSet ids)
+        .map(d => (d.isActive, d.updatedAt))
+        .update((false,  JodaDateTime.now()))
+    // Is there a better way to do this?
+    db.run(q.map(_ => MessageResponse(s"Marked ${ids.size} MetaDataSet as inActive")))
   }
 
   private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
@@ -943,6 +999,11 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   def deleteDataSetByUUID(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
     db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
+  }
+
+  def updateDataSetByUUID(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.path, d.updatedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set path=$path and isActive=$setIsActive for dataset $id"))
   }
 
   def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)
@@ -1345,6 +1406,11 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
   }
 
+  def updateDataStoreFile(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.path, f.modifiedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
+  }
+
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
@@ -1423,7 +1489,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
          |--------
          |Jobs
          |--------
-         | ${jobCounts.map(x => f"${x._1}%15s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
+         | ${jobCounts.map(x => f"${x._1}%25s  ${x._2}%10s  ${x._3}%6d").mkString("\n         | ")}
          |--------
          |Total JobEvents      : $jobEvents
          |Total entryPoints    : $entryPoints

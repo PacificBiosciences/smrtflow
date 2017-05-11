@@ -11,7 +11,9 @@ import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, Un
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.converters._
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.client._
@@ -54,6 +56,8 @@ object Modes {
   case object MANIFESTS extends Mode {val name = "get-manifests"}
   case object MANIFEST extends Mode {val name = "get-manifest"}
   case object BUNDLES extends Mode {val name = "get-bundles"}
+  case object TS_STATUS extends Mode {val name = "ts-status"}
+  case object TS_JOB extends Mode {val name = "ts-failed-job"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -109,6 +113,8 @@ object PbServiceParser extends CommandLineToolVersion{
       ploidy: String = "",
       maxItems: Int = 25,
       datasetType: String = "subreads",
+      jobType: String = "pbsmrtpipe",
+      jobState: Option[String] = None,
       nonLocal: Option[String] = None,
       asJson: Boolean = false,
       dumpJobSettings: Boolean = false,
@@ -124,7 +130,10 @@ object PbServiceParser extends CommandLineToolVersion{
       manifestId: String = "smrtlink",
       showReports: Boolean = false,
       searchName: Option[String] = None,
-      searchPath: Option[String] = None
+      searchPath: Option[String] = None,
+      force: Boolean = false,
+      user: String = System.getProperty("user.name"),
+      comment: String = "Sent via pbservice"
   ) extends LoggerConfig
 
 
@@ -138,6 +147,13 @@ object PbServiceParser extends CommandLineToolVersion{
       entityIdOrUuid(entityId) match {
         case IntIdAble(x) => if (x > 0) success else failure(s"${entityType} ID must be a positive integer or a UUID string")
         case UUIDIdAble(x) => success
+      }
+    }
+
+    private def validateJobType(jobType: String): Either[String,Unit] = {
+      JobTypeIds.fromString(jobType) match {
+        case Some(s) => success
+        case None => failure(s"Unrecognized job type $jobType")
       }
     }
 
@@ -265,7 +281,10 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
-      } validate { i => validateId(i, "Job") } text "Job ID"
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[Unit]("force") action { (_, c) =>
+        c.copy(force = true)
+      } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
 
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -322,7 +341,15 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of jobs to show"
+      } text "Max number of jobs to show",
+      opt[String]('t', "job-type") action { (t, c) =>
+        c.copy(jobType = t)
+      } validate {
+        t => validateJobType(t)
+      } text "Only retrieve jobs of specified type",
+      opt[String]("job-state") action { (s, c) =>
+        c.copy(jobState = Some(s))
+      } text "Only display jobs in specified state"
     )
 
     cmd(Modes.DATASET.name) action { (_, c) =>
@@ -386,6 +413,31 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Project description"
     ) text "Start a new project"*/
 
+    cmd(Modes.TS_STATUS.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
+    } children(
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send system status report to PacBio Tech Support"
+
+    cmd(Modes.TS_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.TS_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } text "ID of job whose details should be sent to tech support",
+      opt[String]("user") action { (u, c) =>
+        c.copy(user = u)
+      } text s"User name to send (default: ${defaults.user})",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = s)
+      } text s"Comments to include (default: ${defaults.comment})"
+    ) text "Send failed job information to PacBio Tech Support"
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -423,15 +475,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
   // FIXME this is crude
-  protected def errorExit(msg: String, exitCode: Int = -1): Int = {
+  private def printAndExit(msg: String, exitCode: Int): Int = {
     println(msg)
     exitCode
   }
 
-  protected def printMsg(msg: String): Int = {
-    println(msg)
-    0
-  }
+  protected def errorExit(msg: String, exitCode: Int = -1) = printAndExit(msg, exitCode)
+
+  protected def printMsg(msg: String) = printAndExit(msg, 0)
 
   protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
@@ -440,11 +491,33 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  protected def runAndSummary[T](fx: Try[T], summary:(T => String)): Int = {
+    fx match {
+      case Success(result) => printMsg(summary(result))
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  protected def runAndBlock[T](fx: => Future[T],
+                               summary:(T => String),
+                               timeout: FiniteDuration): Int = {
+    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
+  }
+
   def statusSummary(status: ServiceStatus): String = {
     val headers = Seq("ID", "UUID", "Version", "Message")
     val table = Seq(Seq(status.id.toString, status.uuid.toString, status.version, status.message))
     printTable(table, headers)
     ""
+  }
+
+  protected def isCompatibleVersion: Try[Boolean] = {
+    val pbserviceVersion = Constants.SMRTFLOW_VERSION.split('+')(0)
+    for {
+      status <- Try { Await.result(sal.getStatus, TIMEOUT) }
+      version <- Try { status.version.split('+')(0) }
+      isCompatible <- Try { version == pbserviceVersion }
+    } yield isCompatible
   }
 
   protected def printStatus(status: ServiceStatus, asJson: Boolean = false): Int = {
@@ -484,8 +557,12 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     runAndBlock[ServiceStatus](sal.getStatus, printer, TIMEOUT)
   }
 
+  def getDataSet(datasetId: IdAble): Try[DataSetMetaDataSet] = Try {
+    Await.result(sal.getDataSet(datasetId), TIMEOUT)
+  }
+
   def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
-    Try { Await.result(sal.getDataSet(datasetId), TIMEOUT) } match {
+    getDataSet(datasetId) match {
       case Success(ds) => printDataSetInfo(ds, asJson)
       case Failure(err) => errorExit(s"Could not retrieve existing dataset record: $err")
     }
@@ -578,22 +655,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def jobsSummary(maxItems: Int, asJson: Boolean, engineJobs: Seq[EngineJob]): String = {
+  def jobsSummary(maxItems: Int,
+                  asJson: Boolean,
+                  engineJobs: Seq[EngineJob],
+                  jobState: Option[String] = None): String = {
     if (asJson) {
       println(engineJobs.toJson.prettyPrint)
       ""
     } else {
-      val table = engineJobs.sortBy(_.id).reverse.take(maxItems).map(job =>
+      val table = engineJobs.sortBy(_.id).reverse.filter( job =>
+        jobState.map(_ == job.state.toString).getOrElse(true)
+      ).take(maxItems).map( job =>
         Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
       printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
       ""
     }
   }
 
-  def runGetJobs(maxItems: Int, asJson: Boolean = false): Int = {
-    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs)
+  def runGetJobs(maxItems: Int,
+                 asJson: Boolean = false,
+                 jobType: String = "pbsmrtpipe",
+                 jobState: Option[String] = None): Int = {
+    def printer(jobs: Seq[EngineJob]) = jobsSummary(maxItems, asJson, jobs, jobState)
 
-    runAndBlock[Seq[EngineJob]](sal.getAnalysisJobs, printer, TIMEOUT)
+    runAndBlock[Seq[EngineJob]](sal.getJobsByType(jobType), printer, TIMEOUT)
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
@@ -687,22 +772,42 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
+    val dsType = dsMetaTypeFromPath(path)
+    def importDs = {
+      val rc = runImportDataSet(path, dsType)
+      if (rc == 0) {
+        runGetDataSetInfo(dsUuid)
+        if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
+      } else rc
+    }
     println(s"UUID: ${dsUuid.toString}")
-    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
+    def errorIfNewPath(dsInfo: DataSetMetaDataSet) = println(
+      s"ERROR: The dataset UUID (${dsInfo.uuid.toString}) is already "+
+      "present in the database but associated with a different path; if you "+
+      "want to re-import with the new path, run this command:\n\n  dataset "+
+      s"newuuid ${path.toString}\n\nthen run the pbservice command again to "+
+      "import the modified dataset.\n")
+    def warnIfNewPath(dsInfo: DataSetMetaDataSet) = {
+      println(
+        s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already "+
+        "present in the database but associated with a different path; will "+
+        "re-import with a different path, but this will overwrite the "+
+        "existing record.")
+      Thread.sleep(5000)
+    }
+    getDataSet(dsUuid) match {
       case Success(dsInfo) => {
         if (Paths.get(dsInfo.path) != path) {
-          println(s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already present in the database but associated with a different path; if you want to re-import with the new path, run this command:\n\n  dataset newuuid ${path.toString}\n\nthen run the pbservice command again to import the modified dataset.\n")
+          if (isCompatibleVersion.getOrElse(false)) {
+            warnIfNewPath(dsInfo)
+            importDs
+          } else errorIfNewPath(dsInfo)
         } else println(s"Dataset ${dsUuid.toString} already imported.")
         printDataSetInfo(dsInfo)
       }
       case Failure(err) => {
         println(s"No existing dataset record found")
-        val dsType = dsMetaTypeFromPath(path)
-        val rc = runImportDataSet(path, dsType)
-        if (rc == 0) {
-          runGetDataSetInfo(dsUuid)
-          if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
-        } else rc
+        importDs
       }
     }
   }
@@ -743,7 +848,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       return errorExit(s"--name argument is required when an FOFN is input")
     }
     val tx = for {
-      finalName <- Try { if (name == "") dsNameFromMetadata(path) else name }
+      finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
       job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
       job <- sal.pollForJob(job.uuid)
       dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
@@ -763,7 +868,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
     f.listFiles.filter((fn) =>
-      matchRsMovieName(fn) && Try { dsNameFromMetadata(fn.toPath) }.isSuccess
+      matchRsMovieName(fn) && Try { dsNameFromRsMetadata(fn.toPath) }.isSuccess
     ).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listMovieMetadataFiles)
   }
 
@@ -785,7 +890,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                           verbose: Boolean = false): Int = {
     val tx = for {
       project <- Try { Await.result(sal.getProject(projectId), TIMEOUT) }
-      ds <- Try { Await.result(sal.getDataSet(dsId), TIMEOUT) }
+      ds <- getDataSet(dsId)
       request <- Try { project.asRequest.appendDataSet(ds.id) }
       projectWithDataSet <- Try { Await.result(sal.updateProject(projectId, request), TIMEOUT) }
       } yield projectWithDataSet
@@ -863,9 +968,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         case Left(id) => IntIdAble(id)
         case Right(uuid) => UUIDIdAble(uuid)
       }
-      Try {
-        Await.result(sal.getDataSet(datasetId), TIMEOUT)
-      } match {
+      getDataSet(datasetId) match {
         case Success(dsInfo) => {
           // TODO check metatype against input
           println(s"Found entry point ${entryPoint.entryId} (datasetId = ${datasetId})")
@@ -918,9 +1021,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     var xc = runImportDataSetSafe(xmlPath)
     if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
     // this is stupidly inefficient
-    val dsId = Try {
-      Await.result(sal.getDataSet(dsUuid), TIMEOUT)
-    } match {
+    val dsId = getDataSet(dsUuid) match {
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
     }
@@ -947,30 +1048,40 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  private def validateEntryPointIds(
+      entryPoints: Seq[BoundServiceEntryPoint],
+      pipeline: PipelineTemplate): Try[Seq[BoundServiceEntryPoint]] = Try {
+    val eidsInput = entryPoints.map(_.entryId).sorted.mkString(", ")
+    val eidsTemplate = pipeline.entryPoints.map(_.entryId).sorted.mkString(", ")
+    if (eidsInput != eidsTemplate) throw new Exception(
+      "Mismatch between supplied and expected entry points: the input "+
+      s"datasets correspond to entry points ($eidsInput), while the pipeline "+
+      s"${pipeline.id} requires entry points ($eidsTemplate)")
+    entryPoints
+  }
+
   // XXX there is a bit of a disconnect between how preset.xml is handled and
   // how options are actually passed to services, so we need to convert them
   // here
-  protected def getPipelineServiceOptions(jobTitle: String,
+  protected def getPipelineServiceOptions(
+      jobTitle: String,
       pipelineId: String,
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset,
-      userTaskOptions: Option[Map[String,String]] = None): PbSmrtPipeServiceOptions = {
-    Try {
-      logger.debug("Getting pipeline options from server")
-      Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
-    } match {
-      case Success(pipeline) => {
-        val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
-          userTaskOptions.getOrElse(Map[String,String]()).map{
-            case (k,v) => k -> ServiceTaskStrOption(k, v)
-          }.values
-        val taskOptions = PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
-        val workflowOptions = Seq[ServiceTaskOptionBase]()
-        PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints, taskOptions,
-                                 workflowOptions)
-      }
-      case Failure(err) => throw new Exception(s"Failed to decipher pipeline options: ${err.getMessage}")
-    }
+      userTaskOptions: Option[Map[String,String]] = None):
+      Try[PbSmrtPipeServiceOptions] = {
+    val workflowOptions = Seq[ServiceTaskOptionBase]()
+    val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
+      userTaskOptions.getOrElse(Map[String,String]()).map{
+        case (k,v) => k -> ServiceTaskStrOption(k, v)
+      }.values
+    for {
+      _ <- Try {logger.debug("Getting pipeline options from server")}
+      pipeline <- Try { Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT) }
+      eps <- validateEntryPointIds(entryPoints, pipeline)
+      taskOptions <- Try {PipelineUtils.getPresetTaskOptions(pipeline, userOptions)}
+    } yield PbSmrtPipeServiceOptions(jobTitle, pipelineId, entryPoints,
+                                     taskOptions, workflowOptions)
   }
 
   def runPipeline(pipelineId: String,
@@ -991,7 +1102,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       eps <- Try { entryPoints.map(importEntryPointAutomatic) }
       presets <- Try { getPipelinePresets(presetXml) }
-      opts <- Try { getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions) }
+      opts <- getPipelineServiceOptions(jobTitleTmp, pipelineIdFull, eps, presets, taskOptions)
       job <- Try { Await.result(sal.runAnalysisPipeline(opts), TIMEOUT) }
     } yield job
 
@@ -1002,34 +1113,35 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   def runTerminateAnalysisJob(jobId: IdAble): Int = {
+    def toSummary(m: MessageResponse) = m.message
     println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
-    // Only Int Job ids are supported
-    def failIfUUID(i: IdAble): Future[Int] = {
-      i match {
-        case IntIdAble(n) => Future {n}
-        case UUIDIdAble(uuid) => Future.failed(new UnprocessableEntityError("Job UUIDs are not supported. Use the Job Int id."))
-      }
-    }
     val fx = for {
-      i <- failIfUUID(jobId)
-      messageResponse <- sal.terminatePbsmrtpipeJob(i)
+      job <- sal.getJob(jobId)
+      messageResponse <- sal.terminatePbsmrtpipeJob(job.id)
     } yield messageResponse
-
-    Try {Await.result(fx, TIMEOUT) } match {
-      case Success(m) => println(m.message); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    runAndBlock(fx, toSummary, TIMEOUT)
   }
 
-  def runDeleteJob(jobId: IdAble): Int = {
+  def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
-        throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first")
+        if (force) {
+          println("WARNING: job did not complete - attempting to terminate")
+          if (runTerminateAnalysisJob(jobId) != 0) {
+            println("Job termination failed; will delete anyway, but this may have unpredictable side effects")
+          }
+        } else {
+          throw new Exception(s"Can't delete this job because it hasn't completed - try 'pbservice terminate-job ${jobId.toIdString} ...' first, or add the argument --force if you are absolutely certain the job is okay to delete")
+        }
       } else if (nChildren > 0) {
-        throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input")
-      } else {
-        sal.deleteJob(job.uuid)
+        if (force) {
+          println("WARNING: job output was used by $nChildren active jobs - deleting it may have unintended side effects")
+          Thread.sleep(5000)
+        } else {
+          throw new Exception(s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input; add --force if you are absolutely certain the job is okay to delete")
+        }
       }
+      sal.deleteJob(job.uuid, force = force)
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
     val fx = for {
@@ -1084,14 +1196,30 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
     runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(), pacBioDataBundlesSummary, timeOut)
 
+  def runTsSystemStatus(user: String,
+                        comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"
+    println(s"Attempting to send tech support status bundle")
+    val fx = for {
+      job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield job
+    runAndSummary(fx, toSummary)
+  }
 
-  def runAndBlock[T](fx: => Future[T], summary:(T => String), timeout: FiniteDuration): Int = {
-    Try(Await.result[T](fx, timeout)) match {
-      case Success(x) =>
-        println(summary(x))
-        0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+  def runTsJobBundle(jobId: IdAble,
+                     user: String,
+                     comment: String): Int = {
+    def toSummary(job: EngineJob) =
+      s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = ${user}\nComments: $comment"
+    println(s"Attempting to send tech support failed job bundle")
+    val fx = for {
+      failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
+      _ <- sal.pollForJob(job.uuid, maxTime)
+    } yield failedJob
+    runAndSummary(fx, toSummary)
   }
 
 }
@@ -1123,15 +1251,17 @@ object PbService {
                                               taskOptions = c.taskOptions)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
-        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson)
+        case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId)
+        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
         case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
+        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
+        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           println(s"Unsupported action '$x'")

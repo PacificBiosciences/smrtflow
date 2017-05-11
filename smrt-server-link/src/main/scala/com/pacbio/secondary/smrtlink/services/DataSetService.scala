@@ -4,6 +4,21 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+
+import shapeless.HNil
+import spray.httpx.marshalling.Marshaller
+import spray.routing.{PathMatcher1, Route}
+import spray.http.MediaTypes
+import spray.json._
+import spray.httpx.SprayJsonSupport
+import SprayJsonSupport._
+
+
 import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{UserRecord, PacBioComponentManifest}
@@ -13,24 +28,10 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
-import com.pacbio.secondary.smrtlink.loaders.SchemaLoader
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
-import shapeless.HNil
-import spray.httpx.marshalling.Marshaller
-import spray.routing.{PathMatcher1, Route}
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.postfixOps
-import spray.http.MediaTypes
-import spray.json._
-import spray.httpx.SprayJsonSupport
-import SprayJsonSupport._
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelSpraySupport._
-
-import scala.reflect.ClassTag
 
 
 /**
@@ -54,7 +55,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
 
   val DATASET_TYPES_PREFIX = "dataset-types"
   val DATASET_PREFIX = "datasets"
-  val SCHEMA_PREFIX = "_schema"
   val DETAILS_PREFIX = "details"
 
   // Default MAX number of records to return
@@ -81,7 +81,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
       GetDataSets: (Int, Boolean, Seq[Int]) => Any,
-      schema: String,
       GetDataSetById: Int => Any,
       GetDataSetByUUID: UUID => Any,
       GetDetailsById: Int => Any,
@@ -100,15 +99,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
                     (dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined, ids)).mapTo[Seq[R]]
                   }
                 }
-              }
-            }
-          }
-        } ~
-        path(SCHEMA_PREFIX) {
-          get {
-            complete {
-              ok {
-                schema
               }
             }
           }
@@ -223,7 +213,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[SubreadServiceDataSet](
         DataSetMetaTypes.Subread.shortName,
         GetSubreadDataSets,
-        SchemaLoader.subreadSchema.content,
         GetSubreadDataSetById,
         GetSubreadDataSetByUUID,
         GetSubreadDataSetDetailsById,
@@ -231,7 +220,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[HdfSubreadServiceDataSet](
         DataSetMetaTypes.HdfSubread.shortName,
         GetHdfSubreadDataSets,
-        SchemaLoader.subreadSchema.content,
         GetHdfSubreadDataSetById,
         GetHdfSubreadDataSetByUUID,
         GetHdfSubreadDataSetDetailsById,
@@ -239,7 +227,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[AlignmentServiceDataSet](
         DataSetMetaTypes.Alignment.shortName,
         GetAlignmentDataSets,
-        SchemaLoader.alignmentSchema.content,
         GetAlignmentDataSetById,
         GetAlignmentDataSetByUUID,
         GetAlignmentDataSetDetailsById,
@@ -247,7 +234,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[ReferenceServiceDataSet](
         DataSetMetaTypes.Reference.shortName,
         GetReferenceDataSets,
-        SchemaLoader.referenceSchema.content,
         GetReferenceDataSetById,
         GetReferenceDataSetByUUID,
         GetReferenceDataSetDetailsById,
@@ -255,7 +241,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[GmapReferenceServiceDataSet](
         DataSetMetaTypes.GmapReference.shortName,
         GetGmapReferenceDataSets,
-        SchemaLoader.gmapReferenceSchema.content,
         GetGmapReferenceDataSetById,
         GetGmapReferenceDataSetByUUID,
         GetGmapReferenceDataSetDetailsById,
@@ -263,7 +248,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[BarcodeServiceDataSet](
         DataSetMetaTypes.Barcode.shortName,
         GetBarcodeDataSets,
-        SchemaLoader.barcodeSchema.content,
         GetBarcodeDataSetById,
         GetBarcodeDataSetByUUID,
         GetBarcodeDataSetDetailsById,
@@ -271,7 +255,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
         GetConsensusReadDataSets,
-        SchemaLoader.ccsReadSchema.content,
         GetConsensusReadDataSetById,
         GetConsensusReadDataSetByUUID,
         GetConsensusReadDataSetDetailsById,
@@ -279,7 +262,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[ConsensusAlignmentServiceDataSet](
         DataSetMetaTypes.AlignmentCCS.shortName,
         GetConsensusAlignmentDataSets,
-        SchemaLoader.ccsAlignmentSchema.content,
         GetConsensusAlignmentDataSetById,
         GetConsensusAlignmentDataSetByUUID,
         GetConsensusAlignmentDataSetDetailsById,
@@ -287,7 +269,6 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
       datasetRoutes[ContigServiceDataSet](
         DataSetMetaTypes.Contig.shortName,
         GetContigDataSets,
-        SchemaLoader.contigSchema.content,
         GetContigDataSetById,
         GetContigDataSetByUUID,
         GetContigDataSetDetailsById,

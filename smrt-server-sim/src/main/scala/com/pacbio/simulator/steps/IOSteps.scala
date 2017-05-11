@@ -3,8 +3,8 @@ package com.pacbio.simulator.steps
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetWriter}
-import com.pacbio.simulator.util.XmlAttributeManipulator
 import com.pacbio.simulator.{RunDesignTemplateInfo, RunDesignTemplateReader, Scenario, StepResult}
 
 import scala.concurrent.Future
@@ -14,10 +14,12 @@ import scala.io.Source
 import scala.xml.XML
 import XML._
 
-trait IOSteps {
+trait IOSteps extends ClientUtils {
   this: Scenario with VarSteps =>
 
   import StepResult._
+
+  protected def getUuid(ds: Var[Path]): Var[UUID] = ds.mapWith(f => dsUuidFromPath(f))
 
   case class ReadFileStep(pathVar: Var[String]) extends VarStep[String] {
 
@@ -89,17 +91,6 @@ trait IOSteps {
     //with XmlAttributeManipulator{
 
     override val name = "UpdateSubreadsetXml"
-
-    /*def readFile = XML.loadFile(subreads.get.toString)
-
-    def writeToFile(contents : scala.xml.Elem) = XML.save(subreads.get.toString, contents)
-
-    def updateXml = {
-      val elems = readFile
-      val updatedXml = updateSubreadSetUuid(runInfo.get.subreadsetUuid,elems)
-      writeToFile(updatedXml)
-    }*/
-
 
     def updateXml = {
       val uuid = runInfo.get.subreadsetUuid.toString

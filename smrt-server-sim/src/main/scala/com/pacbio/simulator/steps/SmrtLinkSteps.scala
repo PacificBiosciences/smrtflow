@@ -123,7 +123,7 @@ trait SmrtLinkSteps {
   case object GetSubreadSets extends VarStep[Seq[SubreadServiceDataSet]] {
     override val name = "GetSubreadSets"
     override def run: Future[Result] = smrtLinkClient.getSubreadSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -147,7 +147,7 @@ trait SmrtLinkSteps {
   case object GetHdfSubreadSets extends VarStep[Seq[HdfSubreadServiceDataSet]] {
     override val name = "GetHdfSubreadSets"
     override def run: Future[Result] = smrtLinkClient.getHdfSubreadSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -171,7 +171,7 @@ trait SmrtLinkSteps {
   case object GetReferenceSets extends VarStep[Seq[ReferenceServiceDataSet]] {
     override val name = "GetReferenceSets"
     override def run: Future[Result] = smrtLinkClient.getReferenceSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -195,7 +195,7 @@ trait SmrtLinkSteps {
   case object GetBarcodeSets extends VarStep[Seq[BarcodeServiceDataSet]] {
     override val name = "GetBarcodeSets"
     override def run: Future[Result] = smrtLinkClient.getBarcodeSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -219,7 +219,7 @@ trait SmrtLinkSteps {
   case object GetAlignmentSets extends VarStep[Seq[AlignmentServiceDataSet]] {
     override val name = "GetAlignmentSets"
     override def run: Future[Result] = smrtLinkClient.getAlignmentSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -243,7 +243,7 @@ trait SmrtLinkSteps {
   case object GetConsensusReadSets extends VarStep[Seq[ConsensusReadServiceDataSet]] {
     override val name = "GetConsensusReadSets"
     override def run: Future[Result] = smrtLinkClient.getConsensusReadSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -267,7 +267,7 @@ trait SmrtLinkSteps {
   case object GetConsensusAlignmentSets extends VarStep[Seq[ConsensusAlignmentServiceDataSet]] {
     override val name = "GetConsensusAlignmentSets"
     override def run: Future[Result] = smrtLinkClient.getConsensusAlignmentSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -291,7 +291,7 @@ trait SmrtLinkSteps {
   case object GetContigSets extends VarStep[Seq[ContigServiceDataSet]] {
     override val name = "GetContigSets"
     override def run: Future[Result] = smrtLinkClient.getContigSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -315,7 +315,7 @@ trait SmrtLinkSteps {
   case object GetGmapReferenceSets extends VarStep[Seq[GmapReferenceServiceDataSet]] {
     override val name = "GetGmapReferenceSets"
     override def run: Future[Result] = smrtLinkClient.getGmapReferenceSets.map { s =>
-      output(s)
+      output(s.sortBy(_.id))
       SUCCEEDED
     }
   }
@@ -500,7 +500,7 @@ trait SmrtLinkSteps {
   case object GetAnalysisJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetAnalysisJobs"
     override def run: Future[Result] = smrtLinkClient.getAnalysisJobs.map { j =>
-      output(j)
+      output(j.sortBy(_.id))
       SUCCEEDED
     }
   }

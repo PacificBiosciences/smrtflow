@@ -14,6 +14,7 @@ import scopt.OptionParser
 
 import scala.util.Try
 import spray.json._
+import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 
 
@@ -27,6 +28,9 @@ object ApplyConfigConstants {
   // This must be relative as
   val SL_CONFIG_JSON = "smrtlink-system-config.json"
   val WSO2_CREDENTIALS_JSON = "wso2-credentials.json"
+  // See the comments in updateApplicationJson for why this extra config layer exists
+  val SL_INTERNAL_CONFIG_JSON = "internal-config.json"
+  val SL_APP_CONFIG_JSON = "application.json"
 
   val JVM_ARGS = "services-jvm-args"
   val JVM_LOG_ARGS = "services-log-args"
@@ -82,6 +86,10 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
   val jvmLogArgs = resolve(ApplyConfigConstants.JVM_LOG_ARGS)
 
   val smrtLinkSystemConfig = resolve(ApplyConfigConstants.SL_CONFIG_JSON)
+
+  val smrtLinkAppConfig = resolve(ApplyConfigConstants.SL_APP_CONFIG_JSON)
+
+  val smrtLinkInternalConfig = resolve(ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
 
   val tomcatEnvSh = resolve(ApplyConfigConstants.REL_TOMCAT_ENV_SH)
 
@@ -281,6 +289,37 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
+    * This is workaround for the loading of JSON files using the -Dconfig.file=/path/to/file.json model.
+    *
+    * The merges the custom third-party options defined in internal-config.json and writes merged
+    * application.json file. The merged application.json should be passed to all downstream tools, such as
+    * get-status.
+    *
+    * There might be a better solution to this.
+    *
+    * @param smrtLinkSystemConfig Path to smrtlink-system-config.json
+    * @param internalConfig       Internal third-party config path hocon.json file
+    * @param output               output file to write to
+    * @return
+    */
+  def writeApplicationJson(smrtLinkSystemConfig: File, internalConfig: File, output: File): Path = {
+
+    def loadJson(file: File) = {
+      logger.debug(s"Loading and converting to JSON $file")
+      FileUtils.readFileToString(file).parseJson
+    }
+
+    val j1 = loadJson(smrtLinkSystemConfig)
+    val j2 = loadJson(internalConfig)
+
+    val jTotal: JsObject = new JsObject(j1.asJsObject.fields ++ j2.asJsObject.fields)
+
+    writeAndLog(output, jTotal.prettyPrint.toString)
+
+    output.toPath
+  }
+
+  /**
    * 1.  Load and Validate smrtlink-system-config.json
    * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
    * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
@@ -306,6 +345,12 @@ object ApplyConfigUtils extends LazyLogging{
     val smrtLinkConfig = loadSmrtLinkSystemConfig(smrtLinkConfigPath)
 
     val c = validateConfig(smrtLinkConfig)
+
+    val internalConfig = rootBundleDir.resolve(ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
+
+    val appConfig = rootBundleDir.resolve(ApplyConfigConstants.SL_APP_CONFIG_JSON)
+
+    writeApplicationJson(smrtLinkConfigPath.toFile, internalConfig.toFile, appConfig.toFile)
 
     val wso2CredentialsPath = rootBundleDir.resolve(ApplyConfigConstants.WSO2_CREDENTIALS_JSON)
 
@@ -375,7 +420,7 @@ object ApplyConfigUtils extends LazyLogging{
 
 object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
-  val VERSION = "0.1.0"
+  val VERSION = "0.2.0"
   val DESCRIPTION = "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
   val toolId = "smrtflow.tools.apply_config"
 

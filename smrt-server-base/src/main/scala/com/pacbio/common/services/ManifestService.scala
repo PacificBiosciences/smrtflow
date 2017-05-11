@@ -10,6 +10,7 @@ import spray.json._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+// MK. There's duplication between these two implementations due to the service composer model versus the old model.
 class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioService with DefaultJsonProtocol {
 
   import PacBioJsonProtocol._
@@ -21,28 +22,34 @@ class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioSer
 
   val allManifests = (manifests + manifest).toList
 
-  def getById(manifestId: String): Future[PacBioComponentManifest] = {
-    allManifests.find(_.id == manifestId) match {
-      case Some(m) => Future { m }
+  def getById(ms: Seq[PacBioComponentManifest], manifestId: String): Future[PacBioComponentManifest] = {
+    ms.find(_.id == manifestId) match {
+      case Some(m) => Future.successful(m)
       case _ => Future.failed(new ResourceNotFoundError(s"Unable to find manifest id $manifestId"))
     }
   }
 
-  val routes =
-    path("services" / "manifests") {
+  val manifestRoutes =
+    path("manifests") {
       get {
         complete {
           allManifests
         }
       }
     } ~
-        path("services" / "manifests" / Segment) { manifestId =>
-          get {
-            complete {
-              getById(manifestId)
-            }
-          }
+    path("manifests" / Segment) { manifestId =>
+      get {
+        complete {
+          getById(allManifests.toSeq, manifestId)
         }
+      }
+    }
+
+  val servicesManifests = pathPrefix("services") { manifestRoutes }
+  val smrtLinkManifests = pathPrefix("smrt-link") { manifestRoutes }
+
+  // BackWard Migration model to push the routes into a consistent single prefix "smrt-link"
+  val routes = servicesManifests ~ smrtLinkManifests
 }
 
 /**
@@ -67,14 +74,34 @@ class ManifestServicex(services: ServiceComposer) extends PacBioService with Def
     "Component Manifest Service",
     "0.2.0", "Subsystem Component Manifest/Version Service")
 
-  val routes =
-    path("services" / "manifests") {
+  def getById(ms: Seq[PacBioComponentManifest], manifestId: String): Future[PacBioComponentManifest] = {
+    ms.find(_.id == manifestId) match {
+      case Some(m) => Future.successful(m)
+      case _ => Future.failed(new ResourceNotFoundError(s"Unable to find manifest id $manifestId"))
+    }
+  }
+
+  val manifestRoutes =
+    path("manifests") {
       get {
         complete {
           services.manifests()
         }
       }
+    } ~
+    path("manifests" / Segment) { manifestId =>
+      get {
+        complete {
+          getById(services.manifests().toSeq, manifestId)
+        }
+      }
     }
+
+  val servicesManifests = pathPrefix("services") { manifestRoutes }
+  val smrtLinkManifests = pathPrefix("smrt-link") { manifestRoutes }
+
+  // BackWard Migration model to push the routes into a consistent single prefix "smrt-link"
+  val routes = servicesManifests ~ smrtLinkManifests
 }
 
 trait ManifestServiceProviderx {

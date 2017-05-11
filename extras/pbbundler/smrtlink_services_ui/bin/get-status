@@ -3,28 +3,24 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootBundleDir=$(dirname "${__dir}")
 
-config=${rootBundleDir}/smrtlink-system-config.json
+config=${rootBundleDir}/application.json
 
 if ! [ -e "$config" ]; then
-    echo "file ${config} does not exist"
+    echo "file ${config} does not exist. Run apply-config"
     exit 1
 fi
 
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
+logStartFile=${logDir}/get-status.log
+
 export JAVA_OPTS="-Dconfig.file=${config}"
 
-# This interface is a bit odd. Perhaps should change the
-# positional arg to be optional and be set from the
-# smrtlink-system-config.json by default.
-# By default pass in the smrtlink-system-config as the
-# default file to validate, Otherwise, pass in the raw
-# args to the bundler-validate-config
+# there's probably a better way to do this. If this is called without an explicit
+# log-file option, it's assumed to be in a different context and should
+# write an different log file that get-status.log
 if [ $# -eq 0 ]
   then
-  args="${rootBundleDir}"
+     ${rootBundleDir}/tools/bin/bundler-get-status --log-file ${logStartFile}
 else
-  args="$@"
+     ${rootBundleDir}/tools/bin/bundler-get-status "$@"
 fi
-
-# The db check should be pushed to this layer. And the db should be considers a sup-component of the system
-${rootBundleDir}/tools/bin/bundler-get-status "$@"
-

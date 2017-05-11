@@ -3,6 +3,7 @@
   "name": "LAA with Barcoding",
   "description": "Override Description",
   "taskOptions": [
+    {"id": "pbcoretools.task_options.score_mode", "hidden": false, "advanced": false},
     {"id": "pblaa.task_options.min_length",        "hidden": false, "advanced": false}
   ]
 }

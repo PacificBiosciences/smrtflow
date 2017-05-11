@@ -47,6 +47,92 @@
     }
   },
   "paths": {
+    "/status": {
+      "get": {
+        "description": "Get the SMRT Link System Status containing system metadata, such as SL System Id, uptime and status message.",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Failed to get Server status likely means the server is down"
+          },
+          "200": {
+            "description": "SMRT Link Analysis Server Status",
+            "schema": {
+              "$ref": "#/definitions/SmrtServerStatus"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/user": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
+    "/services/manifests": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Manifests"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/services/manifests/{resourceId}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "description": "Manifest Id",
+            "required": true,
+            "type": "string",
+            "name": "resourceId",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
     "/smrt-base/files/*": {
       "get": {
         "x-scope": "data-management",
@@ -98,168 +184,6 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-link/tech-support/system-status": {
-      "post": {
-        "description": "Submit a Request to Create a TS System Status TGZ bundle and upload to PacBio (Only supported if an external URL is configured)",
-        "responses": {
-          "201": {
-            "description": "Returns a SmrtLink SystemEvent"
-          },
-          "default": {
-            "description": "Returns a SmrtLink SystemEvent"
-          }
-        },
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "required": true,
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/TechSupportSystemStatusRecord"
-            }
-          }
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      }
-    },
-    "/smrt-link/tech-support/job": {
-      "post": {
-        "description": "Submit a Request to Create a TS Job TGZ bundle and upload to PacBio (Only supported if an external URL is configured)",
-        "responses": {
-          "201": {
-            "description": "Returns a SmrtLink SystemEvent"
-          },
-          "default": {
-            "description": "Returns a SmrtLink SystemEvent"
-          }
-        },
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "required": true,
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/TechSupportJobRecord"
-            }
-          }
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      }
-    },
-    "/secondary-analysis/pipeline-template-view-rules": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/PipelineTemplateViewRules"
-              }
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "uuid",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/dataset-types": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/DatasetTypes"
-            }
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/resolved-pipeline-templates": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
     "/smrt-base/disk-space": {
       "get": {
         "produces": [
@@ -275,478 +199,6 @@
             "schema": {
               "$ref": "#/definitions/DiskSpace"
             }
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/datasets/alignments/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/AlignmentSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/HdfSubreadSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/subreads/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/SubreadSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/BarcodeSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/ConsensusAlignmentSet"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/contigs/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/ContigSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/ConsensusReadDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/references/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/ReferenceSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/GmapReferenceSetDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/{type}/_schema": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "text/plain; charset=UTF-8"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "text/plain; charset=UTF-8"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/projects": {
-      "post": {
-        "responses": {
-          "201": {
-            "description": "Return value"
-          },
-          "default": {
-            "description": "Return value"
-          }
-        },
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}": {
-      "post": {
-        "responses": {
-          "201": {
-            "description": "Return value"
-          },
-          "default": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": false,
-            "type": "string",
-            "name": "showAll",
-            "in": "query",
-            "allowEmptyValue": true
-          },
-          {
-            "required": false,
-            "type": "integer",
-            "name": "projectId",
-            "in": "query"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "analysis",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/report-view-rules": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
           }
         },
         "x-auth-type": "Application & Application User"
@@ -777,89 +229,30 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/services/manifests": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
+    "/smrt-base/eula": {
+      "post": {
         "responses": {
-          "default": {
+          "201": {
             "description": "Return value"
           },
-          "200": {
-            "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/Manifests"
-            }
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/services/manifests/{resourceId}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "description": "Manifest Id",
-            "required": true,
-            "type": "string",
-            "name": "resourceId",
-            "in": "path"
-          }
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
           "default": {
-            "description": "Return value"
-          },
-          "200": {
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
         "produces": [
           "application/json"
         ],
-        "x-scope": "data-management",
+        "x-scope": "analysis",
         "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/pipeline-template-view-rules/status": {
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      },
       "get": {
-        "x-scope": "data-management",
+        "x-scope": "analysis",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -873,6 +266,34 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-base/eula/{version}": {
+      "get": {
+        "x-scope": "analysis",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "parameters": [
+        {
+          "description": "Version of EULA",
+          "required": true,
+          "type": "string",
+          "name": "version",
+          "in": "path"
+        }
+      ]
+    },
+
     "/smrt-link/runs/{runId}/collections/{collectionId}": {
       "get": {
         "responses": {
@@ -974,8 +395,8 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
-      "get": {
+    "/smrt-link/runs/{runId}": {
+      "post": {
         "responses": {
           "default": {
             "description": "Return value"
@@ -988,20 +409,21 @@
           {
             "required": true,
             "type": "string",
-            "name": "template-id",
+            "name": "runId",
             "in": "path"
           }
         ],
         "produces": [
           "application/json"
         ],
-        "x-scope": "data-management",
+        "x-scope": "run-design",
         "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/{typeOrId}": {
-      "get": {
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      },
+      "delete": {
         "responses": {
           "default": {
             "description": "Return value"
@@ -1014,46 +436,17 @@
           {
             "required": true,
             "type": "string",
-            "name": "typeOrId",
+            "name": "runId",
             "in": "path"
           }
         ],
         "produces": [
           "application/json"
         ],
-        "x-scope": "data-management",
+        "x-scope": "run-design",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       },
-      "put": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "typeOrId",
-            "in": "path"
-          }
-        ],
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
       "get": {
         "responses": {
           "default": {
@@ -1067,14 +460,40 @@
           {
             "required": true,
             "type": "string",
-            "name": "rule-id",
+            "name": "runId",
             "in": "path"
           }
         ],
         "produces": [
           "application/json"
         ],
-        "x-scope": "data-management",
+        "x-scope": "run-qc",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/smrt-link/runs/{runId}/collections": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "runId",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "run-qc",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
@@ -1113,527 +532,6 @@
             "description": "Return value"
           }
         },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/resolved-pipeline-templates/status": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "text/plain; charset=UTF-8"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/projects/{id}": {
-      "put": {
-        "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "integer",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "get": {
-        "description": "Retrieve the project with the given ID",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "integer",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      },
-      "delete": {
-        "description": "Delete the project with the given ID",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "integer",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "uuid",
-            "in": "path"
-          }
-        ],
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "uuid",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
-      "get": {
-        "description": "Get a list of sub-computation units (i.e., a task)",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return a list of JobTask instances"
-          }
-        },
-        "parameters": [
-          {
-            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "description": "Job Id as Int or UUID",
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
-      "put": {
-        "description": "Update the state of Job subtask",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "201": {
-            "description": "Return updated JobTask"
-          }
-        },
-        "parameters": [
-          {
-            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "description": "Job Id as Int or UUID",
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "description": "Task Globally unique identifier as a UUID",
-            "required": true,
-            "type": "string",
-            "name": "task-uuid",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      },
-      "get": {
-        "description": "Get Job subtask by task UUID",
-        "responses": {
-          "default": {
-            "description": "Failed to find Job Id, task UUID or job type "
-          },
-          "201": {
-            "description": "Return a JobTask instance"
-          }
-        },
-        "parameters": [
-          {
-            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "description": "Job Id as Int or UUID",
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "description": "Task Globally unique identifier as a UUID",
-            "required": true,
-            "type": "string",
-            "name": "task-uuid",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/dataset-types/{type}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/smrt-link/runs/{runId}/collections": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "runId",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "run-qc",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "dataset-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "id",
-            "in": "query"
-          }
-        ],
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "id",
-            "in": "query"
-          }
-        ],
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/status": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/datastore-files/{uuid}/resources": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "uuid",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "relpath",
-            "in": "query"
-          }
-        ],
         "x-auth-type": "Application & Application User"
       }
     },
@@ -1712,386 +610,6 @@
         "x-scope": "sample-setup",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/job-types": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/pipeline-datastore-view-rules": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/status": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Failed to get Server status likely means the server is down"
-          },
-          "200": {
-            "description": "SMRT Link Analysis Server Status",
-            "schema": {
-              "$ref": "#/definitions/SmrtServerStatus"
-            }
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/user": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "schema": {
-              "$ref": "#/definitions/SmrtServerError"
-            },
-            "examples": {
-              "httpCode": 404,
-              "message": "Unable to find JobId 66666",
-              "errorType": "Not Found"
-            },
-            "description": "Error Message. Unable to find job or job type is invalid"
-          },
-          "200": {
-            "description": "Returns a SMRT Link Service Job",
-            "schema": {
-              "$ref": "#/definitions/ServiceJob"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "description": "Job type (e.g., pbsmrtpipe, import-dataset, merge-dataset",
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "description": "Job id and Integer or UUID",
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
-      "post": {
-        "description": "Terminate a running pbsmrtpipe analysis job",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "description": "Job Id as an Int",
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "template-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/report-view-rules/{rule-id}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "rule-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/datastore-files/{uuid}/download": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "uuid",
-            "in": "path"
-          }
-        ],
-        "x-auth-type": "None"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/smrt-link/runs/{runId}": {
-      "post": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "runId",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "run-design",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "delete": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "runId",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "run-design",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      },
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "runId",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "run-qc",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/report-view-rules/status": {
-      "get": {
-        "x-scope": "data-management",
-        "produces": [
-          "text/plain; charset=UTF-8"
-        ],
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
       }
     },
     "/smrt-link/bundles": {
@@ -2441,7 +959,438 @@
         ]
       }
     },
-    "/smrt-base/eula": {
+
+    "/secondary-analysis/dataset-types": {
+      "get": {
+        "description": "Get a Summary of each DataSet MetaType. Each model will have the 'short' name of the DataSet MetaType that is accessible at datasets/{ds-metatype}",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/DatasetTypes"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/datasets/{typeOrId}": {
+      "get": {
+        "description": "Either the DataSet Metatype (e.g, subreads to return a list of Datasets by metadata type) or Int or UUID for DataSet to get a DataSet Service MetaData for the requested dataset.",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Either the DataSet Metatype or DataSet Int or UUID for the PacBio DataSet.",
+            "required": true,
+            "type": "string",
+            "name": "typeOrId",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
+      "put": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Either the DataSet Metatype or DataSet Int or UUID for the PacBio DataSet.",
+            "required": true,
+            "type": "string",
+            "name": "typeOrId",
+            "in": "path"
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/dataset-types/{type}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/alignments/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/AlignmentSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/HdfSubreadSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/subreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/SubreadSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/BarcodeSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ConsensusAlignmentSet"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/contigs/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ContigSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ConsensusReadDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/references/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ReferenceSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/GmapReferenceSetDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+
+    "/secondary-analysis/projects": {
       "post": {
         "responses": {
           "201": {
@@ -2454,7 +1403,7 @@
         "produces": [
           "application/json"
         ],
-        "x-scope": "analysis",
+        "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
         "consumes": [
@@ -2462,7 +1411,7 @@
         ]
       },
       "get": {
-        "x-scope": "analysis",
+        "x-scope": "data-management",
         "produces": [
           "application/json"
         ],
@@ -2478,9 +1427,90 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/eula/{version}": {
+    "/secondary-analysis/projects/{id}": {
+      "put": {
+        "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "integer",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      },
       "get": {
-        "x-scope": "analysis",
+        "description": "Retrieve the project with the given ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "integer",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
+      "delete": {
+        "description": "Delete the project with the given ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "integer",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+
+    "/secondary-analysis/resolved-pipeline-templates": {
+      "get": {
+        "x-scope": "data-management",
         "produces": [
           "application/json"
         ],
@@ -2494,16 +1524,860 @@
           }
         },
         "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
+      "get": {
+        "description": "Get a Resolved Pipeline Template by Ids",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "template-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "template-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+
+    "/secondary-analysis/pipeline-template-view-rules": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/PipelineTemplateViewRules"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/report-view-rules": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "rule-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/report-view-rules/{rule-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "rule-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/pipeline-datastore-view-rules": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
+    "/secondary-analysis/job-manager/job-types": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Return value"
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "showAll",
+            "in": "query",
+            "allowEmptyValue": true
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "projectId",
+            "in": "query"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
       },
-      "parameters": [
-        {
-          "description": "Version of EULA",
-          "required": true,
-          "type": "string",
-          "name": "version",
-          "in": "path"
-        }
-      ]
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          }
+        ],
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
+      "get": {
+        "description": "Get a list of sub-computation units (i.e., a task)",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return a list of JobTask instances"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
+      "put": {
+        "description": "Update the state of Job subtask",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "Return updated JobTask"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "description": "Task Globally unique identifier as a UUID",
+            "required": true,
+            "type": "string",
+            "name": "task-uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
+      "get": {
+        "description": "Get Job subtask by task UUID",
+        "responses": {
+          "default": {
+            "description": "Failed to find Job Id, task UUID or job type "
+          },
+          "201": {
+            "description": "Return a JobTask instance"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "description": "Task Globally unique identifier as a UUID",
+            "required": true,
+            "type": "string",
+            "name": "task-uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "query"
+          }
+        ],
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "query"
+          }
+        ],
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+      "get": {
+        "description": "Get the PacBio DataStore associated with a specific Job by Job Id or UUID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Int Id or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
+      "get": {
+        "description": "Get a PacBio Report by UUID from a SMRT Link Job. If the Job type or job id doesn't exist, a 404 will be returned",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
+      "get": {
+        "responses": {
+          "default": {
+            "schema": {
+              "$ref": "#/definitions/SmrtServerError"
+            },
+            "examples": {
+              "httpCode": 404,
+              "message": "Unable to find JobId 66666",
+              "errorType": "Not Found"
+            },
+            "description": "Error Message. Unable to find job or job type is invalid"
+          },
+          "200": {
+            "description": "Returns a SMRT Link Service Job",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job type (e.g., pbsmrtpipe, import-dataset, merge-dataset",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job id and Integer or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
+      "post": {
+        "description": "Terminate a running pbsmrtpipe analysis job",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job Id as an Int",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/status": {
+      "get": {
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
+    "/secondary-analysis/datastore-files/{uuid}/download": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          }
+        ],
+        "x-auth-type": "None"
+      }
+    },
+    "/secondary-analysis/datastore-files/{uuid}/resources": {
+      "get": {
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "relpath",
+            "in": "query"
+          }
+        ],
+        "x-auth-type": "Application & Application User"
+      }
     }
   },
   "definitions": {

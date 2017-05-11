@@ -1,6 +1,5 @@
 import java.nio.file.Paths
 
-import com.pacbio.secondary.analysis.converters.ReferenceInfoConverter._
 import com.pacbio.secondary.analysis.legacy.{ReferenceInfoUtils, ReferenceEntry}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
@@ -13,16 +12,6 @@ class ReferenceEntrySpec extends Specification with LazyLogging{
   sequential
 
   "Parse lambda reference.info.xml" should {
-    "Lambda reference sanity" in {
-      val resource = "/reference-infos/lambda_reference.info.xml"
-      val uri = getClass.getResource(resource)
-      val e = ReferenceEntry.loadFrom(uri)
-      val path = Paths.get(uri.toURI)
-      logger.info(s"path $path")
-      val referenceInfo = ReferenceInfoUtils.loadFrom(path)
-      val reference_set = convertReferenceInfoToDataSet(referenceInfo)
-      e.record.id must beEqualTo("lambda_organism")
-    }
     "Parse reference with muliple contigs" in {
       val resource = "/reference-infos/ncontigs_reference.info.xml"
       val path = getClass.getResource(resource)

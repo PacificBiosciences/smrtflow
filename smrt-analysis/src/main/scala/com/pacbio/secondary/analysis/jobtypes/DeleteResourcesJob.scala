@@ -11,7 +11,6 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConversions._
 
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.reports.ReportUtils
 import com.pacbio.secondary.analysis.reports.ReportModels._
@@ -268,44 +267,5 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
       throw new Exception("No files could be deleted - they may have already been removed from the filesystem")
     }
     deletedFiles
-  }
-}
-
-/** Utilities for setting up test datasets that can be safely deleted
- *
- */
-object MockDataSetUtils {
-  def makeBarcodedSubreads = {
-    val pbdata = PacBioTestData()
-    val targetDir = Files.createTempDirectory("dataset-contents")
-    val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
-    val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
-    val subreadsSrc = pbdata.getFile("barcoded-subreadset")
-    val subreadsDir = subreadsSrc.getParent.toFile
-    val barcodesSrc = pbdata.getFile("barcodeset")
-    val barcodesDir = barcodesSrc.getParent.toFile
-    // only copy the files we need for this SubreadSet, that way we can check
-    // for an empty directory
-    val prefix = FilenameUtils.getName(subreadsSrc.toString).replaceAll(".subreadset.xml$", "")
-    for (f <- subreadsDir.listFiles) {
-      val filename = FilenameUtils.getName(f.toString)
-      if (filename.startsWith(prefix)) {
-        val dest = new File(subreadsDestDir.toString + "/" + filename)
-        FileUtils.copyFile(f, dest)
-      }
-    }
-    FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
-    val subreads = Paths.get(subreadsDestDir.toString + "/" +
-                             FilenameUtils.getName(subreadsSrc.toString))
-    var barcodes = Paths.get(barcodesDestDir.toString + "/" +
-                             FilenameUtils.getName(barcodesSrc.toString))
-    val dsSubreads = DataSetLoader.loadSubreadSet(subreads)
-    val dsBarcodes = DataSetLoader.loadBarcodeSet(barcodes)
-    // set new UUIDs
-    dsSubreads.setUniqueId(UUID.randomUUID().toString)
-    dsBarcodes.setUniqueId(UUID.randomUUID().toString)
-    DataSetWriter.writeSubreadSet(dsSubreads, subreads)
-    DataSetWriter.writeBarcodeSet(dsBarcodes, barcodes)
-    (subreads, barcodes)
   }
 }
