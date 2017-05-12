@@ -933,12 +933,23 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  /**
+    * List all PacBio DataSet XML Files
+    *
+    * @param f Root Directory
+    * @return
+    */
   private def listDataSetFiles(f: File): Array[File] = {
 
     def metaDataFilter(fn: File): Boolean =
         Try { dsMetaTypeFromPath(fn.toPath) }.isSuccess
 
-    f.listFiles.filter(metaDataFilter) ++ f.listFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
+    val allFiles = f.listFiles
+
+    allFiles
+        .filter(_.isFile)
+        .filter(_.getName.endsWith(".xml"))
+        .filter(metaDataFilter) ++ allFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
 
@@ -1000,9 +1011,20 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     */
   def getDataSetJobOrImport(uuid: UUID, metatype: DataSetMetaTypes.DataSetMetaType, path: Path, maxTimeOut: Option[FiniteDuration]): Future[EngineJob] = {
 
+    def logIfPathIsDifferent(ds: DataSetMetaDataSet): DataSetMetaDataSet = {
+      if (ds.path != path.toString) {
+        val msg = s"DataSet Path on Server will attempted to be updated to $path from ${ds.path}"
+        logger.warn(msg)
+        System.err.println(msg)
+      }
+      ds
+    }
+
     // The dataset has already been imported. Skip the entire job creation process.
+    // This assumes that the Job was successful (because the datastore was imported)
     val fx = for {
       ds <- sal.getDataSet(uuid)
+      _ <- Future.successful(logIfPathIsDifferent(ds))
       job <- sal.getJob(ds.jobId)
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
@@ -1051,6 +1073,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     logger.debug(s"Found ${files.length} PacBio XML files from root dir $path")
 
     if (files.isEmpty) {
+      // Not sure if this should raise
       Future.failed(throw new UnprocessableEntityError(s"No valid XML files found in ${path.toAbsolutePath}"))
     } else {
       // Note, these futures will be run in parallel. This needs a better error communication model.
