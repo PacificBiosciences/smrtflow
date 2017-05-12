@@ -17,7 +17,7 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
     "Convert mock testkit config object to JSON" in {
       val cfg = MockConfig.makeCfg
       val json = cfg.toJson
-      println(json.prettyPrint)
+      //println(json.prettyPrint)
       val cfg2 = json.convertTo[TestkitConfig]
       true must beEqualTo(cfg.testId == cfg2.testId)
     }
@@ -39,7 +39,7 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       val cfg = jsonAst.convertTo[TestkitConfig]
       cfg.testId must beEqualTo("import_subreads_example")
       val json = cfg.toJson
-      println(json.prettyPrint)
+      //println(json.prettyPrint)
       val cfg2 = json.convertTo[TestkitConfig]
       cfg.reportTests(0).rules(0).attrId must beEqualTo(cfg2.reportTests(0).rules(0).attrId)
       cfg.reportTests(0).rules(0).value must beEqualTo(cfg2.reportTests(0).rules(0).value)
