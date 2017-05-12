@@ -4,24 +4,23 @@
 
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
 import java.util.UUID
-import java.io.{File, PrintWriter}
 
 import scala.collection._
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
+
+import scala.concurrent.duration._
 
 import com.pacbio.secondary.analysis.constants.FileTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
+
 
 object StressTestScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
@@ -31,11 +30,11 @@ object StressTestScenarioLoader extends ScenarioLoader {
 
     new StressTestScenario(getHost(c), getPort(c),
       getInt(c, "smrtflow.test.njobs"),
-      getInt(c, "smrtflow.test.max-time"))
+      getInt(c, "smrtflow.test.max-time").seconds)
   }
 }
 
-class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: Int)
+class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDuration)
     extends Scenario
     with VarSteps
     with ConditionalSteps

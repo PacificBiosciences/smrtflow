@@ -4,6 +4,8 @@ import java.util.UUID
 import java.nio.file.Path
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
+
 import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.common.models._
 import com.pacificbiosciences.pacbiodatasets._
@@ -417,12 +419,12 @@ trait SmrtLinkSteps {
   }
 
   case class WaitForJob(jobId: Var[UUID],
-                        maxTime: Var[Int] = Var(1800),
+                        maxTime: Var[FiniteDuration] = Var(1800.seconds),
                         sleepTime: Var[Int] = Var(5000)) extends VarStep[Int] {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      output(smrtLinkClient.pollForJob(jobId.get, maxTime.get, sleepTime.get).map(_ => 0).getOrElse(1))
+      output(smrtLinkClient.pollForJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1))
       SUCCEEDED
     }
   }
