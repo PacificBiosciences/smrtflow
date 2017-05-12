@@ -1,11 +1,12 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
 import java.util.UUID
-import java.nio.file.{Path,Paths}
+import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Try,Success,Failure}
+import scala.util.Try
+
 
 import akka.actor.ActorRef
 import akka.pattern.ask
@@ -14,10 +15,9 @@ import spray.json._
 
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits,UserRecord}
-import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,UnprocessableEntityError}
-import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.analysis.DataSetFileUtils
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels._
@@ -48,24 +48,19 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     }
   }
 
-  // Hack to allow invalid inputs to be passed through to a new job (which will
-  // subsequently fail)
-  private def getUuid(path: String): UUID = Try {
-    dsUuidFromPath(Paths.get(path))
-  } match {
-    case Success(uuid) => uuid
-    case Failure(err: IllegalArgumentException) =>
-      throw new ResourceNotFoundError("Not an XML file, will default to standard failure mode")
-    case Failure(err: Throwable) => throw err
+  def andLog(sx: String): String = {
+    logger.info(sx)
+    sx
   }
 
   private def updateDbIfNecessary(sopts: ImportDataSetOptions): Future[EngineJob] = {
     for {
-      uuid <- Future { getUuid(sopts.path) }
-      ds <- (dbActor ? GetDataSetMetaByUUID(uuid)).mapTo[DataSetMetaDataSet]
+      dsMini <- Future.fromTry(Try(getDataSetMiniMeta(Paths.get(sopts.path))))
+      ds <- (dbActor ? GetDataSetMetaByUUID(dsMini.uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
-      _ <- (dbActor ? UpdateDataStoreFile(uuid, sopts.path, true)).mapTo[MessageResponse]
-      msg <- (dbActor ? UpdateDataSetByUUID(uuid, sopts.path, true)).mapTo[MessageResponse]
+      m1 <- (dbActor ? UpdateDataStoreFile(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
+      m2 <- (dbActor ? UpdateDataSetByUUID(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
+      _ <- Future.successful(andLog(s"$m1 $m2"))
     } yield engineJob
   }
 
