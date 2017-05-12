@@ -23,10 +23,10 @@ import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
@@ -342,7 +342,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   val resolver: JobResourceResolver
   // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
   // should be deleted. This should probably just be stored as a json blob in the database.
-  var _runnableJobs: mutable.LinkedHashMap[UUID, RunnableJobWithId]
+  var _runnableJobs: TrieMap[UUID, RunnableJobWithId]
 
   /**
    * This is the pbscala engine required interface. The `createJob` method is the preferred method to add new jobs
@@ -419,7 +419,8 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
 
   private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
-    _runnableJobs.values.find((rj) =>
+    // Sort the Jobs by id to run the first one
+    _runnableJobs.values.toSeq.sortWith(_.id < _.id).find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
       jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
       case Some(job) => {
@@ -1531,7 +1532,7 @@ with DataSetStore {
 
   import JobModels._
 
-  var _runnableJobs = mutable.LinkedHashMap[UUID, RunnableJobWithId]()
+  var _runnableJobs = TrieMap.empty[UUID, RunnableJobWithId]
 
   override def sendEventToManager[T](message: T): Unit = {
     eventManager.map(a => a ! message)
