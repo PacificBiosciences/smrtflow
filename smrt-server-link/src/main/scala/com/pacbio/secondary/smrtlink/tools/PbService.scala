@@ -628,9 +628,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
     val fx = isVersionGteSystemVersion(status).map(_ => msg("IS"))
 
-    fx.recover { case NonFatal(_) => Future.successful(msg("IS NOT"))}
-
-    fx
+    fx.recover { case NonFatal(_) => msg("IS NOT")}
   }
 
 
@@ -1119,24 +1117,6 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         case Some(dsType) => runSingleNonLocalDataSetImport(path, dsType, asJson, maxTime)
         case _ => runSingleLocalDataSetImport(path, asJson, maxTime)
       }
-    }
-  }
-
-  def runImportDataSets(path: Path,
-                        nonLocal: Option[String],
-                        projectName: Option[String] = None,
-                        asJson: Boolean = false): Int = {
-
-    val projectId = getProjectIdByName(projectName)
-    if (projectId < 0) return errorExit("Can't continue with an invalid project.")
-    nonLocal match {
-      case Some(dsType) =>
-        logger.info(s"Non-local file, importing as type $dsType")
-        runImportDataSet(path, dsType, asJson)
-      case _ =>
-        importXmlRecursive(path, listDataSetFiles,
-                           (p) => runImportDataSetSafe(p, projectId),
-                           (p) => runImportDataSetSafe(p, projectId))
     }
   }
 
