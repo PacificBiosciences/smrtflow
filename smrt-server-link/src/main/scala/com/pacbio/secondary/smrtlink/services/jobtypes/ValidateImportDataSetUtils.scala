@@ -7,7 +7,7 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.services.PacBioServiceErrors._
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
 import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor
 import com.pacbio.secondary.smrtlink.models._
@@ -15,11 +15,13 @@ import com.pacbio.secondary.smrtlink.models._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scalaz._
 import Scalaz._
 
-trait ValidateImportDataSetUtils {
+// To avoid colliding with scalaz. This is pretty terrible naming
+import scala.util.{Try => ScTry, Failure => ScFailure, Success => ScSuccess}
+
+trait ValidateImportDataSetUtils extends DataSetFileUtils{
 
   implicit val timeout = Timeout(12.seconds)
 
@@ -39,8 +41,22 @@ trait ValidateImportDataSetUtils {
     }
   }
 
+  /**
+    * Validate the UUID and DataSet MetaType attributes provided in the XML
+    *
+    * @param opts
+    * @return
+    */
+  def validateDataSetMetaData(opts: ImportDataSetOptions): ValidateOptError = {
+    // This is naming is pretty terrible.
+    ScTry (getDataSetMiniMeta(Paths.get(opts.path))) match {
+      case ScSuccess(_) => opts.successNel
+      case ScFailure(err) => s"Failed to parse UUID and MetaType from ${opts.path} ${err.getMessage}".failNel
+    }
+  }
+
   def validateOpts(opts: ImportDataSetOptions): ValidateOptError = {
-    (isPathExists(opts) |@| validateDataSetMetaType(opts))((_, _) => opts)
+    (isPathExists(opts) |@| validateDataSetMetaType(opts) |@| validateDataSetMetaData(opts))((_, _, _) => opts)
   }
 
   /**

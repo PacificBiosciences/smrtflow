@@ -79,7 +79,7 @@ object TestkitParser {
   }
 }
 
-class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal) with TestkitJsonProtocol {
+class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.minutes) with TestkitJsonProtocol {
   import CommonModelImplicits._
   import ReportModels._
   import TestkitModels._

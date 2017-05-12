@@ -12,6 +12,15 @@ package object semver {
   // There doesn't appear to be well supported scala semver lib.
   // Adding a simple wrapper on top of the java one here
   case class SemVersion(major: Int, minor: Int, patch: Int, metadata: Option[String] = None, prereleaseTag: Option[String] = None) {
+
+    private def toJVersion(): Version = {
+      val builder = new Version.Builder(s"$major.$minor.$patch")
+      // The java lib will handle "" the same as Null
+      builder.setBuildMetadata(metadata.getOrElse(""))
+      builder.setPreReleaseVersion(prereleaseTag.getOrElse(""))
+      builder.build()
+    }
+
     /**
       * Return a well formed semver string
       * @return
@@ -23,6 +32,17 @@ package object semver {
       builder.setPreReleaseVersion(prereleaseTag.getOrElse(""))
       builder.build().toString
     }
+
+    def gte(other: SemVersion): Boolean = {
+      toJVersion().greaterThanOrEqualTo(other.toJVersion())
+    }
+
+    def equalTo(other: SemVersion) = toJVersion().equals(other.toJVersion())
+
+    def lt(other: SemVersion) = toJVersion().lessThan(other.toJVersion())
+
+    def gt(other: SemVersion) = toJVersion().greaterThan(other.toJVersion())
+
   }
 
   object SemVersion {

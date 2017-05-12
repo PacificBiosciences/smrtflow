@@ -448,5 +448,5 @@ class DataSetScenario(host: String, port: Int)
     } !=? tmpSubreads2.get.toString
   )
   // FIXME re-import tests need to be enabled
-  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests //++ reimportTests
+  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
 }
