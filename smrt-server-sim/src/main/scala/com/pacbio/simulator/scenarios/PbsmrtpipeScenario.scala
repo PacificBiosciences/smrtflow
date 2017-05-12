@@ -49,11 +49,13 @@ trait PbsmrtpipeScenarioCore
   protected val EXIT_SUCCESS: Var[Int] = Var(0)
   protected val EXIT_FAILURE: Var[Int] = Var(1)
 
-  private val testdata = PacBioTestData()
+  protected val testdata = PacBioTestData()
+  protected def getSubreads = testdata.getTempDataSet("subreads-xml", true)
+  protected def getReference = testdata.getTempDataSet("lambdaNEB")
 
-  protected val reference = Var(testdata.getTempDataSet("lambdaNEB"))
+  protected val reference = Var(getSubreads)
   protected val refUuid = Var(dsUuidFromPath(reference.get))
-  protected val subreads = Var(testdata.getTempDataSet("subreads-xml", true))
+  protected val subreads = Var(getReference)
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
   
   // Randomize project name to avoid collisions
