@@ -41,6 +41,9 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   override val name = "UpgradeScenario"
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
+  override def getSubreads = testdata.getFile("subreads-xml")
+  override def getReference = testdata.getFile("lambdaNEB")
+
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(diagnosticOptsCore.copy(
     taskOptions=Seq.empty[ServiceTaskOptionBase],
