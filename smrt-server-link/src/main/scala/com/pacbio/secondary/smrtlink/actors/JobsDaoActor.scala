@@ -501,7 +501,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
 
     case UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean) =>
-      dao.updateDataStoreFile(uuid, path, setIsActive)
+      pipeWith {dao.updateDataStoreFile(uuid, path, setIsActive)}
 
     case GetDataSetMetaById(i: Int) => pipeWith { dao.getDataSetById(i) }
 
