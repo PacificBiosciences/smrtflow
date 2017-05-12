@@ -6,11 +6,10 @@ import scala.math._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 
-import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
-
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels._
