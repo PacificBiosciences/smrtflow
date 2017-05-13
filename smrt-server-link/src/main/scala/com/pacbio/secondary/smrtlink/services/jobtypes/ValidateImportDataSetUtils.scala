@@ -51,7 +51,7 @@ trait ValidateImportDataSetUtils extends DataSetFileUtils{
     // This is naming is pretty terrible.
     ScTry (getDataSetMiniMeta(Paths.get(opts.path))) match {
       case ScSuccess(_) => opts.successNel
-      case ScFailure(err) => s"Failed to parse UUID and MetaType from ${opts.path} ${err.getMessage}".failNel
+      case ScFailure(err) => s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failNel
     }
   }
 
@@ -70,8 +70,8 @@ trait ValidateImportDataSetUtils extends DataSetFileUtils{
    */
   def validateDataSetImportOpts(opts: ImportDataSetOptions): Option[ValidationErrorMsg] = {
     validateOpts(opts).toEither match {
-      case Right(x) => None
-      case Left(er) => Some(s"Error $er")
+      case Right(_) => None
+      case Left(er) => Some(s"Errors: ${er.list.reduce(_ + "," + _)}")
     }
   }
 

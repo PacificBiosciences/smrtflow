@@ -40,9 +40,10 @@ class ImportDataSetServiceType(dbActor: ActorRef,
 
   import CommonModelImplicits._
 
+  // This interface should be pushed back to the base class
   private def validate(sopts: ImportDataSetOptions): Future[ImportDataSetOptions] = {
     Future { ValidateImportDataSetUtils.validateDataSetImportOpts(sopts) }.flatMap {
-      case Some(err) => Future.failed(new UnprocessableEntityError(s"Failed to validate dataset $err. Options $sopts"))
+      case Some(err) => Future.failed(new UnprocessableEntityError(s"Failed to validate dataset $err. Options Provided: path=${sopts.path} datasetType=${sopts.datasetType}"))
       case _ => Future { sopts }
     }
   }
@@ -82,9 +83,13 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     override def createEngineJob(dbActor: ActorRef,
                                  opts: ImportDataSetOptions,
                                  user: Option[UserRecord]): Future[EngineJob] = {
-      updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError =>
-        createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob] }
-      }
+
+      val creator = createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob]}
+
+      for {
+        _ <- validate(opts)
+        job <- updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError => creator }
+      } yield job
   }
 }
 
