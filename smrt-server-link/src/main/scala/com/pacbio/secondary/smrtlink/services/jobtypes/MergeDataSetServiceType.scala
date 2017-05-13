@@ -1,12 +1,13 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.UserRecord
+import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.JobTypeIds
@@ -29,26 +30,41 @@ case class InValidJobOptionsError(msg: String) extends Exception(msg)
 
 
 trait ValidatorDataSetServicesOptions {
+
   def validateDataSetType(datasetType: String): Future[DataSetMetaTypes.DataSetMetaType] = {
-    DataSetMetaTypes.toDataSetType(datasetType) match {
-      case Some(dst) => Future { dst }
-      case _ => Future.failed(new InValidJobOptionsError("Unsupported dataset type '$datasetType'"))
-    }
+    DataSetMetaTypes.toDataSetType(datasetType)
+        .map(d => Future.successful(d))
+        .getOrElse(Future.failed(throw new InValidJobOptionsError(s"Unsupported dataset type '$datasetType'")))
+  }
+
+  def validatePath(serviceDataSet: ServiceDataSetMetadata): Future[ServiceDataSetMetadata] = {
+    val p = Paths.get(serviceDataSet.path)
+    if (Files.exists(p) && p.toFile.isFile) Future.successful(serviceDataSet)
+    else Future.failed(throw new UnprocessableEntityError(s"Unable to find DataSet id:${serviceDataSet.id} UUID:${serviceDataSet.uuid} Path:$p"))
+  }
+
+  /**
+    * Resolve the DataSet and Validate the Path to the XML file.
+    *
+    * In a future iteration, this should validate all the external resources in the DataSet XML file
+    *
+    * @param dsType DataSet MetaType
+    * @param dsId DataSet Int
+    * @return
+    */
+  def resolveAndValidatePath(dsType: String, dsId: Int, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
+
+    for {
+      dsm <- ValidateImportDataSetUtils.resolveDataSet(dsType, dsId, dbActor)
+      validatedDataSet <- validatePath(dsm)
+    } yield validatedDataSet
+
   }
 
   def validateDataSetsExist(datasets: Seq[Int],
                             dsType: DataSetMetaTypes.DataSetMetaType,
                             dbActor: ActorRef): Future[Seq[ServiceDataSetMetadata]] = {
-    val fsx = datasets.map(id => ValidateImportDataSetUtils.resolveDataSet(dsType.dsId, id, dbActor))
-    Future.sequence(fsx).map { f =>
-      f.map { ds =>
-        val path = Paths.get(ds.path)
-        if (!path.toFile.exists) {
-          throw InValidJobOptionsError(s"The dataset path $path does not exist")
-        }
-        ds
-      }
-    }
+    Future.sequence(datasets.map(id => resolveAndValidatePath(dsType.dsId, id, dbActor)))
   }
 
   // FIXME does not compile yet
@@ -73,27 +89,6 @@ trait ValidatorDataSetServicesOptions {
 
 }
 
-object ValidatorDataSetMergeServiceOptions extends ValidatorDataSetServicesOptions with ProjectIdJoiner {
-
-  def apply(opts: DataSetMergeServiceOptions,
-            dbActor: ActorRef): Future[MergeDataSetOptions] = {
-    validate(opts, dbActor)
-  }
-
-  def validate(opts: DataSetMergeServiceOptions,
-               dbActor: ActorRef): Future[MergeDataSetOptions] = {
-    for {
-      datasetType <- validateDataSetType(opts.datasetType)
-      name <- validateName(opts.name)
-      datasets <- validateDataSetsExist(opts.ids, datasetType, dbActor)
-      projectId <- Future { joinProjectIds(datasets.map(_.projectId)) }
-    } yield MergeDataSetOptions(datasetType.dsId, datasets.map(_.path), name, projectId)
-  }
-
-  def validateName(name: String): Future[String] = Future { name }
-
-}
-
 
 class MergeDataSetServiceJobType(dbActor: ActorRef,
                                  authenticator: Authenticator,
@@ -101,12 +96,13 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
   extends {
     override val endpoint = JobTypeIds.MERGE_DATASETS.id
     override val description = "Merge PacBio XML DataSets (Subread, HdfSubread datasets types are supported)"
-  } with JobTypeService[DataSetMergeServiceOptions](dbActor, authenticator) with ProjectIdJoiner with LazyLogging {
+  } with JobTypeService[DataSetMergeServiceOptions](dbActor, authenticator) with ProjectIdJoiner with LazyLogging with ValidatorDataSetServicesOptions{
 
   override def createJob(sopts: DataSetMergeServiceOptions, user: Option[UserRecord]): Future[CreateJobType] = {
     val uuid = UUID.randomUUID()
     logger.info(s"attempting to create a merge-dataset job ${uuid.toString} with options $sopts")
-    Future.sequence(sopts.ids.map(x => ValidateImportDataSetUtils.resolveDataSet(sopts.datasetType, x, dbActor))).map { datasets =>
+
+    Future.sequence(sopts.ids.map(x => resolveAndValidatePath(sopts.datasetType, x, dbActor))).map { datasets =>
       val mergeDataSetOptions = MergeDataSetOptions(
         sopts.datasetType,
         datasets.map(_.path),
@@ -114,7 +110,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
         joinProjectIds(datasets.map(_.projectId)))
       CreateJobType(
         uuid,
-        s"Job $endpoint", "Merging Datasets",
+        s"Job $endpoint", s"Merging ${datasets.length} Datasets",
         endpoint,
         CoreJob(uuid, mergeDataSetOptions),
         Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
