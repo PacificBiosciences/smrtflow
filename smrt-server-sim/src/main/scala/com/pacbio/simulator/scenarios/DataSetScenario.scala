@@ -382,9 +382,7 @@ class DataSetScenario(host: String, port: Int)
   // FAILURE MODES
   val failureTests = Seq(
     // not a dataset
-    jobId := ImportDataSet(refFasta, ftReference),
-    jobStatus := WaitForJob(jobId),
-    fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
+    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     // wrong ds metatype
     // FIXME to be removed since we can get the metatype from the XML instead
     // of making it a POST parameter
@@ -443,10 +441,10 @@ class DataSetScenario(host: String, port: Int)
     fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
     fail("Multiple dataset have the same UUID") IF subreadSets.mapWith { ss =>
-      ss.filter(_.uuid == subreadsUuid1).size
+      ss.filter(_.uuid == subreadsUuid1.get).size
     } !=? 1,
     fail("Path did not change") IF subreadSets.mapWith { ss =>
-      ss.filter(_.uuid == subreadsUuid1).last.path
+      ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
