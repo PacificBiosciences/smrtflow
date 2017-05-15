@@ -41,6 +41,7 @@ class ChemistryBundleScenario(host: String, port: Int)
     with PacBioDataBundleIOUtils {
 
   override val name = "ChemistryBundleScenario"
+  override val requirements = Seq("SEQ-306", "SL-458", "SL-998")
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
@@ -49,7 +50,7 @@ class ChemistryBundleScenario(host: String, port: Int)
 
   val testdata = PacBioTestData()
 
-  val subreads = Var(testdata.getFile("subreads-sequel"))
+  val subreads = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid = Var(dsUuidFromPath(subreads.get))
   val bundle: Var[PacBioDataBundle] = Var()
   val jobId: Var[UUID] = Var()

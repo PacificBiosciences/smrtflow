@@ -43,6 +43,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
     with ClientUtils {
 
   override val name = "StressTestScenario"
+  override val requirements = Seq("SL-41", "SL-1295")
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 

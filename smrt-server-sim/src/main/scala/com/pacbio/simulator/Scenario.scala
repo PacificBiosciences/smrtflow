@@ -43,6 +43,8 @@ trait Scenario {
 
   // Subclasses override these
   val name: String
+  // JIRA issues to tag as properties in JUnit XML output
+  val requirements: Seq[String] = Seq.empty[String]
   val steps: Seq[Step]
   def setUp(): Unit = {}
   def tearDown(): Unit = {}
