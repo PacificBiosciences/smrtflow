@@ -50,7 +50,7 @@ class DataSetScenario(host: String, port: Int)
     with ClientUtils {
 
   override val name = "DataSetScenario"
-
+  override val requirements = Seq("SL-1303")
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   import CommonModelImplicits._
@@ -386,6 +386,8 @@ class DataSetScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId),
     fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
     // wrong ds metatype
+    // FIXME to be removed since we can get the metatype from the XML instead
+    // of making it a POST parameter
     jobId := ImportDataSet(subreads3, ftContigs),
     jobStatus := WaitForJob(jobId),
     fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
@@ -447,6 +449,5 @@ class DataSetScenario(host: String, port: Int)
       ss.filter(_.uuid == subreadsUuid1).last.path
     } !=? tmpSubreads2.get.toString
   )
-  // FIXME re-import tests need to be enabled
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
 }

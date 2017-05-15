@@ -70,7 +70,9 @@ object Sim extends App {
     null // unreachable, but required for return type
   }
 
-  def outputXML(result: ScenarioResult, outputPath: Path): Unit = {
+  def outputXML(result: ScenarioResult,
+                outputPath: Path,
+                requirements: Seq[String]): Unit = {
     import StepResult._
 
     def millisToSecs(m: Long): Double = Duration(m, MILLISECONDS).toUnit(SECONDS)
@@ -115,6 +117,12 @@ object Sim extends App {
           builder.append(s"    </testcase>\n")
       }
     }
+    if (requirements.size > 0) {
+      builder.append("    <properties>\n")
+      requirements.foreach { req =>
+        builder.append(s"""      <property name="Requirement" value="${req}"/>\n""")
+      }
+    }
     builder.append("  </testsuite>\n")
     builder.append("</testsuites>\n")
 
@@ -149,7 +157,7 @@ object Sim extends App {
 
     // output results
     simArgs.outputXML.foreach {
-      outputXML(result, _)
+      outputXML(result, _, scenario.requirements)
     }
 
   } finally {
