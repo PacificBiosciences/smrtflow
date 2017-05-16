@@ -3,6 +3,16 @@
   "name": "Override Pipeline Display Name",
   "description": "Override Description",
   "taskOptions": [
-    {"id": "pblaa.task_options.min_length",        "hidden": false, "advanced": false}
+    {"id": "pblaa.task_options.result_file",              "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.junk_file",                "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.report_file",              "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.log_file",                 "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.subreads_report_prefix",   "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.input_report_file",        "hidden": true,  "advanced": true},
+    
+    {"id": "pblaa.task_options.model_path",               "hidden": true,  "advanced": true},
+    {"id": "pblaa.task_options.model_spec",               "hidden": true,  "advanced": true},
+    
+    {"id": "pblaa.task_options.min_length",               "hidden": false, "advanced": false}
   ]
 }
