@@ -53,9 +53,9 @@ trait PbsmrtpipeScenarioCore
   protected def getSubreads = testdata.getTempDataSet("subreads-xml", true)
   protected def getReference = testdata.getTempDataSet("lambdaNEB")
 
-  protected val reference = Var(getSubreads)
+  protected val reference = Var(getReference)
   protected val refUuid = Var(dsUuidFromPath(reference.get))
-  protected val subreads = Var(getReference)
+  protected val subreads = Var(getSubreads)
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
   
   // Randomize project name to avoid collisions
