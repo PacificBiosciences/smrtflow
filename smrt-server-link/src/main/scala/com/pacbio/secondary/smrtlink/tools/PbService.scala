@@ -68,7 +68,7 @@ object PbServiceParser extends CommandLineToolVersion{
   import CommonModelImplicits._
   import CommonModels._
 
-  val VERSION = "0.1.1"
+  val VERSION = "0.2.0"
   var TOOL_ID = "pbscala.tools.pbservice"
 
   private def getSizeMb(fileObj: File): Double = {
@@ -501,6 +501,11 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   protected def printMsg(msg: String) = printAndExit(msg, 0)
 
+  protected def logMsg(msg: String) = {
+    logger.info(msg)
+    0
+  }
+
   protected def showNumRecords(label: String, numPad: Int, fn: () => Future[Int]): Unit = {
     Try { Await.result(fn(), TIMEOUT) } match {
       case Success(nrecords) => println(s"${label.padTo(numPad, ' ')} $nrecords")
@@ -891,7 +896,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
       } else rc
     }
-    println(s"UUID: ${dsUuid.toString}")
+    logger.info(s"UUID: ${dsUuid.toString}")
     def errorIfNewPath(dsInfo: DataSetMetaDataSet) = println(
       s"ERROR: The dataset UUID (${dsInfo.uuid.toString}) is already "+
       "present in the database but associated with a different path; if you "+
@@ -913,8 +918,10 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
             warnIfNewPath(dsInfo)
             importDs
           } else errorIfNewPath(dsInfo)
-        } else println(s"Dataset ${dsUuid.toString} already imported.")
-        printDataSetInfo(dsInfo)
+        } else logger.info(s"Dataset ${dsUuid.toString} already imported.")
+        // printDataSetInfo(dsInfo)
+        logger.info(toDataSetInfoSummary(dsInfo))
+        0
       }
       case Failure(err) => {
         println(s"No existing dataset record found")
@@ -1264,7 +1271,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     Try {
       Await.result(sal.getPipelineTemplate(pipelineId), TIMEOUT)
     } match {
-      case Success(x) => printMsg(s"Found pipeline template ${pipelineId}")
+      case Success(x) => logMsg(s"Found pipeline template $pipelineId")
       case Failure(err) => errorExit(s"Can't find pipeline template ${pipelineId}: ${err.getMessage}\nUse 'pbsmrtpipe show-templates' to display a list of available pipelines")
     }
   }
@@ -1307,7 +1314,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
-    println(s"Importing entry point $entryPoint")
+    logger.info(s"Importing entry point '$entryPoint'")
     val epFields = entryPoint.split(':')
     if (epFields.length == 2) {
       importEntryPoint(epFields(0), Paths.get(epFields(1)))
@@ -1368,12 +1375,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                   presetXml: Option[Path] = None,
                   block: Boolean = true,
                   validate: Boolean = true,
-                  taskOptions: Option[Map[String,String]] = None): Int = {
+                  taskOptions: Option[Map[String,String]] = None,
+                  asJson: Boolean = false): Int = {
     if (entryPoints.isEmpty) return errorExit("At least one entry point is required")
 
     val pipelineIdFull = if (pipelineId.split('.').length != 3) s"pbsmrtpipe.pipelines.$pipelineId" else pipelineId
 
-    println(s"pipeline ID: $pipelineIdFull")
+    logger.info(s"pipeline ID: $pipelineIdFull")
     if (validatePipelineId(pipelineIdFull) != 0) return errorExit("Aborting")
     var jobTitleTmp = jobTitle
     if (jobTitle.length == 0) jobTitleTmp = s"pbservice-$pipelineIdFull"
@@ -1385,7 +1393,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     } yield job
 
     tx match {
-      case Success(job) => if (block) waitForJob(job.uuid) else printJobInfo(job)
+      case Success(job) => if (block) waitForJob(job.uuid) else printJobInfo(job, asJson)
       case Failure(err) => errorExit(s"Failed to run pipeline: ${err}")//.getMessage}")
     }
   }
@@ -1551,7 +1559,7 @@ object PbService extends LazyLogging{
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE => ps.runPipeline(c.pipelineId, c.entryPoints,
                                               c.jobTitle, c.presetXml, c.block,
-                                              taskOptions = c.taskOptions)
+                                              taskOptions = c.taskOptions, asJson = c.asJson)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB => ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
