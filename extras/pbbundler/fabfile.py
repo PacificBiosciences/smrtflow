@@ -158,6 +158,11 @@ def _raise_if_not_exists(path, custom_message=None):
         raise IOError(msg)
 
 
+def _raise_non_none_if_not_exists(path_or_none, custom_message=None):
+    if path_or_none is not None:
+        return _raise_if_not_exists(path_or_none, custom_message=custom_message)
+
+
 def _copy_and_extract_tomcat(tomcat_tgz, output_dir):
 
     name = os.path.basename(tomcat_tgz)
@@ -441,10 +446,11 @@ def build_smrtlink_services_ui(version,
                                resolved_pipeline_templates_dir,
                                publish_to=None,
                                ivy_cache=None,
-                               analysis_server="smrt-server-link",
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="apache-tomcat-8.0.26.tar.gz",
-                               chemistry_bundle_dir=None):
+                               chemistry_bundle_dir=None,
+                               doc_dir=None
+                               ):
     """
     Build the SMRT Link UI and copy it into the Tomcat. The bundles will be
     written to ./built-bundles/
@@ -473,6 +479,10 @@ def build_smrtlink_services_ui(version,
     v2.0.0)
 
     :param chemistry_bundle_dir: path to chemistry resources repo
+    :type chemistry_bundle_dir: str | None
+
+    :param doc_dir: Directory of docs that will be copied into tomcat (if doc_dir not None)
+    :type doc_dir: str | None
 
     Example of running from the commandline
 
@@ -491,7 +501,7 @@ def build_smrtlink_services_ui(version,
     To copy the tar.gz bundle to the outputdir.
     """
     bamboo_build_number = os.environ.get("bamboo_buildNumber", "")
-    log.info("Starting SL Bundler. Building components: SL Server {}, Tomcat and wso2 AM manager".format(analysis_server))
+    log.info("Starting SL Bundler. Building components: SL Analysis Server, Tomcat and wso2 AM manager")
     log.info("bamboo build number {}".format(bamboo_build_number))
 
     def to_p(x):
@@ -502,6 +512,7 @@ def build_smrtlink_services_ui(version,
     resolved_pipeline_templates_dir = to_p(resolved_pipeline_templates_dir)
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
     tomcat_tgz = to_p(tomcat_tgz)
+    doc_dir = to_p(doc_dir) if doc_dir is not None else doc_dir
 
     # Validation to fail early
     _raise_if_not_exists(smrtlink_ui_dir, "SMRTLink UI not found.")
@@ -510,8 +521,8 @@ def build_smrtlink_services_ui(version,
     _raise_if_not_exists(wso2_api_manager_zip, "Unable to find wso2 API Manager zip '{}'".format(wso2_api_manager_zip))
     _raise_if_not_exists(tomcat_tgz, "Unable to find tomcat from '{}'".format(tomcat_tgz))
 
-    if publish_to is not None:
-        _raise_if_not_exists(publish_to, "Publish directory not Found.")
+    _raise_non_none_if_not_exists(doc_dir, "Unable to find Document Directory {}".format(doc_dir))
+    _raise_non_none_if_not_exists(publish_to, "Publish directory not Found. {}".format(publish_to))
 
     started_at = time.time()
     name = _to_build_name(Constants.SLS_UI, version)
@@ -561,11 +572,19 @@ def build_smrtlink_services_ui(version,
         shutil.rmtree(root_html_dir)
     shutil.copytree(root_app_dir, root_html_dir)
 
-    # Build Scala Services
+    # Copy Docs in Tomcat
+    if doc_dir is not None:
+        doc_app_dir = os.path.join(root_html_dir, "docs")
+        if os.path.exists(doc_app_dir):
+            shutil.rmtree(doc_app_dir)
+        log.info("Copying docs into {}".format(doc_app_dir))
+        shutil.copytree(doc_dir, doc_app_dir)
+
+    # Build Scala SMRT Link Analysis Services
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
                              resolved_pipeline_templates_dir=resolved_pipeline_templates_dir,
                              ivy_cache=ivy_cache,
-                             analysis_server=analysis_server)
+                             analysis_server="smrt-server-link")
     # build simulator tools
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
                              analysis_server="smrt-server-sim")
