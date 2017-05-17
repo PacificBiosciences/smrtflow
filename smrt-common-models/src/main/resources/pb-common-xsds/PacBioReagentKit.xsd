@@ -48,6 +48,16 @@
 						<xs:documentation>The number of collections this supply kit is capable of</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
+				<xs:attribute name="ActiveHours" type="xs:double" default="0">
+					<xs:annotation>
+						<xs:documentation>The number of hours that the kit has been active (i.e. hours since first opened)</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="ActiveHoursLimit" type="xs:int" default="0">
+					<xs:annotation>
+						<xs:documentation>The limit on the number of hours after opening that a kit can be used</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

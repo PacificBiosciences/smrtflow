@@ -12,7 +12,6 @@ jsonclean:
 	find smrt-server-link/src/main/resources/pipeline-datastore-view-rules -name "*.json" | grep -v "dev_01" | xargs rm -f
 	find smrt-server-link/src/main/resources/report-view-rules -name "*.json" | grep -v "ccs_processing" | grep -v "simple_dataset" | xargs rm -f
 
-
 dataclean:
 	rm -rf test-data
 
@@ -22,6 +21,9 @@ build:
 tools:
 	sbt clean pack
 
+xsd-java:
+	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
+	xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
 
 tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
