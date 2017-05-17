@@ -109,13 +109,13 @@ object Sim extends App {
             }
             </testcase>
           }
+          <properties>
+          {requirements.map { req =>
+            <property name="Requirement" value={req}/>
+          }}
+          </properties>
         }
         </testsuite>
-        <properties>
-        {requirements.map { req =>
-          <property name="Requirement" value={req}/>
-        }}
-        </properties>
       </testsuites>
     }
 
