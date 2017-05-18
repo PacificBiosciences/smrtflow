@@ -46,23 +46,40 @@ class ExportDataSets(
                                 res: InputOutputDataType,
                                 basePath: Path,
                                 ignoreMissing: Boolean = false): Int = {
-    val resourcePath = Paths.get(res.getResourceId)
+    val rid = res.getResourceId
+    val uri = URI.create(rid)
+    val rawPath = if (uri.getScheme == null) Paths.get(rid) else Paths.get(uri)
+    val resourcePath = if (rawPath.isAbsolute) {
+      rawPath.toAbsolutePath
+    } else {
+      basePath.resolve(rawPath).normalize().toAbsolutePath
+    }
     if (! resourcePath.toFile.exists) {
       val msg = s"resource ${resourcePath.toString} is missing"
       if (ignoreMissing) {
-        logger.error(msg)
-        0
+        logger.error(msg); 0
       } else {
         throw new Exception(msg)
       }
     } else {
-      val destPath = s"${dsId}/${res.getResourceId}"
+      val finalPath = if (rawPath.isAbsolute) {
+        if (rawPath.startsWith(basePath)) {
+          // if the resourceId is an absolute path, but a subdirectory of the
+          // base path, we convert it to the corresponding relative path first
+          basePath.relativize(rawPath)
+        } else {
+          Paths.get(s".${rawPath}")
+        }
+      } else {
+        rawPath
+      }
+      val destPath = Paths.get(dsId.toString).resolve(finalPath.toString).toString
       if (haveFiles contains destPath) {
-        logger.info(s"skipping duplicate file $destPath")
-        0
+        logger.info(s"skipping duplicate file $destPath"); 0
       } else {
         logger.info(s"writing $resourcePath")
         haveFiles += destPath
+        res.setResourceId(finalPath.toString)
         writeFile(resourcePath, destPath)
       }
     }
