@@ -14,8 +14,7 @@ SRC=$(readlink -f "$SMRTFLOW_ROOT"/..);
 UI_ROOT="${SRC}/ui"
 BUNDLE_DEST="${PBBUNDLER_DEST}"
 
-# The repo isn't configured yet in bamboo
-DOC_HELP_ROOT="${SRC}/sl-help"
+DOC_HELP_ROOT="${SRC}/sl-helps"
 
 DOC_ROOT=$(mktemp -d)/docs
 mkdir -p "${DOC_ROOT}"
@@ -132,4 +131,4 @@ cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}",doc_dir="${DOC_ROOT}"

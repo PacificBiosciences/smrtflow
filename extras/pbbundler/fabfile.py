@@ -573,7 +573,9 @@ def build_smrtlink_services_ui(version,
     shutil.copytree(root_app_dir, root_html_dir)
 
     # Copy Docs in Tomcat
-    if doc_dir is not None:
+    if doc_dir is None:
+        log.warn("No docs directory provided. Skipping copying docs")
+    else:
         doc_app_dir = os.path.join(root_html_dir, "docs")
         if os.path.exists(doc_app_dir):
             shutil.rmtree(doc_app_dir)
