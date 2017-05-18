@@ -14,7 +14,6 @@ SRC=$(readlink -f "$SMRTFLOW_ROOT"/..);
 UI_ROOT="${SRC}/ui"
 BUNDLE_DEST="${PBBUNDLER_DEST}"
 
-# The repo isn't configured yet in bamboo
 DOC_HELP_ROOT="${SRC}/sl-helps"
 
 DOC_ROOT=$(mktemp -d)/docs
