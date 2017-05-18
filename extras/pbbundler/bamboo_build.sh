@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.15.1"
+BUNDLE_VERSION="0.16.0"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -13,6 +13,14 @@ SMRTFLOW_ROOT=$(readlink -f "$g_progdir"/../..);
 SRC=$(readlink -f "$SMRTFLOW_ROOT"/..);
 UI_ROOT="${SRC}/ui"
 BUNDLE_DEST="${PBBUNDLER_DEST}"
+
+# The repo isn't configured yet in bamboo
+DOC_HELP_ROOT="${SRC}/sl-help"
+
+DOC_ROOT=$(mktemp -d)/docs
+mkdir -p "${DOC_ROOT}"
+
+# Input Validation
 if [ -z "$BUNDLE_DEST" ]; then
   BUNDLE_DEST="/mnt/secondary/Share/smrtserver-bundles-mainline"
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
@@ -63,13 +71,14 @@ if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
   python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
   source $ve/bin/activate
   pip install fabric
+  pip install sphinx
 fi
 
 RPT_JSON_PATH="${SRC}/resolved-pipeline-templates"
 if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
     echo "Installing pbsmrtpipe to virtualenv"
-    cd ${SRC}/pbcore
+    cd "${SRC}/pbcore"
     pip install -r requirements.txt
     python setup.py install
     cd ..
@@ -78,20 +87,39 @@ if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
   fi
 
   if [ ! -d ${RPT_JSON_PATH} ]; then
-    mkdir ${RPT_JSON_PATH}
+    mkdir "${RPT_JSON_PATH}"
   fi
 
   echo "Generating resolved pipeline templates in ${RPT_JSON_PATH}"
   rm -f ${RPT_JSON_PATH}/*.json
-  pbsmrtpipe show-templates --output-templates-json ${RPT_JSON_PATH}
+  pbsmrtpipe show-templates --output-templates-json "${RPT_JSON_PATH}"
 
   echo "Generating pipeline datastore view rules"
   VIEW_RULES="${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/pipeline-datastore-view-rules"
-  python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir $VIEW_RULES
+  python -m pbsmrtpipe.pb_pipelines.pb_pipeline_view_rules --output-dir "${VIEW_RULES}"
 
   # FIXME this won't be run if we use build artifacts - need some other way
   # to run validation
-  python -m pbsmrtpipe.testkit.validate_presets ${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/resolved-pipeline-template-presets
+  python -m pbsmrtpipe.testkit.validate_presets "${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/resolved-pipeline-template-presets"
+
+  # Create Resolved Pipeline Template Docs
+  tmpDocs=$(mktemp -d)
+  pbsmrtpipe show-templates --output-templates-json "${tmpDocs}"
+  python -m pbsmrtpipe.tools.resources_to_rst "${tmpDocs}" -o "${tmpDocs}"
+  cd "${tmpDocs}"
+  make html
+  pipelineDocs=${DOC_ROOT}/pipelines
+  mkdir -p "${pipelineDocs}"
+  cp -R "${tmpDocs}/_build/html" "${pipelineDocs}"
+  cd -
+  # cleanup
+  rm -rf "${tmpDocs}"
+
+fi
+
+# Copy docs from sl-help into ${DOC_ROOT}/help
+if [[ -d "${DOC_HELP_ROOT}" ]]; then
+  cp -R "${DOC_HELP_ROOT}" "${DOC_ROOT}/help"
 
 fi
 
@@ -104,4 +132,4 @@ cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",analysis_server="${SL_ANALYSIS_SERVER}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}"
