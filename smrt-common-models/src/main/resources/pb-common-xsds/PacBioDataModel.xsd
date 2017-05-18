@@ -404,7 +404,15 @@ In the case of Primary generating the DataSet containing the sts.xml, this Recor
 						<xs:restriction base="xs:dateTime"/>
 					</xs:simpleType>
 				</xs:attribute>
-			</xs:extension>
+				<xs:attribute name="WhenCompleted" use="optional">
+					<xs:annotation>
+						<xs:documentation>Date and time of when the overall run was completed. </xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:dateTime"/>
+					</xs:simpleType>
+				</xs:attribute>			
+            </xs:extension>
 		</xs:complexContent>
 	</xs:complexType>
 	<xs:element name="CollectionReferences">
