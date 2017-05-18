@@ -160,7 +160,7 @@ object PbServiceParser extends CommandLineToolVersion{
     }
 
     private def validateDataSetMetaType(dsType: String): Either[String, Unit] = {
-      val errorMsg = s"Invalid DataSet type '$dsType'"
+      val errorMsg = s"Invalid DataSet type '$dsType'. Allowed DataSet types ${DataSetMetaTypes.ALL.map(_.toString).reduce(_ + "," + _)}"
       DataSetMetaTypes.toDataSetType(dsType)
           .map(_ => success)
           .getOrElse(failure(errorMsg))
@@ -684,6 +684,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  // FIXME. dsType should be a proper type and validation
+  // should be outside of this function (e.g.,  CLI level)
   def runGetDataSets(dsType: String,
                      maxItems: Int,
                      asJson: Boolean = false,
@@ -702,9 +704,10 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         case "references" => Await.result(sal.getReferenceSets, TIMEOUT)
         case "gmapreferences" => Await.result(sal.getGmapReferenceSets, TIMEOUT)
         case "contigs" => Await.result(sal.getContigSets, TIMEOUT)
+        case "alignments" => Await.result(sal.getAlignmentSets, TIMEOUT)
         case "ccsalignments" => Await.result(sal.getConsensusAlignmentSets, TIMEOUT)
         case "ccsreads" => Await.result(sal.getConsensusReadSets, TIMEOUT)
-        //case _ => throw Exception("Not a valid dataset type")
+        case x => throw new Exception(s"Not a valid dataset type '$x'")
       }
     } match {
       case Success(records) => {
@@ -723,6 +726,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
               case "ccsreads" => println(ds.asInstanceOf[ConsensusReadServiceDataSet].toJson.prettyPrint + sep)
               case "ccsalignments" => println(ds.asInstanceOf[ConsensusAlignmentServiceDataSet].toJson.prettyPrint + sep)
               case "contigs" => println(ds.asInstanceOf[ContigServiceDataSet].toJson.prettyPrint + sep)
+              case "alignments" => println(ds.asInstanceOf[AlignmentServiceDataSet].toJson.prettyPrint + sep)
             }
             k += 1
           }
