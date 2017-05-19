@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="${SEQUENCE_NAME}">
+  <!-- whitelist with the read-only RemoteUserStoreManagerService methods that we use -->
+  <property name="method_match" expression="($trp:SOAPAction = 'urn:getRoleNames') or ($trp:SOAPAction = 'urn:getUserListOfRole') or ($trp:SOAPAction = 'urn:getUserList') or ($trp:SOAPAction = 'urn:listUsers') or ($trp:SOAPAction = 'urn:getRoleListOfUser') or ($trp:SOAPAction = 'urn:getUserClaimValuesForClaims')"/>
+  <filter source="fn:get-property('method_match')" regex="false">
+    <then>
+      <makefault version="soap11">
+        <code xmlns:soap11Env="http://schemas.xmlsoap.org/soap/envelope/" value="soap11Env:Client"/>
+        <reason value="unauthorized method"/>
+        <role/>
+        <detail>Method not allowed for this API</detail>
+      </makefault>
+      <header name="To" scope="default" action="remove"/>
+      <property name="HTTP_SC" value="403" scope="axis2"/>
+      <property name="X-JWT-Assertion" scope="transport" action="remove"/>
+      <property name="SOAPAction" scope="transport" action="remove"/>
+      <send/>
+    </then>
+  </filter>
+</sequence>
