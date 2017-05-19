@@ -4,6 +4,7 @@ import java.io.File
 import java.util.UUID
 
 import scala.util.Try
+import scala.collection.JavaConversions._
 
 import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
@@ -100,30 +101,31 @@ class DataSetExportSpecAdvanced
     runSimpleCmd(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
     val basename = FilenameUtils.getName(ds.toString)
     val dsUnzip = dest.resolve(s"${uuid}/${basename}")
-    DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
+    val subreads = DataSetLoader.loadSubreadSet(dsUnzip)
+    val resPaths = subreads.getExternalResources.getExternalResource.map(_.getResourceId)
+    resPaths.forall(Paths.get(_).isAbsolute) must beFalse
+    val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
+    ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
   }
 
   "Export Datasets from PacBioTestData" should {
     "Export SubreadSet with relative paths" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
       val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread)
-      val subreads = zipAndUnzip(dsTmp)
-      ValidateSubreadSet.validator(subreads).isSuccess must beTrue
+      zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with absolute paths" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
       val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
                                                   copyFiles = false)
-      val subreads = zipAndUnzip(dsTmp)
-      ValidateSubreadSet.validator(subreads).isSuccess must beTrue
+      zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths converted to absolute" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
       val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread)
       val subreadsTmp = DataSetLoader.loadAndResolveSubreadSet(dsTmp)
       DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
-      val subreads = zipAndUnzip(dsTmp)
-      ValidateSubreadSet.validator(subreads).isSuccess must beTrue
+      zipAndUnzip(dsTmp)
     }
     "Generate ZIP file from multiple SubreadSets" in {
       val datasets = getData(Seq("subreads-sequel", "subreads-xml"))
