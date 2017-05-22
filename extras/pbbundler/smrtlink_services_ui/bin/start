@@ -214,6 +214,18 @@ env "$client_env" \
        --api-name RemoteUserStoreManagerService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
+       --scope admin \
+       --roles Internal/PbAdmin \
+       --creds-json ${WSO2_CREDS} \
+       --host localhost --log-file ${logStartFile} \
+     && \
+     env "$client_env" \
+     ${AMCLIENT} proxy-admin \
+       --api-name ReadOnlyRemoteUserStoreService \
+       --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
+       --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
+       --scope userinfo \
+       --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile} \
      && echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"

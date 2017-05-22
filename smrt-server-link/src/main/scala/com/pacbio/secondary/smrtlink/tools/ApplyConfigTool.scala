@@ -46,6 +46,7 @@ object ApplyConfigConstants {
 
   val SSL_KEYSTORE_FILE = ".keystore"
   val UI_PROXY_FILE = "_sl-ui_.xml"
+  val READONLY_USERSTORE_FILE = "ReadOnlyUserStoreSynapseConfig.xml"
 
   // Relative Tomcat
   val REL_TOMCAT_ENV_SH = s"$TOMCAT_VERSION/bin/setenv.sh"
@@ -55,6 +56,7 @@ object ApplyConfigConstants {
   val REL_TOMCAT_UI_API_SERVER_CONFIG = s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_API_SERVER_CONFIG_JSON"
 
   val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
+  val REL_WSO2_SEQ_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/sequences"
   val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
   val REL_WSO2_CONF_DIR = s"$WSO2_VERSION/repository/conf"
 
@@ -103,6 +105,8 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val wso2ApiDir = resolve(ApplyConfigConstants.REL_WSO2_API_DIR)
 
+  val wso2SeqDir = resolve(ApplyConfigConstants.REL_WSO2_SEQ_DIR)
+
   val wso2ConfDir = resolve(ApplyConfigConstants.REL_WSO2_CONF_DIR)
 
   val uiProxyConfig = wso2ApiDir.resolve(ApplyConfigConstants.UI_PROXY_FILE)
@@ -124,6 +128,7 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val tomcatUsers = resolve(ApplyConfigConstants.T_TOMCAT_USERS_XML)
 
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
+  val readOnlyUserStore = resolveWso2Template(ApplyConfigConstants.READONLY_USERSTORE_FILE)
   val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
   val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
 }
@@ -289,6 +294,23 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
+   * #12
+   * update synapse config to enforce only reads on the read-only userstore API
+   */
+  def updateReadOnlyUserstore(wso2SeqDir: Path, inputTemplateFile: File, wso2User: String) = {
+    val apiName = "ReadOnlyRemoteUserStoreService"
+    val apiVersion = "1"
+    val seqName = s"${wso2User}--${apiName}:v${apiVersion}--In"
+    val outFile = wso2SeqDir.resolve(s"${seqName}.xml").toFile
+    val xmlNode = XmlTemplateReader
+        .fromFile(inputTemplateFile)
+        .globally()
+        .substitute("${SEQUENCE_NAME}", seqName).result()
+
+    writeAndLog(outFile, xmlNode.mkString)
+  }
+
+  /**
     * This is workaround for the loading of JSON files using the -Dconfig.file=/path/to/file.json model.
     *
     * The merges the custom third-party options defined in internal-config.json and writes merged
@@ -331,6 +353,7 @@ object ApplyConfigUtils extends LazyLogging{
    * 9.  (update_redirect) write index.jsp to tomcat root
    * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
    * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
+   * 12. (update_readonly_userstore) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/sequences
    */
   def run(opts: ApplyConfigToolOptions): String = {
 
@@ -410,6 +433,9 @@ object ApplyConfigUtils extends LazyLogging{
 
     // #11
     updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile, templateResolver.jndiProperties.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
+
+    // #22
+    updateReadOnlyUserstore(resolver.wso2SeqDir, templateResolver.readOnlyUserStore.toFile, wso2Credentials.wso2User)
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 

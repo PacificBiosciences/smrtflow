@@ -81,6 +81,7 @@ object AmClientParser extends CommandLineToolVersion{
     apiName: String = "SMRTLink",
     target: Option[URL] = target,
     roles: Seq[String] = List("Internal/PbAdmin", "Internal/PbLabTech", "Internal/PbBioinformatician"),
+    scope: String = null,
     adminService: String = "RemoteUserStoreManagerService",
     swagger: Option[String] = None,
     // these Files are required in the commands that use them,
@@ -189,6 +190,14 @@ object AmClientParser extends CommandLineToolVersion{
         opt[String]("api-name")
           .action((a, c) => c.copy(apiName = a))
           .text("API Name"),
+        opt[Seq[String]]("roles")
+          .required()
+          .action((roles, c) => c.copy(roles = roles))
+          .text("list of roles"),
+        opt[String]("scope")
+          .required()
+          .action((scope, c) => c.copy(scope = scope))
+          .text("oauth scope for accessing admin api"),
         opt[String]("target")
           .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
@@ -493,7 +502,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         },
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited",
-        "x-scope": "admin"
+        "x-scope": "${conf.scope}"
       }
     }
   },
@@ -514,10 +523,10 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     "apim": {
       "x-wso2-scopes": [
         {
-          "name": "admin",
+          "name": "${conf.scope}",
           "description": "",
-          "key": "admin",
-          "roles": "Internal/PbAdmin"
+          "key": "${conf.scope}",
+          "roles": "${conf.roles.mkString(",")}"
         }
       ]
     }
