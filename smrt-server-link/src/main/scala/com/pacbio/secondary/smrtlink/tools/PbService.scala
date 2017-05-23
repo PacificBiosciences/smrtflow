@@ -140,7 +140,6 @@ object PbServiceParser extends CommandLineToolVersion{
       force: Boolean = false,
       user: String = System.getProperty("user.name"),
       comment: String = "Sent via pbservice",
-      ignoreErrors: Boolean = false, // Use judiciously, for multi job or import-dataset runs
       blockImportDataSet: Boolean = true // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
   ) extends LoggerConfig
 
