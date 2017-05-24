@@ -146,6 +146,7 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     *  - /userdata/log
     *  - /userdata/config
     *  - /userdata/generated
+    *  - /userdata/user_jmsenv
     *
     *
     * @param smrtLinkUserDataRoot Root SMRT Link System Dir (This must contain a "userdata" subdirectory
@@ -158,8 +159,9 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
       FileUtils.forceMkdir(dest.toFile)
     }
 
-    // All of the log dirs are configured here.
-    val userDataDirs = TS_REQ_INSTALL
+    // Copy the config and general info. These should only contain small files.
+    // The logs will be handled in a separate case below
+    val userDataDirs = TS_REQ_INSTALL.filter(_ != "log")
         .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
         .filter(_.toFile.isDirectory)
 
@@ -167,9 +169,25 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
       logger.warn(s"Unable to find required directories ($TS_REQ_INSTALL) in SL UserRoot $smrtLinkUserDataRoot")
     }
 
+    // Copy all dirs
+    userDataDirs.foreach { srcPath =>
+      val srcRelPath = smrtLinkUserDataRoot.relativize(srcPath)
+      val destPath = dest.resolve(srcRelPath)
+      FileUtils.forceMkdir(destPath.toFile)
+      logger.debug(s"Copying $srcPath to $destPath")
+      FileUtils.copyDirectory(srcPath.toFile, destPath.toFile)
+    }
+
+    // Copy all files within the log dir that end in .log.
+    // Handle the special case of http_access_*.log where these aren't rolled over in wso2
+
+    def logFilter(f: File) = !f.getName.startsWith("http_access_")
+
+    val logDir = smrtLinkUserDataRoot.resolve("log").toAbsolutePath()
+
     val rx = """\.log$""".r
 
-    val logFiles:Seq[File] = userDataDirs.flatMap(p => Utils.recursiveListFiles(p.toAbsolutePath.toFile, rx))
+    val logFiles:Seq[File] = Utils.recursiveListFiles(logDir.toAbsolutePath.toFile, rx).filter(logFilter)
 
     logger.info(s"Found ${logFiles.length} log files to copy")
 
