@@ -424,7 +424,7 @@ trait SmrtLinkSteps {
     override val name = "WaitForJob"
     override def run: Future[Result] = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      output(smrtLinkClient.pollForJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1))
+      output(smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1))
       SUCCEEDED
     }
   }

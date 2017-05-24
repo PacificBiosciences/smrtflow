@@ -601,11 +601,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
   /**
     * FIXME(mpkocher)(2016-8-22)
-    * - maxTime should be Option[Duration]
     * - replace tStart with JodaDateTime
     * - make sleepTime configurable
     * - Add Retry to Poll
-    * - Raise Custom Exception type for Failed job to distinquish Failed jobs and jobs that exceeded maxTime
+    * - Raise Custom Exception type for Failed job to distinguish Failed jobs and jobs that exceeded maxTime
     * - replace while loop with recursion
     *
     * @param jobId Job Id or UUID
@@ -613,9 +612,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     *
     * @return EngineJob
     */
-  def pollForJob(jobId: IdAble,
-                 maxTime: Option[FiniteDuration] = None,
-                 sleepTime: Int = 5000): Try[EngineJob] = {
+  def pollForSuccessfulJob(jobId: IdAble,
+                           maxTime: Option[FiniteDuration] = None,
+                           sleepTime: Int = 5000): Try[EngineJob] = {
     var exitFlag = true
     var nIterations = 0
     val requestTimeOut = 30.seconds
@@ -628,7 +627,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     }
 
     def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
-      if (job.state != AnalysisJobStates.FAILED) Success(job)
+      if (!job.hasFailed) Success(job)
       else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
     }
 
@@ -665,8 +664,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
             runningJob = Some(job)
           }
         case Failure(ex) =>
-            exitFlag = false
-            runningJob = None
+          exitFlag = false
+          runningJob = None
       }
     }
 
@@ -675,4 +674,66 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
     }
   }
+
+  /**
+    * Block (if maxTime is provided) and Poll for a job to reach a completed (failed or successful) state.
+    *
+    * Consolidate the duplication with pollForSuccessfulJob
+    *
+    * @param jobId     Engine Job Id
+    * @param maxTime   max time to block and poll for the job, otherwise only create the job
+    * @param sleepTime time between polling when run in blocking mode.
+    * @return
+    */
+  def pollForCompletedJob(jobId: IdAble,
+                          maxTime: Option[FiniteDuration] = None,
+                          sleepTime: Int = 5000): Try[EngineJob] = {
+    var exitFlag = true
+    var nIterations = 0
+    val requestTimeOut = 30.seconds
+    var runningJob: Option[EngineJob] = None
+    val tStart = java.lang.System.currentTimeMillis() / 1000.0
+
+    def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
+      val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
+
+      // This could be cleaned up, but these changes are turning into
+      // a large yakk shaving exercise
+      val maxTimeSec: Int = maxTime.map(_.toSeconds.toInt).getOrElse(-1)
+
+      if ((maxTimeSec > 0) && (tCurrent - tStart > maxTimeSec)) {
+        Failure(new Exception(s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
+      } else {
+        Success(job)
+      }
+    }
+
+    while(exitFlag) {
+      nIterations += 1
+      Thread.sleep(sleepTime)
+
+      val tx = for {
+        createdJob <- Try { Await.result(getJob(jobId), requestTimeOut)}
+        _ <- failIfExceededMaxTime(createdJob)
+      } yield createdJob
+
+      tx match {
+        case Success(job) =>
+          if (job.isComplete) {
+            exitFlag = false
+            runningJob = Some(job)
+          }
+        case Failure(ex) =>
+          exitFlag = false
+      }
+    }
+
+    // If the job couldn't get created, this is catching the case when the job can't
+    // be created.
+    runningJob match {
+      case Some(job) => Success(job)
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+    }
+  }
+
 }
