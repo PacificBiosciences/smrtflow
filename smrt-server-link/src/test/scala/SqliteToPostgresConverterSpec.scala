@@ -12,7 +12,7 @@ import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import resource._
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration, MINUTES}
 import scala.concurrent.{Await, Future}
 import scala.language.reflectiveCalls
 
@@ -34,6 +34,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
   val jobUUID = UUID.randomUUID()
   val projectId = 2
   val runId = UUID.randomUUID()
+  val maxTimeOut = FiniteDuration(1, MINUTES)
 
   val baseMetaData = BaseLine.DataSetMetaDataSet(1, UUID.randomUUID(), "name", "/path/to", now, now, 1, 1, "tags", "1.2.3", "comments", "md5", None, jobId, projectId, isActive = true)
   def idAbleToMetaData(idAble: {val id: Int; val uuid: UUID}) = baseMetaData.copy(id = idAble.id, uuid = idAble.uuid)
@@ -219,18 +220,18 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
       setupDb(dbConfig)
       managed(dbConfig.toDatabase) acquireAndGet { db =>
-        val writer = new PostgresWriter(db, dbConfig.username, clock)
+        val writer = new PostgresWriter(db, dbConfig.username, clock, maxTimeOut)
 
         Await.result(writer.write(Future.successful(data)), Duration.Inf)
 
         writeResultAssertions(db)
 
         // Test migration status table
-        Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf) === Seq(BaseLine.MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
+        Await.result(db.run(BaseLine.migrationStatus.result), maxTimeOut) === Seq(BaseLine.MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
 
         // Test autoinc works with new insertions
-        Await.result(db.run((BaseLine.dsContig2 returning BaseLine.dsContig2.map(_.id)) += BaseLine.ContigServiceSet(-1, UUID.randomUUID())), Duration.Inf) === 11
-        Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), Duration.Inf) === 11
+        Await.result(db.run((BaseLine.dsContig2 returning BaseLine.dsContig2.map(_.id)) += BaseLine.ContigServiceSet(-1, UUID.randomUUID())), maxTimeOut) === 11
+        Await.result(db.run(sql"SELECT last_value FROM datasets_contigs_id_seq;".as[Int].map(_.head)), maxTimeOut) === 11
       }
     }
 
@@ -261,7 +262,7 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
 
       setupDb(dbConfig)
       managed(dbConfig.toDatabase) acquireAndGet { db =>
-        val writer = new PostgresWriter(db, dbConfig.username, clock)
+        val writer = new PostgresWriter(db, dbConfig.username, clock, maxTimeOut)
 
         val dupId = UUID.randomUUID()
         val badData = MigrationData(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil,
@@ -271,18 +272,18 @@ class SqliteToPostgresConverterSpec extends Specification with Specs2RouteTest w
         Await.ready(writer.write(Future.successful(badData)), Duration.Inf)
 
         // Test migration status table
-        val row = Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf).head
+        val row = Await.result(db.run(BaseLine.migrationStatus.result), maxTimeOut).head
         row.timestamp === now.toString("YYYY-MM-dd HH:mm:ss.SSS")
         row.success === false
         row.error must beSome
 
         // Write good data
-        Await.result(writer.write(Future.successful(data)), Duration.Inf)
+        Await.result(writer.write(Future.successful(data)), maxTimeOut)
 
         writeResultAssertions(db)
 
         // Test migration status table
-        val rows = Await.result(db.run(BaseLine.migrationStatus.result), Duration.Inf)
+        val rows = Await.result(db.run(BaseLine.migrationStatus.result), maxTimeOut)
         rows.size === 2
         rows.filter(_.success == true) === Seq(BaseLine.MigrationStatusRow(now.toString("YYYY-MM-dd HH:mm:ss.SSS"), success = true, error = None))
       }

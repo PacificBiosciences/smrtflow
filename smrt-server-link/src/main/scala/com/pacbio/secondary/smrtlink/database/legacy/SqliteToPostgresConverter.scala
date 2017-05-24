@@ -4,13 +4,12 @@ import java.io.File
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacbio.common.time.{SystemClock, Clock, PacBioDateTimeDatabaseFormat}
+import com.pacbio.common.time.{Clock, PacBioDateTimeDatabaseFormat, SystemClock}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
 import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils}
-
-
-import com.pacbio.secondary.smrtlink.database.legacy.BaseLine.{DataModelAndUniqueId, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.database.legacy.BaseLine.{AnalysisJobStates, DataModelAndUniqueId}
+import com.typesafe.scalalogging.LazyLogging
 // This is a problem
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 
@@ -20,7 +19,7 @@ import resource._
 import scopt.OptionParser
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Try}
@@ -35,13 +34,14 @@ case class SqliteToPostgresConverterOptions(sqliteFile: File,
                                             pgPassword: String,
                                             pgDbName: String,
                                             pgServer: String,
-                                            pgPort: Int = 5432) extends LoggerConfig
+                                            pgPort: Int = 5432,
+                                            maxTimeOut: FiniteDuration = 8.minutes) extends LoggerConfig
 
 object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresConverterOptions] {
   import DatabaseUtils._
 
   val toolId = "pbscala.tools.sqlite_to_postgres_converter"
-  val VERSION = "0.1.0"
+  val VERSION = "0.2.0"
   val DESCRIPTION =
     """
       |Migrate legacy SMRT Link 4.0.0 SQLite db to Postgres
@@ -66,6 +66,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     opt[String]('s', "server").action {(x, c) => c.copy(pgServer = x)}.text(s"Postgres server ${toDefault(defaults.pgServer)}")
     opt[String]('n', "db-name").action {(x, c) => c.copy(pgDbName = x)}.text(s"Postgres Name ${toDefault(defaults.pgDbName)}")
     opt[Int]("port").action {(x, c) => c.copy(pgPort = x)}.text(s"Postgres port ${toDefault(defaults.pgPort.toString)}")
+    opt[Int]("max-timeout").action {(x, c) => c.copy(maxTimeOut = x.minutes)}.text(s"Maximum timeout (in minutes) for SQLite to Postgres import ${toDefault(defaults.maxTimeOut.toString)}")
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage()
@@ -136,7 +137,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
     }
 
     managed(dbConfig.toDatabase) acquireAndGet { db =>
-      val writer = new PostgresWriter(db, c.pgUsername, new SystemClock)
+      val writer = new PostgresWriter(db, c.pgUsername, new SystemClock, c.maxTimeOut)
       val res = writer.checkForSuccessfulMigration().flatMap {
         case Some(status) =>
           val msg = s"Previous import at ${status.timestamp} was successful. Skipping importing."
@@ -147,7 +148,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
             .write(new LegacySqliteReader(sqliteURI).read())
             .map { _ => s"Successfully migrated data from ${c.sqliteFile} into Postgres" }
       }
-      Await.result(res, Duration.Inf)
+      Await.result(res, c.maxTimeOut)
     }
   }
 
@@ -157,7 +158,7 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
   override def run(config: SqliteToPostgresConverterOptions) = Left(ToolFailure(toolId, 1, "Not Supported"))
 }
 
-// Postgres Baseline Schema compatable models
+// Postgres Baseline Schema compatible models
 case class MigrationData(projects: Seq[BaseLine.Project],
                          projectsUsers: Seq[BaseLine.ProjectUser],
                          engineJobs: Seq[BaseLine.EngineJob],
@@ -179,7 +180,7 @@ case class MigrationData(projects: Seq[BaseLine.Project],
                          collectionMetadata: Seq[BaseLine.CollectionMetadata],
                          samples:Seq[BaseLine.Sample])
 
-class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String, clock: Clock) {
+class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: String, clock: Clock, maxTimeOut: FiniteDuration) extends LazyLogging{
   import slick.driver.PostgresDriver.api._
   // The BaseLine Postgres V1 schema and models
   import BaseLine._
@@ -196,7 +197,14 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
     db.run(query.transactionally)
   }
 
-  def write(f: Future[MigrationData]): Future[Unit] = f.flatMap { d =>
+  def write(f: Future[MigrationData]): Future[String] = f.flatMap { d =>
+    logger.info("Starting to write to postgres")
+    // Terse summary of system
+    logger.info(s"Number of SubreadSets    : ${d.dsSubread2.length}")
+    logger.info(s"Number of ReferenceSets  : ${d.dsReference2.length}")
+    logger.info(s"Number of Jobs           : ${d.engineJobs.length}")
+    logger.info(s"Number of Runs           : ${d.dataModels.length}")
+    logger.info(s"Number of DataStoreFiles : ${d.datastoreServiceFiles.length}")
     val w =
       (projects              forceInsertAll d.projects) >>
       projects.map(_.id).max.result.flatMap(m => setAutoInc(projects.baseTableRow.tableName, "project_id", m)) >>
@@ -233,10 +241,11 @@ class PostgresWriter(db: slick.driver.PostgresDriver.api.Database, pgUsername: S
       (samples               forceInsertAll d.samples) >>
       (migrationStatus       += MigrationStatusRow(timestamp, success = true, error = None))
 
-    db.run(w.transactionally).map { _ => () }.andThen {
+    db.run(w.transactionally).map { _ => "Completed import" }.andThen {
       case Failure(NonFatal(e)) =>
-        val w = migrationStatus += MigrationStatusRow(timestamp, success = false, error = Some(e.toString))
-        Await.result(db.run(w.transactionally), Duration.Inf)
+        val status = MigrationStatusRow(timestamp, success = false, error = Some(e.toString))
+        val w = migrationStatus += status
+        Await.result(db.run(w.transactionally).map(_ => s"Failed import ${status.error.getOrElse("Unknown")}"), maxTimeOut)
     }
   }
 }
