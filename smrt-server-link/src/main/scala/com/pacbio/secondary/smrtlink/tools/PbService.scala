@@ -68,7 +68,7 @@ object PbServiceParser extends CommandLineToolVersion{
   import CommonModelImplicits._
   import CommonModels._
 
-  val VERSION = "0.2.0"
+  val VERSION = "0.2.1"
   var TOOL_ID = "pbscala.tools.pbservice"
 
   // DataSet XML filename ending extension
@@ -218,7 +218,7 @@ object PbServiceParser extends CommandLineToolVersion{
       arg[File]("dataset-path").required().text(
         s"""
            |DataSet XML path, a FOFN  (File of File Names) of DataSet XML Files, or a directory containing datasets with files ending with '$DS_FILE_EXT'.
-           |When running in directory mode, or FOFN mode with a large number of datasets, it's strongly recommended to run with --non-blocking
+           |When running in directory mode, or FOFN mode with a large number of datasets, it's strongly recommended to run with --non-block
          """.stripMargin)
           .action((p, c) => c.copy(path = p.toPath)),
 
@@ -396,15 +396,15 @@ object PbServiceParser extends CommandLineToolVersion{
     } children(
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of jobs to show",
+      } text s"Max number of jobs to show (Default: ${defaults.maxItems})",
       opt[String]('t', "job-type") action { (t, c) =>
         c.copy(jobType = t)
       } validate {
         t => validateJobType(t)
       } text "Only retrieve jobs of specified type",
-      opt[String]("job-state") action { (s, c) =>
-        c.copy(jobState = Some(s))
-      } text "Only display jobs in specified state"
+      opt[String]('s', "job-state") action { (s, c) =>
+        c.copy(jobState = Some(s)) // This should validate the job state.
+      } text "Only display jobs in specified state (e.g., CREATED, SUCCESSFUL, RUNNING, FAILED)"
     )
 
     note("\nGET SMRTLINK DATASET DETAILS\n")
@@ -829,7 +829,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       val table = engineJobs.sortBy(_.id).reverse.filter( job =>
         jobState.map(_ == job.state.toString).getOrElse(true)
       ).take(maxItems).map( job =>
-        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
+        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("")))
       printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
       ""
     }
@@ -1144,6 +1144,9 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     } yield summary
   }
 
+  def validateJobWasSuccessful(job: EngineJob) = job.isSuccessful
+  def validateJobNotFailed(job: EngineJob) = !job.hasFailed
+
   /**
     * Recursively import from a Directory of all dataset files ending in *.xml and that are valid
     * PacBio DataSets.
@@ -1156,6 +1159,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     */
   def runMultiImportDataSet(files: Seq[File], maxTimeOut: Option[FiniteDuration]): Future[String] = {
 
+    // If maxTimeOut is provided, we poll the job to completion and expect the Job to be in a successful state
+    // If not provided, we only expect the job is not in a failure state (e.g, CREATED, RUNNING)
+    val jobFilter:(EngineJob => Boolean) = maxTimeOut match {
+      case Some(_) => validateJobWasSuccessful
+      case _ => validateJobNotFailed
+    }
+
     logger.info(s"Attempting to import ${files.length} PacBio DataSet(s)")
     if (files.isEmpty) {
       // Not sure if this should raise
@@ -1164,15 +1174,22 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       // Note, these futures will be run in parallel. This needs a better error communication model.
       val fx = for {
         jobs <- Future.sequence(files.map(f => runSingleLocalDataSetImport(f.toPath.toAbsolutePath, asJson = false, maxTimeOut)))
-        summary <- multiJobSummary(jobs)
+        summary <- multiJobSummary(jobs, jobFilter)
       } yield summary
 
       fx
     }
   }
 
-  def multiJobSummary(jobs: Seq[EngineJob]): Future[String] = {
-    val wasSuccessful = jobs.map(_.isSuccessful).reduce(_ && _)
+  /**
+    * Get a Summary from a List of Jobs
+    *
+    * @param jobs List of Jobs
+    * @param jobValidator Function to determine if the job (and hence the job list) was in the expected job state(s)
+    * @return
+    */
+  def multiJobSummary(jobs: Seq[EngineJob], jobValidator: (EngineJob => Boolean)): Future[String] = {
+    val wasSuccessful = jobs.map(jobValidator).reduce(_ && _)
     val failedJobs = jobs.filter(j => !j.isSuccessful)
 
     if (wasSuccessful) {
