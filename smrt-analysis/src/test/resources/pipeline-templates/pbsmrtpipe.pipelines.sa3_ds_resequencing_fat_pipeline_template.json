@@ -256,13 +256,6 @@
             "id": "pbreports.task_options.batch_sort_size",
             "name": "Batch sort size",
             "optionTypeId": "integer"
-        },
-        {
-            "default": false,
-            "description": "Enable detection of heterozygous variants (experimental)",
-            "id": "genomic_consensus.task_options.diploid",
-            "name": "Diploid mode (experimental)",
-            "optionTypeId": "boolean"
         }
     ],
     "version": "0.1.0"

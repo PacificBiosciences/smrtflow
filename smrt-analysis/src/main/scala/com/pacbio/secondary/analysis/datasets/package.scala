@@ -4,14 +4,17 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.File
 
-import scala.xml.{Elem,XML}
-import scala.util.{Try,Failure,Success}
+
+import scala.xml.Elem
+import scala.util.{Failure, Success, Try}
 
 import org.apache.commons.io.{FileUtils,FilenameUtils}
 
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.datasets.io._
 import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+
+import scala.xml.{Elem, XML}
+import scala.util.{Failure, Success, Try}
 
 /**
  *
@@ -21,13 +24,44 @@ package object datasets {
 
   case class InValidDataSetError(msg: String) extends Exception(msg)
 
+  // Mini metadata
+  case class DataSetMiniMeta(uuid: UUID, metatype: DataSetMetaTypes.DataSetMetaType)
+
   trait DataSetFileUtils {
-    private def parseXml(path: Path) = {
-      Try { scala.xml.XML.loadFile(path.toFile) } match {
-        case Success(x) => x
-        case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
-      }
+
+  /**
+    *
+    * Extra the minimal metadata from the DataSet. This is centralized to have a single loading and parsing
+    * of the PacBio DataSet XML.
+    *
+    * This is java-ish model that raises, callers should use wrap in Try
+    *
+    * @param path Path to the DataSet
+    * @return
+    */
+  def getDataSetMiniMeta(path: Path): DataSetMiniMeta = {
+    // This should be a streaming model to parse the XML
+    val xs = scala.xml.XML.loadFile(path.toFile)
+
+    val uniqueId = xs.attributes("UniqueId").toString()
+    val m = xs.attributes("MetaType").toString()
+
+    val uuid = UUID.fromString(uniqueId)
+
+    val errorMessage = s"Couldn't parse dataset MetaType from '$m' as an XML file: $path"
+
+    val dsMeta = DataSetMetaTypes.toDataSetType(m)
+        .getOrElse(throw new IllegalArgumentException(errorMessage))
+
+    DataSetMiniMeta(uuid, dsMeta)
+  }
+
+  private def parseXml(path: Path) = {
+    Try { scala.xml.XML.loadFile(path.toFile)} match {
+      case Success(x) => x
+      case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
     }
+  }
 
     private def getAttribute(e: Elem, attr: String): String = {
       Try { e.attributes(attr).toString } match {
@@ -43,14 +77,14 @@ package object datasets {
     def dsUuidFromPath(path: Path): UUID =
       java.util.UUID.fromString(getAttribute(parseXml(path), "UniqueId"))
 
-  /**
-   * Parse an RSII metadata.xml file to extract the run name.
-   *
-   * @param path RSII movie.metadata.xml
-   * @return
-   */
+    /**
+      * Parse an RSII metadata.xml file to extract the run name.
+      *
+      * @param path RSII movie.metadata.xml
+      * @return
+      */
     def dsNameFromRsMetadata(path: Path): String = {
-      if (! path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
+      if (!path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
       val md = scala.xml.XML.loadFile(path.toFile)
       if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
       (md \ "Run" \ "Name").text
@@ -58,9 +92,9 @@ package object datasets {
   }
 
   /** Utilities for setting up test datasets that can be safely manipulated or
-   *  deleted
-   *
-   */
+    * deleted
+    *
+    */
   object MockDataSetUtils {
 
     // copy all files associated with a dataset to the destination directory
@@ -92,9 +126,9 @@ package object datasets {
       copyResources(subreadsSrc, subreadsDestDir)
       FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
       val subreads = Paths.get(subreadsDestDir.toString + "/" +
-                               FilenameUtils.getName(subreadsSrc.toString))
+          FilenameUtils.getName(subreadsSrc.toString))
       var barcodes = Paths.get(barcodesDestDir.toString + "/" +
-                               FilenameUtils.getName(barcodesSrc.toString))
+          FilenameUtils.getName(barcodesSrc.toString))
       val dsSubreads = DataSetLoader.loadSubreadSet(subreads)
       val dsBarcodes = DataSetLoader.loadBarcodeSet(barcodes)
       // set new UUIDs
@@ -111,7 +145,7 @@ package object datasets {
                        copyFiles: Boolean = true): Path = {
       val targetDir = Files.createTempDirectory("dataset-contents")
       val dsTmp = Paths.get(targetDir.toString + "/" +
-                            FilenameUtils.getName(dsPath.toString))
+          FilenameUtils.getName(dsPath.toString))
       val ds = if (!copyFiles) {
         ImplicitDataSetLoader.loaderAndResolveType(metaType, dsPath)
       } else {
@@ -125,4 +159,6 @@ package object datasets {
       dsTmp
     }
   }
+
 }
+

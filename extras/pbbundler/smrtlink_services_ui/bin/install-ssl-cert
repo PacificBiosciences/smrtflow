@@ -56,7 +56,7 @@ if [ ! -d "$WSO2_ROOT" ]; then
   exit 1
 fi
 
-set -x
+# set -x
 # backup conf files
 JKS_DIR="${WSO2_ROOT}/repository/resources/security"
 cp -r ${WSO2_ROOT}/repository/conf ${WSO2_ROOT}/repository/conf.bak

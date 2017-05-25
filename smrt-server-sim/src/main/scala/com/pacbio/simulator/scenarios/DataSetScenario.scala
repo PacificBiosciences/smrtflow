@@ -50,7 +50,7 @@ class DataSetScenario(host: String, port: Int)
     with ClientUtils {
 
   override val name = "DataSetScenario"
-
+  override val requirements = Seq("SL-1303")
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   import CommonModelImplicits._
@@ -117,6 +117,7 @@ class DataSetScenario(host: String, port: Int)
   val subreads1 = Var(testdata.getTempDataSet("subreads-xml"))
   val subreadsUuid1 = Var(dsUuidFromPath(subreads1.get))
   val subreads2 = Var(testdata.getTempDataSet("subreads-sequel"))
+  val subreads3 = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid2 = Var(dsUuidFromPath(subreads2.get))
   val reference1 = Var(testdata.getTempDataSet("lambdaNEB"))
   val refFasta = Var(testdata.getFile("lambda-fasta"))
@@ -381,11 +382,11 @@ class DataSetScenario(host: String, port: Int)
   // FAILURE MODES
   val failureTests = Seq(
     // not a dataset
-    jobId := ImportDataSet(refFasta, ftReference),
-    jobStatus := WaitForJob(jobId),
-    fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
+    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[UnsuccessfulResponseException],
     // wrong ds metatype
-    jobId := ImportDataSet(alignments2, ftContigs),
+    // FIXME to be removed since we can get the metatype from the XML instead
+    // of making it a POST parameter
+    jobId := ImportDataSet(subreads3, ftContigs),
     jobStatus := WaitForJob(jobId),
     fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
     // not barcodes
@@ -440,10 +441,10 @@ class DataSetScenario(host: String, port: Int)
     fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
     subreadSets := GetSubreadSets,
     fail("Multiple dataset have the same UUID") IF subreadSets.mapWith { ss =>
-      ss.filter(_.uuid == subreadsUuid1).size
+      ss.filter(_.uuid == subreadsUuid1.get).size
     } !=? 1,
     fail("Path did not change") IF subreadSets.mapWith { ss =>
-      ss.filter(_.uuid == subreadsUuid1).last.path
+      ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests

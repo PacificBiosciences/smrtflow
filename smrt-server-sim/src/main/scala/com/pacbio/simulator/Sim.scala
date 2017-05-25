@@ -10,9 +10,9 @@ import org.joda.time.format.ISODateTimeFormat
 import resource._
 import scopt.OptionParser
 
-
 import scala.concurrent.{ExecutionContext, Await, Future}
 import scala.concurrent.duration._
+import scala.xml._
 
 object Sim extends App {
 
@@ -70,57 +70,56 @@ object Sim extends App {
     null // unreachable, but required for return type
   }
 
-  def outputXML(result: ScenarioResult, outputPath: Path): Unit = {
+  def outputXML(result: ScenarioResult,
+                outputPath: Path,
+                requirements: Seq[String]): Unit = {
     import StepResult._
 
     def millisToSecs(m: Long): Double = Duration(m, MILLISECONDS).toUnit(SECONDS)
 
-    val builder = new StringBuilder()
-    builder.append("<testsuites>\n")
     val steps = result.stepResults
     val scenarioName = result.name
     val tests = steps.size
     val failures = steps.count(!_.result.succeeded)
     val timestamp = ISODateTimeFormat.dateTime().print(result.timestamp)
     val runTimeSecs = millisToSecs(result.runTimeMillis)
-    builder.append(
-      s"  <testsuite name='$scenarioName' " +
-        s"tests='$tests' " +
-        s"failures='$failures' " +
-        s"time='$runTimeSecs' " +
-        s"timestamp='$timestamp'>\n")
-    steps.indices.foreach { i =>
-      val step = steps(i)
-      val stepName = f"${i+1}%04d-${step.name}"
-      val className = s"Simulator.$scenarioName"
-      val stepRunTimeSecs = millisToSecs(step.runTimeMillis)
-      builder.append(s"    <testcase name='$stepName' classname='$className' time='$stepRunTimeSecs'")
-      step.result match {
-        case SUCCEEDED => builder.append(" />\n")
-        case SUPPRESSED | SKIPPED =>
-          builder.append(">\n")
-          builder.append(s"      <skipped />\n")
-          builder.append(s"    </testcase>\n")
-        case FAILED(sm, lm) =>
-          builder.append(">\n")
-          builder.append(s"      <failure message='$sm'>\n")
-          builder.append(s"$lm\n")
-          builder.append(s"      </failure>\n")
-          builder.append(s"    </testcase>\n")
-        case EXCEPTION(sm, lm) =>
-          builder.append(">\n")
-          builder.append(s"      <error message='$sm'>\n")
-          builder.append(s"$lm\n")
-          builder.append(s"      </error>\n")
-          builder.append(s"    </testcase>\n")
-      }
+    val testsuites = {
+      <testsuites>
+        <testsuite
+          name={scenarioName}
+          tests={tests.toString}
+          failures={failures.toString}
+          time={runTimeSecs.toString}
+          timestamp={timestamp.toString}>
+          {steps.indices.map { i =>
+            val step = steps(i)
+            val stepName = f"${i+1}%04d-${step.name}"
+            val className = s"Simulator.$scenarioName"
+            val stepRunTimeSecs = millisToSecs(step.runTimeMillis)
+            <testcase
+              name={stepName}
+              classname={className}
+              time={stepRunTimeSecs.toString}>
+              {step.result match {
+                case SUCCEEDED => NodeSeq.Empty
+                case SUPPRESSED | SKIPPED => <skipped/>
+                case FAILED(sm, lm) => <failure message={sm}>{lm}</failure>
+                case EXCEPTION(sm, lm) => <error message={sm}>{lm}</error>
+              }
+            }
+            </testcase>
+          }
+          <properties>
+          {requirements.map { req =>
+            <property name="Requirement" value={req}/>
+          }}
+          </properties>
+        }
+        </testsuite>
+      </testsuites>
     }
-    builder.append("  </testsuite>\n")
-    builder.append("</testsuites>\n")
 
-    for (output <- managed(new PrintWriter(outputPath.toFile))) {
-      output.print(builder.mkString)
-    }
+    scala.xml.XML.save(outputPath.toString, testsuites)
   }
 
   // EXECUTION
@@ -149,7 +148,7 @@ object Sim extends App {
 
     // output results
     simArgs.outputXML.foreach {
-      outputXML(result, _)
+      outputXML(result, _, scenario.requirements)
     }
 
   } finally {

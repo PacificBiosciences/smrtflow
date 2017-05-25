@@ -1,11 +1,11 @@
 package com.pacbio.secondary.smrtlink.services.jobtypes
 
 import java.util.UUID
-import java.nio.file.{Path,Paths}
+import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Try,Success,Failure}
+import scala.util.Try
 
 import akka.actor.ActorRef
 import akka.pattern.ask
@@ -14,9 +14,8 @@ import spray.json._
 
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits,UserRecord}
-import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,UnprocessableEntityError}
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
+import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -41,31 +40,27 @@ class ImportDataSetServiceType(dbActor: ActorRef,
 
   import CommonModelImplicits._
 
+  // This interface should be pushed back to the base class
   private def validate(sopts: ImportDataSetOptions): Future[ImportDataSetOptions] = {
     Future { ValidateImportDataSetUtils.validateDataSetImportOpts(sopts) }.flatMap {
-      case Some(err) => Future.failed(new UnprocessableEntityError(s"Failed to validate dataset $err. Options $sopts"))
+      case Some(err) => Future.failed(new UnprocessableEntityError(s"Failed to validate dataset $err. Options Provided: path=${sopts.path} datasetType=${sopts.datasetType}"))
       case _ => Future { sopts }
     }
   }
 
-  // Hack to allow invalid inputs to be passed through to a new job (which will
-  // subsequently fail)
-  private def getUuid(path: String): UUID = Try {
-    dsUuidFromPath(Paths.get(path))
-  } match {
-    case Success(uuid) => uuid
-    case Failure(err: IllegalArgumentException) =>
-      throw new ResourceNotFoundError("Not an XML file, will default to standard failure mode")
-    case Failure(err: Throwable) => throw err
+  def andLog(sx: String): String = {
+    logger.info(sx)
+    sx
   }
 
   private def updateDbIfNecessary(sopts: ImportDataSetOptions): Future[EngineJob] = {
     for {
-      uuid <- Future { getUuid(sopts.path) }
-      ds <- (dbActor ? GetDataSetMetaByUUID(uuid)).mapTo[DataSetMetaDataSet]
+      dsMini <- Future.fromTry(Try(getDataSetMiniMeta(Paths.get(sopts.path))))
+      ds <- (dbActor ? GetDataSetMetaByUUID(dsMini.uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
-      _ <- (dbActor ? UpdateDataStoreFile(uuid, sopts.path, true)).mapTo[MessageResponse]
-      msg <- (dbActor ? UpdateDataSetByUUID(uuid, sopts.path, true)).mapTo[MessageResponse]
+      m1 <- (dbActor ? UpdateDataStoreFile(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
+      m2 <- (dbActor ? UpdateDataSetByUUID(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
+      _ <- Future.successful(andLog(s"$m1 $m2"))
     } yield engineJob
   }
 
@@ -88,9 +83,13 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     override def createEngineJob(dbActor: ActorRef,
                                  opts: ImportDataSetOptions,
                                  user: Option[UserRecord]): Future[EngineJob] = {
-      updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError =>
-        createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob] }
-      }
+
+      val creator = createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob]}
+
+      for {
+        _ <- validate(opts)
+        job <- updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError => creator }
+      } yield job
   }
 }
 

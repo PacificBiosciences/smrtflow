@@ -41,6 +41,14 @@
   -->
 	<xs:element name="NumSequencingZmws" type="xs:double"/>
 	<!--
+  NumFailedSnrFilterZmws
+  -->
+	<xs:element name="NumFailedSnrFilterZmws" type="xs:int"/>
+	<!--
+  NumFailedDmeZmws
+  -->
+	<xs:element name="NumFailedDmeZmws" type="xs:int"/>
+	<!--
   TraceFileSize
   -->
 	<xs:element name="TraceFileSize" type="xs:long"/>
@@ -426,6 +434,8 @@
 				<xs:element ref="MovieLength" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="NumFramesDropped" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="NumSequencingZmws" minOccurs="1" maxOccurs="1"/>
+				<xs:element ref="NumFailedSnrFilterZmws" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="NumFailedDmeZmws" minOccurs="0" maxOccurs="1"/>
 				<xs:element ref="TraceFileSize" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="PulseFileSize" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="BaseFileSize" minOccurs="1" maxOccurs="1"/>
