@@ -22,6 +22,9 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
+${rootBundleDir}/bin/apply-config
+
+
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
 logFile=${logDir}/upgrade.log
