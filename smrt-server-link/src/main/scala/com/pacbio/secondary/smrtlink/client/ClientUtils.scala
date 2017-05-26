@@ -128,7 +128,7 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
 
     mkline(headers).mkString(" ") ++ "\n" ++
         table.map(row => mkline(row).mkString(" ") + "\n")
-            .reduceLeft(_ + "\n" + _)
+            .reduceLeftOption(_ + "\n" + _).getOrElse("NO DATA FOUND")
   }
 
   def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
