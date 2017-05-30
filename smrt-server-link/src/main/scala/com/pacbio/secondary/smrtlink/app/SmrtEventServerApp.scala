@@ -559,8 +559,10 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
     val fx = for {
       preMessage <- preStartUpHook()
       startMessage <- startServices()
-      postStartMessage <- postStartUpHook()
-    } yield Seq(preMessage, startMessage, postStartMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
+    // this doesn't work in docker
+    //  postStartMessage <- postStartUpHook()
+    //} yield Seq(preMessage, startMessage, postStartMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
+    } yield Seq(preMessage, startMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
 
 
     val result = Try { Await.result(fx, startupTimeOut) }
