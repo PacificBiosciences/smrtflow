@@ -69,6 +69,7 @@ trait EveFileUtils extends LazyLogging{
   def writeToFile(sx: String, path: Path) = {
     val bw = new BufferedWriter(new FileWriter(path.toFile))
     bw.write(sx)
+    bw.newLine()        // required so logstash knows when to send line
     bw.close()
     path
   }
