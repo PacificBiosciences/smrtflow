@@ -5,22 +5,19 @@ import org.specs2.mutable.Specification
 import com.typesafe.scalalogging.LazyLogging
 import mbilski.spray.hmac.{DefaultSigner, SignerConfig}
 import org.apache.commons.io.FileUtils
-
 import spray.json._
 import spray.http._
 import spray.client.pipelining._
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
-
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._
 import scala.concurrent.duration._
 import collection.JavaConversions._
 import collection.JavaConverters._
-
 import com.pacbio.common.utils.TarGzUtils
-import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsSystemStatusManifest}
 import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
@@ -37,7 +34,7 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
   import SmrtLinkJsonProtocols._
 
   val smrtLinkSystemId = UUID.randomUUID()
-  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId, "test", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty, None)
+  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId, EventTypes.TEST, 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty, None)
 
 
   lazy val totalRoutes = SmrtEventServer.allRoutes
@@ -45,7 +42,7 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
   lazy val fileUploadOutputDir = SmrtEventServer.eventUploadFilesDir
   lazy val apiSecret = SmrtEventServer.apiSecret
 
-  val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(), "test_bundle", 1, JodaDateTime.now(),
+  val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(), BundleTypes.TEST, 1, JodaDateTime.now(),
     UUID.randomUUID(), None, None, "testuser", Some("Test/Mock Message"))
 
   // This is blocking

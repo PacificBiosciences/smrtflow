@@ -744,9 +744,12 @@ case class SmrtLinkEvent(eventTypeId: String,
                          message: JsObject)
 
 object EventTypes {
-  val INST_UPGRADE_NOTIFICATION = "smrtlink_inst_upgrade_notification"
-  val SERVER_STARTUP = "smrt_server_startup"
-  val IMPORT_BUNDLE = "techsupport_import_bundle"
+  //  eventTypeId These need to be prefixed with "sl" for downstream analysis via ElasticSearch
+  val INST_UPGRADE_NOTIFICATION = "sl_inst_upgrade_notification"
+  val SERVER_STARTUP = "sl_smrt_server_startup"
+  val IMPORT_BUNDLE = "sl_ts_import_bundle"
+  // A Test Event. This should be used by any testing related code.
+  val TEST = "sl_test_event"
 }
 
 case class SmrtLinkSystemEvent(smrtLinkId: UUID,

@@ -522,9 +522,14 @@ object JobModels {
   // Tech Support Related Models. These really belong on "common"
 
   object BundleTypes {
-    val FAILED_INSTALL = "ts_bundle_failed_install"
-    val SYSTEM_STATUS = "ts_bundle_system_status"
-    val JOB = "ts_bundle_job"
+    // Given that these bundle type ids are translated to eventTypeIds,
+    // these need to be prefixed with "sl" to be consistent with
+    // the SL System Event eventTypeId convention (for ElasticSearch motivations)
+    val FAILED_INSTALL = "sl_ts_bundle_failed_install"
+    val SYSTEM_STATUS = "sl_ts_bundle_system_status"
+    val JOB = "sl_ts_bundle_job"
+    // Should only be used in unittests
+    val TEST = "sl_ts_test_bundle"
   }
 
   trait TsManifest {
