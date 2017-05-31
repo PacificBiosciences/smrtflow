@@ -129,7 +129,7 @@ class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLo
 
   def writeEvent(e: SmrtLinkSystemEvent): SmrtLinkSystemEvent = {
     val eventPath = createSmrtLinkSystemDir(e.smrtLinkId).resolve(s"${e.uuid}.json")
-    writeToFile(e.toJson.prettyPrint.toString, eventPath)
+    writeToFile(e.toJson.toString + "\n", eventPath)    // logstash requires the json string to be on one line and has a newline at the end
     e
   }
 
