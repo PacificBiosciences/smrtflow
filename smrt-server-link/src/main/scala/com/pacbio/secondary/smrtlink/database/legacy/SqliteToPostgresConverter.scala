@@ -14,6 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 
 import org.apache.commons.dbcp2.BasicDataSource
+import org.flywaydb.core.api.MigrationVersion
 import org.joda.time.{DateTime => JodaDateTime}
 import resource._
 import scopt.OptionParser
@@ -131,8 +132,8 @@ object SqliteToPostgresConverter extends CommandLineToolRunner[SqliteToPostgresC
       println(s"Postgres URL '$dbURI'")
 
       println("Attempting to run Postgres migrations (if necessary)")
-
-      val psqlMigrationStatus = Migrator(dataSource)
+      val targetVersion = MigrationVersion.fromVersion("1")
+      val psqlMigrationStatus = Migrator(dataSource, targetVersion)
       println(psqlMigrationStatus)
     }
 
