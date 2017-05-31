@@ -158,7 +158,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def * = (id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
-    def uuidIdx = index("engine_jobs_uuid", uuid)
+    def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 
     def typeIdx = index("engine_jobs_job_type", jobTypeId)
 
@@ -301,7 +301,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, createdBy, jobId, projectId, isActive) <>(DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
-    def uuidIdx = index("dataset_metadata_uuid", uuid)
+    def uuidIdx = index("dataset_metadata_uuid", uuid, unique = true)
 
     def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
