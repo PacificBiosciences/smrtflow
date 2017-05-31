@@ -69,7 +69,6 @@ trait EveFileUtils extends LazyLogging{
   def writeToFile(sx: String, path: Path) = {
     val bw = new BufferedWriter(new FileWriter(path.toFile))
     bw.write(sx)
-    bw.newLine()        // required so logstash knows when to send line
     bw.close()
     path
   }
@@ -559,10 +558,8 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
     val fx = for {
       preMessage <- preStartUpHook()
       startMessage <- startServices()
-    // this doesn't work in docker
-    //  postStartMessage <- postStartUpHook()
-    //} yield Seq(preMessage, startMessage, postStartMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
-    } yield Seq(preMessage, startMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
+      postStartMessage <- postStartUpHook()
+    } yield Seq(preMessage, startMessage, postStartMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
 
 
     val result = Try { Await.result(fx, startupTimeOut) }
