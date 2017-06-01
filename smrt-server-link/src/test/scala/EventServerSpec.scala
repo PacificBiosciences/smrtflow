@@ -80,6 +80,11 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
         status.isSuccess must beTrue
       }
     }
+    "Successfully call swagger endpoint" in {
+      Get("/api/v1/swagger") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
     "Successfully Post Event to Server" in {
       Post("/api/v1/events", exampleMessage) ~> addHeader("Authentication", toAuth("POST", "/api/v1/events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
