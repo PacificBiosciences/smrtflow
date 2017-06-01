@@ -5,15 +5,15 @@
   ],
   "info": {
     "version": "1.0.0",
-    "description": "SMRT EventServer Swagger 2.0 specification",
-    "title": "SMRT EventServer"
+    "description": "Eve SMRT Server Swagger 2.0 specification",
+    "title": "Eve SMRT Server"
   },
   "host": "localhost:8083",
   "paths": {
     "/status": {
       "get": {
-        "summary": "Status of Event Server",
-        "description": "Get the status, system id and uptime of the EventServer",
+        "summary": "Status of Eve Server",
+        "description": "Get the status, system id and uptime of the Eve Server",
         "produces": [
           "application/json"
         ],
@@ -34,13 +34,13 @@
     },
     "/api/v1/events": {
       "post": {
-        "summary": "Submit event to the Event Server",
-        "description": "Submit an SL System Event to the Event Server",
+        "summary": "Submit event to the Eve Server",
+        "description": "Submit an SL System Event to the Eve Server",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "description": "SMRT Link System Eveent",
+            "description": "SMRT Link System Event",
             "required": true,
             "schema": {
               "$ref": "#/definitions/SmrtLinkSystemEvent"
@@ -220,8 +220,13 @@
           "description": "Unique of Smrt Link System (currently UUID)",
           "type": "string"
         },
+        "dnsName": {
+          "title": "DNS Name of system",
+          "description": "DNS Name of system. This should only be used for display purposes. Specifically, given that users can change their configuration and this field is optional.",
+          "type": ["null", "string"]
+        },
         "uuid": {
-          "title": "UUID of Event",
+          "title": "UUID of the Event",
           "description": "Globally unique id of the event",
           "type": "string"
         },
@@ -232,7 +237,7 @@
         },
         "eventTypeId": {
           "title": "Event Type Id",
-          "description": "Event Type Id. This must be globally unique",
+          "description": "Event Type Id. This combined with the eventTypeVersion must be globally unique for a given schema",
           "type": "string"
         },
         "eventTypeVersion": {
@@ -251,7 +256,8 @@
         "createdAt",
         "eventTypeId",
         "eventTypeVersion",
-        "message"
+        "message",
+        "dnsName"
       ],
       "example": {
         "smrtLinkId": "972c5bbe-f94a-11e6-b5cd-3c15c2cc8f88",

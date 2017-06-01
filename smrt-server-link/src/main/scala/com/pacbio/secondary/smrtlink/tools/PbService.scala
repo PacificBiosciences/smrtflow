@@ -160,7 +160,7 @@ object PbServiceParser extends CommandLineToolVersion{
     private def validateJobType(jobType: String): Either[String,Unit] = {
       JobTypeIds.fromString(jobType)
           .map(_ => success)
-          .getOrElse(failure(s"Unrecognized job type $jobType"))
+          .getOrElse(failure(s"Unrecognized job type '$jobType' Known Jobs types ${JobTypeIds.ALL.map(_.id).reduce(_ + "," + _)}"))
     }
 
     private def validateDataSetMetaType(dsType: String): Either[String, Unit] = {
