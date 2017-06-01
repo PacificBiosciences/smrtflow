@@ -77,7 +77,7 @@ Other Config
 
 ::
 
-    export SMRTFLOW_EVENT_API_SECRET="rick" // this must be consistent with the client used in SL
+    export SMRTFLOW_EVENT_API_SECRET="rick" # this must be consistent with the client used in SL
 
 
 See the application.conf and reference.conf for all configuration options accessible from Eve.
