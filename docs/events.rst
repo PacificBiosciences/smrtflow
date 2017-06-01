@@ -71,8 +71,8 @@ Note, the UUID of the uploaded bundle is NOT the UUID of the tech support bundle
 
 ::
 
-    <EVE_ROOT_DIR>/files/<YY>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>
-    <EVE_ROOT_DIR>/files/<YY>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>.tar.gz
+    <EVE_ROOT_DIR>/files/<YEAR>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>
+    <EVE_ROOT_DIR>/files/<YEAR>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>.tar.gz
 
 
 Events are written as
