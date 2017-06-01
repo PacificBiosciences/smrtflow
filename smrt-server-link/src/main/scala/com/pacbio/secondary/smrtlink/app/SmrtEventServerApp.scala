@@ -152,8 +152,11 @@ trait EventServiceBaseMicroService extends PacBioService {
   */
 class EventService(eventProcessor: EventProcessor,
                    rootOutputDir: Path,
-                   rootUploadFilesDir: Path, apiSecret: String)
+                   rootUploadFilesDir: Path, apiSecret: String, swaggerResourceName: String)(implicit actorSystem: ActorSystem)
     extends EventServiceBaseMicroService with LazyLogging with timeUtils with FileSizeFormatterUtil{
+
+  // for getFromFile to work
+  implicit val routing = RoutingSettings.default
 
   import SmrtLinkJsonProtocols._
 
@@ -208,7 +211,16 @@ class EventService(eventProcessor: EventProcessor,
       }
     }
 
-  def routes = eventRoutes ~ filesRoute
+  def swaggerFile: Route =
+    pathPrefix("swagger") {
+      pathEndOrSingleSlash {
+        get {
+          getFromResource(swaggerResourceName)
+        }
+      }
+    }
+
+  def routes = eventRoutes ~ filesRoute ~ swaggerFile
 
 
   /**
@@ -425,6 +437,7 @@ trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val systemHost = "0.0.0.0"
   lazy val systemUUID = getSystemUUID(conf)
   lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
+  lazy val swaggerJson = "eventserver_swagger.json"
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
@@ -449,7 +462,7 @@ trait EventServicesCakeProvider {
   lazy val eventProcessor = new EventFileWriterProcessor(eventMessageDir)
   // All Service instances go here
   lazy val services: Seq[PacBioService] = Seq(
-    new EventService(eventProcessor, eventMessageDir, eventUploadFilesDir, apiSecret),
+    new EventService(eventProcessor, eventMessageDir, eventUploadFilesDir, apiSecret, swaggerJson)(actorSystem),
     new StatusService(statusGenerator)
   )
 }
