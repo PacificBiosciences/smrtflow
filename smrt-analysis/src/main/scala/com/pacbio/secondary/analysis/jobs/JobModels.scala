@@ -121,7 +121,7 @@ object JobModels {
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
                   EXPORT_DATASETS, IMPORT_DATASET, IMPORT_DATASTORE,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-                  PBSMRTPIPE_DIRECT, SIMPLE, TS_JOB, TS_SYSTEM_STATUS)
+                  PBSMRTPIPE_DIRECT, SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
 
     def fromString(s: String) = ALL.map(x => (x.id, x)).toMap.get(s)
 
