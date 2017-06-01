@@ -49,9 +49,17 @@ For demo and testing purposes the system is configured to write the events to a 
 
 Optional custom configure of the port and the port to start on:
 
+Set the port. **By convention and to standardize, it is STRONGLY recommended to be set to 8083**
+
 ::
 
-    export PB_SERVICES_PORT=8888
+    export PB_SERVICES_PORT=8083
+
+
+Set the location where Eve will write files to
+
+::
+
     export EVE_ROOT_DIR=/path/to/where/files/are/written
 
 
@@ -63,8 +71,8 @@ Note, the UUID of the uploaded bundle is NOT the UUID of the tech support bundle
 
 ::
 
-    <EVE_ROOT_DIR>/files/<UPLOADED_BUNDLE_UUID>
-    <EVE_ROOT_DIR>/files/<UPLOADED_BUNDLE_UUID>.tar.gz
+    <EVE_ROOT_DIR>/files/<YY>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>
+    <EVE_ROOT_DIR>/files/<YY>/<MONTH><DAY>/<UPLOADED_BUNDLE_UUID>.tar.gz
 
 
 Events are written as
