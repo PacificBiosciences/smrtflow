@@ -5,6 +5,7 @@ import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.MigrationVersion
 import org.postgresql.ds.PGPoolingDataSource
 import slick.driver.PostgresDriver.api._
 
@@ -55,7 +56,7 @@ trait DatabaseUtils extends LazyLogging{
       * @param dataSource Postgres Datasource
       * @return
       */
-    def apply(dataSource: PGPoolingDataSource): Int = {
+    def apply(dataSource: PGPoolingDataSource, target: MigrationVersion = MigrationVersion.LATEST): Int = {
       val flyway = new Flyway()
 
       flyway.setBaselineOnMigrate(true)
@@ -63,6 +64,7 @@ trait DatabaseUtils extends LazyLogging{
       flyway.setBaselineVersionAsString("0")
       flyway.setBaselineDescription("Initial Migration")
       flyway.setDataSource(dataSource)
+      flyway.setTarget(target)
 
       // does this close the connection to datasource if an exception is raised?
       println(s"Attempting to apply db migrations to $flyway with datasource ${dataSource.getUrl}")

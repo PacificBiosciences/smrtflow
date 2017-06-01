@@ -30,19 +30,4 @@ object Utils extends LazyLogging {
     good ++ these.filter(_.isDirectory).flatMap(recursiveListFiles(_, rx))
   }
 
-  def recursiveScan(rootDir: String): Either[DatasetConvertError, List[File]] = {
-    val path = Paths.get(rootDir)
-    val f = path.toFile
-    // m110106_050924_00114_c000000062550000000300000112311181_s2_p0.metadata.xml
-    val matcher = """.metadata.xml""".r
-
-    val result = if (Files.exists(path) && Files.isDirectory(path)) {
-      val xmlFiles = recursiveListFiles(f, matcher)
-      Right(xmlFiles.toList)
-    } else {
-      Left(DatasetConvertError(s"Unable to find '$rootDir'"))
-    }
-    result
-  }
-
 }

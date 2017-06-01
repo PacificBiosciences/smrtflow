@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Path, Paths, Files}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -14,7 +14,7 @@ import com.pacbio.secondary.analysis.converters._
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.analysis.pipelines._
 import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
@@ -68,8 +68,11 @@ object PbServiceParser extends CommandLineToolVersion{
   import CommonModelImplicits._
   import CommonModels._
 
-  val VERSION = "0.2.0"
+  val VERSION = "0.2.1"
   var TOOL_ID = "pbscala.tools.pbservice"
+
+  // DataSet XML filename ending extension
+  final val DS_FILE_EXT = "set.xml"
 
   private def getSizeMb(fileObj: File): Double = {
     fileObj.length / 1024.0 / 1024.0
@@ -136,7 +139,8 @@ object PbServiceParser extends CommandLineToolVersion{
       searchPath: Option[String] = None,
       force: Boolean = false,
       user: String = System.getProperty("user.name"),
-      comment: String = "Sent via pbservice"
+      comment: String = "Sent via pbservice",
+      blockImportDataSet: Boolean = true // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
   ) extends LoggerConfig
 
 
@@ -166,7 +170,7 @@ object PbServiceParser extends CommandLineToolVersion{
           .getOrElse(failure(errorMsg))
     }
 
-    head("PacBio SMRTLink Services Client", VERSION)
+    head("PacBio SMRTLINK Analysis Services Client", VERSION)
 
     opt[String]("host") action { (x, c) =>
       c.copy(host = x)
@@ -181,38 +185,69 @@ object PbServiceParser extends CommandLineToolVersion{
       c.copy(authToken = Some(getToken(t)))
     } text "Authentication token (required for project services)"*/
 
+    // This needs to be folded back into each subparser for clarity. --json isn't supported by every subparser
     opt[Unit]("json") action { (_, c) =>
       c.copy(asJson = true)
     } text "Display output as JSON"
 
-    opt[Unit]("debug") action { (_, c) =>
-      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[CustomConfig]
-    } text "Display debugging log output"
+    opt[Unit]('h', "help") action { (x, c) =>
+      showUsage
+      sys.exit(0)
+    } text "Show options and exit"
 
+    opt[Unit]("version") action { (x, c) =>
+      showVersion
+      sys.exit(0)
+    } text "Show tool version and exit"
+
+
+    // This will handling the adding the logging specific options (e.g., --debug) as well as logging configuration setup
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
 
-    cmd(Modes.STATUS.name) action { (_, c) =>
-      c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)
-    }
+    // System Status
+    note("\nGET SMRTLINK SYSTEM STATUS\n")
+    cmd(Modes.STATUS.name)
+        .text("Get SMRT Link System Status")
+        .action { (_, c) => c.copy(command = (c) => println("with " + c), mode = Modes.STATUS)}
 
+    // Import Datasets
+    note("\nIMPORT DATASET\n")
     cmd(Modes.IMPORT_DS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_DS)
     } children(
-      arg[File]("dataset-path") required() action { (p, c) =>
-        c.copy(path = p.toPath)
-      } text "DataSet XML path (or directory containing datasets)",
-      opt[Int]("timeout") action { (t, c) =>
-        c.copy(maxTime = t.seconds)
-      } text s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})",
-      opt[String]("non-local").action { (t, c) =>
-        c.copy(nonLocal = DataSetMetaTypes.toDataSetType(t))
-      }.validate(validateDataSetMetaType)
-          .text("Import non-local dataset with specified type (e.g. PacBio.DataSet.SubreadSet)") /*,
+      arg[File]("dataset-path").required().text(
+        s"""
+           |DataSet XML path, a FOFN  (File of File Names) of DataSet XML Files, or a directory containing datasets with files ending with '$DS_FILE_EXT'.
+           |When running in directory mode, or FOFN mode with a large number of datasets, it's strongly recommended to run with --non-block
+         """.stripMargin)
+          .action((p, c) => c.copy(path = p.toPath)),
+
+        opt[Int]("timeout")
+            .text(s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})")
+            .action((t, c) =>c.copy(maxTime = t.seconds)),
+
+        opt[String]("non-local")
+          .validate(validateDataSetMetaType)
+          .text("Import non-local dataset require specified the dataset metatype (e.g. PacBio.DataSet.SubreadSet)")
+          .action { (t, c) => c.copy(nonLocal = DataSetMetaTypes.toDataSetType(t))},
+
+
+        opt[Unit]("block")
+            .text(s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --no-block")
+            .action((t, c) => c.copy(blockImportDataSet = true)),
+
+        opt[Unit]("non-block")
+            .text(s"Disable blocking mode to poll for job to completion. Import Job will only be submitted. (Default ${!defaults.blockImportDataSet}). Mutually exclusive with --block")
+            .action((t, c) => c.copy(blockImportDataSet = false))
+
+
+        /*,
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
       } text "Name of project associated with this dataset"*/
-    ) text "Import DataSet XML"
+    ) text "Import PacBio DataSet(s) into SMRTLink"
 
+    note("\nIMPORT FASTA\n")
     cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_FASTA)
     } children(
@@ -236,6 +271,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Name of project associated with this reference" */
     ) text "Import Reference FASTA"
 
+    note("\nIMPORT BARCODE\n")
     cmd(Modes.IMPORT_BARCODES.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_BARCODES)
     } children(
@@ -250,6 +286,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Name of project associated with these barcodes" */
     ) text "Import Barcodes FASTA"
 
+    note("\nIMPORT RSII MOVIE\n")
     cmd(Modes.IMPORT_MOVIE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_MOVIE)
     } children(
@@ -264,6 +301,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Name of project associated with this dataset"*/
     ) text "Import RS II movie metadata XML legacy format as HdfSubreadSet"
 
+    note("\nRUN ANALYSIS JOB\n")
     cmd(Modes.ANALYSIS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.ANALYSIS)
     } children(
@@ -278,6 +316,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text s"Maximum time (in seconds) to poll for running job status (Default ${defaults.maxTime})"
     ) text "Run a pbsmrtpipe analysis pipeline from a JSON config file"
 
+    note("\nTERMINATE ANALYSIS JOB\n")
     cmd(Modes.TERMINATE_JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TERMINATE_JOB)
     } children(
@@ -286,6 +325,7 @@ object PbServiceParser extends CommandLineToolVersion{
         } text "SMRT Link Analysis Job Id"
         ) text "Terminate a SMRT Link Analysis Job By Int Id in the RUNNING state"
 
+    note("\nDELETE JOB\n")
     cmd(Modes.DELETE_JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DELETE_JOB)
     } children(
@@ -297,15 +337,18 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
 
+    note("\nEMIT ANALYSIS JSON TEMPLATE\n")
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TEMPLATE)
     } children(
     ) text "Emit an analysis.json template to stdout that can be run using 'run-analysis'"
 
+    note("\nSHOW ANALYSIS PIPELINE TEMPLATES\n")
     cmd(Modes.SHOW_PIPELINES.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.SHOW_PIPELINES)
     } text "Display a list of available pbsmrtpipe pipelines"
 
+    note("\nRUN ANALYSIS PIPELINE\n")
     cmd(Modes.PIPELINE.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.PIPELINE)
     } children(
@@ -332,6 +375,7 @@ object PbServiceParser extends CommandLineToolVersion{
       }.text("Pipeline task options as comma-separated option_id=value list")
     ) text "Run a pbsmrtpipe pipeline by name on the server"
 
+    note("\nGET SMRTLINK JOB\n")
     cmd(Modes.JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOB)
     } children(
@@ -346,22 +390,24 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Display job report attributes"
     ) text "Show job details"
 
+    note("\nGET SMRTLINK JOB LIST\n")
     cmd(Modes.JOBS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.JOBS)
     } children(
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
-      } text "Max number of jobs to show",
+      } text s"Max number of jobs to show (Default: ${defaults.maxItems})",
       opt[String]('t', "job-type") action { (t, c) =>
         c.copy(jobType = t)
       } validate {
         t => validateJobType(t)
       } text "Only retrieve jobs of specified type",
-      opt[String]("job-state") action { (s, c) =>
-        c.copy(jobState = Some(s))
-      } text "Only display jobs in specified state"
+      opt[String]('s', "job-state") action { (s, c) =>
+        c.copy(jobState = Some(s)) // This should validate the job state.
+      } text "Only display jobs in specified state (e.g., CREATED, SUCCESSFUL, RUNNING, FAILED)"
     )
 
+    note("\nGET SMRTLINK DATASET DETAILS\n")
     cmd(Modes.DATASET.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASET)
     } children(
@@ -370,12 +416,13 @@ object PbServiceParser extends CommandLineToolVersion{
       } validate { i => validateId(i, "Dataset") } text "Dataset ID"
     ) text "Show dataset details"
 
+    note("\nGET SMRTLINK DATASET LIST\n")
     cmd(Modes.DATASETS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASETS)
     } children(
       opt[String]('t', "dataset-type") action { (t, c) =>
         c.copy(datasetType = t)
-      } text "Dataset Meta type", // TODO validate
+      } text "Dataset Meta type short name (e.g., subreads, references)", // TODO validate. This needs to be made consistent with other subparsers. Either the full id, PacBio.DataSet.SubreadSet or shortname e.g., "subreads" needs to be used.
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
       } text "Max number of Datasets to show",
@@ -387,6 +434,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Search for datasets whose 'path' field matches the specified string"
     )
 
+    note("\nDELETE SMRTLINK DATASET\n")
     cmd(Modes.DELETE_DATASET.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DELETE_DATASET)
     } children(
@@ -395,10 +443,12 @@ object PbServiceParser extends CommandLineToolVersion{
       } validate { i => validateId(i, "Dataset") } text "Dataset ID"
     ) text "Soft-delete of a dataset (won't remove files)"
 
+    note("\nGET SMRTLINK MANIFESTS\n")
     cmd(Modes.MANIFESTS.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFESTS)
     } text "Get a List of SMRT Link PacBio Component Versions"
 
+    note("\nGET SMRTLINK MANIFEST DETAILS\n")
     cmd(Modes.MANIFEST.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.MANIFEST)
     } children(
@@ -407,6 +457,7 @@ object PbServiceParser extends CommandLineToolVersion{
         } text s"Manifest By Id (Default: ${defaults.manifestId})"
         ) text "Get PacBio Component Manifest version by Id."
 
+    note("\nGET PACBIO LOADED BUNDLES\n")
     cmd(Modes.BUNDLES.name) action {(_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.BUNDLES)
     } text "Get a List of PacBio Data Bundles registered to SMRT Link"
@@ -423,6 +474,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Project description"
     ) text "Start a new project"*/
 
+    note("\nTECH SUPPORT SYSTEM STATUS REQUEST\n")
     cmd(Modes.TS_STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
     } children(
@@ -434,6 +486,7 @@ object PbServiceParser extends CommandLineToolVersion{
       } text s"Comments to include (default: ${defaults.comment})"
     ) text "Send system status report to PacBio Tech Support"
 
+    note("\nTECH SUPPORT FAILED JOB REQUEST\n")
     cmd(Modes.TS_JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TS_JOB)
     } children(
@@ -447,16 +500,6 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
     ) text "Send failed job information to PacBio Tech Support"
-
-    opt[Unit]('h', "help") action { (x, c) =>
-      showUsage
-      sys.exit(0)
-    } text "Show options and exit"
-
-    opt[Unit]("version") action { (x, c) =>
-      showVersion
-      sys.exit(0)
-    } text "Show tool version and exit"
 
     // Don't show the help if validation error
     override def showUsageOnError = false
@@ -786,7 +829,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       val table = engineJobs.sortBy(_.id).reverse.filter( job =>
         jobState.map(_ == job.state.toString).getOrElse(true)
       ).take(maxItems).map( job =>
-        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("").toString))
+        Seq(job.id.toString, job.state.toString, job.name, job.uuid.toString, job.createdBy.getOrElse("")))
       printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
       ""
     }
@@ -803,7 +846,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   protected def waitForJob(jobId: IdAble): Int = {
     logger.info(s"waiting for job ${jobId.toIdString} to complete...")
-    sal.pollForJob(jobId, Some(maxTime)) match {
+    sal.pollForSuccessfulJob(jobId, Some(maxTime)) match {
       case Success(msg) => runGetJobInfo(jobId)
       case Failure(err) => {
         runGetJobInfo(jobId)
@@ -823,7 +866,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
       job <- Try { Await.result(runJob(), TIMEOUT) }
-      job <- sal.pollForJob(job.uuid, Some(maxTime))
+      job <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
       dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
 
@@ -943,7 +986,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   /**
-    * List all PacBio DataSet XML Files
+    * List all well-formed PacBio DataSet XML Files ending with *set.xml
     *
     * @param f Root Directory
     * @return
@@ -951,13 +994,13 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   private def listDataSetFiles(f: File): Array[File] = {
 
     def metaDataFilter(fn: File): Boolean =
-        Try { dsMetaTypeFromPath(fn.toPath) }.isSuccess
+        Try { getDataSetMiniMeta(fn.toPath) }.isSuccess
 
     val allFiles = f.listFiles
 
     allFiles
         .filter(_.isFile)
-        .filter(_.getName.endsWith(".xml"))
+        .filter(_.getName.endsWith("set.xml"))
         .filter(metaDataFilter) ++ allFiles.filter(_.isDirectory).flatMap(listDataSetFiles)
   }
 
@@ -989,7 +1032,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   def engineDriver(job: EngineJob, maxTime: Option[FiniteDuration]): Future[EngineJob] = {
     // This is blocking polling call is wrapped in a Future
-    maxTime.map(t => Future.fromTry(sal.pollForJob(job.id, Some(t))))
+    maxTime.map(t => Future.fromTry(sal.pollForCompletedJob(job.id, Some(t))))
         .getOrElse(Future.successful(job))
   }
 
@@ -1002,10 +1045,10 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     * @param maxTimeOut If provided, the job will be polled for maxTime until a completed state
     * @return
     */
-  def runSingleNonLocalDataSetImport(path: Path, metatype: DataSetMetaTypes.DataSetMetaType, asJson: Boolean, maxTimeOut: FiniteDuration): Future[String] = {
+  def runSingleNonLocalDataSetImport(path: Path, metatype: DataSetMetaTypes.DataSetMetaType, asJson: Boolean, maxTimeOut: Option[FiniteDuration]): Future[String] = {
     for {
       job <- sal.importDataSet(path, metatype.toString)
-      completedJob <- engineDriver(job, Some(maxTimeOut))
+      completedJob <- engineDriver(job, maxTimeOut)
     } yield jobSummary(completedJob, asJson)
   }
 
@@ -1057,53 +1100,123 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     * @param maxTimeOut Max time to Poll for blocking job
     * @return
     */
-  def runSingleLocalDataSetImport(path: Path, asJson: Boolean, maxTimeOut: FiniteDuration): Future[String] = {
+  def runSingleLocalDataSetImport(path: Path, asJson: Boolean, maxTimeOut: Option[FiniteDuration]): Future[EngineJob] = {
+    logger.debug(s"Attempting to import dataset from $path")
+
     for {
       m <- Future.fromTry(Try(getDataSetMiniMeta(path)))
-      job <- getDataSetJobOrImport(m.uuid, m.metatype, path, Some(maxTimeOut))
-      completedJob <- engineDriver(job, Some(maxTimeOut))
-      dataset <- sal.getDataSet(m.uuid)
-    } yield s"${toDataSetInfoSummary(dataset)}${jobSummary(completedJob, asJson)}"
+      job <- getDataSetJobOrImport(m.uuid, m.metatype, path, maxTimeOut)
+      completedJob <- engineDriver(job, maxTimeOut)
+    } yield completedJob
   }
+
+
+  /**
+    * The Import Summary is dependent on the input provided and if the job is blocking.
+    *
+    * @param job     Engine Job
+    * @param dataset DataSet metadata (only if the job is blocking)
+    * @param asJson  emit results as JSON. When asJson is provided, ONLY the Job entity is returned.
+    * @return
+    */
+  def importSummary(job: EngineJob, dataset: Option[DataSetMetaDataSet], asJson: Boolean): String = {
+    if (asJson) {
+      jobSummary(job, asJson)
+    } else {
+      dataset.map(d => s"${toDataSetInfoSummary(d)}${jobSummary(job, asJson)}")
+          .getOrElse(jobSummary(job, asJson))
+    }
+  }
+
+  def runSingleLocalDataSetImportWithSummary(path: Path, asJson: Boolean, maxTimeOut: Option[FiniteDuration]): Future[String] = {
+
+    // Only when the maxTimeOut is provided will the job poll and complete. Then the dataset summary can
+    // be displayed
+    def generateSummary(job: EngineJob, dsUUID: UUID): Future[String] = {
+      maxTimeOut.map(t => sal.getDataSet(dsUUID).map(m => importSummary(job, Some(m), asJson)))
+          .getOrElse(Future.successful(importSummary(job, None, asJson)))
+    }
+
+    for {
+      m <- Future.fromTry(Try(getDataSetMiniMeta(path)))
+      completedJob <- runSingleLocalDataSetImport(path, asJson, maxTimeOut)
+      summary <- generateSummary(completedJob, m.uuid)
+    } yield summary
+  }
+
+  def validateJobWasSuccessful(job: EngineJob) = job.isSuccessful
+  def validateJobNotFailed(job: EngineJob) = !job.hasFailed
 
   /**
     * Recursively import from a Directory of all dataset files ending in *.xml and that are valid
     * PacBio DataSets.
     *
-    * @param path       Root Directory to the datasets that will be imported.
+    * This is not the greatest idea. This should really be a streaming model
+    *
+    * @param files      List of files to import
     * @param maxTimeOut Max time out PER dataset import
     * @return
     */
-  def runRecursiveImportDataSet(path: Path, maxTimeOut: FiniteDuration): Future[String] = {
+  def runMultiImportDataSet(files: Seq[File], maxTimeOut: Option[FiniteDuration]): Future[String] = {
 
-    // This is not the greatest idea. This should really be a streaming model
-    val files:Seq[File] = if (path.toFile.isDirectory) listDataSetFiles(path.toFile).toSeq else Seq.empty[File]
+    // If maxTimeOut is provided, we poll the job to completion and expect the Job to be in a successful state
+    // If not provided, we only expect the job is not in a failure state (e.g, CREATED, RUNNING)
+    val jobFilter:(EngineJob => Boolean) = maxTimeOut match {
+      case Some(_) => validateJobWasSuccessful
+      case _ => validateJobNotFailed
+    }
 
-    logger.debug(s"Found ${files.length} PacBio XML files from root dir $path")
-
+    logger.info(s"Attempting to import ${files.length} PacBio DataSet(s)")
     if (files.isEmpty) {
       // Not sure if this should raise
-      Future.failed(throw new UnprocessableEntityError(s"No valid XML files found in ${path.toAbsolutePath}"))
+      Future.failed(throw new UnprocessableEntityError(s"No valid XML files found to process"))
     } else {
       // Note, these futures will be run in parallel. This needs a better error communication model.
       val fx = for {
-        fxs <- Future.sequence(files.map(f => runSingleLocalDataSetImport(f.toPath, asJson = false, maxTimeOut)))
-        summary <- Future.successful(fxs.reduce(_ + "\n" + _))
+        jobs <- Future.sequence(files.map(f => runSingleLocalDataSetImport(f.toPath.toAbsolutePath, asJson = false, maxTimeOut)))
+        summary <- multiJobSummary(jobs, jobFilter)
       } yield summary
 
       fx
     }
   }
 
+  /**
+    * Get a Summary from a List of Jobs
+    *
+    * @param jobs List of Jobs
+    * @param jobValidator Function to determine if the job (and hence the job list) was in the expected job state(s)
+    * @return
+    */
+  def multiJobSummary(jobs: Seq[EngineJob], jobValidator: (EngineJob => Boolean)): Future[String] = {
+    val wasSuccessful = jobs.map(jobValidator).reduce(_ && _)
+    val failedJobs = jobs.filter(j => !j.isSuccessful)
+
+    if (wasSuccessful) {
+      // Should this print to stdout?
+      jobs.foreach(job => logger.info(jobSummary(job, false)))
+      Future.successful(s"Successfully ran ${jobs.length} import-dataset jobs")
+    } else {
+      failedJobs.foreach { job =>
+        val summary = jobSummary(job, false)
+        logger.error(summary)
+        System.err.println(summary)
+      }
+      Future.failed(throw new Exception(s"${failedJobs.length} out of ${jobs.length} import-dataset jobs failed."))
+    }
+
+  }
+
 
   /**
     * Central Location to import datasets into SL
     *
-    * Three cases
+    * Four cases
     *
     * 1. A single XML file local to where pbservice is executed is provided
-    * 2. A directory is provided that is local to where pbservice is executed is provided
-    * 3. A non-local import (i.e., referencing a dataset that is local to file system where the server is running
+    * 2. A FOFN of dataset XML paths is provided
+    * 3. A directory is provided that is local to where pbservice is executed is provided
+    * 4. A non-local import (i.e., referencing a dataset that is local to file system where the server is running
     * but not to where pbservice is exed. This requires the dataset type to be provided). The path must be an XML
     * file, not a directory.
     *
@@ -1112,21 +1225,37 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     * local case, the dataset can be read in and checked to see if was already imported (This really should be
     * encapsulated on the server side to return an previously run job?)
     *
-    * @param path        Path to the DataSet XML
-    * @param datasetType DataSet metadata for non-local imports
-    * @param asJson      emit the response as JSON (only when a single XML file is provided)
+    * @param path         Path to the DataSet XML
+    * @param datasetType  DataSet metadata for non-local imports
+    * @param asJson       emit the response as JSON (only when a single XML file is provided)
+    * @param blockingMode Block until job is completed (failed, or successful)
     * @return A summary of the import process
     */
-  def execImportDataSets(path: Path, datasetType: Option[DataSetMetaTypes.DataSetMetaType], asJson: Boolean = false): Future[String] = {
+  def execImportDataSets(path: Path, datasetType: Option[DataSetMetaTypes.DataSetMetaType], asJson: Boolean = false, blockingMode: Boolean = true): Future[String] = {
+
+    // In blocking model, set the default timeout to None
+    val maxTimeOut = if (blockingMode) Some(maxTime) else None
+
     if (path.toAbsolutePath.toFile.isDirectory) {
-      if (asJson) {
-        logger.warn("Detected recursive import mode. Disabling JSON output.")
-      }
-      runRecursiveImportDataSet(path, maxTime)
+
+      val files:Seq[File] = if (path.toFile.isDirectory) listDataSetFiles(path.toFile).toSeq else Seq.empty[File]
+
+      logger.debug(s"Found ${files.length} PacBio XML files from root dir $path")
+
+      runMultiImportDataSet(files, maxTimeOut)
+    } else if (path.toAbsolutePath.toFile.isFile && path.toAbsolutePath.endsWith(".fofn")){
+
+      logger.debug(s"Detected file of file names (FOFN) mode from $path")
+
+      val files = Utils.fofnToFiles(path.toAbsolutePath)
+          .filter(p => Try { dsMetaTypeFromPath(p) }.isSuccess)
+          .map(_.toFile)
+
+      runMultiImportDataSet(files, maxTimeOut)
     } else {
       datasetType match {
-        case Some(dsType) => runSingleNonLocalDataSetImport(path, dsType, asJson, maxTime)
-        case _ => runSingleLocalDataSetImport(path, asJson, maxTime)
+        case Some(dsType) => runSingleNonLocalDataSetImport(path.toAbsolutePath, dsType, asJson, maxTimeOut)
+        case _ => runSingleLocalDataSetImportWithSummary(path.toAbsolutePath, asJson, maxTimeOut)
       }
     }
   }
@@ -1139,7 +1268,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val tx = for {
       finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
       job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
-      job <- sal.pollForJob(job.uuid)
+      job <- sal.pollForSuccessfulJob(job.uuid)
       dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
 
@@ -1217,22 +1346,43 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  /**
+    * Emit a template/example JSON file to supply to run-pipeline
+    *
+    * This uses the dev_diagnostic pipeline. Changing the reference entry point id
+    * to a positive integer should
+    *
+    * @return
+    */
   def runEmitAnalysisTemplate: Int = {
+
     val analysisOpts = {
-      val ep = BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Left(0))
-      val eps = Seq(ep)
-      val taskOptions = Seq[ServiceTaskOptionBase]()
-      val workflowOptions = Seq[ServiceTaskOptionBase]()
+
+      val ep = BoundServiceEntryPoint("eid_ref_dataset", DataSetMetaTypes.Reference.toString, Left(0))
+
+      val taskOptions: Seq[ServiceTaskOptionBase] =
+        Seq(
+          ServiceTaskIntOption("pbsmrtpipe.task_options.test_int", 1),
+          ServiceTaskBooleanOption("pbsmrtpipe.task_options.raise_exception", false),
+          ServiceTaskStrOption("pbsmrtpipe.task_options.test_str", "example-string")
+        )
+
       PbSmrtPipeServiceOptions(
         "My-job-name",
-        "pbsmrtpipe.pipelines.mock_dev01",
-        eps,
+        "pbsmrtpipe.pipelines.dev_diagnostic",
+        Seq(ep),
         taskOptions,
-        workflowOptions)
+        Nil)
     }
-    println(analysisOpts.toJson.prettyPrint)
-    // FIXME can we embed this in the Json somehow?
-    println("datasetId should be an integer; to obtain the datasetId from a UUID, run 'pbservice get-dataset {UUID}'. The entryId(s) can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'")
+
+    val jx = analysisOpts.toJson.asJsObject
+
+    val msg = "datasetId should be an positive integer; to obtain the datasetId from a UUID, run 'pbservice get-dataset {UUID}'. The entryId(s) can be obtained by running 'pbsmrtpipe show-pipeline-templates {PIPELINE-ID}'"
+    val comment = JsObject("_comment" -> JsString(msg))
+
+    val result = JsObject(comment.fields ++ jx.fields)
+
+    println(result.prettyPrint)
     0
   }
 
@@ -1438,7 +1588,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       children <- Try { Await.result(sal.getJobChildren(job.uuid), TIMEOUT) }
       deleteJob <- Try { Await.result(deleteJob(job, children.size), TIMEOUT) }
-      _ <- sal.pollForJob(deleteJob.uuid, Some(maxTime))
+      _ <- sal.pollForSuccessfulJob(deleteJob.uuid, Some(maxTime))
     } yield deleteJob
 
     fx match {
@@ -1489,11 +1639,11 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   def runTsSystemStatus(user: String,
                         comment: String): Int = {
     def toSummary(job: EngineJob) =
-      s"Tech support bundle sent.\nUser = ${user}\nComments: $comment"
+      s"Tech support bundle sent.\nUser = $user\nComments: $comment"
     println(s"Attempting to send tech support status bundle")
     val fx = for {
       job <- Try { Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT) }
-      _ <- sal.pollForJob(job.uuid, Some(maxTime))
+      _ <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
     } yield job
     runAndSummary(fx, toSummary)
   }
@@ -1502,12 +1652,12 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                      user: String,
                      comment: String): Int = {
     def toSummary(job: EngineJob) =
-      s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = ${user}\nComments: $comment"
+      s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = $user\nComments: $comment"
     println(s"Attempting to send tech support failed job bundle")
     val fx = for {
       failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       job <- Try { Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT) }
-      _ <- sal.pollForJob(job.uuid, Some(maxTime))
+      _ <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
     } yield failedJob
     runAndSummary(fx, toSummary)
   }
@@ -1552,7 +1702,7 @@ object PbService extends LazyLogging{
     try {
       c.mode match {
         case Modes.STATUS => executeBlockAndSummary(ps.exeStatus(c.asJson), c.maxTime)
-        case Modes.IMPORT_DS => executeBlockAndSummary(ps.execImportDataSets(c.path, c.nonLocal, c.asJson), c.maxTime)
+        case Modes.IMPORT_DS => executeBlockAndSummary(ps.execImportDataSets(c.path, c.nonLocal, c.asJson, c.blockImportDataSet), c.maxTime)
         case Modes.IMPORT_FASTA => ps.runImportFasta(c.path, c.name, c.organism,
                                                      c.ploidy, c.project)
         case Modes.IMPORT_BARCODES => ps.runImportBarcodes(c.path, c.name,

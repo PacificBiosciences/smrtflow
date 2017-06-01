@@ -10,7 +10,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ _BUNDLE_ROOT = os.path.dirname(_BIN_DIR)
 _SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
 # Migration State file
 _MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
-# Jvm options for all scala tools that are invoked as a subprocess
-_JAVA_OPTS = "-Xmx1024m -Xms1024m"
+# Jvm options for all scala tools that are invoked as a subprocess. This was increased for the bundler-migrate-legacy-db
+_JAVA_OPTS = "-Xmx8096m -Xms8096m"
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _LOG_STDOUT_FORMAT = "%(message)ss"
 # Default Log file name that will be used if an explicit log file is not provided
@@ -529,6 +529,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
                 _start_db_or_raise(dbc)
 
                 try:
+                    log.info("Attempting to call legacy import from {}".format(sqlite_db_path))
                     _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
                     comment = "Successfully imported legacy data"
                     was_successful = True
@@ -603,7 +604,7 @@ def main(argv=None):
     log_level_stdout = pargs.stdout_level
     log_level_file = pargs.log_level
 
-    if not pargs.quiet:
+    if pargs.quiet:
         log_level_stdout = logging.ERROR
         log_level_file = logging.ERROR
 

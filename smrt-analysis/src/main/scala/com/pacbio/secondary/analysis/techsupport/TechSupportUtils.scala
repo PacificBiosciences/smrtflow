@@ -1,16 +1,19 @@
 package com.pacbio.secondary.analysis.techsupport
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import com.pacbio.common.models.Constants
 import com.pacbio.common.utils.TarGzUtils
+import com.pacbio.secondary.analysis.converters.Utils
 import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsJobManifest, TsSystemStatusManifest}
 import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.input.ReversedLinesFileReader
 import org.joda.time.{DateTime => JodaDateTime}
+import resource.managed
 import spray.json._
 
 trait TechSupportConstants {
@@ -91,6 +94,50 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     outputTgz
   }
 
+
+  /**
+    * Copy the last N lines of a src to a dest file
+    *
+    * @param src      Source log file
+    * @param dest     Dest log file
+    * @param maxLines Maximum number of lines to copy for source
+    */
+  def copyLastLines(src: Path, dest: Path, maxLines: Int = 2000): Long = {
+
+    logger.info(s"Log file ${src.toFile.length()} bytes src: $src")
+
+    for (reader <- managed(new ReversedLinesFileReader(src.toFile, 4096, "UTF-8"));
+         writer <- managed(new BufferedWriter(new FileWriter(dest.toFile)))) {
+
+      var numLines = 0
+
+      val b = new StringBuilder()
+
+      while(numLines < maxLines) {
+        val sx = reader.readLine()
+        if (sx != null) {
+          b.insert(0, sx + "\n")
+          numLines += 1
+        } else {
+          logger.debug(s"Read in $numLines lines from $src")
+          numLines = maxLines
+        }
+      }
+
+
+      val it = b.iterator
+      while(it.hasNext) {
+        val item = it.next()
+        writer.write(item)
+      }
+
+    }
+
+    logger.info(s"Log file ${dest.toFile.length()} bytes src: $dest")
+    dest.toFile.length()
+  }
+
+
   // Required Subdirectories under "/smrtlink-system-root/userdata"
   final val TS_REQ_INSTALL = Seq("config", "log", "generated", "user_jmsenv")
   /**
@@ -99,6 +146,7 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     *  - /userdata/log
     *  - /userdata/config
     *  - /userdata/generated
+    *  - /userdata/user_jmsenv
     *
     *
     * @param smrtLinkUserDataRoot Root SMRT Link System Dir (This must contain a "userdata" subdirectory
@@ -111,17 +159,15 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
       FileUtils.forceMkdir(dest.toFile)
     }
 
-    // All of the log dirs are configured here.
-    val userDataDirs = TS_REQ_INSTALL
+    // Copy the config and general info. These should only contain small files.
+    // The logs will be handled in a separate case below
+    val userDataDirs = TS_REQ_INSTALL.filter(_ != "log")
         .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
         .filter(_.toFile.isDirectory)
 
     if (userDataDirs.isEmpty) {
       logger.warn(s"Unable to find required directories ($TS_REQ_INSTALL) in SL UserRoot $smrtLinkUserDataRoot")
     }
-
-    // Nat's original script was grabbing the services stderr and stdout. I'm not doing that here.
-    // It should be fundamentally fixed at the log level. Everything from stderr and stdout should be in the logs
 
     // Copy all dirs
     userDataDirs.foreach { srcPath =>
@@ -132,7 +178,30 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
       FileUtils.copyDirectory(srcPath.toFile, destPath.toFile)
     }
 
+    // Copy all files within the log dir that end in .log.
+    // Handle the special case of http_access_*.log where these aren't rolled over in wso2
 
+    def logFilter(f: File) = !f.getName.startsWith("http_access_")
+
+    val logDir = smrtLinkUserDataRoot.resolve("log").toAbsolutePath()
+
+    val rx = """\.log$""".r
+
+    val logFiles:Seq[File] = Utils.recursiveListFiles(logDir.toAbsolutePath.toFile, rx).filter(logFilter)
+
+    logger.info(s"Found ${logFiles.length} log files to copy")
+
+    var total = 0L
+    logFiles.foreach { srcFile =>
+      val srcPath = srcFile.toPath
+      val srcRelPath = smrtLinkUserDataRoot.relativize(srcPath)
+      val destPath = dest.resolve(srcRelPath)
+      FileUtils.forceMkdir(destPath.getParent.toFile)
+      val logSize = copyLastLines(srcPath, destPath)
+      total += logSize
+    }
+
+    logger.info(s"Wrote $total bytes to log files in root $dest")
     dest
   }
 

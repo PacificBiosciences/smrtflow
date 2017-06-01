@@ -9,7 +9,7 @@ set -e
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootBundleDir=$(dirname "${__dir}")
 
-config=${rootBundleDir}/smrtlink-system-config.json
+config=${rootBundleDir}/application.json
 legacyConfig=${rootBundleDir}/migration-config.json
 migrationState=${rootBundleDir}/legacy-migration.json
 userRoles=${rootBundleDir}/user-roles.json
@@ -18,9 +18,12 @@ adminCreds=${rootBundleDir}/wso2-credentials.json
 appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
 
 if ! [ -e "$config" ]; then
-    echo "file ${config} does not exist"
+    echo "file ${config} does not exist. Generate smrtlink-sytem-config.json and/or run bin/apply-config"
     exit 1
 fi
+
+${rootBundleDir}/bin/apply-config
+
 
 # TODO Log locally and globally, i.e., log to a file as well as stderr, stdout
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
@@ -29,11 +32,12 @@ logFile=${logDir}/upgrade.log
 # To enable tools called from dbctrl
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
+# For both upgrade and a fresh install make the logging verbose to the log file
 if [ -e "$legacyConfig" ]; then
-    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile}
+    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile} --log-level=DEBUG
 else
     # Install from a fresh install (create users/db/tables if necessary)
-    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile}
+    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG
 fi
 
 
