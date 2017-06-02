@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.16.0"
+BUNDLE_VERSION="0.16.1"
 
 echo "Bamboo build number '${bamboo_buildNumber}'"
 
@@ -31,6 +31,10 @@ if [ ! -d "${CHEM_BUNDLE}" ]; then
   echo "Unable to find required chemistry bundle dir. Exiting"
   exit 1
 fi
+
+cd ${CHEM_BUNDLE}
+python bin/generate-manifests.py version.txt
+cd -
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
