@@ -94,8 +94,8 @@ object Converters {
 
     // Because of the how the schemas are defined, everything is wrapped in Try to default to a value if there's a
     // problem parsing an element or attribute
-    val name = Try {dataset.getName} getOrElse UNKNOWN
-    val dsVersion = Try {dataset.getVersion} getOrElse "0.0.0"
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = Try {dataset.getTags} getOrElse "converted"
     val wellSampleName = Try { dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getWellSample.getName } getOrElse UNKNOWN
     val comments = Try { dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getDescription  } getOrElse " "
@@ -112,12 +112,12 @@ object Converters {
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords} getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
 
-    HdfSubreadServiceDataSet(-99, UUID.fromString(dataset.getUniqueId), dataset.getName,
+    HdfSubreadServiceDataSet(-99, UUID.fromString(dataset.getUniqueId), name,
       path.toAbsolutePath.toString,
       createdAt, modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments, dataset.getTags,
       toMd5(dataset.getUniqueId),
       instrumentName, contextId, wellSampleName, wellName, bioSampleName, cellIndex, runName, createdBy, jobId, projectId)
@@ -130,6 +130,8 @@ object Converters {
     val modifiedAt = createdAt
     val comments = "contig dataset comments"
 
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     //val tags = dataset.getTags
     val tags = ""
 
@@ -138,13 +140,13 @@ object Converters {
 
     ContigServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
@@ -156,6 +158,8 @@ object Converters {
     val modifiedAt = createdAt
     val comments = "reference dataset comments"
 
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     //val tags = dataset.getTags
     val tags = ""
 
@@ -164,13 +168,13 @@ object Converters {
 
     ReferenceServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId,
       dataset.getDataSetMetadata.getPloidy,
@@ -186,6 +190,8 @@ object Converters {
     val comments = "reference dataset comments"
 
     //val tags = dataset.getTags
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = ""
 
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
@@ -193,13 +199,13 @@ object Converters {
 
     GmapReferenceServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId,
       dataset.getDataSetMetadata.getPloidy,
@@ -214,19 +220,21 @@ object Converters {
     val comments = "alignment dataset converted"
 
     //val tags = dataset.getTags
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = ""
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
 
     AlignmentServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
@@ -239,19 +247,21 @@ object Converters {
     val comments = "ccs dataset converted"
 
     //val tags = dataset.getTags
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = ""
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
 
     ConsensusReadServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
@@ -265,19 +275,21 @@ object Converters {
     val comments = "ccs alignment dataset converted"
 
     //val tags = dataset.getTags
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = ""
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength} getOrElse 0L
 
     ConsensusAlignmentServiceDataSet(-99,
       uuid,
-      dataset.getName,
+      name,
       path.toFile.toString,
       createdAt,
       modifiedAt,
       numRecords,
       totalLength,
-      dataset.getVersion,
+      dsVersion,
       comments,
       tags, toMd5(uuid.toString), createdBy, jobId, projectId)
   }
