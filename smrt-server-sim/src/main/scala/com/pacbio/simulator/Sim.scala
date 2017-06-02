@@ -4,17 +4,19 @@ import java.io.PrintWriter
 import java.nio.file.{Path, Paths}
 
 import akka.actor.ActorSystem
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.simulator.scenarios._
 import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.format.ISODateTimeFormat
 import resource._
 import scopt.OptionParser
 
-import scala.concurrent.{ExecutionContext, Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.xml._
 
-object Sim extends App {
+object Sim extends App with LazyLogging{
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   implicit val system: ActorSystem = ActorSystem("sim")
@@ -63,6 +65,9 @@ object Sim extends App {
     opt[String]('t', "time-out") valueName "<duration>" action { (v, c) =>
       c.copy(timeout = Duration(v))
     } text "Optional timeout per scenario, as text (default = 15 minutes)"
+
+    // This will handling the adding the logging specific options (e.g., --debug) as well as logging configuration setup
+    LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
   val simArgs: SimArgs = parser.parse(args, SimArgs()).getOrElse {
@@ -83,6 +88,38 @@ object Sim extends App {
     val failures = steps.count(!_.result.succeeded)
     val timestamp = ISODateTimeFormat.dateTime().print(result.timestamp)
     val runTimeSecs = millisToSecs(result.runTimeMillis)
+    logger.info(s"Ran ${steps.length} Steps.")
+
+    def stepToXml(klassName: String, stepName: String, stepRunTimeSecs: Double, stepResult: StepResult) = {
+      <testcase
+      name={stepName}
+      classname={klassName}
+      time={stepRunTimeSecs.toString} >
+        {stepResult.result match {
+        case SUCCEEDED => NodeSeq.Empty
+        case SUPPRESSED | SKIPPED => <skipped/>
+        case FAILED(sm, lm) => <failure message={sm}>{lm}</failure>
+        case EXCEPTION(sm, lm) => <error message={sm}>{lm}</error>
+      }
+        }
+      </testcase>
+    }
+
+    def stepsToXml(stepResults: Seq[StepResult]) = {
+      stepResults.zipWithIndex.map { case(stepResult, i) =>
+        val stepName = f"${i+1}%04d-${stepResult.name}"
+        val className = s"Simulator.$scenarioName"
+        val stepRunTimeSecs = millisToSecs(stepResult.runTimeMillis)
+        stepToXml(className, stepName, stepRunTimeSecs, stepResult)
+      }
+    }
+
+    def requirementsToXml(requirements: Seq[String]) = {
+      <properties>
+        {requirements.map { req => <property name="Requirement" value={req}/>} }
+      </properties>
+    }
+
     val testsuites = {
       <testsuites>
         <testsuite
@@ -90,31 +127,8 @@ object Sim extends App {
           tests={tests.toString}
           failures={failures.toString}
           time={runTimeSecs.toString}
-          timestamp={timestamp.toString}>
-          {steps.indices.map { i =>
-            val step = steps(i)
-            val stepName = f"${i+1}%04d-${step.name}"
-            val className = s"Simulator.$scenarioName"
-            val stepRunTimeSecs = millisToSecs(step.runTimeMillis)
-            <testcase
-              name={stepName}
-              classname={className}
-              time={stepRunTimeSecs.toString}>
-              {step.result match {
-                case SUCCEEDED => NodeSeq.Empty
-                case SUPPRESSED | SKIPPED => <skipped/>
-                case FAILED(sm, lm) => <failure message={sm}>{lm}</failure>
-                case EXCEPTION(sm, lm) => <error message={sm}>{lm}</error>
-              }
-            }
-            </testcase>
-          }
-          <properties>
-          {requirements.map { req =>
-            <property name="Requirement" value={req}/>
-          }}
-          </properties>
-        }
+          timestamp={timestamp.toString} >
+          { stepsToXml(steps) ++ requirementsToXml(requirements)}
         </testsuite>
       </testsuites>
     }
