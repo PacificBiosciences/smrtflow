@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o pipefail
+#set -o nounset # this makes virtualenv fail
+# set -o xtrace
+
 # this will be in the name of output tar.gz file
 BUNDLE_VERSION="0.16.1"
 
@@ -48,12 +53,6 @@ SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
 TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
-set -o errexit
-set -o pipefail
-#set -o nounset # this makes virtualenv fail
-# set -o xtrace
-
-SL_ANALYSIS_SERVER="smrt-server-link"
 
 echo "Starting building ${BUNDLE_VERSION}"
 
