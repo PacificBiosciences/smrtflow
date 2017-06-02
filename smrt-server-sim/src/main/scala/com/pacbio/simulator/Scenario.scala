@@ -2,12 +2,12 @@ package com.pacbio.simulator
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-
 import org.joda.time.{DateTime => JodaDateTime}
 
 object ScenarioConstants {
@@ -29,7 +29,7 @@ trait ScenarioLoader {
   protected def getPort(c: Config) = getInt(c, ScenarioConstants.PORT)
 }
 
-trait Scenario {
+trait Scenario extends LazyLogging{
   import StepResult._
 
   implicit val system: ActorSystem = ActorSystem("sim")
@@ -49,8 +49,13 @@ trait Scenario {
   def setUp(): Unit = {}
   def tearDown(): Unit = {}
 
-  private def stepPrintln(i: Int, s: String) = println(s"Step #${i+1}: ${steps(i).name} - $s")
-  private def scenePrintln(s: String) = println(s"Scenario: $name - $s")
+  private def printAndLog(sx: String) = {
+    logger.info(sx)
+    println(sx)
+
+  }
+  private def stepPrintln(i: Int, s: String) = printAndLog(s"Step #${i+1}: ${steps(i).name} - $s")
+  private def scenePrintln(s: String) = printAndLog(s"Scenario: $name - $s")
   private def diffMillis(startNanos: Long, timeNanos: Long) = (timeNanos - startNanos) / 1000000
 
   def run(): Future[ScenarioResult] = {
