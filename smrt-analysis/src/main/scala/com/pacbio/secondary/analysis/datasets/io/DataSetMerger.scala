@@ -139,7 +139,7 @@ trait DataSetMerger extends LazyLogging{
     // This is a bit tragic to try to guess the format based on
     // a comma separated format that will trim white space on each tag
     def parseTags(sx: Option[String]): Set[String] = {
-      sx.map(a => a.split(",").map(_.trim).toSet)
+      sx.map(a => a.split(",").map(_.trim).filter(_.nonEmpty).toSet)
           .getOrElse(Set.empty[String])
     }
 
