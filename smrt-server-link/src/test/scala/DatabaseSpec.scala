@@ -1,5 +1,6 @@
 import java.nio.file.Paths
 import java.util.UUID
+import java.sql
 
 import com.pacbio.common.time.PacBioDateTimeFormat
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
@@ -10,6 +11,7 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
+import slick.driver.PostgresDriver
 import slick.driver.PostgresDriver.api._
 import slick.jdbc.meta.MTable
 import spray.testkit.Specs2RouteTest
@@ -309,17 +311,28 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         dbTableOpt match {
           case Some(dbTable) => {
 
-            // compare column names
+            // compare columns
             val dbCols = Await.result(testdb.run(dbTable.getColumns), Duration.Inf)
-            val dbColNames = dbCols.map(
-              _.name.toLowerCase()
+
+            val dbColInfo = dbCols.map(
+              col => (col.name.toLowerCase(), col.sqlType, col.nullable)
             ).toSeq.sorted
 
-            val modelColNames = modelTable.create_*.map(
-              _.name.toLowerCase()
+            def mapType(st: Int): Int = {
+              st match {
+                // not sure where this mapping is happening in slick
+                case sql.Types.BOOLEAN => sql.Types.BIT
+                case _ => st
+              }
+            }
+
+            val modelColInfo = modelTable.create_*.map(
+              col => PostgresDriver.JdbcType.unapply(col.tpe) match {
+                case Some((jt, isOption)) => (col.name.toLowerCase(), mapType(jt.sqlType), Option(isOption))
+              }
             ).toSeq.sorted
 
-            dbColNames === modelColNames
+            dbColInfo === modelColInfo
 
             // compare index names
             val dbIndexInfo = Await.result(testdb.run(dbTable.getIndexInfo()), Duration.Inf)
