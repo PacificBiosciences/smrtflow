@@ -286,9 +286,8 @@ def _get_chemistry_bundle_version(chem_bundle_dir):
     if chem_bundle_dir is None:
         log.warn("No chemistry bundle available")
         return []
-    version = _get_git_sha(chem_bundle_dir)
-    return [PacBioVersion("chemistry-data-bundle", "chemistry-data-bundle",
-                          version, "Chemistry resources bundle")]
+    manifest_path = os.path.join(chem_bundle_dir, "pacbio-manifest.json")
+    return load_pacbio_versions(manifest_path)
 
 
 def _chmod(file_name):
