@@ -64,23 +64,31 @@ trait PbsmrtpipeScenarioCore
   protected val projectId: Var[Int] = Var()
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
-  protected val diagnosticOptsCore = PbSmrtPipeServiceOptions(
-    "diagnostic-test",
-    "pbsmrtpipe.pipelines.dev_diagnostic",
-    Seq(BoundServiceEntryPoint("eid_ref_dataset",
-                               "PacBio.DataSet.ReferenceSet",
-                               Right(refUuid.get))),
-    Seq(
-      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
-                               BOOL.optionTypeId),
+
+
+  def toDiagnosticOptions(referenceSet: UUID,
+                          triggerFailure: Boolean = false,
+                          name: String = "diagnostic-test", projectId: Int = JobConstants.GENERAL_PROJECT_ID):PbSmrtPipeServiceOptions = {
+    val pipelineId = "pbsmrtpipe.pipelines.dev_diagnostic"
+    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, Right(referenceSet))
+
+    val taskOptions = Seq(
+      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true, BOOL.optionTypeId),
+      ServiceTaskBooleanOption(toI("raise_exception"), triggerFailure, BOOL.optionTypeId),
       ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
       ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
       ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
       ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
       ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
       ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
-    ),
-    Seq[ServiceTaskOptionBase]())
+    )
+
+    val workflowOptions = Seq.empty[ServiceTaskOptionBase]
+
+    PbSmrtPipeServiceOptions(name, pipelineId, Seq(ep), taskOptions, workflowOptions, projectId)
+  }
+
+  protected val diagnosticOptsCore = toDiagnosticOptions(refUuid.get)
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
     diagnosticOptsCore.copy(projectId = pid)
   }
