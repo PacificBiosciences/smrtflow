@@ -6,6 +6,7 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetWriter}
 import com.pacbio.simulator.{RunDesignTemplateInfo, RunDesignTemplateReader, Scenario, StepResult}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.Future
 import resource._
@@ -25,23 +26,17 @@ trait IOSteps extends ClientUtils {
 
     override val name = "ReadFile"
 
-    override def run: Future[Result] = Future {
-      for { s <- managed(Source.fromFile(pathVar.get)) } {
-        output(s.getLines().mkString("\n"))
-      }
-      SUCCEEDED
-    }
+    override def runWith =  Future.successful(FileUtils.readFileToString(Paths.get(pathVar.get).toFile))
   }
 
   case class ReadFileFromTemplate(pathVar: Var[String]) extends VarStep[String]{
 
     override val name = "Read File From Template"
 
-    override def run: Future[Result] = Future {
+    override def runWith = Future {
       var xml = new RunDesignTemplateReader(Paths.get(pathVar.get)).readStr
       println(s"xml :  $xml")
-      output(xml.mkString)
-      SUCCEEDED
+      xml.mkString
     }
   }
 
@@ -49,12 +44,11 @@ trait IOSteps extends ClientUtils {
 
     override val name = "Read File From Template2"
 
-    override def run: Future[Result] = Future {
+    override def runWith = Future {
       var runDesignInfo = new RunDesignTemplateReader(Paths.get(pathVar.get)).readRundesignTemplateInfo
       println(s"xml :  ${runDesignInfo.xml}")
       println(s"subreadSet :  ${runDesignInfo.subreadsetUuid.toString}")
-      output(runDesignInfo)
-      SUCCEEDED
+      runDesignInfo
     }
   }
 
@@ -62,10 +56,9 @@ trait IOSteps extends ClientUtils {
 
     override val name = "Read xml from RunDesignTemplateInfo"
 
-    override def run : Future[Result] = Future{
+    override def runWith = Future{
       val rr = runDesignTemplateInfo.get
-      output(rr.xml)
-      SUCCEEDED
+      rr.xml
     }
   }
 

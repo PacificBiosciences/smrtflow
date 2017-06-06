@@ -20,12 +20,7 @@ object ExampleScenario extends Scenario with BasicSteps with VarSteps with Condi
 
   case class SquareNumberStep(in: Var[Int]) extends VarStep[Int] {
     override val name = "SquareNumberStep"
-    override def run: Future[Result] = Future {
-      val out = in.get * in.get
-      println(s"SquareNumberStep: Input = ${in.get}, Output = $out")
-      output(out)
-      SUCCEEDED
-    }
+    override def runWith = Future.successful(in.get * in.get)
   }
 
   val num = Var[Int](3)

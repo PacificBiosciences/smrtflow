@@ -126,7 +126,7 @@ trait IcsClientSteps {
   case class GetRunStatus(runDesign: Var[Run],
                           desiredStates: Seq[ICSState.State],
                           sleepTime: FiniteDuration = 1.second,
-                          retries: Int = 3000) extends VarStep[Int] {
+                          retries: Int = 3000) extends Step {
 
 
     override val name = "GET Run Status"
@@ -149,7 +149,7 @@ trait IcsClientSteps {
         ICSState.fromIndex(state).getOrElse(throw new IllegalStateException(s"Unknown state $state encountered."))
       }
 
-      var retry = 0;
+      var retry = 0
 
       def stateFutureRep: Future[ICSState.State] = stateFuture.flatMap {
         state =>
@@ -182,7 +182,7 @@ trait IcsClientSteps {
 
   // todo : retries must be calculated according to the movieLength
   case class GetRunRqmts(retries: Int = 3000,
-                         sleepTime: FiniteDuration = 1.second) extends VarStep[Int] {
+                         sleepTime: FiniteDuration = 1.second) extends Step {
 
 
     override val name = "GET Run Rqmts"
@@ -196,7 +196,7 @@ trait IcsClientSteps {
         rr.hasSufficientInventory//.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
       }
 
-      var retry  = 0;
+      var retry  = 0
 
       def stateFutureRep : Future[Boolean] = stateFuture.flatMap{
         state =>
