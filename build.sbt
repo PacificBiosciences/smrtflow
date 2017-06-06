@@ -46,7 +46,7 @@ val sprayV = "1.3.3"
 
 val slickV = "3.1.1"
 
-val bambooBuildNumberEnv = "bamboo_buildNumber"
+val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
 
 resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
