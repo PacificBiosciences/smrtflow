@@ -478,10 +478,10 @@ def db_setup_and_migrate_if_necessary(dbc):
 
     # if the db is running, then db init, createdb was successful
     if was_started:
-        db_funcs = [db_verify, db_create, db_start_no_fail_early]
+        db_funcs = [db_create, db_start_no_fail_early]
         was_successful = _apply_funcs(db_funcs, True)
     else:
-        db_funcs = [db_verify, db_create, db_start_no_fail_early, db_init]
+        db_funcs = [db_create, db_start_no_fail_early, db_init]
         was_successful = _apply_funcs(db_funcs, True)
 
     if not was_started:
