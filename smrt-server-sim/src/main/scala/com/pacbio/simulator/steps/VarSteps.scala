@@ -1,6 +1,9 @@
 package com.pacbio.simulator.steps
 
 import com.pacbio.simulator.Scenario
+import com.pacbio.simulator.StepResult.{Result, SUCCEEDED}
+
+import scala.concurrent.Future
 
 trait VarSteps {
   this: Scenario =>
@@ -9,6 +12,26 @@ trait VarSteps {
   trait VarStep[T] extends Step {
     private[VarSteps] var outputVar: Option[Var[T]] = None
 
+    /**
+      * Return a computed value (often from the webservice calls)
+      *
+      * The name is sub-optimal. Should be improved.
+      *
+      * @return
+      */
+    def runWith: Future[T]
+
+    /**
+      * Convenience method for returning successful Results
+      *
+      * For other cases, users can override both {{{run}}} and {{{runWith}}}
+      *
+      * @return
+      */
+    override def run: Future[Result] = runWith.map { r =>
+      output(r)
+      SUCCEEDED
+    }
     protected final def output(value: T): Unit = outputVar.foreach(_.set(value))
   }
 
