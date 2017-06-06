@@ -6,9 +6,10 @@ set -o pipefail
 # set -o xtrace
 
 # this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.16.1"
+# (FIXME)(6-5-2017)(mkocher) Unclear blast radius. This should be migrated to only use the bamboo global build number
+BUNDLE_VERSION="0.16.${bamboo_globalBuildNumber}"
 
-echo "Bamboo build number '${bamboo_buildNumber}'"
+echo "Bamboo local build number '${bamboo_buildNumber}' Global build number '${bamboo_globalBuildNumber}'"
 
 # this script assumes that the directory containing the smrtflow repo also
 # contains ui and the python repos
