@@ -2,6 +2,7 @@ package com.pacbio.simulator.steps
 
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult.{Result, SUCCEEDED}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 
@@ -9,7 +10,7 @@ trait VarSteps {
   this: Scenario =>
 
   // Trait for steps that produce a value which can be assigned to a ScenarioVar
-  trait VarStep[T] extends Step {
+  trait VarStep[T] extends Step with LazyLogging {
     private[VarSteps] var outputVar: Option[Var[T]] = None
 
     /**
@@ -29,6 +30,7 @@ trait VarSteps {
       * @return
       */
     override def run: Future[Result] = runWith.map { r =>
+      logger.debug(s"$name Completed runWith $r")
       output(r)
       SUCCEEDED
     }
@@ -38,6 +40,7 @@ trait VarSteps {
   object Var {
     def apply[T](init: T) = new Var[T](Some(init))
     def apply[T]() = new Var[T]()
+    def empty[T] = new Var[T]()
   }
 
   sealed class Var[T](init: Option[T] = None) {
