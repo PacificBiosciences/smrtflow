@@ -11,8 +11,8 @@ import akka.actor.ActorSystem
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
-
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
@@ -54,6 +54,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
   val testdata = PacBioTestData()
 
   val reference = Var(testdata.getTempDataSet("lambdaNEB"))
+  val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
   val refUuid = Var(dsUuidFromPath(reference.get))
   val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
@@ -71,7 +72,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
   val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobId := ImportDataSet(reference, ftReference),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )

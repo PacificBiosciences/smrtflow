@@ -517,11 +517,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Get(toUrl(ROOT_REPORT_RULES + s"/$reportId"))
   }
 
-  def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
-    val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
+  def importDataSet(path: Path, dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-      ImportDataSetOptions(toP(path), dsMetaTypeObj))
+      ImportDataSetOptions(toP(path), dsMetaType))
   }
 
   def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
@@ -536,9 +535,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
-  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         DataSetMergeServiceOptions(datasetType, ids, name))
+         DataSetMergeServiceOptions(datasetType.toString, ids, name))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {
@@ -546,11 +545,13 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
+  // FIXME. These should use DataSetMetaType
   def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
          DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
   }
 
+  // FIXME. These should use DataSetMetaType
   def deleteDataSets(datasetType: String, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
          DataSetDeleteServiceOptions(datasetType, ids, removeFiles))

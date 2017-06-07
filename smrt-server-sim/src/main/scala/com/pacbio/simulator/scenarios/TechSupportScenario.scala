@@ -81,7 +81,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
 
   // Import ReferenceSet (if necessary) from PacBioTestData
   val getOrImportDataSets: Seq[Step] = Seq(
-    dsUUID := GetOrImportDataSet(Var(lambdaNebPath), Var(lambdaNeb.metatype))
+    dsUUID := GetOrImportDataSet(lambdaNebPath, lambdaNeb.metatype)
   )
 
   // Create a Failed Analysis job to use in TS bundle creation

@@ -282,7 +282,19 @@ trait SmrtLinkSteps extends LazyLogging {
     override def runWith = smrtLinkClient.updateProject(projectId.get, request.get)
   }
 
-  case class ImportDataSet(path: Var[Path], dsType: Var[String]) extends VarStep[UUID] {
+  /**
+    * These cases often (never?) depend on the Var. There's no need to wrap them in the Var layer
+    *
+    * Given how frequent this is ued, this should load the dataset metadata determination from path of the file and
+    * only supply the local path of the file to simply this interface.
+    *
+    * If Scenarios are only interested in getting a path (i.e., not explicitly testing import functionality, then
+    * It's recommended to use GetOrImportData Step
+    *
+    * @param path   DataSet Path
+    * @param dsType Dataset MetaType
+    */
+  case class ImportDataSet(path: Var[Path], dsType: Var[DataSetMetaType]) extends VarStep[UUID] {
     override val name = "ImportDataSet"
     override def runWith = smrtLinkClient.importDataSet(path.get, dsType.get).map(_.uuid)
   }
@@ -315,7 +327,7 @@ trait SmrtLinkSteps extends LazyLogging {
     override def runWith = smrtLinkClient.importFastaBarcodes(path.get, dsName.get).map(_.uuid)
   }
 
-  case class MergeDataSets(dsType: Var[String], ids: Var[Seq[Int]], dsName: Var[String]) extends VarStep[UUID] {
+  case class MergeDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
     override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.get, dsName.get).map(_.uuid)
   }
@@ -323,7 +335,7 @@ trait SmrtLinkSteps extends LazyLogging {
   // XXX this isn't ideal, but I can't figure out another way to convert from
   // Seq[Var[Int]] to Var[Seq[Int]] at the appropriate time (i.e. not at
   // program startup)
-  case class MergeDataSetsMany(dsType: Var[String], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
+  case class MergeDataSetsMany(dsType: Var[DataSetMetaType], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
     override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.map(_.get), dsName.get).map(_.uuid)
   }
@@ -333,9 +345,9 @@ trait SmrtLinkSteps extends LazyLogging {
     override def runWith = smrtLinkClient.convertRsMovie(path.get, "sim-convert-rs-movie").map(_.uuid)
   }
 
-  case class ExportDataSets(dsType: Var[String], ids: Var[Seq[Int]], outputPath: Var[Path]) extends VarStep[UUID] {
+  case class ExportDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], outputPath: Var[Path]) extends VarStep[UUID] {
     override val name = "ExportDataSets"
-    override def runWith = smrtLinkClient.exportDataSets(dsType.get, ids.get, outputPath.get).map(_.uuid)
+    override def runWith = smrtLinkClient.exportDataSets(dsType.toString, ids.get, outputPath.get).map(_.uuid)
   }
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
@@ -419,9 +431,9 @@ trait SmrtLinkSteps extends LazyLogging {
     override def runWith = smrtLinkClient.deleteJob(jobId.get, dryRun = dryRun.get).map(_.uuid)
   }
 
-  case class DeleteDataSets(dsType: Var[String], ids: Var[Seq[Int]], removeFiles: Var[Boolean] = Var(true)) extends VarStep[UUID] {
+  case class DeleteDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], removeFiles: Var[Boolean] = Var(true)) extends VarStep[UUID] {
     override val name = "DeleteDataSets"
-    override def runWith = smrtLinkClient.deleteDataSets(dsType.get, ids.get, removeFiles.get).map(_.uuid)
+    override def runWith = smrtLinkClient.deleteDataSets(dsType.get.toString, ids.get, removeFiles.get).map(_.uuid)
   }
 
   case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
@@ -452,7 +464,7 @@ trait SmrtLinkSteps extends LazyLogging {
     * @param path       Path to the DataSet
     * @param dsMetaType DataSet Metatype
     */
-  case class GetOrImportDataSet(path: Var[Path], dsMetaType: Var[DataSetMetaType]) extends VarStep[UUID] {
+  case class GetOrImportDataSet(path: Path, dsMetaType: DataSetMetaType) extends VarStep[UUID] {
     override val name = "ImportOrGetDataSet"
 
     /**
@@ -464,13 +476,13 @@ trait SmrtLinkSteps extends LazyLogging {
     override def runWith = {
 
       val f1 = for {
-        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path.get))
+        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path))
         dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
       } yield dataset.uuid
 
       val f2 = for {
-        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path.get))
-        job <- smrtLinkClient.importDataSet(path.get, dsMetaType.get.fileType.toString)
+        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path))
+        job <- smrtLinkClient.importDataSet(path, dsMetaType)
         successfulJob <- Future.fromTry(smrtLinkClient.pollForSuccessfulJob(job.id))
         _ <- andLog(s"Completed Successful Job ${successfulJob.id} for dataset UUID: ${miniMeta.uuid}")
         dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)

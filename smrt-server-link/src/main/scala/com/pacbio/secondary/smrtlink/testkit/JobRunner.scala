@@ -9,6 +9,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.pacbio.common.models._
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
@@ -252,14 +253,14 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.m
     if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
     val dsPath = cfg.entryPoints(0).path
     val dsUuid = dsUuidFromPath(dsPath)
-    var dsType = dsMetaTypeFromPath(dsPath)
+    var dsMiniMeta = getDataSetMiniMeta(dsPath)
     // XXX should this automatically recover an existing job if present, or
     // always import again?
     Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
       case Success(dsInfo) =>
         Await.result(sal.getJob(dsInfo.jobId), TIMEOUT)
       case Failure(err) =>
-        Await.result(sal.importDataSet(dsPath, dsType), TIMEOUT)
+        Await.result(sal.importDataSet(dsPath, dsMiniMeta.metatype), TIMEOUT)
     }
   }
 
@@ -271,7 +272,9 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.m
     val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
       throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
     }
-    Await.result(sal.mergeDataSets(dsType, ids, cfg.testId), TIMEOUT)
+    // FIXME
+    val dsMetaType = DataSetMetaTypes.fromString(dsType).get
+    Await.result(sal.mergeDataSets(dsMetaType, ids, cfg.testId), TIMEOUT)
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,

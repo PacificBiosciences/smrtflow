@@ -7,11 +7,11 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -58,7 +58,7 @@ class ProjectsScenario(host: String, port: Int)
   val projects: Var[Seq[Project]] = Var()
   val project: Var[FullProject] = Var()
   val testdata = PacBioTestData()
-  val ftSubreads = Var(FileTypes.DS_SUBREADS.fileTypeId)
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
   val subreads1 = Var(testdata.getFile("subreads-xml"))
   val subreadsUuid1 = Var(dsUuidFromPath(subreads1.get))
   val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
