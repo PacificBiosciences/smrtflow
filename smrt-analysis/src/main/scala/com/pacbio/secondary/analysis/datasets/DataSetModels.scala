@@ -84,6 +84,9 @@ object DataSetMetaTypes {
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString
 
+  // alias to be consistent with the other from* methods
+  def fromString(sx: String) = toDataSetType(sx)
+
   /**
    * Convert DataSet 'shortname' to DataSet MetaType.
    * (Should probably sync up with Martin to potentially push this into pbcommand for consistency with the Python code)
