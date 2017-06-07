@@ -5,25 +5,34 @@ import java.nio.file.Path
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.common.models._
+import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.analysis.reports.ReportModels
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario}
+import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
+import com.typesafe.scalalogging.LazyLogging
 
 
-trait SmrtLinkSteps {
+trait SmrtLinkSteps extends LazyLogging {
   this: Scenario with VarSteps =>
 
   import CommonModelImplicits._
   import ReportModels._
 
   val smrtLinkClient: SmrtLinkServiceAccessLayer
+
+  def andLog(sx: String): Future[String] = Future {
+    logger.info(sx)
+    sx
+  }
 
   case object GetStatus extends VarStep[Int] with GetSmrtServerStatus {
     override val name = "GetStatus"
@@ -288,6 +297,13 @@ trait SmrtLinkSteps {
       smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1)
     }
   }
+  case class WaitForSuccessfulJob(jobId: Var[UUID], maxTime: Var[FiniteDuration] = Var(1800.seconds)) extends VarStep[EngineJob] {
+    override val name = "WaitForSuccessfulJob"
+    override def runWith = Future.fromTry {
+      logger.debug(s"Start to poll for Successful Job ${jobId.get}")
+      smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get))
+    }
+  }
 
   case class ImportFasta(path: Var[Path], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "ImportFasta"
@@ -412,4 +428,56 @@ trait SmrtLinkSteps {
     override val name = "GetBundle"
     override def runWith = smrtLinkClient.getPacBioDataBundleByTypeId(typeId.get).map(b => b.filter(_.isActive == true).head)
   }
+
+  case class CreateTsSystemStatusJob(user: Var[String], comment: Var[String]) extends VarStep[UUID] {
+    override val name = "CreateTsSystemStatusJob"
+    override val runWith = smrtLinkClient.runTsSystemStatus(user.get, comment.get).map(_.uuid)
+  }
+
+  case class CreateTsFailedJob(jobId: Var[UUID], user: Var[String], comment: Var[String]) extends VarStep[UUID] {
+    override val name = "CreateTsFailedJob"
+    override def runWith = {
+      for {
+        failedJob <- smrtLinkClient.getJob(jobId.get)
+        tsJob <- smrtLinkClient.runTsJobBundle(failedJob.id, user.get, comment.get)
+      } yield tsJob.uuid
+    }
+  }
+
+  /**
+    * Gets the dataset if already imported, or will import and run the job successfully
+    *
+    * Returns the Imported DataSet UUID
+    *
+    * @param path       Path to the DataSet
+    * @param dsMetaType DataSet Metatype
+    */
+  case class GetOrImportDataSet(path: Var[Path], dsMetaType: Var[DataSetMetaType]) extends VarStep[UUID] {
+    override val name = "ImportOrGetDataSet"
+
+    /**
+      * 1. Load dataset mini-metadata from Path
+      * 2. Try to get DataSet by UUID
+      * 3. Create a new Import DataSet job if failed to find dataset and poll for successful import dataset job
+      *
+      */
+    override def runWith = {
+
+      val f1 = for {
+        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path.get))
+        dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
+      } yield dataset.uuid
+
+      val f2 = for {
+        miniMeta <- Future.successful(DataSetFileUtils.getDataSetMiniMeta(path.get))
+        job <- smrtLinkClient.importDataSet(path.get, dsMetaType.get.fileType.toString)
+        successfulJob <- Future.fromTry(smrtLinkClient.pollForSuccessfulJob(job.id))
+        _ <- andLog(s"Completed Successful Job ${successfulJob.id} for dataset UUID: ${miniMeta.uuid}")
+        dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
+      }  yield dataset.uuid
+
+      f1.recoverWith { case NonFatal(_) => f2 }
+    }
+  }
+
 }
