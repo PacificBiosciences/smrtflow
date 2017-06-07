@@ -55,6 +55,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
   val jobStatusName = Var("TS System Status")
 
   val lambdaNebPath = testData.getFile("lambdaNEB")
+  println(s"Got Lambda NEB Path ${lambdaNebPath}")
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
   val dsUUID = Var.empty[UUID]
 
@@ -81,7 +82,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
 
   // Import ReferenceSet (if necessary) from PacBioTestData
   val getOrImportDataSets: Seq[Step] = Seq(
-    dsUUID := GetOrImportDataSet(Var(lambdaNebPath), Var(lambdaNeb.metatype))
+    dsUUID := GetOrImportDataSet(lambdaNebPath, lambdaNeb.metatype)
   )
 
   // Create a Failed Analysis job to use in TS bundle creation

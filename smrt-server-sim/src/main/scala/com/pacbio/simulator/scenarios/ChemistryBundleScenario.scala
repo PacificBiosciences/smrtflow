@@ -10,13 +10,13 @@ import akka.actor.ActorSystem
 
 import scala.collection._
 import com.typesafe.config.Config
-
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -52,6 +52,7 @@ class ChemistryBundleScenario(host: String, port: Int)
 
   val subreads = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
   val bundle: Var[PacBioDataBundle] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
@@ -72,7 +73,7 @@ class ChemistryBundleScenario(host: String, port: Int)
   val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(subreads, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )

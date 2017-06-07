@@ -9,17 +9,16 @@ import java.util.UUID
 import java.io.{File, PrintWriter}
 
 import scala.collection._
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -57,6 +56,8 @@ trait PbsmrtpipeScenarioCore
   protected val refUuid = Var(dsUuidFromPath(reference.get))
   protected val subreads = Var(getSubreads)
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
+  val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
   
   // Randomize project name to avoid collisions
   protected val projectName = Var(s"Project-${UUID.randomUUID()}")
@@ -133,10 +134,10 @@ trait PbsmrtpipeScenarioCore
   protected val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobId := ImportDataSet(reference, ftReference),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(subreads, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),

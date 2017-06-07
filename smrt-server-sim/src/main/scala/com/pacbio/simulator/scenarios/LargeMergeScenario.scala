@@ -7,14 +7,13 @@ import java.util.UUID
 import java.io.{File, PrintWriter}
 
 import scala.collection._
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -45,6 +44,7 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
   val dsFiles = listFilesByExtension(datasetsPath.toFile, ".subreadset.xml")
   val nFiles = dsFiles.size
   println(s"$nFiles SubreadSets found")
@@ -54,21 +54,19 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
 
-  val ftSubreads = FileTypes.DS_SUBREADS.fileTypeId
-
   val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
   )
   val importSteps = (0 until nFiles).map(i => Seq(
-      jobIds(i) := ImportDataSet(Var(dsFiles(i).toPath), Var(ftSubreads))
+      jobIds(i) := ImportDataSet(Var(dsFiles(i).toPath), ftSubreads)
     )).flatMap(s => s) ++ (0 until nFiles).map(i => Seq(
       jobStatus := WaitForJob(jobIds(i), sleepTime = Var(SLEEP_TIME)),
       fail(s"Import job $i failed") IF jobStatus !=? EXIT_SUCCESS,
       dsIds(i) := GetDataSetId(Var(dsUUIDs(i)))
     )).flatMap(s => s)
   val mergeSteps = Seq(
-    jobId := MergeDataSetsMany(Var(ftSubreads), dsIds, Var("merge-subreads")),
+    jobId := MergeDataSetsMany(ftSubreads, dsIds, Var("merge-subreads")),
     jobStatus := WaitForJob(jobId),
     fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS
   )
