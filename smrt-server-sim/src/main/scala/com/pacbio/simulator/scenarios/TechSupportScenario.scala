@@ -55,7 +55,6 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
   val jobStatusName = Var("TS System Status")
 
   val lambdaNebPath = testData.getFile("lambdaNEB")
-  println(s"Got Lambda NEB Path ${lambdaNebPath}")
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
   val dsUUID = Var.empty[UUID]
 
