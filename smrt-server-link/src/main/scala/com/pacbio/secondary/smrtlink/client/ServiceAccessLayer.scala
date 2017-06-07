@@ -594,6 +594,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
          TsSystemStatusServiceOptions(user, comment))
   }
 
+  /**
+    * Create a Failed TechSupport Job
+    *
+    * @param jobId   Failed Job id that is in the FAILED state is supported
+    * @param user    User that has created the job TGZ bundle
+    * @param comment Comment
+    * @return
+    */
   def runTsJobBundle(jobId: Int, user: String, comment: String) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
         TsJobBundleJobServiceOptions(jobId, user, comment))

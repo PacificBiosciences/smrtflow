@@ -2,24 +2,22 @@ package com.pacbio.simulator.scenarios
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
-import scala.util.Try
-
+import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.database.legacy.{SqliteToPostgresConverter, SqliteToPostgresConverterOptions}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
-import com.pacbio.simulator.StepResult.{FAILED, SUCCEEDED, Result}
-import com.pacbio.simulator.steps.{BasicSteps, ConditionalSteps, VarSteps, SmrtLinkSteps}
-import com.pacbio.simulator.{Scenario, ScenarioLoader}
+import com.pacbio.simulator.StepResult.{FAILED, Result, SUCCEEDED}
+import com.pacbio.simulator.steps.{BasicSteps, ConditionalSteps, SmrtLinkSteps, VarSteps}
+import com.pacbio.simulator.{Scenario, ScenarioLoader, StepResult}
 
 object SqliteToPostgresScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
@@ -42,6 +40,8 @@ object SqliteToPostgresScenarioLoader extends ScenarioLoader {
 class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverterOptions)
   extends Scenario with BasicSteps with VarSteps with ConditionalSteps with SmrtLinkSteps with TestUtils {
 
+  import StepResult._
+
   override val name = "SqliteToPostgresScenario"
 
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer("localhost", 8070, Some("jsnow"))
@@ -58,7 +58,21 @@ class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverte
 
   case object LaunchSmrtLinkStep extends VarStep[Process] {
     override val name = "LaunchSmrtLink"
-    override def run: Future[Result] = Future {
+
+    // The process should be still running after startup
+    def startProcess(process: Process): Result = {
+      Try(process.exitValue()) match {
+        case Success(n) => FAILED(s"Process failed with exit code $n")
+        case Failure(_:IllegalThreadStateException) => SUCCEEDED
+        case Failure(ex) =>
+          logger.error(s"Error launching server process ${ex.getMessage}")
+          FAILED(s"Failed to launch $process")
+      }
+    }
+
+    override def run: Future[Result] = runWith.map {process => startProcess(process)}
+
+    override def runWith: Future[Process] = Future {
       val argBase = "-Dsmrtflow.db.properties"
       val args = Seq(
         "JAVA_OPTS=",
@@ -69,13 +83,7 @@ class SqliteToPostgresScenario(smrtLinkExe: Path, opts: SqliteToPostgresConverte
         s"$argBase.serverName=${opts.pgServer}"
       ).reduce(_ + " " + _)
 
-      val process = Runtime.getRuntime.exec(Array("env", args, smrtLinkExe.toAbsolutePath.toString))
-      output(process)
-
-      Try(process.exitValue())
-        .map(e => FAILED(s"SMRT Link exited with code $e"))
-        .recover { case e: IllegalThreadStateException => SUCCEEDED }
-        .get
+      Runtime.getRuntime.exec(Array("env", args, smrtLinkExe.toAbsolutePath.toString))
     }
   }
 
