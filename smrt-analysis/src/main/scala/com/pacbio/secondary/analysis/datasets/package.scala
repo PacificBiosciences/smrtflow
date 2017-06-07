@@ -91,6 +91,8 @@ package object datasets {
     }
   }
 
+  object DataSetFileUtils extends DataSetFileUtils
+
   /** Utilities for setting up test datasets that can be safely manipulated or
     * deleted
     *
