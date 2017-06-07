@@ -935,9 +935,9 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
     val dsUuid = dsUuidFromPath(path)
-    val dsType = dsMetaTypeFromPath(path)
+    val dsMiniMeta = getDataSetMiniMeta(path)
     def importDs = {
-      val rc = runImportDataSet(path, dsType)
+      val rc = runImportDataSet(path, dsMiniMeta.metatype)
       if (rc == 0) {
         runGetDataSetInfo(dsUuid)
         if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
@@ -977,8 +977,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  def runImportDataSet(path: Path, dsType: String, asJson: Boolean = false): Int = {
-    logger.info(dsType)
+  def runImportDataSet(path: Path, dsType: DataSetMetaTypes.DataSetMetaType, asJson: Boolean = false): Int = {
+    logger.info(s"DataSet Metatype $dsType")
     Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
       case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
       case Failure(err) => errorExit(s"Dataset import failed: $err")
@@ -1047,7 +1047,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     */
   def runSingleNonLocalDataSetImport(path: Path, metatype: DataSetMetaTypes.DataSetMetaType, asJson: Boolean, maxTimeOut: Option[FiniteDuration]): Future[String] = {
     for {
-      job <- sal.importDataSet(path, metatype.toString)
+      job <- sal.importDataSet(path, metatype)
       completedJob <- engineDriver(job, maxTimeOut)
     } yield jobSummary(completedJob, asJson)
   }
@@ -1083,7 +1083,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
     // Default to creating new Job if the dataset wasn't already imported into the system
     val orCreate = for {
-      job <- sal.importDataSet(path, metatype.toString)
+      job <- sal.importDataSet(path, metatype)
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
 
