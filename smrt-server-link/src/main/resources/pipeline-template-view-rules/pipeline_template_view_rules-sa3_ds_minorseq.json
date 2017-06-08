@@ -23,6 +23,7 @@
     {"id": "pbccs.task_options.min_zscore", "hidden": true, "advanced": true},
     {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true},
     {"id": "pbccs.task_options.polish", "hidden": true, "advanced": true},
-    {"id": "pbccs.task_options.rich_qvs", "hidden": true, "advanced": true}
+    {"id": "pbccs.task_options.rich_qvs", "hidden": true, "advanced": true},
+    {"id": "pbcoretools.task_options.read_length", "hidden": true, "advanced": true}
   ]
 }

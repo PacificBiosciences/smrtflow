@@ -53,7 +53,7 @@ object PacBioTestData extends TestDataJsonProtocol with ConfigLoader{
 
   def isAvailable: Boolean = Files.isRegularFile(getFilesJson)
 
-  val errorMessage = s"Unable to find PacbioTestData files.json from $testFileDir. Set $PB_TEST_ID to /path/PacBioTestData/data/files.json"
+  val errorMessage = s"Unable to find PacbioTestData files.json from $testFileDir. Set $PB_TEST_ID or env var 'PB_TEST_DATA_FILES' to /path/PacBioTestData/data/files.json"
 
   def apply() = {
     val filesJson = getFilesJson

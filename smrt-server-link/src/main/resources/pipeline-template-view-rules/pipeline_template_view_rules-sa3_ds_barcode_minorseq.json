@@ -3,8 +3,8 @@
   "name": "Minor Variants Analysis With Barcoding",
   "description": "Minor Variants Analysis With Barcoding",
   "taskOptions": [
-    {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false},
     {"id": "pbcoretools.task_options.score_mode", "hidden": false, "advanced": false},
+    {"id": "juliet.task_options.target_config", "hidden": false, "advanced": false},
     {"id": "juliet.task_options.target_config_json", "hidden": true, "advanced": true},
     {"id": "juliet.task_options.target_config_universal", "hidden": true, "advanced": true},
     {"id": "juliet.task_options.target_config_file", "hidden": true, "advanced": true},
@@ -24,6 +24,7 @@
     {"id": "pbccs.task_options.min_zscore", "hidden": true, "advanced": true},
     {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true},
     {"id": "pbccs.task_options.polish", "hidden": true, "advanced": true},
-    {"id": "pbccs.task_options.rich_qvs", "hidden": true, "advanced": true}
+    {"id": "pbccs.task_options.rich_qvs", "hidden": true, "advanced": true},
+    {"id": "pbcoretools.task_options.read_length", "hidden": true, "advanced": true}
   ]
 }

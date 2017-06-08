@@ -17,6 +17,7 @@ import scala.util.Failure
 
 trait DataSetMerger extends LazyLogging{
   val VERSION = "0.3.0"
+  val TAG_MERGED = "merged"
 
   /**
    * Merge a SubreadSet and dataset by using the Unique Id of the Dataset and Merging External Resources using
@@ -106,15 +107,15 @@ trait DataSetMerger extends LazyLogging{
   }
 
   /**
-   * Merge subclasses for ReadSet type.
-   *
-   * See comments above about the DataSet data model which creates headaches with num records and total length
-   *
-   * @param datasets
-   * @param name
-   * @tparam T
-   * @return
-   */
+    * Merge subclasses for ReadSet type.
+    *
+    * See comments above about the DataSet data model which creates headaches with num records and total length
+    *
+    * @param datasets Non-empty list of DataSets
+    * @param name     DataSet name
+    * @tparam T Read Type
+    * @return
+    */
   private def mergeReadSets[T <: ReadSetType](
         datasets: Seq[T],
         name: String,
@@ -134,13 +135,23 @@ trait DataSetMerger extends LazyLogging{
 
     val mergedReadSetMetadata = mergeReadSetMetadata(uds.map(u => u.getDataSetMetadata))
 
+    // How tags are defined is not clearly defined in the DataSet spec.
+    // This is a bit tragic to try to guess the format based on
+    // a comma separated format that will trim white space on each tag
+    def parseTags(sx: Option[String]): Set[String] = {
+      sx.map(a => a.split(",").map(_.trim).filter(_.nonEmpty).toSet)
+          .getOrElse(Set.empty[String])
+    }
+
+    val tags:Set[String] = datasets.flatMap(x => parseTags(Option(x.getTags))).toSet ++ Set(TAG_MERGED)
+
     // Update custom metadata for ReadSet
     ds.setDataSetMetadata(mergedReadSetMetadata)
 
     ds.setUniqueId(uuid.toString)
     ds.setName(name)
     ds.setMetaType(datasets.head.getMetaType)
-    ds.setTags(datasets.head.getTags)
+    ds.setTags(tags.reduceLeftOption(_ + "," + _).getOrElse(""))
     ds.setCreatedAt(createdAt)
     ds.setVersion(Constants.DATASET_VERSION)
 

@@ -7,6 +7,7 @@
     {"id": "pbccs.task_options.min_passes", "hidden": false, "advanced": false},
     {"id": "pbccs.task_options.min_predicted_accuracy", "hidden": false, "advanced": false},
     {"id": "pbccs.task_options.model_path", "hidden": true, "advanced": true},
-    {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true}
+    {"id": "pbccs.task_options.model_spec", "hidden": true, "advanced": true},
+    {"id": "pbcoretools.task_options.read_length", "hidden": true, "advanced": true}
   ]
 }

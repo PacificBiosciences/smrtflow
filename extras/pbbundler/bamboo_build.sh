@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
-# this will be in the name of output tar.gz file
-BUNDLE_VERSION="0.16.0"
+set -o errexit
+set -o pipefail
+#set -o nounset # this makes virtualenv fail
+# set -o xtrace
 
-echo "Bamboo build number '${bamboo_buildNumber}'"
+# this will be in the name of output tar.gz file
+# (FIXME)(6-5-2017)(mkocher) Unclear blast radius. This should be migrated to only use the bamboo global build number
+BUNDLE_VERSION="0.16.${bamboo_globalBuildNumber}"
+
+echo "Bamboo local build number '${bamboo_buildNumber}' Global build number '${bamboo_globalBuildNumber}'"
 
 # this script assumes that the directory containing the smrtflow repo also
 # contains ui and the python repos
@@ -32,6 +38,10 @@ if [ ! -d "${CHEM_BUNDLE}" ]; then
   exit 1
 fi
 
+cd ${CHEM_BUNDLE}
+python bin/generate-manifests.py version.txt
+cd -
+
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
 cd $UI_ROOT
@@ -44,12 +54,6 @@ SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
 TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
-set -o errexit
-set -o pipefail
-#set -o nounset # this makes virtualenv fail
-# set -o xtrace
-
-SL_ANALYSIS_SERVER="smrt-server-link"
 
 echo "Starting building ${BUNDLE_VERSION}"
 

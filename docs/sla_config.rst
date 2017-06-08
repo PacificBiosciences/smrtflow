@@ -5,6 +5,12 @@ Configuration is can be done using scala conf files, setting `-D` when launching
 
 Please see the `reference.conf` or the `application.conf` of each sbt subproject (e.g., smrt-server-analysis) for details.
 
+When running from SMRT Link Analysis Services in production from the **smrtlink-system-config.json** file, the `-D=config.file=/path/to/smrtlink-system-config.json` can be used.
+
+For configuring standalone exes build using "sbt pack", use env variable JAVA_OPTS="--D=config.file=/path/to/smrtlink-system-config.json" before launching the exe.
+
+The specification for this file is documented in the SmrtLinkSystemConfig.avsc Avro schema.
+
 Common Analysis Configuration
 -----------------------------
 
@@ -35,3 +41,5 @@ Testing
 
 
 - *PB_TEST_DATA_FILES* Path to PacBioTestFiles repo (https://github.com/PacificBiosciences/PacBioTestData)
+
+Note, this should point to the *file.json* file within the repo. For example, "export PB_TEST_DATA_FILES=/path/to/file.json"

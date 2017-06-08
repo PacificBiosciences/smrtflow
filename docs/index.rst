@@ -14,8 +14,8 @@ SMRT Flow Docs
    SMRT Link System High Level Architecture<smrtlink_system_high_level_arch>
    smrtflow Tools <tools>
    SMRT Link System Config <sla_config>
-   PacBio Bundle APIs <pacbio_bundles>
+   PacBio Parameter "Chemistry" Upgrade Bundle and Services <pacbio_bundles>
    SMRT Link Analysis Server APIs <sla_service_apis>
-   SMRT Event Server <events>
+   SMRT Eve Server <eve_server>
    Disclaimer <disclaimer>
 
