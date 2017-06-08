@@ -21,6 +21,9 @@ build:
 tools:
 	sbt clean pack
 
+tools-sim:
+	sbt smrt-server-sim/{compile,pack}
+
 xsd-java:
 	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
 	xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
@@ -29,7 +32,7 @@ tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
 tools-smrt-server-link:
-	sbt smrt-server-link/pack
+	sbt smrt-server-link/{compile,pack}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
