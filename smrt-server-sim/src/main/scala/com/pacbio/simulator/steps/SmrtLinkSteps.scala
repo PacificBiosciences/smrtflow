@@ -347,7 +347,7 @@ trait SmrtLinkSteps extends LazyLogging {
 
   case class ExportDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], outputPath: Var[Path]) extends VarStep[UUID] {
     override val name = "ExportDataSets"
-    override def runWith = smrtLinkClient.exportDataSets(dsType.toString, ids.get, outputPath.get).map(_.uuid)
+    override def runWith = smrtLinkClient.exportDataSets(dsType.get.toString, ids.get, outputPath.get).map(_.uuid)
   }
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
