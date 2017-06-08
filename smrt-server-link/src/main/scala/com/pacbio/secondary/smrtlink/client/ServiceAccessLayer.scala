@@ -545,16 +545,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
-  // FIXME. These should use DataSetMetaType
-  def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
+  def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], outputPath: Path) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-         DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
+         DataSetExportServiceOptions(datasetType.toString, ids, toP(outputPath)))
   }
 
-  // FIXME. These should use DataSetMetaType
-  def deleteDataSets(datasetType: String, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
+  def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
-         DataSetDeleteServiceOptions(datasetType, ids, removeFiles))
+         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles))
   }
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {

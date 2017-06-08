@@ -347,7 +347,7 @@ trait SmrtLinkSteps extends LazyLogging {
 
   case class ExportDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], outputPath: Var[Path]) extends VarStep[UUID] {
     override val name = "ExportDataSets"
-    override def runWith = smrtLinkClient.exportDataSets(dsType.toString, ids.get, outputPath.get).map(_.uuid)
+    override def runWith = smrtLinkClient.exportDataSets(dsType.get, ids.get, outputPath.get).map(_.uuid)
   }
 
   case class RunAnalysisPipeline(pipelineOptions: Var[PbSmrtPipeServiceOptions]) extends VarStep[UUID] {
@@ -433,7 +433,7 @@ trait SmrtLinkSteps extends LazyLogging {
 
   case class DeleteDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], removeFiles: Var[Boolean] = Var(true)) extends VarStep[UUID] {
     override val name = "DeleteDataSets"
-    override def runWith = smrtLinkClient.deleteDataSets(dsType.get.toString, ids.get, removeFiles.get).map(_.uuid)
+    override def runWith = smrtLinkClient.deleteDataSets(dsType.get, ids.get, removeFiles.get).map(_.uuid)
   }
 
   case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
