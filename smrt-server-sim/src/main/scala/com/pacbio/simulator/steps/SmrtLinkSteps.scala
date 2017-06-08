@@ -492,4 +492,10 @@ trait SmrtLinkSteps extends LazyLogging {
     }
   }
 
+  case class CreateDbBackUpJob(user: String, comment: String) extends VarStep[UUID] {
+    override val name = "CreateDbBackUpJob"
+    override def runWith = smrtLinkClient.runDbBackUpJob(user, comment).map(_.uuid)
+
+  }
+
 }

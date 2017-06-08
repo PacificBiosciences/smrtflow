@@ -609,6 +609,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   /**
+    * Submit a request to create a DB BackUp Job
+    *
+    * The server must be configured with a backup path, otherwise, there should be an error raised.
+    *
+    * @param user    User that is creating the request to backup the db
+    * @param comment A comment from the user
+    * @return
+    */
+  def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
+  }
+
+  /**
     * FIXME(mpkocher)(2016-8-22)
     * - replace tStart with JodaDateTime
     * - make sleepTime configurable
