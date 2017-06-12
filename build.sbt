@@ -90,7 +90,6 @@ lazy val baseSettings = Seq(
   "io.spray" % "spray-http_2.11" % sprayV,
   "io.spray" % "spray-io_2.11" % sprayV,
   "io.spray" % "spray-routing-shapeless2_2.11" % sprayV,
-  "io.spray" % "spray-servlet_2.11" % sprayV,
   "io.spray" % "spray-testkit_2.11" % sprayV % "test",
   "io.spray" % "spray-util_2.11" % sprayV,
   "io.spray" %% "spray-json" % "1.3.2",
@@ -106,7 +105,7 @@ lazy val baseSettings = Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
-  "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test",
+  "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test,it",
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
@@ -118,6 +117,7 @@ lazy val baseSettings = Seq(
 
 def PacBioProject(name: String): Project = (
     Project(name, file(name))
+        .configs( IntegrationTest )
         settings (
         libraryDependencies ++= baseSettings
         )
@@ -132,23 +132,19 @@ gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
 def getBuildNumber(): Option[Int] = sys.env.get(bambooBuildNumberEnv).map(_.toInt)
 
+val smrtLinkServerRunner = taskKey[SmrtLinkServerRunner]("smrtlink-server-runner")
 
-// still can't get these to be imported successfully within ammonite on startup
-val replImports =
-"""
-  |import java.util.UUID
-  |import akka.actor.ActorSystem
-  |import scala.concurrent.duration._
-  |import com.pacbio.secondary.smrtserver.client.{AnalysisServiceAccessLayer => Sal}
-  |import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-  |import com.pacbio.secondary.analysis.constants._
-  |import com.pacbio.secondary.analysis.datasets.io._
-""".stripMargin
+smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner
+
+testOptions in IntegrationTest += Tests.Setup { () => smrtLinkServerRunner.value.start()}
+
+testOptions in IntegrationTest += Tests.Cleanup { () => smrtLinkServerRunner.value.stop()}
 
 // Project to use the ammonite repl
 lazy val smrtflow = project.in(file("."))
     .settings(moduleName := "smrtflow")
-    //.settings(noPublish)
+    .configs( IntegrationTest )
+    .settings( Defaults.itSettings : _*)
     .settings(publish := {})
     .settings(publishLocal := {})
     .settings(publishArtifact := false)
@@ -194,7 +190,7 @@ lazy val common = (
               | "name": "SMRT Analysis Services",
               | "version": "$pacbioVersion",
               | "description":"SMRT Link Analysis Services and Job Orchestration engine",
-              | "dependencies": ["pbsmrtpipe", "sawriter", "gmap"]
+              | "dependencies": ["pbsmrtpipe", "sawriter", "gmap", "ngmlr]
               |}
               """.stripMargin
             IO.write(propFile, manifest)
@@ -225,8 +221,10 @@ lazy val smrtServerLink = (
 
 lazy val smrtServerSim = (
     PacBioProject("smrt-server-sim")
-        dependsOn(logging, common, smrtAnalysis, smrtServerLink)
-        settings()
+        .configs( IntegrationTest )
+        .settings(libraryDependencies ++= baseSettings)
+        .settings( Defaults.itSettings : _*)
+        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
     )
 
 //lazy val root = (project in file(".")).
