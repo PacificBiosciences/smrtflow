@@ -22,8 +22,8 @@ Events that are sent to Eve are written to disk and imported into ElasticSearch 
 There are three main components:
 
 - Eve SMRT Server
-    - Staging    http://smrtlink-eve-staging.pacbcloud.com:8083
-    - Production http://smrtlink-eve.pacbcloud.com:8083
+    - Staging    https://smrtlink-eve-staging.pacbcloud.com:8083
+    - Production https://smrtlink-eve.pacbcloud.com:8083
 - ElasticSearch 2.4.x
 - UI Kibana 4.6
     - Staging    http://smrtfleet-kibana-staging.nanofluidics.com
