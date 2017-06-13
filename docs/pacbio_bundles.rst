@@ -98,7 +98,27 @@ Status
     }
 
 
+List bundles
 
+::
+
+    $> http get http://smrtlink-update-staging.pacbcloud.com:8084/smrt-link/bundles -b
+    [
+        {
+            "createdBy": "integration team",
+            "importedAt": "2017-06-08T20:48:14.322Z",
+            "isActive": false,
+            "typeId": "chemistry",
+            "version": "9.9.9"
+        },
+        {
+            "createdBy": "build",
+            "importedAt": "2017-06-08T21:40:04.475Z",
+            "isActive": true,
+            "typeId": "chemistry",
+            "version": "5.0.0+00c49de"
+        }
+    ]
 
 
 CheatSheet
