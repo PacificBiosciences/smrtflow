@@ -1710,6 +1710,7 @@
     },
     "/secondary-analysis/job-manager/jobs/pbsmrtpipe": {
       "post": {
+        "description": "Start a pbsmrtpipe job using one or more dataset entry points",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1742,6 +1743,7 @@
     },
     "/secondary-analysis/job-manager/jobs/import-dataset": {
       "post": {
+        "description": "Import a PacBio DataSet XML and generate associated reports",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1774,6 +1776,7 @@
     },
     "/secondary-analysis/job-manager/jobs/convert-fasta-reference": {
       "post": {
+        "description": "Generate a PacBio ReferenceSet XML (including required index files) from a FASTA file",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1806,6 +1809,7 @@
     },
     "/secondary-analysis/job-manager/jobs/convert-fasta-barcodes": {
       "post": {
+        "description": "Generate a PacBio BarcodeSet XML from a FASTA file",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1838,6 +1842,7 @@
     },
     "/secondary-analysis/job-manager/jobs/convert-rs-movie": {
       "post": {
+        "description": "Convert RS II movie metadata XML to an HdfSubreadSet suitable for pbsmrtpipe input",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1870,6 +1875,7 @@
     },
     "/secondary-analysis/job-manager/jobs/merge-datasets": {
       "post": {
+        "description": "Combine two or more SubreadSets (or HdfSubreadSets) into a single dataset",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1902,6 +1908,7 @@
     },
     "/secondary-analysis/job-manager/jobs/export-datasets": {
       "post": {
+        "description": "Create a ZIP file containing the contents of one or more datasets, including external resource files",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1934,6 +1941,7 @@
     },
     "/secondary-analysis/job-manager/jobs/delete-datasets": {
       "post": {
+        "description": "Remove a dataset from the database and delete external resource files",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1966,6 +1974,7 @@
     },
     "/secondary-analysis/job-manager/jobs/delete-job": {
       "post": {
+        "description": "Remove a job from the database and delete output directory contents",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1998,6 +2007,7 @@
     },
     "/secondary-analysis/job-manager/jobs/import-datastore": {
       "post": {
+        "description": "Import all files in a datastore JSON",
         "responses": {
           "201": {
             "description": "Return value"
@@ -2030,6 +2040,7 @@
     },
     "/secondary-analysis/job-manager/jobs/tech-support-job": {
       "post": {
+        "description": "Send a request to PacBio Tech Support for assistance with a failed job (request will include job details and log files)",
         "responses": {
           "201": {
             "description": "Return value"
@@ -2062,6 +2073,7 @@
     },
     "/secondary-analysis/job-manager/jobs/tech-support-status": {
       "post": {
+        "description": "Send a summary of SMRT Link system status to PacBio Tech Support",
         "responses": {
           "201": {
             "description": "Return value"
@@ -2094,6 +2106,7 @@
     },
     "/secondary-analysis/job-manager/jobs/db-backup": {
       "post": {
+        "description": "Save a local backup copy of the SMRT Link Postgres database",
         "responses": {
           "201": {
             "description": "Return value"
