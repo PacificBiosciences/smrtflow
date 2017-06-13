@@ -9,17 +9,16 @@ import java.util.UUID
 import java.io.{File, PrintWriter}
 
 import scala.collection._
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
 import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -57,6 +56,8 @@ trait PbsmrtpipeScenarioCore
   protected val refUuid = Var(dsUuidFromPath(reference.get))
   protected val subreads = Var(getSubreads)
   protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
+  val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
   
   // Randomize project name to avoid collisions
   protected val projectName = Var(s"Project-${UUID.randomUUID()}")
@@ -64,23 +65,31 @@ trait PbsmrtpipeScenarioCore
   protected val projectId: Var[Int] = Var()
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
-  protected val diagnosticOptsCore = PbSmrtPipeServiceOptions(
-    "diagnostic-test",
-    "pbsmrtpipe.pipelines.dev_diagnostic",
-    Seq(BoundServiceEntryPoint("eid_ref_dataset",
-                               "PacBio.DataSet.ReferenceSet",
-                               Right(refUuid.get))),
-    Seq(
-      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true,
-                               BOOL.optionTypeId),
+
+
+  def toDiagnosticOptions(referenceSet: UUID,
+                          triggerFailure: Boolean = false,
+                          name: String = "diagnostic-test", projectId: Int = JobConstants.GENERAL_PROJECT_ID):PbSmrtPipeServiceOptions = {
+    val pipelineId = "pbsmrtpipe.pipelines.dev_diagnostic"
+    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, Right(referenceSet))
+
+    val taskOptions = Seq(
+      ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true, BOOL.optionTypeId),
+      ServiceTaskBooleanOption(toI("raise_exception"), triggerFailure, BOOL.optionTypeId),
       ServiceTaskIntOption(toI("test_int"), 2, INT.optionTypeId),
       ServiceTaskDoubleOption(toI("test_float"), 1.234, FLOAT.optionTypeId),
       ServiceTaskStrOption(toI("test_str"), "Hello, world", STR.optionTypeId),
       ServiceTaskIntOption(toI("test_choice_int"), 3, CHOICE_INT.optionTypeId),
       ServiceTaskDoubleOption(toI("test_choice_float"), 1.0, CHOICE_FLOAT.optionTypeId),
       ServiceTaskStrOption(toI("test_choice_str"), "B", CHOICE.optionTypeId)
-    ),
-    Seq[ServiceTaskOptionBase]())
+    )
+
+    val workflowOptions = Seq.empty[ServiceTaskOptionBase]
+
+    PbSmrtPipeServiceOptions(name, pipelineId, Seq(ep), taskOptions, workflowOptions, projectId)
+  }
+
+  protected val diagnosticOptsCore = toDiagnosticOptions(refUuid.get)
   protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] = projectId.mapWith { pid =>
     diagnosticOptsCore.copy(projectId = pid)
   }
@@ -125,10 +134,10 @@ trait PbsmrtpipeScenarioCore
   protected val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobId := ImportDataSet(reference, ftReference),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(subreads, ftSubreads),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),

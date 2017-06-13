@@ -5,12 +5,10 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import scala.collection.Seq
-
 import spray.httpx.UnsuccessfulResponseException
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
-import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
 import com.pacbio.secondary.analysis.jobs.OptionTypes
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
@@ -84,6 +82,8 @@ class RunDesignWithICSScenario(host: String,
   val childJobs: Var[Seq[EngineJob]] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
   val satOpts: Var[PbSmrtPipeServiceOptions] = Var()
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
+  val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
 
   println(s"subreads : ${subreads.get}")
 
@@ -139,7 +139,7 @@ class RunDesignWithICSScenario(host: String,
 
     jobStatus := GetStatus,
 
-    jobId := ImportDataSet(reference, Var(FileTypes.DS_REFERENCE.fileTypeId)),
+    jobId := ImportDataSet(reference, ftReference),
 
     jobStatus := WaitForJob(jobId),
 
@@ -149,7 +149,7 @@ class RunDesignWithICSScenario(host: String,
 
     CheckIfUUIDUpdated(subreads, runInfo),
 
-    jobId := ImportDataSet(subreads, Var(FileTypes.DS_SUBREADS.fileTypeId)),
+    jobId := ImportDataSet(subreads, ftSubreads),
 
     jobStatus := WaitForJob(jobId),
 

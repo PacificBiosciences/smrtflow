@@ -1,20 +1,46 @@
 package com.pacbio.simulator.steps
 
 import com.pacbio.simulator.Scenario
+import com.pacbio.simulator.StepResult.{Result, SUCCEEDED}
+import com.typesafe.scalalogging.LazyLogging
+
+import scala.concurrent.Future
 
 trait VarSteps {
   this: Scenario =>
 
   // Trait for steps that produce a value which can be assigned to a ScenarioVar
-  trait VarStep[T] extends Step {
+  trait VarStep[T] extends Step with LazyLogging {
     private[VarSteps] var outputVar: Option[Var[T]] = None
 
+    /**
+      * Return a computed value (often from the webservice calls)
+      *
+      * The name is sub-optimal. Should be improved.
+      *
+      * @return
+      */
+    def runWith: Future[T]
+
+    /**
+      * Convenience method for returning successful Results
+      *
+      * For other cases, users can override both {{{run}}} and {{{runWith}}}
+      *
+      * @return
+      */
+    override def run: Future[Result] = runWith.map { r =>
+      logger.debug(s"$name Completed runWith $r")
+      output(r)
+      SUCCEEDED
+    }
     protected final def output(value: T): Unit = outputVar.foreach(_.set(value))
   }
 
   object Var {
     def apply[T](init: T) = new Var[T](Some(init))
     def apply[T]() = new Var[T]()
+    def empty[T] = new Var[T]()
   }
 
   sealed class Var[T](init: Option[T] = None) {

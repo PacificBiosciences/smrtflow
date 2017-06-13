@@ -36,7 +36,9 @@ object Sim extends App with LazyLogging{
     "SqliteToPostgresScenario" -> SqliteToPostgresScenarioLoader,
     "UpgradeScenario" -> UpgradeScenarioLoader,
     "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
-    "LargeMergeScenario" -> LargeMergeScenarioLoader
+    "LargeMergeScenario" -> LargeMergeScenarioLoader,
+    "TechSupportScenario" -> TechSupportScenarioLoader,
+    "DbBackUpScenario" -> DbBackUpScenarioLoader
   )
 
   final val DESCRIPTION =

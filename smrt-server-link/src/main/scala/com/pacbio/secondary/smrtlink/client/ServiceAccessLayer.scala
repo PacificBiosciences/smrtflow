@@ -517,11 +517,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Get(toUrl(ROOT_REPORT_RULES + s"/$reportId"))
   }
 
-  def importDataSet(path: Path, dsMetaType: String): Future[EngineJob] = runJobPipeline {
-    val dsMetaTypeObj = DataSetMetaTypes.toDataSetType(dsMetaType).get
+  def importDataSet(path: Path, dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] = runJobPipeline {
     Post(
       toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-      ImportDataSetOptions(toP(path), dsMetaTypeObj))
+      ImportDataSetOptions(toP(path), dsMetaType))
   }
 
   def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
@@ -536,9 +535,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
-  def mergeDataSets(datasetType: String, ids: Seq[Int], name: String) = runJobPipeline {
+  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         DataSetMergeServiceOptions(datasetType, ids, name))
+         DataSetMergeServiceOptions(datasetType.toString, ids, name))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {
@@ -546,14 +545,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
-  def exportDataSets(datasetType: String, ids: Seq[Int], outputPath: Path) = runJobPipeline {
+  def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], outputPath: Path) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-         DataSetExportServiceOptions(datasetType, ids, toP(outputPath)))
+         DataSetExportServiceOptions(datasetType.toString, ids, toP(outputPath)))
   }
 
-  def deleteDataSets(datasetType: String, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
+  def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
-         DataSetDeleteServiceOptions(datasetType, ids, removeFiles))
+         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles))
   }
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] = getPipelineTemplatePipeline {
@@ -594,9 +593,30 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
          TsSystemStatusServiceOptions(user, comment))
   }
 
+  /**
+    * Create a Failed TechSupport Job
+    *
+    * @param jobId   Failed Job id that is in the FAILED state is supported
+    * @param user    User that has created the job TGZ bundle
+    * @param comment Comment
+    * @return
+    */
   def runTsJobBundle(jobId: Int, user: String, comment: String) = runJobPipeline {
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
         TsJobBundleJobServiceOptions(jobId, user, comment))
+  }
+
+  /**
+    * Submit a request to create a DB BackUp Job
+    *
+    * The server must be configured with a backup path, otherwise, there should be an error raised.
+    *
+    * @param user    User that is creating the request to backup the db
+    * @param comment A comment from the user
+    * @return
+    */
+  def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
   }
 
   /**
