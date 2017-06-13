@@ -12,11 +12,11 @@ import com.pacbio.secondary.analysis.engine.EngineConfig
 import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.models.{ExternalEventServerConfig, PacBioDataBundleIO}
+import com.pacbio.secondary.smrtlink.models.PacBioDataBundleIO
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
@@ -64,28 +64,31 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.smrtLinkSystemRoot"))}.toOption)
 
   /**
-    * The Model is loading the <=4.0 model where the eventUrl was provided as a full URL.
+    * This will load the key and convert to URL.
+    * Any errors will *only* be logged. This is probably not the best model.
     *
     * @return
     */
-  private def loadExternalEventHost(): Option[ExternalEventServerConfig] = {
-    Try {
-      val ux = new URL(conf.getString("smrtflow.server.eventUrl"))
-      // Don't require a port
-      val eventPort = Try {ux.getPort}.getOrElse(port())
-      ExternalEventServerConfig(ux.getHost, eventPort)
-    }.toOption
+  private def loadUrl(key: String): Option[URL] = {
+    Try { new URL(conf.getString(key))} match {
+      case Success(url) =>
+        logger.info(s"Converted $key to URL $url")
+        Some(url)
+      case Failure(ex) =>
+        logger.error(s"Failed to load URL from key '$key' ${ex.getMessage}")
+        None
+    }
   }
 
-  val externalEventHost: Singleton[Option[ExternalEventServerConfig]] =
-    Singleton(() => loadExternalEventHost())
+  val externalEveUrl: Singleton[Option[URL]] =
+    Singleton(() => loadUrl("smrtflow.server.eventUrl"))
 
   val externalBundleUrl: Singleton[Option[URL]] = {
-    Singleton(() => Try {new URL(conf.getString("pacBioSystem.remoteBundleUrl"))}.toOption)
+    Singleton(() => loadUrl("pacBioSystem.remoteBundleUrl"))
   }
 
   val externalBundlePollDuration: Singleton[FiniteDuration] = {
-    Singleton(() => FiniteDuration(12, HOURS))
+    Singleton(() => FiniteDuration(Try(conf.getInt("pacBioSystem.remoteBundlePollHours")).getOrElse(12), HOURS))
   }
 
   val swaggerResource: Singleton[String] =

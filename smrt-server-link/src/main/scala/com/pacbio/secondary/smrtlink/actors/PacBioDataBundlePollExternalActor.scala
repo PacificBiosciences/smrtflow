@@ -33,7 +33,7 @@ object PacBioDataBundlePollExternalActor {
   * On startup, the system will trigger an external call to check for newer bundles.
   *
   * @param rootBundleDir System root bundle dir
-  * @param url           Root URL of the external bundle server
+  * @param url           Root URL of the external bundle server (Example http://my-host:8080)
   * @param pollTime      interval time between polling the external server
   * @param daoActor      Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
   * @param bundleType    Bundle type to check for upgrades
@@ -52,7 +52,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   context.system.scheduler.schedule(initialDelay,  pollTime, self, CheckForUpdates)
 
   val client: Option[PacBioDataBundleClient] =
-    url.map(u => new PacBioDataBundleClient(u)(context.system))
+    url.map(ux => new PacBioDataBundleClient(new URL(ux.getProtocol, ux.getHost, ux.getPort, "/smrt-link/bundles"))(context.system))
 
   override def preStart(): Unit = {
     super.preStart()

@@ -762,11 +762,6 @@ case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                dnsName: Option[String])
 
 
-// This should be removed. Only the URL should be used
-case class ExternalEventServerConfig(host: String, port: Int) {
-  def toUrl(): URL = new URL(s"http://$host:$port")
-}
-
 // Request to create a System Status bundle
 case class TechSupportSystemStatusRecord(name: String, comment: String)
 

@@ -63,6 +63,64 @@ See the SMRT Link 'smrt-link/bundles/*' service endpoints in the **smrtlink_swag
 
 The swagger-UI can be used to visualize the endpoint APIs. http://swagger.io/swagger-ui/
 
+Servers
+~~~~~~~
+
+- http://smrtlink-update-staging.pacbcloud.com:8084
+- http://smrtlink-update.pacbcloud.com:8084
+
+Status Staging Server
+
+::
+
+    $> http get http://smrtlink-update-staging.pacbcloud.com:8084/status -b
+    {
+        "id": "bundle-server",
+        "message": "Services have been up for 112 hours, 21 minutes and 30.557 seconds.",
+        "uptime": 404490557,
+        "user": "root",
+        "uuid": "66fb205f-2599-3a37-919e-a0dc5552fee0",
+        "version": "0.6.7+5475.e2b6df3"
+    }
+
+Status
+
+::
+
+    $> http get http://smrtlink-update.pacbcloud.com:8084/status -b
+    {
+        "id": "bundle-server",
+        "message": "Services have been up for 124 hours, 48 minutes and 10.517 seconds.",
+        "uptime": 449290517,
+        "user": "root",
+        "uuid": "56b814db-f0ef-3b91-880b-d1855545b3f8",
+        "version": "0.6.7+2.82f4bc1"
+    }
+
+
+List bundles
+
+::
+
+    $> http get http://smrtlink-update-staging.pacbcloud.com:8084/smrt-link/bundles -b
+    [
+        {
+            "createdBy": "integration team",
+            "importedAt": "2017-06-08T20:48:14.322Z",
+            "isActive": false,
+            "typeId": "chemistry",
+            "version": "9.9.9"
+        },
+        {
+            "createdBy": "build",
+            "importedAt": "2017-06-08T21:40:04.475Z",
+            "isActive": true,
+            "typeId": "chemistry",
+            "version": "5.0.0+00c49de"
+        }
+    ]
+
+
 CheatSheet
 ~~~~~~~~~~
 
