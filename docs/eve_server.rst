@@ -22,8 +22,8 @@ Events that are sent to Eve are written to disk and imported into ElasticSearch 
 There are three main components:
 
 - Eve SMRT Server
-    - Staging    http://smrtlink-eve-staging.pacbcloud.com:8083
-    - Production http://smrtlink-eve.pacbcloud.com:8083
+    - Staging    https://smrtlink-eve-staging.pacbcloud.com:8083
+    - Production https://smrtlink-eve.pacbcloud.com:8083
 - ElasticSearch 2.4.x
 - UI Kibana 4.6
     - Staging    http://smrtfleet-kibana-staging.nanofluidics.com
@@ -105,6 +105,22 @@ Command line args
     --log-level=DEBUG
 
 Note, there is no support for *--help*
+
+
+Server Status
+
+::
+
+    $>http get https://smrtlink-eve-staging.pacbcloud.com:8083/status -b
+    {
+        "id": "smrt-eve",
+        "message": "Services have been up for 309 hours, 34 minutes and 30.636 seconds.",
+        "uptime": 1114470636,
+        "user": "pbweb",
+        "uuid": "debcf761-44dc-3856-9a2a-8abfbbdab6b7",
+        "version": "0.6.7+817dff6"
+    }
+
 
 Eve and SMRT Link Server Tools
 ------------------------------

@@ -1,9 +1,9 @@
 package com.pacbio.secondary.smrtlink.app
 
 import java.net.BindException
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
-import akka.actor.Props
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
@@ -23,6 +23,17 @@ import spray.routing._
 import concurrent.duration._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+class ChemistryUpdateBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef)(implicit override val actorSystem: ActorSystem) extends PacBioBundleService(daoActor, rootBundle, externalPollActor)(actorSystem) {
+
+  /**
+    * Removed any PUT, POST routes yield only GET
+    *
+    * And remove the Remote bundle Status routes (this system should never be configured with an external
+    * bundle service to update from.
+    */
+  override val routes = bundleRoutes
+}
 
 /**
   * Thin PacBio Data Bundle Only Server
@@ -47,7 +58,7 @@ trait PacBioDataBundleServicesCakeProvider {
   lazy val externalPollActor = actorSystem.actorOf(Props(new PacBioDataBundlePollExternalActor(pacBioBundleRoot, None, 12.hours, daoActor)))
 
   lazy val services: Seq[PacBioService] = Seq(
-    new PacBioBundleService(daoActor, pacBioBundleRoot, externalPollActor),
+    new ChemistryUpdateBundleService(daoActor, pacBioBundleRoot, externalPollActor),
     new StatusService(statusGenerator))
 }
 

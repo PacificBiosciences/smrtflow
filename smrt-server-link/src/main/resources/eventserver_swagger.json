@@ -35,7 +35,7 @@
     "/api/v1/events": {
       "post": {
         "summary": "Submit event to the Eve Server",
-        "description": "Submit an SL System Event to the Eve Server",
+        "description": "Submit an SL System Event to the Eve Server. Requires Auth",
         "parameters": [
           {
             "in": "body",
@@ -63,7 +63,7 @@
     "/api/v1/files": {
       "post": {
         "summary": "Upload Tech Support (tgz) Bundle",
-        "description": "Upload .tgz or .tar.gz Tech Support Bundle. Files sizes are limited to < 8MB. Files must contain a tech-support-manifest.json file in the root directory.",
+        "description": "Upload .tgz or .tar.gz Tech Support Bundle. Files sizes are limited to < 8MB. Files must contain a tech-support-manifest.json file in the root directory. Requires Auth",
         "responses": {
           "default": {
             "description": "Return value"

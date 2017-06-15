@@ -126,7 +126,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/Manifest"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -625,7 +628,10 @@
             "description": "Unable to get bundle service. Bundle service is down"
           },
           "200": {
-            "description": "List of PacBio Data Bundless"
+            "description": "List of PacBio Data Bundless",
+            "schema": {
+              "$ref": "#/definitions/PacBioDataBundleList"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -750,7 +756,7 @@
             "description": "Unable to find any PacBio Data Bundle(s) with provide bundle type. Or relative Path doesn't exist in bundle"
           },
           "200": {
-            "description": "Get the currently Active PacBio Data Bundle for a given bundle type"
+            "description": "Get the currently Active PacBio Data Bundle for a given bundle type. Returns Null if no bundle is provided"
           }
         },
         "x-auth-type": "Application & Application User"
@@ -862,7 +868,42 @@
     },
     "/smrt-link/bundles/{bundleType}/{bundleVersion}/upgrade": {
       "post": {
-        "description": "Upgrade to this Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
+        "description": "Upgrade (i.e., 'Activate') a specific Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "Bundle version (e.g., 1.2.3) This should adhere to the Semantic Version scheme",
+            "required": true,
+            "type": "string",
+            "name": "bundleVersion",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
+          },
+          "200": {
+            "description": "Returns an Activated PacBio Data Bundle"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/{bundleVersion}/activate": {
+      "post": {
+        "description": "Upgrade (i.e., 'Activate') a specific Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
         "x-scope": "data-management",
         "produces": [
           "text/plain; charset=UTF-8"
@@ -1040,6 +1081,7 @@
     },
     "/secondary-analysis/dataset-types/{type}": {
       "get": {
+        "description": "Get DataSet Meta Type",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1066,12 +1108,13 @@
     },
     "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
       "get": {
+        "description": "Returns JSON converted from the DataSet XML. See the PacBio DataSet XSDs for details",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "JSON structure for the given DataSet type (e.g., SubreadSet, ReferenceSet)"
           }
         },
         "parameters": [
@@ -1098,6 +1141,7 @@
     },
     "/secondary-analysis/datasets/alignments/{dataset-id}": {
       "get": {
+        "description": "Get the Service AlignmentSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1127,6 +1171,7 @@
     },
     "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
       "get": {
+        "description": "Get the Service HdfSubreadSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1156,6 +1201,7 @@
     },
     "/secondary-analysis/datasets/subreads/{dataset-id}": {
       "get": {
+        "description": "Get the Service SubreadSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1185,6 +1231,7 @@
     },
     "/secondary-analysis/datasets/barcodes/{dataset-id}": {
       "get": {
+        "description": "Get the Service BarcodeSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1214,6 +1261,7 @@
     },
     "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
       "get": {
+        "description": "Get the Service CCSAlignmentSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1243,6 +1291,7 @@
     },
     "/secondary-analysis/datasets/contigs/{dataset-id}": {
       "get": {
+        "description": "Get the Service ContigSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1272,6 +1321,7 @@
     },
     "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
       "get": {
+        "description": "Get the Service CCS ReadSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1301,6 +1351,7 @@
     },
     "/secondary-analysis/datasets/references/{dataset-id}": {
       "get": {
+        "description": "Get the Service ReferenceSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1330,6 +1381,7 @@
     },
     "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
       "get": {
+        "description": "Get the Service GmapReferenceSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1359,6 +1411,7 @@
     },
     "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
       "get": {
+        "description": "Get the reports associated with a PacBio DataSet. These will often contain num records, total length and filter stats. The reports generated are dependent on the DataSet MetaType (e.g., SubreadSet)",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1392,6 +1445,7 @@
 
     "/secondary-analysis/projects": {
       "post": {
+        "description": "Create a Project",
         "responses": {
           "201": {
             "description": "Return value"
@@ -1411,6 +1465,7 @@
         ]
       },
       "get": {
+        "description": "Get a list of projects",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1510,6 +1565,7 @@
 
     "/secondary-analysis/resolved-pipeline-templates": {
       "get": {
+        "description": "Get a list of Resolved Pipeline Templates registered to SMRT Link",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1555,6 +1611,7 @@
     },
     "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
       "get": {
+        "description": "Get a List of Presets for a specific Resolved Pipeline Template",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1603,6 +1660,7 @@
     },
     "/secondary-analysis/report-view-rules": {
       "get": {
+        "description": "Report View Rules that override the default view rule for report by type id",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1621,6 +1679,7 @@
     },
     "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
       "get": {
+        "description": "Get a Pipeline Template View Rule by id",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1692,6 +1751,7 @@
 
     "/secondary-analysis/job-manager/job-types": {
       "get": {
+        "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1708,13 +1768,481 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}": {
+    "/secondary-analysis/job-manager/jobs/pbsmrtpipe": {
       "post": {
+        "description": "Start a pbsmrtpipe job using one or more dataset entry points",
         "responses": {
           "201": {
-            "description": "Return value"
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
           },
           "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "pbsmrtpipe job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PbSmrtPipeServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/import-dataset": {
+      "post": {
+        "description": "Import a PacBio DataSet XML and generate associated reports",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import dataset job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ImportDataSetOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/convert-fasta-reference": {
+      "post": {
+        "description": "Generate a PacBio ReferenceSet XML (including required index files) from a FASTA file",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import reference FASTA job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertImportFastaOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/convert-fasta-barcodes": {
+      "post": {
+        "description": "Generate a PacBio BarcodeSet XML from a FASTA file",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import barcode FASTA job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertImportFastaBarcodesOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/convert-rs-movie": {
+      "post": {
+        "description": "Convert RS II movie metadata XML to an HdfSubreadSet suitable for pbsmrtpipe input",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import RS II movie job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MovieMetadataToHdfSubreadOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/merge-datasets": {
+      "post": {
+        "description": "Combine two or more SubreadSets (or HdfSubreadSets) into a single dataset",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset merge job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DataSetMergeServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/export-datasets": {
+      "post": {
+        "description": "Create a ZIP file containing the contents of one or more datasets, including external resource files",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset export job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DataSetExportServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/delete-datasets": {
+      "post": {
+        "description": "Remove a dataset from the database and delete external resource files",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset delete job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DataSetDeleteServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/delete-job": {
+      "post": {
+        "description": "Remove a job from the database and delete output directory contents",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Delete job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeleteJobServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/import-datastore": {
+      "post": {
+        "description": "Import all files in a datastore JSON",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Datastore import job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ImportDataStoreOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/tech-support-job": {
+      "post": {
+        "description": "Send a request to PacBio Tech Support for assistance with a failed job (request will include job details and log files)",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Tech support failed job bundle options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TsJobBundleJobServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/tech-support-status": {
+      "post": {
+        "description": "Send a summary of SMRT Link system status to PacBio Tech Support",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Tech support system status bundle options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TsSystemStatusServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/db-backup": {
+      "post": {
+        "description": "Save a local backup copy of the SMRT Link Postgres database",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Database backup job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DbBackUpServiceJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
             "description": "Return value"
           }
         },
@@ -1737,33 +2265,6 @@
             "type": "integer",
             "name": "projectId",
             "in": "query"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "analysis",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited",
-        "consumes": [
-          "application/json"
-        ]
-      },
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
           }
         ],
         "produces": [
@@ -1811,6 +2312,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
       "get": {
+        "description": "Get a Service DataStore File by DataStoreFile UUID",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1849,6 +2351,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
       "get": {
+        "description": "Get a list of Events associated with a specific Job",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1998,6 +2501,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
       "get": {
+        "description": "Get the options used to created the Job. The returned model will depend on job-type",
         "responses": {
           "default": {
             "description": "Return value"
@@ -2065,6 +2569,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
       "get": {
+        "description": "Get a list of Children jobs of this parent job",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -2173,6 +2678,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
       "get": {
+        "description": "Get a list of ServiceReport files generated from a job",
         "responses": {
           "default": {
             "description": "Return value"
@@ -2205,6 +2711,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
       "get": {
+        "description": "Get a job by Integer ID or UUID",
         "responses": {
           "default": {
             "schema": {
@@ -2278,6 +2785,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
       "get": {
+        "description": "Get the DataSet Entry Points used as inputs to the Job (if any were provided)",
         "responses": {
           "default": {
             "description": "Return value"
@@ -2382,6 +2890,13 @@
   },
   "definitions": {
     "PipelineTemplateViewRules": {
+      "title": "List of Pipeline Template View Rules",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PipelineTemplateViewRule"
+      }
+    },
+    "PipelineTemplateViewRule": {
       "type": "object",
       "title": "Pipeline Template View Rules",
       "description": "A list of the view rules for each pipeline.",
@@ -3773,9 +4288,17 @@
       }
     },
     "Manifests": {
+      "type": "array",
+      "title": "List of Manifest",
+      "description": "List of PacBio Manifest Instances used in SMRT Link System",
+      "items": {
+        "$ref": "#/definitions/Manifest"
+      }
+    },
+    "Manifest": {
       "type": "object",
-      "title": "Manifests",
-      "description": "Manifests of sotware packages used in SMRT Link",
+      "title": "Manifest",
+      "description": "Manifest of software package used in SMRT Link",
       "properties": {
         "name": {
           "type": "string",
@@ -4446,7 +4969,343 @@
       },
       "required": ["name", "comment"],
       "type": "object"
+    },
+    "ServiceOption": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Option Global ID",
+          "description": "Globally Unique identifier of task or workflow option. Examples: pbsmrtpipe.task_options.alpha, pbsmrtpipe.options.beta"
+        },
+        "optionTypeId": {
+          "type": "string",
+          "title": "Option type",
+          "description": "Option type ID, from restricted list",
+          "enum": ["integer", "string", "float", "boolean", "choice_string", "choice_integer", "choice_float"]
+        },
+        "value": {
+          "type": ["string", "integer", "number", "boolean"],
+          "title": "Option value",
+          "description": "User-supplied value"
+        }
+      }
+    },
+    "BoundServiceEntryPoint": {
+      "properties": {
+        "entryId": {
+          "type": "string",
+          "title": "Entry point ID",
+          "description": "Identifier of entry point, specific to pipeline",
+          "example": "eid_subread"
+        },
+        "fileTypeId": {
+          "type": "string",
+          "title": "File type ID",
+          "description": "File type identifier, usually prefixed by PacBio.DataSet",
+          "example": "PacBio.DataSet.SubreadSet"
+        },
+        "datasetId": {
+          "type": ["integer", "string"],
+          "title": "Dataset ID",
+          "description": "Either an integer ID or UUID of existing dataset"
+        }
+      }
+    },
+    "PbSmrtPipeServiceOptions": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Job name",
+          "description": "User-provided job name"
+        },
+        "pipelineId": {
+          "type": "string",
+          "title": "Pipeline ID",
+          "description": "ID of pbsmrtpipe pipeline to execute",
+          "example": "pbsmrtpipe.pipelines.sa3_sat"
+        },
+        "entryPoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BoundServiceEntryPoint"
+          },
+          "title": "Dataset entry point"
+        },
+        "taskOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Task options",
+          "description": "Pipeline-specific task options"
+        },
+        "workflowOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Workflow options",
+          "description": "Global workflow settings - CURRENTLY IGNORED"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "Optional project ID"
+        }
+      }
+    },
+    "DataSetMergeServiceOptions": {
+      "properties": {
+        "datasetType": {
+          "type": "string",
+          "example": "PacBio.DataSet.SubreadSet",
+          "title": "Dataset metatype",
+          "description": "File metatype string, prefixied by PacBio.DataSet"
+        },
+        "ids": {
+          "type": "array",
+          "title": "Dataset IDs",
+          "description": "Integer IDs of datasets in SMRT Link database",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "name": {
+          "type": "string",
+          "title": "Merged dataset name",
+          "description": "Name of merged dataset"
+        }
+      }
+    },
+    "DeleteJobServiceOptions": {
+      "properties": {
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": "ID of job to delete"
+        },
+        "removeFiles": {
+          "type": "boolean",
+          "default": false,
+          "title": "Remove files",
+          "description": "Remove entire job output directory"
+        },
+        "dryRun": {
+          "type": "boolean",
+          "default": false,
+          "title": "Dry run",
+          "description": "Check whether a job can be deleted, without changing anything"
+        },
+        "force": {
+          "type": "boolean",
+          "default": false,
+          "title": "Force delete",
+          "description": "Force job removal even if it is still running or other jobs depend on it"
+        }
+      }
+    },
+    "ImportDataSetOptions": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Dataset path",
+          "description": "Path to dataset XML file"
+        },
+        "datasetType": {
+          "type": "string",
+          "example": "PacBio.DataSet.SubreadSet",
+          "title": "Dataset metatype",
+          "description": "File metatype string, prefixied by PacBio.DataSet"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported dataset"
+        }
+      }
+    },
+    "ConvertImportFastaBarcodesOptions": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "FASTA path",
+          "description": "Path to FASTA file to convert to BarcodeSet"
+        },
+        "name": {
+          "type": "string",
+          "title": "BarcodeSet name",
+          "description": "Name of imported dataset"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported dataset"
+        }
+      }
+    },
+    "ConvertImportFastaOptions": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "FASTA path",
+          "description": "Path to FASTA file to convert to ReferenceSet"
+        },
+        "name": {
+          "type": "string",
+          "title": "ReferenceSet name",
+          "description": "Name of imported dataset"
+        },
+        "ploidy": {
+          "type": "string",
+          "title": "Ploidy",
+          "description": "Ploidy of imported genome",
+          "example": "haploid"
+        },
+        "organism": {
+          "type": "string",
+          "title": "Organism name",
+          "description": "Organism name",
+          "example": "Homo sapiens"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported dataset"
+        }
+      }
+    },
+    "MovieMetadataToHdfSubreadOptions": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Metadata XML path",
+          "description": "Path to RS II movie metadata XML file"
+        },
+        "name": {
+          "type": "string",
+          "title": "HdfSubreadSet name",
+          "description": "Name of imported dataset"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported dataset"
+        }
+      }
+    },
+    "ImportDataStoreOptions": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Datastore JSON",
+          "description": "Path to datastore.json"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported datastore files"
+        }
+      }
+    },
+    "DataSetExportServiceOptions": {
+      "properties": {
+        "datasetType": {
+          "type": "string",
+          "example": "PacBio.DataSet.SubreadSet",
+          "title": "Dataset metatype",
+          "description": "File metatype string, prefixied by PacBio.DataSet"
+        },
+        "ids": {
+          "type": "array",
+          "title": "Dataset IDs",
+          "description": "Integer IDs of datasets in SMRT Link database",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "outputPath": {
+          "type": "string",
+          "title": "Output ZIP file",
+          "description": "Path to output ZIP file containing datasets, must not already exist"
+        }
+      }
+    },
+    "DataSetDeleteServiceOptions": {
+      "properties": {
+        "datasetType": {
+          "type": "string",
+          "example": "PacBio.DataSet.SubreadSet",
+          "title": "Dataset metatype",
+          "description": "File metatype string, prefixied by PacBio.DataSet"
+        },
+        "ids": {
+          "type": "array",
+          "title": "Dataset IDs",
+          "description": "Integer IDs of datasets in SMRT Link database",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "removeFiles": {
+          "type": "boolean",
+          "default": true,
+          "title": "Remove files",
+          "description": "Remove dataset XML and external resource files"
+        }
+      }
+    },
+    "TsJobBundleJobServiceOptions": {
+      "properties": {
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": "ID of job to send to PacBio tech support"
+        },
+        "user": {
+          "type": "string",
+          "title": "User ID",
+          "description": "ID of user requesting tech support"
+        },
+        "comment": {
+          "type": "string",
+          "title": "User comments",
+          "description": "User-provided description of the problem"
+        }
+      }
+    },
+    "TsSystemStatusServiceOptions": {
+      "properties": {
+        "user": {
+          "type": "string",
+          "title": "User ID",
+          "description": "ID of user requesting tech support"
+        },
+        "comment": {
+          "type": "string",
+          "title": "User comments",
+          "description": "User-provided description of the problem"
+        }
+      }
+    },
+    "DbBackUpServiceJobOptions": {
+      "properties": {
+        "user": {
+          "type": "string",
+          "title": "User ID",
+          "description": "ID of user requesting tech support"
+        },
+        "comment": {
+          "type": "string",
+          "title": "User comments",
+          "description": "User-provided description of the problem"
+        }
+      }
     }
-
   }
 }

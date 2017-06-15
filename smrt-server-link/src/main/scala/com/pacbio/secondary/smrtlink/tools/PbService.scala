@@ -1267,7 +1267,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
     val tx = for {
       finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
-      job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
+      job <- Try { Await.result(sal.convertRsMovie(path, finalName), TIMEOUT) }
       job <- sal.pollForSuccessfulJob(job.uuid)
       dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles

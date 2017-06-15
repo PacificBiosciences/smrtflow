@@ -1,0 +1,30 @@
+[Unit]
+Description=PacBio SMRTLink Update-Only server
+Documentation=
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/pacbio/smrt-server-data-bundle/current
+User=root
+Environment=SEGFAULT_SIGNALS=all PB_SERVICES_PORT=8084 SMRTFLOW_BUNDLE_DIR=/opt/pacbio/smrt-server-data-bundle/chemistry-updates
+StandardOutput=journal
+ExecStart=/opt/pacbio/smrt-server-data-bundle/current/bin/smrt-server-data-bundle 
+NotifyAccess=all
+## Restart the process if it fails (which means !=0 exit, abnormal termination, or abort or watchdog)
+RestartSec=5s
+Restart=on-failure
+## try starting up to this many times:
+StartLimitBurst=6
+## ... within this time limit:
+StartLimitInterval=5min
+## ... otherwise, reboot the machine.
+#StartLimitAction=reboot-force
+StartLimitAction=none
+
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target
+
+
