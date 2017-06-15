@@ -296,47 +296,25 @@
         }
       ]
     },
-
-    "/smrt-link/runs/{runId}/collections/{collectionId}": {
-      "get": {
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return vaue",
-            "schema": {
-              "$ref": "#/definitions/CollectionDetails"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "runId",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "collectionId",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "run-qc",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
     "/smrt-link/runs": {
       "post": {
+        "description": "Create a new instrument run record",
+        "parameters": [
+          {
+            "required": "true",
+            "name": "body",
+            "in": "body",
+            "description": "Run creation request",
+            "schema": {
+              "$ref": "#/definitions/RunCreate"
+            }
+          }
+        ],
         "responses": {
           "201": {
-            "description": "Return value"
+            "schema": {
+              "$ref": "#/definitions/RunSummary"
+            }
           },
           "default": {
             "description": "Return value"
@@ -353,14 +331,16 @@
         ]
       },
       "get": {
+        "description": "Retrieve a list of all instrument runs",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
             "description": "Return value",
-            "schema": {
-              "$ref": "#/definitions/Runs"
+            "type": "list",
+            "items": {
+              "$ref": "#/definitions/RunSummary"
             }
           }
         },
@@ -400,12 +380,15 @@
     },
     "/smrt-link/runs/{runId}": {
       "post": {
+        "description": "Update an existing run by ID",
         "responses": {
           "default": {
             "description": "Return value"
           },
-          "200": {
-            "description": "Return value"
+          "201": {
+            "schema": {
+              "$ref": "#/definitions/Run"
+            }
           }
         },
         "parameters": [
@@ -414,6 +397,15 @@
             "type": "string",
             "name": "runId",
             "in": "path"
+          },
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "description": "Run update request",
+            "schema": {
+              "$ref": "#/definitions/RunUpdate"
+            }
           }
         ],
         "produces": [
@@ -427,6 +419,7 @@
         ]
       },
       "delete": {
+        "description": "Delete a run record by ID",
         "responses": {
           "default": {
             "description": "Return value"
@@ -451,12 +444,15 @@
         "x-throttling-tier": "Unlimited"
       },
       "get": {
+        "description": "Retrieve an existing run record by ID",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "schema": {
+              "$ref": "#/definitions/RunSummary"
+            }
           }
         },
         "parameters": [
@@ -477,12 +473,17 @@
     },
     "/smrt-link/runs/{runId}/collections": {
       "get": {
+        "description": "Retrieve a list of collections associated with a run",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of collections associated with a run",
+            "type": "list",
+            "items": {
+              "$ref": "#/definitions/CollectionDetails"
+            }
           }
         },
         "parameters": [
@@ -501,11 +502,61 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/smrt-link/runs/{runId}/collections/{collectionId}": {
+      "get": {
+        "description": "Retrieve an existing collection by ID and run ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return vaue",
+            "schema": {
+              "$ref": "#/definitions/CollectionDetails"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "runId",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "collectionId",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "run-qc",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/smrt-link/samples": {
       "post": {
+        "description": "Create a new sample record",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Sample record create request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SampleCreate"
+            }
+          }
+        ],
         "responses": {
           "201": {
-            "description": "Return value"
+            "schema": {
+              "$ref": "#/definitions/Sample"
+            }
           },
           "default": {
             "description": "Return value"
@@ -522,6 +573,7 @@
         ]
       },
       "get": {
+        "description": "Retrieve a list of existing sample records",
         "x-scope": "sample-setup",
         "produces": [
           "application/json"
@@ -532,7 +584,11 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of samples",
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Sample"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -540,12 +596,15 @@
     },
     "/smrt-link/samples/{sampleId}": {
       "post": {
+        "description": "Update an existing sample record by ID",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "schema": {
+              "$ref": "#/definitions/Sample"
+            }
           }
         },
         "parameters": [
@@ -554,6 +613,15 @@
             "type": "string",
             "name": "sampleId",
             "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Sample record update request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SampleUpdate"
+            }
           }
         ],
         "produces": [
@@ -567,6 +635,7 @@
         ]
       },
       "delete": {
+        "description": "Delete an existing sample record by ID",
         "responses": {
           "default": {
             "description": "Return value"
@@ -591,12 +660,16 @@
         "x-throttling-tier": "Unlimited"
       },
       "get": {
+        "description": "Retrieve an existing sample record by ID",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Sample record",
+            "schema": {
+              "$ref": "#/definitions/Sample"
+            }
           }
         },
         "parameters": [
@@ -4344,10 +4417,20 @@
         "dependencies": []
       }
     },
-    "Runs": {
+    "RunCreate": {
+      "description": "Request to create an instrument run record",
+      "properties": {
+        "dataModel": {
+          "type": "string",
+          "title": "Run XML",
+          "description": "XML representation of run data model"
+        }
+      }
+    },
+    "RunSummary": {
       "type": "object",
-      "title": "Runs",
-      "description": "List of all instrument runs transferred to smrtlink",
+      "title": "Run summary",
+      "description": "Summary of instrument run transferred to smrtlink",
       "properties": {
         "reserved": {
           "type": "boolean",
@@ -4458,6 +4541,39 @@
         "instrumentSerialNumber": "",
         "uniqueId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
         "summary": "DryRun_2Cells"
+      }
+    },
+    "Run": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/RunSummary"
+        },
+        {
+          "type": "object",
+          "required": ["dataModel"],
+          "properties": {
+            "dataModel": {
+              "type": "string",
+              "title": "Run XML",
+              "description": "XML representation of run data model"
+            }
+          }
+        }
+      ]
+    },
+    "RunUpdate": {
+      "description": "Request to update an existing run",
+      "properties": {
+        "dataModel": {
+          "type": "string",
+          "title": "Run XML",
+          "description": "XML representation of run data model"
+        },
+        "reserved": {
+          "type": "boolean",
+          "title": "Reserved",
+          "description": "Flag for reserved run"
+        }
       }
     },
     "CollectionDetails": {
@@ -5304,6 +5420,71 @@
           "type": "string",
           "title": "User comments",
           "description": "User-provided description of the problem"
+        }
+      }
+    },
+    "Sample": {
+      "description": "Representation of an existing sample record",
+      "properties": {
+        "details": {
+          "type": "string",
+          "title": "Sample details",
+          "description": "Sample details"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Sample ID",
+          "description": "UUID of the sample record"
+        },
+        "name": {
+          "type": "string",
+          "title": "Sample name",
+          "description": "Sample display name"
+        },
+        "createdBy": {
+          "type": "string",
+          "title": "Created by",
+          "description": "User login ID"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created at",
+          "description": "Timestamp of record creation"
+        }
+      }
+    },
+    "SampleCreate": {
+      "description": "Request to create a new sample record",
+      "properties": {
+        "details": {
+          "type": "string",
+          "title": "Sample details",
+          "description": "Sample details"
+        },
+        "uniqueId": {
+          "type": "string",
+          "title": "Sample ID",
+          "description": "UUID of the sample record"
+        },
+        "name": {
+          "type": "string",
+          "title": "Sample name",
+          "description": "Sample display name"
+        }
+      }
+    },
+    "SampleUpdate": {
+      "description": "Request to update an existing sample record",
+      "properties": {
+        "details": {
+          "type": "string",
+          "title": "Sample details",
+          "description": "Sample details"
+        },
+        "name": {
+          "type": "string",
+          "title": "Sample name",
+          "description": "Sample display name"
         }
       }
     }
