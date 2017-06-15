@@ -144,19 +144,7 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
   // MK. I couldn't figure out the path(Segment / Segment / "upgrade") or path(Segment / Segment / "activate") semantics
   val bundleActivateRoute: Route =
     pathPrefix(ROUTE_PREFIX) {
-      path(Segment / Segment / "upgrade") { (bundleTypeId, bundleVersion) =>
-        post {
-          complete {
-            ok {
-              for {
-                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
-                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
-              } yield bio.bundle
-            }
-          }
-        }
-      } ~
-      path(Segment / Segment / "activate") { (bundleTypeId, bundleVersion) =>
+      (path(Segment / Segment / "upgrade") | path(Segment / Segment / "activate")) { (bundleTypeId, bundleVersion) =>
         post {
           complete {
             ok {
