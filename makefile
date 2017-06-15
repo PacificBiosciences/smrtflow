@@ -152,3 +152,11 @@ full-stress-run: test-data/smrtserver-testdata
 	    psql -tAF$$'\t' smrtlink -c "select * from engine_jobs where state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-jobs ; \
 	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
 	done
+
+validate-swagger-smrtlink:
+	swagger validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
+
+validate-swagger-eve:
+	swagger validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+
+validate-swagger: validate-swagger-smrtlink validate-swagger-eve

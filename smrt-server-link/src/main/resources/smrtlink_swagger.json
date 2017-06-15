@@ -868,7 +868,42 @@
     },
     "/smrt-link/bundles/{bundleType}/{bundleVersion}/upgrade": {
       "post": {
-        "description": "Upgrade to this Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
+        "description": "Upgrade (i.e., 'Activate') a specific Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
+        "x-scope": "data-management",
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "parameters": [
+          {
+            "description": "Bundle type id (e.g., 'chemistry', 'pbtestdata')",
+            "required": true,
+            "type": "string",
+            "name": "bundleType",
+            "in": "path"
+          },
+          {
+            "description": "Bundle version (e.g., 1.2.3) This should adhere to the Semantic Version scheme",
+            "required": true,
+            "type": "string",
+            "name": "bundleVersion",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
+          },
+          "200": {
+            "description": "Returns an Activated PacBio Data Bundle"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/bundles/{bundleType}/{bundleVersion}/activate": {
+      "post": {
+        "description": "Upgrade (i.e., 'Activate') a specific Data Bundle by Id (bundleType, bundleVersion). This will mark the bundle as Active and mark other Data bundles as inActive",
         "x-scope": "data-management",
         "produces": [
           "text/plain; charset=UTF-8"
