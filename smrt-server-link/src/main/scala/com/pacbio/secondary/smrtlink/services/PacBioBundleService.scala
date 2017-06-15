@@ -93,7 +93,7 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
         .flatMap(t => fromTry[PacBioDataBundleIO](errorMessage, t))
   }
 
-  val updateRoutes:Route = {
+  val remoteBundleServerStatusRoute:Route = {
     pathPrefix("bundle-upgrader") {
       path("check") {
         pathEndOrSingleSlash {
@@ -120,17 +120,10 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
     }
   }
 
-  val bundleRoutes:Route = {
+  val bundleImportRoute: Route =
     pathPrefix(ROUTE_PREFIX) {
       pathEndOrSingleSlash {
-        get {
-          complete {
-            ok {
-              (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
-            }
-          }
-        } ~
-        post {
+        post  {
           entity(as[PacBioBundleRecord]) { record =>
             complete {
               created {
@@ -140,6 +133,50 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
                   addedBundle <- (daoActor ? AddBundleIO(validBundle)).mapTo[PacBioDataBundleIO]
                 } yield addedBundle.bundle
               }
+            }
+          }
+        }
+      }
+    }
+
+  // The naming here is terrible. It should be "activate" because that exactly what its doing
+  // Adding the new route here. This is what should be used POST 5.0.0
+  // MK. I couldn't figure out the path(Segment / Segment / "upgrade") or path(Segment / Segment / "activate") semantics
+  val bundleActivateRoute: Route =
+    pathPrefix(ROUTE_PREFIX) {
+      path(Segment / Segment / "upgrade") { (bundleTypeId, bundleVersion) =>
+        post {
+          complete {
+            ok {
+              for {
+                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
+                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
+              } yield bio.bundle
+            }
+          }
+        }
+      } ~
+      path(Segment / Segment / "activate") { (bundleTypeId, bundleVersion) =>
+        post {
+          complete {
+            ok {
+              for {
+                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
+                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
+              } yield bio.bundle
+            }
+          }
+        }
+      }
+    }
+
+    val bundleRoutes:Route = {
+    pathPrefix(ROUTE_PREFIX) {
+      pathEndOrSingleSlash {
+        get {
+          complete {
+            ok {
+              (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
             }
           }
         }
@@ -187,19 +224,7 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
           }
         }
       } ~
-      path(Segment / Segment / "upgrade") { (bundleTypeId, bundleVersion) =>
-        post {
-          complete {
-            ok {
-              for {
-                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
-                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
-              } yield bio.bundle
-            }
-          }
-        }
-      } ~
-      path(Segment / Segment / "download") { (bundleTypeId, bundleVersion) =>
+       path(Segment / Segment / "download") { (bundleTypeId, bundleVersion) =>
         pathEndOrSingleSlash {
           get {
             onSuccess(getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)) { case b: PacBioDataBundleIO =>
@@ -224,7 +249,8 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
     }
   }
 
-  val routes = bundleRoutes ~ updateRoutes
+  // The order is here is very important
+  val routes = bundleRoutes ~ remoteBundleServerStatusRoute ~ bundleImportRoute ~ bundleActivateRoute
 }
 
 trait PacBioBundleServiceProvider {
