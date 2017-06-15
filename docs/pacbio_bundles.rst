@@ -63,6 +63,8 @@ See the SMRT Link 'smrt-link/bundles/*' service endpoints in the **smrtlink_swag
 
 The swagger-UI can be used to visualize the endpoint APIs. http://swagger.io/swagger-ui/
 
+**Note, any PUT or POST endpoints related smrt-link/bundles/ have been removed from the Chemistry Data Bundle Update Server App for security reasons. Only GET methods are supported. To activate or add a new bundle to the system, the system must be stopped and manually add the TGZ and the necessary symlinks to mark the "active" chemistry bundle.**
+
 Servers
 ~~~~~~~
 
