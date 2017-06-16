@@ -85,9 +85,9 @@
         "x-auth-type": "Application & Application User"
       }
     },
-
     "/services/manifests": {
       "get": {
+        "description": "Returns a list of all installed components with version information",
         "produces": [
           "application/json"
         ],
@@ -108,6 +108,7 @@
     },
     "/services/manifests/{resourceId}": {
       "get": {
+        "description": "Returns an object describing a specific installed component",
         "produces": [
           "application/json"
         ],
@@ -135,9 +136,9 @@
         "x-auth-type": "Application & Application User"
       }
     },
-
     "/smrt-base/files/*": {
       "get": {
+        "description": "Return a list of files in specified server path",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -148,7 +149,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Directory resource object",
+            "schema": {
+              "$ref": "#/definitions/DirectoryResource"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -189,6 +193,7 @@
     },
     "/smrt-base/disk-space": {
       "get": {
+        "description": "Retrieve information about available disk space",
         "produces": [
           "application/json"
         ],
@@ -198,9 +203,9 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "List of disk space resources",
             "schema": {
-              "$ref": "#/definitions/DiskSpace"
+              "$ref": "#/definitions/DiskSpaceResources"
             }
           }
         },
@@ -209,6 +214,7 @@
     },
     "/smrt-base/disk-space/{resourceId}": {
       "get": {
+        "description": "Retrieve information about available disk space for specified resource",
         "produces": [
           "application/json"
         ],
@@ -218,7 +224,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "descriptions": "Disk space resource info",
+            "schema": {
+              "$ref": "#/definitions/DiskSpace"
+            }
           }
         },
         "parameters": [
@@ -234,6 +243,7 @@
     },
     "/smrt-base/eula": {
       "post": {
+        "description": "Record user acceptance of tech support agreement",
         "responses": {
           "201": {
             "description": "Return value"
@@ -253,6 +263,7 @@
         ]
       },
       "get": {
+        "description": "Retrieve history of user agreement acceptances",
         "x-scope": "analysis",
         "produces": [
           "application/json"
@@ -271,6 +282,7 @@
     },
     "/smrt-base/eula/{version}": {
       "get": {
+        "description": "Retrieve user agreement acceptance record for specified version",
         "x-scope": "analysis",
         "produces": [
           "application/json"
@@ -1515,13 +1527,25 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-
     "/secondary-analysis/projects": {
       "post": {
         "description": "Create a Project",
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ProjectRequest"
+            }
+          }
+        ],
         "responses": {
           "201": {
-            "description": "Return value"
+            "description": "New project object",
+            "schema": {
+              "$ref": "#/definitions/FullProject"
+            }
           },
           "default": {
             "description": "Return value"
@@ -1549,7 +1573,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of project objects",
+            "schema": {
+              "$ref": "#/definitions/FullProject"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1563,7 +1590,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Full project information after update",
+            "schema": {
+              "$ref": "#/definitions/FullProject"
+            }
           }
         },
         "parameters": [
@@ -1572,6 +1602,14 @@
             "type": "integer",
             "name": "id",
             "in": "path"
+          },
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ProjectRequest"
+            }
           }
         ],
         "produces": [
@@ -1591,7 +1629,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Full project information",
+            "schema": {
+              "$ref": "#/definitions/FullProject"
+            }
           }
         },
         "parameters": [
@@ -1635,7 +1676,6 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-
     "/secondary-analysis/resolved-pipeline-templates": {
       "get": {
         "description": "Get a list of Resolved Pipeline Templates registered to SMRT Link",
@@ -1709,9 +1749,9 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-
     "/secondary-analysis/pipeline-template-view-rules": {
       "get": {
+        "description": "Return a list of analysis option view rules specifications for individual pipelines",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1722,13 +1762,43 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "List of pipeline view rules objects",
             "schema": {
               "$ref": "#/definitions/PipelineTemplateViewRules"
             }
           }
         },
         "x-auth-type": "Application & Application User"
+      }
+    },
+    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
+      "get": {
+        "description": "Get a Pipeline Template View Rule by id",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "View rules for a specific pipeline",
+            "schema": {
+              "$ref": "#/definitions/PipelineTemplateViewRules"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "rule-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
       }
     },
     "/secondary-analysis/report-view-rules": {
@@ -1750,35 +1820,9 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
-      "get": {
-        "description": "Get a Pipeline Template View Rule by id",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "rule-id",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
     "/secondary-analysis/report-view-rules/{rule-id}": {
       "get": {
+        "description": "Retrieve report view rules for a specific report ID",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1805,6 +1849,7 @@
     },
     "/secondary-analysis/pipeline-datastore-view-rules": {
       "get": {
+        "description": "Get a list of pipeline datastore view rule definitions",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -1815,13 +1860,15 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of view rules",
+            "schema": {
+              "$ref": "#/definitions/PipelineDatastoreViewRules"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
       }
     },
-
     "/secondary-analysis/job-manager/job-types": {
       "get": {
         "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
@@ -2311,12 +2358,16 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}": {
       "get": {
+        "description": "Return a list of jobs of the specified type",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of jobs",
+            "schema": {
+              "$ref": "#/definitions/ServiceJobs"
+            }
           }
         },
         "parameters": [
@@ -2350,6 +2401,7 @@
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
       "get": {
+        "description": "Download the job datastore file with the given UUID",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -2910,6 +2962,7 @@
 
     "/secondary-analysis/datastore-files/{uuid}/download": {
       "get": {
+        "description": "Download the datastore file with the specified UUID",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -2933,6 +2986,7 @@
     },
     "/secondary-analysis/datastore-files/{uuid}/resources": {
       "get": {
+        "description": "Retrieve a resource associated with a datastore file (e.g. images accompanying reports) by relative path",
         "x-scope": "data-management",
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -3081,6 +3135,63 @@
         "shortName": "alignments"
       }
     },
+    "FileResource": {
+      "properties": {
+        "fullPath": {
+          "type": "string",
+          "title": "Full path",
+          "description": "Full path of the file"
+        },
+        "name": {
+          "type": "string",
+          "title": "File name",
+          "description": "Base file name"
+        },
+        "mimeType": {
+          "type": "string",
+          "title": "Mime type"
+        },
+        "sizeInBytes": {
+          "type": "integer",
+          "title": "Size (bytes)"
+        },
+        "sizeReadable": {
+          "type": "string",
+          "title": "File size",
+          "description": "Human-readable file-size string"
+        }
+      }
+    },
+    "DirectoryResource": {
+      "description": "Specifies the contents of a given directory",
+      "properties": {
+        "fullPath": {
+          "type": "string",
+          "title": "Full path",
+          "description": "Full path of the directory"
+        },
+        "subDirectories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DirectoryResource"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FileResource"
+          }
+        }
+      }
+    },
+    "DiskSpaceResources": {
+      "type": "array",
+      "title": "List of disk space resources",
+      "description": "List of disk space info for server resources",
+      "items": {
+        "$ref": "#/definitions/DiskSpace"
+      }
+    },
     "DiskSpace": {
       "type": "object",
       "title": "SMRT Server Disk Space",
@@ -3092,25 +3203,25 @@
           "description": "Path to base directory of SMRT Server"
         },
         "totalSpace": {
-               "type": "integer",
-               "title": "Total Space",
-               "description": "Total disk Space available for SMRT Server directory (e.g., job directory, tmp space, root dir)"
-             },
+          "type": "integer",
+          "title": "Total Space",
+          "description": "Total disk Space available for SMRT Server directory (e.g., job directory, tmp space, root dir)"
+        },
         "id": {
-               "type": "string",
-               "title": "Resource ID",
-               "description": "Resource id (e.g., smrtlink.resources.jobs_root, or smrtlink.resources.root)"
-             },
+          "type": "string",
+          "title": "Resource ID",
+          "description": "Resource id (e.g., smrtlink.resources.jobs_root, or smrtlink.resources.root)"
+        },
         "usableSpace": {
-               "type": "integer",
-               "title": "Usable Disk Space",
-               "description": "Total free disk space available for SMRT Server"
-             },
+          "type": "integer",
+          "title": "Usable Disk Space",
+          "description": "Total free disk space available for SMRT Server"
+        },
         "freeSpace": {
-               "type": "integer",
-               "title": "Free Disk Space",
-               "description": "Total free disk space available for SMRT Server"
-             }
+          "type": "integer",
+          "title": "Free Disk Space",
+          "description": "Total free disk space available for SMRT Server"
+        }
       },
       "required": [
         "path",
@@ -4861,6 +4972,12 @@
         "jsonSettings": "{\"path\":\"/pbi/collections/242/2420325/r54124_20161109_021915/2_B01/m54124_161109_093303.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\"}"
       }
     },
+    "ServiceJobs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ServiceJob"
+      }
+    },
     "SmrtLinkEvent": {
       "type": "object",
       "properties": {
@@ -5028,6 +5145,117 @@
           "isActive": false,
           "typeId": "chemistry",
           "version": "4.1.0"
+        }
+      ]
+    },
+    "ProjectRequestUser": {
+      "properties": {
+        "projectId": {
+          "type": "integer",
+          "title": "Project ID"
+        },
+        "login": {
+          "type": "string",
+          "title": "Login name"
+        },
+        "role": {
+          "type": "string",
+          "title": "User role"
+        }
+      }
+    },
+    "RequestId": {
+      "properties": {
+        "id": {
+          "type": "integer"
+        }
+      }
+    },
+    "ProjectRequest": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Project name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Project description"
+        },
+        "state": {
+          "type": "string",
+          "title": "Project state"
+        },
+        "grantRoleToAll": {
+          "type": "string",
+          "title": "Default user access"
+        },
+        "datasets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RequestId"
+          }
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectRequestUser"
+          }
+        }
+      }
+    },
+    "Project": {
+      "properties": {
+        "id": {
+          "type": "integer",
+          "title": "Project ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "Project name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Project description"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Creation time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Last updated"
+        },
+        "isActive": {
+          "type": "boolean",
+          "title": "Active project",
+          "description": "Flag indicating whether project is in use"
+        },
+        "grantRoleToAll": {
+          "type": "string"
+        }
+      }
+    },
+    "FullProject": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Project"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "datasets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DataSetMetaDataSet"
+              }
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ProjectRequestUser"
+              }
+            }
+          }
         }
       ]
     },
@@ -5486,6 +5714,54 @@
           "title": "Sample name",
           "description": "Sample display name"
         }
+      }
+    },
+    "PipelineDatastoreFileRule": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "File label"
+        },
+        "fileTypeId": {
+          "type": "string",
+          "title": "File metatype",
+          "example": "PacBio.FileTypes.JsonReport"
+        },
+        "description": {
+          "type": "string"
+        },
+        "isHidden": {
+          "type": "boolean"
+        },
+        "sourceId": {
+          "type": "string",
+          "example": "pbreports.tasks.ccs_report-out-0"
+        }
+      }
+    },
+    "PipelineDatastoreViewRule": {
+      "properties": {
+        "pipelineId": {
+          "type": "string",
+          "example": "pbsmrtpipe.pipelines.sa3_ds_barcode_ccs",
+          "title": "Pipeline ID"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PipelineDatastoreFileRule"
+          }
+        },
+        "smrtlinkVersion": {
+          "type": "string",
+          "title": "SMRT Link version"
+        }
+      }
+    },
+    "PipelineDatastoreViewRules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PipelineDatastoreViewRule"
       }
     }
   }
