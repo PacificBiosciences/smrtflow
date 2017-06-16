@@ -48,9 +48,7 @@ val slickV = "3.1.1"
 
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
-
-resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
-
+resolvers in ThisBuild += "Sonatype Nexus" at "http://ossnexus.pacificbiosciences.com/repository/maven-releases"
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
@@ -113,7 +111,7 @@ lazy val baseSettings = Seq(
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
-  "mbilski" % "spray-hmac_2.11" % "1.0.1"
+  "pacbio.smrt.thirdparty" % "spray-hmac-shapeless2_2.11" % "1.0.1"
 )
 
 def PacBioProject(name: String): Project = (
