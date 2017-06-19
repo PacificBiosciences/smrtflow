@@ -224,7 +224,7 @@
             "description": "Return value"
           },
           "200": {
-            "descriptions": "Disk space resource info",
+            "description": "Disk space resource info",
             "schema": {
               "$ref": "#/definitions/DiskSpace"
             }
@@ -313,7 +313,7 @@
         "description": "Create a new instrument run record",
         "parameters": [
           {
-            "required": "true",
+            "required": true,
             "name": "body",
             "in": "body",
             "description": "Run creation request",
@@ -324,6 +324,7 @@
         ],
         "responses": {
           "201": {
+            "description": "Returns new run summary",
             "schema": {
               "$ref": "#/definitions/RunSummary"
             }
@@ -350,9 +351,8 @@
           },
           "200": {
             "description": "Return value",
-            "type": "list",
-            "items": {
-              "$ref": "#/definitions/RunSummary"
+            "schema": {
+              "$ref": "#/definitions/RunSummarys"
             }
           }
         },
@@ -398,6 +398,7 @@
             "description": "Return value"
           },
           "201": {
+            "description": "Returns updated run",
             "schema": {
               "$ref": "#/definitions/Run"
             }
@@ -462,6 +463,7 @@
             "description": "Return value"
           },
           "200": {
+            "description": "Run summary record",
             "schema": {
               "$ref": "#/definitions/RunSummary"
             }
@@ -492,9 +494,8 @@
           },
           "200": {
             "description": "List of collections associated with a run",
-            "type": "list",
-            "items": {
-              "$ref": "#/definitions/CollectionDetails"
+            "schema": {
+              "$ref": "#/definitions/CollectionsDetails"
             }
           }
         },
@@ -566,6 +567,7 @@
         ],
         "responses": {
           "201": {
+            "description": "Return new sample record",
             "schema": {
               "$ref": "#/definitions/Sample"
             }
@@ -597,9 +599,8 @@
           },
           "200": {
             "description": "List of samples",
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/Sample"
+            "schema": {
+              "$ref": "#/definitions/Samples"
             }
           }
         },
@@ -613,7 +614,8 @@
           "default": {
             "description": "Return value"
           },
-          "200": {
+          "201": {
+            "description": "Return updated sample record",
             "schema": {
               "$ref": "#/definitions/Sample"
             }
@@ -3253,6 +3255,88 @@
         "freeSpace": 119113555968
       }
     },
+    "DataSetMetaDataSet": {
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string",
+          "title": "UUID",
+          "description": ""
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": ""
+        },
+        "path": {
+          "type": "string",
+          "title": "Path",
+          "description": ""
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created At",
+          "description": ""
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Updated At",
+          "description": ""
+        },
+        "numRecords": {
+          "type": "integer",
+          "title": "Number of Records",
+          "description": ""
+        },
+        "totalLength": {
+          "type": "integer",
+          "title": "Total Length",
+          "description": ""
+        },
+        "tags": {
+          "type": "string",
+          "title": "Tags",
+          "description": ""
+        },
+        "version": {
+          "type": "string",
+          "title": "Version",
+          "description": ""
+        },
+        "comments": {
+          "type": "string",
+          "title": "Comments",
+          "description": ""
+        },
+        "md5": {
+          "type": "string",
+          "title": "MD5 checksum",
+          "description": ""
+        },
+        "createdBy": {
+          "type": ["string", "null"],
+          "title": "Created by",
+          "description": ""
+        },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": ""
+        },
+        "projectId": {
+          "type": "integer",
+          "title": "Project ID",
+          "description": ""
+        },
+        "isActive": {
+          "type": "boolean",
+          "title": "Is active",
+          "description": ""
+        }
+      }
+    },
     "AlignmentSetDetails": {
       "type": "object",
       "title": "AlignmentSet Details",
@@ -3264,80 +3348,80 @@
           "description": ""
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": ""
+        },
         "path": {
           "type": "string",
           "title": "Path",
           "description": ""
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": ""
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": ""
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
           "description": ""
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": ""
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
           "description": ""
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": ""
+        },
         "id": {
           "type": "integer",
           "title": "ID",
           "description": ""
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": ""
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
           "description": ""
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": ""
+        },
         "userId": {
           "type": "string",
           "title": "integer",
           "description": ""
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": ""
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             }
+          "type": "string",
+          "title": "Comments",
+          "description": ""
+        }
       },
       "required": [
         "name",
@@ -4669,6 +4753,12 @@
         "summary": "DryRun_2Cells"
       }
     },
+    "RunSummarys": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RunSummary"
+      }
+    },
     "Run": {
       "allOf": [
         {
@@ -4781,6 +4871,12 @@
         "collectionPathUri": "",
         "runId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
         "movieMinutes": 5.0
+      }
+    },
+    "CollectionsDetails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CollectionDetails"
       }
     },
     "SmrtServerStatus": {
@@ -5694,6 +5790,12 @@
           "title": "Created at",
           "description": "Timestamp of record creation"
         }
+      }
+    },
+    "Samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Sample"
       }
     },
     "SampleCreate": {
