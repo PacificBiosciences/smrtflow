@@ -1781,7 +1781,7 @@
           "200": {
             "description": "View rules for a specific pipeline",
             "schema": {
-              "$ref": "#/definitions/PipelineTemplateViewRules"
+              "$ref": "#/definitions/PipelineTemplateViewRule"
             }
           }
         },
@@ -1814,7 +1814,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of view rules for all reports"
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1828,7 +1828,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "View rules for specified report ID"
           }
         },
         "parameters": [
@@ -1882,7 +1882,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of job type definitions",
+            "schema": {
+              "$ref": "#/definitions/JobTypes"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -2435,6 +2438,43 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+      "get": {
+        "description": "Get the PacBio DataStore associated with a specific Job by Job Id or UUID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "List of datastore files",
+            "schema": {
+              "$ref": "#/definitions/DataStoreFiles"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Int Id or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
       "get": {
         "description": "Get a Service DataStore File by DataStoreFile UUID",
@@ -2443,7 +2483,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Datastore file record",
+            "schema": {
+              "$ref": "#/definitions/DataStoreFile"
+            }
           }
         },
         "parameters": [
@@ -2728,15 +2771,18 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
       "get": {
-        "description": "Get the PacBio DataStore associated with a specific Job by Job Id or UUID",
+        "description": "Get a list of ServiceReport files generated from a job",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of datastore report files",
+            "schema": {
+              "$ref": "#/definitions/DataStoreReportFile"
+            }
           }
         },
         "parameters": [
@@ -2747,7 +2793,6 @@
             "in": "path"
           },
           {
-            "description": "Job Int Id or UUID",
             "required": true,
             "type": "string",
             "name": "job-id",
@@ -2790,39 +2835,6 @@
             "required": true,
             "type": "string",
             "name": "uuid",
-            "in": "path"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "x-scope": "data-management",
-        "x-auth-type": "Application & Application User",
-        "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
-      "get": {
-        "description": "Get a list of ServiceReport files generated from a job",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
             "in": "path"
           }
         ],
@@ -2916,7 +2928,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of job entry points",
+            "schema": {
+              "$ref": "#/definitions/EngineJobEntryPoints"
+            }
           }
         },
         "parameters": [
@@ -5762,6 +5777,139 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/PipelineDatastoreViewRule"
+      }
+    },
+    "JobType": {
+      "properties": {
+        "jobTypeId": {
+          "type": "string",
+          "title": "Job type ID",
+          "example": "pbsmrtpipe"
+        },
+        "description": {
+          "type": "string",
+          "title": "Job type description",
+          "example": "Run a pbsmrtpipe analysis job"
+        }
+      }
+    },
+    "JobTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/JobType"
+      }
+    },
+    "DataStoreFile": {
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "File UUID",
+          "description": "Unique identifier associated with a file; for datasets and reports, this should be identical to the UUID recorded in the file itself"
+        },
+        "fileTypeId": {
+          "type": "string",
+          "title": "File type ID",
+          "description": "PacBio file metatype",
+          "example": "PacBio.DataSet.SubreadSet"
+        },
+        "sourceId": {
+          "type": "string",
+          "title": "Source ID",
+          "description": "ID of the task that created the file",
+          "example": "pbcoretools.tasks.filterdataset"
+        },
+        "fileSize": {
+          "type": "integer",
+          "title": "File size",
+          "description": "File size in bytes"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created at",
+          "description": "Timestamp for file creation"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "title": "Modified at",
+          "description": "Timestamp for file modification"
+        },
+        "importAt": {
+          "type": "string",
+          "title": "Imported at", 
+          "description": "Timestamp for file import"
+        },
+        "path": {
+          "type": "string",
+          "title": "File path"
+        },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID"
+        },
+        "jobUUID": {
+          "type": "string",
+          "title": "Job UUID"
+        },
+        "name": {
+          "type": "string",
+          "title": "File label"
+        },
+        "description": {
+          "type": "string",
+          "title": "File description"
+        },
+        "isActive": {
+          "type": "boolean",
+          "title": "Active file",
+          "description": "Flag indicating whether file has been hard- or soft-deleted"
+        }
+      }
+    },
+    "DataStoreFiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DataStoreFile"
+      }
+    },
+    "DataStoreReportFile": {
+      "properties": {
+        "reportTypeId": {
+          "type": "string",
+          "title": "Report ID",
+          "example": "pbreports.tasks.sat_report"
+        },
+        "dataStoreFile": {
+          "$ref": "#/definitions/DataStoreFile"
+        }
+      }
+    },
+    "DataStoreReportFiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DataStoreReportFile"
+      }
+    },
+    "EngineJobEntryPoint": {
+      "properties": {
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID"
+        },
+        "datasetUUID": {
+          "type": "string",
+          "title": "Dataset UUID"
+        },
+        "datasetType": {
+          "type": "string",
+          "title": "Dataset MetaType",
+          "example": "PacBio.DataSet.SubreadSet"
+        }
+      }
+    },
+    "EngineJobEntryPoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EngineJobEntryPoint"
       }
     }
   }
