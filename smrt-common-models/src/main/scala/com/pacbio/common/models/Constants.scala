@@ -13,7 +13,7 @@ import scala.util.Try
 trait Constants {
 
   // Global DataSet "version" that every tool should use the write a DataSet
-  final val DATASET_VERSION = "5.0.0"
+  final val DATASET_VERSION = "4.0.1"
   // Git SHA1 (previously Perforce CHANGELIST) that was used to generate the XSDs
   final val XSD_CHANGELIST = "38a37d1"
 
