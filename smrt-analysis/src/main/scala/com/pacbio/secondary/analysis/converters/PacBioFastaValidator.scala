@@ -75,15 +75,29 @@ object PacBioFastaValidator extends LazyLogging{
   }
 
   // Simple sanity check to make sure the file is not empty
-  def hasAtleastOneRecord(path: Path): OptionE = {
+  def validateRawFasta(path: Path): OptionE = {
     Try {
       val sx = Source.fromFile(path.toFile)
-      if (sx.hasNext) None else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
+      if (sx.hasNext) {
+        var prev: Char = 'X'
+        var isUnix = false
+        var isDos = false
+        while (sx.hasNext && !(isDos && isUnix)) {
+          val c: Char = sx.next
+          if (c == '\n') {
+            if (prev == '\r') isDos = true else isUnix = true
+          }
+          prev = c
+        }
+        if (isDos && isUnix) {
+          Some(InvalidPacBioFastaError(s"Mixed DOS and Unix line endings"))
+        } else None
+      } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
     } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
   def preValidation(path: Path) = {
-    if (!Files.exists(path)) Some(InvalidPacBioFastaError(s"Unable to find ${path.toAbsolutePath.toString}")) else hasAtleastOneRecord(path)
+    if (!Files.exists(path)) Some(InvalidPacBioFastaError(s"Unable to find ${path.toAbsolutePath.toString}")) else validateRawFasta(path)
   }
 
   /**
