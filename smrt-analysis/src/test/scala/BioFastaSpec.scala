@@ -45,67 +45,79 @@ class BioFastaSpec extends Specification{
       val name = "small.fasta"
       validateFile(name) must not beSome
     }
-    "Bad Header pacbio-fasta-spec-files/bad-asterisk_identifier.fasta " in {
+    "Bad: asterisk identifier" in {
       val name = "pacbio-fasta-spec-files/bad-asterisk_identifier.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-colon_in_header.fasta " in {
+    "Bad: colon in header" in {
       val name = "pacbio-fasta-spec-files/bad-colon_in_header.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-comma.fasta " in {
+    "Bad: comma in header" in {
       val name = "pacbio-fasta-spec-files/bad-comma.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-double_quote.fasta " in {
+    "Bad: double-quote in header" in {
       val name = "pacbio-fasta-spec-files/bad-double_quote.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-duplicate_identifier.fasta " in {
+    "Bad: duplicate identifier" in {
       val name = "pacbio-fasta-spec-files/bad-duplicate_identifier.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-empty_line.fasta " in {
+    "Bad: empty line" in {
       val name = "pacbio-fasta-spec-files/bad-empty_line.fasta"
       // This is wrong. htsjdk doesn't fail on emtpy lines
       //validateFile(name) must beSome[InvalidPacBioFastaError]
       validateFile(name) must not beSome
     }
-    "Bad Header pacbio-fasta-spec-files/bad-gt_in_header.fasta " in {
+    "Bad: last line empty" in {
+      val name = "pacbio-fasta-spec-files/bad-empty_last_line.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
+    }
+    "Bad: gt symbol in header" in {
       // This should be fine, but pbcore would fail
       val name = "pacbio-fasta-spec-files/bad-gt_in_header.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-inconsistent_wrapping.fasta " in {
+    "Bad: inconsistent wrapping" in {
       val name = "pacbio-fasta-spec-files/bad-inconsistent_wrapping.fasta"
       validateFile(name) must not beNull
     }
-    "Bad Header pacbio-fasta-spec-files/bad-inconsistent_wrapping_2.fasta " in {
+    "Bad: inconsistent wrapping (example 2)" in {
       val name = "pacbio-fasta-spec-files/bad-inconsistent_wrapping_2.fasta"
       validateFile(name) must not beNull
     }
-    "Bad Header pacbio-fasta-spec-files/bad-non_nucleotide.fasta " in {
+    "Bad: non-nucleotide characters" in {
       val name = "pacbio-fasta-spec-files/bad-non_nucleotide.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/bad-whitespace.fasta " in {
+    "Bad: extra whitespace" in {
       val name = "pacbio-fasta-spec-files/bad-whitespace.fasta"
       validateFile(name) must not beNull
     }
-    "Bad Header pacbio-fasta-spec-files/good-iupac_codes.fasta " in {
-      val name = "pacbio-fasta-spec-files/good-iupac_codes.fasta"
-      validateFile(name) must not beSome
+    "Bad: mixed DOS and Unix line endings" in {
+      val name = "pacbio-fasta-spec-files/bad_mixed_dos_unix.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Bad Header pacbio-fasta-spec-files/good-simple_01.fasta " in {
-      val name = "pacbio-fasta-spec-files/good-simple_01.fasta"
-      validateFile(name) must not beSome
-    }
-    "Bad empty file pacbio-fasta-spec-files/bad-empty_file.fasta " in {
+    "Bad: empty file" in {
       val name = "pacbio-fasta-spec-files/bad-empty_file.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
-    "Good comma in header pacbio-fasta-spec-files/good-comma_in_header_comment.fasta" in {
+    "Good: simple example" in {
+      val name = "pacbio-fasta-spec-files/good-simple_01.fasta"
+      validateFile(name) must not beSome
+    }
+    "Good: IUPAC base codes" in {
+      val name = "pacbio-fasta-spec-files/good-iupac_codes.fasta"
+      validateFile(name) must not beSome
+    }
+    "Good: comma in header" in {
       val name = "pacbio-fasta-spec-files/good-comma_in_header_comment.fasta"
+      validateFile(name) must not beSome
+    }
+    "Good: DOS line breaks" in {
+      val name = "pacbio-fasta-spec-files/good_dos_format.fasta"
       validateFile(name) must not beSome
     }
   }
