@@ -19,18 +19,20 @@ import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
 
 /**
- *
- * Created by mkocher on 5/15/15.
- */
+  *
+  * Created by mkocher on 5/15/15.
+  */
 class DataSetMergerSpec extends Specification with LazyLogging {
 
   sequential
-    // Added duplicate files to test if merging of duplicate resources
-    val exampleFiles = Seq(
-        "m140913_222218_42240_c100699952400000001823139203261564_s1_p0.hdfsubread.dataset.xml",
-        "m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml",
-        "m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml.copy"
-    )
+  // Added duplicate files to test if merging of duplicate resources
+  val exampleFiles = Seq(
+    "m140913_222218_42240_c100699952400000001823139203261564_s1_p0.hdfsubread.dataset.xml",
+    "m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml",
+    "m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml.copy"
+  )
+
+  val expectedVersion = "4.0.1"
 
   val examplePaths = exampleFiles.map(x => Paths.get(getClass.getResource("dataset-hdfsubreads/" + x).toURI))
 
@@ -51,7 +53,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 
       // Not really clear what the expected behavior is here. The Schema of the HdfSubreadSet has not changed
       // but the DataSet "version" is across all schemas.
-      mergedDataSet.getVersion must beEqualTo("5.0.0")
+      mergedDataSet.getVersion must beEqualTo(expectedVersion)
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(3)
@@ -82,6 +84,7 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
     dsIds.map(pbdata.getFile(_))
   }
 
+  val expectedVersion = "4.0.1"
   val writer = new NullJobResultsWriter
 
   "Test merging additional dataset types" should {
@@ -96,7 +99,7 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       logger.info(s"Writing merged dataset to $p")
       println(p)
       DataSetWriter.writeSubreadSet(mergedDataSet, p)
-      mergedDataSet.getVersion must beEqualTo("5.0.0")
+      mergedDataSet.getVersion must beEqualTo(expectedVersion)
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(2)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(81354)
       mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(137)
@@ -114,7 +117,7 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeAlignmentSet(mergedDataSet, p)
       mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.Alignment.toString)
-      mergedDataSet.getVersion must beEqualTo("5.0.0")
+      mergedDataSet.getVersion must beEqualTo(expectedVersion)
       mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(3)
       //FIXME Metadata isn't being handled properly right now
       //mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(274217)
