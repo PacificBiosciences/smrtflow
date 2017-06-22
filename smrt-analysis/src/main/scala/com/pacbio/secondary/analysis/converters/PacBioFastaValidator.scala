@@ -80,17 +80,24 @@ object PacBioFastaValidator extends LazyLogging{
       val sx = Source.fromFile(path.toFile)
       if (sx.hasNext) {
         var prev: Char = 'X'
-        var isUnix = false
-        var isDos = false
-        while (sx.hasNext && !(isDos && isUnix)) {
+        var (isUnix, isDos, haveEmptyLine) = (false, false, false)
+        // XXX this is gross - Source.getLines no longer includes the newline
+        // character(s) in the version of Scala that we use, so we have to
+        // iterate bytes instead
+        while (sx.hasNext && !(isDos && isUnix) && !haveEmptyLine) {
           val c: Char = sx.next
           if (c == '\n') {
             if (prev == '\r') isDos = true else isUnix = true
+            if (prev == '\n') haveEmptyLine = true
+          } else if (c == '\r' && prev == '\n') {
+            haveEmptyLine = true
           }
           prev = c
         }
         if (isDos && isUnix) {
           Some(InvalidPacBioFastaError(s"Mixed DOS and Unix line endings"))
+        } else if (haveEmptyLine) {
+          Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
         } else None
       } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
     } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))

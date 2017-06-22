@@ -67,12 +67,18 @@ class BioFastaSpec extends Specification{
     }
     "Bad: empty line" in {
       val name = "pacbio-fasta-spec-files/bad-empty_line.fasta"
-      // This is wrong. htsjdk doesn't fail on emtpy lines
-      //validateFile(name) must beSome[InvalidPacBioFastaError]
-      validateFile(name) must not beSome
+      validateFile(name) must beSome[InvalidPacBioFastaError]
+    }
+    "Bad: empty line (DOS format)" in {
+      val name = "pacbio-fasta-spec-files/bad-empty_line_dos.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
     }
     "Bad: last line empty" in {
       val name = "pacbio-fasta-spec-files/bad-empty_last_line.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
+    }
+    "Bad: last line empty (DOS format)" in {
+      val name = "pacbio-fasta-spec-files/bad-empty_last_line_dos.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
     "Bad: gt symbol in header" in {
