@@ -79,6 +79,7 @@ class DataSetScenario(host: String, port: Int)
   val subreadSet: Var[SubreadServiceDataSet] = Var()
   val subreadSetDetails: Var[SubreadSet] = Var()
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
+  val referenceSet: Var[ReferenceServiceDataSet] = Var()
   val referenceSetDetails: Var[ReferenceSet] = Var()
   val barcodeSets: Var[Seq[BarcodeServiceDataSet]] = Var()
   val barcodeSetDetails: Var[BarcodeSet] = Var()
@@ -270,7 +271,11 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
     referenceSets := GetReferenceSets,
     referenceSetDetails := GetReferenceSetDetails(referenceSets.mapWith(_.last.uuid)),
-    fail("Wrong UUID") IF referenceSetDetails.mapWith(_.getUniqueId) !=? referenceSets.mapWith(_.last.uuid.toString)
+    fail("Wrong UUID") IF referenceSetDetails.mapWith(_.getUniqueId) !=? referenceSets.mapWith(_.last.uuid.toString),
+    referenceSet := GetReferenceSet(referenceSets.mapWith(_.last.uuid)),
+    fail("Wrong ploidy") IF referenceSet.mapWith(_.ploidy) !=? "haploid",
+    fail("Wrong organism") IF referenceSet.mapWith(_.organism) !=? "lambda",
+    fail("Wrong name") IF referenceSet.mapWith(_.name) !=? "import-fasta"
   ))
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,

@@ -460,8 +460,8 @@ trait JobOptionsProtocols
     def write(o: ConvertImportFastaOptions) = JsObject(
       "path" -> o.path.toJson,
       "name" -> o.name.toJson,
-      "ploidy" -> o.name.toJson,
-      "organism" -> o.name.toJson,
+      "ploidy" -> o.ploidy.toJson,
+      "organism" -> o.organism.toJson,
       "projectId" -> o.projectId.toJson)
     def read(value: JsValue): ConvertImportFastaOptions = {
       val jsObj = value.asJsObject
