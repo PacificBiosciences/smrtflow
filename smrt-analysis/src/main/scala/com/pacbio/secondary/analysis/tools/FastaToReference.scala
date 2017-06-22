@@ -28,18 +28,20 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
   val defaults = FastaToReferenceConfig("", "", "", "", "")
   val DESCRIPTION =
     """
-      |Tool to convert a fasta file to a SA3 ReferenceSet DataSet XML
+      |Tool to convert a fasta file to a PacBio ReferenceSet DataSet XML
       |that contains the required index files.
       |- samtools index (fai)
       |- sawriter index (fasta.sa)
-      |- SMRT View indexes (fasta.config.index and fasta.index)
+      |- ngmlr indices (.ngm)
       |
-      |Requires exes 'samtools' and 'sawriter' (can be installed from blasr tools)
+      |Requires exes 'sawriter' (can be installed from blasr tools) and
+      |'ngmlr' (unless --skip-ngmlr is used)
       |
+      |DataSet spec version: 4.0.1
     """.stripMargin
 
   val parser = new OptionParser[FastaToReferenceConfig]("fasta-to-reference") {
-    head("Convert a Fasta file to a SA 3.x ReferenceSet DataSet XML ", VERSION)
+    head("Convert a Fasta file to a PacBio ReferenceSet DataSet XML ", VERSION)
     note(DESCRIPTION)
 
     arg[String]("fasta-file") required() action { (x, c) =>
