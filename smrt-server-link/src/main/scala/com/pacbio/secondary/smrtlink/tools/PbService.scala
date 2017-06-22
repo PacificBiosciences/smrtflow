@@ -864,8 +864,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val projectId = getProjectIdByName(projectName)
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     val tx = for {
-      contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
-      job <- Try { Await.result(runJob(), TIMEOUT) }
+      contigs <- Try {
+        logger.info("Validating FASTA format...")
+        PacBioFastaValidator.validate(path, barcodeMode)
+      }
+      job <- Try {
+        logger.info("Submitting import job to server")
+        Await.result(runJob(), TIMEOUT)
+      }
       job <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
       dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
