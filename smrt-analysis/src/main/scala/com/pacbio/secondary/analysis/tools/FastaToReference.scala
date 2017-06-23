@@ -2,12 +2,14 @@ package com.pacbio.secondary.analysis.tools
 
 import java.nio.file.Paths
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter
+import scala.util.{Failure, Success, Try}
+
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
-import scala.util.{Failure, Success, Try}
+import com.pacbio.common.models.{Constants => CommonConstants}
+import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter
 
 
 case class FastaToReferenceConfig(
@@ -27,9 +29,9 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
   val VERSION = "0.6.0"
   val defaults = FastaToReferenceConfig("", "", "", "", "")
   val DESCRIPTION =
-    """
+    s"""
       |Tool to convert a fasta file to a PacBio ReferenceSet DataSet XML
-      |that contains the required index files.
+      |that contains the required index files:
       |- samtools index (fai)
       |- sawriter index (fasta.sa)
       |- ngmlr indices (.ngm)
@@ -37,7 +39,7 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
       |Requires exes 'sawriter' (can be installed from blasr tools) and
       |'ngmlr' (unless --skip-ngmlr is used)
       |
-      |DataSet spec version: 4.0.1
+      |DataSet spec version: ${CommonConstants.DATASET_VERSION}
     """.stripMargin
 
   val parser = new OptionParser[FastaToReferenceConfig]("fasta-to-reference") {

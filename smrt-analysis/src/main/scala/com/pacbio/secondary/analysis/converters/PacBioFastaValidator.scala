@@ -76,7 +76,7 @@ object PacBioFastaValidator extends LazyLogging{
 
   // Simple sanity check to make sure the file is not empty
   def validateRawFasta(path: Path): OptionE = {
-    Try {
+    //Try {
       val sx = Source.fromFile(path.toFile)
       if (sx.hasNext) {
         var prev: Char = 'X'
@@ -84,23 +84,26 @@ object PacBioFastaValidator extends LazyLogging{
         // XXX this is gross - Source.getLines no longer includes the newline
         // character(s) in the version of Scala that we use, so we have to
         // iterate bytes instead
-        while (sx.hasNext && !(isDos && isUnix) && !haveEmptyLine) {
-          val c: Char = sx.next
-          if (c == '\n') {
-            if (prev == '\r') isDos = true else isUnix = true
-            if (prev == '\n') haveEmptyLine = true
-          } else if (c == '\r' && prev == '\n') {
-            haveEmptyLine = true
+        def isMix(): Boolean = isDos && isUnix
+        while (sx.hasNext && !isMix() && !haveEmptyLine) {
+          val next: Char = sx.next
+          (prev, next) match {
+            case ('\r', '\n') => isDos = true
+            case ('\n', '\n') | ('\n', '\r') => haveEmptyLine = true
+            case (_, '\n') => isUnix = true
+            case (_, _) => ;
           }
-          prev = c
+          prev = next
         }
-        if (isDos && isUnix) {
+        if (isMix()) {
+          println("MIX")
           Some(InvalidPacBioFastaError(s"Mixed DOS and Unix line endings"))
         } else if (haveEmptyLine) {
+          println("EMPTY LINE")
           Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
         } else None
       } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
-    } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
+    //} getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
   def preValidation(path: Path) = {
