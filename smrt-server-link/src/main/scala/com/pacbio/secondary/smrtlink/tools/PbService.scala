@@ -1089,7 +1089,9 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
     // Default to creating new Job if the dataset wasn't already imported into the system
     val orCreate = for {
+      _ <- Future { logger.debug("Dataset not found, will import") }
       job <- sal.importDataSet(path, metatype)
+      _ <- Future { logger.debug(s"Started import-dataset job ${job.id}") }
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
 
