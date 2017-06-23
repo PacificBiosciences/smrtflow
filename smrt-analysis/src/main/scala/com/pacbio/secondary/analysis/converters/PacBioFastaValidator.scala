@@ -96,10 +96,8 @@ object PacBioFastaValidator extends LazyLogging{
           prev = next
         }
         if (isMix()) {
-          println("MIX")
           Some(InvalidPacBioFastaError(s"Mixed DOS and Unix line endings"))
         } else if (haveEmptyLine) {
-          println("EMPTY LINE")
           Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
         } else None
       } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
