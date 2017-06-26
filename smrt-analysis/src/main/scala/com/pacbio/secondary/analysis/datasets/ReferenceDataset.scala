@@ -3,7 +3,6 @@ package com.pacbio.secondary.analysis.datasets
 import java.util.UUID
 
 import com.pacbio.secondary.analysis.PacBioFileWriter
-import com.pacbio.secondary.analysis.legacy.ReferenceContig
 
 import java.nio.file.{Paths, Path}
 import org.joda.time.{DateTime => JodaDateTime}
@@ -11,6 +10,12 @@ import org.joda.time.{DateTime => JodaDateTime}
 /*
  * Reference Dataset
  */
+
+case class ReferenceContig(
+    name: String,
+    description: String,
+    length: Int,
+    md5: String)
 
 // This is an abstraction representation and has nothing to do
 // with the file source (i.e., IO layers)

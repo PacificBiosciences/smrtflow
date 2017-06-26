@@ -75,15 +75,38 @@ object PacBioFastaValidator extends LazyLogging{
   }
 
   // Simple sanity check to make sure the file is not empty
-  def hasAtleastOneRecord(path: Path): OptionE = {
+  def validateRawFasta(path: Path): OptionE = {
+    logger.debug("Validating raw FASTA format")
     Try {
       val sx = Source.fromFile(path.toFile)
-      if (sx.hasNext) None else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
+      if (sx.hasNext) {
+        var prev: Char = 'X'
+        var (isUnix, isDos, haveEmptyLine) = (false, false, false)
+        // XXX this is gross - Source.getLines no longer includes the newline
+        // character(s) in the version of Scala that we use, so we have to
+        // iterate bytes instead
+        def isMix(): Boolean = isDos && isUnix
+        while (sx.hasNext && !isMix() && !haveEmptyLine) {
+          val next: Char = sx.next
+          (prev, next) match {
+            case ('\r', '\n') => isDos = true
+            case ('\n', '\n') | ('\n', '\r') => haveEmptyLine = true
+            case (_, '\n') => isUnix = true
+            case (_, _) => ;
+          }
+          prev = next
+        }
+        if (isMix()) {
+          Some(InvalidPacBioFastaError(s"Mixed DOS and Unix line endings"))
+        } else if (haveEmptyLine) {
+          Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
+        } else None
+      } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
     } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
   def preValidation(path: Path) = {
-    if (!Files.exists(path)) Some(InvalidPacBioFastaError(s"Unable to find ${path.toAbsolutePath.toString}")) else hasAtleastOneRecord(path)
+    if (!Files.exists(path)) Some(InvalidPacBioFastaError(s"Unable to find ${path.toAbsolutePath.toString}")) else validateRawFasta(path)
   }
 
   /**
@@ -97,6 +120,7 @@ object PacBioFastaValidator extends LazyLogging{
    * @return
    */
   def validateFastaFile(path: Path, barcodeMode: Boolean = false): RefOrE = {
+    logger.info(s"Validating FASTA file $path")
 
     val headerIds = mutable.Set[String]()
 
