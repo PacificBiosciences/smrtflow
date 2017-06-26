@@ -5,7 +5,21 @@ import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.io.Source
+import scala.language.postfixOps
+import scala.math._
+import scala.util.control.NonFatal
+import scala.util.{Failure, Properties, Success, Try}
+
 import akka.actor.ActorSystem
+import com.typesafe.scalalogging.LazyLogging
+import scopt.OptionParser
+import spray.json._
+
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
@@ -20,19 +34,7 @@ import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.models._
-import com.typesafe.scalalogging.LazyLogging
-import scopt.OptionParser
-import spray.json._
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.io.Source
-import scala.language.postfixOps
-import scala.math._
-import scala.util.control.NonFatal
-import scala.util.{Failure, Properties, Success, Try}
 
 
 object Modes {
@@ -864,14 +866,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     val projectId = getProjectIdByName(projectName)
     if (projectId < 0) return errorExit("Can't continue with an invalid project.")
     val tx = for {
-      contigs <- Try {
-        logger.info("Validating FASTA format...")
-        PacBioFastaValidator.validate(path, barcodeMode)
-      }
-      job <- Try {
-        logger.info("Submitting import job to server")
-        Await.result(runJob(), TIMEOUT)
-      }
+      contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
+      job <- Try { Await.result(runJob(), TIMEOUT) }
       job <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
       dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
@@ -1089,9 +1085,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
     // Default to creating new Job if the dataset wasn't already imported into the system
     val orCreate = for {
-      _ <- Future { logger.debug("Dataset not found, will import") }
       job <- sal.importDataSet(path, metatype)
-      _ <- Future { logger.debug(s"Started import-dataset job ${job.id}") }
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
 

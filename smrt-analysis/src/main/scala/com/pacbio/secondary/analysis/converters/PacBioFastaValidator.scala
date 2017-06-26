@@ -76,7 +76,8 @@ object PacBioFastaValidator extends LazyLogging{
 
   // Simple sanity check to make sure the file is not empty
   def validateRawFasta(path: Path): OptionE = {
-    //Try {
+    logger.debug("Validating raw FASTA format")
+    Try {
       val sx = Source.fromFile(path.toFile)
       if (sx.hasNext) {
         var prev: Char = 'X'
@@ -101,7 +102,7 @@ object PacBioFastaValidator extends LazyLogging{
           Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
         } else None
       } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
-    //} getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
+    } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
   def preValidation(path: Path) = {
@@ -119,6 +120,7 @@ object PacBioFastaValidator extends LazyLogging{
    * @return
    */
   def validateFastaFile(path: Path, barcodeMode: Boolean = false): RefOrE = {
+    logger.info(s"Validating FASTA file $path")
 
     val headerIds = mutable.Set[String]()
 
