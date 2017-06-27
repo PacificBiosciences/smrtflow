@@ -2,11 +2,12 @@
 test in assembly := {}
 
 
-assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
+assemblyMergeStrategy in assembly := {
   case PathList("application.conf") => MergeStrategy.first
   case "logback.xml" => MergeStrategy.first
-  case x => old(x)
-}
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
 }
 
 packSettings
