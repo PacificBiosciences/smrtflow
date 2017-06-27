@@ -9,9 +9,8 @@ import scopt.OptionParser
 import spray.json._
 
 import scala.util.{Failure, Success, Try}
-
 import com.pacbio.common.file.FileSizeFormatterUtil
-import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
@@ -23,13 +22,14 @@ import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
 case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user: String,
                                          dnsName: Option[String],
                                          smrtLinkVersion: Option[String],
-                                         smrtLinkSystemId: Option[UUID]
+                                         smrtLinkSystemId: Option[UUID],
+                                         comment: String
                                         ) extends LoggerConfig
 
 
 object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundlerOptions] with ConfigLoader with FileSizeFormatterUtil {
 
-  override val VERSION = "0.2.1"
+  override val VERSION = "0.3.0"
   override val DESCRIPTION =
     s"""
       |Tech Support Bundler $VERSION
@@ -51,7 +51,8 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
     System.getProperty("user.name"),
     getDefault("smrtflow.server.dnsName"),
     None,
-    None
+    None,
+    s"Created by $toolId smrtflow version ${Constants.SMRTFLOW_VERSION}"
   )
 
   val parser = new OptionParser[TechSupportFileBundlerOptions]("techsupport-bundler") {
@@ -72,6 +73,10 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
         .action { (x, c) => c.copy(user = x) }
         .validate(validateDoesNotExist)
         .text(s"Optional user to create TechSupport bundle output (tgz) file. Default ${defaults.user}")
+
+    opt[String]("comment")
+        .action { (x, c) => c.copy(comment = x) }
+        .text(s"Optional user comment or case number for TechSupport bundle output (tgz) file. Default ${defaults.comment}")
 
     def overrideMessage(sx: String) = s"Override for $sx. (pulled from userdata/smrtlink-system-config.json)"
     // I'm not sure these make sense, but I've added this for testing and for access by DEP. Ideally, all of these
@@ -200,7 +205,7 @@ object TechSupportFileBundler extends CommandLineToolRunner[TechSupportFileBundl
       systemId <- getRequired[UUID]("SMRT Link System Id", getOr[UUID](c.smrtLinkSystemId, configPath, getSmrtLinkIdFromConfigFile))
       systemVersion <- getRequired[String]("SMRT Link System Version", getOr[String](c.smrtLinkVersion, configPath, getSmrtLinkVersionFromConfigFile))
       dnsName <- getRequired[String]("SMRT Link DNS Name", getOr[String](c.dnsName, configPath, getDnsNameFromConfigFile))
-      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, px, c.output, c.user, Some(systemVersion), Some(dnsName))}
+      tgzPath <-  Try { TechSupportUtils.writeSmrtLinkSystemStatusTgz(systemId, px, c.output, c.user, Some(systemVersion), Some(dnsName), Some(c.comment))}
     } yield s"Successfully wrote TechSupport Bundle to $tgzPath (${humanReadableByteSize(tgzPath.toFile.length())})"
   }
 

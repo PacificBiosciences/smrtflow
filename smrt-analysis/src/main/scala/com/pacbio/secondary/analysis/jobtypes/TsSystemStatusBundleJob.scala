@@ -42,7 +42,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
     val smrtLinkUserData = opts.smrtLinkSystemRoot.resolve("userdata")
 
     TechSupportUtils.writeSmrtLinkSystemStatusTgz(opts.manifest.smrtLinkSystemId, smrtLinkUserData, outputTgz, opts.manifest.user,
-      opts.manifest.smrtLinkSystemVersion, opts.manifest.dnsName)
+      opts.manifest.smrtLinkSystemVersion, opts.manifest.dnsName, opts.manifest.comment)
 
     val totalSize = outputTgz.toFile.length()
     val totalSizeMB = totalSize / 1024.0 / 1024.0
