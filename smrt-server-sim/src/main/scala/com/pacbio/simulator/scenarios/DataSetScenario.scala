@@ -264,7 +264,7 @@ class DataSetScenario(host: String, port: Int)
     fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
   ) ++ (if (! HAVE_SAWRITER) Seq() else Seq(
     // FASTA import tests (require sawriter)
-    jobId := ImportFasta(refFasta, Var("import-fasta")),
+    jobId := ImportFasta(refFasta, Var("import_fasta")),
     jobStatus := WaitForJob(jobId),
     fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
@@ -275,7 +275,7 @@ class DataSetScenario(host: String, port: Int)
     referenceSet := GetReferenceSet(referenceSets.mapWith(_.last.uuid)),
     fail("Wrong ploidy") IF referenceSet.mapWith(_.ploidy) !=? "haploid",
     fail("Wrong organism") IF referenceSet.mapWith(_.organism) !=? "lambda",
-    fail("Wrong name") IF referenceSet.mapWith(_.name) !=? "import-fasta"
+    fail("Wrong name") IF referenceSet.mapWith(_.name) !=? "import_fasta"
   ))
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
