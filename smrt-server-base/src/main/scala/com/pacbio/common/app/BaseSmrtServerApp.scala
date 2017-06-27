@@ -25,7 +25,6 @@ import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing.Route
-import spray.servlet.WebBoot
 
 import scala.collection.JavaConversions._
 import scala.concurrent.{Await, Future}
@@ -188,15 +187,4 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   LoggerOptions.parseAddDebug(args)
 
   start
-}
-
-/**
- * Build our servlet app using tomcat
- *
- * <p> Note that the port used here is set in build.sbt when running locally
- * Used for running within tomcat via 'container:start'
- */
-class BaseSmrtServerServlet extends WebBoot with BaseApi {
-  override val providers: CoreProviders = new CoreProviders {}
-  override val serviceActor = rootService
 }
