@@ -20,6 +20,9 @@ import java.net.URLEncoder
 class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
   import PacBioJsonProtocol._
 
+  // These fail on OSX. This is annoying to block the integration tests from running
+  //args(skipAll = true)
+
   val spiedFileSystemUtil = spy(new JavaFileSystemUtil)
 
   object Api extends BaseApi {
