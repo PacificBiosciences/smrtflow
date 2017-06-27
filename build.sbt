@@ -6,8 +6,7 @@
 // - smrt-server-base
 // - smrt-server-smrtlink
 // - smrt-server-analysis
-// - smrt-server-internal-analysis (Add in second pass)
-// - smrt-server-simulator (from Paws)
+// - smrt-server-sim
 
 
 name := "smrtflow"
@@ -21,7 +20,7 @@ scalaVersion in ThisBuild := "2.11.8"
 
 scalacOptions in ThisBuild := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
-parallelExecution in ThisBuild := false
+//parallelExecution in ThisBuild := false
 
 fork in ThisBuild := true
 
@@ -113,119 +112,143 @@ lazy val baseSettings = Seq(
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
   "mbilski" % "spray-hmac_2.11" % "1.0.1"
-)
-
-def PacBioProject(name: String): Project = (
-    Project(name, file(name))
-        .configs( IntegrationTest )
-        settings (
-        libraryDependencies ++= baseSettings
-        )
-    )
-    .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(
-      testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
+).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
 
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
-
 def getBuildNumber(): Option[Int] = sys.env.get(bambooBuildNumberEnv).map(_.toInt)
 
-val smrtLinkServerRunner = taskKey[SmrtLinkServerRunner]("smrtlink-server-runner")
+// Util to mirror bash clear
+def clearConsoleCommand = Command.command("clear") { state =>
+  val cr = new jline.console.ConsoleReader()
+  cr.clearScreen
+  state
+}
 
-smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner
+/**
+  * Util func to write the version.properties managed file
+  *
+  * @param path          Path to the version properties file
+  * @param versionString Major.Minor.Patch version string
+  * @param gitSha        GIT SHA
+  * @param buildNumber   Bamboo Build number or empty string
+  * @return
+  */
+def writeVersionProperties(path: File, versionString: String, gitSha: String, buildNumber: String) = {
+  val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(versionString, gitSha, buildNumber)
+  IO.write(path, content)
+  Seq(path)
+}
 
-testOptions in IntegrationTest += Tests.Setup { () => smrtLinkServerRunner.value.start()}
+/**
+  * Util func for writing the pacbio-manifest.json Managed file
+  *
+  * @param path          Path to pacbio-manifest.json
+  * @param versionString Major.Minor.Patch version string
+  * @param gitSha        Git Short SHA
+  * @param buildNumber   Bamboo Build number or empty string
+  * @return
+  */
+def writePacBioManifest(path: File, versionString: String, gitSha: String, buildNumber: String) = {
+  val pacbioVersion = "%s+%s%s" format(versionString, buildNumber, gitSha)
+  val manifest = s"""
+                    |{
+                    | "id":"smrtlink_services",
+                    | "name": "SMRT Analysis Services",
+                    | "version": "$pacbioVersion",
+                    | "description":"SMRT Link Analysis Services and Job Orchestration engine",
+                    | "dependencies": ["pbsmrtpipe", "sawriter", "gmap", "ngmlr]
+                    |}
+              """.stripMargin
+  IO.write(path, manifest)
+  Seq(path)
+}
 
-testOptions in IntegrationTest += Tests.Cleanup { () => smrtLinkServerRunner.value.stop()}
+/**
+  * Util to generate a PacBio Project with default Settings
+  *
+  * @param name subproject name
+  * @return
+  */
+def toPacBioProject(name: String): Project =
+  Project(name, file(name))
+      .settings(Defaults.itSettings : _*)
+      .settings(libraryDependencies ++= baseSettings)
+      .settings(coverageEnabled := false)
+      .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
+      .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
+      .configs(IntegrationTest)
+      .settings(
+        (test in IntegrationTest) := {
+          val x = (test in Test).value // Runs the Unit tests first
+          (test in IntegrationTest).value
+        }
+      )
+
 
 // Project to use the ammonite repl
 lazy val smrtflow = project.in(file("."))
     .settings(moduleName := "smrtflow")
-    .configs( IntegrationTest )
-    .settings( Defaults.itSettings : _*)
     .settings(publish := {})
     .settings(publishLocal := {})
     .settings(publishArtifact := false)
     .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
     .settings(libraryDependencies ++= baseSettings)
+    .settings(exportJars := true)
     .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
-    .settings(parallelExecution in Test := false) // run each Spec sequentially
-    .settings(initialCommands in (Test, console) :=
-    s"""
-       |val welcomeBanner = Some("Welcome to the smrtflow REPL")
-       |import ammonite.repl._
-       |import ammonite.ops._
-       |ammonite.Main("import java.util.UUID", welcomeBanner = welcomeBanner).run()
-       |""".stripMargin)
+    //.settings(parallelExecution in Test := false) // run each Spec sequentially
+    .settings(initialCommands in (Test, console) := """ammonite.Main().run()""")
+    .settings(Defaults.itSettings : _*)
+    .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
+    .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
+    .configs(IntegrationTest)
+    .settings(
+      (test in IntegrationTest) := {
+        val x = (test in Test).value // Runs the Unit tests first
+        (test in IntegrationTest).value
+      })
     .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
     .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
 
 
-lazy val logging = PacBioProject("smrt-server-logging")
+lazy val logging = toPacBioProject("smrt-server-logging").settings()
 
-lazy val common = (
-    PacBioProject("smrt-common-models")
-        settings(
-          makeVersionProperties := {
-            val propFile = (resourceManaged in Compile).value / "version.properties"
-            val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(version.value, gitHeadCommitSha.value, getBuildNumber().getOrElse("Unknown"))
-            IO.write(propFile, content)
-            Seq(propFile)
-          },
-          resourceGenerators in Compile <+= makeVersionProperties
-        )
-        settings(
-          makePacBioComponentManifest := {
-            val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
-            val sfVersion = version.value.replace("-SNAPSHOT", "")
-            val bambooBuildNumber = getBuildNumber().map(number => s"$number.").getOrElse("")
-            // Generate a version format of {major}.{minor}.{patch}+{build-number}.{short-sha} or
-            // {major}.{minor}.{patch}+{short-sha} if the build number is not assigned
-            val pacbioVersion = "%s+%s%s" format(sfVersion, bambooBuildNumber, gitHeadCommitSha.value.take(7))
-            val manifest = s"""
-              |{
-              | "id":"smrtlink_services",
-              | "name": "SMRT Analysis Services",
-              | "version": "$pacbioVersion",
-              | "description":"SMRT Link Analysis Services and Job Orchestration engine",
-              | "dependencies": ["pbsmrtpipe", "sawriter", "gmap", "ngmlr]
-              |}
-              """.stripMargin
-            IO.write(propFile, manifest)
-            Seq(propFile)
-          },
-          resourceGenerators in Compile <+= makePacBioComponentManifest
-        )
-    )
+lazy val common =
+  toPacBioProject("smrt-common-models")
+      .settings(
+        resourceGenerators in Compile += Def.task {
+          val propFile = (resourceManaged in Compile).value / "version.properties"
+          writeVersionProperties(propFile, version.value, gitHeadCommitSha.value, getBuildNumber().map(_.toString).getOrElse("Unknown"))
+        }.taskValue
+      )
+      .settings(
+        resourceGenerators in Compile += Def.task {
+          val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
+          val sfVersion = version.value.replace("-SNAPSHOT", "")
+          val bambooBuildNumber = getBuildNumber().map(number => s"$number.").getOrElse("")
+          writePacBioManifest(propFile, sfVersion, gitHeadCommitSha.value.take(7), bambooBuildNumber)
+        }.taskValue
+      )
 
-// "pbscala" or pacbio-secondary in perforce repo
-lazy val smrtAnalysis = (
-    PacBioProject("smrt-analysis")
-        dependsOn(logging, common)
-        settings()
-    )
+lazy val smrtAnalysis =
+  toPacBioProject("smrt-analysis")
+      .dependsOn(logging, common)
+      .settings()
 
-lazy val smrtServerBase = (
-    PacBioProject("smrt-server-base")
-        dependsOn(logging, common, smrtAnalysis)
-        settings()
-    )
+lazy val smrtServerBase =
+  toPacBioProject("smrt-server-base")
+      .dependsOn(logging, common, smrtAnalysis)
+      .settings()
 
-lazy val smrtServerLink = (
-    PacBioProject("smrt-server-link")
-        dependsOn(logging, common, smrtAnalysis, smrtServerBase)
-        settings(mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"))
-    )
+lazy val smrtServerLink =
+  toPacBioProject("smrt-server-link")
+      .dependsOn(logging, common, smrtAnalysis, smrtServerBase)
+      .settings(
+        mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"),
+        assemblyJarName in assembly := "smrt-server-link-analysis.jar")
 
-lazy val smrtServerSim = (
-    PacBioProject("smrt-server-sim")
-        .configs( IntegrationTest )
-        .settings(libraryDependencies ++= baseSettings)
-        .settings( Defaults.itSettings : _*)
-        dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
-    )
-
-//lazy val root = (project in file(".")).
-//  aggregate(common, logging, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerLims, smrtServerAnalysis, smrtServerAnalysisInternal, smrtServerSim)
+lazy val smrtServerSim =
+  toPacBioProject("smrt-server-sim")
+      .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+      .settings()
