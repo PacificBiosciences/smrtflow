@@ -17,6 +17,9 @@ class PbServiceIntegrationSpec extends Specification{
     "version is working" in {
       ExternalToolsUtils.runSimpleCmd(toCmd("--version")) must beNone
     }
+    "get-status is working" in {
+      ExternalToolsUtils.runSimpleCmd(toCmd("status")) must beNone
+    }
   }
 
 }
