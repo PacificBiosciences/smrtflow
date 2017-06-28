@@ -205,17 +205,15 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     dest
   }
 
-  def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID, smrtLinkUserDataRoot: Path, dest: Path, user: String, smrtLinkVersion: Option[String], dnsName: Option[String]): Path = {
+  def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID, smrtLinkUserDataRoot: Path, dest: Path, user: String, smrtLinkVersion: Option[String], dnsName: Option[String], comment: Option[String]): Path = {
     val techSupportBundleId =  UUID.randomUUID()
 
     val tmpDir = Files.createTempDirectory(s"sl-status-$techSupportBundleId")
 
     TechSupportUtils.copySmrtLinkSystemStatus(smrtLinkUserDataRoot, tmpDir)
 
-    val comment = s"Created by smrtflow version ${Constants.SMRTFLOW_VERSION}"
-
     val manifest = TsSystemStatusManifest(techSupportBundleId, BundleTypes.SYSTEM_STATUS, 1,
-      JodaDateTime.now(), smrtLinkSystemId, dnsName, smrtLinkVersion, user, Some(comment))
+      JodaDateTime.now(), smrtLinkSystemId, dnsName, smrtLinkVersion, user, comment)
 
     val manifestPath = tmpDir.resolve(DEFAULT_TS_MANIFEST_JSON)
 
