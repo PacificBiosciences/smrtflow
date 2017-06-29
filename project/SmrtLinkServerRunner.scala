@@ -17,7 +17,7 @@ class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logg
 
   var serverProcess: Option[Process] = None
 
-  val serverArgs = Seq("-jar", assemblyJarName.getAbsolutePath, "--log-level", "DEBUG", "--log-file", "sim-server.log")
+  val serverArgs = Seq("-jar", assemblyJarName.getAbsolutePath, "--log-level", "INFO", "--log-file", "integration-tests.log")
   val mainClass = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"
   //val forkOptions = ForkOptions(envVars = Map("KEY" -> "value"))
   val forkOptions = ForkOptions()
