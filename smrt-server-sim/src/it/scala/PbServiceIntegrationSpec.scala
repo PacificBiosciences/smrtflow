@@ -21,6 +21,10 @@ import org.specs2.mutable.Specification
   */
 class PbServiceIntegrationSpec extends Specification with ConfigLoader with LazyLogging{
 
+  // NOTE, these test must be run serially to avoid import dataset collisions
+  // Or make each test uniquely import dataset types
+  //sequential
+
   // Need to use the root dir to the data files
   private def getPacBioTestDataFilesJsonPath(): Path = {
     val px = conf.getString(PacBioTestData.PB_TEST_ID)
@@ -50,6 +54,9 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     }
     "version is working" in {
       runPbservice("--version") must beNone
+    }
+    "raise non-valid subparser" in {
+      runPbservice("not-an-valid-option") must beSome
     }
     "get-status is working" in {
       runPbservice("status") must beNone
@@ -83,6 +90,17 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     }
     "get-bundles" in {
       runPbservice("get-bundles") must beNone
+    }
+    "get-jobs" in {
+      runPbservice("get-jobs") must beNone
+    }
+    "get-jobs -t import-dataset and get-job 1" in {
+      runPbservice("get-jobs", "-t", "import-dataset") must beNone
+      // There must be atleast 1 job in the system by now
+      runPbservice("get-job", "1") must beNone
+    }
+    "get-jobs -t merge-datasets --job-state SUCCESSFUL --max-items 10" in {
+      runPbservice("get-jobs", "--job-type", "merge-datasets", "--job-state", "SUCCESSFUL", "--max-items", "10") must beNone
     }
   }
 }
