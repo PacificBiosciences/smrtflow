@@ -88,7 +88,6 @@ lazy val baseSettings = Seq(
   "io.spray" % "spray-http_2.11" % sprayV,
   "io.spray" % "spray-io_2.11" % sprayV,
   "io.spray" % "spray-routing-shapeless2_2.11" % sprayV,
-  "io.spray" % "spray-servlet_2.11" % sprayV,
   "io.spray" % "spray-testkit_2.11" % sprayV % "test",
   "io.spray" % "spray-util_2.11" % sprayV,
   "io.spray" %% "spray-json" % "1.3.2",
@@ -111,8 +110,8 @@ lazy val baseSettings = Seq(
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
-  "pacbio.smrt.thirdparty" % "spray-hmac-shapeless2_2.11" % "1.0.1"
-)
+  "mbilski" % "spray-hmac_2.11" % "1.0.1"
+).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
 
 def PacBioProject(name: String): Project = (
     Project(name, file(name))
