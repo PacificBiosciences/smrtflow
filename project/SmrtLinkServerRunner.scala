@@ -3,15 +3,17 @@ import java.time.LocalDateTime
 
 
 trait SmrtLinkServerRunner {
-  def start(log: Logger): Unit
-  def stop(log: Logger): Unit
+  val log: Logger
+  def start(): Unit
+  def stop(): Unit
 }
 
 /**
   *
+  * @param log SBT logger
   * @param assemblyJarName Path to the SMRT Link Server Analysis Jar file
   */
-class SmrtLinkAnalysisServerRunner(assemblyJarName: File) extends SmrtLinkServerRunner {
+class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logger) extends SmrtLinkServerRunner {
 
   var serverProcess: Option[Process] = None
 
@@ -20,17 +22,19 @@ class SmrtLinkAnalysisServerRunner(assemblyJarName: File) extends SmrtLinkServer
   //val forkOptions = ForkOptions(envVars = Map("KEY" -> "value"))
   val forkOptions = ForkOptions()
 
-  override def start(log: Logger) = {
+  override def start():Unit = {
     log.info(s"Assembly Jar name $assemblyJarName")
-    log.info(s"Starting SMRT Link Analysis Server ${LocalDateTime.now()} with options:$forkOptions and args:$serverArgs")
-    // This needs to be forked in Parallel models
+    log.info(s"Starting SMRT Link Analysis Server at ${LocalDateTime.now()} with options:$forkOptions and args:$serverArgs")
+    // This needs to be java.fork so that it does NOT block. The shutdown step will be responsible for shutting down
+    // the server
     val p = Fork.java.fork(forkOptions, serverArgs)
     serverProcess = Some(p)
-    log.info(s"process exit code='${p.exitValue()}'")
+    // Calling p.exitCode will BLOCK
+    log.info(s"process '$p'")
   }
 
-  override def stop(log: Logger) = {
-    log.info(s"Stopping SMRT Link Analysis Server ${LocalDateTime.now()}")
+  override def stop():Unit = {
+    log.info(s"Stopping SMRT Link Analysis Server at ${LocalDateTime.now()}")
     serverProcess.foreach(_.destroy())
   }
 }
