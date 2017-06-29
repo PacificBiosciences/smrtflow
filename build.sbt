@@ -20,7 +20,10 @@ scalaVersion in ThisBuild := "2.11.8"
 
 scalacOptions in ThisBuild := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
-//parallelExecution in ThisBuild := false
+// NOT WORKING. This should enables Ctl+C to not exit SBT
+// cancelable in Global := true
+
+parallelExecution in ThisBuild := true
 
 fork in ThisBuild := true
 
@@ -176,15 +179,11 @@ def toPacBioProject(name: String): Project =
       .settings(Defaults.itSettings : _*)
       .settings(libraryDependencies ++= baseSettings)
       .settings(coverageEnabled := false)
+      .settings(fork in Test := true)
+      .settings(fork in IntegrationTest := true)
       .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
       .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
       .configs(IntegrationTest)
-      .settings(
-        (test in IntegrationTest) := {
-          val x = (test in Test).value // Runs the Unit tests first
-          (test in IntegrationTest).value
-        }
-      )
 
 
 // Project to use the ammonite repl
@@ -193,6 +192,9 @@ lazy val smrtflow = project.in(file("."))
     .settings(publish := {})
     .settings(publishLocal := {})
     .settings(publishArtifact := false)
+    .settings(fork in Test := true)
+    .settings(fork in IntegrationTest := true)
+    .settings(fork in run := true)
     .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
     .settings(libraryDependencies ++= baseSettings)
     .settings(exportJars := true)
@@ -203,11 +205,6 @@ lazy val smrtflow = project.in(file("."))
     .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
     .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
     .configs(IntegrationTest)
-    .settings(
-      (test in IntegrationTest) := {
-        val x = (test in Test).value // Runs the Unit tests first
-        (test in IntegrationTest).value
-      })
     .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
     .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
 
