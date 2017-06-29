@@ -12,7 +12,9 @@ import org.specs2.mutable.Specification
   * This pattern should replace the cram-ish tests in siv-tests/bin/import_tests.sh
   * and this pattern should replace pbscala.t to centralize testing. This will
   * make it easier to understand the test coverage (XML is emitted by scala) and should
-  * clarify gaps in test converage.
+  * clarify gaps in test coverage.
+  *
+  * Note, this also enables writing tests against the raw Client ServiceAccessLayer
   *
   * I've added the a subset of the pbservice tests here that will work without adding
   * the minimal python requirements:
