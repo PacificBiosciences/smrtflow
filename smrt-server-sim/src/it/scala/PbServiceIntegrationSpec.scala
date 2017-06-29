@@ -69,5 +69,20 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     "get-jobs -t import-dataset --max-items" in {
       runPbservice("get-jobs", "-t", "import-dataset", "--max-items", "10") must beNone
     }
+    "get-datasets (default) type" in {
+      runPbservice("get-datasets") must beNone
+    }
+    "get-datasets by subreads type" in {
+      runPbservice("get-datasets", "-t", "subreads") must beNone
+    }
+    "get-datasets by references types" in {
+      runPbservice("get-datasets", "--dataset-type", "references") must beNone
+    }
+    "get-manifests" in {
+      runPbservice("get-manifests") must beNone
+    }
+    "get-bundles" in {
+      runPbservice("get-bundles") must beNone
+    }
   }
 }
