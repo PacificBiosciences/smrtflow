@@ -32,7 +32,7 @@ tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
 tools-smrt-server-link:
-	sbt smrt-server-link/{compile,pack}
+	sbt smrt-server-link/{compile,pack,assembly}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
@@ -75,6 +75,11 @@ start-smrt-server-link-jar:
 
 test:
 	sbt -batch "test-only -- junitxml html console"
+
+test-int: tools-smrt-server-link tools-smrt-server-sim
+
+test-int:
+	sbt "smrt-server-sim/it:test"
 
 test-int-install-pytools:
 	@echo "This should be done in a virtualenv!"
