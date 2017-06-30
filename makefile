@@ -75,8 +75,6 @@ start-smrt-server-link-jar:
 	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
 test: validate-pacbio-manifests
-
-test:
 	sbt -batch "test-only -- junitxml html console"
 
 test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
