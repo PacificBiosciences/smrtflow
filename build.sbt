@@ -161,7 +161,7 @@ def writePacBioManifest(path: File, versionString: String, gitSha: String, build
                     | "name": "SMRT Analysis Services",
                     | "version": "$pacbioVersion",
                     | "description":"SMRT Link Analysis Services and Job Orchestration engine",
-                    | "dependencies": ["pbsmrtpipe", "sawriter", "gmap", "ngmlr]
+                    | "dependencies": ["pbsmrtpipe", "sawriter", "gmap", "ngmlr"]
                     |}
               """.stripMargin
   IO.write(path, manifest)
