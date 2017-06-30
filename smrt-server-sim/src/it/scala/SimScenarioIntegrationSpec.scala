@@ -52,10 +52,10 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
 
   def runScenario(scenarioType: String): Option[ExternalCmdFailure] = {
     val cmd = toCmd(scenarioType)
-    println(s"Scenario cmd $cmd")
+    logger.info(s"Scenario cmd $cmd")
     ExternalToolsUtils.runSimpleCmd(cmd) match {
       case Some(ex) =>
-        println(s"Error running scenario $scenarioType with error $ex")
+        logger.error(s"Error running scenario $scenarioType with error $ex")
         Some(ex)
       case _ => None
     }
