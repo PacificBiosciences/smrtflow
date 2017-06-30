@@ -1,6 +1,7 @@
 SHELL=/bin/bash
 STRESS_RUNS=1
 STRESS_NAME=run
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 clean:
 	rm -f secondary-smrt-server*.log 
@@ -21,7 +22,7 @@ build:
 tools:
 	sbt clean pack
 
-tools-sim:
+tools-smrt-server-sim:
 	sbt smrt-server-sim/{compile,pack}
 
 xsd-java:
@@ -32,7 +33,7 @@ tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
 tools-smrt-server-link:
-	sbt smrt-server-link/{compile,pack}
+	sbt smrt-server-link/{compile,pack,assembly}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
@@ -76,6 +77,20 @@ start-smrt-server-link-jar:
 test:
 	sbt -batch "test-only -- junitxml html console"
 
+test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
+
+test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
+test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/PacBioTestData/data/files.json
+
+test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
+
+test-int:
+	@echo "PATH"
+	@echo $$PATH
+	@echo "TEST DATA"
+	@echo $$PB_TEST_DATA_FILES
+	sbt "smrt-server-sim/it:test"
+
 test-int-install-pytools:
 	@echo "This should be done in a virtualenv!"
 	@echo "assuming virtualenvwrapper is installed"
@@ -95,14 +110,6 @@ test-data/smrtserver-testdata:
 	mkdir -p test-data
 	rsync --progress -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
 
-test-int-import-references:
-	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-references/
-
-test-int-import-subreads:
-	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-subreads/
-
-test-int-import-data: test-int-import-references test-int-import-subreads
-
 test-int-run-analysis:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-01.json
 
@@ -111,16 +118,6 @@ test-int-run-analysis-stress:
 
 test-int-run-analysis-trigger-failure:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
-
-test-int-get-status:
-	pbservice status --debug --port=8070 
-
-test-int-run-sanity: test-int-get-status test-int-import-data test-int-run-analysis
-
-test-sim:
-	sbt "smrt-server-link/assembly"
-	sbt "smrt-server-sim/pack"
-	python extras/run_sim_local.py DataSetScenario
 
 validate-report-view-rules:
 	find ./smrt-server-link/src/main/resources/report-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
@@ -153,6 +150,14 @@ full-stress-run: test-data/smrtserver-testdata
 	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
 	done
 
+db-reset-prod:
+	psql -f ./extras/db-drop.sql
+	psql -f ./extras/db-init.sql
+
+db-reset-test:
+	psql -f ./extras/test-db-drop.sql
+	psql -f ./extras/test-db-init.sql
+
 validate-swagger-smrtlink:
 	swagger validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
@@ -160,3 +165,4 @@ validate-swagger-eve:
 	swagger validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
 
 validate-swagger: validate-swagger-smrtlink validate-swagger-eve
+
