@@ -32,22 +32,19 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     val px = conf.getString(PacBioTestData.PB_TEST_ID)
     Paths.get(px).toAbsolutePath
   }
+  // This is confusing and problematic from a config standpoint
+  // This will fail in a non-graceful manner if PB_TEST_DATA_FILES is not exported.
+  val testData = PacBioTestData()
 
-  private def getPacBioDataTestDataDir() = getPacBioTestDataFilesJsonPath().getParent
-  private def getByDataSetType(name: String) = getPacBioDataTestDataDir().resolve(name).toAbsolutePath
+  private def getByDataSetType(name: String) = testData.base.resolve(name).toAbsolutePath
 
   def getSubreadSetsPath(): Path = getByDataSetType("SubreadSet")
-  def getLambdaPath(): Path = getByDataSetType("ReferenceSet/lambdaNEB/referenceset.xml")
+  def getLambdaPath(): Path = testData.getFile("lambdaNEB")
 
   def toCmd(args: String*): Seq[String] = Seq("pbservice") ++ args
   def runPbservice(args: String*): Option[ExternalCmdFailure] = ExternalToolsUtils.runSimpleCmd(toCmd(args:_*))
 
   "pbservice cram test " should {
-    "load PacBioTestData " in {
-      val p = getPacBioTestDataFilesJsonPath()
-      logger.info(s"PacBio Test files.json data path $p")
-      Files.exists(p) must beTrue
-    }
     "pbservice exe is found in PATH" in {
       ExternalToolsUtils.which("pbservice") must beSome
     }
@@ -70,7 +67,7 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
       runPbservice("import-dataset", getLambdaPath().toString) must beNone
     }
     "import-dataset Recursively from Root Dir for All DataSet types" in {
-      runPbservice("import-dataset", getPacBioDataTestDataDir().toString) must beNone
+      runPbservice("import-dataset", testData.base.toString) must beNone
     }
     "get-jobs (default) type" in {
       runPbservice("get-jobs") must beNone
