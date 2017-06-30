@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.app
 
 import java.io._
-import java.net.BindException
+import java.net.{BindException, URL}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import javax.crypto.Mac
@@ -438,6 +438,8 @@ trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val systemUUID = getSystemUUID(conf)
   lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
   lazy val swaggerJson = "eventserver_swagger.json"
+  // Note, this must be consistent with the how the server is launched.
+  lazy val eveUrl = new URL(s"https:$systemHost:$systemPort")
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
@@ -483,7 +485,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
   implicit val timeout = Timeout(30.seconds)
 
   lazy val startupTimeOut = 10.seconds
-  lazy val eventServiceClient = new EventServerClient(systemHost, systemPort, apiSecret)
+  lazy val eventServiceClient = new EventServerClient(eveUrl, apiSecret)
 
   // Mocked out. Fail the future if any invalid option is detected
   def validateOption(): Future[String] =

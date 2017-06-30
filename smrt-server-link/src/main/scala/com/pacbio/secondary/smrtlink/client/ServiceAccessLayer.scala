@@ -8,11 +8,14 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scalaj.http.Base64
+
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import com.typesafe.scalalogging.LazyLogging
+
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.auth.Authenticator._
 import com.pacbio.common.auth.JwtUtils._
@@ -37,7 +40,8 @@ object ServicesClientJsonProtocol
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
-    with ServiceEndpointConstants {
+    with ServiceEndpointConstants
+    with LazyLogging {
 
   import CommonModelImplicits._
   import CommonModels._
@@ -181,15 +185,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
+    logger.debug(s"Retrieving metadata for dataset ${datasetId.toIdString}")
     Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
   }
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] = getMessageResponsePipeline {
+    logger.debug(s"Soft-deleting dataset ${datasetId.toIdString}")
     Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
         DataSetUpdateRequest(false))
   }
 
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] = getSubreadSetsPipeline {
+    logger.debug(s"Retrieving all active SubreadSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName))
   }
 
@@ -206,6 +213,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] = getHdfSubreadSetsPipeline {
+    logger.debug(s"Retrieving all active HdfSubreadSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName))
   }
 
@@ -218,6 +226,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] = getBarcodeSetsPipeline {
+    logger.debug(s"Retrieving all active BarcodeSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName))
   }
 
@@ -230,6 +239,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] = getReferenceSetsPipeline {
+    logger.debug(s"Retrieving all active ReferenceSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName))
   }
 
@@ -242,6 +252,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] = getGmapReferenceSetsPipeline {
+    logger.debug(s"Retrieving all active GmapReferenceSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName))
   }
 
@@ -254,6 +265,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] = getAlignmentSetsPipeline {
+    logger.debug(s"Retrieving all active AlignmentSet records")
     Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName))
   }
 
@@ -322,6 +334,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   protected def getJobReports(jobId: IdAble, jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
+    logger.debug(s"Getting reports for job ${jobId.toIdString}")
     Get(toJobResourceUrl(jobType, jobId, JOB_REPORT_PREFIX))
   }
 
@@ -465,6 +478,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
                 removeFiles: Boolean = true,
                 dryRun: Boolean = false,
                 force: Boolean = false): Future[EngineJob] = getJobPipeline {
+    logger.debug(s"Deleting job $jobId")
     Post(toUrl(ROOT_JOBS + "/delete-job"),
          DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun), force = Some(force)))
   }
@@ -495,6 +509,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   protected def getJobReport(jobType: String, jobId: IdAble, reportId: UUID): Future[Report] = getReportPipeline {
+    logger.debug(s"Getting report $reportId for job ${jobId.toIdString}")
     Get(toJobResourceIdUrl(jobType, jobId, JOB_REPORT_PREFIX, reportId))
   }
 
@@ -518,39 +533,46 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def importDataSet(path: Path, dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] = runJobPipeline {
+    logger.debug(s"Submitting import-dataset job for $path")
     Post(
       toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
       ImportDataSetOptions(toP(path), dsMetaType))
   }
 
   def importFasta(path: Path, name: String, organism: String, ploidy: String): Future[EngineJob] = runJobPipeline {
+    logger.debug(s"Importing reference $name from FASTA file $path")
     Post(
       toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
       ConvertImportFastaOptions(toP(path), name, ploidy, organism))
   }
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] = runJobPipeline {
+    logger.debug(s"Importing barcodes $name from FASTA file $path")
     Post(
       toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
+    logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
          DataSetMergeServiceOptions(datasetType.toString, ids, name))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {
+    logger.debug(s"Importing RS II metadata from $path")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
       MovieMetadataToHdfSubreadOptions(toP(path), name))
   }
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], outputPath: Path) = runJobPipeline {
+    logger.debug(s"Exporting ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
          DataSetExportServiceOptions(datasetType.toString, ids, toP(outputPath)))
   }
 
   def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], removeFiles: Boolean = true) = runJobPipeline {
+    logger.debug(s"Deleting ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
          DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles))
   }
@@ -576,6 +598,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def runAnalysisPipeline(pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] = runJobPipeline {
+    logger.debug(s"Submitting analysis job '${pipelineOptions.name}'")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions)
   }
 
@@ -589,6 +612,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     getPacBioDataBundlePipeline { Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))}
 
   def runTsSystemStatus(user: String, comment: String) = runJobPipeline {
+    logger.debug("Submitting tech support status job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
          TsSystemStatusServiceOptions(user, comment))
   }
@@ -602,6 +626,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     * @return
     */
   def runTsJobBundle(jobId: Int, user: String, comment: String) = runJobPipeline {
+    logger.debug("Submitting tech support job bundle")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
         TsJobBundleJobServiceOptions(jobId, user, comment))
   }
@@ -616,6 +641,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     * @return
     */
   def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
+    logger.debug("Submitting database backup job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
   }
 
@@ -640,6 +666,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
+    logger.debug(s"Polling for job ${jobId.toIdString} to finish successfully")
 
     def failIfNotState(state: AnalysisJobStates.JobStates, job: EngineJob): Try[EngineJob] = {
       if (job.state == state) Success(job)
@@ -713,6 +740,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
+    logger.debug(s"Polling for job ${jobId.toIdString} to complete")
 
     def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0

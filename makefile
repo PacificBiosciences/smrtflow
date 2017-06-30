@@ -150,7 +150,6 @@ full-stress-run: test-data/smrtserver-testdata
 	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
 	done
 
-
 db-reset-prod:
 	psql -f ./extras/db-drop.sql
 	psql -f ./extras/db-init.sql
@@ -158,3 +157,12 @@ db-reset-prod:
 db-reset-test:
 	psql -f ./extras/test-db-drop.sql
 	psql -f ./extras/test-db-init.sql
+
+validate-swagger-smrtlink:
+	swagger validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
+
+validate-swagger-eve:
+	swagger validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+
+validate-swagger: validate-swagger-smrtlink validate-swagger-eve
+

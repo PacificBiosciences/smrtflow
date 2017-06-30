@@ -30,7 +30,6 @@ assemblyMergeStrategy in assembly := {
 packSettings
 
 packMain := Map(
-  "smrt-server-link" -> "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer", // Remove this. There is no longer a concept of an "Analysis"-less SL
   "smrt-server-link-analysis" -> mainServer,
   "smrt-server-eve" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "smrt-server-data-bundle" -> "com.pacbio.secondary.smrtlink.app.SmrtPacBioDataBundleServerApp",

@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
 
 /**
-  * Create a Client for the Event Server.
+  * Create a Client for the Eve Server.
   *
   * There's some friction here with the current EventURL defined in the config, versus only defining a
   * host, port or URL, then determining the relative endpoints.
@@ -41,6 +41,16 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: A
   val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
   val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
 
+  /**
+    * Create an Eve Client
+    *
+    * Note, the default protocol will be set to http if not explicitly provided.
+    *
+    * @param host        Host name
+    * @param port        Port
+    * @param apiSecret   API Secret used in the auth hashing algo
+    * @param actorSystem Actor System
+    */
   def this(host: String, port: Int, apiSecret: String)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
   }

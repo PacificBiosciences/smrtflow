@@ -1,6 +1,5 @@
 import java.nio.file.Paths
 import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.legacy.ReferenceEntry
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 

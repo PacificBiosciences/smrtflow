@@ -193,7 +193,7 @@
             "default": "./"
           },
           {
-            "doc": "URL to the remote bundle service. This must be relative to the root bundle service (e.g., http://my-server:8081/smrt-link/bundles). If a URL is not provided, the remote fetching for upgrades will be disabled (hocon-key smrtflow.pacBioSystem.remoteBundleUrl)",
+            "doc": "URL to the remote bundle service (e.g., http://my-server:8084). If a URL is not provided, the remote fetching for upgrades will be disabled (hocon-key smrtflow.pacBioSystem.remoteBundleUrl)",
             "name": "remoteBundleUrl",
             "type": ["string", "null"],
             "default": null

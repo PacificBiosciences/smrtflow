@@ -47,12 +47,10 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
   // This pattern needs to excised from the code
   val jobStatus = Var.empty[Int]
 
-  val user = Var("sim-ts-user")
+  val user = Var("sim-scenario-user")
   val jobFailedId = Var.empty[UUID]
-  val jobFailedName = Var("TS Failed Job")
 
   val jobStatusId = Var.empty[UUID]
-  val jobStatusName = Var("TS System Status")
 
   val lambdaNebPath = testData.getFile("lambdaNEB")
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
@@ -73,7 +71,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
 
   // Sanity Test for creating an SL System status TS bundle
   val createTsSystemStatusSteps: Seq[Step] = Seq(
-    jobStatusId := CreateTsSystemStatusJob(user, Var("Sim TS support comment")),
+    jobStatusId := CreateTsSystemStatusJob(user, Var("Sim TS Status support comment")),
     WaitForSuccessfulJob(jobStatusId),
     dataStore := GetAnalysisJobDataStore(jobStatusId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore.mapWith(_.size) !=? 3
@@ -93,7 +91,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
 
   // Create a TS Failed Job from the previous Analysis Job
   val createFailedJobSteps: Seq[Step] = Seq(
-    jobFailedId := CreateTsFailedJob(jobFailedAnalysisId, jobStatusName, user),
+    jobFailedId := CreateTsFailedJob(jobFailedAnalysisId, user, Var("Sim TS Failed Job support comment")),
     WaitForSuccessfulJob(jobFailedId),
     dataStore := GetAnalysisJobDataStore(jobFailedId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore.mapWith(_.size) !=? 3

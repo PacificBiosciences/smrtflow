@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
+import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
@@ -34,7 +35,7 @@ object EventManagerActor {
 
 class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
-                        externalConfig: Option[ExternalEventServerConfig], apiSecret: String)
+                        externalEveUrl: Option[URL], apiSecret: String)
     extends Actor with LazyLogging with SmrtLinkJsonProtocols{
 
   import EventManagerActor._
@@ -44,20 +45,20 @@ class EventManagerActor(smrtLinkId: UUID,
   var enableExternalMessages = false
 
   // If the system is not configured with an event server. No external messages will ever be sent
-  val client: Option[EventServerClient] = externalConfig.map(x => new EventServerClient(x.host, x.port, apiSecret)(context.system))
+  val client: Option[EventServerClient] = externalEveUrl.map(x => new EventServerClient(x, apiSecret)(context.system))
 
   context.system.scheduler.scheduleOnce(10.seconds, self, CheckExternalServerStatus)
 
 
   override def preStart() = {
     val dns = dnsName.map(n => s"dns name $n").getOrElse("")
-    logger.info(s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server config $externalConfig")
+    logger.info(s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server URL $externalEveUrl")
     logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
   def checkExternalServerStatus(): Option[Future[String]] = {
     client.map(c => c.getStatus.map { status => s"External Server $c status $status"
-    }.recover( {case NonFatal(ex) => s"Failed to connect to External Event Server $c ${ex.getMessage}"})
+    }.recover( {case NonFatal(ex) => s"Failed to connect to External Event Server $c at ${c.baseUrl} ${ex.getMessage}"})
         .map {statusMessage =>
           logger.info(statusMessage)
           statusMessage
@@ -138,5 +139,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEventHost(), apiSecret()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEveUrl(), apiSecret()), "EventManagerActor"))
 }

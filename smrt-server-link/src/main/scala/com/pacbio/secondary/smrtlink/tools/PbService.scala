@@ -5,7 +5,21 @@ import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.io.Source
+import scala.language.postfixOps
+import scala.math._
+import scala.util.control.NonFatal
+import scala.util.{Failure, Properties, Success, Try}
+
 import akka.actor.ActorSystem
+import com.typesafe.scalalogging.LazyLogging
+import scopt.OptionParser
+import spray.json._
+
 import com.pacbio.common.models._
 import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
@@ -20,19 +34,7 @@ import com.pacbio.secondary.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.models._
-import com.typesafe.scalalogging.LazyLogging
-import scopt.OptionParser
-import spray.json._
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.io.Source
-import scala.language.postfixOps
-import scala.math._
-import scala.util.control.NonFatal
-import scala.util.{Failure, Properties, Success, Try}
 
 
 object Modes {
@@ -1267,7 +1269,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
     val tx = for {
       finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
-      job <- Try { Await.result(sal.convertRsMovie(path, name), TIMEOUT) }
+      job <- Try { Await.result(sal.convertRsMovie(path, finalName), TIMEOUT) }
       job <- sal.pollForSuccessfulJob(job.uuid)
       dataStoreFiles <- Try { Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT) }
     } yield dataStoreFiles
