@@ -74,7 +74,7 @@ start-smrt-server-link-jar:
 	sbt "smrt-server-link/{compile,pack}"
 	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
-test:
+test: validate-pacbio-manifests
 	sbt -batch "test-only -- junitxml html console"
 
 test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
@@ -101,6 +101,13 @@ test-int-install-pytools:
 
 jsontest:
 	$(eval JSON := `find . -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	@for j in $(JSON); do \
+		echo $$j ;\
+		python -m json.tool $$j >/dev/null || exit 1 ;\
+	done
+
+validate-pacbio-manifests:
+	$(eval JSON := `find . -name 'pacbio-manifest.json'`)
 	@for j in $(JSON); do \
 		echo $$j ;\
 		python -m json.tool $$j >/dev/null || exit 1 ;\
