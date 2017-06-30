@@ -32,7 +32,7 @@ trait TestDataJsonProtocol extends DefaultJsonProtocol {
   * @param files List of TestDataFiles, this must be consistent with the base directory is supplied
   * @param base Root absolute path of any relative Path provided by a TestDataFile
   */
-class PacBioTestData(files: Seq[TestDataFile], base: Path)
+case class PacBioTestData(files: Seq[TestDataFile], base: Path)
     extends DataSetFileUtils {
   private val fileLookup = files.map(f => (f.id, f)).toMap
 
@@ -69,14 +69,14 @@ object PacBioTestData extends TestDataJsonProtocol with ConfigLoader{
     * Load files.json from the application.conf file
     * @return
     */
-  def apply() = apply(getFilesJson)
+  def apply():PacBioTestData = apply(getFilesJson)
 
   /**
     * Load a PacBioTest Data from files.json
     * @param filesJson Absolute path to the files.json
     * @return
     */
-  def apply(filesJson: Path) = {
+  def apply(filesJson: Path):PacBioTestData = {
     val json = FileUtils.readFileToString(filesJson.toFile).parseJson
     val files = json.convertTo[Seq[TestDataFile]]
     new PacBioTestData(files, filesJson.toAbsolutePath.getParent)
