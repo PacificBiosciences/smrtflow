@@ -10,7 +10,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -28,6 +28,8 @@ _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _LOG_STDOUT_FORMAT = "%(message)ss"
 # Default Log file name that will be used if an explicit log file is not provided
 _DEFAULT_LOG_FILE_NAME = "dbctrl.log"
+# This will only be used when postgres is started up
+_DEFAULT_POSTGRES_LOG_FILE_NAME = "postgres.log"
 
 REQUIRED_EXES = ('initdb',
                  'pg_ctl',
@@ -38,7 +40,7 @@ REQUIRED_EXES = ('initdb',
                  'smrt-db-tool')
 
 
-class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, pg_backup_dir, host, port, user, password")):
+class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, pg_backup_dir, host, port, user, password", "log_file")):
     def to_fd(self):
         # used in .format(**_d)
         return dict(t=self.port, h=self.host, g=self.pg_data_dir, b=self.pg_backup_dir, n=self.db_name, u=self.user, p=self.password)
@@ -173,6 +175,13 @@ def get_parser():
 
     return p
 
+def _get_log_dir_from_d(d):
+    return  d['pacBioSystem']['logDir'].encode("utf8", "ignore")
+
+
+def load_psql_log_path_from_d(d):
+    return os.path.join(_get_log_dir_from_d(d), _DEFAULT_POSTGRES_LOG_FILE_NAME)
+
 
 def load_db_config(path):
     """Load the DB config from the smrtlink-system-config.json"""
@@ -195,13 +204,15 @@ def load_db_config(path):
     password = to_a(d['smrtflow']['db']['properties']['password'])
     user = to_a(d['smrtflow']['db']['properties']['user'])
 
-    return DbConfig(db_name, pg_data_dir, pg_backup_dir, host, port, user, password)
+    psql_log_file = load_psql_log_path_from_d(d)
+
+    return DbConfig(db_name, pg_data_dir, pg_backup_dir, host, port, user, password, psql_log_file)
 
 
 def load_log_dir(path):
     """Load the System Level Logging dir from the System config."""
     d = json.load(open(path, 'r'))
-    return d['pacBioSystem']['logDir'].encode("utf8", "ignore")
+    return _get_log_dir_from_d(d)
 
 
 def call_import_legacy_sqlite(sqlite_db_path, dbc):
@@ -296,11 +307,18 @@ def _start_db_or_raise(dbc):
     return was_started
 
 
-def _to_cmd(dbc, action):
-    """:type dbc: DbConfig"""
+def _to_cmd(dbc, action, log_file=None):
+    """
+    The log file is only really configurable for start action
+    :type dbc: DbConfig
+    """
     _d = dbc.to_fd()
     _d['a'] = action
-    cmd = "pg_ctl {a} -w --pgdata {g} -o \"-p {t} -h {h}\"".format(**_d)
+    if log_file is None:
+        _d['x'] = ''
+    else:
+        _d['x'] = '-l {}'.format(log_file)
+    cmd = "pg_ctl {a} {x} -w --pgdata {g} -o \"-p {t} -h {h}\"".format(**_d)
     return cmd
 
 
@@ -406,7 +424,7 @@ def db_start(dbc, fail_early=True):
         _fail_status_early(dbc)
 
     if not check_if_running(dbc):
-        return _run_cmd_and_log(_to_cmd(dbc, "start"))
+        return _run_cmd_and_log(_to_cmd(dbc, "start", log_file=dbc.log_file))
     else:
         log.info("Database is already started. Skipping startup")
         return 0
