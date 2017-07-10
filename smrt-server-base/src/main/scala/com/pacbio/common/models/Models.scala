@@ -36,7 +36,7 @@ object LogLevel {
   case object FATAL extends LogLevel
 
   val ALL = Seq(TRACE, DEBUG, INFO, NOTICE, WARN, ERROR, CRITICAL, FATAL)
-  val logLevelByName = ALL.map(x => x.toString -> x).toMap
+  val logLevelByName = ALL.map(x => x.toString.toLowerCase -> x).toMap
 }
 
 // Subsystem Settings

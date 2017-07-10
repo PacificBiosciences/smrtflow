@@ -40,7 +40,7 @@ trait LogLevelProtocol extends DefaultJsonProtocol with FamilyFormats {
     def write(obj: LogLevel.LogLevel): JsValue = JsString(obj.toString)
 
     def read(json: JsValue): LogLevel.LogLevel = json match {
-      case JsString(x) => LogLevel.logLevelByName(x)
+      case JsString(x) => LogLevel.logLevelByName(x.toLowerCase)
       case _ => deserializationError("Expected LogLevel type as JsString")
     }
   }
