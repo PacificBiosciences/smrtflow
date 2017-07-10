@@ -308,6 +308,41 @@
         }
       ]
     },
+    "/smrt-link/loggers": {
+      "post": {
+        "description": "Log a message to the server",
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "description": "Log message",
+            "schema": {
+              "$ref": "#/definitions/ClientLogMessage"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Returns a message",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/runs": {
       "post": {
         "description": "Create a new instrument run record",
@@ -6012,6 +6047,31 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/EngineJobEntryPoint"
+      }
+    },
+    "ClientLogMessage": {
+      "properties": {
+        "level": {
+          "type": "string",
+          "title": "log level",
+          "enum": ["INFO", "WARN", "ERROR", "DEBUG"]
+        },
+        "message": {
+          "type": "string",
+          "title": "log message"
+        },
+        "sourceId": {
+          "type": "string",
+          "title": "source of the log message"
+        }
+      }
+    },
+    "MessageResponse": {
+      "properties": {
+        "message": {
+          "type": "string",
+          "title": "message"
+        }
       }
     }
   }

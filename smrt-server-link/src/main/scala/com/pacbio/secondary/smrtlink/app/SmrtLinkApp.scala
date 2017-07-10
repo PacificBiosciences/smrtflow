@@ -55,7 +55,8 @@ trait SmrtLinkProviders extends
   DeleteJobServiceTypeProvider with
   DbBackUpServiceJobTypeProvider with
   InMemoryRegistryDaoProvider with
-  DataModelParserImplProvider {
+  DataModelParserImplProvider with
+  SimpleLogServiceProvider {
   override val actorSystemName = Some("smrtlink-smrt-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }
