@@ -13,7 +13,7 @@ import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAl
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton, TypesafeSingletonReader}
+import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.file.JavaFileSystemUtilProvider
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
