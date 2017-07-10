@@ -41,11 +41,14 @@ class SimpleLogService
                 val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
                 var response = "message logged"
                 msg.level match {
-                  case LogLevel.INFO => logger.info(msgString)
-                  case LogLevel.WARN => logger.warn(msgString)
-                  case LogLevel.ERROR => logger.warn(msgString)
-                  case LogLevel.DEBUG => logger.warn(msgString)
-                  case _ => response = "message ignored"
+                  case LogLevel.INFO     => logger.trace(msgString)
+                  case LogLevel.TRACE    => logger.trace(msgString)
+                  case LogLevel.DEBUG    => logger.debug(msgString)
+                  case LogLevel.NOTICE   => logger.info(msgString)
+                  case LogLevel.WARN     => logger.warn(msgString)
+                  case LogLevel.ERROR    => logger.error(msgString)
+                  case LogLevel.CRITICAL => logger.error(msgString)
+                  case LogLevel.FATAL    => logger.error(msgString)
                 }
                 MessageResponse(response)
               }
