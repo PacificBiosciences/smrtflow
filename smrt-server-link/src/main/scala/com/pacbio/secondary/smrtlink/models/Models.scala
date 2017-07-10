@@ -5,6 +5,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
+import com.pacbio.common.models.LogLevel
 import com.pacbio.common.semver.SemVersion
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
@@ -767,3 +768,5 @@ case class TechSupportSystemStatusRecord(name: String, comment: String)
 
 // Request to create a Job (any job type is supported) bundle
 case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
+
+case class ClientLogMessage(level: LogLevel.LogLevel, message: String, sourceId: String)

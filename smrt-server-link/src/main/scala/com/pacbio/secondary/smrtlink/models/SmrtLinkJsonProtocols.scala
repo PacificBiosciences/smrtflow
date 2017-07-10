@@ -126,6 +126,7 @@ trait SmrtLinkJsonProtocols
   with PathProtocols
   with UrlProtocol
   with ProjectEnumProtocols
+  with LogLevelProtocol
   with EntryPointProtocols
   with PbSmrtPipeServiceOptionsProtocol
   with FamilyFormats {
@@ -207,6 +208,7 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportSystemStatusRecordFormat = jsonFormat2(TechSupportSystemStatusRecord.apply)
   implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
+  implicit val clientLogMessageFormat = jsonFormat3(ClientLogMessage)
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols
