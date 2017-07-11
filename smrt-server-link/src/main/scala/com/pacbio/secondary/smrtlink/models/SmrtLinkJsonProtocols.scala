@@ -208,7 +208,7 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportSystemStatusRecordFormat = jsonFormat2(TechSupportSystemStatusRecord.apply)
   implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
-  implicit val clientLogMessageFormat = jsonFormat3(ClientLogMessage)
+  implicit val clientLogMessageFormat = jsonFormat4(ClientLogMessage)
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

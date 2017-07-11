@@ -38,13 +38,16 @@ class SimpleLogService
           entity(as[ClientLogMessage]) { msg =>
             complete {
               created {
-                val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
+                val userString = msg.userId match {
+                  case Some(user) => s" userId:${user}"
+                  case None => ""
+                }
+                val msgString = s"sourceId:${msg.sourceId}${userString} ${msg.message}"
                 var response = "message logged"
                 msg.level match {
-                  case LogLevel.INFO     => logger.trace(msgString)
                   case LogLevel.TRACE    => logger.trace(msgString)
                   case LogLevel.DEBUG    => logger.debug(msgString)
-                  case LogLevel.NOTICE   => logger.info(msgString)
+                  case LogLevel.INFO     => logger.info(msgString)
                   case LogLevel.WARN     => logger.warn(msgString)
                   case LogLevel.ERROR    => logger.error(msgString)
                   case LogLevel.CRITICAL => logger.error(msgString)

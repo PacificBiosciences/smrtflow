@@ -6110,7 +6110,7 @@
         "level": {
           "type": "string",
           "title": "log level",
-          "enum": ["INFO", "WARN", "ERROR", "DEBUG"]
+          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL"]
         },
         "message": {
           "type": "string",
@@ -6119,6 +6119,10 @@
         "sourceId": {
           "type": "string",
           "title": "source of the log message"
+        },
+        "userId": {
+          "type": "string",
+          "title": "user, if available"
         }
       }
     },
