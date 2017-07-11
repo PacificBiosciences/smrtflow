@@ -6153,11 +6153,17 @@
           "description": "Computed value of severity",
           "title": "Value",
           "type": "number"
+        },
+        "updatedAt": {
+          "description": "Time when the Alarm Status was computed",
+          "title": "Updated At",
+          "type": "string"
         }
       },
       "type": "object",
       "required": ["id", "message", "severity", "value"],
       "example": {
+        "updatedAt": "2017-07-11T14:59:27.364Z",
         "id": "smrtlink.alarms.job_dir",
         "value": 0.78,
         "message": "Job dir is 78% full.",
