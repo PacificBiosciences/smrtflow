@@ -39,6 +39,7 @@ class StartupFailedException(cause: Throwable)
 
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
 trait CoreProviders extends
+  ActorSystemProvider with
   SetBindings with
   DefaultConfigProvider with
   ServiceRoutesProvider with
@@ -56,7 +57,6 @@ trait CoreProviders extends
   CommonFilesServiceProvider with
   DiskSpaceServiceProvider with
   MimeTypeDetectors with
-  ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
@@ -76,6 +76,7 @@ trait CoreProviders extends
 }
 
 trait AuthenticatedCoreProviders extends
+  ActorSystemProvider with
   SetBindings with
   DefaultConfigProvider with
   ServiceComposer with
@@ -92,7 +93,6 @@ trait AuthenticatedCoreProviders extends
   CommonFilesServiceProviderx with
   DiskSpaceServiceProviderx with
   MimeTypeDetectors with
-  ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
