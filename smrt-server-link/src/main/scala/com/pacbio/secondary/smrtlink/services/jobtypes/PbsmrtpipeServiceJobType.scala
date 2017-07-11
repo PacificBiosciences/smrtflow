@@ -116,7 +116,6 @@ class PbsmrtpipeServiceJobType(
       case LogLevel.INFO     => logger.trace(msgString)
       case LogLevel.TRACE    => logger.trace(msgString)
       case LogLevel.DEBUG    => logger.debug(msgString)
-      case LogLevel.NOTICE   => logger.info(msgString)
       case LogLevel.WARN     => logger.warn(msgString)
       case LogLevel.ERROR    => logger.error(msgString)
       case LogLevel.CRITICAL => logger.error(msgString)

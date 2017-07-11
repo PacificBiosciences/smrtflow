@@ -38,11 +38,7 @@ class SimpleLogService
           entity(as[ClientLogMessage]) { msg =>
             complete {
               created {
-                val userString = msg.userId match {
-                  case Some(user) => s" userId:${user}"
-                  case None => ""
-                }
-                val msgString = s"sourceId:${msg.sourceId}${userString} ${msg.message}"
+                val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
                 var response = "message logged"
                 msg.level match {
                   case LogLevel.TRACE    => logger.trace(msgString)
