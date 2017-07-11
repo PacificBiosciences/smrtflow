@@ -23,7 +23,7 @@ class ExternalChemistryServerAlarmRunner(url: URL)(implicit actorSystem: ActorSy
   def getStatus(maxRetries: Int): Future[AlarmUpdate] =
     client.getStatusWithRetry(maxRetries)
         .map(sx => AlarmUpdate(0.0, Some(s"Update server ${sx.message}"), AlarmSeverity.CLEAR))
-        .recover { case NonFatal(ex) => AlarmUpdate(1.0, Some(s"Chemistry Update server is unreachable ${ex.getMessage}"), AlarmSeverity.ERROR)}
+        .recover { case NonFatal(ex) => AlarmUpdate(1.0, Some(s"Chemistry Update server at $url is unreachable ${ex.getMessage}"), AlarmSeverity.ERROR)}
 
   override val alarm = Alarm(
     "smrtlink.alarms.chemistry_update_server",

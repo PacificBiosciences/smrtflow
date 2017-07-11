@@ -25,7 +25,7 @@ class ExternalEveServerAlarmRunner(eveUrl: URL, apiSecret: String)(implicit acto
   def getStatus(maxRetries: Int): Future[AlarmUpdate] =
     client.getStatusWithRetry(maxRetries)
         .map(sx => AlarmUpdate(0.0, Some(s"Eve server ${sx.message}"), AlarmSeverity.CLEAR))
-      .recover { case NonFatal(ex) => AlarmUpdate(1.0, Some(s"Eve server is unreachable ${ex.getMessage}"), AlarmSeverity.ERROR)}
+      .recover { case NonFatal(ex) => AlarmUpdate(1.0, Some(s"Eve server at $eveUrl is unreachable ${ex.getMessage}"), AlarmSeverity.ERROR)}
 
   override val alarm = Alarm(
     "smrtlink.alarms.eve_status",
