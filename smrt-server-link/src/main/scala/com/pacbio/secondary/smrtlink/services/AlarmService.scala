@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActor, AlarmDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActor, AlarmDaoActorProvider, DaoFutureUtils}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
@@ -15,7 +15,7 @@ import spray.routing.PathMatchers.Segment
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService with DefaultJsonProtocol {
+class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService with DefaultJsonProtocol with DaoFutureUtils{
 
   import PacBioJsonProtocol._
   import AlarmDaoActor._
@@ -34,6 +34,18 @@ class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService wit
           complete {
             ok {
               (alarmDaoActor ? GetAllAlarmStatus).mapTo[Seq[AlarmStatus]]
+            }
+          }
+        }
+      } ~
+      path(Segment) { alarmId =>
+        get {
+          complete {
+            ok {
+              for {
+                opt <- (alarmDaoActor ? GetAlarmStatusById(alarmId)).mapTo[Option[AlarmStatus]]
+                status <- failIfNone[AlarmStatus](s"Unable to find Alarm Id $alarmId")(opt)
+              } yield status
             }
           }
         }
