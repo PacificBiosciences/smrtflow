@@ -1,8 +1,9 @@
-package com.pacbio.common.alarms
+package com.pacbio.secondary.smrtlink.alarms
 
-import com.pacbio.common.dependency.{Singleton, ConfigProvider}
-import com.pacbio.common.file.{FileSystemUtilProvider, FileSystemUtil}
-import com.pacbio.common.models.{AlarmSeverity, AlarmUpdate, Alarm}
+import com.pacbio.common.alarms.{AlarmComposer, AlarmRunner}
+import com.pacbio.common.dependency.{ConfigProvider, Singleton}
+import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider}
+import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmUpdate}
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigConstants, EngineCoreConfigLoader}
 import com.typesafe.config.Config
 

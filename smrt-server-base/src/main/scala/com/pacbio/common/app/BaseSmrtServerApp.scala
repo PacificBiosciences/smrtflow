@@ -9,7 +9,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.models.Constants
 import com.pacbio.common.actors._
-import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAlarmRunnerProvider, AlarmComposer}
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
@@ -45,10 +44,6 @@ trait CoreProviders extends
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
-  AlarmComposer with
-  JobDirectoryAlarmRunnerProvider with
-  TmpDirectoryAlarmRunnerProvider with
-  InMemoryAlarmDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
   CleanupServiceProvider with
@@ -84,11 +79,7 @@ trait AuthenticatedCoreProviders extends
   SetBindings with
   DefaultConfigProvider with
   ServiceComposer with
-  AlarmComposer with
   ManifestServiceProviderx with
-  JobDirectoryAlarmRunnerProvider with
-  TmpDirectoryAlarmRunnerProvider with
-  InMemoryAlarmDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   CleanupServiceProviderx with
