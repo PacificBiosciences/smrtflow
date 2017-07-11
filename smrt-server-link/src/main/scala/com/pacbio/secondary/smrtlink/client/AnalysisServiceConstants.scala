@@ -24,5 +24,6 @@ trait ServiceEndpointConstants extends JobServiceConstants {
   // Base smrt-link routes. Everything should migrate to use this prefix (eventually)
   val ROOT_RUNS = s"/$ROOT_SL_PREFIX/runs"
   val ROOT_PB_DATA_BUNDLE = s"/$ROOT_SL_PREFIX/bundles"
+  val ROOT_ALARMS = s"/$ROOT_SL_PREFIX/alarms"
 
 }
