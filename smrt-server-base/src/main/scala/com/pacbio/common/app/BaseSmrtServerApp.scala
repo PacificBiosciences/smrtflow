@@ -10,11 +10,9 @@ import akka.util.Timeout
 import com.pacbio.common.models.Constants
 import com.pacbio.common.actors._
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
-import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
 import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.file.JavaFileSystemUtilProvider
-import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
 import com.pacbio.common.services.utils.StatusGeneratorProvider
@@ -45,12 +43,6 @@ trait CoreProviders extends
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
-  LogServiceProvider with
-  DatabaseLogDaoProvider with
-  CleanupServiceProvider with
-  CleanupServiceActorRefProvider with
-  InMemoryCleanupDaoProvider with
-  CleanupSchedulerProvider with
   StatusServiceProvider with
   StatusGeneratorProvider with
   UserServiceProvider with
@@ -59,7 +51,6 @@ trait CoreProviders extends
   MimeTypeDetectors with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
-  LoggerFactoryImplProvider with
   JavaFileSystemUtilProvider with
   SystemClockProvider with ConfigLoader{
 
@@ -72,7 +63,6 @@ trait CoreProviders extends
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
-  override val logback: Singleton[Boolean] = Singleton(true)
 }
 
 trait AuthenticatedCoreProviders extends
@@ -81,12 +71,6 @@ trait AuthenticatedCoreProviders extends
   DefaultConfigProvider with
   ServiceComposer with
   ManifestServiceProviderx with
-  LogServiceProviderx with
-  DatabaseLogDaoProvider with
-  CleanupServiceProviderx with
-  CleanupServiceActorRefProvider with
-  InMemoryCleanupDaoProvider with
-  CleanupSchedulerProvider with
   StatusServiceProviderx with
   StatusGeneratorProvider with
   UserServiceProviderx with
@@ -95,7 +79,6 @@ trait AuthenticatedCoreProviders extends
   MimeTypeDetectors with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
-  LoggerFactoryImplProvider with
   JavaFileSystemUtilProvider with
   SystemClockProvider with ConfigLoader{
 
@@ -107,8 +90,6 @@ trait AuthenticatedCoreProviders extends
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
-
-  override val logback: Singleton[Boolean] = Singleton(true)
 }
 
 trait BaseApi {
@@ -169,9 +150,6 @@ object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val providers: CoreProviders = new CoreProviders {}
   override val host = providers.serverHost()
   override val port = providers.serverPort()
-
-  override def startup(): Unit = providers.cleanupScheduler().scheduleAll()
-
 
   LoggerOptions.parseAddDebug(args)
 
