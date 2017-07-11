@@ -127,8 +127,8 @@ class AlarmSpec
         status.isSuccess must beTrue
         val statuses = responseAs[Seq[AlarmStatus]]
         statuses.size === 2
-        statuses.find(_.id == tmpId) === Some(AlarmStatus(tmpId, 0.5, Some("Tmp dir is 50% full."), CLEAR))
-        statuses.find(_.id == jobId) === Some(AlarmStatus(jobId, 1.0, Some("Job dir is 100% full."), CRITICAL))
+        statuses.find(_.id == tmpId).map(a => (a.id, a.value, a.severity)) must beSome((tmpId, 0.5, CLEAR))
+        statuses.find(_.id == jobId).map(a => (a.id, a.value, a.severity)) must beSome((jobId, 1.0, CRITICAL))
       }
     }
 
@@ -136,15 +136,21 @@ class AlarmSpec
       Get(s"/smrt-link/alarms/$tmpId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
         val alarm = responseAs[AlarmStatus]
-        alarm === AlarmStatus(tmpId, 0.5, Some("Tmp dir is 50% full."), CLEAR)
+        alarm.id === tmpId
+        alarm.value === 0.5
+        alarm.message must beSome("Tmp dir is 50% full.")
+        alarm.severity === CLEAR
       }
     }
 
     "return a specific alarm status" in {
       Get(s"/smrt-link/alarms/$jobId") ~> addHeader(credentials) ~> routes ~> check {
         status.isSuccess must beTrue
-        val alarmStatus = responseAs[AlarmStatus]
-        alarmStatus === AlarmStatus(jobId, 1.0, Some("Job dir is 100% full."), CRITICAL)
+        val alarm = responseAs[AlarmStatus]
+        alarm.id === jobId
+        alarm.value === 1.0
+        alarm.message must beSome("Job dir is 100% full.")
+        alarm.severity === CRITICAL
       }
     }
   }
