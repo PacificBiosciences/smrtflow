@@ -27,10 +27,7 @@ class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService wit
 
   val alarmServiceName = "alarms"
 
-  // This is really only for debugging to see what Alarm Runners are loaded
-  val alarmStatusServiceName = "alarm-runners"
-
-  val routes =
+  val alarmRoutes =
     pathPrefix(alarmServiceName) {
       pathEndOrSingleSlash {
         get {
@@ -42,6 +39,8 @@ class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService wit
         }
       }
     }
+
+  val routes = alarmRoutes
 }
 
 trait AlarmServiceProvider {
