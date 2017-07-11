@@ -1671,8 +1671,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   def alarmsSummary(alarms: Seq[AlarmStatus]): String = {
-    val headers:Seq[String] = Seq("Id", "Severity", "Value", "Message")
-    val table = alarms.map(a => Seq(a.id, a.severity.toString, a.value.toString, a.message.getOrElse("")))
+    val headers:Seq[String] = Seq("Id", "Severity", "Updated At", "Value", "Message")
+    val table = alarms.map(a => Seq(a.id, a.severity.toString, a.updatedAt.toString(), a.value.toString, a.message.getOrElse("")))
     printTable(table, headers)
     ""
   }
