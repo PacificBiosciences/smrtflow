@@ -2,11 +2,12 @@ import java.nio.file.Paths
 
 import com.pacbio.common.actors._
 import com.pacbio.common.alarms._
-import com.pacbio.common.auth.{Authenticator, JwtUtils, JwtUtilsProvider, AuthenticatorImplProvider}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
 import com.pacbio.common.dependency.StringConfigProvider
 import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider}
 import com.pacbio.common.models._
 import com.pacbio.common.services.AlarmServiceProvider
+import com.pacbio.secondary.smrtlink.alarms.{JobDirectoryAlarmRunnerProvider, TmpDirectoryAlarmRunnerProvider}
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
