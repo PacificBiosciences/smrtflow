@@ -63,6 +63,7 @@ object Modes {
   case object BUNDLES extends Mode {val name = "get-bundles"}
   case object TS_STATUS extends Mode {val name = "ts-status"}
   case object TS_JOB extends Mode {val name = "ts-failed-job"}
+  case object ALARMS extends Mode {val name = "get-alarms"}
   case object UNKNOWN extends Mode {val name = "unknown"}
 }
 
@@ -502,6 +503,11 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
     ) text "Send failed job information to PacBio Tech Support"
+
+    note("\nSMRT Link ALARMS\n")
+    cmd(Modes.ALARMS.name)
+        .action{ (_, c) => c.copy(command = (c) => println(c), mode = Modes.ALARMS)}
+        .text("Get a List of SMRT Link System Alarm")
 
     // Don't show the help if validation error
     override def showUsageOnError = false
@@ -1664,6 +1670,16 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     runAndSummary(fx, toSummary)
   }
 
+  def alarmsSummary(alarms: Seq[AlarmStatus]): String = {
+    val headers:Seq[String] = Seq("Id", "Severity", "Updated At", "Value", "Message")
+    val table = alarms.map(a => Seq(a.id, a.severity.toString, a.updatedAt.toString(), a.value.toString, a.message.getOrElse("")))
+    printTable(table, headers)
+    ""
+  }
+
+  def runGetAlarms(timeOut: FiniteDuration) = runAndBlock[Seq[AlarmStatus]](sal.getAlarms(), alarmsSummary, timeOut)
+
+
 }
 
 object PbService extends LazyLogging{
@@ -1729,6 +1745,7 @@ object PbService extends LazyLogging{
         case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
         case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
         case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
+        case Modes.ALARMS => ps.runGetAlarms(c.maxTime)
 /*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
         case x => {
           System.err.println(s"Unsupported action '$x'")

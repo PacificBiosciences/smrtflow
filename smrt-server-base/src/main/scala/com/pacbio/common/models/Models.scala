@@ -74,7 +74,7 @@ case class Alarm(id: String, name: String, description: String)
 
 case class AlarmUpdate(value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
 
-case class AlarmStatus(id: String, value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
+case class AlarmStatus(id: String, value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity, updatedAt: JodaDateTime)
 
 
 // Logging System

@@ -1,10 +1,11 @@
-package com.pacbio.common.alarms
+package com.pacbio.secondary.smrtlink.alarms
 
 import java.nio.file.Paths
 
+import com.pacbio.common.alarms.{AlarmComposer, AlarmRunner}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.file.{FileSystemUtilProvider, FileSystemUtil}
-import com.pacbio.common.models.{AlarmSeverity, AlarmUpdate, Alarm}
+import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider}
+import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmUpdate}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

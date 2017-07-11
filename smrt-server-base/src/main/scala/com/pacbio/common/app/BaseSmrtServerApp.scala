@@ -9,11 +9,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.models.Constants
 import com.pacbio.common.actors._
-import com.pacbio.common.alarms.{TmpDirectoryAlarmRunnerProvider, JobDirectoryAlarmRunnerProvider, AlarmComposer}
 import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
 import com.pacbio.common.database._
-import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton, TypesafeSingletonReader}
+import com.pacbio.common.dependency.{DefaultConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.file.JavaFileSystemUtilProvider
 import com.pacbio.common.logging.LoggerFactoryImplProvider
 import com.pacbio.common.models.MimeTypeDetectors
@@ -40,16 +39,12 @@ class StartupFailedException(cause: Throwable)
 
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
 trait CoreProviders extends
+  ActorSystemProvider with
   SetBindings with
   DefaultConfigProvider with
   ServiceRoutesProvider with
   ServiceManifestsProvider with
   ManifestServiceProvider with
-  AlarmComposer with
-  JobDirectoryAlarmRunnerProvider with
-  TmpDirectoryAlarmRunnerProvider with
-  AlarmServiceProvider with
-  InMemoryAlarmDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
   CleanupServiceProvider with
@@ -62,7 +57,6 @@ trait CoreProviders extends
   CommonFilesServiceProvider with
   DiskSpaceServiceProvider with
   MimeTypeDetectors with
-  ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with
@@ -82,15 +76,11 @@ trait CoreProviders extends
 }
 
 trait AuthenticatedCoreProviders extends
+  ActorSystemProvider with
   SetBindings with
   DefaultConfigProvider with
   ServiceComposer with
-  AlarmComposer with
   ManifestServiceProviderx with
-  JobDirectoryAlarmRunnerProvider with
-  TmpDirectoryAlarmRunnerProvider with
-  AlarmServiceProviderx with
-  InMemoryAlarmDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
   CleanupServiceProviderx with
@@ -103,7 +93,6 @@ trait AuthenticatedCoreProviders extends
   CommonFilesServiceProviderx with
   DiskSpaceServiceProviderx with
   MimeTypeDetectors with
-  ActorSystemProvider with
   JwtUtilsImplProvider with
   AuthenticatorImplProvider with
   LoggerFactoryImplProvider with

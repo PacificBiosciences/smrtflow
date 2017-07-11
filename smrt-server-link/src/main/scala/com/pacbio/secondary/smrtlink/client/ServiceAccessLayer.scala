@@ -184,6 +184,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
   def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
 
+  def getAlarmsPipeline: HttpRequest => Future[Seq[AlarmStatus]] = sendReceiveAuthenticated ~> unmarshal[Seq[AlarmStatus]]
+
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     logger.debug(s"Retrieving metadata for dataset ${datasetId.toIdString}")
     Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
@@ -644,6 +646,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     logger.debug("Submitting database backup job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
   }
+
+  def getAlarms() = getAlarmsPipeline {Get(toUrl(ROOT_ALARMS))}
 
   /**
     * FIXME(mpkocher)(2016-8-22)
