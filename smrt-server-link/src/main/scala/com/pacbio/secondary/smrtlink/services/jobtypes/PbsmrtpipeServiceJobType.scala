@@ -9,9 +9,8 @@ import akka.pattern._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
-import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.common.models.CommonModels.{UUIDIdAble, IntIdAble}
-import com.pacbio.common.models.{LogMessageRecord, UserRecord}
+import com.pacbio.common.models.{CommonModelSpraySupport, LogLevel, LogMessageRecord, UserRecord}
+import com.pacbio.common.models.CommonModels.{IntIdAble, UUIDIdAble}
 import com.pacbio.common.services.PacBioServiceErrors._
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.engine.EngineConfig
@@ -37,7 +36,6 @@ import scala.concurrent.Future
 class PbsmrtpipeServiceJobType(
     dbActor: ActorRef,
     authenticator: Authenticator,
-    loggerFactory: LoggerFactory,
     engineConfig: EngineConfig,
     pbsmrtpipeEngineOptions: PbsmrtpipeEngineOptions,
     serviceStatusHost: String,
@@ -112,6 +110,32 @@ class PbsmrtpipeServiceJobType(
         smrtLinkVersion)
     }
 
+  // Try to consolidate this with Simple Log Service
+  def addLog(level:LogLevel.LogLevel, msgString: String): MessageResponse = {
+    level match {
+      case LogLevel.INFO     => logger.trace(msgString)
+      case LogLevel.TRACE    => logger.trace(msgString)
+      case LogLevel.DEBUG    => logger.debug(msgString)
+      case LogLevel.NOTICE   => logger.info(msgString)
+      case LogLevel.WARN     => logger.warn(msgString)
+      case LogLevel.ERROR    => logger.error(msgString)
+      case LogLevel.CRITICAL => logger.error(msgString)
+      case LogLevel.FATAL    => logger.error(msgString)
+    }
+    MessageResponse(s"Successfully logged message $msgString")
+  }
+
+  /**
+    * This is a bit awkward use of sourceId in the logging record. The new logger "sourceId" has
+    * different semantics and changes the pbsmrtpipe interface. Keeping this for backward compatibility
+    * with pbsmrtpipe and pbcommand. "sourceId" in the new era should refer to the sub-component id,
+    * whereas pbsmrtpipe is attempting to communicate the task context "sourceId" which is used
+    * in the datastore.
+    *
+    * @param dbActor JobDaoActor
+    * @param authenticator SL Internal Authenticator
+    * @return
+    */
   override def extraRoutes(dbActor: ActorRef, authenticator: Authenticator) =
     pathPrefix(IdAbleMatcher) { jobId =>
       path(LOG_PREFIX) {
@@ -124,11 +148,8 @@ class PbsmrtpipeServiceJobType(
                     case IntIdAble(n) => Future.successful(n)
                     case UUIDIdAble(_) => (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].map(_.id)
                   }
-                  f.map { intId =>
-                    val sourceId = s"job::$intId::${m.sourceId}"
-                    loggerFactory.getLogger(LOG_PB_SMRTPIPE_RESOURCE_ID, sourceId).log(m.message, m.level)
-                    Map("message" -> s"Successfully logged. $sourceId -> ${m.message}")
-                  }
+
+                  f.map { intId => addLog(m.level, s"sourceId:pbsmrtpipe job:$intId ${m.sourceId} ${m.message}")}
                 }
               }
             }
@@ -153,14 +174,12 @@ class PbsmrtpipeServiceJobType(
 trait PbsmrtpipeServiceJobTypeProvider {
   this: JobsDaoActorProvider
     with AuthenticatorProvider
-    with LoggerFactoryProvider
     with SmrtLinkConfigProvider
     with JobManagerServiceProvider =>
   val pbsmrtpipeServiceJobType: Singleton[PbsmrtpipeServiceJobType] =
     Singleton(() => new PbsmrtpipeServiceJobType(
       jobsDaoActor(),
       authenticator(),
-      loggerFactory(),
       jobEngineConfig(),
       pbsmrtpipeEngineOptions(),
       // When the host is "0.0.0.0", we need to try to resolve the analysis host so that jobs submitted to cluster
