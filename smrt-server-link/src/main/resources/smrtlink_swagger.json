@@ -308,6 +308,62 @@
         }
       ]
     },
+    "/smrt-link/alarms": {
+      "get": {
+        "description": "Get a List of SMRT Link System Level AlarmStatus instances",
+        "responses": {
+          "200": {
+            "description": "Returns a List of SmrtLink System Level Alarm Status instances",
+            "schema": {
+              "$ref": "#/definitions/ListAlarmStatus"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/alarms/{alarmId}": {
+      "get": {
+        "description": "Get a SMRT Link System Alarm Status by Id",
+        "parameters": [
+          {
+            "description": "Alarm Id (e.g., smrtlink.alarms.job_dir)",
+            "required": true,
+            "type": "string",
+            "name": "alarmId",
+            "in": "path"
+          }],
+        "responses": {
+          "200": {
+            "description": "SMRT Link System Alarm Status by Id",
+            "schema": {
+              "$ref": "#/definitions/AlarmStatus"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/loggers": {
       "post": {
         "description": "Log a message to the server",
@@ -6072,6 +6128,47 @@
           "type": "string",
           "title": "message"
         }
+      }
+    },
+    "AlarmStatus": {
+      "properties": {
+        "id": {
+          "description": "SMRT Link System Alarm Id.",
+          "title": "Alarm Id",
+          "type": "string"
+        },
+        "message": {
+          "description": "Details of the Alarm Status",
+          "title": "Message Details",
+          "type": ["null", "string"]
+        },
+        "severity": {
+          "default": "CLEAR",
+          "description": "An explanation about the purpose of this instance.",
+          "title": "Severity",
+          "type": "string",
+          "enum": ["CLEAR", "WARN", "ERROR", "CRITICAL", "FATAL", "FATAL_IMMEDIATE"]
+        },
+        "value": {
+          "description": "Computed value of severity",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "type": "object",
+      "required": ["id", "message", "severity", "value"],
+      "example": {
+        "id": "smrtlink.alarms.job_dir",
+        "value": 0.78,
+        "message": "Job dir is 78% full.",
+        "severity": "CLEAR"
+      }
+    },
+    "ListAlarmStatus": {
+      "description": "A List of SMRT Link System Status Instances",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AlarmStatus"
       }
     }
   }
