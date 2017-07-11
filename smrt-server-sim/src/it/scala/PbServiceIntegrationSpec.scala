@@ -25,7 +25,7 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
 
   // NOTE, these test must be run serially to avoid import dataset collisions
   // Or make each test uniquely import dataset types
-  sequential
+  //sequential
 
   // Need to use the root dir to the data files
   private def getPacBioTestDataFilesJsonPath(): Path = {
@@ -63,11 +63,26 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     "import-dataset SubreadSets by Dir" in {
       runPbservice("import-dataset", getSubreadSetsPath().toString) must beNone
     }
+    "import-dataset HdfSubreadSets by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("HdfSubreadSet").toString) must beNone
+    }
+    "import-dataset BarcodeSet by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("BarcodeSet").toString) must beNone
+    }
+    "import-dataset AlignmentSet by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("AlignmentSet").toString) must beNone
+    }
+    "import-dataset ConsensusAlignmentSet by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("ConsensusAlignmentSet").toString) must beNone
+    }
+    "import-dataset ConsensusReadSet by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("ConsensusReadSet").toString) must beNone
+    }
+    "import-dataset ContigSet by Dir" in {
+      runPbservice("import-dataset", getByDataSetType("ContigSet").toString) must beNone
+    }
     "import-dataset ReferenceSet Lambda by XML" in {
       runPbservice("import-dataset", getLambdaPath().toString) must beNone
-    }
-    "import-dataset Recursively from Root Dir for All DataSet types" in {
-      runPbservice("import-dataset", testData.base.toString) must beNone
     }
     "get-jobs (default) type" in {
       runPbservice("get-jobs") must beNone
