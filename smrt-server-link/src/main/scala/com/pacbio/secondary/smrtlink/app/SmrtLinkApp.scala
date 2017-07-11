@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.app
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.ActorRef
+import com.pacbio.common.alarms.AlarmComposer
 import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
@@ -13,6 +14,7 @@ import com.pacbio.secondary.smrtlink.services.jobtypes._
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
+import com.pacbio.secondary.smrtlink.alarms.{JobDirectoryAlarmRunnerProvider, TmpDirectoryAlarmRunnerProvider}
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
@@ -28,6 +30,9 @@ trait SmrtLinkProviders extends
   JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   AlarmDaoActorProvider with
+  AlarmComposer with
+  TmpDirectoryAlarmRunnerProvider with
+  JobDirectoryAlarmRunnerProvider with
   AlarmManagerRunnerProvider with
   AlarmServiceProvider with
   SwaggerFileServiceProvider with
@@ -75,6 +80,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     // Is this necessary because there's not an explicit dep on this?
     val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
+    val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
 
     // Setup Quartz Schedule
     // ALl the cron-esque tasks in SL should be folded back here
