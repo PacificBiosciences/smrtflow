@@ -48,7 +48,6 @@ trait CoreProviders extends
   AlarmComposer with
   JobDirectoryAlarmRunnerProvider with
   TmpDirectoryAlarmRunnerProvider with
-  AlarmServiceProvider with
   InMemoryAlarmDaoProvider with
   LogServiceProvider with
   DatabaseLogDaoProvider with
@@ -89,7 +88,6 @@ trait AuthenticatedCoreProviders extends
   ManifestServiceProviderx with
   JobDirectoryAlarmRunnerProvider with
   TmpDirectoryAlarmRunnerProvider with
-  AlarmServiceProviderx with
   InMemoryAlarmDaoProvider with
   LogServiceProviderx with
   DatabaseLogDaoProvider with
