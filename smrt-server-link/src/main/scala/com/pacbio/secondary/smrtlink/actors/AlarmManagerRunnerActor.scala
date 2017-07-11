@@ -14,6 +14,8 @@ import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.{RunAlarmByI
 import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunnerProvider
 import com.typesafe.scalalogging.LazyLogging
 
+import org.joda.time.{DateTime => JodaDateTime}
+
 import scala.util.{Failure, Success}
 import concurrent.duration._
 
@@ -41,7 +43,7 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
     logger.info(s"Running Alarm $runner")
     runner.run() onComplete {
       case Success(alarmStatus) => daoActor ! UpdateAlarmStatus(runner.alarm.id, alarmStatus)
-      case Failure(ex) => daoActor ! UpdateAlarmStatus(runner.alarm.id, AlarmStatus(runner.alarm.id, 1.0, Some(ex.getMessage), AlarmSeverity.ERROR))
+      case Failure(ex) => daoActor ! UpdateAlarmStatus(runner.alarm.id, AlarmStatus(runner.alarm.id, 1.0, Some(ex.getMessage), AlarmSeverity.ERROR, JodaDateTime.now()))
     }
   }
 

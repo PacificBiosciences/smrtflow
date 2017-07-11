@@ -1,3 +1,4 @@
+
 package com.pacbio.common.models
 
 import com.pacbio.common.time.PacBioDateTimeFormat
@@ -124,7 +125,7 @@ with DirectoryResourceProtocol
   implicit val pbServiceComponentFormat = jsonFormat3(ServiceComponent)
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
   implicit val pbAlarmFormat = jsonFormat3(Alarm)
-  implicit val pbAlarmStatusFormat = jsonFormat4(AlarmStatus)
+  implicit val pbAlarmStatusFormat = jsonFormat5(AlarmStatus)
   implicit val pbLogResourceRecordFormat = jsonFormat3(LogResourceRecord)
   implicit val pbLogResourceFormat = jsonFormat4(LogResource)
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)
