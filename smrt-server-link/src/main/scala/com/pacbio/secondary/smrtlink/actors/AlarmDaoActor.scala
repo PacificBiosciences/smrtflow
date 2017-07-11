@@ -14,8 +14,6 @@ object AlarmDaoActor {
   case object GetAllAlarmStatus
   case class GetAlarmStatusById(id: String)
   case class UpdateAlarmStatus(id: String, status:AlarmStatus)
-  case object GetAllAlarmRunners
-  case class GetAlarmRunnerById(id: String)
 }
 
 class AlarmDaoActor(status:mutable.Map[String, AlarmStatus]) extends Actor with LazyLogging{
