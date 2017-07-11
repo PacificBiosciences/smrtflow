@@ -102,10 +102,11 @@ class AlarmSpec
   def runSetup(): Unit = {
     logger.info("Running setup with init message to Alarm Manager")
     implicit val messageTimeout = Timeout(10.seconds)
-    // the results are run async, so this might have reproducibility issues
     val f = (alarmManagerRunnerActor ? RunAlarms).mapTo[MessageResponse]
     val results = Await.result(f, 5.seconds)
     logger.info(s"Results $results")
+    // the results are run async, so adding a fudge factor to give time for the alarms to be computed
+    Thread.sleep(5000)
   }
 
   step(runSetup())
