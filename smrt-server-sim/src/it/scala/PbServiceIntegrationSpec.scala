@@ -101,5 +101,8 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     "get-jobs -t merge-datasets --job-state SUCCESSFUL --max-items 10" in {
       runPbservice("get-jobs", "--job-type", "merge-datasets", "--job-state", "SUCCESSFUL", "--max-items", "10") must beNone
     }
+    "get-alarms" in {
+      runPbservice("get-alarms") must beNone
+    }
   }
 }
