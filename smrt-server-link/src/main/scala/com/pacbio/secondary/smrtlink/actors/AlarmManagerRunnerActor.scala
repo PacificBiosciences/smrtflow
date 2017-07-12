@@ -38,7 +38,7 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
     * @param runner Alarm Runner
     */
   def runAlarm(runner: AlarmRunner): Unit = {
-    logger.info(s"Running Alarm $runner")
+    logger.info(s"Running Alarm ${runner.alarm.id} $runner")
     runner.run() onComplete {
       case Success(alarmStatus) => daoActor ! UpdateAlarmStatus(runner.alarm.id, alarmStatus)
       case Failure(ex) => daoActor ! UpdateAlarmStatus(runner.alarm.id, AlarmStatus(runner.alarm.id, 1.0, Some(ex.getMessage), AlarmSeverity.ERROR, JodaDateTime.now()))
