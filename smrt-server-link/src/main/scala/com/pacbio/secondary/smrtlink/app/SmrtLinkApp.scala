@@ -12,6 +12,8 @@ import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services.jobtypes._
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
+import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
+import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
 import com.pacbio.secondary.smrtlink.alarms._
 import com.typesafe.scalalogging.LazyLogging
@@ -92,10 +94,19 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     providers.rootDataBaseBackUpDir() match {
       case Some(rootBackUpDir) =>
+
         val dbBackupKey = providers.conf.getString("pacBioSystem.dbBackUpSchedule")
         val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
         logger.info(s"Scheduling '$dbBackupKey' db backup $m")
         scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+
+        val alarmSchedule = providers.conf.getString("pacBioSystem.alarmSchedule")
+        logger.info(s"Scheduling $alarmSchedule Alarm Manager Runner(s)")
+        scheduler.schedule(alarmSchedule, alarmManagerRunnerActor, RunAlarms)
+
+        val dataIntegritySchedule = providers.conf.getString("pacBioSystem.dataIntegritySchedule")
+        logger.info(s"Scheduling $dataIntegritySchedule DataIntegrity Manager Runner")
+        scheduler.schedule(dataIntegritySchedule, dataIntegrityManagerActor, RunIntegrityChecks)
       case _ =>
         logger.warn("System is not configured with a root database directory. Skipping scheduling Automated backups.")
     }

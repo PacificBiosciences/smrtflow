@@ -23,16 +23,16 @@ object DataIntegrityManagerActor {
   case class RunIntegrityCheckById(id: String)
 }
 
-class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], interval: FiniteDuration, smrtLinkSystemVersion: Option[String]) extends Actor with LazyLogging with timeUtils{
+class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], smrtLinkSystemVersion: Option[String]) extends Actor with LazyLogging with timeUtils{
 
   import DataIntegrityManagerActor._
 
   // If the granularity of the running needs to be on a per Task basis,
   // then this should be pushed into separate worker actors.
-  context.system.scheduler.schedule(20.seconds, interval, self, RunIntegrityChecks)
+  context.system.scheduler.scheduleOnce(20.seconds, self, RunIntegrityChecks)
 
   override def preStart() = {
-    logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} and interval $interval and SMRT Link System version $smrtLinkSystemVersion")
+    logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} with SMRT Link System version $smrtLinkSystemVersion")
   }
 
   def andLog(m: String): String = {
@@ -84,10 +84,6 @@ trait DataIntegrityManagerActorProvider {
       new JobStateIntegrityRunner(jobsDao(), smrtLinkVersion()))
     )
 
-  // This is for local testing. This needs to be put in the application.conf file
-  // and set to a reasonable default of once or twice a day.
-  val dataIntegrityInterval = 1.hour
-
   val dataIntegrityManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor], jobsDao(), runners(), dataIntegrityInterval, smrtLinkVersion()), "DataIntegrityManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor], jobsDao(), runners(), smrtLinkVersion()), "DataIntegrityManagerActor"))
 }
