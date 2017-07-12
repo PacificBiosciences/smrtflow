@@ -29,13 +29,12 @@ object LogLevel {
   case object TRACE extends LogLevel
   case object DEBUG extends LogLevel
   case object INFO extends LogLevel
-  case object NOTICE extends LogLevel
   case object WARN extends LogLevel
   case object ERROR extends LogLevel
   case object CRITICAL extends LogLevel
   case object FATAL extends LogLevel
 
-  val ALL = Seq(TRACE, DEBUG, INFO, NOTICE, WARN, ERROR, CRITICAL, FATAL)
+  val ALL = Seq(TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL)
   val logLevelByName = ALL.map(x => x.toString.toLowerCase -> x).toMap
 }
 

@@ -21,7 +21,6 @@ trait Logger extends ContextualLogging {
     TRACE -> (m => logbackLogger.trace(m)),
     DEBUG -> (m => logbackLogger.debug(m)),
     INFO -> (m => logbackLogger.info(m)),
-    NOTICE -> (m => logbackLogger.info(m)), // Logback has no NOTICE level
     WARN -> (m => logbackLogger.warn(m)),
     ERROR -> (m => logbackLogger.error(m)),
     CRITICAL -> (m => logbackLogger.error(m)), // Logback has no CRITICAL level
@@ -40,7 +39,6 @@ trait Logger extends ContextualLogging {
   def trace(msg: String): Unit = log(msg, TRACE)
   def debug(msg: String): Unit = log(msg, DEBUG)
   def info(msg: String): Unit = log(msg, INFO)
-  def notice(msg: String): Unit = log(msg, NOTICE)
   def warn(msg: String): Unit = log(msg, WARN)
   def error(msg: String): Unit = log(msg, ERROR)
   def critical(msg: String): Unit = log(msg, CRITICAL)

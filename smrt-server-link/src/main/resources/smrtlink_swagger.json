@@ -6110,7 +6110,7 @@
         "level": {
           "type": "string",
           "title": "log level",
-          "enum": ["INFO", "WARN", "ERROR", "DEBUG"]
+          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL"]
         },
         "message": {
           "type": "string",
