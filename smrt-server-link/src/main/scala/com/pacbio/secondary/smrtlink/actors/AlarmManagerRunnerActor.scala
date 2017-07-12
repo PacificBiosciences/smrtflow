@@ -29,8 +29,6 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
 
   context.system.scheduler.scheduleOnce(5.seconds, self, RunAlarms)
 
-  context.system.scheduler.schedule(5.seconds, 10.minutes, self, RunAlarms)
-
   override def preStart() = {
     logger.info(s"Starting $self with ${runners.length} Alarm Runners. Runner Ids:${runners.map(_.alarm.id)}")
   }
@@ -40,7 +38,7 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
     * @param runner Alarm Runner
     */
   def runAlarm(runner: AlarmRunner): Unit = {
-    logger.info(s"Running Alarm $runner")
+    logger.info(s"Running Alarm ${runner.alarm.id} $runner")
     runner.run() onComplete {
       case Success(alarmStatus) => daoActor ! UpdateAlarmStatus(runner.alarm.id, alarmStatus)
       case Failure(ex) => daoActor ! UpdateAlarmStatus(runner.alarm.id, AlarmStatus(runner.alarm.id, 1.0, Some(ex.getMessage), AlarmSeverity.ERROR, JodaDateTime.now()))
@@ -49,6 +47,7 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
 
   override def receive: Receive = {
     case RunAlarms =>
+      logger.debug(s"Running All (${runners.length}) Alarm Runners")
       // Returns MessageResponse
       runners.foreach(runAlarm)
       sender ! MessageResponse(s"Triggered running ${runners.length} Alarm Runners with ids ${runners.map(_.alarm.id).reduce(_ + "," + _)}")
