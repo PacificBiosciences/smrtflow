@@ -4,7 +4,6 @@ import java.net.URL
 
 import akka.actor.ActorSystem
 import com.pacbio.common.actors.ActorSystemProvider
-import com.pacbio.common.alarms.{AlarmComposer, AlarmRunner}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmUpdate}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -32,16 +31,3 @@ class ExternalChemistryServerAlarmRunner(url: URL)(implicit actorSystem: ActorSy
 
   override protected def update(): Future[AlarmUpdate] = getStatus(3)
 }
-
-trait ExternalChemistryServerAlarmRunnerProvider {
-  this: SmrtLinkConfigProvider with ActorSystemProvider with AlarmComposer =>
-
-  val externalChemistryServerAlarmRunner: Singleton[ExternalChemistryServerAlarmRunner] =
-    Singleton {() =>
-      implicit val system = actorSystem()
-      new ExternalChemistryServerAlarmRunner(externalBundleUrl().get)
-    }
-
-  addAlarm(externalChemistryServerAlarmRunner)
-}
-
