@@ -5,13 +5,25 @@
     ],
     "loglevel": "INFO",
     "jvm-exit-on-fatal-error": false,
-    "stdout-loglevel":"OFF",
+    "stdout-loglevel": "OFF",
     "quartz": {
       "schedules": {
+        "Every30Seconds": {
+          "description": "A cron job that fires off every 30 seconds",
+          "expression": "*/30 * * ? * *"
+        },
         "EverySaturdayMorning": {
           "description": "Run a backup every Saturday Morning at 3 AM",
           "expression": "0 0 3 ? * SAT",
           "excludeWeekends": false
+        },
+        "Every10Minutes": {
+          "description": "A cron job that fires off every 10 Minutes",
+          "expression": "0 */10 * ? * *"
+        },
+        "Every24Hours": {
+          "description": "A cron job that fires off once every day",
+          "expression": "0 * 1 ? * *"
         }
       }
     }
