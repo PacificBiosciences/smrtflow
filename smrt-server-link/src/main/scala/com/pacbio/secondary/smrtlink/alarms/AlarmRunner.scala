@@ -19,7 +19,7 @@ trait AlarmRunner extends LazyLogging{
     update()
         .map(u => AlarmStatus(alarm.id, u.value, u.message, u.severity, JodaDateTime.now()))
         .recover { case NonFatal(ex) =>
-          val errorMessage = s"Failed to compute ${alarm.name} ${ex.getMessage}"
+          val errorMessage = s"Failed to compute ${alarm.name} Error ${ex.getMessage}"
           logger.error(errorMessage)
           AlarmStatus(alarm.id, 1.0, Some(errorMessage), AlarmSeverity.ERROR, JodaDateTime.now())
         }
