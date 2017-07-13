@@ -3,17 +3,16 @@ package com.pacbio.secondary.smrtlink.actors
 import akka.actor.{Actor, ActorRef, Props}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.alarms.{AlarmComposer, AlarmRunner}
+import com.pacbio.common.actors.{ActorRefFactoryProvider, ActorSystemProvider}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.file.FileSystemUtilProvider
 import com.pacbio.common.models.{AlarmSeverity, AlarmStatus}
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmDaoActor.UpdateAlarmStatus
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.{RunAlarmById, RunAlarms}
-import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunnerProvider
+import com.pacbio.secondary.smrtlink.alarms.{AlarmRunner, _}
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
-
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success}
@@ -65,15 +64,34 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
   }
 }
 
+/**
+  * Supporting Optional config driven loading of Alarms doesn't compose in the singleton provider model.
+  *
+  * Encapsulating ALL alarm runner loading into this location.
+  *
+  */
+trait AlarmRunnerLoaderProvider {
+  this: SmrtLinkConfigProvider with ActorSystemProvider with FileSystemUtilProvider =>
+
+  val alarmRunners: Singleton[Seq[AlarmRunner]] = Singleton { () =>
+    implicit val system = actorSystem()
+
+    val tmpDirAlarmRunner = new TmpDirectoryAlarmRunner(smrtLinkTempDir(), fileSystemUtil())
+    val jobDirAlarmRunner = new JobDirectoryAlarmRunner(jobEngineConfig().pbRootJobDir, fileSystemUtil())
+
+    val chemistryAlarmRunner = externalBundleUrl().map(url => new ExternalChemistryServerAlarmRunner(url))
+    val eveAlarmRunner = externalEveUrl().map(url => new ExternalEveServerAlarmRunner(url, apiSecret()))
+
+    Seq(Some(tmpDirAlarmRunner), Some(jobDirAlarmRunner), chemistryAlarmRunner, eveAlarmRunner).flatten
+  }
+
+}
+
 trait AlarmManagerRunnerProvider {
   this: ActorRefFactoryProvider
       with AlarmDaoActorProvider
       with FileSystemUtilProvider
-      with AlarmComposer
-      with TmpDirectoryAlarmRunnerProvider =>
-
-  //FIXME. This needs to be loaded from the SMRT Link System Config
-  val alarmRunners: Singleton[Seq[AlarmRunner]] = Singleton(() => alarms())
+      with AlarmRunnerLoaderProvider =>
 
   val alarmManagerRunnerActor: Singleton[ActorRef] = Singleton {
     () => actorRefFactory().actorOf(Props(classOf[AlarmManagerRunnerActor], alarmRunners(), alarmDaoActor()))
