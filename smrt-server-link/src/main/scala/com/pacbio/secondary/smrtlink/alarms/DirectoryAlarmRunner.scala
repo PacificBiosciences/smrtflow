@@ -14,11 +14,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 abstract class DirectoryAlarmRunner(path: Path, fileSystemUtil: FileSystemUtil) extends AlarmRunner{
 
-  override protected def update(): Future[AlarmUpdate] = Future {
+  private def computeUpdate(): AlarmUpdate = {
     import AlarmSeverity._
 
-    val free: Double = fileSystemUtil.getFreeSpace(path).asInstanceOf[Double]
-    val total: Double = fileSystemUtil.getTotalSpace(path).asInstanceOf[Double]
+    val free: Double = fileSystemUtil.getFreeSpace(path).toDouble
+    val total: Double = fileSystemUtil.getTotalSpace(path).toDouble
 
     // Compute ratio of used space to total space, rounding to two decimal places
     val ratio = BigDecimal(1.0 - (free / total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
@@ -30,5 +30,10 @@ abstract class DirectoryAlarmRunner(path: Path, fileSystemUtil: FileSystemUtil) 
       case _              => CLEAR
     }
     AlarmUpdate(ratio, Some(f"${alarm.name} is $percent%.0f%% full."), severity)
+  }
+
+  override protected def update(): Future[AlarmUpdate] = Future {
+    if (fileSystemUtil.exists(path)) computeUpdate()
+    else AlarmUpdate(1.0, Some(s"Unable to find path $path"), AlarmSeverity.ERROR)
   }
 }
