@@ -55,7 +55,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
 
   val reference = Var(testdata.getTempDataSet("lambdaNEB"))
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
-  val refUuid = Var(dsUuidFromPath(reference.get))
+  val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
   val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
     PbSmrtPipeServiceOptions(
       "stress-test",

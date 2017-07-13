@@ -63,23 +63,6 @@ package object datasets {
       }
     }
 
-    private def getAttribute(e: Elem, attr: String): Try[String] = Try{
-      e.attributes(attr).toString
-    }
-
-    // FIXME this should probably return a DataSetMetaType
-    def dsMetaTypeFromPath(path: Path): String =
-      getAttribute(parseXml(path), "MetaType") match {
-        case Success(t) => t
-        case Failure(err) => throw new Exception(s"Can't retrieve dataset metatype from ${path.toString}; please make sure this is a valid PacBio DataSet XML file.")
-      }
-
-    def dsUuidFromPath(path: Path): UUID =
-      getAttribute(parseXml(path), "UniqueId") match {
-        case Success(uuid) => java.util.UUID.fromString(uuid)
-        case Failure(err) => throw new Exception(s"Can't retrieve UUID from ${path.toString}; please make sure this is a valid PacBio DataSet XML file.")
-      }
-
     /**
       * Parse an RSII metadata.xml file to extract the run name.
       *

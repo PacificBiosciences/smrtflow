@@ -53,9 +53,9 @@ trait PbsmrtpipeScenarioCore
   protected def getReference = testdata.getTempDataSet("lambdaNEB")
 
   protected val reference = Var(getReference)
-  protected val refUuid = Var(dsUuidFromPath(reference.get))
+  protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
   protected val subreads = Var(getSubreads)
-  protected val subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Reference)
   

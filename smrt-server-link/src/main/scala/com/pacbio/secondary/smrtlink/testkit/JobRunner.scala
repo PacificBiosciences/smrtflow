@@ -252,11 +252,10 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.m
   protected def runImportDataSetTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size != 1) throw new Exception("A single dataset entry point is required for this job type.")
     val dsPath = cfg.entryPoints(0).path
-    val dsUuid = dsUuidFromPath(dsPath)
     var dsMiniMeta = getDataSetMiniMeta(dsPath)
     // XXX should this automatically recover an existing job if present, or
     // always import again?
-    Try { Await.result(sal.getDataSet(dsUuid), TIMEOUT) } match {
+    Try { Await.result(sal.getDataSet(dsMiniMeta.uuid), TIMEOUT) } match {
       case Success(dsInfo) =>
         Await.result(sal.getJob(dsInfo.jobId), TIMEOUT)
       case Failure(err) =>

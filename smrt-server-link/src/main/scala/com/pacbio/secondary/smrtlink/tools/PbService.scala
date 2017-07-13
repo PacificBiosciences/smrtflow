@@ -942,16 +942,15 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
-    val dsUuid = dsUuidFromPath(path)
     val dsMiniMeta = getDataSetMiniMeta(path)
     def importDs = {
       val rc = runImportDataSet(path, dsMiniMeta.metatype)
       if (rc == 0) {
-        runGetDataSetInfo(dsUuid)
-        if (projectId > 0) addDataSetToProject(dsUuid, projectId) else 0
+        runGetDataSetInfo(dsMiniMeta.uuid)
+        if (projectId > 0) addDataSetToProject(dsMiniMeta.uuid, projectId) else 0
       } else rc
     }
-    logger.info(s"UUID: ${dsUuid.toString}")
+    logger.info(s"UUID: ${dsMiniMeta.uuid.toString}")
     def errorIfNewPath(dsInfo: DataSetMetaDataSet) = println(
       s"ERROR: The dataset UUID (${dsInfo.uuid.toString}) is already "+
       "present in the database but associated with a different path; if you "+
@@ -966,14 +965,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
         "existing record.")
       Thread.sleep(5000)
     }
-    getDataSet(dsUuid) match {
+    getDataSet(dsMiniMeta.uuid) match {
       case Success(dsInfo) => {
         if (Paths.get(dsInfo.path) != path) {
           if (isCompatibleVersion()) {
             warnIfNewPath(dsInfo)
             importDs
           } else errorIfNewPath(dsInfo)
-        } else logger.info(s"Dataset ${dsUuid.toString} already imported.")
+        } else logger.info(s"Dataset ${dsMiniMeta.uuid.toString} already imported.")
         // printDataSetInfo(dsInfo)
         logger.info(toDataSetInfoSummary(dsInfo))
         0
@@ -1256,7 +1255,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       logger.debug(s"Detected file of file names (FOFN) mode from $path")
 
       val files = Utils.fofnToFiles(path.toAbsolutePath)
-          .filter(p => Try { dsMetaTypeFromPath(p) }.isSuccess)
+          .filter(p => Try { getDataSetMiniMeta(p) }.isSuccess)
           .map(_.toFile)
 
       runMultiImportDataSet(files, maxTimeOut)
@@ -1463,16 +1462,15 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def importEntryPoint(eid: String, xmlPath: Path): BoundServiceEntryPoint = {
-    var dsType = dsMetaTypeFromPath(xmlPath)
-    var dsUuid = dsUuidFromPath(xmlPath)
+    var dsMeta = getDataSetMiniMeta(xmlPath)
     var xc = runImportDataSetSafe(xmlPath)
     if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
     // this is stupidly inefficient
-    val dsId = getDataSet(dsUuid) match {
+    val dsId = getDataSet(dsMeta.uuid) match {
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
     }
-    BoundServiceEntryPoint(eid, dsType, Left(dsId))
+    BoundServiceEntryPoint(eid, dsMeta.metatype.toString, Left(dsId))
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {
@@ -1482,8 +1480,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
       importEntryPoint(epFields(0), Paths.get(epFields(1)))
     } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
-      val dsType = dsMetaTypeFromPath(xmlPath)
-      val eid = entryPointsLookup(dsType)
+      val dsMeta = getDataSetMiniMeta(xmlPath)
+      val eid = entryPointsLookup(dsMeta.metatype.toString)
       importEntryPoint(eid, xmlPath)
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }

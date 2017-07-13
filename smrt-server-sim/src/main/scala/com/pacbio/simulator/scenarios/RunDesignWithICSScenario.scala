@@ -72,10 +72,10 @@ class RunDesignWithICSScenario(host: String,
   val testdata = PacBioTestData()
 
   val reference = Var(testdata.getFile("lambdaNEB"))
-  def refUuid = Var(dsUuidFromPath(reference.get))
+  def refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
 
   val subreads = Var(testdata.getFile("subreads-xml"))
-  //def subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  //def subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
 
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
