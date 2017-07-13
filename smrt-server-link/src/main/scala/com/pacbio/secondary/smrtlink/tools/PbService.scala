@@ -1705,7 +1705,7 @@ object PbService extends LazyLogging{
         0
       case Failure(ex) =>
         logger.error(s"${ex.getMessage}")
-        System.err.println(s"${ex.getMessage}")
+        System.err.println(s"${ex.getMessage} $ex")
         1
     }
   }
