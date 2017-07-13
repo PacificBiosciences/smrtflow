@@ -54,15 +54,22 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     Singleton(() => ManifestLoader.loadFromConfig(conf).toList.find(_.id == ManifestLoader.SMRTLINK_ID).map(_.version))
 
   val pacBioBundleRoot: Singleton[Path] =
-    Singleton(() => createDirIfNotExist(Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()))
+    Singleton(() => createDirIfNotExist(getPath("smrtflow.server.bundleDir").toAbsolutePath()))
 
   val pacBioBundles: Singleton[Seq[PacBioDataBundleIO]] =
     Singleton(() => PacBioDataBundleIOUtils.loadBundlesFromRoot(pacBioBundleRoot()))
 
   // Optional SMRT Link System level Root Dir e.g., /path/to/smrtsuite/
   val smrtLinkSystemRoot: Singleton[Option[Path]] =
-    Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.smrtLinkSystemRoot"))}.toOption)
+    Singleton(() => Try {getPath("pacBioSystem.smrtLinkSystemRoot")}.toOption)
 
+  // To ensure the entire application is configured with the correct temp directory
+  // the standard *nix approach should be used. Export TMPDIR, TMP or TMP_DIR
+  // before starting the services
+  val smrtLinkTempDir: Singleton[Path] =
+    Singleton(() => Try(getPath("smrtflow.pacBioSystem.tmpDir")).toOption.getOrElse(Paths.get("/tmp")))
+
+  private def getPath(keyName: String): Path =  Paths.get(conf.getString(keyName))
   /**
     * This will load the key and convert to URL.
     * Any errors will *only* be logged. This is probably not the best model.
