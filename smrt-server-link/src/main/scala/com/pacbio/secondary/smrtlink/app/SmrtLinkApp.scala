@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.app
 
 import java.nio.file.{Files, Path}
 
-import com.pacbio.common.alarms.AlarmComposer
 import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
 import com.pacbio.common.dependency.Singleton
 import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
@@ -15,7 +14,6 @@ import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
-import com.pacbio.secondary.smrtlink.alarms._
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
@@ -31,11 +29,7 @@ trait SmrtLinkProviders extends
   JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   AlarmDaoActorProvider with
-  AlarmComposer with
-  TmpDirectoryAlarmRunnerProvider with
-  JobDirectoryAlarmRunnerProvider with
-  ExternalEveServerAlarmRunnerProvider with
-  ExternalChemistryServerAlarmRunnerProvider with
+  AlarmRunnerLoaderProvider with
   AlarmManagerRunnerProvider with
   AlarmServiceProvider with
   SwaggerFileServiceProvider with
