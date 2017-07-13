@@ -4,14 +4,15 @@ import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.common.actors._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
-import com.pacbio.common.dependency.StringConfigProvider
-import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider}
+import com.pacbio.common.dependency.{DefaultConfigProvider, StringConfigProvider}
+import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
 import com.pacbio.common.models._
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActorProvider, AlarmManagerRunnerProvider, AlarmRunnerLoaderProvider}
+import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunner
 import com.pacbio.secondary.smrtlink.services.AlarmServiceProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
@@ -39,56 +40,34 @@ class AlarmSpec
   import AlarmSeverity._
   import PacBioJsonProtocol._
 
-  val TEST_JOB_DIR = "/tmp/tmp-job-dir"
-  val TEST_TMP_DIR = "/tmp"
-
   val mockFileSystemUtil = mock[FileSystemUtil]
 
   object TestProviders extends
       ServiceComposer with
       ActorRefFactoryProvider with
+      SmrtLinkConfigProvider with
+      DefaultConfigProvider with
       ActorSystemProvider with
       FileSystemUtilProvider with
       EngineCoreConfigLoader with
       PbsmrtpipeConfigLoader with
-      StringConfigProvider with
-      SmrtLinkConfigProvider with
       AlarmDaoActorProvider with
       AlarmRunnerLoaderProvider with
       AlarmManagerRunnerProvider with
       AlarmServiceProvider with
-      AuthenticatorImplProvider with
-      JwtUtilsProvider {
+      JavaFileSystemUtilProvider {
 
     import com.pacbio.common.dependency.Singleton
 
     //override
-
-    override val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
-    })
     override val actorSystemName = Some("TestSystem")
-    override val fileSystemUtil = Singleton(() => mockFileSystemUtil)
-    override val configString = Singleton(() =>
-      s"""
-        |smrtflow.engine.jobRoot = "$TEST_JOB_DIR"
-        |smrtflow.pacBioSystem.tmpDir = "$TEST_TMP_DIR"
-      """.stripMargin
-    )
+    //override val fileSystemUtil = Singleton(() => mockFileSystemUtil)
+
   }
 
-  val credentials = RawHeader(JWT_HEADER, "username")
   val routes = TestProviders.alarmService().prefixedRoutes
+  // This is necessary to trigger creation.
   val alarmManagerRunnerActor = TestProviders.alarmManagerRunnerActor()
-
-  // tmp dir at 50% capacity
-  val tmpPath = TestProviders.smrtLinkTempDir()
-  mockFileSystemUtil.getFreeSpace(tmpPath) returns 50
-  mockFileSystemUtil.getTotalSpace(tmpPath) returns 100
-
-  // job dir at 100% capacity
-  mockFileSystemUtil.getFreeSpace(Paths.get(TEST_JOB_DIR)) returns 0
-  mockFileSystemUtil.getTotalSpace(Paths.get(TEST_JOB_DIR)) returns 100
 
   val tmpId = "smrtlink.alarms.tmp_dir"
   val jobId = "smrtlink.alarms.job_dir"
@@ -106,8 +85,48 @@ class AlarmSpec
   step(runSetup())
 
   "Alarm Service" should {
+    "Alarm Dir Runner compute correct severity" in {
+      // All testing of severity resolving is pushed here to a unittest level
+      // All service level testing of alarms will only test mechanistically
+      val p1 = Paths.get("/tmp-1")
+      val p2 = Paths.get("/tmp-2")
+
+      // This is kinda confusing to create a mock from a trait. I believe this is creating an singleton object
+      // using the val x = FileSystemUtil {}
+      // Any methods used must be explicitly defined in the mockFileSystemUtil.* otherwise there abstract
+      val mockFileSystemUtil = mock[FileSystemUtil]
+
+      // Path 1 Completely full
+      mockFileSystemUtil.getFreeSpace(p1) returns 0
+      mockFileSystemUtil.getTotalSpace(p1) returns 100
+      mockFileSystemUtil.exists(p1) returns true
+
+      // Path 2 Half empty
+      mockFileSystemUtil.getFreeSpace(p2) returns 50
+      mockFileSystemUtil.getTotalSpace(p2) returns 100
+      mockFileSystemUtil.exists(p2) returns true
+
+      val r1 = new TmpDirectoryAlarmRunner(p1, mockFileSystemUtil)
+      val s1 = Await.result(r1.run(), 10.seconds)
+      s1.id === tmpId
+      s1.severity === CRITICAL
+
+      // This should be 0
+      val r2 = new TmpDirectoryAlarmRunner(p2, mockFileSystemUtil)
+      val s2 = Await.result(r2.run(), 10.seconds)
+      s2.severity === CLEAR
+      s2.value === 0.5
+
+      // Test a path that doesn't exist
+
+      val r3 = new TmpDirectoryAlarmRunner(Paths.get("/tmp-does-not-exist"), new JavaFileSystemUtil)
+      val s3 = Await.result(r3.run(), 10.seconds)
+      s3.severity == ERROR
+      s3.message must beSome("Unable to find path /tmp-does-not-exist")
+
+    }
     "return all alarms" in {
-      Get("/smrt-link/alarms") ~> addHeader(credentials) ~> routes ~> check {
+      Get("/smrt-link/alarms") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarms = responseAs[Seq[AlarmStatus]]
         alarms.size === 2
@@ -115,36 +134,18 @@ class AlarmSpec
         alarms.find(_.id == jobId) must beSome
       }
     }
-
-    "return all alarm status for tmp dir alarm" in {
-      Get("/smrt-link/alarms") ~> routes ~> check {
-        status.isSuccess must beTrue
-        val statuses = responseAs[Seq[AlarmStatus]]
-        statuses.size === 2
-        statuses.find(_.id == tmpId).map(a => (a.id, a.value, a.severity)) must beSome((tmpId, 0.5, CLEAR))
-        statuses.find(_.id == jobId).map(a => (a.id, a.value, a.severity)) must beSome((jobId, 1.0, CRITICAL))
-      }
-    }
-
-    "return a specific alarm" in {
+    "return a specific alarm for tmp dir" in {
       Get(s"/smrt-link/alarms/$tmpId") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarm = responseAs[AlarmStatus]
         alarm.id === tmpId
-        alarm.value === 0.5
-        alarm.message must beSome("Tmp dir is 50% full.")
-        alarm.severity === CLEAR
       }
     }
-
-    "return a specific alarm status" in {
+    "return a specific alarm status for Job" in {
       Get(s"/smrt-link/alarms/$jobId") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarm = responseAs[AlarmStatus]
         alarm.id === jobId
-        alarm.value === 1.0
-        alarm.message must beSome("Job dir is 100% full.")
-        alarm.severity === CRITICAL
       }
     }
   }
