@@ -3,7 +3,6 @@ import java.nio.file.Paths
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.common.actors._
-import com.pacbio.common.alarms._
 import com.pacbio.common.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
 import com.pacbio.common.dependency.StringConfigProvider
 import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider}
@@ -12,9 +11,8 @@ import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
-import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActorProvider, AlarmManagerRunnerProvider}
+import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActorProvider, AlarmManagerRunnerProvider, AlarmRunnerLoaderProvider}
 import com.pacbio.secondary.smrtlink.services.AlarmServiceProvider
-import com.pacbio.secondary.smrtlink.alarms.{JobDirectoryAlarmRunnerProvider, TmpDirectoryAlarmRunnerProvider}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mock._
@@ -41,7 +39,8 @@ class AlarmSpec
   import AlarmSeverity._
   import PacBioJsonProtocol._
 
-  val TEST_JOB_DIR = "/test/job/dir"
+  val TEST_JOB_DIR = "/tmp/tmp-job-dir"
+  val TEST_TMP_DIR = "/tmp"
 
   val mockFileSystemUtil = mock[FileSystemUtil]
 
@@ -55,9 +54,7 @@ class AlarmSpec
       StringConfigProvider with
       SmrtLinkConfigProvider with
       AlarmDaoActorProvider with
-      AlarmComposer with
-      TmpDirectoryAlarmRunnerProvider with
-      JobDirectoryAlarmRunnerProvider with
+      AlarmRunnerLoaderProvider with
       AlarmManagerRunnerProvider with
       AlarmServiceProvider with
       AuthenticatorImplProvider with
@@ -74,11 +71,8 @@ class AlarmSpec
     override val fileSystemUtil = Singleton(() => mockFileSystemUtil)
     override val configString = Singleton(() =>
       s"""
-        |smrtflow {
-        |  engine {
-        |    jobRootDir = "$TEST_JOB_DIR"
-        |  }
-        |}
+        |smrtflow.engine.jobRoot = "$TEST_JOB_DIR"
+        |smrtflow.pacBioSystem.tmpDir = "$TEST_TMP_DIR"
       """.stripMargin
     )
   }
@@ -88,7 +82,7 @@ class AlarmSpec
   val alarmManagerRunnerActor = TestProviders.alarmManagerRunnerActor()
 
   // tmp dir at 50% capacity
-  val tmpPath = TestProviders.tmpDirectoryAlarmRunner().path
+  val tmpPath = TestProviders.smrtLinkTempDir()
   mockFileSystemUtil.getFreeSpace(tmpPath) returns 50
   mockFileSystemUtil.getTotalSpace(tmpPath) returns 100
 
@@ -123,7 +117,7 @@ class AlarmSpec
     }
 
     "return all alarm status for tmp dir alarm" in {
-      Get("/smrt-link/alarms") ~> addHeader(credentials) ~> routes ~> check {
+      Get("/smrt-link/alarms") ~> routes ~> check {
         status.isSuccess must beTrue
         val statuses = responseAs[Seq[AlarmStatus]]
         statuses.size === 2
@@ -133,7 +127,7 @@ class AlarmSpec
     }
 
     "return a specific alarm" in {
-      Get(s"/smrt-link/alarms/$tmpId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-link/alarms/$tmpId") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarm = responseAs[AlarmStatus]
         alarm.id === tmpId
@@ -144,7 +138,7 @@ class AlarmSpec
     }
 
     "return a specific alarm status" in {
-      Get(s"/smrt-link/alarms/$jobId") ~> addHeader(credentials) ~> routes ~> check {
+      Get(s"/smrt-link/alarms/$jobId") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarm = responseAs[AlarmStatus]
         alarm.id === jobId
