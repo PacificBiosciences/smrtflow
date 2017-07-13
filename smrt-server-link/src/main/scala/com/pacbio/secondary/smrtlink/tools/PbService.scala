@@ -831,7 +831,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                   engineJobs: Seq[EngineJob],
                   jobState: Option[String] = None): String = {
     if (asJson) {
-      println(engineJobs.toJson.prettyPrint)
+      println(engineJobs.take(maxItems).toJson.prettyPrint)
       ""
     } else {
       val table = engineJobs.sortBy(_.id).reverse.filter( job =>
