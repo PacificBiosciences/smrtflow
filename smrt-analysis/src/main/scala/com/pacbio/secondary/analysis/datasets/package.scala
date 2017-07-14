@@ -29,53 +29,39 @@ package object datasets {
 
   trait DataSetFileUtils {
 
-  /**
-    *
-    * Extra the minimal metadata from the DataSet. This is centralized to have a single loading and parsing
-    * of the PacBio DataSet XML.
-    *
-    * This is java-ish model that raises, callers should use wrap in Try
-    *
-    * @param path Path to the DataSet
-    * @return
-    */
-  def getDataSetMiniMeta(path: Path): DataSetMiniMeta = {
-    // This should be a streaming model to parse the XML
-    val xs = scala.xml.XML.loadFile(path.toFile)
+    /**
+      *
+      * Extra the minimal metadata from the DataSet. This is centralized to have a single loading and parsing
+      * of the PacBio DataSet XML.
+      *
+      * This is java-ish model that raises, callers should use wrap in Try
+      *
+      * @param path Path to the DataSet
+      * @return
+      */
+    def getDataSetMiniMeta(path: Path): DataSetMiniMeta = {
+      // This should be a streaming model to parse the XML
+      val xs = scala.xml.XML.loadFile(path.toFile)
 
-    val uniqueId = xs.attributes("UniqueId").toString()
-    val m = xs.attributes("MetaType").toString()
+      val uniqueId = xs.attributes("UniqueId").toString()
+      val m = xs.attributes("MetaType").toString()
 
-    val uuid = UUID.fromString(uniqueId)
+      val uuid = UUID.fromString(uniqueId)
 
-    val errorMessage = s"Couldn't parse dataset MetaType from '$m' as an XML file: $path"
+      val errorMessage = s"Couldn't parse dataset MetaType from '$m' as an XML file: $path"
 
-    val dsMeta = DataSetMetaTypes.toDataSetType(m)
-        .getOrElse(throw new IllegalArgumentException(errorMessage))
+      val dsMeta = DataSetMetaTypes.toDataSetType(m)
+          .getOrElse(throw new IllegalArgumentException(errorMessage))
 
-    DataSetMiniMeta(uuid, dsMeta)
-  }
-
-  private def parseXml(path: Path) = {
-    Try { scala.xml.XML.loadFile(path.toFile)} match {
-      case Success(x) => x
-      case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
+      DataSetMiniMeta(uuid, dsMeta)
     }
-  }
 
-    private def getAttribute(e: Elem, attr: String): String = {
-      Try { e.attributes(attr).toString } match {
-        case Success(a) => a
-        case Failure(err) => throw new Exception(s"Can't retrieve $attr attribute from XML: ${err.getMessage}.  Please make sure this is a valid PacBio DataSet XML file.")
+    private def parseXml(path: Path) = {
+      Try { scala.xml.XML.loadFile(path.toFile)} match {
+        case Success(x) => x
+        case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
       }
     }
-
-    // FIXME this should probably return a DataSetMetaType
-    def dsMetaTypeFromPath(path: Path): String =
-      getAttribute(parseXml(path), "MetaType")
-
-    def dsUuidFromPath(path: Path): UUID =
-      java.util.UUID.fromString(getAttribute(parseXml(path), "UniqueId"))
 
     /**
       * Parse an RSII metadata.xml file to extract the run name.

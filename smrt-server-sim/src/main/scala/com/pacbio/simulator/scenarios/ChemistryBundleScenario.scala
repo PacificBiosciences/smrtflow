@@ -51,7 +51,7 @@ class ChemistryBundleScenario(host: String, port: Int)
   val testdata = PacBioTestData()
 
   val subreads = Var(testdata.getTempDataSet("subreads-sequel"))
-  val subreadsUuid = Var(dsUuidFromPath(subreads.get))
+  val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
   val bundle: Var[PacBioDataBundle] = Var()
   val jobId: Var[UUID] = Var()

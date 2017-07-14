@@ -45,8 +45,8 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
   // associated files.
   def getTempDataSet(id: String, copyFiles: Boolean = false): Path = {
     val path = getFile(id)
-    val dst = DataSetMetaTypes.toDataSetType(dsMetaTypeFromPath(path))
-    MockDataSetUtils.makeTmpDataset(path, dst.getOrElse(throw new Exception("Unrecognized dataset type")), copyFiles = copyFiles)
+    val dst = getDataSetMiniMeta(path).metatype
+    MockDataSetUtils.makeTmpDataset(path, dst, copyFiles = copyFiles)
   }
 }
 

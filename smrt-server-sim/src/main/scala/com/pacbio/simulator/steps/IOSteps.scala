@@ -20,7 +20,7 @@ trait IOSteps extends ClientUtils {
 
   import StepResult._
 
-  protected def getUuid(ds: Var[Path]): Var[UUID] = ds.mapWith(f => dsUuidFromPath(f))
+  protected def getUuid(ds: Var[Path]): Var[UUID] = ds.mapWith(f => getDataSetMiniMeta(f).uuid)
 
   case class ReadFileStep(pathVar: Var[String]) extends VarStep[String] {
 

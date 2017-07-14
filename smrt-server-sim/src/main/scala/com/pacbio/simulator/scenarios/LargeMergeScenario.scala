@@ -50,7 +50,7 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
   println(s"$nFiles SubreadSets found")
   val jobIds: Seq[Var[UUID]] = (0 until nFiles).map(_ => Var(UUID.randomUUID()))
   val dsIds: Seq[Var[Int]] = (0 until nFiles).map(_ => Var(0))
-  val dsUUIDs: Seq[UUID] = (0 until nFiles).map(i => dsUuidFromPath(dsFiles(i).toPath))
+  val dsUUIDs: Seq[UUID] = (0 until nFiles).map(i => getDataSetMiniMeta(dsFiles(i).toPath).uuid)
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
 

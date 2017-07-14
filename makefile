@@ -39,7 +39,8 @@ tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
-	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
+	rm -rf smrt-*/target/pack/*
+	sbt smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
 	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
 	cp -r smrt-server-link/target/pack/* smrt-analysis/target/pack/
 	rm -rf smrt-analysis/target/pack/bin/*.bat

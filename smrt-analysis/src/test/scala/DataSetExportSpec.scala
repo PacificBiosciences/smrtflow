@@ -95,7 +95,7 @@ class DataSetExportSpecAdvanced
     val zipPath = Files.createTempFile("subreadsets", ".zip")
     val n = ExportDataSets(Seq(ds), DataSetMetaTypes.Subread, zipPath)
     n must beGreaterThan(0)
-    val uuid = dsUuidFromPath(ds)
+    val uuid = getDataSetMiniMeta(ds).uuid
     FileUtils.deleteDirectory(ds.getParent.toFile)
     val dest = Files.createTempDirectory("subreads-extracted")
     runSimpleCmd(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
