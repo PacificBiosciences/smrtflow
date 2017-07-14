@@ -34,13 +34,13 @@ object RenderCommandTemplate extends RenderCommandTemplate
  *
  * The template has 5 supported values.
  *
- * Example Template string {@literal my-command-runner ${JOB_ID} ${NPROC} ${STDERR} ${STDOUT} ${CMD}"}
  *
  * @param template
  */
 case class CommandTemplate(template: String) {
 
   def render(job: CommandTemplateJob): String = {
+    //  my-command-runner ${JOB_ID} ${NPROC} ${STDERR} ${STDOUT} ${CMD}"
     RenderCommandTemplate.renderCommandTemplate(template, job)
   }
 }
