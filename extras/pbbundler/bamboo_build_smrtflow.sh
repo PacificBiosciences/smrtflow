@@ -25,7 +25,8 @@ export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
 
-env TMP=`pwd`/tmp sbt -no-colors compile test publish
+# MK. Disabling nexus publishing. I don't believe we're using the artifacts anywhere. Add "publish" here to push to nexus.
+env TMP=`pwd`/tmp sbt -no-colors compile test
 
 #https://github.com/conda/conda/issues/3200 This appears to be fixed in 4.4.0
 set +o nounset
