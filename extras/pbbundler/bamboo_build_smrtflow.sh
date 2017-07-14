@@ -56,20 +56,20 @@ source activate "${env_name}"
 conda install --yes -c bioconda pysam=0.11.2.2
 
 # Install all PB py dependencies
-pip install -r pbcommand/REQUIREMENTS.txt
+pip install -r repos/pbcommand/REQUIREMENTS.txt
 cd pbcommand && pip install . && cd -
 
-pip install -r pbcore/requirements.txt
+pip install -r repos/pbcore/requirements.txt
 cd pbcore && pip install . && cd -
 
-pip install -r pbcoretools/requirements.txt
+pip install -r repos/pbcoretools/requirements.txt
 cd pbcoretools && pip install . && cd -
 
 cd pbsmrtpipe && pip install . && cd -
-pip install -r pbsmrtpipe/REQUIREMENTS.txt
+pip install -r repos/pbsmrtpipe/REQUIREMENTS.txt
 
 cd pbreports && pip install . && cd -
-pip install -r pbreports/REQUIREMENTS.txt
+pip install -r repos/pbreports/REQUIREMENTS.txt
 
 # Sanity test
 dataset --help
