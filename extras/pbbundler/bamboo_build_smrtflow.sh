@@ -1,4 +1,9 @@
-#!/bin/bash -ex
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+# set -o nounset
+set -o xtrace
 
 if ! [ "${PGDATA:-}" ] || ! [ "${PGPORT:-}" ]; then
     echo "PGDATA and PGPORT must be set"
