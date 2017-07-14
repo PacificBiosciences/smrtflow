@@ -62,18 +62,18 @@ conda install --yes -c bioconda ngmlr
 
 # Install all PB py dependencies
 pip install -r repos/pbcommand/REQUIREMENTS.txt
-cd pbcommand && pip install . && cd -
+cd repos/pbcommand && pip install . && cd -
 
 pip install -r repos/pbcore/requirements.txt
-cd pbcore && pip install . && cd -
+cd repos/pbcore && pip install . && cd -
 
 pip install -r repos/pbcoretools/requirements.txt
-cd pbcoretools && pip install . && cd -
+cd respo/pbcoretools && pip install . && cd -
 
-cd pbsmrtpipe && pip install . && cd -
+cd repos/pbsmrtpipe && pip install . && cd -
 pip install -r repos/pbsmrtpipe/REQUIREMENTS.txt
 
-cd pbreports && pip install . && cd -
+cd repos/pbreports && pip install . && cd -
 pip install -r repos/pbreports/REQUIREMENTS.txt
 
 # Sanity test
