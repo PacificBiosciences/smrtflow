@@ -27,6 +27,7 @@ trait FileSystemUtil {
   def getFreeSpace(path: Path): Long
   def getTotalSpace(path: Path): Long
   def getFile(path: Path): File
+  def exists(path: Path): Boolean
 }
 
 trait FileSystemUtilProvider {
@@ -37,6 +38,7 @@ trait JFileSystemUtil extends FileSystemUtil {
   override def getFreeSpace(path: Path): Long = getFile(path).getFreeSpace
   override def getTotalSpace(path: Path): Long = getFile(path).getTotalSpace
   override def getFile(path: Path): File = path.toFile
+  override def exists(path: Path) = Files.exists(path)
 
   /**
     * Create directories mkdir -p style
