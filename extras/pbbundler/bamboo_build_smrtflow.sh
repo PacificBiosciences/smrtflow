@@ -10,10 +10,17 @@ export PB_TEST_DATA_FILES=`readlink -f repos/PacBioTestData/data/files.json`
 source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71 sbt postgresql
 
+# MK. It's not clear to me why this is explicitly being set.
+TDIR="$(pwd)/tmp"
+
+# Cleanup from any previous build (if exists)
+rm -rf "$TDIR"
+
+mkdir "$TDIR"
+
 # Validate JSON files within the root directory. Note any dirs that are added to the root will be processed.
 make jsontest
 
-mkdir -p tmp
 # postgres initialization
 rm -rf $PGDATA && mkdir -p $PGDATA
 initdb
@@ -25,13 +32,6 @@ psql -d smrtlinkdb < ${bamboo_working_directory}/extras/test-db-init.sql
 export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
-# MK. It's not clear to me why this is explicitly being set.
-TDIR="$(pwd)/tmp"
-
-# Cleanup from any previous build (if exists)
-rm -rf "$TDIR"
-
-mkdir "$TDIR"
 # MK. Disabling nexus publishing. I don't believe we're using the artifacts anywhere. Add "publish" here to push to nexus.
 env TMP="$TDIR" sbt -no-colors compile test
 
