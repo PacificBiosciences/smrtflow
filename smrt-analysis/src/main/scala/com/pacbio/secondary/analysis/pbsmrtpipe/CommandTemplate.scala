@@ -34,7 +34,7 @@ object RenderCommandTemplate extends RenderCommandTemplate
  *
  * The template has 5 supported values.
  *
- * Example Template string `my-command-runner ${JOB_ID} ${NPROC} ${STDERR} ${STDOUT} ${CMD}"`
+ * Example Template string {@literal my-command-runner ${JOB_ID} ${NPROC} ${STDERR} ${STDOUT} ${CMD}"}
  *
  * @param template
  */
