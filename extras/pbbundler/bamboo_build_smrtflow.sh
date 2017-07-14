@@ -10,6 +10,7 @@ export PB_TEST_DATA_FILES=`readlink -f repos/PacBioTestData/data/files.json`
 source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71 sbt postgresql
 
+# Validate JSON files within the root directory. Note any dirs that are added to the root will be processed.
 make jsontest
 
 mkdir -p tmp
@@ -24,9 +25,15 @@ psql -d smrtlinkdb < ${bamboo_working_directory}/extras/test-db-init.sql
 export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
+# MK. It's not clear to me why this is explicitly being set.
+TDIR="$(pwd)/tmp"
 
+# Cleanup from any previous build (if exists)
+rm -rf "$TDIR"
+
+mkdir "$TDIR"
 # MK. Disabling nexus publishing. I don't believe we're using the artifacts anywhere. Add "publish" here to push to nexus.
-env TMP=`pwd`/tmp sbt -no-colors compile test
+env TMP="$TDIR" sbt -no-colors compile test
 
 #https://github.com/conda/conda/issues/3200 This appears to be fixed in 4.4.0
 set +o nounset
@@ -50,10 +57,8 @@ conda create --yes -n "${env_name}" numpy cython matplotlib
 
 source activate "${env_name}"
 
-#conda install --yes cython
-#conda install --yes numpy
-#conda install --yes matplotlib
 conda install --yes -c bioconda pysam=0.11.2.2
+conda install --yes -c bioconda ngmlr
 
 # Install all PB py dependencies
 pip install -r repos/pbcommand/REQUIREMENTS.txt
