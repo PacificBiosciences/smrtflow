@@ -74,12 +74,13 @@ pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
 cd "${ROOT_REPOS}/pbcoretools" && pip install . && cd -
 
 cd "${ROOT_REPOS}/pbsmrtpipe" && pip install . && cd -
-pip install -r repos/pbsmrtpipe/REQUIREMENTS.txt
+pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
 
 cd "${ROOT_REPOS}/pbreports" && pip install . && cd -
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
 
 # Sanity test
+which python
 dataset --help
 pbsmrtpipe --help
 python -m pbreports.report.mapping_stats --help
