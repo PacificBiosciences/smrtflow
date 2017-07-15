@@ -78,7 +78,8 @@ test: validate-pacbio-manifests
 	sbt -batch "test-only -- junitxml html console"
 
 test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
-
+test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
+test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
 test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
 test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/PacBioTestData/data/files.json
 
