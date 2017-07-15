@@ -90,7 +90,7 @@ test-int:
 	@echo $$PATH
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
-	sbt "smrt-server-sim/it:test"
+	sbt -no-colors "smrt-server-sim/it:test"
 
 test-int-install-pytools:
 	@echo "This should be done in a virtualenv!"
@@ -174,3 +174,5 @@ validate-swagger-eve:
 
 validate-swagger: validate-swagger-smrtlink validate-swagger-eve
 
+check-shell:
+	shellcheck -e SC1091 extras/pbbundler/bamboo_build_smrtflow.sh
