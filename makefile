@@ -101,7 +101,7 @@ test-int-install-pytools:
 	@echo "successfully installed integration testing tools"
 
 jsontest:
-	$(eval JSON := `find . -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
 	@for j in $(JSON); do \
 		echo $$j ;\
 		python -m json.tool $$j >/dev/null || exit 1 ;\

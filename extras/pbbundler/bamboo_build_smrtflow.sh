@@ -74,24 +74,24 @@ fi
 source activate "${env_name}"
 which python
 
-conda install --yes -c bioconda pysam=0.11.2.2
-conda install --yes -c bioconda ngmlr
+conda install --quiet --yes -c bioconda pysam=0.11.2.2
+conda install --quiet --yes -c bioconda ngmlr
 
 # Install all PB py dependencies
 pip install -r "${ROOT_REPOS}/pbcommand/REQUIREMENTS.txt"
-cd repos/pbcommand && pip install .
+pip install "${ROOT_REPOS}/pbcommand"
 
 pip install -r "${ROOT_REPOS}/pbcore/requirements.txt"
-cd "${ROOT_REPOS}/pbcore" && pip install .
+pip install "${ROOT_REPOS}/pbcore"
 
 pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
-cd "${ROOT_REPOS}/pbcoretools" && pip install .
+pip install "${ROOT_REPOS}/pbcoretools"
 
-cd "${ROOT_REPOS}/pbsmrtpipe" && pip install .
-pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
-
-cd "${ROOT_REPOS}/pbreports" && pip install .
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
+pip install "${ROOT_REPOS}/pbreports"
+
+pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
+pip install "${ROOT_REPOS}/pbsmrtpipe"
 
 cd "${SMRTFLOW_ROOT_DIR}"
 
