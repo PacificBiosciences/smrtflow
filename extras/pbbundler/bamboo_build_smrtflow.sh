@@ -55,10 +55,21 @@ conda config --add channels bioconda
 env_name="testenv01"
 
 echo "Setting up new env '${env_name}'"
-# how to do you initialize this without any dep?
-conda create --yes -n "${env_name}" numpy cython matplotlib
+
+set +e
+conda info --envs | grep "${env_name}"
+env_status=$?
+
+set -e
+if [[ "${env_status}" -eq 0 ]]; then
+    echo "Env ${env_name} was already created. Using cached env"
+else
+    echo "Creating ${env_name}"
+    conda create --quiet --yes -n "${env_name}" numpy cython matplotlib
+fi
 
 source activate "${env_name}"
+which python
 
 conda install --yes -c bioconda pysam=0.11.2.2
 conda install --yes -c bioconda ngmlr
