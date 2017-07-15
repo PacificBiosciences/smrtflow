@@ -17,6 +17,7 @@ import com.pacbio.common.models.MimeTypeDetectors
 import com.pacbio.common.services._
 import com.pacbio.common.services.utils.StatusGeneratorProvider
 import com.pacbio.common.time.SystemClockProvider
+import com.pacbio.common.utils.OSUtils
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.configloaders.ConfigLoader
 import com.typesafe.scalalogging.LazyLogging
@@ -114,7 +115,7 @@ trait BaseApi {
   sys.addShutdownHook(system.shutdown())
 }
 
-trait BaseServer extends LazyLogging {
+trait BaseServer extends LazyLogging with OSUtils{
   this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
@@ -124,6 +125,8 @@ trait BaseServer extends LazyLogging {
 
   def start = {
     logger.info(s"Starting App using smrtflow ${Constants.SMRTFLOW_VERSION}")
+    logger.info(s"Running on OS ${getOsVersion()}")
+    logger.info(s"Number of Available Processors ${Runtime.getRuntime().availableProcessors()}")
     logger.info("Java Version: " + System.getProperty("java.version"))
     logger.info("Java Home: " + System.getProperty("java.home"))
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean

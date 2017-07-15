@@ -20,6 +20,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.services._
+import com.pacbio.common.utils.OSUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.SystemUtils
@@ -27,19 +28,6 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Future
 
-
-trait OSUtils {
-  // Is there a java lib that would better handle this?
-  // Something similar to platform for python
-  def getOsVersion(): String = {
-    val procVersion = Paths.get("/proc/version")
-    if (Files.exists(procVersion)) {
-      FileUtils.readFileToString(procVersion.toFile).mkString
-    } else {
-      s"${SystemUtils.OS_NAME}; ${SystemUtils.OS_ARCH}; ${SystemUtils.OS_VERSION}"
-    }
-  }
-}
 
 class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  authenticator: Authenticator)
     extends BaseSmrtService with JobServiceConstants with OSUtils {
