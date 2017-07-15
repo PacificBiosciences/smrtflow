@@ -5,13 +5,16 @@ set -o pipefail
 set -o nounset
 set -o xtrace
 
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SMRTFLOW_ROOT_DIR=$(readlink -f "${__dir}/../..")
+
 PB_TEST_DATA_FILES=$(readlink -f repos/PacBioTestData/data/files.json)
 export PB_TEST_DATA_FILES="${PB_TEST_DATA_FILES}"
 
 source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71 sbt postgresql
 
-ROOT_REPOS="$(pwd)/repos"
+ROOT_REPOS="${SMRTFLOW_ROOT_DIR}/repos"
 
 # MK. It's not clear to me why this is explicitly being set.
 TDIR="$(pwd)/tmp"
@@ -30,8 +33,8 @@ initdb
 perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $PGPORT/" "$PGDATA/postgresql.conf"
 pg_ctl -w -l "$PGDATA/postgresql.log" start
 createdb smrtlinkdb
-psql -d smrtlinkdb < "${bamboo_working_directory}/extras/db-init.sql"
-psql -d smrtlinkdb < "${bamboo_working_directory}/extras/test-db-init.sql"
+psql -d smrtlinkdb < "${SMRTFLOW_ROOT_DIR}/extras/db-init.sql"
+psql -d smrtlinkdb < "${SMRTFLOW_ROOT_DIR}/extras/test-db-init.sql"
 export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
@@ -76,25 +79,26 @@ conda install --yes -c bioconda ngmlr
 
 # Install all PB py dependencies
 pip install -r "${ROOT_REPOS}/pbcommand/REQUIREMENTS.txt"
-cd repos/pbcommand && pip install . && cd -
+cd repos/pbcommand && pip install .
 
 pip install -r "${ROOT_REPOS}/pbcore/requirements.txt"
-cd "${ROOT_REPOS}/pbcore" && pip install . && cd -
+cd "${ROOT_REPOS}/pbcore" && pip install .
 
 pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
-cd "${ROOT_REPOS}/pbcoretools" && pip install . && cd -
+cd "${ROOT_REPOS}/pbcoretools" && pip install .
 
-cd "${ROOT_REPOS}/pbsmrtpipe" && pip install . && cd -
+cd "${ROOT_REPOS}/pbsmrtpipe" && pip install .
 pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
 
-cd "${ROOT_REPOS}/pbreports" && pip install . && cd -
+cd "${ROOT_REPOS}/pbreports" && pip install .
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
+
+cd "${SMRTFLOW_ROOT_DIR}"
 
 # Sanity test
 which python
 dataset --help
 pbsmrtpipe --help
 python -m pbreports.report.mapping_stats --help
-
 
 make test-int
