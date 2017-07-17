@@ -33,7 +33,7 @@ tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
 tools-smrt-server-link:
-	sbt smrt-server-link/{compile,pack,assembly}
+	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
@@ -51,15 +51,19 @@ generate-test-pipeline-json:
 repl:
 	sbt smrtflow/test:console
 
-get-pbdata: PacBioTestData
+get-pbdata: repos/PacBioTestData
 
-PacBioTestData:
-	git clone https://github.com/PacificBiosciences/PacBioTestData.git
+repos:
+	mkdir -p repos
+
+repos/PacBioTestData: repos
+	cd repos && git clone http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
+
 
 import-pbdata: insert-pbdata
 
 insert-pbdata:
-	pbservice import-dataset PacBioTestData --debug
+	pbservice import-dataset repos/PacBioTestData --debug
 
 insert-mock-data:
 	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
@@ -77,11 +81,15 @@ start-smrt-server-link-jar:
 test: validate-pacbio-manifests
 	sbt -batch "test-only -- junitxml html console"
 
-test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
+test-int-clean: db-reset-prod
+	rm -rf jobs-root
+
+
+test-int: tools-smrt-server-link tools-smrt-server-sim repos/PacBioTestData
 test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
 test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
 test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
-test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/PacBioTestData/data/files.json
+test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/PacBioTestData/data/files.json
 
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
 
@@ -90,15 +98,7 @@ test-int:
 	@echo $$PATH
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
-	sbt -no-colors "smrt-server-sim/it:test"
-
-test-int-install-pytools:
-	@echo "This should be done in a virtualenv!"
-	@echo "assuming virtualenvwrapper is installed"
-	virtualenv ./ve
-	. ./ve/bin/activate
-	pip install -r INT_REQUIREMENTS.txt
-	@echo "successfully installed integration testing tools"
+	sbt -batch -no-colors "smrt-server-sim/it:test"
 
 jsontest:
 	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
