@@ -61,7 +61,7 @@ repos/chemistry-data-bundle:
 
 repos/pacbiotestdata:
 	mkdir -p repos
-	cd repos && git clone --depth 1 shttp://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
 
 
 import-pbdata: insert-pbdata
