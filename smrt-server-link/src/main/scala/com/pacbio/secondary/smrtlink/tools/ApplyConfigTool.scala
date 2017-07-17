@@ -70,6 +70,7 @@ object ApplyConfigConstants {
   // Wso2 Related Templates
   val USER_MGT_XML = "user-mgt.xml"
   val JNDI_PROPERTIES = "jndi.properties"
+  val METRICS_XML = "metrics.xml"
 }
 
 trait Resolver {
@@ -113,6 +114,8 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val userMgtConfig = wso2ConfDir.resolve(ApplyConfigConstants.USER_MGT_XML)
 
+  val metricsXmlConfig = wso2ConfDir.resolve(ApplyConfigConstants.METRICS_XML)
+
   val jndiPropertiesConfig = wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
@@ -130,6 +133,7 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
   val readOnlyUserStore = resolveWso2Template(ApplyConfigConstants.READONLY_USERSTORE_FILE)
   val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
+  val metricsXml = resolveWso2Template(ApplyConfigConstants.METRICS_XML)
   val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
@@ -311,6 +315,14 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
+   * #13
+   * disable metrics
+   */
+  def updateMetricsConfig(outputPath: Path, metricsXml: Path) = {
+    Files.copy(metricsXml, outputPath)
+  }
+
+  /**
     * This is workaround for the loading of JSON files using the -Dconfig.file=/path/to/file.json model.
     *
     * The merges the custom third-party options defined in internal-config.json and writes merged
@@ -354,6 +366,7 @@ object ApplyConfigUtils extends LazyLogging{
    * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
    * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
    * 12. (update_readonly_userstore) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/sequences
+   * 13. Copy metrics config (to disable metrics)
    */
   def run(opts: ApplyConfigToolOptions): String = {
 
@@ -434,8 +447,11 @@ object ApplyConfigUtils extends LazyLogging{
     // #11
     updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile, templateResolver.jndiProperties.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
 
-    // #22
+    // #12
     updateReadOnlyUserstore(resolver.wso2SeqDir, templateResolver.readOnlyUserStore.toFile, wso2Credentials.wso2User)
+
+    // #13
+    updateMetricsConfig(resolver.metricsXmlConfig, templateResolver.metricsXml)
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
