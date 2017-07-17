@@ -145,14 +145,7 @@ class DataSetScenario(host: String, port: Int)
   }
 
   private def getReportTableValue(report: Report, tableId: String, columnId: String): Option[Any] = {
-    for (table <- report.tables) {
-      if (table.id == tableId) {
-        for (column <- table.columns) {
-          if (column.id == columnId) return Some(column.values(0))
-        }
-      }
-    }
-    return None
+   report.getFirstValueFromTableColumn(tableId, columnId)
   }
 
   private def getZipFileName(prefix: String) =
@@ -249,8 +242,8 @@ class DataSetScenario(host: String, port: Int)
     fail("Image has no content") IF nBytes ==? 0,
     dsReport := GetReport(getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
     fail("Wrong report ID") IF dsReport.mapWith(_.id) !=? "loading_xml_report",
-    fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, RPT_PRODZMWS)) ==? None,
-    fail(s"Can't retrieve productivity") IF dsReport.mapWith(getReportTableValue(_, RPT_TABLE, s"${RPT_PROD}_0_n")) ==? None
+    fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(_.getFirstValueFromTableColumn(RPT_TABLE, RPT_PRODZMWS)) ==? None,
+    fail(s"Can't retrieve productivity") IF dsReport.mapWith(_.getFirstValueFromTableColumn(RPT_TABLE, s"${RPT_PROD}_0_n")) ==? None
   ))
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,

@@ -40,6 +40,9 @@ class ReportsSpec extends Specification with ReportJsonProtocol with LazyLogging
       rs.attributes(3).asInstanceOf[ReportBooleanAttribute].value must beTrue
       rs.getAttributeValue("was_successful").get.asInstanceOf[Boolean] must beEqualTo(true)
       rs.getPlot("unit_test.unit_test.plotgroups", "unit_test.unit_test.plot_1") must beSome
+      rs.getTableValueFromColumn("report_table", "col1").length must beEqualTo(4)
+      // FIXME(mpkocher)(2017-7-17) The report values are [10, null, 5.931, "asdf"], which suggests there's a casting bug in the column
+      rs.getFirstValueFromTableColumn("report_table", "col1").map(_.asInstanceOf[Double]) must beSome(10.0)
     }
     "Load Report Version 1.0.0 schema " in {
 

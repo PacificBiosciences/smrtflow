@@ -70,27 +70,46 @@ object ReportModels {
 
     def getAttributeValue(attrId: String): Option[Any] =
       attributes.map(a => (a.id, a.value)).toMap.get(attrId)
+
     def getAttributeLongValue(attrId: String): Option[Long] = {
-      getAttributeValue(attrId) match {
-        case Some(x) => Some(x.asInstanceOf[Long])
-        case _ => None
-      }
+      getAttributeValue(attrId).map(_.asInstanceOf[Long])
     }
+
     def getAttributeDoubleValue(attrId: String): Option[Double] = {
-      getAttributeValue(attrId) match {
-        case Some(x) => Some(x.asInstanceOf[Double])
-        case _ => None
-      }
+      getAttributeValue(attrId).map(_.asInstanceOf[Double])
     }
 
     def getPlot(plotGroupId: String, plotId: String): Option[ReportPlot] = {
-      for (plotGroup <- plotGroups) {
-        if (plotGroup.id == plotGroupId) {
-          return plotGroup.plots.map(p => (p.id, p)).toMap.get(plotId)
-        }
-      }
-      None
+      plotGroups
+          .find(_.id == plotGroupId)
+          .flatMap(_.plots.find(_.id == plotId))
     }
+
+    /**
+      * This return all of the column values for a given column id and table id.
+      *
+      * @param tableId  Report Table Id
+      * @param columnId Report Column Id
+      * @return
+      */
+    def getTableValueFromColumn(tableId: String, columnId: String): Seq[Any] = {
+      tables
+          .find(_.id == tableId)
+          .flatMap(_.columns.find(_.id == columnId))
+          .map(_.values)
+          .getOrElse(Nil)
+    }
+
+    /**
+      * Returns the first value in the report table column for given table id and column id.
+      *
+      * @param tableId  Report Table Id
+      * @param columnId Report column Id
+      * @return
+      */
+    def getFirstValueFromTableColumn(tableId: String, columnId: String): Option[Any] =
+      getTableValueFromColumn(tableId, columnId).headOption
+
   }
 
   /**
@@ -166,7 +185,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
             case _ => None
           }
           val values = (for (value <- jsValues) yield value match {
-            case JsNumber(x) => x.doubleValue
+            case JsNumber(x) =>
+              // FIXME. This could be an Int
+              x.doubleValue
             case JsString(s) => s
             case JsBoolean(b) => b
             case _ => null
@@ -245,18 +266,11 @@ object ReportUtils extends ReportJsonProtocol {
   import ReportModels._
 
   private def toReportTable: ReportTable = {
-
-    def toC(id: String, nvalues: Int) = JsObject(Map(
-        "id" -> JsString(id),
-        "header" -> JsString(s"header $id"),
-        "values" -> JsArray((0 until nvalues).map(x => JsNumber(x * 2)).toVector)
-    ))
-
-    val nvalues = 10
-    val ncolumns = 5
-    val cs = (1 until ncolumns).map(x => toC(s"column_$x", nvalues))
-    ReportTable("report_table", Some("report title"), Seq[ReportTableColumn](
-      ReportTableColumn("col1", Some("Column 1"), Seq[Any](null, 10, 5.931, "asdf"))))
+    // This is very awkward. Each Column should be a single consistent type, e.g., Option[T], not Option[Any]
+    // These test values are perhaps not very useful or representative of reports generated in the current system.
+    // If this really is the case, then the reports should be tightened up and adhere to a schema.
+    val column = ReportTableColumn("col1", Some("Column 1"), Seq[Any](10, null, 5.931, "asdf"))
+    ReportTable("report_table", Some("report title"), Seq(column))
   }
 
   /**
@@ -331,7 +345,6 @@ object ReportUtils extends ReportJsonProtocol {
     * @return
     */
   def loadReport(path: Path): Report =
-    Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[Report]
-
+    FileUtils.readFileToString(path.toFile, "UTF-8").parseJson.convertTo[Report]
 
 }
