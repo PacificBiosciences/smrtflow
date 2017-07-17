@@ -15,21 +15,18 @@ class PacbioJsonProtocolSpec extends Specification {
       val m = Alarm("id", "name", "desc")
       m.name must beEqualTo("name")
       val x = m.toJson
-      println(x)
       m.id must beEqualTo("id")
     }
     "Manifest serialization" in {
       val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
       m.id must beEqualTo("myid")
       val x = m.toJson
-      println(x)
       m.version must beEqualTo("0.1.1")
     }
     "Manifest serialization with Components" in {
       val m = PacBioComponentManifest("myid", "myname", "0.1.1", "description")
       m.id must beEqualTo("myid")
       val x = m.toJson
-      println(x)
       m.version must beEqualTo("0.1.1")
     }
     "Load Example PacBio Manifest.json " in {
