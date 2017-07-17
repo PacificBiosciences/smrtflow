@@ -95,7 +95,7 @@ test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR
 test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/files.json
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
 
-test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-link
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-link tools-smrt-server-sim
 	@echo "PATH"
 	@echo $$PATH
 	@echo "TEST DATA"
