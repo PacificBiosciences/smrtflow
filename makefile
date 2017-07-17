@@ -100,6 +100,7 @@ test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-lin
 	@echo $$PATH
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
+	rm -rf jobs-root
 	sbt -batch -no-colors "smrt-server-sim/it:test"
 
 jsontest:
