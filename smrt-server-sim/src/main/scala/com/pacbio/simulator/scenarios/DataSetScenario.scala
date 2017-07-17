@@ -144,10 +144,6 @@ class DataSetScenario(host: String, port: Int)
     reports.mapWith(_.map(r => (r.reportTypeId, r.dataStoreFile.uuid)).toMap.get(reportId).get)
   }
 
-  private def getReportTableValue(report: Report, tableId: String, columnId: String): Option[Any] = {
-   report.getFirstValueFromTableColumn(tableId, columnId)
-  }
-
   private def getZipFileName(prefix: String) =
     Files.createTempDirectory("export").resolve(s"${prefix}.zip").toAbsolutePath
   private val subreadsZip = Var(getZipFileName("subreads"))
