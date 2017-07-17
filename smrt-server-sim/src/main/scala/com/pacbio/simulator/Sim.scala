@@ -45,7 +45,7 @@ object Sim extends App with LazyLogging{
     """Runs simulator scenarios.
       |
       |Includes the following scenario loaders:
-    """.stripMargin + "\n" + LOADERS.keys.map(name => s" - $name\n").reduce(_ + _)
+    """.stripMargin + "\n" + LOADERS.keys.toSeq.sorted.map(name => s" - $name\n").reduce(_ + _)
 
   val parser = new OptionParser[SimArgs](TOOL_ID) {
     head(s"Simulator Scenario Runner v$VERSION")

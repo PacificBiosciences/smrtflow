@@ -33,11 +33,17 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     */
   def loadPort() = conf.getInt(ScenarioConstants.PORT)
 
+  def getSubreadSetRoot(): Path = {
+    val testData = PacBioTestData()
+    testData.base.resolve("SubreadSet")
+  }
+
   def writeScenarioConf(port: Int, host: String = "localhost", output: Path): Path = {
     val sx =
       s"""
         |${ScenarioConstants.PORT} = $port
         |${ScenarioConstants.HOST} = $host
+        |datasetsPath = "$getSubreadSetRoot()}"
       """.stripMargin
     FileUtils.write(output.toFile, sx)
     logger.info(sx)
@@ -70,9 +76,20 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     "scenario-runner exe is in PATH" in {
       ExternalToolsUtils.which("scenario-runner") must beSome
     }
+    "Example Scenario" in {
+      runScenario("ExampleScenario") must beNone
+    }
     "DataSet Scenario" in {
-      logger.info("Running DataSet Scenario")
       runScenario("DataSetScenario") must beNone
+    }
+    "Pbsmrtpipe Scenario" in {
+      runScenario("PbsmrtpipeScenario") must beNone
+    }
+    "Merge DataSet Scenario" in {
+      runScenario("LargeMergeScenario") must beNone
+    }
+    "TechSupport Scenario" in {
+      runScenario("TechSupportScenario") must beNone
     }
   }
 }
