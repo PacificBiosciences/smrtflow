@@ -25,7 +25,7 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
 
   // NOTE, these test must be run serially to avoid import dataset collisions
   // Or make each test uniquely import dataset types
-  //sequential
+  sequential
 
   // Need to use the root dir to the data files
   private def getPacBioTestDataFilesJsonPath(): Path = {
