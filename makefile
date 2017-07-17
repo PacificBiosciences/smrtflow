@@ -1,3 +1,5 @@
+.PHONY: clean jsonclean dataclean
+
 SHELL=/bin/bash
 STRESS_RUNS=1
 STRESS_NAME=run
@@ -53,14 +55,13 @@ repl:
 
 get-pbdata: repos/PacBioTestData
 
-repos:
-	mkdir -p repos
-
 repos/chemistry-data-bundle:
-	cd repos && git clone http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/chemistry-data-bundle.git
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/chemistry-data-bundle.git
 
-repos/pacbiotestdata: repos
-	cd repos && git clone http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
+repos/pacbiotestdata:
+	mkdir -p repos
+	cd repos && git clone --depth 1 shttp://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
 
 
 import-pbdata: insert-pbdata
@@ -88,15 +89,13 @@ test-int-clean: db-reset-prod
 	rm -rf jobs-root
 
 
-test-int: tools-smrt-server-link tools-smrt-server-sim repos/pacbiotestdata repos/chemistry-data-bundle
 test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
 test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
 test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
 test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/files.json
-
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
 
-test-int: test-int-clean
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-link
 	@echo "PATH"
 	@echo $$PATH
 	@echo "TEST DATA"
