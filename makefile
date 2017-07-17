@@ -103,7 +103,7 @@ test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-lin
 	sbt -batch -no-colors "smrt-server-sim/it:test"
 
 jsontest:
-	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v './tmp/' | grep -v 'target/scala'`)
 	@for j in $(JSON); do \
 		echo $$j ;\
 		python -m json.tool $$j >/dev/null || exit 1 ;\
