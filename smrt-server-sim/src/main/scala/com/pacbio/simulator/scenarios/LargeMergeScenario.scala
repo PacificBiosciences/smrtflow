@@ -2,9 +2,9 @@
 package com.pacbio.simulator.scenarios
 
 import java.net.URL
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.io.{File, PrintWriter}
+import java.io.{File, FileNotFoundException, PrintWriter}
 
 import scala.collection._
 import akka.actor.ActorSystem
@@ -23,8 +23,13 @@ object LargeMergeScenarioLoader extends ScenarioLoader {
     require(config.isDefined, "Path to config file must be specified for LargeMergeScenario")
     val c: Config = config.get
 
-    new LargeMergeScenario(getHost(c), getPort(c),
-                           Paths.get(c.getString("datasetsPath")))
+    val dsRootPath = Paths.get(c.getString("datasetsPath"))
+
+    if (!Files.exists(dsRootPath)) {
+      throw new FileNotFoundException(s"Unable to find $dsRootPath")
+    }
+
+    new LargeMergeScenario(getHost(c), getPort(c), dsRootPath)
   }
 }
 

@@ -1,3 +1,5 @@
+.PHONY: clean jsonclean dataclean
+
 SHELL=/bin/bash
 STRESS_RUNS=1
 STRESS_NAME=run
@@ -33,7 +35,7 @@ tools-smrt-analysis:
 	sbt smrt-analysis/{compile,pack}
 
 tools-smrt-server-link:
-	sbt smrt-server-link/{compile,pack,assembly}
+	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
@@ -52,15 +54,21 @@ generate-test-pipeline-json:
 repl:
 	sbt smrtflow/test:console
 
-get-pbdata: PacBioTestData
+get-pbdata: repos/PacBioTestData
 
-PacBioTestData:
-	git clone https://github.com/PacificBiosciences/PacBioTestData.git
+repos/chemistry-data-bundle:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/chemistry-data-bundle.git
+
+repos/pacbiotestdata:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
+
 
 import-pbdata: insert-pbdata
 
 insert-pbdata:
-	pbservice import-dataset PacBioTestData --debug
+	pbservice import-dataset repos/pacbiotestdata --debug
 
 insert-mock-data:
 	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
@@ -78,30 +86,26 @@ start-smrt-server-link-jar:
 test: validate-pacbio-manifests
 	sbt -batch "test-only -- junitxml html console"
 
-test-int: tools-smrt-server-link tools-smrt-server-sim PacBioTestData
+test-int-clean: db-reset-prod
+	rm -rf jobs-root
 
+
+test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
+test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
 test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
-test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/PacBioTestData/data/files.json
-
+test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/files.json
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
 
-test-int:
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-link tools-smrt-server-sim
 	@echo "PATH"
 	@echo $$PATH
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
-	sbt "smrt-server-sim/it:test"
-
-test-int-install-pytools:
-	@echo "This should be done in a virtualenv!"
-	@echo "assuming virtualenvwrapper is installed"
-	virtualenv ./ve
-	. ./ve/bin/activate
-	pip install -r INT_REQUIREMENTS.txt
-	@echo "successfully installed integration testing tools"
+	rm -rf jobs-root
+	sbt -batch -no-colors "smrt-server-sim/it:test"
 
 jsontest:
-	$(eval JSON := `find . -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v './repos/' | grep -v './jobs-root/' | grep -v './tmp/' | grep -v 'target/scala'`)
 	@for j in $(JSON); do \
 		echo $$j ;\
 		python -m json.tool $$j >/dev/null || exit 1 ;\
@@ -174,3 +178,5 @@ validate-swagger-eve:
 
 validate-swagger: validate-swagger-smrtlink validate-swagger-eve
 
+check-shell:
+	shellcheck -e SC1091 extras/pbbundler/bamboo_build_smrtflow.sh

@@ -33,11 +33,17 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     */
   def loadPort() = conf.getInt(ScenarioConstants.PORT)
 
+  def getSubreadSetRoot(): Path = {
+    val testData = PacBioTestData()
+    testData.base.resolve("SubreadSet").toAbsolutePath
+  }
+
   def writeScenarioConf(port: Int, host: String = "localhost", output: Path): Path = {
     val sx =
       s"""
         |${ScenarioConstants.PORT} = $port
         |${ScenarioConstants.HOST} = $host
+        |datasetsPath = "$getSubreadSetRoot"
       """.stripMargin
     FileUtils.write(output.toFile, sx)
     logger.info(sx)
@@ -57,7 +63,9 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
       case Some(ex) =>
         logger.error(s"Error running scenario $scenarioType with error $ex")
         Some(ex)
-      case _ => None
+      case _ =>
+        logger.info(s"Successfully completed running $scenarioType")
+        None
     }
   }
 
@@ -70,9 +78,21 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     "scenario-runner exe is in PATH" in {
       ExternalToolsUtils.which("scenario-runner") must beSome
     }
+    "Example Scenario" in {
+      runScenario("ExampleScenario") must beNone
+    }
     "DataSet Scenario" in {
-      logger.info("Running DataSet Scenario")
       runScenario("DataSetScenario") must beNone
+    }
+    "Merge DataSet Scenario" in {
+      runScenario("LargeMergeScenario") must beNone
+    }
+//    "TechSupport Scenario" in {
+//      // This requires the system to be configured/mocked with the SMRT Link System Root with the necessary dirs
+//      runScenario("TechSupportScenario") must beNone
+//    }
+    "Pbsmrtpipe Scenario" in {
+      runScenario("PbsmrtpipeScenario") must beNone
     }
   }
 }

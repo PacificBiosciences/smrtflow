@@ -74,6 +74,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     super.startup()
 
     val dataSource = providers.dbConfig.toDataSource
+    logger.info(s"Database configuration ${providers.dbConfig}")
 
     // Is this necessary because there's not an explicit dep on this?
     val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()

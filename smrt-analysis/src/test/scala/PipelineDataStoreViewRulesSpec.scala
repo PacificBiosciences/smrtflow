@@ -24,7 +24,7 @@ class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJson
       val name = "pipeline_datastore_view_rules-dev-01.json"
       val p = getTestResource(name)
       val x = Source.fromFile(p.toFile).mkString
-      println(x)
+      // println(x)
       val pipelineTemplateRules = x.parseJson.convertTo[PipelineDataStoreViewRules]
       pipelineTemplateRules.pipelineId must beEqualTo("pbsmrtpipe.pipelines.dev_01")
     }
@@ -33,7 +33,7 @@ class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJson
       val r2 = DataStoreFileViewRule("source-id-2", FileTypes.FASTA.fileTypeId, isHidden = true, None, None)
       val p = PipelineDataStoreViewRules("pipeline-id", Seq(r1), "0.1.2-fe4516")
       val sx = p.toJson.prettyPrint
-      println(sx)
+      //println(sx)
       (sx.length > 0) must beTrue
     }
     "Load PipelineDataStoreViewRules from JSON string" in {
