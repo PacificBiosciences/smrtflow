@@ -11,6 +11,7 @@ import com.pacbio.common.models.PacBioComponentManifest
 import com.pacbio.common.services.ServiceComposer
 import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
 import com.pacbio.secondary.analysis.engine.EngineConfig
+import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -86,6 +87,15 @@ class JobManagerService(
             complete {
               ok {
                 (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
+              }
+            }
+          } ~
+          put {
+            entity(as[DataStoreFileUpdateRequest]) { sopts =>
+              complete {
+                ok {
+                  (dbActor ? UpdateDataStoreFile(datastoreFileUUID, sopts.isActive, sopts.path, sopts.fileSize)).mapTo[MessageResponse]
+                }
               }
             }
           }

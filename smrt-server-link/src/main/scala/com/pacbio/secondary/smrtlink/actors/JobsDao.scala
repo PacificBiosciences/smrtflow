@@ -1407,9 +1407,16 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
   }
 
-  def updateDataStoreFile(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
+  def updateDataStoreFile(id: UUID, path: Option[String] = None, fileSize: Option[Long] = None, setIsActive: Boolean = true): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.path, f.modifiedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
+    val q1 = for {
+      d <- datastoreServiceFiles.filter(_.uuid === id)
+    } yield d
+    val q2 = List(
+      path.map(_ => q1.map(f => (f.isActive, f.path, f.modifiedAt)).update((setIsActive, path.get, now))),
+      fileSize.map(_ => q1.map(f => (f.isActive, f.fileSize, f.modifiedAt)).update((setIsActive, fileSize.get, now)))
+    ).flatten
+    db.run(DBIO.sequence(q2)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path, fileSize=$fileSize and isActive=$setIsActive"))
   }
 
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {

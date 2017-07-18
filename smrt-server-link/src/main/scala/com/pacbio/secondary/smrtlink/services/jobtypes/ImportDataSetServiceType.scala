@@ -58,7 +58,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
       dsMini <- Future.fromTry(Try(getDataSetMiniMeta(Paths.get(sopts.path))))
       ds <- (dbActor ? GetDataSetMetaByUUID(dsMini.uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
-      m1 <- (dbActor ? UpdateDataStoreFile(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
+      m1 <- (dbActor ? UpdateDataStoreFile(dsMini.uuid, true, Some(sopts.path))).mapTo[MessageResponse]
       m2 <- (dbActor ? UpdateDataSetByUUID(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
       _ <- Future.successful(andLog(s"$m1 $m2"))
     } yield engineJob
