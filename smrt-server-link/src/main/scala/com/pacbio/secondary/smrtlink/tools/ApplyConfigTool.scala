@@ -462,7 +462,7 @@ object ApplyConfigUtils extends LazyLogging{
 
 object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
-  val VERSION = "0.2.0"
+  val VERSION = "0.2.1"
   val DESCRIPTION = "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
   val toolId = "smrtflow.tools.apply_config"
 
@@ -516,5 +516,5 @@ object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
 object ApplyConfigToolApp extends App {
   import ApplyConfigTool._
-  runnerWithArgs(args)
+  runnerWithArgsAndExit(args)
 }
