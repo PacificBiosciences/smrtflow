@@ -39,8 +39,6 @@ packMain := Map(
   "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtlink.testkit.TestkitRunnerApp",
   "smrt-db-tool" -> "com.pacbio.secondary.smrtlink.tools.DatabaseToolApp",
   "amclient" -> "com.pacbio.secondary.smrtlink.tools.AmClientApp",
-  "bundler-migrate-legacy-db" -> "com.pacbio.secondary.smrtlink.database.legacy.SqliteToPostgresConverterApp",
-  "bundler-migrate-legacy-config" -> "com.pacbio.secondary.smrtlink.tools.LegacyConvertConfigJsonToolApp",
   "bundler-validate-config" -> "com.pacbio.secondary.smrtlink.tools.BundlerConfigApp",
   "bundler-get-status" -> "com.pacbio.secondary.smrtlink.tools.GetSystemStatusToolApp",
   "bundler-apply-config" -> "com.pacbio.secondary.smrtlink.tools.ApplyConfigToolApp",

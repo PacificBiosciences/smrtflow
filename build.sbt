@@ -11,7 +11,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.6.8-SNAPSHOT"
+version in ThisBuild := "0.7.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -108,7 +108,6 @@ lazy val baseSettings = Seq(
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
   "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test,it",
-  "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",

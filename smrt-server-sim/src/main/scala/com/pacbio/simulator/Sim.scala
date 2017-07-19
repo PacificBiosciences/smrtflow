@@ -33,7 +33,6 @@ object Sim extends App with LazyLogging{
     "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
     "StressTest" -> StressTestScenarioLoader,
     "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader,
-    "SqliteToPostgresScenario" -> SqliteToPostgresScenarioLoader,
     "UpgradeScenario" -> UpgradeScenarioLoader,
     "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
     "LargeMergeScenario" -> LargeMergeScenarioLoader,
