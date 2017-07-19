@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Files, Path}
+import java.nio.file.{StandardCopyOption, Files, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
@@ -319,7 +319,7 @@ object ApplyConfigUtils extends LazyLogging{
    * disable metrics
    */
   def updateMetricsConfig(outputPath: Path, metricsXml: Path) = {
-    Files.copy(metricsXml, outputPath)
+    Files.copy(metricsXml, outputPath, StandardCopyOption.REPLACE_EXISTING)
   }
 
   /**
@@ -462,7 +462,7 @@ object ApplyConfigUtils extends LazyLogging{
 
 object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
-  val VERSION = "0.2.0"
+  val VERSION = "0.2.1"
   val DESCRIPTION = "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
   val toolId = "smrtflow.tools.apply_config"
 
@@ -516,5 +516,5 @@ object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
 object ApplyConfigToolApp extends App {
   import ApplyConfigTool._
-  runnerWithArgs(args)
+  runnerWithArgsAndExit(args)
 }
