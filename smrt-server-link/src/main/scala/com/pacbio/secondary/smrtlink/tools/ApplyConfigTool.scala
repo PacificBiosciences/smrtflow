@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Files, Path}
+import java.nio.file.{StandardCopyOption, Files, Path}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
@@ -319,7 +319,7 @@ object ApplyConfigUtils extends LazyLogging{
    * disable metrics
    */
   def updateMetricsConfig(outputPath: Path, metricsXml: Path) = {
-    Files.copy(metricsXml, outputPath)
+    Files.copy(metricsXml, outputPath, StandardCopyOption.REPLACE_EXISTING)
   }
 
   /**
