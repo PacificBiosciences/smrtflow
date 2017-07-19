@@ -30,6 +30,8 @@ object Converters {
   val DEFAULT_CONTEXT = UNKNOWN
   val DEFAULT_INST = UNKNOWN
   val DEFAULT_BSAMPLE_NAME = UNKNOWN
+  val DEFAULT_CELL_ID = UNKNOWN
+  val DEFAULT_INST_CTL_VERSION = UNKNOWN
 
   def toMd5(text: String): String = MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
 
@@ -58,8 +60,11 @@ object Converters {
     val metadataCreatedBy = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getRunDetails.getCreatedBy) } getOrElse None
     val contextId = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getContext).getOrElse(DEFAULT_CONTEXT) } getOrElse DEFAULT_CONTEXT
     val instrumentName = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstrumentName).getOrElse(DEFAULT_INST) } getOrElse DEFAULT_INST
+    val instrumentControlVersion = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstCtrlVer).getOrElse(DEFAULT_INST_CTL_VERSION)} getOrElse(DEFAULT_INST_CTL_VERSION)
 
     val bioSampleName = Try { Option(dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getName).getOrElse(DEFAULT_BSAMPLE_NAME) } getOrElse DEFAULT_BSAMPLE_NAME
+
+    val cellId = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getCellPac.getBarcode).getOrElse(DEFAULT_CELL_ID)}.getOrElse(DEFAULT_CELL_ID)
 
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords} getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
@@ -76,11 +81,13 @@ object Converters {
       comments, tags,
       md5,
       instrumentName,
+      instrumentControlVersion,
       contextId,
       wellSampleName,
       wellName,
       bioSampleName,
       cellIndex,
+      cellId,
       runName,
       createdBy.orElse(metadataCreatedBy),
       jobId,

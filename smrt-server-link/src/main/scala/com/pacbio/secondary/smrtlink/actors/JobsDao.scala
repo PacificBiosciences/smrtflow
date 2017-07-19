@@ -1021,7 +1021,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   // util for converting to the old model
   def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
     SubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
-      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.createdBy, t1.jobId, t1.projectId)
+      t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.instrumentControlVersion, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.cellId ,t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
   // FIXME. REALLY, REALLY need to generalize this.
   def getSubreadDataSetById(id: Int): Future[SubreadServiceDataSet] = {

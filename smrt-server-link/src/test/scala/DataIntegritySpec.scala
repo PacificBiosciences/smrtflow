@@ -48,8 +48,8 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
       val p2 = Files.createTempFile("subreadset", "s1")
 
       val s1 = SubreadServiceDataSet(-1, u1, "Test", p1.toString, createdAt, updatedAt, 1L, 1L,
-        "1.0.0", "Comments", "tag,tag2", "md5", "inst-name", "mcontext", "well-s-name", "well-name",
-        "bio-sample", 1, "run-name", None, 1, 1)
+        "1.0.0", "Comments", "tag,tag2", "md5", "inst-name", "ics-ctl-version", "mcontext", "well-s-name", "well-name",
+        "bio-sample", 1, "cell-id", "run-name", None, 1, 1)
 
       val s2 = s1.copy(path = p2.toString, uuid = u2)
 
