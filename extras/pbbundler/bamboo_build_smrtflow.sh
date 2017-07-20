@@ -97,6 +97,12 @@ cd "${SMRTFLOW_ROOT_DIR}"
 
 # Sanity test
 which python
+echo "Printing PacBio core python package versions"
+python -c 'import pbcommand; print pbcommand.get_version()'
+python -c 'import pbcore; print pbcore.__VERSION__'
+python -c 'import pbsmrtpipe; print pbsmrtpipe.get_version()'
+python -c 'import pbcoretools; print pbcoretools.__VERSION__'
+
 dataset --help
 pbsmrtpipe --help
 python -m pbreports.report.mapping_stats --help
