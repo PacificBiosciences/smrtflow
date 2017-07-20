@@ -327,6 +327,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }
 
+  def updateDataStoreFile(fileId: UUID,
+                          isActive: Boolean = true,
+                          path: Option[Path] = None,
+                          fileSize: Option[Long] = None) = getMessageResponsePipeline {
+    Put(toUrl(ROOT_DATASTORE + s"/$fileId"),
+        DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize))
+  }
+
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
     Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }*/

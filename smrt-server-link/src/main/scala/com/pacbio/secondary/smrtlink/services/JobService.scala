@@ -200,6 +200,15 @@ trait JobService
               (dbActor ? GetDataStoreFileByUUID(datastoreFileUUID)).mapTo[DataStoreServiceFile]
             }
           }
+        } ~
+        put {
+          entity(as[DataStoreFileUpdateRequest]) { sopts =>
+            complete {
+              ok {
+                (dbActor ? UpdateDataStoreFile(datastoreFileUUID, sopts.isActive, sopts.path, sopts.fileSize)).mapTo[MessageResponse]
+              }
+            }
+          }
         }
       } ~
       path(JOB_OPTIONS) {

@@ -878,9 +878,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def insertSubreadDataSet(ds: SubreadServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[SubreadServiceDataSet](ds, "SubreadSet",
       (id) => { dsSubread2 forceInsert SubreadServiceSet(id, ds.uuid,
-          "cell-id", ds.metadataContextId, ds.wellSampleName, ds.wellName,
-          ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
-          ds.runName, "instrument-ctr-version") })
+        ds.cellId, ds.metadataContextId, ds.wellSampleName, ds.wellName,
+        ds.bioSampleName, ds.cellIndex, ds.instrumentName, ds.instrumentName,
+        ds.runName, ds.instrumentControlVersion) })
 
   def insertHdfSubreadDataSet(ds: HdfSubreadServiceDataSet): Future[MessageResponse] =
     insertDataSetSafe[HdfSubreadServiceDataSet](ds, "HdfSubreadSet",
@@ -1288,11 +1288,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * @param setIsActive activity of the file
     * @return
     */
-  def updateDataStoreFile(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
-    db.run(datastoreServiceFiles.filter(_.uuid === id)
-        .map(f => (f.isActive, f.path, f.modifiedAt))
-        .update(setIsActive, path, JodaDateTime.now()))
-        .map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
+  def updateDataStoreFile(id: UUID, path: Option[String] = None, fileSize: Option[Long] = None, setIsActive: Boolean = true): Future[MessageResponse] = {
+    val now = JodaDateTime.now()
+    val q1 = datastoreServiceFiles.filter(_.uuid === id)
+    val q2 = List(
+      path.map(p => q1.map(f => (f.isActive, f.path, f.modifiedAt)).update((setIsActive, p, now))),
+      fileSize.map(fsize => q1.map(f => (f.isActive, f.fileSize, f.modifiedAt)).update((setIsActive, fsize, now)))
+    ).flatten
+    db.run(DBIO.sequence(q2)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path, fileSize=$fileSize and isActive=$setIsActive"))
   }
 
   /**
