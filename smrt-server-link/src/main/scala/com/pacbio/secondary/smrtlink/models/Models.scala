@@ -660,6 +660,7 @@ case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: S
 case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
 
 case class DataSetUpdateRequest(isActive: Boolean)
+case class DataStoreFileUpdateRequest(isActive: Boolean, path: Option[String] = None, fileSize: Option[Long] = None)
 
 // Bundle Related Models
 

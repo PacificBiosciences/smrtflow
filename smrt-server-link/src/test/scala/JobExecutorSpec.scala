@@ -175,6 +175,37 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         status.isSuccess must beTrue
       }
     }
+    "update job datastore" in {
+      var dsFiles = Seq.empty[DataStoreServiceFile]
+      while (dsFiles.size == 0) {
+        Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
+          status.isSuccess must beTrue
+          dsFiles = responseAs[Seq[DataStoreServiceFile]]
+        }
+      }
+      val uuid = dsFiles.head.uuid
+      val r = DataStoreFileUpdateRequest(false, Some("/tmp/foo"), Some(12345))
+      Put(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, s"datastore/$uuid"), r) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
+        val dsFiles2 = responseAs[Seq[DataStoreServiceFile]]
+        val f = dsFiles2.find(_.uuid == uuid).head
+        f.path must beEqualTo("/tmp/foo")
+        f.fileSize must beEqualTo(12345)
+      }
+      val r2 = DataStoreFileUpdateRequest(true, Some(dsFiles.head.path), None)
+      // also check central datastore-files endpoint
+      Put(s"/$ROOT_SERVICE_PREFIX/datastore-files/$uuid", r2) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
+        val dsFiles2 = responseAs[Seq[DataStoreServiceFile]]
+        val f = dsFiles2.find(_.uuid == uuid).head
+        f.path must beEqualTo(dsFiles.head.path)
+        f.fileSize must beEqualTo(12345)
+      }
+    }
     "access job reports" in {
       Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
