@@ -165,6 +165,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Analysis log file size is 0") IF dataStore.mapWith{ ds =>
       ds.filter(_.sourceId == "pbsmrtpipe::pbsmrtpipe.log").head.fileSize
     } ==? 0,
+    fail("Master log file size is 633 bytes") IF dataStore.mapWith{ ds =>
+      ds.filter(_.sourceId == "pbsmrtpipe::master.log").head.fileSize
+    } ==? 633, // for some reason this is the size it starts at
     jobReports := GetAnalysisJobReports(jobId),
     fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
     report := GetReport(jobReports.mapWith(_(0).dataStoreFile.uuid)),
