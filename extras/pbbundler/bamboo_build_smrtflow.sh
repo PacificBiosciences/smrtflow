@@ -68,7 +68,7 @@ if [[ "${env_status}" -eq 0 ]]; then
     echo "Env ${env_name} was already created. Using cached env"
 else
     echo "Creating ${env_name}"
-    conda create --quiet --yes -n "${env_name}" numpy cython matplotlib
+    conda create --quiet --yes -n "${env_name}" numpy cython matplotlib scipy
 fi
 
 source activate "${env_name}"
@@ -79,18 +79,38 @@ conda install --quiet --yes -c bioconda ngmlr
 
 # Install all PB py dependencies
 pip install -r "${ROOT_REPOS}/pbcommand/REQUIREMENTS.txt"
+x=$(pip freeze | grep pbcommand | wc -l)
+if [[ "$x" ne 0 ]] ; then
+    pip uninstall -y pbcommand
+fi
 pip install "${ROOT_REPOS}/pbcommand"
 
 pip install -r "${ROOT_REPOS}/pbcore/requirements.txt"
+x=$(pip freeze | grep pbcore | wc -l)
+if [[ "$x" ne 0 ]] ; then
+    pip uninstall -y pbcore
+fi
 pip install "${ROOT_REPOS}/pbcore"
 
 pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
+x=$(pip freeze | grep pbcoretools | wc -l)
+if [[ "$x" ne 0 ]] ; then
+    pip uninstall -y pbcoretools
+fi
 pip install "${ROOT_REPOS}/pbcoretools"
 
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
+x=$(pip freeze | grep pbreports | wc -l)
+if [[ "$x" ne 0 ]] ; then
+    pip uninstall -y pbreports
+fi
 pip install "${ROOT_REPOS}/pbreports"
 
 pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
+x=$(pip freeze | grep pbsmrtpipe | wc -l)
+if [[ "$x" ne 0 ]] ; then
+    pip uninstall -y pbsmrtpipe
+fi
 pip install "${ROOT_REPOS}/pbsmrtpipe"
 
 cd "${SMRTFLOW_ROOT_DIR}"
