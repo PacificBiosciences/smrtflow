@@ -93,6 +93,7 @@ class DirectPbsmrtpipeJobType(
       entryPoints,
       jsonSettings.toString(),
       user.map(_.userId),
+      user.flatMap(_.userEmail),
       smrtLinkVersion)
   }
 

@@ -75,7 +75,7 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
       val u2 = UUID.fromString("217daf0a-2e7c-11e7-905d-3c15c2cc8f88")
 
       val j1 = EngineJob(-1, u1, "Test Job", "comment", createdAt, createdAt,
-        AnalysisJobStates.CREATED, "import-dataset", "/tmp/job-dir", "{}", None,
+        AnalysisJobStates.CREATED, "import-dataset", "/tmp/job-dir", "{}", None, None,
         Some(smrtLinkSystemVersion))
 
       val j2 = j1.copy(state = AnalysisJobStates.SUCCESSFUL, uuid = u2)

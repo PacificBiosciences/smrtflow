@@ -116,6 +116,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
         Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
         mergeDataSetOptions.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
     }
   }

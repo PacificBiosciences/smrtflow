@@ -88,6 +88,7 @@ object JobsDaoActor {
       engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
       jsonSettings: String,
       createdBy: Option[String],
+      createdByEmail: Option[String],
       smrtLinkVersion: Option[String]) extends JobMessage
 
   case class GetJobChildrenByUUID(jobId: UUID) extends JobMessage
@@ -687,8 +688,8 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion) =>
-      val fx = dao.createJob(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, smrtLinkVersion)
+    case CreateJobType(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion) =>
+      val fx = dao.createJob(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion)
       fx onSuccess { case _ => self ! CheckForRunnableJob}
       //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
       pipeWith(fx)
@@ -720,7 +721,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     case GetUserProjects(login) => pipeWith(dao.getUserProjects(login))
 
     case SubmitDbBackUpJob(user: String, dbConfig: DatabaseConfig, rootBackUpDir: Path) => {
-
+      // The use of "user" here is perhaps misleading. This is not the wso2 user "id". This duplication
+      // is generated because of the raw/naked service calls to SL backend that don't go through wso2
+      // and hence, don't use the JWT to encode the user metadata.
       val uuid = UUID.randomUUID()
       val name = s"Automated DB BackUp Job by $user"
       val comment = s"Quartz Scheduled Automated DB BackUp Job by $user"
@@ -735,7 +738,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
       val coreJob = CoreJob(uuid, jobOpts)
       val cJob = CreateJobType(uuid, name, comment, JobTypeIds.DB_BACKUP.id, coreJob, None,
-        opts.toJson.toString(), Some(user), None)
+        opts.toJson.toString(), Some(user), None, None)
 
       log.info(s"Automated DB backup request created $cJob")
 

@@ -80,6 +80,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
       Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, opts.datasetType))),
       opts.toJson.toString(),
       user.map(_.userId),
+      user.flatMap(_.userEmail),
       smrtLinkVersion)
 }
 

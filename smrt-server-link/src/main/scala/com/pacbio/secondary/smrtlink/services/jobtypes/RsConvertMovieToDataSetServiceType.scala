@@ -41,6 +41,7 @@ class RsConvertMovieToDataSetServiceType(dbActor: ActorRef,
       None,
       jsonSettings,
       user.map(_.userId),
+      user.flatMap(_.userEmail),
       smrtLinkVersion)
   }
 }

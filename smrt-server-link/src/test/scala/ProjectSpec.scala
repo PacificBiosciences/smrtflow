@@ -345,7 +345,7 @@ with SmrtLinkConstants with TestUtils{
         cJob = CoreJob(UUID.randomUUID(), opts)
         jobToMove <- dao.createJob(
           cJob.uuid, "test", "", jobType, cJob, Some(List(entryPoint)),
-          jsonSettings, None, None)
+          jsonSettings, None, None, None)
       } yield (jobToMove, dsToMove)
 
       val (jobToMove, dsToMove) = Await.result(jobFut, 30 seconds)

@@ -143,6 +143,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
+    def createdByEmail: Rep[Option[String]] = column[Option[String]]("created_by_email")
+
     def smrtLinkVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_version")
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
@@ -156,7 +158,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
+    def * = (id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, createdByEmail, smrtLinkVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 

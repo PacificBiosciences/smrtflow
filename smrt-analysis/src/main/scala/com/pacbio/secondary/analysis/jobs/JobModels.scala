@@ -240,6 +240,7 @@ object JobModels {
       path: String,
       jsonSettings: String,
       createdBy: Option[String],
+      createdByEmail: Option[String],
       smrtlinkVersion: Option[String],
       isActive: Boolean = true,
       errorMessage: Option[String] = None,
@@ -262,6 +263,7 @@ object JobModels {
           path: String,
           jsonSettings: String,
           createdBy: Option[String],
+          createdByEmail: Option[String],
           smrtlinkVersion: Option[String],
           isActive: Boolean = true,
           errorMessage: Option[String] = None,
@@ -270,7 +272,7 @@ object JobModels {
           // This might not be the best idea.
           val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, isActive, errorMessage, projectId)
+          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy,  createdByEmail, smrtlinkVersion, isActive, errorMessage, projectId)
       }
   }
 

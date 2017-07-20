@@ -65,6 +65,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
         None,
         sopts.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
   }
   override def createEngineJob(dbActor: ActorRef,

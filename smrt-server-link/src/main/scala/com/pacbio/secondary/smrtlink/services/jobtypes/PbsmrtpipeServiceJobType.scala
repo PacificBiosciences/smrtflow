@@ -107,6 +107,7 @@ class PbsmrtpipeServiceJobType(
         Some(xs.map(_._1)),
         ropts.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
     }
 
