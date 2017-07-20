@@ -15,6 +15,7 @@ object JwtUtils {
   // Required
   val USERNAME_CLAIM = "http://wso2.org/claims/enduser"
   val ROLES_CLAIM = "http://wso2.org/claims/role"
+  val USER_EMAIL_CLAIM = "http://wso2.org/claims/emailaddress"
 
   // Optional
   val FIRST_NAME_CLAIM = "http://wso2.org/claims/givenname"
@@ -56,6 +57,7 @@ class JwtUtilsImpl extends JwtUtils {
       ur <- Try {
         UserRecord(
           extractUsername(cm(USERNAME_CLAIM).asInstanceOf[String]),
+          cm.get(USER_EMAIL_CLAIM).map(_.asInstanceOf[String]),
           cm.get(FIRST_NAME_CLAIM).map(_.asInstanceOf[String]),
           cm.get(LAST_NAME_CLAIM).map(_.asInstanceOf[String]),
           cm(ROLES_CLAIM).asInstanceOf[List[String]].toSet)

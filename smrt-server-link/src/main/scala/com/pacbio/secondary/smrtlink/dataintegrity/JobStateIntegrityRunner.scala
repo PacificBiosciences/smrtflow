@@ -77,8 +77,8 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
     val errorMessage = engineJob.errorMessage.getOrElse("") + m
     logger.info(m)
     for {
-      _ <- dao.updateJobStateByUUID(engineJob.uuid, AnalysisJobStates.FAILED, errorMessage)
-      updatedJob <- dao.getJobByIdAble(engineJob.id)
+      _ <- dao.updateJobState(engineJob.uuid, AnalysisJobStates.FAILED, errorMessage)
+      updatedJob <- dao.getJobById(engineJob.id)
     } yield updatedJob
   }
 

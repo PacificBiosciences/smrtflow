@@ -41,6 +41,7 @@ class DbBackUpServiceJobType(dbActor: ActorRef, authenticator: Authenticator, db
 
     val errorMessage = "System is not Configured with database backup dir. Unable to create db backup job"
 
+    // Note, this is not the user from wso2
     val createdBy = Some(opts.user)
     val uuid = UUID.randomUUID()
     val name = s"DB BackUp Job " + createdBy.map(u => s"By User $u").getOrElse("")
@@ -54,7 +55,7 @@ class DbBackUpServiceJobType(dbActor: ActorRef, authenticator: Authenticator, db
         dbPassword = dbConfig.password)
 
       val coreJob = CoreJob(uuid, jobOpts)
-      val cJob = CreateJobType(uuid, name, opts.comment, endpoint, coreJob, None, opts.toJson.toString(), createdBy, None)
+      val cJob = CreateJobType(uuid, name, opts.comment, endpoint, coreJob, None, opts.toJson.toString(), createdBy, None, None)
 
       Future.successful(cJob)
     }.getOrElse(Future.failed(throw new UnprocessableEntityError(errorMessage)))

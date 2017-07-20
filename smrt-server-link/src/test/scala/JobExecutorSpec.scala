@@ -55,8 +55,6 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   DeleteJobServiceTypeProvider with
   JobsDaoActorProvider with
   StatusGeneratorProvider with
-  EngineManagerActorProvider with
-  EngineDaoActorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with

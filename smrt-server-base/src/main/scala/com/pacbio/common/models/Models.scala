@@ -88,7 +88,21 @@ case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, leve
 
 // Users
 
+/**
+  * User data model
+  *
+  * @param userId  User "Id" Example: mskinner This this user primary key that is used in the SL db.
+  * @param userEmail User email address
+  * @param firstName User first name
+  * @param lastName  User last name
+  * @param roles     Roles of the specific user
+  *
+  * MK. I strongly believe that email address should have been used as the primary key as the user id.
+  *
+  * Currently, this is creating the "userId" from the "enduser" wso2 claim. See the JwtUtils for details
+  */
 case class UserRecord(userId: String,
+                      userEmail: Option[String] = None,
                       firstName: Option[String] = None,
                       lastName: Option[String] = None,
                       roles: Set[String] = Set.empty) {

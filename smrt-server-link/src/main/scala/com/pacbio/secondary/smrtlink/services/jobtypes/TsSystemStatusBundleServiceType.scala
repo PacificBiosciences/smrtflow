@@ -55,6 +55,7 @@ class TsSystemStatusBundleServiceType(dbActor: ActorRef, authenticator: Authenti
         None,
         opts.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
     }
 

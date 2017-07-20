@@ -46,8 +46,6 @@ with JobServiceConstants with TestUtils{
   SimpleServiceJobTypeProvider with
   JobsDaoActorProvider with
   StatusGeneratorProvider with
-  EngineManagerActorProvider with
-  EngineDaoActorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with

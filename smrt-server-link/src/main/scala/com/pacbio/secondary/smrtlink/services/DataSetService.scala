@@ -9,7 +9,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-
 import shapeless.HNil
 import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
@@ -17,13 +16,11 @@ import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-
-
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{UserRecord, PacBioComponentManifest}
+import com.pacbio.common.models.{CommonModelImplicits, PacBioComponentManifest, UserRecord}
 import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,MethodNotImplementedError}
+import com.pacbio.common.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
@@ -42,8 +39,9 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
   // For all the Message types
 
   import JobsDaoActor._
+  import CommonModelImplicits._
 
-  // For all the serialzation protocols
+  // For all the serialization protocols
 
   import SmrtLinkJsonProtocols._
 
@@ -81,10 +79,8 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
       GetDataSets: (Int, Boolean, Seq[Int]) => Any,
-      GetDataSetById: Int => Any,
-      GetDataSetByUUID: UUID => Any,
-      GetDetailsById: Int => Any,
-      GetDetailsByUUID: UUID => Any)(
+      GetDataSetById: IdAble => Any,
+      GetDetailsById: IdAble => Any)(
       implicit ct: ClassTag[R],
       ma: Marshaller[R],
       sm: Marshaller[Seq[R]]): Route =
@@ -108,7 +104,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
             get {
               complete {
                 ok {
-                  (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+                  (dbActor ? GetDataSetById(id)).mapTo[R]
                 }
               }
             } ~
@@ -119,7 +115,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
                     if (sopts.isActive) {
                       throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
                     } else {
-                      (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                      (dbActor ? DeleteDataSetById(id)).mapTo[MessageResponse]
                     }
                   }
                 }
@@ -131,7 +127,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
               respondWithMediaType(MediaTypes.`application/json`) {
                 complete {
                   ok {
-                    (dbActor ? id.map(GetDetailsById, GetDetailsByUUID)).mapTo[String]
+                    (dbActor ? GetDetailsById(id)).mapTo[String]
                   }
                 }
               }
@@ -141,7 +137,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
             get {
               complete {
                 ok {
-                  val dataset: Future[R] = (dbActor ? id.map(GetDataSetById, GetDataSetByUUID)).mapTo[R]
+                  val dataset: Future[R] = (dbActor ? GetDataSetById(id)).mapTo[R]
                   val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
                     (dbActor ? GetDataStoreReportFilesByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
                   }
@@ -183,7 +179,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
         get {
           complete {
             ok {
-              (dbActor ? id.map(GetDataSetMetaById, GetDataSetMetaByUUID)).mapTo[DataSetMetaDataSet]
+              (dbActor ? GetDataSetMetaById(id)).mapTo[DataSetMetaDataSet]
             }
           }
         } ~
@@ -194,7 +190,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
                 if (sopts.isActive) {
                   throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
                 } else {
-                  (dbActor ? id.map(DeleteDataSetById, DeleteDataSetByUUID)).mapTo[MessageResponse]
+                  (dbActor ? DeleteDataSetById(id)).mapTo[MessageResponse]
                 }
               }
             }
@@ -214,65 +210,47 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
         DataSetMetaTypes.Subread.shortName,
         GetSubreadDataSets,
         GetSubreadDataSetById,
-        GetSubreadDataSetByUUID,
-        GetSubreadDataSetDetailsById,
-        GetSubreadDataSetDetailsByUUID) ~
+        GetSubreadDataSetDetailsById) ~
       datasetRoutes[HdfSubreadServiceDataSet](
         DataSetMetaTypes.HdfSubread.shortName,
         GetHdfSubreadDataSets,
         GetHdfSubreadDataSetById,
-        GetHdfSubreadDataSetByUUID,
-        GetHdfSubreadDataSetDetailsById,
-        GetHdfSubreadDataSetDetailsByUUID) ~
+        GetHdfSubreadDataSetDetailsById) ~
       datasetRoutes[AlignmentServiceDataSet](
         DataSetMetaTypes.Alignment.shortName,
         GetAlignmentDataSets,
         GetAlignmentDataSetById,
-        GetAlignmentDataSetByUUID,
-        GetAlignmentDataSetDetailsById,
-        GetAlignmentDataSetDetailsByUUID) ~
+        GetAlignmentDataSetDetailsById) ~
       datasetRoutes[ReferenceServiceDataSet](
         DataSetMetaTypes.Reference.shortName,
         GetReferenceDataSets,
         GetReferenceDataSetById,
-        GetReferenceDataSetByUUID,
-        GetReferenceDataSetDetailsById,
-        GetReferenceDataSetDetailsByUUID) ~
+        GetReferenceDataSetDetailsById) ~
       datasetRoutes[GmapReferenceServiceDataSet](
         DataSetMetaTypes.GmapReference.shortName,
         GetGmapReferenceDataSets,
         GetGmapReferenceDataSetById,
-        GetGmapReferenceDataSetByUUID,
-        GetGmapReferenceDataSetDetailsById,
-        GetGmapReferenceDataSetDetailsByUUID) ~
+        GetGmapReferenceDataSetDetailsById) ~
       datasetRoutes[BarcodeServiceDataSet](
         DataSetMetaTypes.Barcode.shortName,
         GetBarcodeDataSets,
         GetBarcodeDataSetById,
-        GetBarcodeDataSetByUUID,
-        GetBarcodeDataSetDetailsById,
-        GetBarcodeDataSetDetailsByUUID) ~
+        GetBarcodeDataSetDetailsById) ~
       datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
         GetConsensusReadDataSets,
         GetConsensusReadDataSetById,
-        GetConsensusReadDataSetByUUID,
-        GetConsensusReadDataSetDetailsById,
-        GetConsensusReadDataSetDetailsByUUID) ~
+        GetConsensusReadDataSetDetailsById) ~
       datasetRoutes[ConsensusAlignmentServiceDataSet](
         DataSetMetaTypes.AlignmentCCS.shortName,
         GetConsensusAlignmentDataSets,
         GetConsensusAlignmentDataSetById,
-        GetConsensusAlignmentDataSetByUUID,
-        GetConsensusAlignmentDataSetDetailsById,
-        GetConsensusAlignmentDataSetDetailsByUUID) ~
+        GetConsensusAlignmentDataSetDetailsById) ~
       datasetRoutes[ContigServiceDataSet](
         DataSetMetaTypes.Contig.shortName,
         GetContigDataSets,
         GetContigDataSetById,
-        GetContigDataSetByUUID,
-        GetContigDataSetDetailsById,
-        GetContigDataSetDetailsByUUID)
+        GetContigDataSetDetailsById)
     }
 }
 

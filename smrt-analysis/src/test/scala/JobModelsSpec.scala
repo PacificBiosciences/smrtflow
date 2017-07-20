@@ -200,7 +200,7 @@ class JobModelsSpec extends Specification  {
     "Serialize model to JSON and recycle" in {
       val job = EngineJob(1, UUID.randomUUID(), "My job", "Test job",
         JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.CREATED,
-        "pbsmrtpipe", "/tmp/0001", "{}", Some("smrtlinktest"), Some("4.0.0"),
+        "pbsmrtpipe", "/tmp/0001", "{}", Some("smrtlinktest"), None, Some("4.0.0"),
         projectId = 10)
       val job2 = job.toJson.convertTo[EngineJob]
       job2.toString must beEqualTo(job.toString)

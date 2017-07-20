@@ -184,6 +184,8 @@ case class CreateJobTaskRecord(uuid: UUID,
 
 case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])
 
+case class JobCompletedMessage(job: EngineJob)
+
 // Need to find a better way to do this
 case class PacBioSchema(id: String, content: String)
 

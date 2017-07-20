@@ -38,7 +38,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
   private def confirmIsDeletable(jobId: UUID, force: Boolean = false): Future[EngineJob] = {
     (dbActor ? GetJobByIdAble(jobId)).mapTo[EngineJob].flatMap { job =>
       if (job.isComplete || force) {
-        (dbActor ? GetJobChildrenByUUID(jobId)).mapTo[Seq[EngineJob]].map {
+        (dbActor ? GetJobChildrenById(jobId)).mapTo[Seq[EngineJob]].map {
           jobs => if (jobs.isEmpty || force) job else
             throw new UnprocessableEntityError("Can't delete this job because it has active children")
         }
@@ -55,7 +55,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
     for {
       targetJob <- confirmIsDeletable(sopts.jobId, force)
       opts <- Future { DeleteResourcesOptions(Paths.get(targetJob.path), removeFiles, targetJob.projectId) }
-      _ <- dbActor ? DeleteJobByUUID(targetJob.uuid)
+      _ <- dbActor ? DeleteJobById(targetJob.uuid)
     } yield CreateJobType(
         uuid,
         s"Job $endpoint",
@@ -65,6 +65,7 @@ class DeleteJobServiceType(dbActor: ActorRef,
         None,
         sopts.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
   }
   override def createEngineJob(dbActor: ActorRef,

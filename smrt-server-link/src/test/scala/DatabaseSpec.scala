@@ -70,6 +70,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "/job/path",
         "{\"foo\":true}",
         Some("jsnow"),
+        Some("jsnow@email.com"),
         Some("0.1.0-SL"),
         projectId = -1)
       val event = JobEvent(UUID.randomUUID(), jobId = -1, AnalysisJobStates.CREATED, "job-created", createdAt = now)

@@ -62,6 +62,7 @@ class TsJobBundleJobServiceType(dbActor: ActorRef, authenticator: Authenticator,
         None,
         opts.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
   }
 }

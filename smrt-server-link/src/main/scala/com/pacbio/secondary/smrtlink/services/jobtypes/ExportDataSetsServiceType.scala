@@ -6,7 +6,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.UserRecord
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.secondary.analysis.jobs.CoreJob
 import com.pacbio.secondary.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.analysis.jobtypes.ExportDataSetsOptions
@@ -58,6 +58,8 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
       override val description = "Export PacBio XML DataSets to ZIP file"
     } with JobTypeService[DataSetExportServiceOptions](dbActor, authenticator) with LazyLogging {
 
+  import CommonModelImplicits._
+
   override def createJob(sopts: DataSetExportServiceOptions, user: Option[UserRecord]): Future[CreateJobType] =
     for {
       uuid <- Future {
@@ -76,6 +78,7 @@ class ExportDataSetsServiceJobType(dbActor: ActorRef,
       Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
       sopts.toJson.toString(),
       user.map(_.userId),
+      user.flatMap(_.userEmail),
       smrtLinkVersion)
 }
 

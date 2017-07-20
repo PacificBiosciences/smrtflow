@@ -40,14 +40,14 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
   private def deleteDataSet(ds: ServiceDataSetMetadata): Future[Any] = {
     logger.info(s"Setting isActive=false for dataset ${ds.uuid.toString}")
     logger.info(s"Will remove file(s) at ${ds.path}")
-    dbActor ? DeleteDataSetByUUID(ds.uuid)
+    dbActor ? DeleteDataSetById(ds.uuid)
   }
 
   private def getUpstreamDataSets(jobIds: Seq[Int], dsMetaType: String): Future[Seq[ServiceDataSetMetadata]] = {
     val fx = for {
       jobs <- Future.sequence { jobIds.map(j => (dbActor ? GetJobByIdAble(j)).mapTo[EngineJob]) }
       entryPoints <- Future.sequence { jobs.filter(_.jobTypeId == "merge-datasets").map { j => (dbActor ? GetEngineJobEntryPoints(j.id)).mapTo[Seq[EngineJobEntryPoint]] } }.map(_.flatten)
-      datasets <- Future.sequence { entryPoints.map(ep => ValidateImportDataSetUtils.resolveDataSetByAny(dsMetaType, Right(ep.datasetUUID), dbActor)) }
+      datasets <- Future.sequence { entryPoints.map(ep => ValidateImportDataSetUtils.resolveDataSet(dsMetaType, ep.datasetUUID, dbActor)) }
     } yield datasets
     // TODO logging
     fx
@@ -80,6 +80,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
       Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, opts.datasetType))),
       opts.toJson.toString(),
       user.map(_.userId),
+      user.flatMap(_.userEmail),
       smrtLinkVersion)
 }
 

@@ -6,7 +6,8 @@ import java.util.UUID
 import akka.actor.ActorRef
 import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.UserRecord
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
+import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
 import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.jobs.CoreJob
@@ -31,10 +32,12 @@ case class InValidJobOptionsError(msg: String) extends Exception(msg)
 
 trait ValidatorDataSetServicesOptions {
 
+  import CommonModelImplicits._
+
   def validateDataSetType(datasetType: String): Future[DataSetMetaTypes.DataSetMetaType] = {
     DataSetMetaTypes.toDataSetType(datasetType)
         .map(d => Future.successful(d))
-        .getOrElse(Future.failed(throw new InValidJobOptionsError(s"Unsupported dataset type '$datasetType'")))
+        .getOrElse(Future.failed(throw InValidJobOptionsError(s"Unsupported dataset type '$datasetType'")))
   }
 
   def validatePath(serviceDataSet: ServiceDataSetMetadata): Future[ServiceDataSetMetadata] = {
@@ -52,7 +55,7 @@ trait ValidatorDataSetServicesOptions {
     * @param dsId DataSet Int
     * @return
     */
-  def resolveAndValidatePath(dsType: String, dsId: Int, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
+  def resolveAndValidatePath(dsType: String, dsId: IdAble, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
 
     for {
       dsm <- ValidateImportDataSetUtils.resolveDataSet(dsType, dsId, dbActor)
@@ -102,7 +105,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
     val uuid = UUID.randomUUID()
     logger.info(s"attempting to create a merge-dataset job ${uuid.toString} with options $sopts")
 
-    Future.sequence(sopts.ids.map(x => resolveAndValidatePath(sopts.datasetType, x, dbActor))).map { datasets =>
+    Future.sequence(sopts.ids.map(x => resolveAndValidatePath(sopts.datasetType, IntIdAble(x), dbActor))).map { datasets =>
       val mergeDataSetOptions = MergeDataSetOptions(
         sopts.datasetType,
         datasets.map(_.path),
@@ -116,6 +119,7 @@ class MergeDataSetServiceJobType(dbActor: ActorRef,
         Some(datasets.map(ds => EngineJobEntryPointRecord(ds.uuid, sopts.datasetType))),
         mergeDataSetOptions.toJson.toString(),
         user.map(_.userId),
+        user.flatMap(_.userEmail),
         smrtLinkVersion)
     }
   }

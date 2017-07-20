@@ -68,7 +68,7 @@ if [[ "${env_status}" -eq 0 ]]; then
     echo "Env ${env_name} was already created. Using cached env"
 else
     echo "Creating ${env_name}"
-    conda create --quiet --yes -n "${env_name}" numpy cython matplotlib
+    conda create --quiet --yes -n "${env_name}" numpy cython matplotlib scipy
 fi
 
 source activate "${env_name}"
@@ -77,26 +77,45 @@ which python
 conda install --quiet --yes -c bioconda pysam=0.11.2.2
 conda install --quiet --yes -c bioconda ngmlr
 
+function uninstall_pkg () {
+  local pkg=$1
+  x=$(pip freeze | grep ${pkg}| wc -l)
+  if [[ "$x" -ne "0" ]] ; then
+    pip uninstall -y "${pkg}"
+  fi
+}
+
 # Install all PB py dependencies
 pip install -r "${ROOT_REPOS}/pbcommand/REQUIREMENTS.txt"
+uninstall_pkg pbcommand
 pip install "${ROOT_REPOS}/pbcommand"
 
 pip install -r "${ROOT_REPOS}/pbcore/requirements.txt"
+uninstall_pkg pbcore
 pip install "${ROOT_REPOS}/pbcore"
 
 pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
+uninstall_pkg pbcoretools
 pip install "${ROOT_REPOS}/pbcoretools"
 
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
+uninstall_pkg pbreports
 pip install "${ROOT_REPOS}/pbreports"
 
 pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
+uninstall_pkg pbsmrtpipe
 pip install "${ROOT_REPOS}/pbsmrtpipe"
 
 cd "${SMRTFLOW_ROOT_DIR}"
 
 # Sanity test
 which python
+echo "Printing PacBio core python package versions"
+python -c 'import pbcommand; print pbcommand.get_version()'
+python -c 'import pbcore; print pbcore.__VERSION__'
+python -c 'import pbsmrtpipe; print pbsmrtpipe.get_version()'
+python -c 'import pbcoretools; print pbcoretools.__VERSION__'
+
 dataset --help
 pbsmrtpipe --help
 python -m pbreports.report.mapping_stats --help

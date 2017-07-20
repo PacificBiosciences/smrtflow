@@ -8,15 +8,16 @@ import JobModels._
 import akka.pattern.ask
 import akka.actor.ActorRef
 import akka.util.Timeout
-import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile}
+import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.analysis.engine.CommonMessages.{ImportDataStoreFileByJobId, MessageResponse}
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.concurrent.{Await, Future, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 
 trait JobResultWriter {
@@ -95,7 +96,7 @@ abstract class JobRunner extends JobExecutorComponent
 
 /**
  * Simple Job Runner only runs the job, it doesn't import datasets
- * back into the system
+ * back into the system. This is really only useful for testing.
  */
 class SimpleJobRunner extends JobRunner with timeUtils {
 
@@ -142,13 +143,14 @@ class SimpleJobRunner extends JobRunner with timeUtils {
  */
 class SimpleAndImportJobRunner(dsActor: ActorRef) extends JobRunner with timeUtils{
 
+  import CommonModelImplicits._
   implicit val timeout = Timeout(30.seconds)
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID)(implicit ec: ExecutionContext): Future[String] = {
     if (ds.isChunked) {
       Future.successful(s"skipping import of intermediate chunked file $ds")
     } else {
-      (dsActor ? ImportDataStoreFile(ds, jobUUID)).mapTo[MessageResponse].map(_.message)
+      (dsActor ? ImportDataStoreFileByJobId(ds, jobUUID)).mapTo[MessageResponse].map(_.message)
     }
   }
 
