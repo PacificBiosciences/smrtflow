@@ -162,6 +162,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
     dataStore := GetAnalysisJobDataStore(jobId),
     fail("Expected four datastore files") IF dataStore.mapWith(_.size) !=? 4,
+    fail("Analysis log file size is 0") IF dataStore.mapWith{ ds =>
+      ds.filter(_.sourceId == "pbsmrtpipe::pbsmrtpipe.log").head.fileSize
+    } ==? 0,
     jobReports := GetAnalysisJobReports(jobId),
     fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
     report := GetReport(jobReports.mapWith(_(0).dataStoreFile.uuid)),
