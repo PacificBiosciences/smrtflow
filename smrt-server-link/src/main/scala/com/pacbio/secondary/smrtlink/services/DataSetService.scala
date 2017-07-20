@@ -9,7 +9,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-
 import shapeless.HNil
 import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
@@ -17,13 +16,11 @@ import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-
-
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
+import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{UserRecord, PacBioComponentManifest}
+import com.pacbio.common.models.{CommonModelImplicits, PacBioComponentManifest, UserRecord}
 import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError,MethodNotImplementedError}
+import com.pacbio.common.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError}
 import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.analysis.engine.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
@@ -42,8 +39,9 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
   // For all the Message types
 
   import JobsDaoActor._
+  import CommonModelImplicits._
 
-  // For all the serialzation protocols
+  // For all the serialization protocols
 
   import SmrtLinkJsonProtocols._
 

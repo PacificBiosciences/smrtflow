@@ -23,7 +23,7 @@ import com.pacbio.secondary.analysis.jobtypes.DbBackUpJobOptions
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.models.SecondaryModels.DbBackUpServiceJobOptions
-import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, EulaRecord, GmapReferenceServiceDataSet, ReferenceServiceDataSet}
+import com.pacbio.secondary.smrtlink.models.{EngineJobEntryPointRecord, EulaRecord}
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 
 import scala.collection.mutable
@@ -59,8 +59,6 @@ object JobsDaoActor {
   case class GetJobTasks(jobId: IdAble) extends JobMessage
 
   case class GetJobTask(taskId: UUID) extends JobMessage
-
-  case class UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) extends JobMessage
 
   // createdAt is when the task was created, not when the Service has
   // created the record. This is attempting to defer to the layer that
@@ -178,19 +176,15 @@ object JobsDaoActor {
 
   case class UpdateDataStoreFile(uuid: UUID, path: String, setIsActive: Boolean = true) extends DataStoreMessage
 
-  case class GetDataStoreServiceFilesByJobId(i: Int) extends DataStoreMessage
-  case class GetDataStoreServiceFilesByJobUuid(uuid: UUID) extends DataStoreMessage
+  case class GetDataStoreServiceFilesByJobId(i: IdAble) extends DataStoreMessage
 
-  case class GetDataStoreReportFilesByJobId(jobId: Int) extends DataStoreMessage
-  case class GetDataStoreReportFilesByJobUuid(jobUuid: UUID) extends DataStoreMessage
+  case class GetDataStoreReportFilesByJobId(jobId: IdAble) extends DataStoreMessage
 
   case class GetDataStoreReportByUUID(uuid: UUID) extends DataStoreMessage
 
   case class GetDataStoreFiles(limit: Int = 1000, ignoreInactive: Boolean = true) extends DataStoreMessage
 
-  case class GetDataStoreFilesByJobId(i: Int) extends DataStoreMessage
-
-  case class GetDataStoreFilesByJobUUID(i: UUID) extends DataStoreMessage
+  case class GetDataStoreFilesByJobId(i: IdAble) extends DataStoreMessage
 
   case object GetEulas extends AdminMessage
   case class GetEulaByVersion(version: String) extends AdminMessage
@@ -277,7 +271,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         workerQueue.enqueue(worker)
         val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
         log.error(emsg)
-        self ! UpdateJobStatus(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, Some(emsg))
+        self ! UpdateJobState(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, s"Updating state to Failed from worker $worker", Some(emsg))
     }
   }
 
@@ -376,33 +370,7 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         }
       }
 
-    case GetJobStatusByUUID(uuid) => dao.getJobById(uuid) pipeTo sender
-
     case HasNextRunnableJobWithId => dao.getNextRunnableJobWithId pipeTo sender
-
-    //case UpdateJobStatus(uuid, state) => dao.updateJobStateByUUID(uuid, state) pipeTo sender
-
-    case ImportDataStoreFile(dataStoreFile, jobUUID) =>
-      // Returns Future[MessageResponse]
-      //log.debug(s"ImportDataStoreFile importing datastore file $dataStoreFile for job ${jobUUID.toString}")
-      dao.addDataStoreFile(DataStoreJobFile(jobUUID, dataStoreFile)) pipeTo sender
-
-    case PacBioImportDataSet(x, jobUUID) =>
-
-      val thisSender = sender()
-
-      x match {
-        case ds: DataStoreFile =>
-          log.info(s"PacbioImportDataset importing dataset from $ds")
-          dao.addDataStoreFile(DataStoreJobFile(jobUUID, ds)) pipeTo thisSender
-
-        case ds: PacBioDataStore =>
-          // Future[SuccessMessage]
-          log.info(s"loading files from datastore $ds")
-          val results = Future.sequence(ds.files.map { f => dao.addDataStoreFile(DataStoreJobFile(jobUUID, f)) })
-          val f = results.map(messages => SuccessMessage(s"Successfully imported ${messages.length} files from PacBioDataStore"))
-          f pipeTo thisSender
-      }
 
     // End of EngineDaoActor
 
@@ -559,22 +527,14 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case GetDataStoreFilesByJobId(jobId) => pipeWith(dao.getDataStoreFilesByJobId(jobId))
 
-    case GetDataStoreServiceFilesByJobId(jobId: Int) => pipeWith(dao.getDataStoreServiceFilesByJobId(jobId))
-    case GetDataStoreServiceFilesByJobUuid(jobUuid: UUID) => pipeWith(dao.getDataStoreServiceFilesByJobUuid(jobUuid))
+    case GetDataStoreServiceFilesByJobId(jobId) => pipeWith(dao.getDataStoreServiceFilesByJobId(jobId))
 
     // Reports
-    case GetDataStoreReportFilesByJobId(jobId: Int) => pipeWith(dao.getDataStoreReportFilesByJobId(jobId))
-    case GetDataStoreReportFilesByJobUuid(jobUuid: UUID) => pipeWith(dao.getDataStoreReportFilesByJobUuid(jobUuid))
+    case GetDataStoreReportFilesByJobId(jobId) => pipeWith(dao.getDataStoreReportFilesByJobId(jobId))
 
-    case GetDataStoreReportByUUID(reportUUID: UUID) => pipeWith {
-      dao.getDataStoreReportByUUID(reportUUID).map(_.getOrElse(toE(s"Unable to find report ${reportUUID.toString}")))
-    }
+    case GetDataStoreReportByUUID(reportUUID: UUID) => pipeWith(dao.getDataStoreReportByUUID(reportUUID))
 
-    case GetDataStoreFilesByJobUUID(id) => pipeWith(dao.getDataStoreFilesByJobId(id))
-
-    case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) =>
-      // wtf does this need the job id? The Job id is on the DataStore File?
-      pipeWith(dao.insertDataStoreFileById(dsf, jobId))
+    case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
     case CreateJobType(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion) =>
       val fx = dao.createJob(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion)
@@ -582,14 +542,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
       pipeWith(fx)
 
-    case UpdateJobState(jobId: Int, state: AnalysisJobStates.JobStates, message: String) =>
-      pipeWith(dao.updateJobState(jobId, state, message))
+    case UpdateJobState(jobId, state: AnalysisJobStates.JobStates, message, errorMessage) =>
+      pipeWith(dao.updateJobState(jobId, state, message, errorMessage))
 
     case GetEngineJobEntryPoints(jobId) => pipeWith(dao.getJobEntryPoints(jobId))
-
-    // Need to consolidate this
-    case UpdateJobStatus(uuid, state, errorMessage) =>
-      pipeWith(dao.updateJobState(uuid, state, s"Updating $uuid to $state", errorMessage))
 
     case GetEulas => pipeWith(dao.getEulas)
 

@@ -413,15 +413,17 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     logger.info(s"Updating job state of job-id $jobId to $state")
     val now = JodaDateTime.now()
 
-    //FIXME
-    val x = 1
-
-    val action = DBIO.seq(
+    // The error handling of this .head call needs to be improved
+    val xs = for {
+      job <- qEngineJobById(jobId).result.head
+      _ <-  DBIO.seq(
         qEngineJobById(jobId).map(j => (j.state, j.updatedAt, j.errorMessage)).update(state, now, errorMessage),
-        jobEvents += JobEvent(UUID.randomUUID(), x, state, message, now)
-      ).andThen(qEngineJobById(jobId).result.headOption)
+        jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
+      )
+      updatedJob <- qEngineJobById(jobId).result.headOption
+    } yield updatedJob
 
-    val f:Future[EngineJob] = db.run(action.transactionally).flatMap(failIfNone(s"Failed to find Job $jobId"))
+    val f:Future[EngineJob] = db.run(xs.transactionally).flatMap(failIfNone(s"Failed to find Job $jobId"))
 
     if (AnalysisJobStates.isCompleted(state)) {
       f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
@@ -454,22 +456,26 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       createdByEmail: Option[String],
       smrtLinkVersion: Option[String]): Future[EngineJob] = {
 
-    // This should really be Option[String]
+    // This should really have been Option[String]. The Job Int Id needs to be assigned before we can resolve the path
     val path = ""
-    // TODO(smcclellan): Use dependency-injected Clock instance
+
     val createdAt = JodaDateTime.now()
 
     val projectId = coreJob.jobOptions.projectId
 
-    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSetting, createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId,
+      path, jsonSetting, createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
 
     logger.info(s"Creating Job $engineJob")
 
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
-      val rJob = RunnableJobWithId(jobId, coreJob, AnalysisJobStates.CREATED)
 
+      // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
+      // Resolving Path so we can update the state in the DB
+      val rJob = RunnableJobWithId(jobId, coreJob, job.state)
       val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
+
       val jobEvent = JobEvent(
         UUID.randomUUID(),
         jobId,
@@ -490,7 +496,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     }
 
     db.run(action.transactionally).map(job => {
-      val rJob = RunnableJobWithId(job.id, coreJob, AnalysisJobStates.CREATED)
+      val rJob = RunnableJobWithId(job.id, coreJob, job.state)
       _runnableJobs.update(uuid, rJob)
       job
     })
@@ -530,7 +536,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
   /**
     * Update the state of a Job Task and create an JobEvent
     *
-    * @param update
+    * @param update Task Update record
     * @return
     */
   def updateJobTask(update: UpdateJobTask): Future[JobTask] = {
@@ -758,30 +764,26 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
         .flatMap(failIfNone(s"Unable to find DataStore File with uuid `$uuid`"))
 
-  def getDataStoreServiceFilesByJobId(i: Int): Future[Seq[DataStoreServiceFile]] =
-    db.run(datastoreServiceFiles.filter(_.jobId === i).result)
+  def qDatastoreServiceFilesByJobId(id: IdAble) = {
+    id match {
+      case IntIdAble(i) => datastoreServiceFiles.filter(_.jobId === i)
+      case UUIDIdAble(uuid) => datastoreServiceFiles.filter(_.jobUUID === uuid)
+    }
+  }
 
-  def getDataStoreServiceFilesByJobUuid(uuid: UUID): Future[Seq[DataStoreServiceFile]] =
-    db.run(datastoreServiceFiles.filter(_.jobUUID === uuid).result)
+  def getDataStoreServiceFilesByJobId(i: IdAble): Future[Seq[DataStoreServiceFile]] =
+    db.run(qDatastoreServiceFilesByJobId(i).result)
 
-  def getDataStoreReportFilesByJobId(jobId: Int): Future[Seq[DataStoreReportFile]] =
+
+  def getDataStoreReportFilesByJobId(jobId: IdAble): Future[Seq[DataStoreReportFile]] =
     db.run {
-      datastoreServiceFiles
-        .filter(_.jobId === jobId)
+      qDatastoreServiceFilesByJobId(jobId)
         .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
         .result
     }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
 
-  def getDataStoreReportFilesByJobUuid(jobUuid: UUID): Future[Seq[DataStoreReportFile]] =
-    db.run {
-      datastoreServiceFiles
-        .filter(_.jobUUID === jobUuid)
-        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
-        .result
-    }.map(_.map((d: DataStoreServiceFile) => DataStoreReportFile(d, d.sourceId.split("-").head)))
-
-  // Return the contents of the Report
-  def getDataStoreReportByUUID(reportUUID: UUID): Future[Option[String]] = {
+  // Return the contents of the Report. THis should really return Future[JsObject]
+  def getDataStoreReportByUUID(reportUUID: UUID): Future[String] = {
     val action = datastoreServiceFiles.filter(_.uuid === reportUUID).result.headOption.map {
       case Some(x) =>
         if (Files.exists(Paths.get(x.path))) {
@@ -792,7 +794,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
       case None => None
     }
-    db.run(action)
+    db.run(action).flatMap(failIfNone(s"Unable to find report with id $reportUUID"))
   }
 
   def qDsMetaDataById(id: IdAble) = {
@@ -829,8 +831,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     db.run(q.map(_ => MessageResponse(s"Marked ${ids.size} MetaDataSet as inActive")))
   }
 
-  private def getDataSetMetaDataSet(uuid: UUID): Future[Option[DataSetMetaDataSet]] =
-    db.run(dsMetaData2.filter(_.uuid === uuid).result.headOption)
+  private def getDataSetMetaDataSet(id: IdAble): Future[Option[DataSetMetaDataSet]] =
+    db.run(qDsMetaDataById(id).result.headOption)
 
   // removes a query that seemed like it was potentially nested based on race condition with executor
   private def getDataSetMetaDataSetBlocking(uuid: UUID): Option[DataSetMetaDataSet] =
@@ -1230,9 +1232,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /*--- DATASTORE ---*/
 
-  def toDataStoreJobFile(x: DataStoreServiceFile) =
-    // This is has the wrong job uuid
-    DataStoreJobFile(x.uuid, DataStoreFile(x.uuid, x.sourceId, x.fileTypeId, x.fileSize, x.createdAt, x.modifiedAt, x.path, name=x.name, description=x.description))
+  private def toDataStoreJobFile(x: DataStoreServiceFile) =
+    DataStoreJobFile(x.jobUUID, DataStoreFile(x.uuid, x.sourceId, x.fileTypeId, x.fileSize, x.createdAt, x.modifiedAt, x.path, name=x.name, description=x.description))
 
   def getDataStoreFilesByJobId(i: IdAble): Future[Seq[DataStoreJobFile]] = {
     db.run {
@@ -1245,7 +1246,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   }
 
 
-  // Need to clean all this all up. There's inconsistencies all over the place.
+  /**
+    * Get DataStoreService Files
+    *
+    * In practice, this would return a list that is very large
+    *
+    * @param ignoreInactive Ignore Inactive files
+    * @return
+    */
   def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreJobFile]] = {
     val q = if (ignoreInactive) {
       datastoreServiceFiles.filter(_.isActive)
@@ -1255,21 +1263,44 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     db.run(q.result).map(_.map(toDataStoreJobFile))
   }
 
-  def getDataStoreFileByUUID(uuid: UUID): Future[DataStoreJobFile] =
-    db.run(datastoreServiceFiles.filter(_.uuid === uuid)
+  /**
+    * Get a DataStore Service File by DataStore file UUID
+    *
+    * @param id Unique Id of the datastore file
+    * @return
+    */
+  def getDataStoreFile(id: UUID): Future[DataStoreJobFile] =
+    db.run(datastoreServiceFiles.filter(_.uuid === id)
         .result.headOption.map(_.map(toDataStoreJobFile)))
-        .flatMap(failIfNone(s"Unable to find DataStore File with UUID $uuid"))
+        .flatMap(failIfNone(s"Unable to find DataStore File with UUID $id"))
 
   def deleteDataStoreFile(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.modifiedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
+    db.run(datastoreServiceFiles.filter(_.uuid === id)
+        .map(f => (f.isActive, f.modifiedAt)).update(setIsActive, JodaDateTime.now()))
+        .map(_ => MessageResponse(s"Successfully set datastore file $id to isActive=$setIsActive"))
   }
 
+  /**
+    * Update the Path and the Activity of a DataStore file
+    *
+    * @param id          Unique id of the datastore file
+    * @param path        Absolute path to the file
+    * @param setIsActive activity of the file
+    * @return
+    */
   def updateDataStoreFile(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    db.run(datastoreServiceFiles.filter(_.uuid === id).map(f => (f.isActive, f.path, f.modifiedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
+    db.run(datastoreServiceFiles.filter(_.uuid === id)
+        .map(f => (f.isActive, f.path, f.modifiedAt))
+        .update(setIsActive, path, JodaDateTime.now()))
+        .map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path and isActive=$setIsActive"))
   }
 
+  /**
+    * Delete a DataStore File by data store file UUID
+    *
+    * @param id UUID of the datastore file
+    * @return
+    */
   def deleteDataStoreJobFile(id: UUID): Future[MessageResponse] = {
     def addOptionalDelete(ds: Option[DataStoreServiceFile]): Future[MessageResponse] = {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB

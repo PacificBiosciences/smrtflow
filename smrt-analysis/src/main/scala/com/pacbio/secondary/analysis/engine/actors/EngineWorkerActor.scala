@@ -3,17 +3,17 @@ package com.pacbio.secondary.analysis.engine.actors
 import java.io.FileWriter
 import java.net.InetAddress
 import java.nio.file.{Files, Paths}
-import org.joda.time.{DateTime => JodaDateTime}
 
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
+import org.joda.time.{DateTime => JodaDateTime}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
-
 import com.pacbio.secondary.analysis.tools.timeUtils
 import com.pacbio.secondary.analysis.engine.CommonMessages
 import CommonMessages._
+import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.analysis.jobs.JobModels._
 
@@ -27,6 +27,7 @@ with ActorLogging
 with timeUtils {
 
   val WORK_TYPE:WorkerType = StandardWorkType
+  import CommonModelImplicits._
 
   override def preStart(): Unit = {
     log.debug(s"Starting engine-worker $self")
@@ -39,10 +40,12 @@ with timeUtils {
   def receive: Receive = {
     case RunJob(job, outputDir) =>
       val jobTypeId = job.jobOptions.toJob.jobTypeId
-      log.info(s"Worker $self running job type ${jobTypeId.id} Job: $job")
+      val msg = s"Worker $self running job type ${jobTypeId.id} Job: $job"
+      log.info(msg)
 
       val pJob = JobResource(job.uuid, outputDir, AnalysisJobStates.RUNNING)
-      sender ! UpdateJobStatus(job.uuid, AnalysisJobStates.RUNNING, None)
+      // This might not be the best message
+      sender ! UpdateJobState(job.uuid, AnalysisJobStates.RUNNING, msg, None)
 
       val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
       val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)

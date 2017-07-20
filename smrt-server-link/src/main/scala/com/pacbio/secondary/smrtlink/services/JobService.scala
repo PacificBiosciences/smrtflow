@@ -15,7 +15,7 @@ import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.services.StatusCodeJoiners
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFile, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
@@ -63,6 +63,7 @@ trait JobService
 
   import SmrtLinkJsonProtocols._
   import CommonModelSpraySupport._
+  import CommonModelImplicits._
 
   private def resolveContentType(path: Path): ContentType = {
     val mimeType = MimeTypeProperties.fromFile(path.toFile)
@@ -255,7 +256,7 @@ trait JobService
             complete {
               created {
                 getJobUUID(jobId, dbActor).flatMap { uuid =>
-                  (dbActor ? ImportDataStoreFile(dsf, uuid)).mapTo[MessageResponse]
+                  (dbActor ? ImportDataStoreFileByJobId(dsf, uuid)).mapTo[MessageResponse]
                 }
               }
             }

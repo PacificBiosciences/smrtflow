@@ -361,7 +361,8 @@ object JobModels {
     def summary: String = toString
   }
 
-  // Container for file created from a Job
+  // Container for file created from a Job.
+  // MK. What is the purpose of this container?
   case class DataStoreJobFile(
       jobId: UUID,
       dataStoreFile: DataStoreFile)
@@ -370,7 +371,8 @@ object JobModels {
 
   case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble {
     override def summary = {
-      s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" + files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
+      s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" +
+          files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
     }
   }
 

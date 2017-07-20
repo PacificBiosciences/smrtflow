@@ -40,20 +40,15 @@ object CommonMessages {
 
   case object AllJobsCompleted
 
-  case class UpdateJobStatus(uuid: UUID,
-                             state: AnalysisJobStates.JobStates,
-                             message: Option[String])
-
   case class GetAllJobs(limit: Int)
 
   case object GetSystemJobSummary
 
-  case class GetJobStatusByUUID(uuid: UUID)
-  case class GetJobStatusById(i: Int)
+  case class GetJobStatusById(i: IdAble)
+
+  case class UpdateJobState(jobId: IdAble, state: AnalysisJobStates.JobStates, message: String, errorMessage: Option[String])
 
   // DataSet Related Messages
-  case class PacBioImportDataSet(datum: ImportAble, jobId: UUID)
-  case class ImportDataStoreFile(dataStoreFile: DataStoreFile, jobUUID: UUID)
   case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile, jobId: IdAble)
   case class DeleteDataStoreFile(uuid: UUID)
 
