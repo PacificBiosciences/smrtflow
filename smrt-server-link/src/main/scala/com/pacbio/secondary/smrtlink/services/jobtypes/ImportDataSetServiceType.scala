@@ -56,7 +56,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
   private def updateDbIfNecessary(sopts: ImportDataSetOptions): Future[EngineJob] = {
     for {
       dsMini <- Future.fromTry(Try(getDataSetMiniMeta(Paths.get(sopts.path))))
-      ds <- (dbActor ? GetDataSetMetaByUUID(dsMini.uuid)).mapTo[DataSetMetaDataSet]
+      ds <- (dbActor ? GetDataSetMetaById(dsMini.uuid)).mapTo[DataSetMetaDataSet]
       engineJob <- (dbActor ? GetJobByIdAble(ds.jobId)).mapTo[EngineJob]
       m1 <- (dbActor ? UpdateDataStoreFile(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]
       m2 <- (dbActor ? UpdateDataSetByUUID(dsMini.uuid, sopts.path, true)).mapTo[MessageResponse]

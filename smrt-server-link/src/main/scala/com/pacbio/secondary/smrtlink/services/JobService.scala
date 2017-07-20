@@ -225,7 +225,7 @@ trait JobService
             complete {
               created {
                 getJobIntId(jobId, dbActor).flatMap { intId =>
-                  (dbActor ? ImportDataStoreFileByJobId(dsf, intId)).mapTo[MessageResponse]
+                  (dbActor ? ImportDataStoreFileByJobId(dsf, IntIdAble(intId))).mapTo[MessageResponse]
                 }
               }
             }
@@ -273,7 +273,7 @@ trait JobService
       path("children") {
         complete {
           ok {
-            (dbActor ? jobId.map(GetJobChildrenById, GetJobChildrenByUUID)).mapTo[Seq[EngineJob]]
+            (dbActor ? GetJobChildrenById(jobId)).mapTo[Seq[EngineJob]]
           }
         }
       }

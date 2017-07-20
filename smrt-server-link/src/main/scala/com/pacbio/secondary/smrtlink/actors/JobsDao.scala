@@ -13,7 +13,6 @@ import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
 import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
-import com.pacbio.secondary.analysis.engine.EngineDao.{DataStoreComponent, JobEngineDaoComponent, JobEngineDataStore}
 import com.pacbio.secondary.analysis.jobs.JobModels._
 import com.pacbio.secondary.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
@@ -330,8 +329,8 @@ trait ProjectDataStore extends LazyLogging {
 /**
  * SQL Driven JobEngine datastore Backend
  */
-trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFutureUtils{
-  this: DalComponent =>
+trait JobDataStore extends LazyLogging with DaoFutureUtils{
+  this: DalComponent with EventComponent =>
 
   import CommonModelImplicits._
 
@@ -343,58 +342,6 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
   // should be deleted. This should probably just be stored as a json blob in the database.
   var _runnableJobs: TrieMap[UUID, RunnableJobWithId]
-
-  /**
-   * This is the pbscala engine required interface. The `createJob` method is the preferred method to add new jobs
-   * to the job manager queue.
-   */
-  override def addRunnableJob(runnableJob: RunnableJob): Future[EngineJob] = {
-    // this should probably default to the system temp dir
-    val path = ""
-
-    val createdAt = JodaDateTime.now()
-    val name = s"Runnable Job $runnableJob"
-    val comment = s"Job comment for $runnableJob"
-    val projectId = runnableJob.job.jobOptions.projectId
-    val jobTypeId = runnableJob.job.jobOptions.toJob.jobTypeId.id
-    val jsonSettings = "{}"
-
-    val job = EngineJob(-1, runnableJob.job.uuid, name, comment, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId, path, jsonSettings, None, None, None, projectId = projectId)
-
-    val update = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += job).flatMap { j =>
-      val runnableJobWithId = RunnableJobWithId(j.id, runnableJob.job, runnableJob.state)
-      _runnableJobs.update(runnableJob.job.uuid, runnableJobWithId)
-
-      val resolvedPath = resolver.resolve(runnableJobWithId).toAbsolutePath.toString
-      val jobEvent = JobEvent(
-        UUID.randomUUID(),
-        j.id,
-        AnalysisJobStates.CREATED,
-        s"Created job ${j.id} type $jobTypeId with ${runnableJob.job.uuid.toString}",
-        JodaDateTime.now())
-
-      DBIO.seq(
-        jobEvents += jobEvent,
-        engineJobs.filter(_.id === j.id).map(_.path).update(resolvedPath)
-      ).map { _ =>
-        job.copy(id = j.id, path = resolvedPath)
-      }
-    }
-    val action = projects.filter(_.id === projectId).exists.result.flatMap {
-      case true => update
-      case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
-    }
-
-    db.run(action.transactionally)
-  }
-
-  //FIXME(mpkocher)(1-25-2017) Remove this Future[Option[T]] usage
-  // it introduces a lot of duplication on the caller side.
-  override def getJobByUUID(jobId: UUID): Future[Option[EngineJob]] =
-    db.run(engineJobs.filter(_.uuid === jobId).result.headOption)
-
-  override def getJobById(jobId: Int): Future[Option[EngineJob]] =
-    db.run(engineJobs.filter(_.id === jobId).result.headOption)
 
   /**
     * Raw Insert of an Engine Job into the system. This will not run a job.
@@ -409,13 +356,17 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
     db.run(action.transactionally)
   }
 
-  def getJobByIdAble(ix: IdAble): Future[EngineJob] = {
-    val fx = ix match {
-      case IntIdAble(i) => getJobById(i)
-      case UUIDIdAble(uuid) => getJobByUUID(uuid)
+  def qEngineJobById(id: IdAble) = {
+    id match {
+      case IntIdAble(i) => engineJobs.filter(_.id === i)
+      case UUIDIdAble(uuid) => engineJobs.filter(_.uuid === uuid)
     }
-    fx.flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
   }
+
+  def getJobById(ix: IdAble): Future[EngineJob] =
+    db.run(qEngineJobById(ix).result.headOption)
+        .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
+
 
   private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
@@ -433,65 +384,53 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   }
 
   private def filterByQuickJobType(j: JobTypeId): Boolean = QUICK_TASK_IDS contains j
-  override def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobTypeId) => !filterByQuickJobType(j))
+  def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobTypeId) => !filterByQuickJobType(j))
   def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
 
   /**
    * Get all the Job Events associated with a specific job
    */
-  override def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
+  def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     db.run(jobEvents.filter(_.jobId === jobId).result)
 
-  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob and be parameterized by an IdAble to avoid duplication
+
+  /**
+    * Update the State of a Job
+    *
+    * @param jobId Job Id
+    * @param state Job State to be updated to
+    * @param message Job progress message message (will be used in the JobEvent)
+    * @param errorMessage Optional Error Message. If the state is FAILED, this should be explicitly set to propagate the
+    *                     error message.
+    * @return
+    */
   def updateJobState(
-      jobId: Int,
+      jobId: IdAble,
       state: AnalysisJobStates.JobStates,
-      message: String): Future[MessageResponse] = {
+      message: String,
+      errorMessage: Option[String] = None): Future[EngineJob] = {
+
     logger.info(s"Updating job state of job-id $jobId to $state")
     val now = JodaDateTime.now()
-    db.run {
-      DBIO.seq(
-        engineJobs.filter(_.id === jobId).map(j => (j.state, j.updatedAt)).update(state, now),
-        jobEvents += JobEvent(UUID.randomUUID(), jobId, state, message, now)
-      ).transactionally
-    }.map(_ => MessageResponse(s"Successfully updated job $jobId to $state"))
-  }
 
-  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob
-  override def updateJobStateByUUID(uuid: UUID, state: AnalysisJobStates.JobStates): Future[String] = {
-    logger.info(s"attempting db update of job $uuid state to $state")
-    val f = db.run(engineJobs
-      .filter(_.uuid === uuid)
-      .map(j => (j.state, j.updatedAt))
-      .update(state, JodaDateTime.now()))
-      .map(_ => s"Successfully updated job $uuid to $state")
-    f.onComplete {
-      case Success(_) => logger.debug(s"Successfully updated job ${uuid.toString} to $state")
-      case Failure(ex) => logger.error(s"Unable to update state of job id ${uuid.toString} to state $state Error ${ex.getMessage}")
+    //FIXME
+    val x = 1
+
+    val action = DBIO.seq(
+        qEngineJobById(jobId).map(j => (j.state, j.updatedAt, j.errorMessage)).update(state, now, errorMessage),
+        jobEvents += JobEvent(UUID.randomUUID(), x, state, message, now)
+      ).andThen(qEngineJobById(jobId).result.headOption)
+
+    val f:Future[EngineJob] = db.run(action.transactionally).flatMap(failIfNone(s"Failed to find Job $jobId"))
+
+    if (AnalysisJobStates.isCompleted(state)) {
+      f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
     }
+
+    f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
+
     f
   }
-
-  //FIXME(mpkocher)(1-29-2017) This should return an updated EngineJob
-  def updateJobStateByUUID(
-      jobId: UUID,
-      state: AnalysisJobStates.JobStates,
-      message: String, errorMessage: Option[String] = None): Future[MessageResponse] =
-    db.run {
-      val now = JodaDateTime.now()
-      engineJobs.filter(_.uuid === jobId).result.headOption.flatMap {
-        case Some(job) =>
-          DBIO.seq(
-            engineJobs.filter(_.uuid === jobId).map(j => (j.state, j.updatedAt, j.errorMessage)).update(state, now, errorMessage),
-            jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
-          )
-        case None =>
-          throw new ResourceNotFoundError(s"Unable to find job $jobId. Failed to update job state to $state")
-      }.transactionally
-    }.map { _ =>
-      logger.info(s"Updated job ${jobId.toString} state to $state")
-      MessageResponse(s"Successfully updated job $jobId to $state")
-    }
 
   /**
    * This is the new interface will replace the original createJob
@@ -624,7 +563,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
       case IntIdAble(i) =>
         db.run(jobTasks.filter(_.jobId === i).result)
       case UUIDIdAble(uuid) =>
-        getJobByIdAble(uuid).flatMap(job => db.run(jobTasks.filter(_.jobId === job.id).result))
+        getJobById(uuid).flatMap(job => db.run(jobTasks.filter(_.jobId === job.id).result))
     }
   }
 
@@ -634,7 +573,7 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   }
 
   // TODO(smcclellan): limit is never used. add `.take(limit)`?
-  override def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
+  def getJobs(limit: Int = 100, includeInactive: Boolean = false): Future[Seq[EngineJob]] = {
     if (!includeInactive) db.run(engineJobs.filter(_.isActive).sortBy(_.id.desc).result)
     else db.run(engineJobs.sortBy(_.id.desc).result)
   }
@@ -649,27 +588,15 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
 
-  //FIXME(mpkocher)(1-25-2017) Convert to use IdAble to remove code duplication
-  def deleteJobById(jobId: Int): Future[EngineJob] = {
-    logger.info(s"Setting isActive=false for job-id $jobId")
+  def deleteJobById(jobId: IdAble): Future[EngineJob] = {
+    logger.info(s"Setting isActive=false for job-id ${jobId.toIdString}")
     val now = JodaDateTime.now()
     db.run(
       for {
-        _ <- engineJobs.filter(_.id === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
-        job <- engineJobs.filter(_.id === jobId).result.headOption
-      } yield job).flatMap(failIfNone(s"Unable to Delete job. Unable to find job id $jobId"))
+        _ <- qEngineJobById(jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
+        job <- qEngineJobById(jobId).result.headOption
+      } yield job).flatMap(failIfNone(s"Unable to Delete job. Unable to find job id ${jobId.toIdString}"))
   }
-
-  def deleteJobByUUID(jobId: UUID): Future[EngineJob] = {
-    logger.info(s"Attempting to set isActive=false for job-id $jobId")
-    val now = JodaDateTime.now()
-    db.run(
-      for {
-        _ <- engineJobs.filter(_.uuid === jobId).map(j => (j.isActive, j.updatedAt)).update(false, now)
-        job <- engineJobs.filter(_.uuid === jobId).result.headOption
-      } yield job).flatMap(failIfNone(s"Unable to Delete job. Unable to find job $jobId"))
-  }
-
 }
 
 /**
@@ -678,36 +605,31 @@ trait JobDataStore extends JobEngineDaoComponent with LazyLogging with DaoFuture
  *
  * Mixin the Job Component because the files depended on the job
  */
-trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLogging {
+trait DataSetStore extends DaoFutureUtils with LazyLogging {
   this: EventComponent with JobDataStore with DalComponent =>
 
   val DEFAULT_PROJECT_ID = 1
   val DEFAULT_USER_ID = 1
+  import CommonModelImplicits._
 
   /**
-   * Importing of DataStore File by Job Int Id
-   */
-  def insertDataStoreFileById(ds: DataStoreFile, jobId: Int): Future[MessageResponse] =
-    getJobById(jobId)
-        .flatMap(failIfNone(s"Failed to find Job id $jobId for DataStore File ${ds.uniqueId}"))
-        .flatMap(job => insertDataStoreByJob(job, ds))
+    * Importing of DataStore File by Job id
+    *
+    */
+  def insertDataStoreFileById(ds: DataStoreFile, jobId: IdAble): Future[MessageResponse] =
+    getJobById(jobId).flatMap(job => insertDataStoreFileByJob(job, ds))
 
-
-  def insertDataStoreFileByUUID(ds: DataStoreFile, jobId: UUID): Future[MessageResponse] =
-    getJobByUUID(jobId)
-        .flatMap(failIfNone(s"Failed to find Job id $jobId for DataStore File ${ds.uniqueId}"))
-        .flatMap(job => insertDataStoreByJob(job, ds))
-
-  override def addDataStoreFile(ds: DataStoreJobFile): Future[Either[CommonMessages.FailedMessage, CommonMessages.SuccessMessage]] = {
+  /**
+    * Import a DataStoreJob File
+    *
+    * All of these insert/add methods should return the entity that was inserted.
+    *
+    * @param ds DataStore Job file
+    * @return
+    */
+  def addDataStoreFile(ds: DataStoreJobFile): Future[MessageResponse] = {
     logger.info(s"adding datastore file for $ds")
-    getJobByUUID(ds.jobId).flatMap {
-      case Some(engineJob) => insertDataStoreByJob(engineJob, ds.dataStoreFile)
-        .map(m => Right(CommonMessages.SuccessMessage(m.message)))
-        .recover {
-          case NonFatal(e) => Left(CommonMessages.FailedMessage(s"Failed to add datastore file file $ds Error ${e.getMessage}"))
-        }
-      case None => Future(Left(CommonMessages.FailedMessage(s"Failed to find jobId ${ds.jobId}")))
-    }
+    getJobById(ds.jobId).flatMap(engineJob => insertDataStoreFileByJob(engineJob, ds.dataStoreFile))
   }
 
   /**
@@ -759,7 +681,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     }
   }
 
-  protected def insertDataStoreByJob(engineJob: EngineJob, ds: DataStoreFile): Future[MessageResponse] = {
+  protected def insertDataStoreFileByJob(engineJob: EngineJob, ds: DataStoreFile): Future[MessageResponse] = {
     logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
 
     // TODO(smcclellan): Use dependency-injected Clock instance
@@ -873,7 +795,15 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     db.run(action)
   }
 
+  def qDsMetaDataById(id: IdAble) = {
+    id match {
+      case IntIdAble(i) => dsMetaData2.filter(_.id === i)
+      case UUIDIdAble(uuid) => dsMetaData2.filter(_.uuid === uuid)
+    }
+  }
+
   val qDsMetaDataIsActive = dsMetaData2.filter(_.isActive)
+
   /**
     * Get the Base PacBioDataSet data for DataSets imported into the system
     * @param limit Maximum number of returned results
@@ -984,34 +914,24 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
 
   def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] = db.run(datasetMetaTypes.result)
 
-  // Get All DataSets mixed in type. Only metadata
-  def getDataSetByUUID(id: UUID): Future[DataSetMetaDataSet] =
-    db.run(datasetMetaTypeByUUID(id).result.headOption).
-        flatMap(failIfNone(s"Unable to find dataSet with UUID `$id`"))
 
-  def getDataSetById(id: Int): Future[DataSetMetaDataSet] =
-    db.run(datasetMetaTypeById(id).result.headOption)
-        .flatMap(failIfNone(s"Unable to find dataSet with id `$id`"))
+  def getDataSetById(id: IdAble): Future[DataSetMetaDataSet] =
+    db.run(qDsMetaDataById(id).result.headOption)
+        .flatMap(failIfNone(s"Unable to find dataSet with id ${id.toIdString}"))
 
-  def deleteDataSetById(id: Int, setIsActive: Boolean = false): Future[MessageResponse] = {
+  def deleteDataSetById(id: IdAble, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.id === id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
+    db.run(qDsMetaDataById(id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
   }
 
-  def deleteDataSetByUUID(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
+  def updateDataSetById(id: IdAble, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
     val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
+    val msg = s"Successfully set path=$path and isActive=$setIsActive for dataset ${id.toIdString}"
+    db.run(qDsMetaDataById(id).map(d => (d.isActive, d.path, d.updatedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(msg))
   }
 
-  def updateDataSetByUUID(id: UUID, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    db.run(dsMetaData2.filter(_.uuid === id).map(d => (d.isActive, d.path, d.updatedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(s"Successfully set path=$path and isActive=$setIsActive for dataset $id"))
-  }
 
-  def datasetMetaTypeById(id: Int) = dsMetaData2.filter(_.id === id)
-
-  def datasetMetaTypeByUUID(id: UUID) = dsMetaData2.filter(_.uuid === id)
-
+  //FIXME. Make this IdAble
   def getDataSetJobsByUUID(id: UUID): Future[Seq[EngineJob]] = {
     db.run {
       val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs.filter(_.isActive) on (_.jobId === _.id)
@@ -1024,12 +944,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     SubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.instrumentControlVersion, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.cellId ,t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
-  // FIXME. REALLY, REALLY need to generalize this.
-  def getSubreadDataSetById(id: Int): Future[SubreadServiceDataSet] = {
+  /**
+    * Get a SubreadServiceDataSet by Id
+    *
+    * @param id Int or UUID of dataset
+    * @return
+    */
+  def getSubreadDataSetById(id: IdAble): Future[SubreadServiceDataSet] = {
     db.run {
-      val q = datasetMetaTypeById(id) join dsSubread2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find SubreadSet with id `$id`"))
+    }.flatMap(failIfNone(s"Unable to find SubreadSet with id ${id.toIdString}"))
   }
 
   // This might be wrapped in a Try to fail the future downstream with a better HTTP error code
@@ -1037,17 +962,8 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     DataSetJsonUtils.subreadSetToJson(DataSetLoader.loadSubreadSet(Paths.get(ds.path)))
 
 
-  def getSubreadDataSetDetailsById(id: Int): Future[String] =
+  def getSubreadDataSetDetailsById(id: IdAble): Future[String] =
     getSubreadDataSetById(id).map(subreadToDetails)
-
-  def getSubreadDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getSubreadDataSetByUUID(uuid).map(subreadToDetails)
-
-  def getSubreadDataSetByUUID(id: UUID): Future[SubreadServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsSubread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find SubreadSet with UUID `$id`"))
 
   def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
     db.run {
@@ -1070,26 +986,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toR(x._1, x._2)))
     }
 
-  def getReferenceDataSetById(id: Int): Future[ReferenceServiceDataSet] =
+  def getReferenceDataSetById(id: IdAble): Future[ReferenceServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsReference2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find ReferenceSet with id `$id`"))
+    }.flatMap(failIfNone(s"Unable to find ReferenceSet with id ${id.toIdString}"))
 
   private def referenceToDetails(ds: ReferenceServiceDataSet): String =
     DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(ds.path)))
 
-  def getReferenceDataSetDetailsById(id: Int): Future[String] =
+  def getReferenceDataSetDetailsById(id: IdAble): Future[String] =
     getReferenceDataSetById(id).map(referenceToDetails)
-
-  def getReferenceDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getReferenceDataSetByUUID(uuid).map(referenceToDetails)
-
-  def getReferenceDataSetByUUID(id: UUID): Future[ReferenceServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsReference2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find ReferenceSet with uuid `$id`"))
 
   def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
@@ -1103,26 +1010,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toGmapR(x._1, x._2)))
     }
 
-  def getGmapReferenceDataSetById(id: Int): Future[GmapReferenceServiceDataSet] =
+  def getGmapReferenceDataSetById(id: IdAble): Future[GmapReferenceServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsGmapReference2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsGmapReference2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid `$id`"))
+    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid ${id.toIdString}"))
 
   private def gmapReferenceToDetails(ds: GmapReferenceServiceDataSet): String =
     DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(ds.path)))
 
-  def getGmapReferenceDataSetDetailsById(id: Int): Future[String] =
+  def getGmapReferenceDataSetDetailsById(id: IdAble): Future[String] =
     getGmapReferenceDataSetById(id).map(gmapReferenceToDetails)
-
-  def getGmapReferenceDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getGmapReferenceDataSetByUUID(uuid).map(gmapReferenceToDetails)
-
-  def getGmapReferenceDataSetByUUID(id: UUID): Future[GmapReferenceServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsGmapReference2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid `$id`"))
 
   def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
     db.run {
@@ -1136,26 +1034,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     HdfSubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
-  def getHdfDataSetById(id: Int): Future[HdfSubreadServiceDataSet] =
+  def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsHdfSubread2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsHdfSubread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
     }.flatMap(failIfNone(s"Unable to find HdfSubreadSet with id `$id`"))
 
   private def hdfsubreadToDetails(ds: HdfSubreadServiceDataSet): String =
     DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(ds.path)))
 
-  def getHdfDataSetDetailsById(id: Int): Future[String] =
+  def getHdfDataSetDetailsById(id: IdAble): Future[String] =
     getHdfDataSetById(id).map(hdfsubreadToDetails)
-
-  def getHdfDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getHdfDataSetByUUID(uuid).map(hdfsubreadToDetails)
-
-  def getHdfDataSetByUUID(id: UUID): Future[HdfSubreadServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsHdfSubread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find HdfSubreadSet with uuid `$id`"))
 
   def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
       t1.id,
@@ -1182,15 +1071,9 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toA(x._1)))
     }
 
-  def getAlignmentDataSetById(id: Int): Future[AlignmentServiceDataSet] =
+  def getAlignmentDataSetById(id: IdAble): Future[AlignmentServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsAlignment2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toA(x._1)))
-    }.flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
-
-  def getAlignmentDataSetByUUID(id: UUID): Future[AlignmentServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsAlignment2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toA(x._1)))
     }.flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
 
@@ -1198,11 +1081,8 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     DataSetJsonUtils.alignmentSetToJson(DataSetLoader.loadAlignmentSet(Paths.get(ds.path)))
   }
 
-  def getAlignmentDataSetDetailsById(id: Int): Future[String] =
+  def getAlignmentDataSetDetailsById(id: IdAble): Future[String] =
     getAlignmentDataSetById(id).map(alignmentSetToDetails)
-
-  def getAlignmentDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getAlignmentDataSetByUUID(uuid).map(alignmentSetToDetails)
 
   /*--- CONSENSUS READS ---*/
 
@@ -1219,26 +1099,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toCCSread(x._1)))
     }
 
-  def getConsensusReadDataSetById(id: Int): Future[ConsensusReadServiceDataSet] =
+  def getConsensusReadDataSetById(id: IdAble): Future[ConsensusReadServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsCCSread2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsCCSread2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSread(x._1)))
     }.flatMap(failIfNone(s"Unable to find ConsensusReadSet with id `$id`"))
-
-  def getConsensusReadDataSetByUUID(id: UUID): Future[ConsensusReadServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsCCSread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCCSread(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ConsensusReadSet with uuid `$id`"))
 
   private def consensusReadSetToDetails(ds: ConsensusReadServiceDataSet): String =
     DataSetJsonUtils.consensusSetToJson(DataSetLoader.loadConsensusReadSet(Paths.get(ds.path)))
 
-  def getConsensusReadDataSetDetailsById(id: Int): Future[String] =
+  def getConsensusReadDataSetDetailsById(id: IdAble): Future[String] =
     getConsensusReadDataSetById(id).map(consensusReadSetToDetails)
-
-  def getConsensusReadDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getConsensusReadDataSetByUUID(uuid).map(consensusReadSetToDetails)
 
   /*--- CONSENSUS ALIGNMENTS ---*/
 
@@ -1267,26 +1138,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toCCSA(x._1)))
     }
 
-  def getConsensusAlignmentDataSetById(id: Int): Future[ConsensusAlignmentServiceDataSet] =
+  def getConsensusAlignmentDataSetById(id: IdAble): Future[ConsensusAlignmentServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsCCSAlignment2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsCCSAlignment2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCCSA(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid `$id`"))
-
-  def getConsensusAlignmentDataSetByUUID(id: UUID): Future[ConsensusAlignmentServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsCCSAlignment2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCCSA(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid `$id`"))
+    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid ${id.toIdString}"))
 
   private def consensusAlignmentSetToDetails(ds: ConsensusAlignmentServiceDataSet): String =
     DataSetJsonUtils.consensusAlignmentSetToJson(DataSetLoader.loadConsensusAlignmentSet(Paths.get(ds.path)))
 
-  def getConsensusAlignmentDataSetDetailsById(id: Int): Future[String] =
+  def getConsensusAlignmentDataSetDetailsById(id: IdAble): Future[String] =
     getConsensusAlignmentDataSetById(id).map(consensusAlignmentSetToDetails)
-
-  def getConsensusAlignmentDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getConsensusAlignmentDataSetByUUID(uuid).map(consensusAlignmentSetToDetails)
 
   /*--- BARCODES ---*/
 
@@ -1315,26 +1177,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toB(x._1)))
     }
 
-  def getBarcodeDataSetById(id: Int): Future[BarcodeServiceDataSet] =
+  def getBarcodeDataSetById(id: IdAble): Future[BarcodeServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsBarcode2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsBarcode2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toB(x._1)))
     }.flatMap(failIfNone(s"Unable to find BarcodeSet with id `$id`"))
-
-  def getBarcodeDataSetByUUID(id: UUID): Future[BarcodeServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsBarcode2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toB(x._1)))
-    }.flatMap(failIfNone(s"Unable to find BarcodeSet with uuid `$id`"))
 
   private def barcodeSetToDetails(ds: BarcodeServiceDataSet): String =
     DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(ds.path)))
 
-  def getBarcodeDataSetDetailsById(id: Int): Future[String] =
+  def getBarcodeDataSetDetailsById(id: IdAble): Future[String] =
     getBarcodeDataSetById(id).map(barcodeSetToDetails)
-
-  def getBarcodeDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getBarcodeDataSetByUUID(uuid).map(barcodeSetToDetails)
 
   /*--- CONTIGS ---*/
 
@@ -1363,26 +1216,17 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       q.result.map(_.map(x => toCtg(x._1)))
   }
 
-  def getContigDataSetById(id: Int): Future[ContigServiceDataSet] =
+  def getContigDataSetById(id: IdAble): Future[ContigServiceDataSet] =
     db.run {
-      val q = datasetMetaTypeById(id) join dsContig2 on (_.id === _.id)
+      val q = qDsMetaDataById(id) join dsContig2 on (_.id === _.id)
       q.result.headOption.map(_.map(x => toCtg(x._1)))
     }.flatMap(failIfNone(s"Unable to find ContigSet with id `$id`"))
-
-  def getContigDataSetByUUID(id: UUID): Future[ContigServiceDataSet] =
-    db.run {
-      val q = datasetMetaTypeByUUID(id) join dsContig2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCtg(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ContigSet with uuid `$id`"))
 
   private def contigSetToDetails(ds: ContigServiceDataSet): String =
     DataSetJsonUtils.contigSetToJson(DataSetLoader.loadContigSet(Paths.get(ds.path)))
 
-  def getContigDataSetDetailsById(id: Int): Future[String] =
+  def getContigDataSetDetailsById(id: IdAble): Future[String] =
     getContigDataSetById(id).map(contigSetToDetails)
-
-  def getContigDataSetDetailsByUUID(uuid: UUID): Future[String] =
-    getContigDataSetByUUID(uuid).map(contigSetToDetails)
 
   /*--- DATASTORE ---*/
 
@@ -1390,18 +1234,31 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
     // This is has the wrong job uuid
     DataStoreJobFile(x.uuid, DataStoreFile(x.uuid, x.sourceId, x.fileTypeId, x.fileSize, x.createdAt, x.modifiedAt, x.path, name=x.name, description=x.description))
 
-  def getDataStoreFilesByJobId(i: Int): Future[Seq[DataStoreJobFile]] =
-    db.run(datastoreServiceFiles.filter(_.jobId === i).result.map(_.map(toDataStoreJobFile)))
-
-  // Need to clean all this all up. There's inconsistencies all over the place.
-  override def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreJobFile]] = {
-    if (ignoreInactive) db.run(datastoreServiceFiles.filter(_.isActive).result.map(_.map(toDataStoreJobFile)))
-    else db.run(datastoreServiceFiles.result.map(_.map(toDataStoreJobFile)))
+  def getDataStoreFilesByJobId(i: IdAble): Future[Seq[DataStoreJobFile]] = {
+    db.run {
+      val q = for {
+        engineJob <- qEngineJobById(i)
+        dsFiles <- datastoreServiceFiles.filter(_.jobId === engineJob.id)
+      } yield dsFiles
+      q.result.map(_.map(toDataStoreJobFile))
+    }
   }
 
-  //FIXME(mpkocher)(1-27-2017) This needs to migrated to Future[T]
-  override def getDataStoreFileByUUID(uuid: UUID): Future[Option[DataStoreJobFile]] =
-    db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption.map(_.map(toDataStoreJobFile)))
+
+  // Need to clean all this all up. There's inconsistencies all over the place.
+  def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreJobFile]] = {
+    val q = if (ignoreInactive) {
+      datastoreServiceFiles.filter(_.isActive)
+    } else {
+      datastoreServiceFiles
+    }
+    db.run(q.result).map(_.map(toDataStoreJobFile))
+  }
+
+  def getDataStoreFileByUUID(uuid: UUID): Future[DataStoreJobFile] =
+    db.run(datastoreServiceFiles.filter(_.uuid === uuid)
+        .result.headOption.map(_.map(toDataStoreJobFile)))
+        .flatMap(failIfNone(s"Unable to find DataStore File with UUID $uuid"))
 
   def deleteDataStoreFile(id: UUID, setIsActive: Boolean = false): Future[MessageResponse] = {
     val now = JodaDateTime.now()
@@ -1423,7 +1280,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       // 2 of 3: insert of the data set, if it is a known/supported file type
       val optionalDelete = ds.map { dsFile =>
           DataSetMetaTypes.toDataSetType(dsFile.fileTypeId)
-              .map(_ => DBIO.from(deleteDataSetByUUID(dsFile.uuid)))
+              .map(_ => DBIO.from(deleteDataSetById(dsFile.uuid)))
               .getOrElse(DBIO.from(Future(MessageResponse(s"File type ${dsFile.fileTypeId} is not a dataset, so no metadata to delete."))))
         }.getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete"))))
 
@@ -1440,28 +1297,10 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
         .flatMap(addOptionalDelete)
   }
 
-  override def getDataStoreFilesByJobUUID(uuid: UUID): Future[Seq[DataStoreJobFile]] =
-    db.run {
-      val q = for {
-        engineJob <- engineJobs.filter(_.uuid === uuid)
-        dsFiles <- datastoreServiceFiles.filter(_.jobId === engineJob.id)
-      } yield dsFiles
-      q.result.map(_.map(toDataStoreJobFile))
-    }
-
-  def getJobChildrenByUUID(jobId: UUID): Future[Seq[EngineJob]] = {
+  def getJobChildrenByJobId(i: IdAble): Future[Seq[EngineJob]] = {
     val jobDsJoin = for {
-      j <- engineJobs if j.uuid === jobId
+      j <- qEngineJobById(i)
       d <- datastoreServiceFiles if d.jobId === j.id
-      e <- engineJobsDataSets if e.datasetUUID === d.uuid
-      c <- engineJobs if ((c.id === e.jobId) && c.isActive)
-    } yield (d, c)
-    db.run(jobDsJoin.result).map(_.filter(_._1.fileExists).map(_._2))
-  }
-
-  def getJobChildrenById(jobId: Int): Future[Seq[EngineJob]] = {
-    val jobDsJoin = for {
-      d <- datastoreServiceFiles if d.jobId === jobId
       e <- engineJobsDataSets if e.datasetUUID === d.uuid
       c <- engineJobs if ((c.id === e.jobId) && c.isActive)
     } yield (d, c)
@@ -1523,8 +1362,7 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
   * @param resolver Resolver that will determine where to write jobs to
   * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
   */
-class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends JobEngineDataStore
-with DalComponent
+class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends DalComponent
 with SmrtLinkConstants
 with EventComponent
 with ProjectDataStore

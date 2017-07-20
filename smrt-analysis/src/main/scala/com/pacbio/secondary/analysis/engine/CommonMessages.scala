@@ -3,16 +3,14 @@ package com.pacbio.secondary.analysis.engine
 import java.nio.file.Path
 import java.util.UUID
 
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
-import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreFile, JobResult, RunnableJob, ImportAble}
+import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreFile, ImportAble, JobResult, RunnableJob}
 
 object CommonMessages {
 
   // New Job model
   case class RunJob(job: CoreJob, path: Path)
-
-  // Add a new Job
-  case class AddNewJob(job: CoreJob)
 
   // Not sure if this is the best model for doing this
   sealed trait WorkerType
@@ -56,7 +54,7 @@ object CommonMessages {
   // DataSet Related Messages
   case class PacBioImportDataSet(datum: ImportAble, jobId: UUID)
   case class ImportDataStoreFile(dataStoreFile: DataStoreFile, jobUUID: UUID)
-  case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile, jobId: Int)
+  case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile, jobId: IdAble)
   case class DeleteDataStoreFile(uuid: UUID)
 
 }

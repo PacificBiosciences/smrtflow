@@ -131,6 +131,12 @@ class EventManagerActor(smrtLinkId: UUID,
           logger.warn("Unable to upload. System is not configured with a external server URL")
       }
 
+    case JobCompletedMessage(job) =>
+      // MOCK this out of now. This should email
+      val sx = s"MOCK Emailing message of job $job"
+      logger.info(sx)
+      println(sx)
+
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }
 }

@@ -39,8 +39,6 @@ with JobServiceConstants with TestUtils {
   MockPbsmrtpipeJobTypeProvider with
   JobsDaoActorProvider with
   StatusGeneratorProvider with
-  EngineManagerActorProvider with
-  EngineDaoActorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with
