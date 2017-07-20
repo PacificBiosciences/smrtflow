@@ -60,13 +60,13 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
         m <- dao.insertSubreadDataSet(s1)
         _ <- dao.insertSubreadDataSet(s2)
         msg <- runner.run()
-        dsMetaData <- dao.getDataSetByUUID(s1.uuid)
+        dsMetaData <- dao.getDataSetById(s1.uuid)
       } yield dsMetaData
 
       val dsMeta = Await.result(fx, timeOut)
       dsMeta.isActive must beFalse
 
-      val dsMeta2 = Await.result(dao.getDataSetByUUID(s2.uuid), timeOut)
+      val dsMeta2 = Await.result(dao.getDataSetById(s2.uuid), timeOut)
       dsMeta2.isActive must beTrue
     }
     "Sanity Test to Detect Stuck Jobs that don't have the same SL version" in {
@@ -86,7 +86,7 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
         ej1 <- dao.insertJob(j1)
         ej2 <- dao.insertJob(j2)
         m <- runner.run()
-        updatedJob <- dao.getJobByIdAble(ej1.id)
+        updatedJob <- dao.getJobById(ej1.id)
       } yield updatedJob
 
 
@@ -94,7 +94,7 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
 
       uj1.state must beEqualTo(AnalysisJobStates.FAILED)
 
-      val uj2 = Await.result(dao.getJobByIdAble(j2.uuid), timeOut)
+      val uj2 = Await.result(dao.getJobById(j2.uuid), timeOut)
       uj2.state must beEqualTo(j2.state)
 
     }

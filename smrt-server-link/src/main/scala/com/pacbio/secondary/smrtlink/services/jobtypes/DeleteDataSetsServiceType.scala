@@ -47,7 +47,7 @@ class DeleteDataSetsServiceJobType(dbActor: ActorRef,
     val fx = for {
       jobs <- Future.sequence { jobIds.map(j => (dbActor ? GetJobByIdAble(j)).mapTo[EngineJob]) }
       entryPoints <- Future.sequence { jobs.filter(_.jobTypeId == "merge-datasets").map { j => (dbActor ? GetEngineJobEntryPoints(j.id)).mapTo[Seq[EngineJobEntryPoint]] } }.map(_.flatten)
-      datasets <- Future.sequence { entryPoints.map(ep => ValidateImportDataSetUtils.resolveDataSetByAny(dsMetaType, Right(ep.datasetUUID), dbActor)) }
+      datasets <- Future.sequence { entryPoints.map(ep => ValidateImportDataSetUtils.resolveDataSet(dsMetaType, ep.datasetUUID, dbActor)) }
     } yield datasets
     // TODO logging
     fx

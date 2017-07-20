@@ -7,6 +7,7 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.services.PacBioServiceErrors._
 import com.pacbio.secondary.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
 import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
@@ -86,7 +87,7 @@ trait ValidateImportDataSetUtils extends DataSetFileUtils{
    * @param dbActor Database Actor to resolve the DataSet resource
    * @return
    */
-  def resolveDataSet(datasetType: String, id: Int, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
+  def resolveDataSet(datasetType: String, id: IdAble, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
     import JobsDaoActor._
 
     try {
@@ -104,30 +105,6 @@ trait ValidateImportDataSetUtils extends DataSetFileUtils{
         }
     } catch {
       case e: ResourceNotFoundError => Future.failed(new UnprocessableEntityError(s"Could not resolve dataset with id: $id"))
-    }
-  }
-
-  //FIXME. This has a crazy level of duplication. This Either[Int,UUID] needs to be deleted.
-  def resolveDataSetByAny(datasetType: String, id: Either[Int,UUID], dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
-    import JobsDaoActor._
-    id match {
-      case Left(id_) => resolveDataSet(datasetType, id_, dbActor)
-      case Right(uuid) => try {
-        DataSetMetaTypes.toDataSetType(datasetType) match {
-          case Some(DataSetMetaTypes.HdfSubread) => (dbActor ? GetHdfSubreadDataSetById(uuid)).mapTo[HdfSubreadServiceDataSet]
-          case Some(DataSetMetaTypes.Subread) => (dbActor ? GetSubreadDataSetById(uuid)).mapTo[SubreadServiceDataSet]
-          case Some(DataSetMetaTypes.Reference) => (dbActor ? GetReferenceDataSetById(uuid)).mapTo[ReferenceServiceDataSet]
-          case Some(DataSetMetaTypes.Alignment) => (dbActor ? GetAlignmentDataSetById(uuid)).mapTo[AlignmentServiceDataSet]
-          case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetById(uuid)).mapTo[BarcodeServiceDataSet]
-          case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetById(uuid)).mapTo[ConsensusReadServiceDataSet]
-          case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetById(uuid)).mapTo[ConsensusAlignmentServiceDataSet]
-          case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetById(uuid)).mapTo[ContigServiceDataSet]
-          case Some(DataSetMetaTypes.GmapReference) => (dbActor ? GetGmapReferenceDataSetById(uuid)).mapTo[GmapReferenceServiceDataSet]
-          case _ => Future.failed(new UnprocessableEntityError(s"Unsupported dataset type: $datasetType"))
-          }
-      } catch {
-        case e: ResourceNotFoundError => Future.failed(new UnprocessableEntityError(s"Could not resolve dataset with uuid: $uuid"))
-      }
     }
   }
 }
