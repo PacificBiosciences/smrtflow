@@ -177,9 +177,11 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     }
     "update job datastore" in {
       var dsFiles = Seq.empty[DataStoreServiceFile]
-      Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-        dsFiles = responseAs[Seq[DataStoreServiceFile]]
+      while (dsFiles.size == 0) {
+        Get(toJobTypeByIdWithRest("mock-pbsmrtpipe", 1, "datastore")) ~> totalRoutes ~> check {
+          status.isSuccess must beTrue
+          dsFiles = responseAs[Seq[DataStoreServiceFile]]
+        }
       }
       val uuid = dsFiles.head.uuid
       val r = DataStoreFileUpdateRequest(false, Some("/tmp/foo"), Some(12345))
