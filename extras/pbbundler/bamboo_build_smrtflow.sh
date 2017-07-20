@@ -77,40 +77,33 @@ which python
 conda install --quiet --yes -c bioconda pysam=0.11.2.2
 conda install --quiet --yes -c bioconda ngmlr
 
+function uninstall_pkg () {
+  local pkg=$1
+  x=$(pip freeze | grep ${pkg}| wc -l)
+  if [[ "$x" -ne "0" ]] ; then
+    pip uninstall -y "${pkg}"
+  fi
+}
+
 # Install all PB py dependencies
 pip install -r "${ROOT_REPOS}/pbcommand/REQUIREMENTS.txt"
-x=$(pip freeze | grep pbcommand | wc -l)
-if [[ "$x" ne 0 ]] ; then
-    pip uninstall -y pbcommand
-fi
+uninstall_pkg pbcommand
 pip install "${ROOT_REPOS}/pbcommand"
 
 pip install -r "${ROOT_REPOS}/pbcore/requirements.txt"
-x=$(pip freeze | grep pbcore | wc -l)
-if [[ "$x" ne 0 ]] ; then
-    pip uninstall -y pbcore
-fi
+uninstall_pkg pbcore
 pip install "${ROOT_REPOS}/pbcore"
 
 pip install -r "${ROOT_REPOS}/pbcoretools/requirements.txt"
-x=$(pip freeze | grep pbcoretools | wc -l)
-if [[ "$x" ne 0 ]] ; then
-    pip uninstall -y pbcoretools
-fi
+uninstall_pkg pbcoretools
 pip install "${ROOT_REPOS}/pbcoretools"
 
 pip install -r "${ROOT_REPOS}/pbreports/REQUIREMENTS.txt"
-x=$(pip freeze | grep pbreports | wc -l)
-if [[ "$x" ne 0 ]] ; then
-    pip uninstall -y pbreports
-fi
+uninstall_pkg pbreports
 pip install "${ROOT_REPOS}/pbreports"
 
 pip install -r "${ROOT_REPOS}/pbsmrtpipe/REQUIREMENTS.txt"
-x=$(pip freeze | grep pbsmrtpipe | wc -l)
-if [[ "$x" ne 0 ]] ; then
-    pip uninstall -y pbsmrtpipe
-fi
+uninstall_pkg pbsmrtpipe
 pip install "${ROOT_REPOS}/pbsmrtpipe"
 
 cd "${SMRTFLOW_ROOT_DIR}"
