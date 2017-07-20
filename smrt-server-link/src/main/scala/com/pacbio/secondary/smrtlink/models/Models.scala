@@ -339,11 +339,13 @@ case class SubreadServiceDataSet(
     tags: String,
     md5: String,
     instrumentName: String,
+    instrumentControlVersion: String,
     metadataContextId: String,
     wellSampleName: String,
     wellName: String,
     bioSampleName: String,
     cellIndex: Int,
+    cellId: String, // Barcode from <pbmeta:CellPac Barcode="BA010713635979244259265850" ExpirationDate="2016-11-04" LotNumber="320296" PartNumber="100-512-700"/>
     runName: String,
     createdBy: Option[String],
     jobId: Int,

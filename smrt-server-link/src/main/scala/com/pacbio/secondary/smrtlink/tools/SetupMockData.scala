@@ -146,11 +146,13 @@ trait MockUtils extends LazyLogging{
         "tag1, tag2",
         "md5",
         "inst-name",
+        "inst-ctl-version",
         "movie-context-id",
         "well-sample-name",
         "well-anme",
         "bio-sample",
         0,
+        "cell-id",
         "run-name",
         MOCK_CREATED_BY, importJobId, mockProjectId)
     }
