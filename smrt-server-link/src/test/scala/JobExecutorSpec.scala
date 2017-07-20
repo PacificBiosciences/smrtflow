@@ -194,7 +194,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         f.path must beEqualTo("/tmp/foo")
         f.fileSize must beEqualTo(12345)
       }
-      val r2 = DataStoreFileUpdateRequest(true, Some(dsFiles.head.path), Some(dsFiles.head.fileSize))
+      val r2 = DataStoreFileUpdateRequest(true, Some(dsFiles.head.path), None)
       // also check central datastore-files endpoint
       Put(s"/$ROOT_SERVICE_PREFIX/datastore-files/$uuid", r2) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -203,7 +203,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         val dsFiles2 = responseAs[Seq[DataStoreServiceFile]]
         val f = dsFiles2.find(_.uuid == uuid).head
         f.path must beEqualTo(dsFiles.head.path)
-        f.fileSize must beEqualTo(dsFiles.head.fileSize)
+        f.fileSize must beEqualTo(12345)
       }
     }
     "access job reports" in {

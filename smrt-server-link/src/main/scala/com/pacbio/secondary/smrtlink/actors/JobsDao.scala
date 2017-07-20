@@ -1413,8 +1413,8 @@ trait DataSetStore extends DataStoreComponent with DaoFutureUtils with LazyLoggi
       d <- datastoreServiceFiles.filter(_.uuid === id)
     } yield d
     val q2 = List(
-      path.map(_ => q1.map(f => (f.isActive, f.path, f.modifiedAt)).update((setIsActive, path.get, now))),
-      fileSize.map(_ => q1.map(f => (f.isActive, f.fileSize, f.modifiedAt)).update((setIsActive, fileSize.get, now)))
+      path.map(p => q1.map(f => (f.isActive, f.path, f.modifiedAt)).update((setIsActive, p, now))),
+      fileSize.map(fsize => q1.map(f => (f.isActive, f.fileSize, f.modifiedAt)).update((setIsActive, fsize, now)))
     ).flatten
     db.run(DBIO.sequence(q2)).map(_ => MessageResponse(s"Successfully set datastore file $id to path=$path, fileSize=$fileSize and isActive=$setIsActive"))
   }
