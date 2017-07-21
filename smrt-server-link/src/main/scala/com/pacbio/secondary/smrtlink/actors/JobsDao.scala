@@ -755,12 +755,24 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
-  def getDataStoreFiles2(ignoreInactive: Boolean = true): Future[Seq[DataStoreServiceFile]] = {
-    if (ignoreInactive) db.run(datastoreServiceFiles.filter(_.isActive).result)
-    else db.run(datastoreServiceFiles.result)
+  /**
+    * Get DataStoreService Files
+    *
+    * In practice, this would return a list that is very large
+    *
+    * @param ignoreInactive Ignore Inactive files
+    * @return
+    */
+  def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreServiceFile]] = {
+    val q = if (ignoreInactive) {
+      datastoreServiceFiles.filter(_.isActive)
+    } else {
+      datastoreServiceFiles
+    }
+    db.run(q.result)
   }
 
-  def getDataStoreFileByUUID2(uuid: UUID): Future[DataStoreServiceFile] =
+  def getDataStoreFileByUUID(uuid: UUID): Future[DataStoreServiceFile] =
     db.run(datastoreServiceFiles.filter(_.uuid === uuid).result.headOption)
         .flatMap(failIfNone(s"Unable to find DataStore File with uuid `$uuid`"))
 
@@ -922,27 +934,36 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         .flatMap(failIfNone(s"Unable to find dataSet with id ${id.toIdString}"))
 
   def deleteDataSetById(id: IdAble, setIsActive: Boolean = false): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
-    db.run(qDsMetaDataById(id).map(d => (d.isActive, d.updatedAt)).update(setIsActive, now)).map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
+    db.run(qDsMetaDataById(id)
+        .map(d => (d.isActive, d.updatedAt))
+        .update(setIsActive, JodaDateTime.now()))
+        .map(_ => MessageResponse(s"Successfully set isActive=$setIsActive for dataset $id"))
   }
 
   def updateDataSetById(id: IdAble, path: String, setIsActive: Boolean = true): Future[MessageResponse] = {
-    val now = JodaDateTime.now()
     val msg = s"Successfully set path=$path and isActive=$setIsActive for dataset ${id.toIdString}"
-    db.run(qDsMetaDataById(id).map(d => (d.isActive, d.path, d.updatedAt)).update(setIsActive, path, now)).map(_ => MessageResponse(msg))
+    db.run(qDsMetaDataById(id)
+        .map(d => (d.isActive, d.path, d.updatedAt))
+        .update(setIsActive, path, JodaDateTime.now()))
+        .map(_ => MessageResponse(msg))
   }
 
 
   //FIXME. Make this IdAble
   def getDataSetJobsByUUID(id: UUID): Future[Seq[EngineJob]] = {
-    db.run {
-      val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs.filter(_.isActive) on (_.jobId === _.id)
-      q.result.map(_.map(x => x._2))
-    }
+    val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs.filter(_.isActive) on (_.jobId === _.id)
+    db.run(q.result).map(_.map(x => x._2))
   }
 
-  // util for converting to the old model
-  def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
+  /**
+    * These conversion funcs are necessary to take the base dataset metadata model to
+    * the flattened out data model that will be returned from the Web Services
+    *
+    * @param t1 base dataset metadata
+    * @param t2 Subread data model (e.g., subreadset specific db table)
+    * @return
+    */
+  private def toSds(t1: DataSetMetaDataSet, t2: SubreadServiceSet): SubreadServiceDataSet =
     SubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.instrumentControlVersion, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.cellId ,t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
@@ -953,10 +974,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * @return
     */
   def getSubreadDataSetById(id: IdAble): Future[SubreadServiceDataSet] = {
-    db.run {
-      val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toSds(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find SubreadSet with id ${id.toIdString}"))
+    val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toSds(x._1, x._2)))
+        .flatMap(failIfNone(s"Unable to find SubreadSet with id ${id.toIdString}"))
   }
 
   // This might be wrapped in a Try to fail the future downstream with a better HTTP error code
@@ -967,32 +988,35 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getSubreadDataSetDetailsById(id: IdAble): Future[String] =
     getSubreadDataSetById(id).map(subreadToDetails)
 
-  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsSubread2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toSds(x._1, x._2)))
-    }
+  def getSubreadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] = {
+    val qj = dsMetaData2 join dsSubread2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toSds(x._1, x._2)))
+  }
 
-  // conversion util for keeping the old interface
-  def toR(t1: DataSetMetaDataSet, t2: ReferenceServiceSet): ReferenceServiceDataSet =
+  /**
+    * Convert to the Service Data model
+    *
+    * See the SubreadSet toSds for more context.
+    */
+  private def toR(t1: DataSetMetaDataSet, t2: ReferenceServiceSet): ReferenceServiceDataSet =
     ReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsReference2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toR(x._1, x._2)))
-    }
+  def getReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] = {
+    val qj = dsMetaData2 join dsReference2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toR(x._1, x._2)))
+  }
 
-  def getReferenceDataSetById(id: IdAble): Future[ReferenceServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsReference2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find ReferenceSet with id ${id.toIdString}"))
+  def getReferenceDataSetById(id: IdAble): Future[ReferenceServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsReference2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toR(x._1, x._2)))
+        .flatMap(failIfNone(s"Unable to find ReferenceSet with id ${id.toIdString}"))
+  }
 
   private def referenceToDetails(ds: ReferenceServiceDataSet): String =
     DataSetJsonUtils.referenceSetToJson(DataSetLoader.loadReferenceSet(Paths.get(ds.path)))
@@ -1000,23 +1024,24 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getReferenceDataSetDetailsById(id: IdAble): Future[String] =
     getReferenceDataSetById(id).map(referenceToDetails)
 
-  def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
+  // See the SubreadSet toDs for context
+  private def toGmapR(t1: DataSetMetaDataSet, t2: GmapReferenceServiceSet): GmapReferenceServiceDataSet =
     GmapReferenceServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId, t2.ploidy, t2.organism)
 
-  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toGmapR(x._1, x._2)))
-    }
+  def getGmapReferenceDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] = {
+    val qj = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toGmapR(x._1, x._2)))
+  }
 
-  def getGmapReferenceDataSetById(id: IdAble): Future[GmapReferenceServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsGmapReference2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toGmapR(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find GmapReferenceSet with uuid ${id.toIdString}"))
+  def getGmapReferenceDataSetById(id: IdAble): Future[GmapReferenceServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsGmapReference2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toGmapR(x._1, x._2)))
+        .flatMap(failIfNone(s"Unable to find GmapReferenceSet with id ${id.toIdString}"))
+  }
 
   private def gmapReferenceToDetails(ds: GmapReferenceServiceDataSet): String =
     DataSetJsonUtils.gmapReferenceSetToJson(DataSetLoader.loadGmapReferenceSet(Paths.get(ds.path)))
@@ -1024,23 +1049,23 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getGmapReferenceDataSetDetailsById(id: IdAble): Future[String] =
     getGmapReferenceDataSetById(id).map(gmapReferenceToDetails)
 
-  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toHds(x._1, x._2)))
-    }
+  def getHdfDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] = {
+    val qj = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toHds(x._1, x._2)))
+  }
 
-  def toHds(t1: DataSetMetaDataSet, t2: HdfSubreadServiceSet): HdfSubreadServiceDataSet =
+  private def toHds(t1: DataSetMetaDataSet, t2: HdfSubreadServiceSet): HdfSubreadServiceDataSet =
     HdfSubreadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t2.instrumentName, t2.metadataContextId, t2.wellSampleName, t2.wellName, t2.bioSampleName, t2.cellIndex, t2.runName, t1.createdBy, t1.jobId, t1.projectId)
 
-  def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsHdfSubread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toHds(x._1, x._2)))
-    }.flatMap(failIfNone(s"Unable to find HdfSubreadSet with id `$id`"))
+  def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsHdfSubread2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toHds(x._1, x._2)))
+        .flatMap(failIfNone(s"Unable to find HdfSubreadSet with id `$id`"))
+  }
 
   private def hdfsubreadToDetails(ds: HdfSubreadServiceDataSet): String =
     DataSetJsonUtils.hdfSubreadSetToJson(DataSetLoader.loadHdfSubreadSet(Paths.get(ds.path)))
@@ -1048,7 +1073,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getHdfDataSetDetailsById(id: IdAble): Future[String] =
     getHdfDataSetById(id).map(hdfsubreadToDetails)
 
-  def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
+  private def toA(t1: DataSetMetaDataSet) = AlignmentServiceDataSet(
       t1.id,
       t1.uuid,
       t1.name,
@@ -1065,19 +1090,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsAlignment2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toA(x._1)))
-    }
+  def getAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] = {
+    val qj = dsMetaData2 join dsAlignment2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toA(x._1)))
+  }
 
-  def getAlignmentDataSetById(id: IdAble): Future[AlignmentServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsAlignment2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toA(x._1)))
-    }.flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
+  def getAlignmentDataSetById(id: IdAble): Future[AlignmentServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsAlignment2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toA(x._1)))
+        .flatMap(failIfNone(s"Unable to find AlignmentSet with id `$id`"))
+  }
 
   private def alignmentSetToDetails(ds: AlignmentServiceDataSet): String = {
     DataSetJsonUtils.alignmentSetToJson(DataSetLoader.loadAlignmentSet(Paths.get(ds.path)))
@@ -1088,24 +1113,24 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /*--- CONSENSUS READS ---*/
 
-  def toCCSread(t1: DataSetMetaDataSet) =
+  private def toCCSread(t1: DataSetMetaDataSet) =
     ConsensusReadServiceDataSet(t1.id, t1.uuid, t1.name, t1.path, t1.createdAt, t1.updatedAt, t1.numRecords, t1.totalLength,
       t1.version, t1.comments, t1.tags, t1.md5, t1.createdBy, t1.jobId, t1.projectId)
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
-  def getConsensusReadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toCCSread(x._1)))
-    }
+  def getConsensusReadDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] = {
+    val qj = dsMetaData2 join dsCCSread2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toCCSread(x._1)))
+  }
 
-  def getConsensusReadDataSetById(id: IdAble): Future[ConsensusReadServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsCCSread2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCCSread(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ConsensusReadSet with id `$id`"))
+  def getConsensusReadDataSetById(id: IdAble): Future[ConsensusReadServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsCCSread2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toCCSread(x._1)))
+        .flatMap(failIfNone(s"Unable to find ConsensusReadSet with id `$id`"))
+  }
 
   private def consensusReadSetToDetails(ds: ConsensusReadServiceDataSet): String =
     DataSetJsonUtils.consensusSetToJson(DataSetLoader.loadConsensusReadSet(Paths.get(ds.path)))
@@ -1115,7 +1140,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /*--- CONSENSUS ALIGNMENTS ---*/
 
-  def toCCSA(t1: DataSetMetaDataSet) = ConsensusAlignmentServiceDataSet(
+  private def toCCSA(t1: DataSetMetaDataSet) = ConsensusAlignmentServiceDataSet(
       t1.id,
       t1.uuid,
       t1.name,
@@ -1132,19 +1157,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toCCSA(x._1)))
-    }
+  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusAlignmentServiceDataSet]] = {
+    val qj = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toCCSA(x._1)))
+  }
 
-  def getConsensusAlignmentDataSetById(id: IdAble): Future[ConsensusAlignmentServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsCCSAlignment2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCCSA(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid ${id.toIdString}"))
+  def getConsensusAlignmentDataSetById(id: IdAble): Future[ConsensusAlignmentServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsCCSAlignment2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toCCSA(x._1)))
+        .flatMap(failIfNone(s"Unable to find ConsensusAlignmentSet with uuid ${id.toIdString}"))
+  }
 
   private def consensusAlignmentSetToDetails(ds: ConsensusAlignmentServiceDataSet): String =
     DataSetJsonUtils.consensusAlignmentSetToJson(DataSetLoader.loadConsensusAlignmentSet(Paths.get(ds.path)))
@@ -1154,7 +1179,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /*--- BARCODES ---*/
 
-  def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
+  private def toB(t1: DataSetMetaDataSet) = BarcodeServiceDataSet(
       t1.id,
       t1.uuid,
       t1.name,
@@ -1171,19 +1196,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toB(x._1)))
-    }
+  def getBarcodeDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] = {
+    val qj = dsMetaData2 join dsBarcode2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toB(x._1)))
+  }
 
-  def getBarcodeDataSetById(id: IdAble): Future[BarcodeServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsBarcode2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toB(x._1)))
-    }.flatMap(failIfNone(s"Unable to find BarcodeSet with id `$id`"))
+  def getBarcodeDataSetById(id: IdAble): Future[BarcodeServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsBarcode2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toB(x._1)))
+        .flatMap(failIfNone(s"Unable to find BarcodeSet with id `$id`"))
+  }
 
   private def barcodeSetToDetails(ds: BarcodeServiceDataSet): String =
     DataSetJsonUtils.barcodeSetToJson(DataSetLoader.loadBarcodeSet(Paths.get(ds.path)))
@@ -1193,7 +1218,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /*--- CONTIGS ---*/
 
-  def toCtg(t1: DataSetMetaDataSet) = ContigServiceDataSet(
+  private def toCtg(t1: DataSetMetaDataSet) = ContigServiceDataSet(
       t1.id,
       t1.uuid,
       t1.name,
@@ -1210,19 +1235,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId)
 
-  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
-    db.run {
-      val qj = dsMetaData2 join dsContig2 on (_.id === _.id)
-      val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-      val q = if (projectIds.nonEmpty)  qi.filter(_._1.projectId inSet projectIds) else qi
-      q.result.map(_.map(x => toCtg(x._1)))
+  def getContigDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] = {
+    val qj = dsMetaData2 join dsContig2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q = if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds) else qi
+    db.run(q.result).map(_.map(x => toCtg(x._1)))
   }
 
-  def getContigDataSetById(id: IdAble): Future[ContigServiceDataSet] =
-    db.run {
-      val q = qDsMetaDataById(id) join dsContig2 on (_.id === _.id)
-      q.result.headOption.map(_.map(x => toCtg(x._1)))
-    }.flatMap(failIfNone(s"Unable to find ContigSet with id `$id`"))
+  def getContigDataSetById(id: IdAble): Future[ContigServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsContig2 on (_.id === _.id)
+    db.run(q.result.headOption)
+        .map(_.map(x => toCtg(x._1)))
+        .flatMap(failIfNone(s"Unable to find ContigSet with id `$id`"))
+  }
 
   private def contigSetToDetails(ds: ContigServiceDataSet): String =
     DataSetJsonUtils.contigSetToJson(DataSetLoader.loadContigSet(Paths.get(ds.path)))
@@ -1245,23 +1270,6 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
-
-  /**
-    * Get DataStoreService Files
-    *
-    * In practice, this would return a list that is very large
-    *
-    * @param ignoreInactive Ignore Inactive files
-    * @return
-    */
-  def getDataStoreFiles(ignoreInactive: Boolean = true): Future[Seq[DataStoreJobFile]] = {
-    val q = if (ignoreInactive) {
-      datastoreServiceFiles.filter(_.isActive)
-    } else {
-      datastoreServiceFiles
-    }
-    db.run(q.result).map(_.map(toDataStoreJobFile))
-  }
 
   /**
     * Get a DataStore Service File by DataStore file UUID
