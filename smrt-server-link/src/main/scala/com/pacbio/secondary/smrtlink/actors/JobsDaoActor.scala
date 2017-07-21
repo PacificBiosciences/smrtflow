@@ -520,10 +520,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
       pipeWith {dao.getContigDataSetDetailsById(i)}
 
     // DataStore Files
-    case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles2(ignoreInactive))
+    case GetDataStoreFiles(limit: Int, ignoreInactive: Boolean) => pipeWith(dao.getDataStoreFiles(ignoreInactive))
 
     case GetDataStoreFileByUUID(uuid: UUID) =>
-      pipeWith {dao.getDataStoreFileByUUID2(uuid)}
+      pipeWith {dao.getDataStoreFileByUUID(uuid)}
 
     case GetDataStoreFilesByJobId(jobId) => pipeWith(dao.getDataStoreFilesByJobId(jobId))
 

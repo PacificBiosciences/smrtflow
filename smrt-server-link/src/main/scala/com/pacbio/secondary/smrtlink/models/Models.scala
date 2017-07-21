@@ -186,9 +186,6 @@ case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, error
 
 case class JobCompletedMessage(job: EngineJob)
 
-// Need to find a better way to do this
-case class PacBioSchema(id: String, content: String)
-
 // "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
 // These are also used by the mock-pbsmrtpipe job options
 case class PbSmrtPipeServiceOptions(
@@ -216,8 +213,6 @@ trait ProjectAble {
 case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, createdBy: Option[String], jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
 
 case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends UniqueIdAble
-
-case class SubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: SubreadServiceSet)
 
 case class HdfSubreadServiceSet(
     id: Int,
