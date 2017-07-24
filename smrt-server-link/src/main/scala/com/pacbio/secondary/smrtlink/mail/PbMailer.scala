@@ -55,7 +55,7 @@ trait PbMailer extends LazyLogging{
         val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
         val toAddress = new InternetAddress(email)
 
-        val emailInput = SmrtLinkEmailInput(toAddress, job.id, job.name, job.createdAt, job.updatedAt, jobIdUrl, job.smrtlinkVersion)
+        val emailInput = SmrtLinkEmailInput(toAddress, job.id, job.name, job.state, job.createdAt, job.updatedAt, jobIdUrl, job.smrtlinkVersion)
         val result = if (job.isSuccessful) EmailJobSuccessTemplate(emailInput) else EmailJobFailedTemplate(emailInput)
         logger.info(s"Attempting to send email with input $emailInput")
         sender(result, toAddress)

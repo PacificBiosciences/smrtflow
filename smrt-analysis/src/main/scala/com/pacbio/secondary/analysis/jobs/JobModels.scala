@@ -51,6 +51,8 @@ object AnalysisJobStates {
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
 
+  def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
+
   def intToState(i: Int): Option[JobStates] = VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
 
   // This is NOT case sensitive
