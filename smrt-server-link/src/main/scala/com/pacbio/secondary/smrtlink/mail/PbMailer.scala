@@ -34,19 +34,25 @@ trait PbMailer extends LazyLogging{
   /**
     * Send email (if possible)
     *
+    * The Job must have the required files defined (i.e., non-optional) and the system must be configured with the
+    * Jobs UI root URL
+    *
     * @param job Engine Job
-    * @param baseJobUrl Base Job URL Example: https://smrtlink-bihourly.nanofluidics.com:8243/sl/#/analysis/jobs
+    * @param jobsBaseUrl Base Job URL Example: https://smrtlink-bihourly.nanofluidics.com:8243/sl/#/analysis/jobs
     */
-  def sendEmail(job: EngineJob, baseJobUrl: Option[URL]): Unit = {
+  def sendEmail(job: EngineJob, jobsBaseUrl: URL): Unit = {
 
-    Tuple3(job.createdByEmail, job.jobTypeId, baseJobUrl) match {
-      case Tuple3(Some(email), JobTypeIds.PBSMRTPIPE.id, Some(baseUrl)) =>
-        val emailInput = SmrtLinkEmail(email, job.id, job.name, job.createdAt.toString(), job.updatedAt.toString())
+    Tuple2(job.createdByEmail, job.jobTypeId) match {
+      case Tuple2(Some(email), JobTypeIds.PBSMRTPIPE.id) =>
+        // Note, because of the js "#" the URL or URI resolving doesn't work as expected.
+        val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
+        val emailInput = SmrtLinkEmail(email, job.id, job.name, job.createdAt.toString(), job.updatedAt.toString(), jobIdUrl)
         val toAddress = new InternetAddress(email)
         val result = if (job.isSuccessful) EmailJobSuccessTemplate(emailInput) else EmailJobFailedTemplate(emailInput)
+        logger.info(s"Attempting to send email with input $emailInput")
         sender(result, toAddress)
       case _ =>
-        val msg = s"Unable to send email. BaseUrl:$baseJobUrl Address:${job.createdByEmail} JobType:${job.jobTypeId} JobId: ${job.id} state: ${job.state}"
+        val msg = s"Unable to send email. BaseUrl:$jobsBaseUrl Address:${job.createdByEmail} JobType:${job.jobTypeId} JobId: ${job.id} state: ${job.state}"
         logger.debug(msg)
     }
   }

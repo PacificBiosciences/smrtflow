@@ -24,7 +24,7 @@ object Templates {
          |Start time: ${input.createdAt}
          |Finish time: ${input.completedAt}
          |
-         |Please visit the following link to view the results: [link]
+         |Please visit the following link to view the results: [${input.jobURL}]
          |Powered by SMRT Link
          |Pacific Biosciences of California, Inc.
          |
@@ -47,7 +47,7 @@ object Templates {
          |Start time: ${input.createdAt}
          |Finish time: ${input.completedAt}
          |
-         |Please visit the following link to view the results: [link]
+         |Please visit the following link to view the results: [${input.jobURL}]
          |Powered by SMRT Link
          |Pacific Biosciences of California, Inc.
          |
