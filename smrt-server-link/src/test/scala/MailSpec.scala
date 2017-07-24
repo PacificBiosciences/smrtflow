@@ -18,12 +18,12 @@ class MailSpec extends Specification{
   "Mail Template Rendering Smoke test" should {
     "render successful template" in {
       val templateResult = EmailJobSuccessTemplate(emailInput)
-      println(templateResult.html)
+      //println(templateResult.html)
       true must beTrue
     }
     "render failed template" in {
       val templateResult = EmailJobFailedTemplate(emailInput.copy(jobState = AnalysisJobStates.FAILED))
-      println(templateResult.html)
+      //println(templateResult.html)
       true must beTrue
     }
   }
