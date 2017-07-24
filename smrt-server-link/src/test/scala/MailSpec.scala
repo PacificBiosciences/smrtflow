@@ -9,7 +9,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 class MailSpec extends Specification{
 
   val jobId = 1234
-  val jobUrl = new URL(s"http://my-domain:1234/#/analysis/jobs/$jobId")
+  val jobUrl = new URL(s"http://my-domain:8454/#/analysis/jobs/$jobId")
   val createdAt = JodaDateTime.now()
   val smrtLinkVersion = Some("9.9.9")
   val emailInput = SmrtLinkEmailInput(new InternetAddress("user@mail.com"), jobId, "Job-Name", createdAt, createdAt, jobUrl, smrtLinkVersion)
@@ -21,7 +21,6 @@ class MailSpec extends Specification{
       true must beTrue
     }
     "render failed template" in {
-      val createdAt = JodaDateTime.now()
       val templateResult = EmailJobFailedTemplate(emailInput)
       //println(templateResult.html)
       true must beTrue
