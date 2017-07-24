@@ -53,6 +53,8 @@ val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
 resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
 
+resolvers in ThisBuild += "lightshed-maven" at "http://dl.bintray.com/content/lightshed/maven"
+
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
@@ -76,6 +78,7 @@ lazy val baseSettings = Seq(
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
   "com.jsuereth" %% "scala-arm" % "1.4",
   "com.lihaoyi" % "ammonite" % "0.8.4" cross CrossVersion.full,
+  "com.lihaoyi" %% "scalatags" % "0.6.5",
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
@@ -113,7 +116,8 @@ lazy val baseSettings = Seq(
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
-  "mbilski" % "spray-hmac_2.11" % "1.0.1"
+  "mbilski" % "spray-hmac_2.11" % "1.0.1",
+  "ch.lightshed" % "courier_2.11" % "0.1.4"
 ).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
 
 
