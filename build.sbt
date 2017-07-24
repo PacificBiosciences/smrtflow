@@ -117,8 +117,10 @@ lazy val baseSettings = Seq(
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
   "mbilski" % "spray-hmac_2.11" % "1.0.1",
-  "ch.lightshed" % "courier_2.11" % "0.1.4"
+  "ch.lightshed" % "courier_2.11" % "0.1.4",
+  "javax.mail" % "mail" % "1.4.7"
 ).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
+    .map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
 
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
