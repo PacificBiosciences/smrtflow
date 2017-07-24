@@ -115,4 +115,8 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val rootDataBaseBackUpDir: Singleton[Option[Path]] =
     Singleton(() => Try { Paths.get(conf.getString("pacBioSystem.pgDataDir")).resolve("backups") }.toOption.map(createDirIfNotExist) )
 
+  // Centralizing this here so it's not hardcoded randomly in different places. This is the SMRT Link UI PORT that is
+  // host via https
+  val smrtLinkUiPort: Singleton[Int] = Singleton(() => 8243)
+
 }

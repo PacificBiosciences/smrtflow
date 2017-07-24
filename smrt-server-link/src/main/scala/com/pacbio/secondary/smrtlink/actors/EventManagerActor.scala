@@ -36,13 +36,15 @@ object EventManagerActor {
 
 class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
-                        externalEveUrl: Option[URL], apiSecret: String)
+                        externalEveUrl: Option[URL],
+                        apiSecret: String,
+                        smrtLinkUiPort: Int)
     extends Actor with LazyLogging with SmrtLinkJsonProtocols with PbMailer{
 
   import EventManagerActor._
 
   // If the system is not configured with the DNS name, no emails will be sent.
-  val uiJobsUrl = dnsName.map(d => new URL(s"https://$d:8243/sl/#/analysis/jobs"))
+  val uiJobsUrl = dnsName.map(d => new URL(s"https://$d:$smrtLinkUiPort/sl/#/analysis/jobs"))
 
   // This state will be updated when/if a "Eula" message is sent. This will enable/disable sending messages
   // to the external server.
@@ -152,5 +154,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEveUrl(), apiSecret()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEveUrl(), apiSecret(), smrtLinkUiPort()), "EventManagerActor"))
 }
