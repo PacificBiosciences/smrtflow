@@ -46,8 +46,9 @@ trait PbMailer extends LazyLogging{
       case Tuple2(Some(email), JobTypeIds.PBSMRTPIPE.id) =>
         // Note, because of the js "#" the URL or URI resolving doesn't work as expected.
         val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
-        val emailInput = SmrtLinkEmail(email, job.id, job.name, job.createdAt.toString(), job.updatedAt.toString(), jobIdUrl)
         val toAddress = new InternetAddress(email)
+
+        val emailInput = SmrtLinkEmailInput(toAddress, job.id, job.name, job.createdAt, job.updatedAt, jobIdUrl, job.smrtlinkVersion)
         val result = if (job.isSuccessful) EmailJobSuccessTemplate(emailInput) else EmailJobFailedTemplate(emailInput)
         logger.info(s"Attempting to send email with input $emailInput")
         sender(result, toAddress)
