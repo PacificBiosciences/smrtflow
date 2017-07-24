@@ -18,6 +18,7 @@ import com.pacbio.common.dependency.Singleton
 import com.pacbio.common.models.{Constants, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.client.EventServerClient
+import com.pacbio.secondary.smrtlink.mail.PbMailer
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.Future
@@ -36,9 +37,12 @@ object EventManagerActor {
 class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
                         externalEveUrl: Option[URL], apiSecret: String)
-    extends Actor with LazyLogging with SmrtLinkJsonProtocols{
+    extends Actor with LazyLogging with SmrtLinkJsonProtocols with PbMailer{
 
   import EventManagerActor._
+
+  // If the system is not configured with the DNS name, no emails will be sent.
+  val uiJobsUrl = dnsName.map(d => new URL(s"https://$d:8243/sl/#/analysis/jobs"))
 
   // This state will be updated when/if a "Eula" message is sent. This will enable/disable sending messages
   // to the external server.
@@ -132,9 +136,13 @@ class EventManagerActor(smrtLinkId: UUID,
       }
 
     case JobCompletedMessage(job) =>
-      // MOCK this out of now. This should email
-      val sx = s"MOCK Emailing message of job $job"
-      logger.info(sx)
+      // This is a fire and forget
+      uiJobsUrl match {
+        case Some(jobsBaseUrl) =>
+          sendEmail(job, jobsBaseUrl)
+        case _ =>
+          logger.debug(s"System is not configured to send email. Must provide DNS name in SMRT Link System Config")
+      }
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }
