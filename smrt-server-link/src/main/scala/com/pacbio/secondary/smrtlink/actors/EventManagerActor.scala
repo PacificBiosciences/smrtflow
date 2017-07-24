@@ -41,6 +41,7 @@ class EventManagerActor(smrtLinkId: UUID,
 
   import EventManagerActor._
 
+  // If the system is not configured with the DNS name, no emails will be sent.
   val uiJobsUrl = dnsName.map(d => new URL(s"https://$d:8243/sl/#/analysis/jobs"))
 
   // This state will be updated when/if a "Eula" message is sent. This will enable/disable sending messages

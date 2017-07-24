@@ -9,6 +9,7 @@ import com.pacbio.secondary.smrtlink.mail.Templates.{EmailJobFailedTemplate, Ema
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.control.NonFatal
+import scala.concurrent.Future
 
 /**
   * Created by mkocher on 7/21/17.
@@ -16,9 +17,16 @@ import scala.util.control.NonFatal
 trait PbMailer extends LazyLogging{
   import Defaults._
 
-  private def sender(result: EmailTemplateResult, toAddress: InternetAddress) = {
+  /**
+    * Thin layer around the courier lib to send an email
+    *
+    * @param result      Email Template result
+    * @param toAddress   To Address
+    * @param fromAddress From Address
+    * @return
+    */
+  private def sender(result: EmailTemplateResult, toAddress: InternetAddress, fromAddress: InternetAddress = new InternetAddress("noreply@pacb.com")):Future[Unit] = {
     val mailer = Mailer()
-    val fromAddress = new InternetAddress("noreply@pacb.com")
 
     val f = mailer(Envelope.from(fromAddress)
         .to(toAddress)
@@ -26,7 +34,7 @@ trait PbMailer extends LazyLogging{
         .content(Multipart().html(result.html)))
 
     f.onSuccess { case _ => logger.info(s"Successfully Sent Email $toAddress")}
-    f.onFailure { case NonFatal(ex) => logger.error(s"Failed to send Email Error ${ex.getMessage}")}
+    f.onFailure { case NonFatal(ex) => logger.error(s"Failed to send Email. Error ${ex.getMessage}")}
 
     f
   }
@@ -34,8 +42,7 @@ trait PbMailer extends LazyLogging{
   /**
     * Send email (if possible)
     *
-    * The Job must have the required files defined (i.e., non-optional) and the system must be configured with the
-    * Jobs UI root URL
+    * The Job must have the required files defined (i.e., non-optional)
     *
     * @param job Engine Job
     * @param jobsBaseUrl Base Job URL Example: https://smrtlink-bihourly.nanofluidics.com:8243/sl/#/analysis/jobs
