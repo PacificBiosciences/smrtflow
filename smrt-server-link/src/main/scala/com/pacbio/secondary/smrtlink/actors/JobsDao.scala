@@ -425,10 +425,6 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
     val f:Future[EngineJob] = db.run(xs.transactionally).flatMap(failIfNone(s"Failed to find Job $jobId"))
 
-    if (AnalysisJobStates.isCompleted(state)) {
-      f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
-    }
-
     f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
 
     f
