@@ -42,7 +42,7 @@ trait PbMailer extends LazyLogging{
   /**
     * Send email (if possible)
     *
-    * The Job must have the required files defined (i.e., non-optional)
+    * The Job must have the required files defined (i.e., non-optional) and the job must be in a completed state
     *
     * @param job Engine Job
     * @param jobsBaseUrl Base Job URL Example: https://smrtlink-bihourly.nanofluidics.com:8243/sl/#/analysis/jobs
@@ -50,7 +50,7 @@ trait PbMailer extends LazyLogging{
   def sendEmail(job: EngineJob, jobsBaseUrl: URL): Unit = {
 
     Tuple2(job.createdByEmail, job.jobTypeId) match {
-      case Tuple2(Some(email), JobTypeIds.PBSMRTPIPE.id) =>
+      case Tuple2(Some(email), JobTypeIds.PBSMRTPIPE.id) if job.isComplete =>
         // Note, because of the js "#" the URL or URI resolving doesn't work as expected.
         val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
         val toAddress = new InternetAddress(email)
