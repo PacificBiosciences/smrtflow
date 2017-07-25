@@ -410,7 +410,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       message: String,
       errorMessage: Option[String] = None): Future[EngineJob] = {
 
-    logger.info(s"Updating job state of job-id $jobId to $state")
+    logger.info(s"Updating job state of job-id ${jobId.toIdString} to $state")
     val now = JodaDateTime.now()
 
     // The error handling of this .head call needs to be improved
@@ -423,11 +423,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       updatedJob <- qEngineJobById(jobId).result.headOption
     } yield updatedJob
 
-    val f:Future[EngineJob] = db.run(xs.transactionally).flatMap(failIfNone(s"Failed to find Job $jobId"))
-
-    if (AnalysisJobStates.isCompleted(state)) {
-      f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
-    }
+    val f:Future[EngineJob] = db.run(xs.transactionally).flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
 
     f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
 
