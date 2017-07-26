@@ -10,7 +10,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.2.4"
+__version__ = "0.3.0"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -30,6 +30,8 @@ _LOG_STDOUT_FORMAT = "%(message)ss"
 _DEFAULT_LOG_FILE_NAME = "dbctrl.log"
 # This will only be used when postgres is started up
 _DEFAULT_POSTGRES_LOG_FILE_NAME = "postgres.log"
+# Name of database to create for wso2
+_WSO2_DB_NAME = "wso2am"
 
 REQUIRED_EXES = ('initdb',
                  'pg_ctl',
@@ -133,6 +135,12 @@ def get_parser():
                         help="Path to SL <= 4.0.0 Migration Config JSON file")
         px.add_argument('-m', '--legacy-migration-json', default=_MIGRATION_JSON,
                         help="Output path to Legacy Migration Status JSON file (to persist migration status)")
+        create_opts(px)
+        return px
+
+    def create_opts(px):
+        px.add_argument('--wso2-script', required=False,
+                        help="Path to wso2 sql table creation script")
         base_opts(px)
         return px
 
@@ -145,12 +153,18 @@ def get_parser():
     args_db_start = load_and_func(db_start)
     args_db_stop = load_and_func(db_stop)
     args_db_init = load_and_func(db_init)
-    args_db_create = load_and_func(db_create)
     args_db_verify = load_and_func(db_verify)
-    args_db_setup = load_and_func(db_setup_and_migrate_if_necessary)
+
+    def args_db_create(args):
+        dbc = load_db_config(args.config)
+        return db_create(dbc, dbc.db_name)
+
+    def args_db_setup(args):
+        dbc = load_db_config(args.config)
+        return db_setup(dbc, args.wso2_script)
 
     def args_db_migrate(args):
-        return db_legacy_migrate(load_db_config(args.config), args.migration_config, args.legacy_migration_json)
+        return db_legacy_migrate(load_db_config(args.config), args.migration_config, args.legacy_migration_json, args.wso2_script)
 
     desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
     desc_start = "Start database server. Will skip startup if already running"
@@ -168,10 +182,10 @@ def get_parser():
     builder("start", desc_start, base_opts, args_db_start)
     builder("stop", desc_stop, base_opts, args_db_stop)
     builder("init", desc_init, base_opts, args_db_init)
-    builder("create", desc_create, base_opts, args_db_create)
+    builder("create", desc_create, create_opts, args_db_create)
     builder("migrate", desc_migrate, migrate_opts, args_db_migrate)
     builder("verify", desc_verify, base_opts, args_db_verify)
-    builder("setup", desc_setup, base_opts, args_db_setup)
+    builder("setup", desc_setup, create_opts, args_db_setup)
 
     return p
 
@@ -379,19 +393,19 @@ def db_init(dbc):
     return rcode
 
 
-def _get_tables(dbc):
-    """Get all tables that have SL db name and user"""
+def _get_dbs(dbc, db_name):
+    """Get all databases that have the given db name and user"""
     cmd = "psql -lqtA --port={t} --no-password --host={h} -U {u}".format(**dbc.to_fd())
     p = subprocess.Popen(cmd, shell=True, env=dbc.to_env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     if p.returncode == 0:
-        return [line.strip().split("|") for line in p.stdout.readlines() if line.startswith("{n}|{u}".format(**dbc.to_fd()))]
+        return [line.strip().split("|") for line in p.stdout.readlines() if line.startswith("{db_name}|{user}".format(db_name=db_name, user=dbc.user))]
     else:
-        log.error("Failed to get db tables")
+        log.error("Failed to get db list")
         return []
 
 
-def db_create(dbc):
+def db_create(dbc, db_name):
     """Will create a postgres SL db
 
     :type dbc: DbConfig
@@ -400,22 +414,26 @@ def db_create(dbc):
     was_started = check_if_running(dbc)
     _start_db_or_raise(dbc)
 
-    table_names = _get_tables(dbc)
+    db_names = _get_dbs(dbc, db_name)
 
-    if not table_names:
+    if not db_names:
         _d = dbc.to_fd()
         env = dbc.to_env()
-        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {n}".format(**_d)
+        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {db_name}".format(db_name=db_name, **_d)
         rcode = _run_cmd_and_log(cmd, env=env)
     else:
         rcode = 0
-        log.debug("Founds tables {}".format(table_names))
+        log.debug("Founds databases {}".format(db_names))
 
     # if the db was original running, keep it running, otherwise, shut it down
     if not was_started:
         db_stop(dbc)
 
     return rcode
+
+
+def db_create_main(dbc):
+    return db_create(dbc, dbc.db_name)
 
 
 def db_start(dbc, fail_early=True):
@@ -465,13 +483,11 @@ def db_verify(dbc):
     return _run_cmd_and_log(cmd)
 
 
-def db_setup_and_migrate_if_necessary(dbc):
-    """ Runs the initial Postgres Migration
+def db_setup(dbc, wso2_script=None):
+    """ Creates the postgres database
 
     1. create initial db (if necessary)
     2. create user (if necessary)
-    3. create SL tables (if necessary)
-    4. run all Postgres Migrations
 
     Note, this doesn't handle the legacy migration
 
@@ -493,14 +509,26 @@ def db_setup_and_migrate_if_necessary(dbc):
         else:
             return init_state
 
+    def db_create_wso2(dbc):
+        if None == wso2_script:
+            return 0
+
+        createdb_result = db_create(dbc, _WSO2_DB_NAME)
+
+        if createdb_result == 0:
+            env = dbc.to_env()
+            cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=wso2_script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
+            return _run_cmd_and_log(cmd, env=env)
+        return createdb_result
+
     was_started = check_if_running(dbc, fail_early=False)
 
     # if the db is running, then db init, createdb was successful
     if was_started:
-        db_funcs = [db_create, db_start_no_fail_early]
+        db_funcs = [db_create_wso2, db_create_main, db_start_no_fail_early]
         was_successful = _apply_funcs(db_funcs, True)
     else:
-        db_funcs = [db_create, db_start_no_fail_early, db_init]
+        db_funcs = [db_create_wso2, db_create_main, db_start_no_fail_early, db_init]
         was_successful = _apply_funcs(db_funcs, True)
 
     if not was_started:
@@ -510,7 +538,7 @@ def db_setup_and_migrate_if_necessary(dbc):
     return 0 if was_successful else 1
 
 
-def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
+def db_legacy_migrate(dbc, migration_config_json, migration_status_json, wso2_script=None):
     """
 
     1. Load legacy-migration.json (if exists)
@@ -526,7 +554,7 @@ def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
     log.info("Loaded migration config {}".format(migration_conf))
 
     sqlite_db_path = migration_conf.sqlite_path
-    n = db_setup_and_migrate_if_necessary(dbc)
+    n = db_setup(dbc, wso2_script)
 
     if n == 0:
         was_started = check_if_running(dbc)

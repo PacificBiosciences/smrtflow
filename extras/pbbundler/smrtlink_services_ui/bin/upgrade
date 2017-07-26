@@ -16,6 +16,7 @@ userRoles=${rootBundleDir}/user-roles.json
 adminCreds=${rootBundleDir}/wso2-credentials.json
 # for the wso2 consumer key/secret
 appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
+newWso2=${rootBundleDir}/wso2am-2.0.0
 
 if ! [ -e "$config" ]; then
     echo "file ${config} does not exist. Generate smrtlink-sytem-config.json and/or run bin/apply-config"
@@ -34,10 +35,10 @@ export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 # For both upgrade and a fresh install make the logging verbose to the log file
 if [ -e "$legacyConfig" ]; then
-    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile} --log-level=DEBUG
+    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile} --log-level=DEBUG --wso2-script=${newWso2}/dbscripts/postgresql.sql
 else
     # Install from a fresh install (create users/db/tables if necessary)
-    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG
+    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-script=${newWso2}/dbscripts/postgresql.sql
 fi
 
 
@@ -67,7 +68,6 @@ function waitThenKill {
 
 clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
 
-newWso2=${rootBundleDir}/wso2am-2.0.0
 amClient=${rootBundleDir}/tools/bin/amclient
 amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${logFile}"
 
