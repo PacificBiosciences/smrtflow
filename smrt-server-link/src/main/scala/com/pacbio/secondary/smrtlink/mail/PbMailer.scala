@@ -5,7 +5,7 @@ import javax.mail.internet.InternetAddress
 
 import courier._
 import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
-import com.pacbio.secondary.smrtlink.mail.Templates.{EmailJobFailedTemplate, EmailJobSuccessTemplate}
+import com.pacbio.secondary.smrtlink.mail.MailTemplates.{EmailJobFailedTemplate, EmailJobSuccessTemplate}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.control.NonFatal
