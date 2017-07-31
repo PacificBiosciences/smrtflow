@@ -3,7 +3,7 @@ import javax.mail.internet.InternetAddress
 
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.mail.SmrtLinkEmailInput
-import com.pacbio.secondary.smrtlink.mail.Templates.{EmailJobFailedTemplate, EmailJobSuccessTemplate}
+import com.pacbio.secondary.smrtlink.mail.MailTemplates.{EmailJobFailedTemplate, EmailJobSuccessTemplate}
 import org.specs2.mutable.Specification
 import org.joda.time.{DateTime => JodaDateTime}
 

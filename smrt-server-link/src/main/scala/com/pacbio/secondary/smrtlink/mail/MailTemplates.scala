@@ -9,7 +9,7 @@ import scalatags.Text.all._
 /**
   * Created by mkocher on 7/21/17.
   */
-object Templates {
+object MailTemplates {
 
   trait EmailTemplate[T] {
     def apply(emailInput: T): EmailTemplateResult
