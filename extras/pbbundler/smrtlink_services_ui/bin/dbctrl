@@ -129,8 +129,10 @@ def get_parser():
         subparser_builder(sp, subparser_id, description, options_func, exe_func)
 
     def create_opts(px):
-        px.add_argument('--wso2-script', required=False,
-                        help="Path to WSO2 Postres SQL table creation script")
+        px.add_argument('--wso2-dir', required=False,
+                        help="Path to WSO2 directory containing a dbscripts directory with sql files")
+        px.add_argument('--wso2-init', required=False,
+                        help="Path to sql file with wso2 initialization data")
         base_opts(px)
         return px
 
@@ -151,7 +153,7 @@ def get_parser():
 
     def args_db_setup(args):
         dbc = load_db_config(args.config)
-        return db_setup(dbc, args.wso2_script)
+        return db_setup(dbc, args.wso2_dir, args.wso2_init)
 
     desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
     desc_start = "Start database server. Will skip startup if already running"
@@ -458,8 +460,34 @@ def db_verify(dbc):
     cmd = "smrt-db-tool migrate --log2stdout --user {u} --password {p} --server {h} --port {t} --db-name {n}".format(**dbc.to_fd())
     return _run_cmd_and_log(cmd)
 
+def db_create_wso2(dbc, wso2_dir, wso2_init):
+    wso2_script_files = [
+        "{wso2_dir}/dbscripts/postgresql.sql".format(wso2_dir=wso2_dir),
+        "{wso2_dir}/dbscripts/mb-store/postgresql-mb.sql".format(wso2_dir=wso2_dir),
+        "{wso2_dir}/dbscripts/apimgt/postgresql.sql".format(wso2_dir=wso2_dir),
+        wso2_init
+    ]
 
-def db_setup(dbc, wso2_script=None):
+    if wso2_dir is None:
+        log.info("No WSO2 directory provided. Skipping creation for WSO2 database")
+        return 0
+
+    createdb_result = db_create(dbc, _WSO2_DB_NAME)
+
+    if createdb_result == 0:
+        env = dbc.to_env()
+        for script in wso2_script_files:
+            cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
+            script_result = _run_cmd_and_log(cmd, env=env)
+            if script_result != 0:
+                return script_result
+        return 0
+    else:
+        # the db creation failed, there's nothing more we can do here. The wso2 tables won't be created.
+        return createdb_result
+
+
+def db_setup(dbc, wso2_dir=None, wso2_init=None):
     """ Creates the postgres database(s)
 
     1. create initial db (if necessary)
@@ -467,9 +495,12 @@ def db_setup(dbc, wso2_script=None):
 
     Note, this doesn't handle the legacy migration
 
-    :param wso2_script: Optional Path to the WSO2 Postgres table creation SQL file
+    :param wso2_dir: Optional Path to the WSO2 directory
+    :type wso2_dir: None | str
 
-    :type wso2_script: None | str
+    :param wso2_init: Optional Path to wso2 init script
+    :type wso2_init: None | str
+
     :type dbc: DbConfig
     """
     def to_b(n):
@@ -490,29 +521,17 @@ def db_setup(dbc, wso2_script=None):
         else:
             return init_state
 
-    def db_create_wso2(dbc_):
-        if wso2_script is None:
-            log.info("No WSO2 SQL script provided. Skipping creation for WSO2 database")
-            return 0
-
-        createdb_result = db_create(dbc_, _WSO2_DB_NAME)
-
-        if createdb_result == 0:
-            env = dbc.to_env()
-            cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=wso2_script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
-            return _run_cmd_and_log(cmd, env=env)
-        else:
-            # the db creation failed, there's nothing more we can do here. The wso2 tables won't be created.
-            return createdb_result
+    def _wso2_create_wrapper(dbc_):
+        return db_create_wso2(dbc_, wso2_dir, wso2_init)
 
     was_started = check_if_running(dbc, fail_early=False)
 
     # if the db is running, then db init, createdb was successful
     if was_started:
-        db_funcs = [db_create_wso2, db_create_main, db_start_no_fail_early]
+        db_funcs = [_wso2_create_wrapper, db_create_main, db_start_no_fail_early]
         was_successful = _apply_funcs(db_funcs, True)
     else:
-        db_funcs = [db_create_wso2, db_create_main, db_start_no_fail_early, db_init]
+        db_funcs = [_wso2_create_wrapper, db_create_main, db_start_no_fail_early, db_init]
         was_successful = _apply_funcs(db_funcs, True)
 
     if not was_started:
