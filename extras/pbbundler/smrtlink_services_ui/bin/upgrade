@@ -17,6 +17,7 @@ adminCreds=${rootBundleDir}/wso2-credentials.json
 # for the wso2 consumer key/secret
 appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
 newWso2=${rootBundleDir}/wso2am-2.0.0
+wso2Templates=${rootBundleDir}/templates/templates-wso2
 
 if ! [ -e "$config" ]; then
     echo "file ${config} does not exist. Generate smrtlink-sytem-config.json and/or run bin/apply-config"
@@ -35,7 +36,7 @@ export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 
 # Install from a fresh install (create users/db/tables if necessary)
-${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-script=${newWso2}/dbscripts/postgresql.sql
+${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-dir=${newWso2} --wso2-init=${wso2Templates}/wso2-init.sql
 
 
 # configure/upgrade wso2
