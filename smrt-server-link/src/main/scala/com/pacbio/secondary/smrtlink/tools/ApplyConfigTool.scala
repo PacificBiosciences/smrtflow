@@ -47,6 +47,7 @@ object ApplyConfigConstants {
   val SSL_KEYSTORE_FILE = ".keystore"
   val UI_PROXY_FILE = "_sl-ui_.xml"
   val READONLY_USERSTORE_FILE = "ReadOnlyUserStoreSynapseConfig.xml"
+  val WSO2_DB = "wso2am"
 
   // Relative Tomcat
   val REL_TOMCAT_ENV_SH = s"$TOMCAT_VERSION/bin/setenv.sh"
@@ -71,6 +72,8 @@ object ApplyConfigConstants {
   val USER_MGT_XML = "user-mgt.xml"
   val JNDI_PROPERTIES = "jndi.properties"
   val METRICS_XML = "metrics.xml"
+  val MASTER_DATASOURCES_XML = "master-datasources.xml"
+  val MASTER_DATASOURCES_DEST = "datasources/master-datasources.xml"
 }
 
 trait Resolver {
@@ -116,6 +119,8 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val metricsXmlConfig = wso2ConfDir.resolve(ApplyConfigConstants.METRICS_XML)
 
+  val masterDatasourcesConfig = wso2ConfDir.resolve(ApplyConfigConstants.MASTER_DATASOURCES_DEST)
+
   val jndiPropertiesConfig = wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
@@ -135,6 +140,7 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
   val metricsXml = resolveWso2Template(ApplyConfigConstants.METRICS_XML)
   val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
+  val masterDatasources = resolveWso2Template(ApplyConfigConstants.MASTER_DATASOURCES_XML)
 }
 
 
@@ -323,6 +329,26 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
+   * #14
+   * Configure wso2 for postgres
+   */
+  def updateMasterDatasources(outputFile: File, masterDatasourceTemplate: File, dbHost: String, dbPort: Int, dbUser: String, dbPass: String) = {
+    val subs: Map[String, () => Any] =
+      Map("${DB_HOST}" -> (() => dbHost),
+        "${DB_PORT}" -> (() => dbPort.toString),
+        "${DB_USER}" -> (() => dbUser),
+        "${DB_PASS}" -> (() => dbPass),
+        "${WSO2_DB}" -> (() => ApplyConfigConstants.WSO2_DB))
+
+    val xmlNode = XmlTemplateReader.
+        fromFile(masterDatasourceTemplate)
+        .globally()
+        .substituteMap(subs).result()
+
+    writeAndLog(outputFile, xmlNode.mkString)
+  }
+
+  /**
     * This is workaround for the loading of JSON files using the -Dconfig.file=/path/to/file.json model.
     *
     * The merges the custom third-party options defined in internal-config.json and writes merged
@@ -367,6 +393,7 @@ object ApplyConfigUtils extends LazyLogging{
    * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
    * 12. (update_readonly_userstore) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/sequences
    * 13. Copy metrics config (to disable metrics)
+   * 14. Configure wso2 to use postgres
    */
   def run(opts: ApplyConfigToolOptions): String = {
 
@@ -452,6 +479,14 @@ object ApplyConfigUtils extends LazyLogging{
 
     // #13
     updateMetricsConfig(resolver.metricsXmlConfig, templateResolver.metricsXml)
+
+    // #14
+    val dbProps = c.smrtflow.db.properties
+    updateMasterDatasources(resolver.masterDatasourcesConfig.toFile,
+                            templateResolver.masterDatasources.toFile,
+                            dbProps.serverName, dbProps.portNumber,
+                            dbProps.user, dbProps.password)
+
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
