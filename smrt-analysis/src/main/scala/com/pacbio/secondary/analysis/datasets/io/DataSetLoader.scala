@@ -34,7 +34,7 @@ object DataSetLoader extends LazyLogging{
   }
 
   private def resourceToAbsolutePath(resource: String, rootDir: Path): Path = {
-    val uri = URI.create(resource)
+    val uri = URI.create(resource.replaceAll(" ", "%20"))
     val path = if (uri.getScheme == null) Paths.get(resource) else Paths.get(uri)
     val realPath = if (path.isAbsolute) path.toAbsolutePath else rootDir.resolve(path).normalize().toAbsolutePath
     realPath
@@ -70,19 +70,7 @@ object DataSetLoader extends LazyLogging{
       case Some(rexs) =>
         if (rexs.getExternalResource.nonEmpty) {
           val resolvedExs = resolveExternalResources(rexs, path)
-
-          val exs = new ExternalResources()
-          val rx = rexs.getExternalResource
-            .map(x => resolveExternalResource(x, path)).toList
-
-          resolvedExs.getExternalResource.foreach { r =>
-            val rpath = resourceToAbsolutePath(r.getResourceId, path)
-            logger.info(s"Resolved ${r.getUniqueId} ${r.getMetaType} ${r.getResourceId} to ${rpath.toAbsolutePath}")
-            r.setResourceId(rpath.toString)
-            exs.getExternalResource.add(r)
-          }
-
-          externalResource.setExternalResources(exs)
+          externalResource.setExternalResources(resolvedExs)
           rexs
         }
       case _ => None

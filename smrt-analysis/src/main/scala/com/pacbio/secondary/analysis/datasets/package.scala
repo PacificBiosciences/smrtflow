@@ -131,7 +131,8 @@ package object datasets {
                        metaType: DataSetMetaTypes.DataSetMetaType,
                        setNewUuid: Boolean = true,
                        copyFiles: Boolean = true): Path = {
-      val targetDir = Files.createTempDirectory("dataset-contents")
+      // XXX The space in the pathname is deliberate (see SL-1586)
+      val targetDir = Files.createTempDirectory("dataset contents")
       val dsTmp = Paths.get(targetDir.toString + "/" +
           FilenameUtils.getName(dsPath.toString))
       val ds = if (!copyFiles) {
