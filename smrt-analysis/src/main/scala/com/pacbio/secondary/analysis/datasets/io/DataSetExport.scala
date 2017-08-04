@@ -47,7 +47,7 @@ class ExportDataSets(
                                 basePath: Path,
                                 ignoreMissing: Boolean = false): Int = {
     val rid = res.getResourceId
-    val uri = URI.create(rid)
+    val uri = URI.create(rid.replaceAll(" ", "%20"))
     val rawPath = if (uri.getScheme == null) Paths.get(rid) else Paths.get(uri)
     val resourcePath = if (rawPath.isAbsolute) {
       rawPath.toAbsolutePath
