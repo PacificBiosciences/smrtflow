@@ -46,10 +46,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
 
   implicit val timeOut:Timeout = Timeout(FiniteDuration(120, SECONDS))
 
-  // schedule an Initial Check on Startup
-  context.system.scheduler.scheduleOnce(initialDelay, self, CheckForUpdates)
-
-  context.system.scheduler.schedule(initialDelay,  pollTime, self, CheckForUpdates)
+  context.system.scheduler.schedule(initialDelay, pollTime, self, CheckForUpdates)
 
   val client: Option[PacBioDataBundleClient] =
     url.map(ux => new PacBioDataBundleClient(new URL(ux.getProtocol, ux.getHost, ux.getPort, "/smrt-link/bundles"))(context.system))
@@ -148,18 +145,14 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
-    checkAndDownload(c).flatMap { downloads =>
+  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+    checkAndDownload(c).map { downloads =>
       if (downloads.isEmpty) {
         logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
       }
-      val bioFuts = downloads.map { bio =>
-        val f = for {
-          b <- (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
-        } yield b
-        f
-      }
-      Future.sequence(bioFuts)
+      downloads.map(bio =>
+        (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
+      )
     }
   }
 
@@ -169,25 +162,24 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
-    val f = checkDownloadUpdate(c)
+  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+    checkDownloadUpdate(c).map { allFuts =>
+      if (allFuts.isEmpty) {
+        logger.info("No bundles found to upgrade")
+      }
 
-    f.onSuccess {
-      case bs: Seq[PacBioDataBundleIO] => {
-        if (bs.isEmpty) {
-          logger.info("No bundles found to upgrade")
-        } else {
-          val bDesc = bs.toSet.mkString(", ")
-          logger.info(s"Successfully added bundles ${bDesc}")
+      allFuts.map { f =>
+        f.onSuccess {
+          case b: PacBioDataBundleIO => logger.info(s"Successfully added bundle to registry $b")
         }
+
+        f.onFailure {
+          case ex: Exception =>
+            logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
+        }
+        f
       }
     }
-
-    f.onFailure {
-      case ex: Exception =>
-        logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
-    }
-    f
   }
 
 
