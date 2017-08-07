@@ -108,13 +108,13 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def getNewestBundle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundle]] = {
+  def getNewBundles(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundle]] = {
     for {
       myBundles <- (daoActor ? GetAllBundlesByType(bundleType)).mapTo[Seq[PacBioDataBundle]]
       externalBundles <- c.getPacBioDataBundleByTypeId(bundleType)
       sortedExternalBundles <- Future.successful(andLog[PacBioDataBundle]("All external Server Bundles", PacBioBundleUtils.sortByVersion(externalBundles)))
       newBundles <- Future.successful(andLog[PacBioDataBundle]("New bundles", sortedExternalBundles.filter(b => PacBioBundleUtils.getBundle(myBundles, b.typeId, b.version).isEmpty)))
-    } yield newBundles.headOption
+    } yield newBundles
   }
 
   /**
@@ -126,15 +126,16 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkAndDownload(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
+  def checkAndDownload(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
     logger.info(s"Checking for new bundles to ${c.baseUrl}")
-    getNewestBundle(c).map {
-      case Some(b) =>
-        logger.info(s"Found new bundle $b")
-        Some(downloadBundle(c, b, rootBundleDir))
-      case _ =>
+    getNewBundles(c).map { bundles =>
+      if (bundles.isEmpty) {
         logger.info(s"No new bundles found for ${c.baseUrl}")
-        None
+      }
+      bundles.map { b =>
+        logger.info(s"Found new bundle $b")
+        downloadBundle(c, b, rootBundleDir)
+      }
     }
   }
 
@@ -147,16 +148,18 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
-    checkAndDownload(c).flatMap {
-      case Some(bio) =>
+  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
+    checkAndDownload(c).flatMap { downloads =>
+      if (downloads.isEmpty) {
+        logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
+      }
+      val bioFuts = downloads.map { bio =>
         val f = for {
           b <- (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
-        } yield Some(b)
+        } yield b
         f
-      case _ =>
-        logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
-        Future.successful(None)
+      }
+      Future.sequence(bioFuts)
     }
   }
 
@@ -166,12 +169,18 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
+  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
     val f = checkDownloadUpdate(c)
 
     f.onSuccess {
-      case Some(b:PacBioDataBundleIO) => logger.info(s"Successfully added bundle to registry $b")
-      case None => logger.info("No bundles found to upgrade")
+      case bs: Seq[PacBioDataBundleIO] => {
+        if (bs.isEmpty) {
+          logger.info("No bundles found to upgrade")
+        } else {
+          val bDesc = bs.toSet.mkString(", ")
+          logger.info(s"Successfully added bundles ${bDesc}")
+        }
+      }
     }
 
     f.onFailure {
