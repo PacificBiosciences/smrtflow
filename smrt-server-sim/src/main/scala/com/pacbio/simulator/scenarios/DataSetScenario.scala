@@ -115,7 +115,7 @@ class DataSetScenario(host: String, port: Int)
   val ftCcs: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.CCS)
   val ftCcsAlign: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.AlignmentCCS)
 
-  val subreads1 = Var(testdata.getTempDataSet("subreads-xml"))
+  val subreads1 = Var(testdata.getTempDataSet("subreads-xml", tmpDirBase = "dataset contents"))
   val subreadsUuid1 = Var(getDataSetMiniMeta(subreads1.get).uuid)
   val subreads2 = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreads3 = Var(testdata.getTempDataSet("subreads-sequel"))

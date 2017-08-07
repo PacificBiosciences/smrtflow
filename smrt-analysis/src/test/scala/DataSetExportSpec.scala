@@ -127,6 +127,27 @@ class DataSetExportSpecAdvanced
       DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
       zipAndUnzip(dsTmp)
     }
+    "Export SubreadSet with relative paths (with spaces)" in {
+      val ds = PacBioTestData().getFile("subreads-sequel")
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
+                                                  tmpDirBase = "dataset contents")
+      zipAndUnzip(dsTmp)
+    }
+    "Export SubreadSet with absolute paths (with spaces)" in {
+      val ds = PacBioTestData().getFile("subreads-sequel")
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
+                                                  copyFiles = false,
+                                                  tmpDirBase = "dataset contents")
+      zipAndUnzip(dsTmp)
+    }
+    "Export SubreadSet with relative paths converted to absolute (with spaces)" in {
+      val ds = PacBioTestData().getFile("subreads-sequel")
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
+                                                  tmpDirBase = "dataset contents")
+      val subreadsTmp = DataSetLoader.loadAndResolveSubreadSet(dsTmp)
+      DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
+      zipAndUnzip(dsTmp)
+    }
     "Generate ZIP file from multiple SubreadSets" in {
       val datasets = getData(Seq("subreads-sequel", "subreads-xml"))
       val zipPath = Files.createTempFile("subreadsets", ".zip")
