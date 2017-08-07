@@ -49,7 +49,8 @@ trait PbsmrtpipeScenarioCore
   protected val EXIT_FAILURE: Var[Int] = Var(1)
 
   protected val testdata = PacBioTestData()
-  protected def getSubreads = testdata.getTempDataSet("subreads-xml", true)
+  protected def getSubreads = testdata.getTempDataSet("subreads-xml", true,
+    tmpDirBase = "dataset contents")
   protected def getReference = testdata.getTempDataSet("lambdaNEB")
 
   protected val reference = Var(getReference)

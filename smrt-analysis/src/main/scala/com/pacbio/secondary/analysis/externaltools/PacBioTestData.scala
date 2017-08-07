@@ -43,10 +43,13 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
 
   // Copy a dataset to a temporary directory, optionally including all
   // associated files.
-  def getTempDataSet(id: String, copyFiles: Boolean = false): Path = {
+  def getTempDataSet(id: String,
+                     copyFiles: Boolean = false,
+                     tmpDirBase: String = "dataset-contents"): Path = {
     val path = getFile(id)
     val dst = getDataSetMiniMeta(path).metatype
-    MockDataSetUtils.makeTmpDataset(path, dst, copyFiles = copyFiles)
+    MockDataSetUtils.makeTmpDataset(path, dst, copyFiles = copyFiles,
+                                    tmpDirBase = tmpDirBase)
   }
 }
 
