@@ -136,13 +136,13 @@ class DataSetExportSpecAdvanced
     "Export SubreadSet with absolute paths (with spaces)" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
       val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
-                                                  copyFiles = false)
+                                                  copyFiles = false,
                                                   tmpDirBase = "dataset contents")
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths converted to absolute (with spaces)" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread)
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
                                                   tmpDirBase = "dataset contents")
       val subreadsTmp = DataSetLoader.loadAndResolveSubreadSet(dsTmp)
       DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
