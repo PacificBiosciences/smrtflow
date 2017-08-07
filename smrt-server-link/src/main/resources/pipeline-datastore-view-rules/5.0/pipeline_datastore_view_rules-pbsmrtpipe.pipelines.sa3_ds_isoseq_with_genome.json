@@ -1,0 +1,265 @@
+{
+    "pipelineId": "pbsmrtpipe.pipelines.sa3_ds_isoseq_with_genome",
+    "rules": [
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-3"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.isoseq_classify-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.ccs_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.pickle",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.separate_flnc-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.pickle",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.create_chunks-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.pickle",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.create_chunks-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.pickle",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.create_chunks-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fasta",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.csv",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-3"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fastq",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-4"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-5"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fastq",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-6"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.pickle",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.combine_cluster_bins-out-7"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.gather_ice_partial_cluster_bins_pickle-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.cluster_bins-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.ice_partial_cluster_bins-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.ice_polish_cluster_bins-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.gather_polished_isoforms_in_each_bin-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.ice_cleanup-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.isoseq_cluster-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.sam",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.map_isoforms_to_genome-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fastq",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.post_mapping_to_genome-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.post_mapping_to_genome-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.post_mapping_to_genome-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.post_mapping_to_genome-out-3"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.post_mapping_to_genome-out-4"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.CHUNK",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.scatter_contigset_gmap-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.SubreadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.filterdataset-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.csv",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-4"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ConsensusReadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbccs.tasks.ccs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.tgz",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.bam2fasta_ccs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.tgz",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.bam2fastq_ccs-out-0"
+        }
+    ],
+    "smrtlinkVersion": "5.0"
+}

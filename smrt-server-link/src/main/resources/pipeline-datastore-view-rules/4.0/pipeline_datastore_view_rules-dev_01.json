@@ -1,5 +1,5 @@
 {
-  "smrtlinkVersion": "5.1.0",
+  "smrtlinkVersion": "4.0.0",
   "pipelineId": "pbsmrtpipe.pipelines.dev_01",
   "rules": [
     {
