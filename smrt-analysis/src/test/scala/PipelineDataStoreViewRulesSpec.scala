@@ -84,6 +84,7 @@ class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJson
       dao.getById("dev_01").map(_.pipelineId) must beEqualTo(Some("dev_01"))
       dao.getById("dev_01").map(_.smrtlinkVersion) must beEqualTo(Some("5.1"))
       dao.getById("dev_01", Some("5.0")).map(_.smrtlinkVersion) must beEqualTo(Some("5.0"))
+      dao.getById("dev_01", Some("5.0.0.SNAPSHOT1234")).map(_.smrtlinkVersion) must beEqualTo(Some("5.0"))
     }
     "Failure modes" in {
       dao.getById("dev_03") must beNone

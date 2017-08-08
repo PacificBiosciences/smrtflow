@@ -14,7 +14,7 @@ class PipelineDataStoreViewRulesDao(resources: Seq[PipelineDataStoreViewRules]) 
       Option[PipelineDataStoreViewRules] = {
     val allRules = _resources.get(x).map(_.map(r => (r.smrtlinkVersion, r)).toMap)
     allRules.flatMap(vrs => version match {
-      case Some(v) => vrs.get(v)
+      case Some(v) => vrs.values.toSeq.filter(r => v.startsWith(r.smrtlinkVersion)).headOption
       case None => Some(vrs.values.toSeq.sortBy(_.smrtlinkVersion).last)
     })
   }

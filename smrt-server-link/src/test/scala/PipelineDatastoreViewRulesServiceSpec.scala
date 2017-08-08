@@ -58,6 +58,13 @@ class PipelineDataStoreViewRulesServiceSpec extends Specification
           viewRule.smrtlinkVersion must beEqualTo(v)
         }
       }
+      Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId?version=5.0.0.SNAPSHOT1234") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+          val viewRule = responseAs[PipelineDataStoreViewRules]
+          viewRule.pipelineId must beEqualTo(pipelineId)
+          viewRule.smrtlinkVersion must beEqualTo("5.0")
+        }
+      }
       Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId?version=0.9") ~> totalRoutes ~> check {
         status.isSuccess must beFalse
       }
