@@ -46,10 +46,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
 
   implicit val timeOut:Timeout = Timeout(FiniteDuration(120, SECONDS))
 
-  // schedule an Initial Check on Startup
-  context.system.scheduler.scheduleOnce(initialDelay, self, CheckForUpdates)
-
-  context.system.scheduler.schedule(initialDelay,  pollTime, self, CheckForUpdates)
+  context.system.scheduler.schedule(initialDelay, pollTime, self, CheckForUpdates)
 
   val client: Option[PacBioDataBundleClient] =
     url.map(ux => new PacBioDataBundleClient(new URL(ux.getProtocol, ux.getHost, ux.getPort, "/smrt-link/bundles"))(context.system))
@@ -108,13 +105,13 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def getNewestBundle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundle]] = {
+  def getNewBundles(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundle]] = {
     for {
       myBundles <- (daoActor ? GetAllBundlesByType(bundleType)).mapTo[Seq[PacBioDataBundle]]
       externalBundles <- c.getPacBioDataBundleByTypeId(bundleType)
       sortedExternalBundles <- Future.successful(andLog[PacBioDataBundle]("All external Server Bundles", PacBioBundleUtils.sortByVersion(externalBundles)))
       newBundles <- Future.successful(andLog[PacBioDataBundle]("New bundles", sortedExternalBundles.filter(b => PacBioBundleUtils.getBundle(myBundles, b.typeId, b.version).isEmpty)))
-    } yield newBundles.headOption
+    } yield newBundles
   }
 
   /**
@@ -126,15 +123,16 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkAndDownload(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
+  def checkAndDownload(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
     logger.info(s"Checking for new bundles to ${c.baseUrl}")
-    getNewestBundle(c).map {
-      case Some(b) =>
-        logger.info(s"Found new bundle $b")
-        Some(downloadBundle(c, b, rootBundleDir))
-      case _ =>
+    getNewBundles(c).map { bundles =>
+      if (bundles.isEmpty) {
         logger.info(s"No new bundles found for ${c.baseUrl}")
-        None
+      }
+      bundles.map { b =>
+        logger.info(s"Found new bundle $b")
+        downloadBundle(c, b, rootBundleDir)
+      }
     }
   }
 
@@ -147,16 +145,14 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
-    checkAndDownload(c).flatMap {
-      case Some(bio) =>
-        val f = for {
-          b <- (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
-        } yield Some(b)
-        f
-      case _ =>
+  def checkDownloadUpdate(c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+    checkAndDownload(c).map { downloads =>
+      if (downloads.isEmpty) {
         logger.debug(s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
-        Future.successful(None)
+      }
+      downloads.map(bio =>
+        (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO]
+      )
     }
   }
 
@@ -166,19 +162,24 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Option[PacBioDataBundleIO]] = {
-    val f = checkDownloadUpdate(c)
+  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+    checkDownloadUpdate(c).map { allFuts =>
+      if (allFuts.isEmpty) {
+        logger.info("No bundles found to upgrade")
+      }
 
-    f.onSuccess {
-      case Some(b:PacBioDataBundleIO) => logger.info(s"Successfully added bundle to registry $b")
-      case None => logger.info("No bundles found to upgrade")
-    }
+      allFuts.map { f =>
+        f.onSuccess {
+          case b: PacBioDataBundleIO => logger.info(s"Successfully added bundle to registry $b")
+        }
 
-    f.onFailure {
-      case ex: Exception =>
-        logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
+        f.onFailure {
+          case ex: Exception =>
+            logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
+        }
+        f
+      }
     }
-    f
   }
 
 
