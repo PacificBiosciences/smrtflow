@@ -1975,6 +1975,7 @@
             "type": "string",
             "name": "pipelineId",
             "in": "path",
+            "description": "Full pbsmrtpipe pipeline ID",
             "example": "pbsmrtpipe.pipelines.sa3_sat"
           },
           {
@@ -1982,6 +1983,7 @@
             "type": "string",
             "name": "version",
             "in": "query",
+            "description": "Specific version of SMRT Link to retrieve rules for, defaulting to the current version if not specified",
             "example": "5.0"
           }
         ],
