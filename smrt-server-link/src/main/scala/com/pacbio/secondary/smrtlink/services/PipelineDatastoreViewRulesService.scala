@@ -47,9 +47,11 @@ class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) exte
       } ~
       path(Segment) { pipelineId =>
         get {
-          complete {
-            ok {
-              failIfNone[PipelineDataStoreViewRules](dao.getById(pipelineId), s"Unable to find view rules for pipeline id $pipelineId")
+          parameters('version.?.as[Option[String]]) { version =>
+            complete {
+              ok {
+                failIfNone[PipelineDataStoreViewRules](dao.getById(pipelineId, version), s"Unable to find view rules for pipeline id $pipelineId (version = $version)")
+              }
             }
           }
         }

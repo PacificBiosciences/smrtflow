@@ -1,0 +1,83 @@
+{
+    "pipelineId": "pbsmrtpipe.pipelines.sa3_ds_isoseq_classify",
+    "rules": [
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-3"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.isoseq_classify-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.ccs_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.SubreadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.filterdataset-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.tgz",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.bam2fastq_ccs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ConsensusReadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbccs.tasks.ccs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.tgz",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.bam2fasta_ccs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.csv",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbtranscript.tasks.classify-out-4"
+        }
+    ],
+    "smrtlinkVersion": "5.0"
+}

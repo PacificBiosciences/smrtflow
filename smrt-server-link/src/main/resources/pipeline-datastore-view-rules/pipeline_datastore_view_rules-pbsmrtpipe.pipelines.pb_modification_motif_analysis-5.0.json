@@ -1,0 +1,104 @@
+{
+    "pipelineId": "pbsmrtpipe.pipelines.pb_modification_motif_analysis",
+    "rules": [
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "motif_maker.tasks.reprocess-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.bigwig",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.h5",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "motif_maker.tasks.reprocess-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.motifs_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.csv",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "motif_maker.tasks.find_motifs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.motifs_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.bigwig",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.h5",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "kinetics_tools.tasks.ipd_summary-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.csv",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "motif_maker.tasks.find_motifs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.modifications_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "motif_maker.tasks.reprocess-out-0"
+        }
+    ],
+    "smrtlinkVersion": "5.0"
+}

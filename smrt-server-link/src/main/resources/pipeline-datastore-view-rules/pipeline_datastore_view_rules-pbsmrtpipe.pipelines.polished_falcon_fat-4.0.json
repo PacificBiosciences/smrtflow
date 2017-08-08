@@ -1,0 +1,377 @@
+{
+    "pipelineId": "pbsmrtpipe.pipelines.polished_falcon_fat",
+    "rules": [
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fasta",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.bam2fasta-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.fasta2fofn-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fasta",
+            "isHidden": false,
+            "name": "Polished Assembly",
+            "sourceId": "pbcoretools.tasks.contigset2fasta-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon_make_fofn_abs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_build_rdb-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_build_rdb-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "genomic_consensus.tasks.variantcaller-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ContigSet",
+            "isHidden": false,
+            "name": "Polished Assembly",
+            "sourceId": "genomic_consensus.tasks.variantcaller-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fastq",
+            "isHidden": false,
+            "name": "Polished Assembly",
+            "sourceId": "genomic_consensus.tasks.variantcaller-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.vcf",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "genomic_consensus.tasks.gff2vcf-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.bed",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "genomic_consensus.tasks.gff2bed-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_build_pdb-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_daligner_jobs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_merge_consensus_jobs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_merge_consensus_jobs-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_merge_consensus_jobs-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_merge-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_cons-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_daligner_jobs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.generic_fofn",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_merge_consensus_jobs-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_merge_consensus_jobs-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_merge_consensus_jobs-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_merge-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": false,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_db2falcon-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.Fasta",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon2_run_asm-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.cfg",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon_gen_config-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_build_rdb-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon_config-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.polished_assembly-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_report_preassembly_yield-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_merge_consensus_jobs-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_run_merge_consensus_jobs-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_merge_consensus_jobs-out-1"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.json",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_run_merge_consensus_jobs-out-2"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_merge-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_cons-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_merge-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_db2falcon-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon0_rm_las-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon1_rm_las-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.txt",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "falcon_ns.tasks.task_falcon2_rm_las-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.ReferenceSet",
+            "isHidden": false,
+            "name": "Draft Assembly",
+            "sourceId": "pbcoretools.tasks.fasta2referenceset-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.mapping_stats-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.coverage_report-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.mapping_stats_hgap-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.AlignmentSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbalign.tasks.pbalign-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.SubreadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.filterdataset-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.summarize_coverage-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.coverage_report_hgap-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.mapping_stats_hgap-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.AlignmentSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbalign.tasks.pbalign-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.JsonReport",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.coverage_report_hgap-out-0"
+        },
+        {
+            "description": "",
+            "fileTypeId": "PacBio.FileTypes.gff",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbreports.tasks.summarize_coverage-out-0"
+        }
+    ],
+    "smrtlinkVersion": "4.0"
+}

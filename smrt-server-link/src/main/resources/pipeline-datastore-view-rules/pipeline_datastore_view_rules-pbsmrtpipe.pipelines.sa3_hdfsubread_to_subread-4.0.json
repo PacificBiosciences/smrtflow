@@ -1,0 +1,13 @@
+{
+    "pipelineId": "pbsmrtpipe.pipelines.sa3_hdfsubread_to_subread",
+    "rules": [
+        {
+            "description": "",
+            "fileTypeId": "PacBio.DataSet.SubreadSet",
+            "isHidden": true,
+            "name": "",
+            "sourceId": "pbcoretools.tasks.h5_subreads_to_subread-out-0"
+        }
+    ],
+    "smrtlinkVersion": "4.0"
+}
