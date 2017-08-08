@@ -1962,6 +1962,44 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/pipeline-datastore-view-rules/{pipelineId}": {
+      "get": {
+        "description": "Get a datastore view rule definitions for a specific pipeline (with optional version)",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "pipelineId",
+            "in": "path",
+            "example": "pbsmrtpipe.pipelines.sa3_sat"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "version",
+            "in": "query",
+            "example": "5.0"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Pipeline datastore view rules",
+            "schema": {
+              "$ref": "#/definitions/PipelineDatastoreViewRule"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/job-manager/job-types": {
       "get": {
         "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
