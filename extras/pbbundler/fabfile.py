@@ -358,8 +358,7 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     with ZipFile(wso2_api_manager_zip) as z:
         z.extractall(output_bundle_root_dir)
 
-    name, ext = os.path.splitext(os.path.basename(wso2_api_manager_zip))
-
+    name = "wso2am-2.0.0"
     wso2_output_dir = os.path.join(output_bundle_root_dir, name)
 
     def to_wp(r):
