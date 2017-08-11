@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.services
 
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
 import collection.JavaConversions._
 import collection.JavaConverters._
@@ -12,6 +13,8 @@ import spray.http.{HttpHeaders, Uri}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
+import spray.routing.directives.FileAndResourceDirectives
+import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern._
@@ -26,10 +29,9 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import spray.routing.directives.FileAndResourceDirectives
 
 
-class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService
+class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef, eventManagerActor: ActorRef)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService
     with DaoFutureUtils
     with PacBioDataBundleIOUtils
     with FileAndResourceDirectives{
@@ -37,6 +39,8 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
   import SmrtLinkJsonProtocols._
   // Message protocols to communicate with the Dao
   import PacBioBundleDaoActor._
+
+  import com.pacbio.secondary.smrtlink.actors.EventManagerActor._
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
@@ -87,6 +91,16 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
   }
 
   def activateBundle(bundleType: String, version: String): Future[PacBioDataBundleIO] = {
+    val slEvent = SmrtLinkEvent(eventTypeId = EventTypes.ACTIVATE_BUNDLE,
+                                eventTypeVersion = 1,
+                                uuid = UUID.randomUUID(),
+                                createdAt = JodaDateTime.now(),
+                                message = JsObject(
+                                  "bundleType" -> JsString(bundleType),
+                                  "version" -> JsString(version)
+                                ))
+    (eventManagerActor ? CreateEvent(slEvent)).mapTo[SmrtLinkSystemEvent]
+
     val errorMessage = s"Unable to upgrade bundle $bundleType and version $version"
     (daoActor ? ActivateBundle(bundleType: String, version: String))
         .mapTo[Try[PacBioDataBundleIO]]
@@ -246,12 +260,13 @@ trait PacBioBundleServiceProvider {
       with ServiceComposer
       with ActorSystemProvider
       with PacBioBundleDaoActorProvider
-      with PacBioDataBundlePollExternalActorProvider =>
+      with PacBioDataBundlePollExternalActorProvider
+      with EventManagerActorProvider =>
 
   val pacBioBundleService: Singleton[PacBioBundleService] =
     Singleton { () =>
       implicit val system = actorSystem()
-      new PacBioBundleService(pacBioBundleDaoActor(), pacBioBundleRoot(), externalBundleUpgraderActor())
+      new PacBioBundleService(pacBioBundleDaoActor(), pacBioBundleRoot(), externalBundleUpgraderActor(), eventManagerActor())
     }
 
   addService(pacBioBundleService)

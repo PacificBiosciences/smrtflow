@@ -100,7 +100,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   }
 
   /**
-    * Get the next newest upgrade bundle
+    * Get bundles that we don't already have
     *
     * @param c Bundle Client
     * @return
@@ -115,7 +115,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   }
 
   /**
-    * Get only newest bundle from external server and download to the system bundle root dir.
+    * Get new bundles from external server and download to the system bundle root dir.
     *
     * If there are multiple upgrades available, the bundles will be downloaded sequentially.
     *
@@ -137,8 +137,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path, url: Option[URL], p
   }
 
   /**
-    * Check for new bundles, download only the newest (if avail) and update the PacBio Data bundle
-    * registry with the new bundle.
+    * Check for new bundles, download the ones we don't already have, and update
+    * the PacBio Data bundle registry with the new bundle.
     *
     * Note, this does NOT set the bundle as active. This must be set explicitly by the user.
     *
