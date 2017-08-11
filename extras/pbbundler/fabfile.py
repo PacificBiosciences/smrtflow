@@ -22,6 +22,7 @@ import warnings
 import time
 import subprocess
 import xml.dom.minidom
+import urllib
 from zipfile import ZipFile
 from distutils.dir_util import copy_tree
 
@@ -190,35 +191,30 @@ def _archive_tomcat_webapp_root(tomcat_output_dir):
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
-def _copy_chemistry_bundle(chemistry_bundle_dir, dest_dir):
-    log.info("Copying chemistry bundle from {b}".format(b=chemistry_bundle_dir))
-    xml_file = os.path.join(chemistry_bundle_dir, "manifest.xml")
-    manifest = xml.dom.minidom.parse(xml_file)
-    vtags = manifest.getElementsByTagName("Version")
-    assert len(vtags) == 1
-    version = str(vtags[0].lastChild.nodeValue)
+def _copy_chemistry_bundle(version, dest_dir):
+    log.info("downloading  chemistry bundle {v} from Nexus".format(v=version))
     res_bundle_dir = os.path.join(dest_dir, "resources", "pacbio-bundles")
     if not os.path.exists(res_bundle_dir):
         os.makedirs(res_bundle_dir)
+
+    tarball="chemistry-"+version+".tar.gz"
+    nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-releases/pacbio/seq/chemistry/" + version + "/" + tarball
+    urllib.urlretrieve (nexus_url, os.path.join(res_bundle_dir, tarball))
     target_dir = os.path.join(res_bundle_dir, "chemistry-{v}".format(v=version))
     current_link = os.path.join(res_bundle_dir, "chemistry-active")
-    tarball = target_dir + ".tar.gz"
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
-    for pathname in [current_link, tarball]:
-        if os.path.lexists(pathname):
-            log.info("deleting old {f}".format(f=pathname))
-            os.remove(pathname)
-    shutil.copytree(chemistry_bundle_dir, target_dir)
+    os.makedirs(target_dir)
+    if os.path.lexists(current_link):
+        log.info("deleting old {f}".format(f=current_link))
+        os.remove(current_link)
+    local("tar -C {d} -xzvf {t}".format(t=os.path.join(res_bundle_dir,tarball), d=target_dir))
+
     log.info("Linking {t} to {s}".format(t=target_dir, s=current_link))
     cwd = os.getcwd()
     os.chdir(res_bundle_dir)
     os.symlink(os.path.basename(target_dir), os.path.basename(current_link))
     os.chdir(cwd)
-    git_dir = os.path.join(target_dir, ".git")
-    if os.path.exists(git_dir):
-        shutil.rmtree(git_dir)
-    local("tar czvf {t} -C {d} .".format(t=tarball, d=target_dir))
     log.info("Chemistry bundle is {t}".format(t=tarball))
 
 
@@ -446,7 +442,7 @@ def build_smrtlink_services_ui(version,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="apache-tomcat-8.0.26.tar.gz",
-                               chemistry_bundle_dir=None,
+                               chemistry_version=None,
                                doc_dir=None
                                ):
     """
@@ -476,8 +472,8 @@ def build_smrtlink_services_ui(version,
     :param wso2_api_manager_zip: Path to the zip of the WSO2 API Manager (
     v2.0.0)
 
-    :param chemistry_bundle_dir: path to chemistry resources repo
-    :type chemistry_bundle_dir: str | None
+    :param chemistry_version: Version of chemistry bundle to use
+    :type chemistry_version: str | None
 
     :param doc_dir: Directory of docs that will be copied into tomcat (if doc_dir not None)
     :type doc_dir: str | None
@@ -530,8 +526,8 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
-    if chemistry_bundle_dir is not None:
-        _copy_chemistry_bundle(chemistry_bundle_dir, output_bundle_dir)
+    if chemistry_version is not None:
+        _copy_chemistry_bundle(chemistry_version, output_bundle_dir)
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
