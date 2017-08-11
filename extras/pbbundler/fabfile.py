@@ -216,6 +216,7 @@ def _copy_chemistry_bundle(version, dest_dir):
     os.symlink(os.path.basename(target_dir), os.path.basename(current_link))
     os.chdir(cwd)
     log.info("Chemistry bundle is {t}".format(t=tarball))
+    return target_dir
 
 
 def _copy_bundle_from_template(template_dir, bundle_version_dir):
@@ -526,8 +527,9 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
+    chemistry_bundle_dir = None
     if chemistry_version is not None:
-        _copy_chemistry_bundle(chemistry_version, output_bundle_dir)
+        chemistry_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir)
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
@@ -589,7 +591,10 @@ def build_smrtlink_services_ui(version,
     log.info("Versions: smrtflow -> {}".format(smrtflow_versions))
     smrtlink_ui_versions = {i for i in _get_smrtlink_ui_version(smrtlink_ui_dir)}
     log.info("Versions: smrtlink-ui -> {}".format(smrtlink_ui_versions))
-    resource_versions = {i for i in _get_chemistry_bundle_version(chemistry_bundle_dir)}
+    resource_versions = {}
+    if chemistry_bundle_dir is not None:
+        resource_versions.update(
+            {i for i in _get_chemistry_bundle_version(chemistry_bundle_dir)})
 
     versions = list(smrtflow_versions | smrtlink_ui_versions | resource_versions)
 
