@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.app
 
-import java.net.BindException
+import java.net.{BindException, URL}
 import java.nio.file.{Path, Paths}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
@@ -13,7 +13,7 @@ import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusServi
 import com.pacbio.common.time.SystemClock
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.actors.{PacBioBundleDao, PacBioBundleDaoActor, PacBioDataBundlePollExternalActor}
+import com.pacbio.secondary.smrtlink.actors.{EventManagerActor, PacBioBundleDao, PacBioBundleDaoActor, PacBioDataBundlePollExternalActor}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.services.PacBioBundleService
 import com.typesafe.scalalogging.LazyLogging
@@ -23,8 +23,9 @@ import spray.routing._
 import concurrent.duration._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
-class ChemistryUpdateBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef)(implicit override val actorSystem: ActorSystem) extends PacBioBundleService(daoActor, rootBundle, externalPollActor)(actorSystem) {
+class ChemistryUpdateBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef, eventManagerActor: ActorRef)(implicit override val actorSystem: ActorSystem) extends PacBioBundleService(daoActor, rootBundle, externalPollActor, eventManagerActor)(actorSystem) {
 
   /**
     * Removed any PUT, POST routes yield only GET
@@ -39,11 +40,35 @@ class ChemistryUpdateBundleService(daoActor: ActorRef, rootBundle: Path, externa
   * Thin PacBio Data Bundle Only Server
   *
   */
-trait PacBioDataBundleConfigCakeProvider extends BaseServiceConfigCakeProvider {
+trait PacBioDataBundleConfigCakeProvider extends BaseServiceConfigCakeProvider
+    with LazyLogging {
   override lazy val systemName = "bundle-server"
 
   lazy val pacBioBundleRoot = Paths.get(conf.getString("smrtflow.server.bundleDir")).toAbsolutePath()
 
+  lazy val dnsName = Try { conf.getString("smrtflow.server.dnsName") }.toOption
+
+  /**
+    * This will load the key and convert to URL.
+    * Any errors will *only* be logged. This is probably not the best model.
+    *
+    * @return
+    */
+  private def loadUrl(key: String): Option[URL] = {
+    Try { new URL(conf.getString(key))} match {
+      case Success(url) =>
+        logger.info(s"Converted $key to URL $url")
+        Some(url)
+      case Failure(ex) =>
+        logger.error(s"Failed to load URL from key '$key' ${ex.getMessage}")
+        None
+    }
+  }
+
+  lazy val externalEveUrl = loadUrl("smrtflow.server.eventUrl")
+
+  // This is the SMRT Link UI PORT that is host via https
+  val smrtLinkUiPort: Int = 8243
 }
 
 trait PacBioDataBundleServicesCakeProvider {
@@ -56,9 +81,10 @@ trait PacBioDataBundleServicesCakeProvider {
   lazy val daoActor = actorSystem.actorOf(Props(new PacBioBundleDaoActor(dao, pacBioBundleRoot)))
   // This is not the greatest model. If the URL is None, then none of the calls will be made
   lazy val externalPollActor = actorSystem.actorOf(Props(new PacBioDataBundlePollExternalActor(pacBioBundleRoot, None, 12.hours, daoActor)))
+  lazy val eventManagerActor = actorSystem.actorOf(Props(new EventManagerActor(systemUUID, dnsName, externalEveUrl, apiSecret, smrtLinkUiPort)), "EventManagerActor")
 
   lazy val services: Seq[PacBioService] = Seq(
-    new ChemistryUpdateBundleService(daoActor, pacBioBundleRoot, externalPollActor),
+    new ChemistryUpdateBundleService(daoActor, pacBioBundleRoot, externalPollActor, eventManagerActor),
     new StatusService(statusGenerator))
 }
 
