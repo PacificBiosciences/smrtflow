@@ -91,20 +91,26 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
   }
 
   def activateBundle(bundleType: String, version: String): Future[PacBioDataBundleIO] = {
-    val slEvent = SmrtLinkEvent(eventTypeId = EventTypes.ACTIVATE_BUNDLE,
-                                eventTypeVersion = 1,
-                                uuid = UUID.randomUUID(),
-                                createdAt = JodaDateTime.now(),
-                                message = JsObject(
-                                  "bundleType" -> JsString(bundleType),
-                                  "version" -> JsString(version)
-                                ))
-    (eventManagerActor ? CreateEvent(slEvent)).mapTo[SmrtLinkSystemEvent]
-
     val errorMessage = s"Unable to upgrade bundle $bundleType and version $version"
-    (daoActor ? ActivateBundle(bundleType: String, version: String))
+    val f = (daoActor ? ActivateBundle(bundleType: String, version: String))
         .mapTo[Try[PacBioDataBundleIO]]
         .flatMap(t => fromTry[PacBioDataBundleIO](errorMessage, t))
+
+    f onSuccess {
+      case bunIO: PacBioDataBundleIO => {
+        val slEvent = SmrtLinkEvent(eventTypeId = EventTypes.ACTIVATE_BUNDLE,
+                                    eventTypeVersion = 1,
+                                    uuid = UUID.randomUUID(),
+                                    createdAt = JodaDateTime.now(),
+                                    message = JsObject(
+                                      "bundleType" -> JsString(bundleType),
+                                      "version" -> JsString(version)
+                                    ))
+        (eventManagerActor ! CreateEvent(slEvent))
+      }
+    }
+
+    f
   }
 
   val remoteBundleServerStatusRoute:Route = {
