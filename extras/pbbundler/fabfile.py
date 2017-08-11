@@ -591,7 +591,7 @@ def build_smrtlink_services_ui(version,
     log.info("Versions: smrtflow -> {}".format(smrtflow_versions))
     smrtlink_ui_versions = {i for i in _get_smrtlink_ui_version(smrtlink_ui_dir)}
     log.info("Versions: smrtlink-ui -> {}".format(smrtlink_ui_versions))
-    resource_versions = {}
+    resource_versions = set()
     if chemistry_bundle_dir is not None:
         resource_versions.update(
             {i for i in _get_chemistry_bundle_version(chemistry_bundle_dir)})
