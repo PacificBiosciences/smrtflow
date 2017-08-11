@@ -31,16 +31,7 @@ if [ -z "$BUNDLE_DEST" ]; then
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
 
-CHEM_BUNDLE="${SRC}/chemistry-data-bundle"
-
-if [ ! -d "${CHEM_BUNDLE}" ]; then
-  echo "Unable to find required chemistry bundle dir. Exiting"
-  exit 1
-fi
-
-cd ${CHEM_BUNDLE}
-python bin/generate-manifests.py version.txt
-cd -
+CHEM_VERSION=$(cat $g_progdir/chemistry_version)
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
@@ -51,7 +42,7 @@ echo "smrtflow revision: $SMRTFLOW_SHA ; UI revision: $UI_SHA"
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
-WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
+WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0-ms-18.zip
 TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
 
@@ -135,4 +126,4 @@ cp ${SRC}/pbreports/pbreports/report/specs/*.json $REPORT_RULES/
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}",doc_dir="${DOC_ROOT}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}","${RPT_JSON_PATH}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_version="${CHEM_VERSION}",doc_dir="${DOC_ROOT}"
