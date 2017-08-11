@@ -56,8 +56,8 @@ object MailTemplates {
       m)
   }
   private def formatDateTime(d: JodaDateTime) = {
-    val formatter = DateTimeFormat.forPattern("MM/dd/yyyy, HH:mm:ss a")
-    formatter.print(d)
+    val formatter = DateTimeFormat.forPattern("MM/dd/yyyy, HH:mm:ss")
+    formatter.print(d.toLocalDateTime)
   }
 
   private def toSummary(input: SmrtLinkEmailInput) =
