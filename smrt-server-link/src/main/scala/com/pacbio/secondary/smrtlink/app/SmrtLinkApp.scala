@@ -70,6 +70,8 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
   override val providers = new SmrtLinkProviders {}
 
+  import EventManagerActor._
+
   override def startup(): Unit = {
     super.startup()
 
@@ -140,6 +142,14 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     logger.info(Await.result(startUpValidation, Duration.Inf))
 
+    for {
+      ver <- providers.smrtLinkVersion()
+    } yield for {
+      enable <- providers.jobsDao()
+                         .getEulaByVersion(ver)
+                         .map(_.enableInstallMetrics)
+                         .recover({ case _ => false })
+    } yield (providers.eventManagerActor() ! EnableExternalMessages(enable))
   }
 
   sys.addShutdownHook(system.shutdown())
