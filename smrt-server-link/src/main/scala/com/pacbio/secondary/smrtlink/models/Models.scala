@@ -750,7 +750,7 @@ object EventTypes {
   val INST_UPGRADE_NOTIFICATION = "sl_inst_upgrade_notification"
   val SERVER_STARTUP = "sl_smrt_server_startup"
   val IMPORT_BUNDLE = "sl_ts_import_bundle"
-  val ACTIVATE_BUNDLE = "sl_activate_bundle"
+  val CHEMISTRY_ACTIVATE_BUNDLE = "sl_chemistry_activate_bundle"
   // A Test Event. This should be used by any testing related code.
   val TEST = "sl_test_event"
 }

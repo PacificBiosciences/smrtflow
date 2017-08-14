@@ -31,6 +31,7 @@ object EventManagerActor {
   case class CreateEvent(event: SmrtLinkEvent)
   // Upload a TGZ file
   case class UploadTgz(path: Path)
+  case class EnableExternalMessages(enable: Boolean)
 }
 
 
@@ -100,6 +101,9 @@ class EventManagerActor(smrtLinkId: UUID,
 
     case CheckExternalServerStatus =>
       checkExternalServerStatus()
+
+    case EnableExternalMessages(enable) =>
+      enableExternalMessages = enable
 
     case CreateEvent(e) =>
       if (enableExternalMessages) {

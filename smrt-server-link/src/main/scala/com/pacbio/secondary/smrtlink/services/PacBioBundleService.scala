@@ -40,7 +40,7 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
   // Message protocols to communicate with the Dao
   import PacBioBundleDaoActor._
 
-  import com.pacbio.secondary.smrtlink.actors.EventManagerActor._
+  import EventManagerActor._
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
@@ -98,7 +98,9 @@ class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActo
 
     f onSuccess {
       case bunIO: PacBioDataBundleIO => {
-        val slEvent = SmrtLinkEvent(eventTypeId = EventTypes.ACTIVATE_BUNDLE,
+        logger.info(s"Activated ${bundleType} bundle version ${version}")
+
+        val slEvent = SmrtLinkEvent(eventTypeId = EventTypes.CHEMISTRY_ACTIVATE_BUNDLE,
                                     eventTypeVersion = 1,
                                     uuid = UUID.randomUUID(),
                                     createdAt = JodaDateTime.now(),
