@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.mail
 
-import org.joda.time.{DateTime => JodaDateTime}
+import org.joda.time.{DateTime => JodaDateTime, DateTimeZone => JodaDateTimeZone}
 import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
 import org.joda.time.format.DateTimeFormat
 
@@ -57,7 +57,8 @@ object MailTemplates {
   }
   private def formatDateTime(d: JodaDateTime) = {
     val formatter = DateTimeFormat.forPattern("MM/dd/yyyy, HH:mm:ss")
-    formatter.print(d.toLocalDateTime)
+    val dz = d.withZone(JodaDateTimeZone.getDefault())
+    formatter.print(dz)
   }
 
   private def toSummary(input: SmrtLinkEmailInput) =
