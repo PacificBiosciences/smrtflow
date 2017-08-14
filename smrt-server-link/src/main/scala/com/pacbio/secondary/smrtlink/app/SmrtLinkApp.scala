@@ -142,14 +142,15 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     logger.info(Await.result(startUpValidation, Duration.Inf))
 
-    for {
-      ver <- providers.smrtLinkVersion()
-    } yield for {
-      enable <- providers.jobsDao()
-                         .getEulaByVersion(ver)
-                         .map(_.enableInstallMetrics)
-                         .recover({ case _ => false })
-    } yield (providers.eventManagerActor() ! EnableExternalMessages(enable))
+    def getInstallMetrics() =
+      providers.smrtLinkVersion() match {
+        case Some(v) => providers.jobsDao().getEulaByVersion(v).map(_.enableInstallMetrics).recover( {case _ => false})
+        case _ => Future.successful(false)
+      }
+
+    getInstallMetrics().onSuccess { case installMetrics:Boolean =>
+      providers.eventManagerActor() ! EnableExternalMessages(installMetrics)
+    }
   }
 
   sys.addShutdownHook(system.shutdown())
