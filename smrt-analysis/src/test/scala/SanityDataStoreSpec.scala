@@ -1,8 +1,8 @@
 import java.io.File
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.secondary.analysis.jobs.JobModels.PacBioDataStore
-import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PacBioDataStore
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import scala.io.Source

@@ -2,9 +2,8 @@ package com.pacbio.secondary.smrtlink.alarms
 
 import java.nio.file.Path
 
-import com.pacbio.common.file.FileSystemUtil
-import com.pacbio.common.models.AlarmSeverity._
-import com.pacbio.common.models.{AlarmSeverity, AlarmUpdate}
+import com.pacbio.secondary.smrtlink.file.FileSystemUtil
+import com.pacbio.secondary.smrtlink.models.{AlarmSeverity, AlarmUpdate}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,10 +23,10 @@ abstract class DirectoryAlarmRunner(path: Path, fileSystemUtil: FileSystemUtil) 
     val ratio = BigDecimal(1.0 - (free / total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
     val percent = ratio*100
     val severity: AlarmSeverity = ratio match {
-      case r if r >= 0.99 => CRITICAL
-      case r if r >= 0.95 => ERROR
-      case r if r >= 0.90 => WARN
-      case _              => CLEAR
+      case r if r >= 0.99 => AlarmSeverity.CRITICAL
+      case r if r >= 0.95 => AlarmSeverity.ERROR
+      case r if r >= 0.90 => AlarmSeverity.WARN
+      case _              => AlarmSeverity.CLEAR
     }
     AlarmUpdate(ratio, Some(f"${alarm.name} is $percent%.0f%% full."), severity)
   }

@@ -10,14 +10,14 @@ import spray.json._
 
 import scala.util.{Failure, Success, Try}
 
-import com.pacbio.common.file.FileSizeFormatterUtil
-import com.pacbio.common.models.PacBioComponentManifest
+import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
-import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
+import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 
 
 case class TechSupportFileBundlerOptions(rootUserData: Path, output: Path, user: String,

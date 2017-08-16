@@ -2,14 +2,14 @@ import java.net.URL
 import java.util.UUID
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.{FakeClock, FakeClockProvider}
+import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.{FakeClock, FakeClockProvider}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.models.{RegistryResourceUpdate, RegistryResource, RegistryResourceCreate, SmrtLinkJsonProtocols}
-import com.pacbio.secondary.smrtlink.services.RegistryService
+import com.pacbio.secondary.smrtlink.models.{RegistryResource, RegistryResourceCreate, RegistryResourceUpdate, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.services.{RegistryService, ServiceComposer}
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
@@ -18,7 +18,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.routing.Directives
 import spray.testkit.Specs2RouteTest
 
-import scalaj.http.{HttpResponse, HttpConstants, HttpRequest, BaseHttp}
+import scalaj.http.{BaseHttp, HttpConstants, HttpRequest, HttpResponse}
 
 class RegistryServiceSpec extends Specification with Directives with Specs2RouteTest with Mockito with PacBioServiceErrors {
   sequential

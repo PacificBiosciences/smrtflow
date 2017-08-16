@@ -12,7 +12,6 @@ import spray.http.HttpRequest
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import akka.actor.ActorSystem
-import com.pacbio.common.client.{ServiceAccessLayer, UrlUtils}
 import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
 import com.typesafe.scalalogging.LazyLogging
 

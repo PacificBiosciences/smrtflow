@@ -1,4 +1,4 @@
-import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
 import spray.httpx.SprayJsonSupport._
 

@@ -7,7 +7,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import org.specs2.mutable.Specification
 
-import com.pacbio.secondary.analysis.jobs.{JobModels,SecondaryJobProtocols}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobModels,SecondaryJobProtocols}
 import com.pacbio.secondary.smrtlink.models._
 
 class SmrtLinkModelsSpec extends Specification {

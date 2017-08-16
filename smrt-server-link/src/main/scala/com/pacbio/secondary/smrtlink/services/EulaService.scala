@@ -11,15 +11,14 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.common.services._
 import com.pacbio.common.utils.OSUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import org.apache.commons.io.FileUtils

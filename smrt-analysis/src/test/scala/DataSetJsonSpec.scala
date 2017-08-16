@@ -1,7 +1,7 @@
 
 import java.nio.file.{Paths, Files}
 
-import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils,DataSetLoader,DataSetJsonProtocol}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils,DataSetLoader,DataSetJsonProtocol}
 import com.pacificbiosciences.pacbiodatasets._
 
 import spray.json._

@@ -4,17 +4,17 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.engine.{CommonMessages, EngineConfig}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
@@ -34,7 +34,7 @@ import java.sql.SQLException
 
 import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException

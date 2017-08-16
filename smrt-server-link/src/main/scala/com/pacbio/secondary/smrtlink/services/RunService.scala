@@ -2,12 +2,11 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.auth.{AuthenticatorProvider, Authenticator}
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.actors.{RunServiceActorRefProvider, SearchCriteria, RunServiceActor}
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.{RunServiceActor, RunServiceActorRefProvider, SearchCriteria}
 import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._
 

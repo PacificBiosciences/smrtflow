@@ -5,14 +5,14 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.bio.Fasta
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.converters.FastaToReferenceConverter
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.externaltools._
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter,AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobtypes.ConvertImportFastaOptions
+import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.converters.FastaToReferenceConverter
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools._
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter,AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ConvertImportFastaOptions
 
 
 /**

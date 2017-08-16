@@ -3,9 +3,9 @@ package com.pacbio.secondary.smrtlink.database
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask, MigrationStatusRow}
+import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask, MigrationStatusRow}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.joda.time.{DateTime => JodaDateTime}

@@ -6,9 +6,9 @@ import org.specs2.mutable.Specification
 
 import com.pacificbiosciences.pacbiodatasets.GmapReferenceSet
 
-import com.pacbio.secondary.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetLoader._
-import com.pacbio.secondary.analysis.datasets.validators.ImplicitDataSetValidators._
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetLoader._
+import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ImplicitDataSetValidators._
 
 /**
  * Created by mkocher on 3/10/15.

@@ -5,15 +5,12 @@ import java.nio.file.Paths
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.actors.ActorSystemProvider
-import com.pacbio.common.dependency.{SetBinding, SetBindings, Singleton}
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.utils.{StatusGenerator, StatusGeneratorProvider}
-import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
-import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.dependency.{SetBinding, SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.services.utils.{StatusGenerator, StatusGeneratorProvider}
+import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
+import com.pacbio.secondary.smrtlink.actors.{ActorSystemProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.jobtypes._

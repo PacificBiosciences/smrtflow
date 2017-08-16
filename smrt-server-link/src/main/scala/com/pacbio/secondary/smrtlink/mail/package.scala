@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink
 import java.net.URL
 import javax.mail.internet.InternetAddress
 
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import org.joda.time.{DateTime => JodaDateTime}
 
 /**

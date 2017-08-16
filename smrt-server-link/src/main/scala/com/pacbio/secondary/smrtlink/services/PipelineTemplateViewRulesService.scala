@@ -1,13 +1,10 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.secondary.analysis.jobs.JobModels.PipelineTemplateViewRule
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateViewRule
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
-
+import com.pacbio.secondary.smrtlink.models.{SecondaryAnalysisJsonProtocols,PacBioComponentManifest}
 import spray.json._
 import spray.httpx.SprayJsonSupport._
 

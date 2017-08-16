@@ -2,8 +2,8 @@ import java.nio.file.Paths
 import java.util.UUID
 import java.sql
 
-import com.pacbio.common.time.PacBioDateTimeFormat
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.actors.TestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._

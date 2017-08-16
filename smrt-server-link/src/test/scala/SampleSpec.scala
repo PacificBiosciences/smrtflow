@@ -1,14 +1,14 @@
 import java.util.UUID
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.FakeClockProvider
+import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.actors.{InMemorySampleDao, InMemorySampleDaoProvider, SampleServiceActor, SampleServiceActorProvider}
 import com.pacbio.secondary.smrtlink.models.{Sample, SampleCreate, SampleUpdate, SmrtLinkJsonProtocols}
-import com.pacbio.secondary.smrtlink.services.SampleService
+import com.pacbio.secondary.smrtlink.services.{SampleService, ServiceComposer}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope

@@ -3,11 +3,9 @@ package com.pacbio.secondary.smrtlink.services
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActor, AlarmDaoActorProvider, DaoFutureUtils}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models._
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, AlarmDaoActor, AlarmDaoActorProvider, DaoFutureUtils}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing.PathMatchers.Segment
@@ -17,7 +15,7 @@ import scala.concurrent.duration._
 
 class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService with DefaultJsonProtocol with DaoFutureUtils{
 
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
   import AlarmDaoActor._
 
   val manifest = PacBioComponentManifest(

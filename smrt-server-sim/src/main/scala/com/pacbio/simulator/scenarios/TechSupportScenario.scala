@@ -5,11 +5,11 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskBooleanOption, ServiceTaskOptionBase}
-import com.pacbio.secondary.analysis.jobs.OptionTypes.BOOL
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskBooleanOption, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.BOOL
 import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, DataStoreServiceFile, PbSmrtPipeServiceOptions}
 import com.pacbio.simulator.steps._

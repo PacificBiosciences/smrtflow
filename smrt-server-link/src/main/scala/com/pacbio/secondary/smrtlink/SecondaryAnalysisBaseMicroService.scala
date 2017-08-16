@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink
 
-import com.pacbio.common.services.BaseSmrtService
-import com.pacbio.secondary.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.services.BaseSmrtService
 import com.typesafe.scalalogging.LazyLogging
 
 /**

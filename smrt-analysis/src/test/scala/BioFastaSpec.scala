@@ -1,9 +1,9 @@
 import java.nio.file.{Paths, Files}
-import com.pacbio.secondary.analysis.bio.Fasta
-import com.pacbio.secondary.analysis.converters.{InvalidPacBioFastaError, PacBioFastaValidator, FastaIndexWriter}
+import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
+import com.pacbio.secondary.smrtlink.analysis.converters.{InvalidPacBioFastaError, PacBioFastaValidator, FastaIndexWriter}
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.bio.Fasta
+import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
 
 /**
  * Created by mkocher on 3/14/15.

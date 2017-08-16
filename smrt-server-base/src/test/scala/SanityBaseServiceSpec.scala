@@ -1,7 +1,8 @@
 import com.pacbio.common.actors.InMemoryLogDaoProvider
-import com.pacbio.common.app.{BaseApi, CoreProviders}
-import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
+import com.pacbio.common.app.BaseApi
+import com.pacbio.common.models.ServiceStatus
 import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.routing._

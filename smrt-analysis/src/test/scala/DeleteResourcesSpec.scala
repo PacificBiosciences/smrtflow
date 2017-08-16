@@ -7,12 +7,12 @@ import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.reports.ReportUtils
-import com.pacbio.secondary.analysis.datasets.MockDataSetUtils
-import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, JobModels, AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob, DeleteDatasetsOptions, DeleteDatasetsJob}
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
+import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, JobModels, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob, DeleteDatasetsOptions, DeleteDatasetsJob}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
 
 class DeleteResourcesSpec extends Specification with LazyLogging{

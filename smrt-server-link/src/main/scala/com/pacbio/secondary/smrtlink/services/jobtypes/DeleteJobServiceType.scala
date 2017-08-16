@@ -11,13 +11,13 @@ import spray.json._
 import akka.actor.ActorRef
 import akka.pattern.ask
 
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.DeleteResourcesOptions
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider

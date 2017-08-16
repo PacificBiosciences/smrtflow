@@ -1,8 +1,8 @@
 import java.nio.file.Paths
 
-import com.pacbio.secondary.analysis.jobs.JobModels.PipelineTemplateViewRule
-import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
-import com.pacbio.secondary.analysis.pipelines.{PipelineTemplateViewRulesLoader, PipelineTemplateAvroLoader}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateViewRule
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.pipelines.{PipelineTemplateViewRulesLoader, PipelineTemplateAvroLoader}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import spray.json._

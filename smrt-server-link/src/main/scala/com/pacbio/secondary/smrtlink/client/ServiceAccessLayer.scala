@@ -17,16 +17,15 @@ import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacbio.common.auth.Authenticator._
-import com.pacbio.common.auth.JwtUtils._
-import com.pacbio.common.client._
+import com.pacbio.secondary.smrtlink.auth.Authenticator._
+import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
-import com.pacbio.secondary.analysis.jobtypes._
-import com.pacbio.secondary.analysis.reports._
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.models._
 

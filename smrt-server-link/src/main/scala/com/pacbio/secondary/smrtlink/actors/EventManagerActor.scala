@@ -13,9 +13,8 @@ import spray.httpx.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{Constants, ServiceStatus}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 import com.pacbio.secondary.smrtlink.mail.PbMailer

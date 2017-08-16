@@ -1,5 +1,0 @@
-qsub -S /bin/bash -sync y -V -q default -N ${JOB_ID} \
-    -o "${STDOUT_FILE}" \
-    -e "${STDERR_FILE}" \
-    -pe smp ${NPROC} \
-    "${CMD}"

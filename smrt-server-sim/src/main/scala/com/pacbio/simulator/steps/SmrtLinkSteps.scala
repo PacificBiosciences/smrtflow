@@ -6,14 +6,14 @@ import java.nio.file.Path
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
-import com.pacbio.common.tools.GetSmrtServerStatus
+
 import com.pacbio.common.models._
-import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.OptionTypes.{BOOL, INT}
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
@@ -34,9 +34,9 @@ trait SmrtLinkSteps extends LazyLogging {
     sx
   }
 
-  case object GetStatus extends VarStep[Int] with GetSmrtServerStatus {
+  case object GetStatus extends VarStep[Int] {
     override val name = "GetStatus"
-    override def runWith =  Future {getStatus(smrtLinkClient, 5, 8)}
+    override def runWith =  smrtLinkClient.getStatus.map(_ => 0)
   }
 
   case object GetRuns extends VarStep[Seq[RunSummary]] {

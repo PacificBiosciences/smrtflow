@@ -3,14 +3,14 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.{PacBioDateTimeFormat, FakeClockProvider}
+import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.{FakeClockProvider, PacBioDateTimeFormat}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.RunService
+import com.pacbio.secondary.smrtlink.services.{RunService, ServiceComposer}
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
@@ -18,7 +18,7 @@ import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
-import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives}
+import spray.routing.{AuthenticationFailedRejection, AuthorizationFailedRejection, Directives}
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.Await

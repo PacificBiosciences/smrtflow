@@ -8,9 +8,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.common.services.PacBioServiceErrors._
-import com.pacbio.secondary.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
-import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
+import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor
 import com.pacbio.secondary.smrtlink.models._
 

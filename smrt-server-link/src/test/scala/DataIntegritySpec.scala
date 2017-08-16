@@ -2,9 +2,9 @@ import java.nio.file.{Paths,Files}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDataTime}
-import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
+import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, TestDalProvider}
 import com.pacbio.secondary.smrtlink.dataintegrity.{DataSetIntegrityRunner, JobStateIntegrityRunner}
 import com.pacbio.secondary.smrtlink.models.SubreadServiceDataSet

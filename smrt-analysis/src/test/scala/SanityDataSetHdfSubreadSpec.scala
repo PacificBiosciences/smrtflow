@@ -1,7 +1,7 @@
 import java.nio.file.DirectoryStream.Filter
 import java.nio.file.{Path, Files, Paths}
 
-import com.pacbio.secondary.analysis.datasets.io.{DataSetValidator, DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetValidator, DataSetJsonUtils, DataSetLoader}
 import com.pacificbiosciences.pacbiodatasets._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils

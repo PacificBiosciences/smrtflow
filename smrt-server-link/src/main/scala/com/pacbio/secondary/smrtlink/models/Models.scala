@@ -5,15 +5,138 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.common.models.LogLevel
 import com.pacbio.common.semver.SemVersion
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes._
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
 import spray.json.JsObject
 
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 object Models
+
+object PacBioNamespaces {
+
+  sealed trait PacBioNamespace { val name: String}
+  // Commandline Tools, e.g., blasr
+  case object SMRTTools extends PacBioNamespace { val name = "tools"}
+  // Web Services, e.g., smrtlink_analysis
+  case object SMRTServices extends PacBioNamespace {val name = "services"}
+  // UI Applications, e.g., smrtlink_ui
+  case object SMRTApps extends PacBioNamespace {val name = "apps"}
+
+}
+
+case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
+
+object LogLevel {
+  sealed abstract class LogLevel
+
+  case object TRACE extends LogLevel
+  case object DEBUG extends LogLevel
+  case object INFO extends LogLevel
+  case object WARN extends LogLevel
+  case object ERROR extends LogLevel
+  case object CRITICAL extends LogLevel
+  case object FATAL extends LogLevel
+
+  val ALL = Seq(TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL)
+  val logLevelByName = ALL.map(x => x.toString.toLowerCase -> x).toMap
+}
+
+// Subsystem Settings
+case class SubsystemConfig(id: String, name: String, startedAt: JodaDateTime)
+
+case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[String] = Nil)
+
+case class ServiceComponent(id: String, typeId: String, version: String)
+
+// Not sure what this should be. Is this the subsystem config?
+case class ServerConfig(id: String, version: String)
+
+case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, version: String, user: String)
+
+
+// Alarm System
+object AlarmSeverity {
+  sealed class AlarmSeverity(val severity: Int) extends Ordered[AlarmSeverity] {
+    def compare(s2: AlarmSeverity): Int = severity compareTo s2.severity
+  }
+
+  case object CLEAR extends AlarmSeverity(severity = 0)
+  case object WARN extends AlarmSeverity(severity = 1)
+  case object ERROR extends AlarmSeverity(severity = 2)
+  case object CRITICAL extends AlarmSeverity(severity = 3)
+  case object FATAL extends AlarmSeverity(severity = 4)
+  case object FATAL_IMMEDIATE extends AlarmSeverity(severity = 5)
+
+  val ALL = Seq(CLEAR, WARN, ERROR, CRITICAL, FATAL, FATAL_IMMEDIATE)
+  val alarmSeverityByName = ALL.map(x => x.toString -> x).toMap
+  val nameByAlarmSeverity = ALL.map(x => x -> x.toString).toMap
+}
+
+case class Alarm(id: String, name: String, description: String)
+
+case class AlarmUpdate(value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
+
+case class AlarmStatus(id: String, value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity, updatedAt: JodaDateTime)
+
+
+// Logging System
+case class LogResourceRecord(description: String, id: String, name: String)
+
+case class LogResource(createdAt: JodaDateTime, description: String, id: String, name: String)
+
+case class LogMessageRecord(message: String, level: LogLevel.LogLevel, sourceId: String)
+
+case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, level: LogLevel.LogLevel, sourceId: String)
+
+
+// Users
+
+/**
+  * User data model
+  *
+  * @param userId  User "Id" Example: mskinner This this user primary key that is used in the SL db.
+  * @param userEmail User email address
+  * @param firstName User first name
+  * @param lastName  User last name
+  * @param roles     Roles of the specific user
+  *
+  * MK. I strongly believe that email address should have been used as the primary key as the user id.
+  *
+  * Currently, this is creating the "userId" from the "enduser" wso2 claim. See the JwtUtils for details
+  */
+case class UserRecord(userId: String,
+                      userEmail: Option[String] = None,
+                      firstName: Option[String] = None,
+                      lastName: Option[String] = None,
+                      roles: Set[String] = Set.empty) {
+
+  def getDisplayName: String = {
+    val name = for {
+      f <- firstName
+      l <- lastName
+    } yield s"$f $l"
+
+    name.getOrElse(userId)
+  }
+}
+
+
+// Files Service
+case class DirectoryResource(fullPath: String, subDirectories: Seq[DirectoryResource], files: Seq[FileResource])
+case class FileResource(fullPath: String, name: String, mimeType: String, sizeInBytes: Long, sizeReadable: String)
+case class DiskSpaceResource(fullPath: String, totalSpace: Long, freeSpace: Long)
+
+// SubSystem Resources
+case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)
+// Record is what a user would POST
+case class SubsystemResourceRecord(name: String, version: String, url: String, apiDocs: String, userDocs:String)
+
+
 
 // Runs
 

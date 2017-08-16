@@ -1,7 +1,8 @@
 import com.pacbio.common.actors._
 import com.pacbio.common.cleanup.CleanupSchedulerProvider
-import com.pacbio.common.dependency.{StringConfigProvider, Singleton, SetBindings}
+import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton, StringConfigProvider}
 import com.pacbio.common.models.ConfigCleanupJobCreate
+import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import org.specs2.mock._
 import org.specs2.mutable.{BeforeAfter, Specification}

@@ -2,12 +2,12 @@
 package com.pacbio.secondary.smrtlink.tools
 
 import akka.actor.ActorSystem
-import com.pacbio.common.models.PacBioComponentManifest
+
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
-import com.pacbio.secondary.smrtlink.models.EulaRecord
+import com.pacbio.secondary.smrtlink.models.{EulaRecord,PacBioComponentManifest}
 import scopt.OptionParser
 
 import scala.concurrent.{Await, Future}

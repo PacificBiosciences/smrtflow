@@ -11,12 +11,11 @@ import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModels._
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.common.services.StatusCodeJoiners
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.secondary.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFileByJobId}
-import com.pacbio.secondary.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.models._

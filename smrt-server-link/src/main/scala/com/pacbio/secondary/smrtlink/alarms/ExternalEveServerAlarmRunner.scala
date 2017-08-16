@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.alarms
 import java.net.URL
 
 import akka.actor.ActorSystem
-import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmUpdate}
+import com.pacbio.secondary.smrtlink.models.{Alarm, AlarmSeverity, AlarmUpdate}
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -1,4 +1,4 @@
-import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
+import com.pacbio.common.models.ServiceStatus
 import com.pacbio.secondary.smrtlink.app.SecondaryAnalysisProviders
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
@@ -7,7 +7,7 @@ import spray.testkit.Specs2RouteTest
 
 class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
 
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
 
   val providers = new SecondaryAnalysisProviders {}
   val totalRoutes = providers.routes()

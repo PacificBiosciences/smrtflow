@@ -9,9 +9,9 @@ import javax.xml.datatype.XMLGregorianCalendar
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.time.PacBioDateTimeFormat
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacificbiosciences.pacbiobasedatamodel.{RecordedEventType, SupportedAcquisitionStates}
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import org.joda.time.{DateTime => JodaDateTime}

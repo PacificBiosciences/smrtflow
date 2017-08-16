@@ -1,21 +1,20 @@
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.file.{JavaFileSystemUtil, FileSystemUtil}
-import com.pacbio.common.services.CommonFilesServiceProvider
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, JavaFileSystemUtil}
 import com.pacbio.common.actors.InMemoryLogDaoProvider
-import com.pacbio.common.app.{BaseApi, CoreProviders}
-import com.pacbio.common.models.{DiskSpaceResource, PacBioJsonProtocol, DirectoryResource}
+import com.pacbio.common.app.BaseApi
+import com.pacbio.common.models.{DirectoryResource, DiskSpaceResource}
 import org.specs2.mock._
 import org.mockito.Mockito.doReturn
-
 import org.specs2.mutable.Specification
 import org.apache.commons.io.FileUtils
-
 import spray.testkit.Specs2RouteTest
 import spray.routing._
 import spray.httpx.SprayJsonSupport._
-
 import java.nio.file.{Files, Paths}
 import java.net.URLEncoder
+
+import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
+import com.pacbio.secondary.smrtlink.services.CommonFilesServiceProvider
 
 class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
   import PacBioJsonProtocol._

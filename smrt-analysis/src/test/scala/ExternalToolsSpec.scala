@@ -3,7 +3,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import org.specs2.mutable.Specification
 
-import com.pacbio.secondary.analysis.externaltools._
+import com.pacbio.secondary.smrtlink.analysis.externaltools._
 
 
 class ExternalToolsSpec extends Specification with ExternalToolsUtils{

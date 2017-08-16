@@ -10,15 +10,15 @@ import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.externaltools.ExternalToolsUtils
-import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.ExportDataSetsOptions
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.analysis.datasets.validators.ValidateSubreadSet
-import com.pacbio.secondary.analysis.datasets.io._
-import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ExportDataSetsOptions
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateSubreadSet
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets._
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
 
 class DataSetExportSpec extends Specification with LazyLogging {

@@ -1,9 +1,9 @@
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.JobModels.{DataStoreFileViewRule, PipelineDataStoreViewRules}
-import com.pacbio.secondary.analysis.jobs.SecondaryJobJsonProtocol
-import com.pacbio.secondary.analysis.pipelines.PipelineDataStoreViewRulesDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFileViewRule, PipelineDataStoreViewRules}
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineDataStoreViewRulesDao
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import spray.json._

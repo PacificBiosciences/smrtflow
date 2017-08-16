@@ -4,7 +4,7 @@ import java.nio.file.{Path, Files, Paths}
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-import com.pacbio.secondary.analysis.datasets.io.{DataSetValidator, DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetValidator, DataSetJsonUtils, DataSetLoader}
 import com.pacificbiosciences.pacbiodatasets._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils

@@ -2,7 +2,7 @@
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.pacbio.secondary.analysis.reports._
+import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 import spray.json._

@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.loaders
 
-import com.pacbio.secondary.analysis.jobs.JobModels.PipelineTemplate
-import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeConstants
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import spray.json._
 
 trait PipelineTemplateResourceLoader extends JsonAndEnvResourceLoader[PipelineTemplate]{

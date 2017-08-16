@@ -9,13 +9,13 @@ import org.apache.commons.io.{FileUtils,FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs._
-import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.analysis.datasets.io._
-import com.pacbio.secondary.analysis.datasets._
-import com.pacbio.secondary.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets._
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
 
 trait DataSetImports { self: Specification =>

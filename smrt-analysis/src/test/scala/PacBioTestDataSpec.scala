@@ -1,7 +1,7 @@
 
 import java.nio.file.{Paths, Path, Files}
 
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._

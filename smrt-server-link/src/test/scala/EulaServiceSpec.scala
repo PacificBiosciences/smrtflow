@@ -4,15 +4,14 @@ import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import akka.actor.ActorRefFactory
 import spray.json._
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._

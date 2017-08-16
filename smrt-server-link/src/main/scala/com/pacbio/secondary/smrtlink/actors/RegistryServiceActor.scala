@@ -3,8 +3,8 @@ package com.pacbio.secondary.smrtlink.actors
 import java.util.UUID
 
 import akka.actor.{Props, ActorRef, Actor}
-import com.pacbio.common.actors.{PacBioActor, ActorRefFactoryProvider}
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.{RegistryResourceUpdate, RegistryProxyRequest, RegistryResourceCreate}
 
 // TODO(smcclellan): Add scaladoc

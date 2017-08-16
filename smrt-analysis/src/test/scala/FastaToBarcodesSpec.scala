@@ -6,7 +6,7 @@ import org.apache.commons.io.FileUtils
 import org.specs2.mutable._
 import org.specs2.specification.BeforeAfterEach
 
-import com.pacbio.secondary.analysis.converters.FastaBarcodesConverter
+import com.pacbio.secondary.smrtlink.analysis.converters.FastaBarcodesConverter
 
 class FastaToBarcodesSpec extends Specification with BeforeAfterEach {
   lazy val tmpDir: Path = Files.createTempDirectory("test-barcodes")

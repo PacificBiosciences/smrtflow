@@ -146,8 +146,8 @@ import java.nio.file.Paths
 f: String = "/Users/mkocher/gh_mk_projects/smrtflow/PacBioTestData/data/SubreadSet/m54006_160504_020705.tiny.subreadset.xml"
 @ val px = Paths.get(f)
 px: java.nio.file.Path = /Users/mkocher/gh_mk_projects/smrtflow/PacBioTestData/data/SubreadSet/m54006_160504_020705.tiny.subreadset.xml
-@ import com.pacbio.secondary.analysis.datasets.io._
-import com.pacbio.secondary.analysis.datasets.io._
+@ import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 
 @ val sset = DataSetLoader.loadSubreadSet(px)
 sset: com.pacificbiosciences.pacbiodatasets.SubreadSet = com.pacificbiosciences.pacbiodatasets.SubreadSet@62c0ff68

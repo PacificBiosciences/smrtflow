@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink
 
-import com.pacbio.secondary.analysis.constants.FileTypes.TGZ
-import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.TGZ
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 
 
 trait SmrtLinkConstants {

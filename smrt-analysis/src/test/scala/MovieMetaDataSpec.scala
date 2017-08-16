@@ -1,5 +1,5 @@
-import com.pacbio.secondary.analysis.converters.Utils
-import com.pacbio.secondary.analysis.legacy.MovieMetaDataXml
+import com.pacbio.secondary.smrtlink.analysis.converters.Utils
+import com.pacbio.secondary.smrtlink.analysis.legacy.MovieMetaDataXml
 import org.specs2.mutable._
 
 class MovieMetaDataSpec extends Specification{

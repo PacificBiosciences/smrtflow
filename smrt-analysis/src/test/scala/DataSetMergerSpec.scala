@@ -9,14 +9,14 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.io.{DataSetWriter, DataSetMerger, DataSetLoader}
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData,PbReports}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{NullJobResultsWriter, PrinterJobResultsWriter, AnalysisJobStates}
-import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
-import com.pacbio.secondary.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetWriter, DataSetMerger, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter, PrinterJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
+import com.pacbio.secondary.smrtlink.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
 
 /**
   *

@@ -1,9 +1,10 @@
 import java.nio.file.Paths
 
-import com.pacbio.common.dependency.{Singleton, StringConfigProvider}
-import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
-import com.pacbio.common.models.{DiskSpaceResource, PacBioJsonProtocol}
-import com.pacbio.common.services.{DiskSpaceServiceProviderx, ServiceComposer}
+import com.pacbio.secondary.smrtlink.dependency.{Singleton, StringConfigProvider}
+import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
+import com.pacbio.common.models.DiskSpaceResource
+import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.services.{DiskSpaceServiceProviderx, ServiceComposer}
 import org.mockito.Mockito._
 import org.specs2.mock._
 import org.specs2.mutable.Specification

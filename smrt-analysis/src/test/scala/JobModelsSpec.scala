@@ -1,7 +1,7 @@
 
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobtypes._
-import com.pacbio.secondary.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols,AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols,AnalysisJobStates}
 
 import org.specs2.mutable.Specification
 import org.joda.time.{DateTime => JodaDateTime}
@@ -233,7 +233,7 @@ class JobModelsSpec extends Specification  {
     Source.fromFile(getPath(name).toFile).getLines.mkString.parseJson
 
   "Test job type options serialization" should {
-    import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
+    import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
     "ImportDataSetOptions" in {
       val o = ImportDataSetOptions("/path/to/subreads.xml", DataSetMetaTypes.Subread, 666)
       val oj = o.toJson.convertTo[ImportDataSetOptions]

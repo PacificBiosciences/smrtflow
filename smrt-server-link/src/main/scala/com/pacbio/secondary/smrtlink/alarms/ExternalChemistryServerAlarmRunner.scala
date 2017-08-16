@@ -3,9 +3,9 @@ package com.pacbio.secondary.smrtlink.alarms
 import java.net.URL
 
 import akka.actor.ActorSystem
-import com.pacbio.common.actors.ActorSystemProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmUpdate}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.{Alarm, AlarmSeverity, AlarmUpdate}
+import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.client.PacBioDataBundleClient
 

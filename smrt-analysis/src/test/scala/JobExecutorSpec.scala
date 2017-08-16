@@ -1,9 +1,9 @@
 import java.nio.file.{Files,Path}
 import java.util.UUID
-import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, BoundEntryPoint, JobResource}
-import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, AnalysisJobStates, SimpleJobRunner}
-import com.pacbio.secondary.analysis.jobtypes.{MockPbSmrtPipeJobOptions, SimpleDevJobOptions}
-import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskOptionBase, BoundEntryPoint, JobResource}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, AnalysisJobStates, SimpleJobRunner}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{MockPbSmrtPipeJobOptions, SimpleDevJobOptions}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 

@@ -3,9 +3,9 @@ import java.nio.file.Paths
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import com.pacbio.secondary.analysis.pipelines.JsonPipelineTemplatesLoader
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{SecondaryJobJsonProtocol, PipelineTemplateOptionProtocol}
+import com.pacbio.secondary.smrtlink.analysis.pipelines.JsonPipelineTemplatesLoader
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, PipelineTemplateOptionProtocol}
 
 import spray.json._
 

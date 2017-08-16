@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.mail
 
 import org.joda.time.{DateTime => JodaDateTime, DateTimeZone => JodaDateTimeZone}
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import org.joda.time.format.DateTimeFormat
 
 import scalatags.Text.all._

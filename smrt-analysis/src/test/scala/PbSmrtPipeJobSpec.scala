@@ -1,10 +1,10 @@
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
-import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, ServiceTaskOptionBase, ServiceTaskStrOption}
-import com.pacbio.secondary.analysis.jobs.{PrinterJobResultsWriter, CoreJob, AnalysisJobStates, SecondaryJobJsonProtocol}
-import com.pacbio.secondary.analysis.jobtypes.{PbSmrtPipeJobOptions, MockPbSmrtPipeJobOptions, PbSmrtpipeMockJob}
-import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, ServiceTaskOptionBase, ServiceTaskStrOption}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, CoreJob, AnalysisJobStates, SecondaryJobJsonProtocol}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions, MockPbSmrtPipeJobOptions, PbSmrtpipeMockJob}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 import spray.json._

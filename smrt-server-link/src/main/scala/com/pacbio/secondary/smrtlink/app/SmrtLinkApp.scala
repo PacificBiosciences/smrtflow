@@ -2,9 +2,8 @@ package com.pacbio.secondary.smrtlink.app
 
 import java.nio.file.{Files, Path}
 
-import com.pacbio.common.app.{AuthenticatedCoreProviders, BaseApi, BaseServer}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.secondary.analysis.configloaders.PbsmrtpipeConfigLoader
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider, DatabaseUtils}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider

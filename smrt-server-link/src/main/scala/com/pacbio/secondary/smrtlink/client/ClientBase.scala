@@ -3,8 +3,7 @@ package com.pacbio.secondary.smrtlink.client
 import java.net.URL
 
 import akka.actor.ActorSystem
-import com.pacbio.common.client.Retrying
-import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import spray.client.pipelining._
 import spray.http.HttpRequest
 import spray.httpx.SprayJsonSupport
@@ -20,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait ClientBase extends Retrying{
 
   // This starts to tangle up specific JSON conversion with the Client
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
   import SprayJsonSupport._
 
   implicit val actorSystem: ActorSystem

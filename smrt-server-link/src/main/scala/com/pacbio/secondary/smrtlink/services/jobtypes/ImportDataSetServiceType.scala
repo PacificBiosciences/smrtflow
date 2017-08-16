@@ -12,19 +12,19 @@ import akka.pattern.ask
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
-import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.analysis.engine.CommonMessages._
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobtypes.ImportDataSetOptions
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.DataSetMetaDataSet
+import com.pacbio.secondary.smrtlink.models.{DataSetMetaDataSet,UserRecord}
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider

@@ -1,5 +1,5 @@
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.pipelines.PipelineUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineUtils
 import org.specs2.mutable.Specification
 
 class PipelineUtilsSpec extends Specification{

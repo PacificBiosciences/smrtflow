@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.alarms
 
-import com.pacbio.common.models.{Alarm, AlarmSeverity, AlarmStatus, AlarmUpdate}
+import com.pacbio.secondary.smrtlink.models.{Alarm, AlarmSeverity, AlarmStatus, AlarmUpdate}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 

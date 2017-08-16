@@ -2,9 +2,9 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, LogJobResultsWriter, SecondaryJobJsonProtocol}
-import com.pacbio.secondary.analysis.jobs.JobModels.{JobResource, PacBioDataStore}
-import com.pacbio.secondary.analysis.jobtypes.{DbBackUpJob, DbBackUpJobOptions}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, LogJobResultsWriter, SecondaryJobJsonProtocol}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobResource, PacBioDataStore}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{DbBackUpJob, DbBackUpJobOptions}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.specs2.mutable._

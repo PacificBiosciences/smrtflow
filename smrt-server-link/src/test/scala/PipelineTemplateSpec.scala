@@ -1,8 +1,7 @@
-import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{SecondaryJobJsonProtocol, SecondaryJobProtocols}
-import com.pacbio.secondary.smrtlink.services.{PipelineTemplateProvider, ResolvedPipelineTemplateServiceProvider}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, SecondaryJobProtocols}
+import com.pacbio.secondary.smrtlink.services.{PipelineTemplateProvider, ResolvedPipelineTemplateServiceProvider, ServiceComposer}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._

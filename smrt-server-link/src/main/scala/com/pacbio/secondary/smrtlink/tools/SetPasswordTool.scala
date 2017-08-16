@@ -10,7 +10,7 @@ import spray.json._
 import DefaultJsonProtocol._
 
 import com.pacbio.logging.LoggerConfig
-import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
+import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure}
 
 case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null) extends LoggerConfig
 

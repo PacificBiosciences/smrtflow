@@ -4,7 +4,7 @@ package com.pacbio.secondary.smrtlink.tools
 import java.io.File
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.models._
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser

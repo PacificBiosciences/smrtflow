@@ -11,11 +11,11 @@ import scala.util.Try
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
-import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.common.file.FileSizeFormatterUtil
+import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 
 
 case class TechSupportUploaderOptions(url: URL, apiSecret: String, path: Path, timeOut: Duration = 300.seconds) extends LoggerConfig
