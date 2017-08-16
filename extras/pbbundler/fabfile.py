@@ -356,11 +356,10 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     t0 = time.time()
     log.info("Unzipping and building WS02 bundle from '{}'".format(wso2_api_manager_zip))
     with ZipFile(wso2_api_manager_zip) as z:
+        zip_top_level = set(p.split(os.path.sep)[0] for p in z.namelist()).pop()
         z.extractall(output_bundle_root_dir)
 
-    name, ext = os.path.splitext(os.path.basename(wso2_api_manager_zip))
-
-    wso2_output_dir = os.path.join(output_bundle_root_dir, name)
+    wso2_output_dir = os.path.join(output_bundle_root_dir, zip_top_level)
 
     def to_wp(r):
         # Output path relative to wso2
