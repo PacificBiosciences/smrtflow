@@ -1,12 +1,10 @@
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
 import spray.json._
-import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 
 /**
  * Test for all pipeline related specs

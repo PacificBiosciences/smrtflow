@@ -1,8 +1,8 @@
 import akka.actor.{ActorRefFactory, ActorSystem}
-import com.pacbio.common.actors._
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.UserRecord
+import com.pacbio.secondary.smrtlink.models.UserRecord
 import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
@@ -47,7 +47,6 @@ with JobServiceConstants with TestUtils {
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with

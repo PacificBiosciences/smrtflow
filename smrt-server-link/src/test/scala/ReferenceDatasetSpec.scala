@@ -1,11 +1,11 @@
 import java.nio.file.Paths
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mutable.Specification
 
-import com.pacificbiosciences.pacbiodatasets.ReferenceSet
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetLoader._
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ImplicitDataSetValidators._
+import com.pacificbiosciences.pacbiodatasets.ReferenceSet
+import com.typesafe.scalalogging.LazyLogging
+import org.specs2.mutable.Specification
 
 /**
  * Created by mkocher on 3/10/15.

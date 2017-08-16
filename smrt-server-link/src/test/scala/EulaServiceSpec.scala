@@ -7,7 +7,7 @@ import spray.json._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}

@@ -1,7 +1,7 @@
 import java.nio.file.Paths
 
 import akka.actor.{ActorRefFactory, ActorSystem}
-import com.pacbio.common.actors._
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models._
@@ -12,7 +12,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoa
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, SecondaryAnalysisJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, SecondaryAnalysisJsonProtocols, UserRecord}
 import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider, SimpleServiceJobTypeProvider}
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -54,7 +54,6 @@ with JobServiceConstants with TestUtils{
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with

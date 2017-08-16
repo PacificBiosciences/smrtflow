@@ -1,20 +1,15 @@
 
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{JobModels,OptionTypes,SecondaryJobProtocols,AnalysisJobStates}
-
-import org.specs2.mutable.Specification
-import org.joda.time.{DateTime => JodaDateTime}
-
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-import spray.testkit.Specs2RouteTest
-
-import scala.concurrent.duration.FiniteDuration
-import scala.io.Source
-
 import java.nio.file.Paths
 import java.util.UUID
+
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes, SecondaryJobProtocols}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import org.joda.time.{DateTime => JodaDateTime}
+import org.specs2.mutable.Specification
+import spray.json._
+
+import scala.io.Source
 
 
 // XXX note that PipelineTemplate is tested in PipelineSpec.scala

@@ -1,13 +1,12 @@
-import java.nio.file.{Paths, Path, Files}
+import java.nio.file.{Files, Paths}
 
-import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{PbReports, PacBioTestData}
-import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeId
 import com.pacbio.secondary.smrtlink.analysis.jobs.NullJobResultsWriter
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
+import com.typesafe.scalalogging.LazyLogging
+import org.specs2.mutable._
 
 /**
  * Tests for calling pbreports on an sts.xml file

@@ -1,6 +1,6 @@
-import java.nio.file.{Paths, Path}
+import java.nio.file.Paths
 
-import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplateJob, CommandTemplate}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, CommandTemplateJob}
 import org.specs2.mutable._
 
 /**

@@ -1,10 +1,9 @@
 import java.nio.file.Paths
+
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateAvroLoader
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
-import spray.json._
-import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 
 /**
  * Sanity test for loading PipelineTemplates from avro

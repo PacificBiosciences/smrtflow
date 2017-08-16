@@ -1,12 +1,11 @@
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, PbsmrtpipeConstants, IOUtils}
+import java.io.File
+import java.nio.file.Paths
 
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{IOUtils, PbsmrtpipeConstants, PbsmrtpipeEngineOptions}
 import org.specs2.mutable.Specification
 
 import scala.io.Source
-
-import java.nio.file.Paths
-import java.io.File
 
 class PbsmrtpipeEngineOptionsSpec extends Specification{
 

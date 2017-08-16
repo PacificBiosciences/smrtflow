@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacbio.common.actors._
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models.CommonModels.IdAble
@@ -63,7 +63,6 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with

@@ -1,4 +1,3 @@
-import com.pacbio.secondary.smrtlink.analysis.converters.Utils
 import com.pacbio.secondary.smrtlink.analysis.legacy.MovieMetaDataXml
 import org.specs2.mutable._
 

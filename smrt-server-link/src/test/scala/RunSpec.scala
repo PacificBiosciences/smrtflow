@@ -6,7 +6,7 @@ import akka.testkit.TestActorRef
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.{FakeClockProvider, PacBioDateTimeFormat}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._

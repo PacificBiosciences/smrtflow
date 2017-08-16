@@ -1,12 +1,9 @@
 import java.nio.file.Paths
 
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.pipelines.{JsonPipelineTemplatesLoader, PipelineTemplatePresetLoader, PipelineUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.pipelines.JsonPipelineTemplatesLoader
-import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplatePresetLoader
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineUtils
 
 
 class PipelineTemplatePresetIntegrationSpec extends Specification with LazyLogging{

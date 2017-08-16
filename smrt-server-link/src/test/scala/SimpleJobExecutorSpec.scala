@@ -1,13 +1,14 @@
-import java.nio.file.{Files,Path}
+import java.nio.file.{Files, Path}
 import java.util.UUID
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskOptionBase, BoundEntryPoint, JobResource}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, AnalysisJobStates, SimpleJobRunner}
+
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PrinterJobResultsWriter, SimpleJobRunner}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{MockPbSmrtPipeJobOptions, SimpleDevJobOptions}
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-class JobExecutorSpec extends Specification with LazyLogging{
+class SimpleJobExecutorSpec extends Specification with LazyLogging{
 
   sequential
   val jobRunner = new SimpleJobRunner

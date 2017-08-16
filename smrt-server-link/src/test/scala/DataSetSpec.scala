@@ -2,7 +2,6 @@ import akka.actor.ActorRefFactory
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.{AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
-import com.pacbio.common.models.UserRecord
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants

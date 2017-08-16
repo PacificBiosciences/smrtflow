@@ -1,30 +1,29 @@
-import java.nio.file.DirectoryStream.Filter
-import java.nio.file.{Path, Files, Paths}
+import java.nio.file.{Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetValidator, DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetLoader, DataSetValidator}
 import com.pacificbiosciences.pacbiodatasets._
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.FileUtils
 import org.specs2.mutable.Specification
 
 /**
  * Sannity test to load dataset test files and XML -> DataSet Object
  * Created by mkocher on 5/29/15.
  */
-class SanityDataSetHdfSubreadSpec extends Specification with LazyLogging {
+class SanityDataSetReferenceSetSpec extends Specification with LazyLogging {
 
   sequential
 
   "Sanity DataSet Loading" should {
-    "HdfSubread dataset loading" in {
-      val rootDir = "/dataset-hdfsubreads"
+    // There's more specific tests in ReferenceDataSetSpec
+    "Reference dataset loading " in {
+      val rootDir = "/dataset-references"
 
-      def loadDs(path: Path): HdfSubreadSet = {
-        logger.info(s"loading hdfsubread datasets from $path")
-        val ds = DataSetLoader.loadHdfSubreadSet(path)
-        logger.info(s"successfully loaded hdfsubread dataset $ds")
+      def loadDs(path: Path): ReferenceSet = {
+        logger.info(s"loading reference datasets from $path")
+        val ds = DataSetLoader.loadReferenceSet(path)
         DataSetValidator.validate(ds, path.getParent)
-        val jstring = DataSetJsonUtils.hdfSubreadSetToJson(ds)
+        logger.info(s"successfully loaded subread dataset $ds")
+        //val jstring = DataSetJsonUtils.subreadSetToJson(ds)
         //println(s"HdfSubread json $jstring")
         ds
       }

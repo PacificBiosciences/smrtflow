@@ -1,12 +1,10 @@
 import java.nio.file.Paths
 
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.pipelines.JsonPipelineTemplatesLoader
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.pipelines.JsonPipelineTemplatesLoader
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, PipelineTemplateOptionProtocol}
-
 import spray.json._
 
 

@@ -1,4 +1,4 @@
-import com.pacbio.common.models.ServiceStatus
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import com.pacbio.secondary.smrtlink.app.SecondaryAnalysisProviders
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._

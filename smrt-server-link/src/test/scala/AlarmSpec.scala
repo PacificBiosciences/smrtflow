@@ -2,11 +2,11 @@ import java.nio.file.Paths
 
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.actors._
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{DefaultConfigProvider, StringConfigProvider}
 import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
-import com.pacbio.common.models._
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms

@@ -4,16 +4,22 @@ import java.nio.file.{Files, Paths}
 import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, JavaFileSystemUtil}
-import com.pacbio.secondary.smrtlink.models.DirectoryResource
+import com.pacbio.secondary.smrtlink.models.{DirectoryResource,PacBioJsonProtocol, DiskSpaceResource}
 import com.pacbio.secondary.smrtlink.services.CommonFilesServiceProvider
 import org.apache.commons.io.FileUtils
 import org.mockito.Mockito.doReturn
 import org.specs2.mock._
 import org.specs2.mutable.Specification
+import spray.json._
+import spray.http._
 import spray.routing._
+import spray.client.pipelining._
+import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
+
+  import PacBioJsonProtocol._
 
   def isOsx() = System.getProperty("os.name") == "Mac OS X"
 

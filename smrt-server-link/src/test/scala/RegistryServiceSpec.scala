@@ -5,10 +5,10 @@ import akka.testkit.TestActorRef
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.{FakeClock, FakeClockProvider}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.models.{RegistryResource, RegistryResourceCreate, RegistryResourceUpdate, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{RegistryResource, RegistryResourceCreate, RegistryResourceUpdate, SmrtLinkJsonProtocols, UserRecord}
 import com.pacbio.secondary.smrtlink.services.{RegistryService, ServiceComposer}
 import org.specs2.mock._
 import org.specs2.mutable.Specification
