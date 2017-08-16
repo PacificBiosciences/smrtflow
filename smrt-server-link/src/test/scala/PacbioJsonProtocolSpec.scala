@@ -1,14 +1,12 @@
 import java.nio.file.Paths
 
-import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
-import spray.json._
-import org.specs2.mutable._
+import com.pacbio.secondary.smrtlink.models.{Alarm,PacBioComponentManifest}
 import org.joda.time.{DateTime => JodaDateTime}
+import org.specs2.mutable._
+import spray.json._
 
 class PacbioJsonProtocolSpec extends Specification {
-
-  import PacBioJsonProtocol._
 
   "Serialize Alert Spec" should {
     "Alert serialize to Json " in {

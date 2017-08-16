@@ -2,18 +2,14 @@ import java.nio.file.Paths
 
 import com.pacbio.secondary.smrtlink.dependency.{Singleton, StringConfigProvider}
 import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
-import com.pacbio.common.models.DiskSpaceResource
-import com.pacbio.common.services.ServiceComposer
 import com.pacbio.secondary.smrtlink.services.{DiskSpaceServiceProviderx, ServiceComposer}
 import org.mockito.Mockito._
 import org.specs2.mock._
 import org.specs2.mutable.Specification
-import spray.httpx.SprayJsonSupport._
 import spray.routing._
 import spray.testkit.Specs2RouteTest
 
 class DiskSpaceServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
-  import PacBioJsonProtocol._
 
   val spiedFileSystemUtil = spy(new JavaFileSystemUtil)
 

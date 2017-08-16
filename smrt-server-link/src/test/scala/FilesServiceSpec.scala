@@ -1,23 +1,19 @@
-import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, JavaFileSystemUtil}
-import com.pacbio.common.actors.InMemoryLogDaoProvider
-import com.pacbio.common.app.BaseApi
-import com.pacbio.common.models.{DirectoryResource, DiskSpaceResource}
-import org.specs2.mock._
-import org.mockito.Mockito.doReturn
-import org.specs2.mutable.Specification
-import org.apache.commons.io.FileUtils
-import spray.testkit.Specs2RouteTest
-import spray.routing._
-import spray.httpx.SprayJsonSupport._
-import java.nio.file.{Files, Paths}
 import java.net.URLEncoder
+import java.nio.file.{Files, Paths}
 
 import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, JavaFileSystemUtil}
+import com.pacbio.secondary.smrtlink.models.DirectoryResource
 import com.pacbio.secondary.smrtlink.services.CommonFilesServiceProvider
+import org.apache.commons.io.FileUtils
+import org.mockito.Mockito.doReturn
+import org.specs2.mock._
+import org.specs2.mutable.Specification
+import spray.routing._
+import spray.testkit.Specs2RouteTest
 
 class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
-  import PacBioJsonProtocol._
 
   def isOsx() = System.getProperty("os.name") == "Mac OS X"
 
@@ -28,7 +24,6 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
 
   object Api extends BaseApi {
     override val providers: CoreProviders = new CoreProviders
-      with InMemoryLogDaoProvider
       with CommonFilesServiceProvider {
         override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(() => spiedFileSystemUtil)
       }
