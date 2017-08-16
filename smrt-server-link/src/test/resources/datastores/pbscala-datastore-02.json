@@ -1,0 +1,19 @@
+{
+  "createdAt": "2015-07-15T16:56:04.806-07:00",
+  "updatedAt": "2015-07-15T16:56:04.806-07:00",
+  "version": "0.2.0",
+  "files": [
+    {
+      "name": "DataStore file name",
+      "description": "DataStore File Description",
+      "modifiedAt": "2015-07-15T16:56:04.805-07:00",
+      "fileTypeId": "PacBio.DataSet.ReferenceSet",
+      "path": "/Users/mkocher/workspaces/mkocher_mb_services/lib/pacbio-secondary/job-root/jobtypes-pbscala.job_types.convert_fasta_to_dataset/2c07c94b-90d8-40d4-b5c2-144d12bcd2d3/reference.dataset.xml",
+      "fileSize": 0,
+      "createdAt": "2015-07-15T16:56:04.805-07:00",
+      "uniqueId": "5746b3e5-bc6e-4f87-a8cd-b2b337e90cf9",
+      "sourceId": "pbscala::pbscala.job_types.convert_fasta_to_dataset",
+      "isChunked": false
+    }
+  ]
+}

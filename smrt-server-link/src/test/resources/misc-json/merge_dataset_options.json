@@ -1,0 +1,5 @@
+{
+  "datasetType": "PacBio.DataSet.SubreadSet",
+  "paths": ["/path/to/subreads1.xml", "/path/to/subreads2.xml"],
+  "name": "My merged dataset"
+}

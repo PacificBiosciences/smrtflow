@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pbds:HdfSubreadSet xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd"
+                    xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd"
+                    UniqueId="2e5ae406-8cd5-403e-8908-435bd106c9b2"
+                    TimeStampedName="hdfsubreadset_2015-08-04T20:36:41.006-07:00"
+                    MetaType="PacBio.DataSet.HdfSubreadSet"
+                    Name="Subreads from runr002012_42139_140910"
+                    Tags="pacbio.secondary.instrument=RS"
+                    Version="3.0.1">
+   <pbbase:ExternalResources>
+      <pbbase:ExternalResource UniqueId="980c42f1-d1eb-4e62-84a7-ebbd0bfbcf6b"
+                               TimeStampedName="hdfsubread_file_2015-08-04T20:36:41.006-07:00"
+                               MetaType="PacBio.SubreadFile.BaxFile"
+                               ResourceId="file:///pbi/dept/secondary/siv/testdata/SA3-RS/saureus/2590946/0001/Analysis_Results/m140911_000848_42139_c100702240480000001823141103261594_s1_p0.1.bax.h5"/>
+      <pbbase:ExternalResource UniqueId="99d33b9a-eab6-4ecc-8d65-2279d016805d"
+                               TimeStampedName="hdfsubread_file_2015-08-04T20:36:41.006-07:00"
+                               MetaType="PacBio.SubreadFile.BaxFile"
+                               ResourceId="file:///pbi/dept/secondary/siv/testdata/SA3-RS/saureus/2590946/0001/Analysis_Results/m140911_000848_42139_c100702240480000001823141103261594_s1_p0.2.bax.h5"/>
+      <pbbase:ExternalResource UniqueId="3b9ea4ff-0b0f-4744-b2f6-bb1c4d03294a"
+                               TimeStampedName="hdfsubreadset_file_2015-08-04T20:36:41.006-07:00"
+                               MetaType="PacBio.SubreadFile.BaxFile"
+                               ResourceId="file:///pbi/dept/secondary/siv/testdata/SA3-RS/saureus/2590946/0001/Analysis_Results/m140911_000848_42139_c100702240480000001823141103261594_s1_p0.3.bax.h5"/>
+   </pbbase:ExternalResources>
+   <pbds:DataSetMetadata>
+      <pbds:TotalLength>50000000</pbds:TotalLength>
+      <pbds:NumRecords>150000</pbds:NumRecords>
+      <pbmeta:Collections xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd">
+         <pbmeta:CollectionMetadata UniqueId="8a308b3b-32ba-4877-be71-bb5a02553bd1"
+                                    TimeStampedName="m140911_000848_42139_c100702240480000001823141103261594_s1_p0"
+                                    MetaType="PacBio.Collection"
+                                    Context="m140911_000848_42139_c100702240480000001823141103261594_s1_p0"
+                                    InstrumentName="42139"
+                                    InstrumentId="1">
+            <pbmeta:InstCtrlVer>2.3.0.0.140018</pbmeta:InstCtrlVer>
+            <pbmeta:SigProcVer>NRT@172.31.128.10:8082, SwVer=2300.140018, HwVer=1.0</pbmeta:SigProcVer>
+            <pbmeta:RunDetails>
+               <pbmeta:TimeStampedName>r002012_42139_140910</pbmeta:TimeStampedName>
+               <pbmeta:Name>42139_NITRO_VALIDATION_P6C4_20kSSstaph</pbmeta:Name>
+            </pbmeta:RunDetails>
+            <pbmeta:WellSample Name="20kbSS_staph_P6C4_40pM_lowSNR">
+               <pbmeta:WellName>20kbSS_staph_P6C4_40pM_lowSNR</pbmeta:WellName>
+               <pbmeta:Concentration>0</pbmeta:Concentration>
+               <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+               <pbmeta:StageHotstartEnabled>true</pbmeta:StageHotstartEnabled>
+               <pbmeta:SizeSelectionEnabled>
+                                false
+                            </pbmeta:SizeSelectionEnabled>
+               <pbmeta:UseCount>1</pbmeta:UseCount>
+               <pbsample:BioSamplePointers xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd">
+                  <pbsample:BioSamplePointer>546fdff8-790b-43ae-9da9-f00ac72b9230</pbsample:BioSamplePointer>
+               </pbsample:BioSamplePointers>
+            </pbmeta:WellSample>
+            <pbmeta:Automation>
+               <pbbase:AutomationParameters xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+                  <pbbase:AutomationParameter/>
+               </pbbase:AutomationParameters>
+            </pbmeta:Automation>
+            <pbmeta:CollectionNumber>1</pbmeta:CollectionNumber>
+            <pbmeta:CellIndex>4</pbmeta:CellIndex>
+            <pbmeta:CellPac Barcode="10070224048000000182314110326159"/>
+            <pbmeta:Primary>
+               <pbmeta:AutomationName>BasecallerV1</pbmeta:AutomationName>
+               <pbmeta:ConfigFileName>2-3-0_P6-C4.xml</pbmeta:ConfigFileName>
+               <pbmeta:SequencingCondition/>
+               <pbmeta:OutputOptions>
+                  <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+                  <pbmeta:CollectionPathUri>rsy://mp-rsync/vol54//RS_DATA_STAGING/42139/42139_NITRO_VALIDATION_P6C4_20kSSstaph_2012/A05_1/</pbmeta:CollectionPathUri>
+                  <pbmeta:CopyFiles>
+                     <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+                  </pbmeta:CopyFiles>
+                  <pbmeta:Readout>Bases</pbmeta:Readout>
+                  <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+               </pbmeta:OutputOptions>
+            </pbmeta:Primary>
+         </pbmeta:CollectionMetadata>
+      </pbmeta:Collections>
+      <pbsample:BioSamples xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd">
+         <pbsample:BioSample UniqueId="546fdff8-790b-43ae-9da9-f00ac72b9230"
+                             TimeStampedName="biosample_2015-08-04T20:36:41.006-07:00"
+                             MetaType="PacBio.Sample"
+                             Name="20kbSS_staph_P6C4_40pM_lowSNR"
+                             Description="20kbSS_staph_P6C4_40pM_lowSNR"/>
+      </pbsample:BioSamples>
+   </pbds:DataSetMetadata>
+</pbds:HdfSubreadSet>

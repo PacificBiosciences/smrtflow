@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<reference_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="file" last_modified="2015-10-22T15:29:15-0700" xsi:schemaLocation="http://www.w3.org/2001/XMLSchema-instance">
+    <organism>
+        <name>my-organism</name>
+        <ploidy>diploid</ploidy>
+    </organism>
+    <reference>
+        <description>Fasta converted to PacBio Spec Reference</description>
+        <file format="text/fasta">./sequence/file.fasta</file>
+        <index_file type="indexer">./sequence/file.fasta.index</index_file>
+        <index_file type="sawriter">./sequence/file.fasta.sa</index_file>
+        <index_file type="sam_idx">./sequence/file.fasta.fai</index_file>
+        <index_file type="fasta_contig_index">./sequence/file.fasta.contig.index</index_file>
+        <max_contig_length>900</max_contig_length>
+        <num_contigs>6</num_contigs>
+        <type>sample</type>
+    </reference>
+    <contigs>
+        <contig displayName="s1" id="ref000001" length="360">
+            <digest type="md5">7829b0a071daa9495a3c55ee6c913345</digest>
+            <header>s1</header>
+        </contig>
+        <contig displayName="s2" id="ref000002" length="900">
+            <digest type="md5">830c2d77ae7b9cadc204b355cf43a03b</digest>
+            <header>s2</header>
+        </contig>
+        <contig displayName="s3" id="ref000003" length="720">
+            <digest type="md5">5a9426e4391c8a7196227ffcad559afc</digest>
+            <header>s3</header>
+        </contig>
+        <contig displayName="s4" id="ref000004" length="480">
+            <digest type="md5">e538816297c2809d0c50efe4c28be57b</digest>
+            <header>s4</header>
+        </contig>
+        <contig displayName="s5" id="ref000005" length="180">
+            <digest type="md5">8a4aa7feef19f795515a5f09a6af6f11</digest>
+            <header>s5</header>
+        </contig>
+        <contig displayName="s6" id="ref000006" length="720">
+            <digest type="md5">3967789123da6006a3998a80cdb44fc8</digest>
+            <header>s6</header>
+        </contig>
+    </contigs>
+</reference_info>

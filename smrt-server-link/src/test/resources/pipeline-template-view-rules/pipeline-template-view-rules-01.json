@@ -1,0 +1,17 @@
+{
+  "id": "pbsmrtpipe.pipelines.sa3_sat",
+  "name": "Override Pipeline Display Name",
+  "description": "Override Description",
+  "taskOptions": [
+    {
+      "id": "pbalign.task_options.pbalign",
+      "hidden": true,
+      "advanced": true
+    },
+    {
+      "id": "pbcommand.task_options.dev_hello",
+      "hidden": true,
+      "advanced": true
+    }
+  ]
+}

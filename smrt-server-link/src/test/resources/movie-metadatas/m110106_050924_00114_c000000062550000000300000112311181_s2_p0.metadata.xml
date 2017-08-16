@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Metadata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://pacificbiosciences.com/PAP/Metadata.xsd">
+    <InstCtrlVer>1.2.0.0.77380</InstCtrlVer>
+    <SigProcVer>NRT@172.31.128.10:8082, SwVer=1200.77380, HwVer=1.0</SigProcVer>
+    <Run>
+        <Name>B6_2011-0105_3xAuto4-chip_+CR</Name>
+        <WhenCreated>2011-01-05T19:52:55</WhenCreated>
+        <WhenStarted>2011-01-06T04:02:14</WhenStarted>
+    </Run>
+    <Movie>
+        <WhenStarted>2011-01-06T05:55:53.248745+00:00</WhenStarted>
+        <DurationInSec>1800</DurationInSec>
+        <Number>0</Number>
+    </Movie>
+    <Sample>
+        <Name>HLR_Lambda_B6_2011-0105_3xAuto4-chip_+CR</Name>
+        <PlateId>B6_2011-0105_3xAuto4-chip_+CR</PlateId>
+        <WellName>D01</WellName>
+    </Sample>
+    <InstrumentId>1</InstrumentId>
+    <InstrumentName>00114</InstrumentName>
+    <CollectionProtocol>Standard Seq 2-Set v1</CollectionProtocol>
+    <CollectionNumber>1</CollectionNumber>
+    <CellIndex>1</CellIndex>
+    <SetNumber>0</SetNumber>
+    <EightPac>
+        <PartNumber>0003</PartNumber>
+        <LotNumber>000001</LotNumber>
+        <Barcode>00000006255000000030000011231118</Barcode>
+        <ExpirationDate>2011-12-31</ExpirationDate>
+    </EightPac>
+    <TemplatePrep>
+        <Name>DNA Template Prep Kit (24 rxn), FCR 2/1</Name>
+        <PartNumber>001333395</PartNumber>
+        <LotNumber>004012</LotNumber>
+        <Barcode>004012001333395091511</Barcode>
+        <ExpirationDate>2011-09-15</ExpirationDate>
+        <AdapterSequence>ATCTCTCTCttttcctcctcctccgttgttgttgttGAGAGAGAT</AdapterSequence>
+        <InsertSize>2000</InsertSize>
+    </TemplatePrep>
+    <BindingKit>
+        <Name>DNA Binding Kit (24 rxn), FCR 2/1</Name>
+        <PartNumber>001359802</PartNumber>
+        <LotNumber>004012</LotNumber>
+        <Barcode>004012001359802091511</Barcode>
+        <ExpirationDate>2011-09-15</ExpirationDate>
+        <Control>ET_v1</Control>
+        <IsControlUsed>true</IsControlUsed>
+    </BindingKit>
+    <SequencingKit>
+        <Name>ReagentPlate0</Name>
+        <PartNumber>001387798</PartNumber>
+        <LotNumber>004035</LotNumber>
+        <Barcode>004035024001387798113011</Barcode>
+        <ExpirationDate>2011-01-07</ExpirationDate>
+        <Protocol>FCRReagentMixingProtocol_DWP</Protocol>
+    </SequencingKit>
+    <Primary>
+        <Protocol>LprTraceToFasta</Protocol>
+        <ConfigFileName>1-2-0_Standard_1-3.xml</ConfigFileName>
+        <ResultsFolder>Analysis_Results</ResultsFolder>
+        <CollectionPathUri>smb://usmp-data3/vol51/2310385/B6_2011-0105_3xAuto4-chip_+CR_498/D01_1/</CollectionPathUri>
+        <CollectionFileCopy>Pulse</CollectionFileCopy>
+        <CollectionFileCopy>Fasta</CollectionFileCopy>
+        <CollectionFileCopy>Fastq</CollectionFileCopy>
+    </Primary>
+    <Secondary>
+        <ProtocolName/>
+        <CellCountInJob>0</CellCountInJob>
+    </Secondary>
+    <Custom/>
+</Metadata>

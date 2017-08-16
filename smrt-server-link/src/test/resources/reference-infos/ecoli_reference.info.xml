@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<reference_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="v2.1.1" last_modified="2013-11-27T08:55:37-0800" id="Ecoli_K12_MG1655" xsi:schemaLocation="http://www.w3.org/2001/XMLSchema-instance">
+    <organism>
+        <name>Ecoli</name>
+        <ploidy>haploid</ploidy>
+    </organism>
+    <reference>
+        <description>Ecoli_K12_MG1655</description>
+        <file format="text/fasta">./sequence/Ecoli_K12_MG1655.fasta</file>
+        <index_file type="indexer">./sequence/Ecoli_K12_MG1655.fasta.index</index_file>
+        <index_file type="sawriter">./sequence/Ecoli_K12_MG1655.fasta.sa</index_file>
+        <index_file type="gatk_dict">./sequence/Ecoli_K12_MG1655.dict</index_file>
+        <index_file type="sam_idx">./sequence/Ecoli_K12_MG1655.fasta.fai</index_file>
+        <max_contig_length>4639675</max_contig_length>
+        <num_contigs>1</num_contigs>
+        <type>sample</type>
+    </reference>
+    <contigs>
+        <contig length="4639675" id="ref000001" displayName="MG1655">
+            <digest type="md5">05dc7a37701cdc6bcf154344a227983d</digest>
+            <header>MG1655</header>
+        </contig>
+    </contigs>
+</reference_info>

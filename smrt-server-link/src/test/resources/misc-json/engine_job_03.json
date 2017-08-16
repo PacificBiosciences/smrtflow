@@ -1,0 +1,16 @@
+{
+  "name": "Site Acceptance Test",
+  "updatedAt": "2016-02-02T22:31:28.126Z",
+  "path": "/analysis/smrtlink/userdata/jobs_root/000/000003",
+  "state": "SUCCESSFUL",
+  "uuid": "49618fc1-f315-4dfc-b2f4-99db9459f191",
+  "jobTypeId": "pbsmrtpipe",
+  "id": 3,
+  "comment": "from smrtlink version 4.0.0",
+  "createdAt": "2017-02-02T22:31:28.126Z",
+  "createdBy": "root",
+  "jsonSettings": "{\"name\":\"Site Acceptance Test\",\"entryPoints\":[{\"entryId\":\"eid_subread\",\"fileTypeId\":\"PacBio.DataSet.SubreadSet\",\"datasetId\":2},{\"entryId\":\"eid_ref_dataset\",\"fileTypeId\":\"PacBio.DataSet.ReferenceSet\",\"datasetId\":1}],\"workflowOptions\":[],\"taskOptions\":[],\"pipelineId\":\"pbsmrtpipe.pipelines.sa3_sat\"}",
+  "smrtlinkVersion": "4.0.0.190159",
+  "smrtlinkToolsVersion": "4.0.0.190159",
+  "isActive": false
+}

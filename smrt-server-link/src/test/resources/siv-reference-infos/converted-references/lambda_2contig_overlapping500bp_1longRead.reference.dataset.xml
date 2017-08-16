@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="3e250d07-f36c-492d-b113-48aece1eacb8" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/lambda_2contig_overlapping500bp_1longRead.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/lambda_2contig_overlapping500bp_1longRead.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/lambda_2contig_overlapping500bp_1longRead.fasta.sa"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>6000</TotalLength>
+          <NumRecords>2</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="contig_0" Length="3000" Digest="c4ae2180cce102c9a8c27a9c445216a9"/><Contig Name="ref000002" Description="contig_1" Length="3000" Digest="7f42aefd2b1e3ea6af2c25a2237663f2"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

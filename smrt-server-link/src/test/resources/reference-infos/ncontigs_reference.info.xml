@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<reference_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="v2.0.0"
+                last_modified="2013-09-19T19:36:29-0700" id="simple3"
+                xsi:schemaLocation="http://www.w3.org/2001/XMLSchema-instance">
+    <organism/>
+    <reference>
+        <description>simple3</description>
+        <file format="text/fasta">./sequence/simple3.fasta</file>
+        <index_file type="indexer">./sequence/simple3.fasta.index</index_file>
+        <max_contig_length>1</max_contig_length>
+        <num_contigs>3</num_contigs>
+        <type>sample</type>
+    </reference>
+    <contigs>
+        <contig length="1" id="ref000001" displayName="1">
+            <digest type="md5">7fc56270e7a70fa81a5935b72eacbe29</digest>
+            <header>1</header>
+        </contig>
+        <contig length="1" id="ref000002" displayName="2">
+            <digest type="md5">0d61f8370cad1d412f80b84d143e1257</digest>
+            <header>2</header>
+        </contig>
+        <contig length="1" id="ref000003" displayName="3">
+            <digest type="md5">b9ece18c950afbfa6b0fdbfa4ff731d3</digest>
+            <header>3</header>
+        </contig>
+    </contigs>
+</reference_info>

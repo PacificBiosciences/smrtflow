@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<reference_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                version="v2.2.0" last_modified="2013-09-19T09:14:39-0700" id="lambda_organism"
+                xsi:schemaLocation="http://www.w3.org/2001/XMLSchema-instance">
+    <organism>
+        <name>a bug</name>
+        <ploidy>haploid</ploidy>
+    </organism>
+
+    <reference>
+        <description>lambda</description>
+        <file format="text/fasta">./sequence/lambda.fasta</file>
+        <index_file type="indexer">./sequence/lambda.fasta.index</index_file>
+        <max_contig_length>48502</max_contig_length>
+        <num_contigs>1</num_contigs>
+        <type>sample</type>
+    </reference>
+    <contigs>
+        <contig length="48502" id="ref000001" displayName="lambda_NEB3011">
+            <digest type="md5">a1319ff90e994c8190a4fe6569d0822a</digest>
+            <header>lambda_NEB3011</header>
+        </contig>
+    </contigs>
+</reference_info>

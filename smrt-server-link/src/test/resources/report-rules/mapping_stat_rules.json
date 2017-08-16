@@ -1,0 +1,64 @@
+{
+  "inputs": [
+    "file://results/mapping_stats_report.json"
+  ],
+  "order": ["attributes", "tables", "plotGroups"],
+  "attributeRules": {
+    "defaultView": "hide",
+    "order": true,
+    "rules": {
+      "mapping_stats.mapped_subreadlength_n50":
+      {"name": "Mapped Subread Length N50 (bp)", "type": "double", "pattern": "#0.000"}
+    }
+  },
+  "tableRules": {
+    "defaultView": "show",
+    "order": true,
+    "rules": {
+      "mapping_stats.mapping_stats_table": {
+        "columnRules": {
+          "mapping_stats.mapping_stats_table.mapped_reads": {
+            "header": "My Column Header", "type": "double", "pattern": "#0.000"
+          },
+          "mapping_stats.mapping_stats_table.mapped_subreads": {
+            "header": "", "type": "int"
+          }
+        }
+      }
+    }
+  },
+  "plotGroupRules": {
+    "defaultView": "show",
+    "order": true,
+    "rules": {
+      "mapping_stats.mapped_reads_pie_plot": {
+        "hidden": false
+      },
+      "mapping_stats.subread_accuracy_group": {
+        "title": "Mapped Subread Concordance",
+        "hidden": false
+      }
+    }
+  },
+  "fileLinkRules": {
+    "defaultView": "show",
+    "order": true,
+    "rules": {
+      "mapping_stats.file_link_id1": {
+        "name": "Link to my File"
+      },
+      "mapping_stats.file_link_id2": {
+        "name": "Link to my File 2"
+      }
+    }
+  },
+  "errorRules": {
+    "defaultView": "show",
+    "order": true
+  },
+  "warningRules": {
+    "defaultView": "hide",
+    "order": true
+  }
+
+}

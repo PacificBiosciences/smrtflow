@@ -1,0 +1,20 @@
+<ReferenceSet MetaType="PacBio.DataSet.ReferenceSet" Name="Organism organism name" CreatedAt="2015-01-27T09:00:01" UniqueId="733fbf9c-fcd8-43b9-a8a0-045ab6984cd4" Version="0.5.0" xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
+        <!-- Written by reference-info-to-dataset -->
+        <ExternalResources>
+          <ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Haemophilus_corrected.fasta" Tags="Example">
+              <FileIndices>
+                  <FileIndex MetaType="indexer" ResourceId="./sequence/Haemophilus_corrected.fasta.index"/><FileIndex MetaType="sawriter" ResourceId="./sequence/Haemophilus_corrected.fasta.sa"/><FileIndex MetaType="gatk_dict" ResourceId="./sequence/Haemophilus_corrected.dict"/><FileIndex MetaType="sam_idx" ResourceId="./sequence/Haemophilus_corrected.fasta.fai"/>
+              </FileIndices>
+          </ExternalResource>
+        </ExternalResources>
+
+        <DataSetMetadata>
+          <TotalLength>1830219</TotalLength>
+          <NumRecords>1</NumRecords>
+          <Organism>organism name</Organism>
+          <Ploidy>ploidy</Ploidy>
+          <Contigs>
+            <Contig Name="ref000001" Description="1|1" Length="1830219" Digest="8cdc8d04c64f203f2320666ff7f0fc47"/>
+          </Contigs>
+        </DataSetMetadata>
+      </ReferenceSet>

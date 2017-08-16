@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<reference_index>
+    <properties>
+        <last_modified>2015-10-22T15:29:15.846-07:00</last_modified>
+    </properties>
+    <reference>
+        <directory>file</directory>
+        <id>file</id>
+        <last_modified>2015-10-22T15:29:15-0700</last_modified>
+        <metadata>./file/reference.info.xml</metadata>
+        <name>file</name>
+        <organism>my-organism</organism>
+        <state>failed</state>
+        <type>sample</type>
+    </reference>
+</reference_index>

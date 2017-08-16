@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="reference_info" type="reference_infoType"/>
+  <xs:complexType name="fileType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="format"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="referenceType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="description"/>
+      <xs:element type="fileType" name="file"/>
+      <xs:element type="index_fileType" name="index_file" maxOccurs="unbounded" minOccurs="0"/>
+      <xs:element type="xs:string" name="max_contig_length"/>
+      <xs:element type="xs:string" name="num_contigs"/>
+      <xs:element type="xs:string" name="type"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="reference_infoType">
+    <xs:sequence>
+      <xs:element type="organismType" name="organism"/>
+      <xs:element type="referenceType" name="reference"/>
+      <xs:element type="contigsType" name="contigs"/>
+    </xs:sequence>
+    <xs:attribute type="xs:string" name="version"/>
+    <xs:attribute type="xs:string" name="last_modified"/>
+    <xs:attribute type="xs:string" name="id"/>
+  </xs:complexType>
+  <xs:complexType name="organismType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="name"/>
+      <xs:element type="xs:string" name="ploidy"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="index_fileType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="type" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="contigsType">
+    <xs:sequence>
+      <xs:element type="contigType" name="contig"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="contigType">
+    <xs:sequence>
+      <xs:element type="digestType" name="digest"/>
+      <xs:element type="xs:string" name="header"/>
+    </xs:sequence>
+    <xs:attribute type="xs:string" name="length"/>
+    <xs:attribute type="xs:string" name="id"/>
+    <xs:attribute type="xs:string" name="displayName"/>
+  </xs:complexType>
+  <xs:complexType name="digestType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="type"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+</xs:schema>
