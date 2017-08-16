@@ -31,9 +31,6 @@ xsd-java:
 	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
 	xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
 
-tools-smrt-analysis:
-	sbt smrt-analysis/{compile,pack}
-
 tools-smrt-server-link:
 	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
@@ -42,11 +39,8 @@ tools-tarball:
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	sbt smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
-	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
-	cp -r smrt-server-link/target/pack/* smrt-analysis/target/pack/
-	rm -rf smrt-analysis/target/pack/bin/*.bat
-	cd smrt-analysis && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
+	sbt smrt-server-link/pack
+	cd smrt-sever-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 generate-test-pipeline-json:
 	pbsmrtpipe show-templates --output-templates-json smrt-server-link/src/main/resources/resolved-pipeline-templates
