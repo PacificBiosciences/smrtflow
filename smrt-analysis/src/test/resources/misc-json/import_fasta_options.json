@@ -1,6 +1,0 @@
-{
-  "path": "/path/to/genome.fasta",
-  "name": "My Genome",
-  "ploidy": "haploid",
-  "organism": "Homo sapiens"
-}
