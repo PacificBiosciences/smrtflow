@@ -101,7 +101,9 @@ object JobModels {
     val GENERAL_PROJECT_ID = 1
   }
 
+  // This needs to be made a proper type
   object JobTypeIds {
+    val HELLO_WORLD = JobTypeId("hello-world")
     val CONVERT_FASTA_BARCODES = JobTypeId("convert-fasta-barcodes")
     val CONVERT_FASTA_REFERENCE = JobTypeId("convert-fasta-reference")
     val CONVERT_RS_MOVIE = JobTypeId("convert-rs-movie")

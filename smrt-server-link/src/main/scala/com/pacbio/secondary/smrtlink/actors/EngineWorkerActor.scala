@@ -9,16 +9,17 @@ import CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.jobtypes.{Converters, ServiceJobRunner}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
 object EngineWorkerActor {
-  def props(daoActor: ActorRef, jobRunner: JobRunner): Props = Props(new EngineWorkerActor(daoActor, jobRunner))
+  def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new EngineWorkerActor(daoActor, jobRunner, serviceRunner))
 }
 
-class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner) extends Actor
+class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor
 with ActorLogging
 with timeUtils {
 
@@ -69,18 +70,27 @@ with timeUtils {
       sender ! message
 
     case RunEngineJob(engineJob) =>
-      val outputDir = Paths.get(engineJob.path)
-      val resources = JobResource(engineJob.uuid, Paths.get(engineJob.path), AnalysisJobStates.RUNNING)
-      val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
-      val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
-      val resultsWriter = new FileJobResultsWriter(stdoutFw, stderrFw)
 
+      val outputDir = Paths.get(engineJob.path)
       // need to convert a engineJob.settings into ServiceJobOptions
-      // val opts = convertEngineToServiceJobOptions(engineJob.settings)
-      // val result = serviceRunner.run(opts, resources, resultsWriter) // this blocks
-      // This only needs to communicate back to the EngineManager that it's completed processing the resuls
+      val opts = Converters.convertEngineToOptions(engineJob) // Maybe this should be encapsulated at the ServiceRunner?
+      val result = serviceRunner.run(opts, engineJob.uuid, outputDir) // this blocks
+
+      log.info(s"Results from ServiceRunner $result")
+      // This only needs to communicate back to the EngineManager that it's completed processing the results
       // and is free to run more work.
-      // sender ! results
+      // Adding some copy and paste in here get it to work mechanistically
+      val message = result match {
+        case Right(x) =>
+          UpdateJobCompletedResult(x, WORK_TYPE)
+        case Left(ex) =>
+          val emsg = s"Failed job type ${opts.jobTypeId.id} in ${outputDir.toAbsolutePath} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.message}"
+          log.error(emsg)
+          UpdateJobCompletedResult(ex, WORK_TYPE)
+      }
+
+      // Send Message back to EngineManager
+      sender ! message
 
 
     case x => log.debug(s"Unhandled Message to Engine Worker $x")
@@ -88,9 +98,9 @@ with timeUtils {
 }
 
 object QuickEngineWorkerActor {
-  def props(daoActor: ActorRef, jobRunner: JobRunner): Props = Props(new QuickEngineWorkerActor(daoActor, jobRunner))
+  def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new QuickEngineWorkerActor(daoActor, jobRunner, serviceRunner))
 }
 
-class QuickEngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner) extends EngineWorkerActor(daoActor, jobRunner){
+class QuickEngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends EngineWorkerActor(daoActor, jobRunner, serviceRunner){
   override val WORK_TYPE = QuickWorkType
 }

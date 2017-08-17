@@ -1,18 +1,20 @@
-package com.pacbio.secondary.smrtlink.engine
+package com.pacbio.secondary.smrtlink.jobtypes
 
+import java.io.FileWriter
 import java.net.InetAddress
+import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobResourceBase, ResultFailed, ResultSuccess}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging
-
 import org.joda.time.{DateTime => JodaDateTime}
-import scala.concurrent.{Await, Future}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 
 /**
@@ -45,19 +47,26 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
     dao.updateJobState(uuid, state, message.getOrElse(s"Updating Job $uuid state to $state"))
   }
 
-  def run(opts: ServiceJobOptions, resource: JobResourceBase, writer: JobResultWriter)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
+
+
+  def run(opts: ServiceJobOptions, uuid: UUID, output: Path)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
     val startedAt = JodaDateTime.now()
+
+    val resource = JobResource(uuid, output, AnalysisJobStates.RUNNING)
+    val stderrFw = new FileWriter(output.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
+    val stdoutFw = new FileWriter(output.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
+    val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
 
     val smsg = s"Validating job-type ${opts.jobTypeId.id} ${opts.toString} in ${resource.path.toString}"
     logger.info(smsg)
 
-    validate(opts, resource.jobId, writer) match {
+    validate(opts, uuid, writer) match {
       case Some(r) => Left(r)
       case _ =>
         // For now, the EngineWorker is responsible for setting the state so other Workers don't take the work
         // The job should really be set to SUBMITTED or similar to indicate it's "checked-out"
         // updateStateToRunning(resource.jobId) // This needs to be blocking
-        opts.toJob.run(resource, writer, dao) match {
+        opts.toJob().run(resource, writer, dao) match {
           case Left(a) => Left(a)
           case Right(_) =>
             val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)

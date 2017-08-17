@@ -9,18 +9,17 @@ import akka.actor.{ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import akka.util.Timeout
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import CommonMessages._
-
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.DbBackUpJobOptions
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
+import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.SecondaryModels.DbBackUpServiceJobOptions
 import com.pacbio.secondary.smrtlink.models.{EngineConfig, EngineJobEntryPointRecord, EulaRecord}
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
@@ -223,19 +222,20 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
   // This is not awesome
   val jobRunner = new SimpleAndImportJobRunner(self)
+  val serviceRunner = new ServiceJobRunner(dao)
 
 
   override def preStart(): Unit = {
     log.info(s"Starting engine manager actor $self with $engineConfig")
 
     (0 until engineConfig.maxWorkers).foreach { x =>
-      val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner), s"engine-worker-$x")
+      val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-worker-$x")
       workers.enqueue(worker)
       log.debug(s"Creating worker $worker")
     }
 
     (0 until maxNumQuickWorkers).foreach { x =>
-      val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner), s"engine-quick-worker-$x")
+      val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.debug(s"Creating Quick worker $worker")
     }

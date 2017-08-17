@@ -16,7 +16,6 @@ trait SecondaryAnalysisProviders
   with PipelineTemplateViewRulesServiceProvider
   with ReportViewRulesResourceProvider
   with ReportViewRulesServiceProvider
-  with ImportDataStoreServiceTypeProvider
   with ImportFastaServiceTypeProvider
   with ImportFastaBarcodesServiceTypeProvider
   with PbsmrtpipeServiceJobTypeProvider
