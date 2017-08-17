@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import java.io.FileWriter
+import java.nio.file.Paths
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.pacbio.common.models.CommonModelImplicits
@@ -38,6 +39,7 @@ with timeUtils {
       val msg = s"Worker $self running job type ${jobTypeId.id} Job: $job"
       log.info(msg)
 
+      // This would be nice to remove and to make the worker really dumb and simple.
       val pJob = JobResource(job.uuid, outputDir, AnalysisJobStates.RUNNING)
       // This might not be the best message
       sender ! UpdateJobState(job.uuid, AnalysisJobStates.RUNNING, msg, None)
@@ -65,6 +67,21 @@ with timeUtils {
       stdoutFw.close()
       // Send Message back to EngineManager
       sender ! message
+
+    case RunEngineJob(engineJob) =>
+      val outputDir = Paths.get(engineJob.path)
+      val resources = JobResource(engineJob.uuid, Paths.get(engineJob.path), AnalysisJobStates.RUNNING)
+      val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
+      val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
+      val resultsWriter = new FileJobResultsWriter(stdoutFw, stderrFw)
+
+      // need to convert a engineJob.settings into ServiceJobOptions
+      // val opts = convertEngineToServiceJobOptions(engineJob.settings)
+      // val result = serviceRunner.run(opts, resources, resultsWriter) // this blocks
+      // This only needs to communicate back to the EngineManager that it's completed processing the resuls
+      // and is free to run more work.
+      // sender ! results
+
 
     case x => log.debug(s"Unhandled Message to Engine Worker $x")
   }
