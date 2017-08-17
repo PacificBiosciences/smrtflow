@@ -8,7 +8,7 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import scala.concurrent.Future
 
 // scalastyle:off
-class V3__AddChemistryVersionToRun extends JdbcMigration with SlickMigration with LazyLogging{
+class V5__AddChemistryVersionToRun extends JdbcMigration with SlickMigration with LazyLogging{
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(DBIO.seq(
