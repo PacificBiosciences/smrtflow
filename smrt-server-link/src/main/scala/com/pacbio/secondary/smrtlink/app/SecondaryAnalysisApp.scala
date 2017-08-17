@@ -30,9 +30,6 @@ trait SecondaryAnalysisProviders
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
   override val actorSystemName = Some("smrtlink-analysis-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
-
-  //Singleton(LogResourceRecord("pbsmrtpipe Analysis Jobs", "pbsmrtpipe", "pbsmrtpipe jobs")).bindToSet(LogResources)
-  //Singleton(LogResourceRecord("SMRT Link UI", "smrtlink", "SMRTLink UI")).bindToSet(LogResources)
 }
 
 trait SecondaryApi extends SmrtLinkApi with LazyLogging {
