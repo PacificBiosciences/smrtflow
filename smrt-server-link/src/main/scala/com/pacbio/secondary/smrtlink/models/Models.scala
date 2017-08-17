@@ -797,7 +797,8 @@ case class PacBioDataBundle(typeId: String,
                             version: String,
                             importedAt: JodaDateTime,
                             createdBy: Option[String],
-                            isActive: Boolean = false) {
+                            isActive: Boolean = false,
+                            description: Option[String] = None) {
   // This is bad OO to duplicate data (version and semVersion)
   // However, this is used to sort bundles and is
   // exposed publicly, but we don't want this to leak to serialization layers (e.g., jsonFormat).
