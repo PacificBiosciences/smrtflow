@@ -1,8 +1,6 @@
 package com.pacbio.secondary.smrtlink.models
 
-import EngineConfig
-import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
-import spray.json._
+import spray.json.JsObject
 
 
 object SecondaryModels {

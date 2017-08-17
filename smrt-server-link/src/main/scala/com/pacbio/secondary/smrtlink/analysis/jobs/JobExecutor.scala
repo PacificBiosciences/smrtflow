@@ -83,8 +83,6 @@ class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobRe
  */
 trait JobExecutorComponent extends LazyLogging {
 
-  val OUTPUT_FILE_PREFIX = "pbscala-engine"
-
   def runJob(job: CoreJobModel, pbJob: JobResourceBase, writer: JobResultWriter)(implicit ec: ExecutionContext): Either[ResultFailed, ResultSuccess]
 
   def runJobFromOpts(opts: BaseJobOptions, pbJob: JobResourceBase, writer: JobResultWriter)(implicit ec: ExecutionContext): Either[ResultFailed, ResultSuccess] = {

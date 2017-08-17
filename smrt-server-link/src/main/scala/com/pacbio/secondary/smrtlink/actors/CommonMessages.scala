@@ -4,13 +4,14 @@ import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, JobResult}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, EngineJob, JobResult}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
 
 object CommonMessages {
 
   // New Job model
   case class RunJob(job: CoreJob, path: Path)
+  case class RunEngineJob(job: EngineJob)
 
   // Not sure if this is the best model for doing this
   sealed trait WorkerType

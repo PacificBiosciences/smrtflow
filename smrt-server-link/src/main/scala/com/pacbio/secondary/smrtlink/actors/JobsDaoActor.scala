@@ -9,13 +9,13 @@ import akka.actor.{ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import akka.util.Timeout
 import spray.json._
-import com.pacbio.secondary.smrtlink.actors._
+
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.engine.actors.QuickEngineWorkerActor
+
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.DbBackUpJobOptions
