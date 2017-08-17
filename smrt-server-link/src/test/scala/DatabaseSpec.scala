@@ -167,6 +167,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         Some("instrument-serial-number"),
         Some("instrument-sw-version"),
         Some("primary-analysis-sw-version"),
+        Some("chemistry-version"),
         Some("context"),
         Some("termination-info"),
         reserved = false)

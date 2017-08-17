@@ -161,6 +161,7 @@ case class RunSummary(
     instrumentSerialNumber: Option[String],
     instrumentSwVersion: Option[String],
     primaryAnalysisSwVersion: Option[String],
+    chemistrySwVersion: Option[String],
     context: Option[String],
     terminationInfo: Option[String],
     reserved: Boolean) {
@@ -183,6 +184,7 @@ case class RunSummary(
       instrumentSerialNumber,
       instrumentSwVersion,
       primaryAnalysisSwVersion,
+      chemistrySwVersion,
       context,
       terminationInfo,
       reserved)
@@ -206,6 +208,7 @@ case class Run(
     instrumentSerialNumber: Option[String],
     instrumentSwVersion: Option[String],
     primaryAnalysisSwVersion: Option[String],
+    chemistrySwVersion: Option[String],
     context: Option[String],
     terminationInfo: Option[String],
     reserved: Boolean) {
@@ -227,6 +230,7 @@ case class Run(
       instrumentSerialNumber,
       instrumentSwVersion,
       primaryAnalysisSwVersion,
+      chemistrySwVersion,
       context,
       terminationInfo,
       reserved)
