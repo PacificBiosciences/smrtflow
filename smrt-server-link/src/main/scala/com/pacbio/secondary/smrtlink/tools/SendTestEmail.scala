@@ -1,6 +1,9 @@
 
 package com.pacbio.secondary.smrtlink.tools
 
+import java.io.File
+import java.nio.file.Paths
+
 import java.util.UUID
 import java.net.URL
 
@@ -11,12 +14,15 @@ import scala.language.postfixOps
 
 import scopt.OptionParser
 import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.mail.PbMailer
 
 
@@ -43,6 +49,8 @@ object SendTestEmailTool
     with EngineCoreConfigLoader
     with PbsmrtpipeConfigLoader {
 
+  import ConfigModelsJsonProtocol._
+
   override val VERSION = "0.1.0"
   override val toolId: String = "tech_support_uploader"
   override val DESCRIPTION =
@@ -51,6 +59,13 @@ object SendTestEmailTool
     """.stripMargin
 
   val defaults = SendTestEmailOptions(null, mailHost(), mailPort(), mailUser(), mailPassword())
+
+  def loadConfig(file: File): RootSmrtflowConfig = {
+    scala.io.Source.fromFile(file)
+        .mkString
+        .parseJson
+        .convertTo[RootSmrtflowConfig]
+  }
 
   val parser = new OptionParser[SendTestEmailOptions]("send-test-email") {
     head(DESCRIPTION)
@@ -69,7 +84,15 @@ object SendTestEmailTool
     opt[String]("password")
       .action({(x, c) => c.copy(password = Some(x))})
       .text(s"SMTP login password ${defaults.password.getOrElse("undefined")}")
-
+    opt[String]("config-json")
+      .action({(j, c) =>
+        val cfg = loadConfig(Paths.get(j).toFile).pacBioSystem
+        c.copy(host = cfg.mailHost,
+               port = cfg.mailPort.getOrElse(defaults.port),
+               user = cfg.mailUser,
+               password = cfg.mailPassword)
+      })
+      .text("JSON configuration file")
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
