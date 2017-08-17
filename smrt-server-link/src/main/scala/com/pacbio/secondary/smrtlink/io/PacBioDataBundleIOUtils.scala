@@ -36,9 +36,9 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     val bundleTypeId = (xs \ "Package").text
     val rawVersion = (xs \ "Version").text
     val author = (xs \ "Author").headOption.map(_.text)
-    //val createdAt = (xs \ "Created").text
+    val description = (xs \ "Description").headOption.map(_.text)
 
-    PacBioDataBundle(bundleTypeId, rawVersion, JodaDateTime.now(), author)
+    PacBioDataBundle(bundleTypeId, rawVersion, JodaDateTime.now(), author, isActive = false, description)
   }
 
   def parseBundle(rootDir: Path): PacBioDataBundle =

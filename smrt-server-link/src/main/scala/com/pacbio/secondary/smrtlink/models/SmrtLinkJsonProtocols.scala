@@ -197,7 +197,7 @@ trait SmrtLinkJsonProtocols
 
   implicit val pacbioBundleVersionFormat = jsonFormat5(SemVersion.apply)
   // this model has a val assigned and requires a custom serialization
-  implicit val pacbioBundleFormat = jsonFormat(PacBioDataBundle.apply, "typeId", "version", "importedAt", "createdBy", "isActive")
+  implicit val pacbioBundleFormat = jsonFormat(PacBioDataBundle.apply, "typeId", "version", "importedAt", "createdBy", "isActive", "description")
   implicit val pacbioBundleRecordFormat = jsonFormat1(PacBioBundleRecord)
   implicit val pacbioBundleUpgradeFormat = jsonFormat1(PacBioDataBundleUpgrade)
 
