@@ -4,15 +4,15 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
-import com.pacbio.common.models.{CommonModelImplicits, UserRecord}
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.JobTypeIds
-import com.pacbio.secondary.analysis.jobtypes.MergeDataSetOptions
+import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider

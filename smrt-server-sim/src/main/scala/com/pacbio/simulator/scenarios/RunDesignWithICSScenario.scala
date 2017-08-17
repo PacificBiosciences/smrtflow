@@ -8,9 +8,9 @@ import scala.collection.Seq
 import spray.httpx.UnsuccessfulResponseException
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
-import com.pacbio.secondary.analysis.jobs.OptionTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
+import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.clients.InstrumentControlClient
@@ -18,7 +18,7 @@ import com.pacbio.simulator.{RunDesignTemplateInfo, Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
 // for SAT
-import com.pacbio.secondary.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.client.ClientUtils
 
 

@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.models
 
-import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols
-import com.pacbio.secondary.analysis.reports.ReportJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportJsonProtocol
 import com.pacbio.secondary.smrtlink.models.SecondaryModels._
 import fommil.sjs.FamilyFormats
 import spray.json._

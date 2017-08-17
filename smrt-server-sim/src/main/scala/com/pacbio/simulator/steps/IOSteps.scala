@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.client.ClientUtils
-import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetWriter}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetLoader, DataSetWriter}
 import com.pacbio.simulator.{RunDesignTemplateInfo, RunDesignTemplateReader, Scenario, StepResult}
 import org.apache.commons.io.FileUtils
 

@@ -1,8 +1,8 @@
 package com.pacbio.secondary.smrtlink.models
 
 import com.pacbio.common.models._
-import com.pacbio.secondary.analysis.jobs.JobModels.DataStoreJobFile
-import com.pacbio.secondary.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.DataStoreJobFile
+import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import spray.json._
 import fommil.sjs.FamilyFormats

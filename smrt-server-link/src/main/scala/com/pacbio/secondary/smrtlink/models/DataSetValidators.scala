@@ -2,9 +2,9 @@ package com.pacbio.secondary.smrtlink.models
 
 import java.nio.file.{Files, Path}
 
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacbio.secondary.analysis.datasets.io.{DataSetLoader, DataSetValidator}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetLoader, DataSetValidator}
 import com.pacificbiosciences.pacbiodatasets._
 
 import scala.util.{Failure, Success, Try}

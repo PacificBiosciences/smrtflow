@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.app
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.secondary.analysis.jobs.{JobRunner, SimpleAndImportJobRunner}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobRunner, SimpleAndImportJobRunner}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 
 

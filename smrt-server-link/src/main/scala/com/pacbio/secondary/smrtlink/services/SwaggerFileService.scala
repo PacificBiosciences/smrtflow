@@ -1,10 +1,9 @@
 package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorSystem
-import com.pacbio.common.actors.ActorSystemProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import spray.json._
 import spray.routing._

@@ -4,15 +4,15 @@ import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.loaders.ManifestLoader
-import com.pacbio.common.utils.SmrtServerIdUtils
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
-import com.pacbio.secondary.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
+import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
 import com.pacbio.secondary.smrtlink.models.PacBioDataBundleIO
+import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._

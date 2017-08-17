@@ -6,17 +6,17 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.logging.{LoggerFactory, LoggerFactoryProvider}
 import com.pacbio.common.models.CommonModels.{UUIDIdAble, IntIdAble}
-import com.pacbio.common.models.{CommonModelSpraySupport, LogMessageRecord, UserRecord}
-import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.SecondaryJobProtocols._
-import com.pacbio.secondary.analysis.jobtypes.PbSmrtPipeJobOptions
-import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
+import com.pacbio.common.models.CommonModelSpraySupport
+import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbSmrtPipeJobOptions
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider

@@ -45,7 +45,16 @@ packMain := Map(
   "bundler-set-password" -> "com.pacbio.secondary.smrtlink.tools.SetPasswordToolApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtlink.tools.AcceptUserAgreementApp",
   "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp",
-  "smrtlink-repl" -> "com.pacbio.secondary.smrtlink.tools.SmrtLinkReplApp"
+  "smrtlink-repl" -> "com.pacbio.secondary.smrtlink.tools.SmrtLinkReplApp", // Start of Analysis Tools
+  "fasta-to-reference" -> "com.pacbio.secondary.smrtlink.analysis.tools.FastaToReferenceApp",
+  "fasta-to-gmap-reference" -> "com.pacbio.secondary.smrtlink.analysis.tools.FastaToGmapReferenceSetApp",
+  "movie-metadata-to-dataset" -> "com.pacbio.secondary.smrtlink.analysis.tools.MovieMetaDataToDataSetApp",
+  "movie-metadata-to-dataset-rtc" -> "com.pacbio.secondary.smrtlink.analysis.tools.MovieMetaDataToDataSetRtcApp",
+  "validate-dataset" -> "com.pacbio.secondary.smrtlink.analysis.tools.ValidateDataSetApp",
+  "merge-datasets" -> "com.pacbio.secondary.smrtlink.analysis.tools.DataSetMergerApp",
+  "ds-tools" -> "com.pacbio.secondary.smrtlink.analysis.tools.PbDataSetToolsApp",
+  "smrtflow-example-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleToolApp",
+  "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp"
 
 )
 

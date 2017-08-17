@@ -1,7 +1,7 @@
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
-import com.pacbio.common.auth.Authenticator._
+import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import spray.http.HttpHeaders.RawHeader
 
 import scala.concurrent.duration._
@@ -13,23 +13,22 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacbio.common.actors._
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models._
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.utils.StatusGeneratorProvider
-import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob,JobTask}
-import com.pacbio.secondary.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTask}
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProvider, MockPbsmrtpipeJobTypeProvider}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{ProjectServiceProvider, JobManagerServiceProvider, JobRunnerProvider}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import slick.driver.PostgresDriver.api._
@@ -64,7 +63,6 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with

@@ -11,10 +11,9 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.common.services._
 import com.pacbio.secondary.smrtlink.actors.EventManagerActorProvider
 
 

@@ -4,10 +4,10 @@ import java.net.URL
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors._
-import com.pacbio.common.time.{ClockProvider, Clock}
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
+import com.pacbio.secondary.smrtlink.time.{ClockProvider, Clock}
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models.{RegistryResourceUpdate, RegistryProxyRequest, RegistryResourceCreate, RegistryResource}
 
 import scala.collection.mutable

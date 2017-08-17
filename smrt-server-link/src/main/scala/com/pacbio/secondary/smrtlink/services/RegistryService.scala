@@ -4,15 +4,13 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.common.auth.Authenticator
-import com.pacbio.common.auth.AuthenticatorProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.actors.{RegistryServiceActorRefProvider, RegistryServiceActor}
+import com.pacbio.secondary.smrtlink.auth.Authenticator
+import com.pacbio.secondary.smrtlink.auth.AuthenticatorProvider
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.{RegistryServiceActor, RegistryServiceActorRefProvider}
 import com.pacbio.secondary.smrtlink.models._
-import spray.http.{HttpResponse => SprayHttpResponse, HttpHeader, HttpEntity, HttpMethod}
+import spray.http.{HttpEntity, HttpHeader, HttpMethod, HttpResponse => SprayHttpResponse}
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._

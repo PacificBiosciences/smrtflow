@@ -210,8 +210,8 @@ lazy val smrtflow = project.in(file("."))
     .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
     .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
     .configs(IntegrationTest)
-    .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
-    .aggregate(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink, smrtServerSim)
+    .dependsOn(logging, common, smrtServerLink, smrtServerSim)
+    .aggregate(logging, common, smrtServerLink, smrtServerSim)
 
 
 lazy val logging = toPacBioProject("smrt-server-logging").settings()
@@ -233,24 +233,14 @@ lazy val common =
         }.taskValue
       )
 
-lazy val smrtAnalysis =
-  toPacBioProject("smrt-analysis")
-      .dependsOn(logging, common)
-      .settings()
-
-lazy val smrtServerBase =
-  toPacBioProject("smrt-server-base")
-      .dependsOn(logging, common, smrtAnalysis)
-      .settings()
-
 lazy val smrtServerLink =
   toPacBioProject("smrt-server-link")
-      .dependsOn(logging, common, smrtAnalysis, smrtServerBase)
+      .dependsOn(logging, common)
       .settings(
         mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"),
         assemblyJarName in assembly := "smrt-server-link-analysis.jar")
 
 lazy val smrtServerSim =
   toPacBioProject("smrt-server-sim")
-      .dependsOn(logging, common, smrtAnalysis, smrtServerBase, smrtServerLink)
+      .dependsOn(logging, common, smrtServerLink)
       .settings()

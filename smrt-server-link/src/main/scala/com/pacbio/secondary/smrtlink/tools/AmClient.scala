@@ -7,7 +7,7 @@ import java.nio.file.Files
 
 import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.tools.CommandLineToolVersion
+import com.pacbio.secondary.smrtlink.analysis.tools.CommandLineToolVersion
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 import com.typesafe.config.ConfigFactory

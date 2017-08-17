@@ -8,14 +8,14 @@ import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
 import com.pacbio.common.models.Constants
-import com.pacbio.common.services.utils.StatusGenerator
-import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
-import com.pacbio.common.time.SystemClock
+import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
+import com.pacbio.secondary.smrtlink.services.{PacBioService, RoutedHttpService}
+import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.actors.{EventManagerActor, PacBioBundleDao, PacBioBundleDaoActor, PacBioDataBundlePollExternalActor}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.services.PacBioBundleService
+import com.pacbio.secondary.smrtlink.services.{PacBioBundleService, StatusService}
 import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.routing._

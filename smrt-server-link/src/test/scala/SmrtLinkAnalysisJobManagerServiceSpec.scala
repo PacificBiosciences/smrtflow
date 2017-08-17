@@ -1,19 +1,18 @@
 import akka.actor.{ActorRefFactory, ActorSystem}
-import com.pacbio.common.actors._
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{ConfigProvider, SetBindings, Singleton}
-import com.pacbio.common.models.UserRecord
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.services.utils.StatusGeneratorProvider
-import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.jobtypes.SimpleDevJobOptions
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.models.UserRecord
+import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
 import com.pacbio.secondary.smrtlink.services.jobtypes.SimpleServiceJobTypeProvider
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
@@ -53,7 +52,6 @@ with JobServiceConstants with TestUtils{
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
   JwtUtilsProvider with
-  InMemoryLogDaoProvider with
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with

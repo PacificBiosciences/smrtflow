@@ -7,7 +7,7 @@ import java.util.UUID
 
 import sys.process._
 
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.PacBioDataBundleConstants
 import com.pacbio.secondary.smrtlink.actors.PacBioBundleUtils

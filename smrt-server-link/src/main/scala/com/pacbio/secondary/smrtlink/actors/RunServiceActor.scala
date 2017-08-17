@@ -3,8 +3,7 @@ package com.pacbio.secondary.smrtlink.actors
 import java.util.UUID
 
 import akka.actor.{Props, ActorRef}
-import com.pacbio.common.actors.{PacBioActor, ActorRefFactoryProvider}
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.ExecutionContext.Implicits._

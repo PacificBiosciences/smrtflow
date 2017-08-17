@@ -21,16 +21,16 @@ import scopt.OptionParser
 import spray.json._
 
 import com.pacbio.common.models._
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.converters._
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels}
-import com.pacbio.secondary.analysis.pipelines._
-import com.pacbio.secondary.analysis.tools._
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.converters._
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.pipelines._
+import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.models._

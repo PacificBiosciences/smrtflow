@@ -1,19 +1,13 @@
 package com.pacbio.secondary.smrtlink.services
 
-import scala.concurrent.Future
-
+import scala.concurrent._
 import com.typesafe.scalalogging.LazyLogging
-
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
-
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.{ServiceComposer, StatusCodeJoiners}
-import com.pacbio.common.models.{LogLevel, PacBioComponentManifest}
-
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, SmrtLinkJsonProtocols, LogLevel}
 
 
 class SimpleLogService

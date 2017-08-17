@@ -6,18 +6,18 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.logging.{LoggerFactory, LoggerFactoryProvider}
-import com.pacbio.common.models.{CommonModelSpraySupport, LogLevel, LogMessageRecord, UserRecord}
+
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.{LogLevel, LogMessageRecord, UserRecord}
 import com.pacbio.common.models.CommonModels.{IntIdAble, UUIDIdAble}
-import com.pacbio.common.services.PacBioServiceErrors._
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.engine.EngineConfig
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, CoreJob}
-import com.pacbio.secondary.analysis.jobtypes.{PbSmrtPipeJobOptions, PbsmrtpipeJobUtils}
-import com.pacbio.secondary.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions, PbsmrtpipeJobUtils}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{PbsmrtpipeEngineOptions, _}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -47,7 +47,7 @@ class PbsmrtpipeServiceJobType(
     override val description = "Run a secondary analysis pbsmrtpipe job."
   } with JobTypeService[PbSmrtPipeServiceOptions](dbActor, authenticator) with LazyLogging {
 
-  import CommonModelSpraySupport._
+  import com.pacbio.common.models.CommonModelSpraySupport._
 
   logger.info(s"Pbsmrtpipe job type with Pbsmrtpipe engine options $pbsmrtpipeEngineOptions")
 

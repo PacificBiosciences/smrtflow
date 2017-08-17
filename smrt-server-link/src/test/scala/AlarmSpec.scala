@@ -2,18 +2,17 @@ import java.nio.file.Paths
 
 import akka.pattern._
 import akka.util.Timeout
-import com.pacbio.common.actors._
-import com.pacbio.common.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
-import com.pacbio.common.dependency.{DefaultConfigProvider, StringConfigProvider}
-import com.pacbio.common.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
-import com.pacbio.common.models._
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
+import com.pacbio.secondary.smrtlink.dependency.{DefaultConfigProvider, StringConfigProvider}
+import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
-import com.pacbio.secondary.smrtlink.actors.{AlarmDaoActorProvider, AlarmManagerRunnerProvider, AlarmRunnerLoaderProvider}
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunner
-import com.pacbio.secondary.smrtlink.services.AlarmServiceProvider
+import com.pacbio.secondary.smrtlink.services.{AlarmServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mock._
@@ -38,7 +37,7 @@ class AlarmSpec
 
   import Authenticator._
   import AlarmSeverity._
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
 
   val mockFileSystemUtil = mock[FileSystemUtil]
 
@@ -57,7 +56,7 @@ class AlarmSpec
       AlarmServiceProvider with
       JavaFileSystemUtilProvider {
 
-    import com.pacbio.common.dependency.Singleton
+    import com.pacbio.secondary.smrtlink.dependency.Singleton
 
     //override
     override val actorSystemName = Some("TestSystem")

@@ -4,7 +4,7 @@ import java.net.URL
 import javax.mail.internet.InternetAddress
 
 import courier._
-import com.pacbio.secondary.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
 import com.pacbio.secondary.smrtlink.mail.MailTemplates.{EmailJobFailedTemplate, EmailJobSuccessTemplate}
 import com.typesafe.scalalogging.LazyLogging
 

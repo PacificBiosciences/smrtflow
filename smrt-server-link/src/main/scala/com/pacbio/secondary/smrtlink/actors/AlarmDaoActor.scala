@@ -1,9 +1,8 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import akka.actor.{Actor, ActorRef, Props}
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.AlarmStatus
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.AlarmStatus
 import com.typesafe.scalalogging.LazyLogging
 
 import collection.mutable

@@ -4,7 +4,6 @@ import scala.concurrent.duration._
 
 import akka.util.Timeout
 
-import com.pacbio.common.services.PacBioService
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.typesafe.scalalogging.LazyLogging
 

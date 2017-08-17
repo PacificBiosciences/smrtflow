@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.actors
 import java.nio.file.{Files, Path}
 import scala.collection.mutable
 
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.secondary.smrtlink.PacBioDataBundleConstants
 import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, PacBioDataBundleIO, PacBioDataBundleUpgrade}
 

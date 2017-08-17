@@ -3,10 +3,9 @@ package com.pacbio.secondary.smrtlink.actors
 import java.nio.file.Path
 
 import akka.actor.{Actor, ActorRef, Props}
-import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.PacBioDataBundleIO
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.typesafe.scalalogging.LazyLogging
 
 // Central Interface for interacting/mutating the PacBioDataBundleDao

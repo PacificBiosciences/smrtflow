@@ -17,8 +17,8 @@ import scala.concurrent.duration._
 import collection.JavaConversions._
 import collection.JavaConverters._
 import com.pacbio.common.utils.TarGzUtils
-import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsSystemStatusManifest}
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BundleTypes, TsSystemStatusManifest}
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._

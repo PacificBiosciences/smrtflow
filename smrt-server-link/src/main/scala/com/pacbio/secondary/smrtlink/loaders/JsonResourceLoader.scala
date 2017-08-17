@@ -24,6 +24,7 @@ trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysis
   // Root Directory of the resources within the CLASSPATH
   // example, "resolved-pipeline-templates"
   val ROOT_DIR_PREFIX: String
+  val FILE_EXT = ".json"
 
   /**
    * Loads Resources for sbt model
@@ -35,7 +36,7 @@ trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysis
     logger.info(s"sbt Resources Loader. Resolved xs $xs")
     val files = IOUtils.readLines(xs, Charsets.UTF_8)
     logger.info(s"Files files ${files.length} $files")
-    val pts = files.map(x => loadItemFromResourceDir(s"$ROOT_DIR_PREFIX/$x"))
+    val pts = files.filter(_.endsWith(FILE_EXT)).map(x => loadItemFromResourceDir(s"$ROOT_DIR_PREFIX/$x"))
     logger.info(s"Resource Loader (for sbt) loaded ${pts.length} pipelines")
     pts
   }
@@ -47,7 +48,7 @@ trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysis
    */
   def loadResourceFromJar: Seq[String] = {
     val px = Pattern.compile(".*")
-    val rs = ResourceList.getResources(px).filter(x => x.startsWith(ROOT_DIR_PREFIX) && x.endsWith(".json")).toList
+    val rs = ResourceList.getResources(px).filter(x => x.startsWith(ROOT_DIR_PREFIX) && x.endsWith(FILE_EXT)).toList
     logger.info(s"Resources from jar found ${rs.length} from $ROOT_DIR_PREFIX $px")
     rs
   }

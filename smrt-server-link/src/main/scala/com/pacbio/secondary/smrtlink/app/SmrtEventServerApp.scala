@@ -28,21 +28,22 @@ import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
 import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
-import com.pacbio.common.app.StartupFailedException
-import com.pacbio.common.file.FileSizeFormatterUtil
-import com.pacbio.common.models.{Constants, PacBioComponentManifest}
-import com.pacbio.common.services.utils.StatusGenerator
-import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
-import com.pacbio.common.time.SystemClock
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
+import com.pacbio.common.models.Constants
+import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
+import com.pacbio.secondary.smrtlink.services.{PacBioService, RoutedHttpService}
+import com.pacbio.secondary.smrtlink.time.SystemClock
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtils}
+import com.pacbio.secondary.smrtlink.models.{EventTypes, PacBioComponentManifest, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.services.StatusService
+import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
+import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
-import com.pacbio.secondary.analysis.tools.timeUtils
 
 import scala.util.control.NonFatal
 

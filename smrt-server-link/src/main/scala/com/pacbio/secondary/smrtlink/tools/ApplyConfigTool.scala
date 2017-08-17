@@ -2,12 +2,11 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{StandardCopyOption, Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
-import com.pacbio.secondary.smrtlink.models.ConfigModels.{Wso2Credentials, RootSmrtflowConfig}
-import com.pacbio.common.models.XmlTemplateReader
+import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{RootSmrtflowConfig, Wso2Credentials}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
@@ -15,7 +14,7 @@ import scopt.OptionParser
 import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
+import com.pacbio.secondary.smrtlink.models.{ConfigModelsJsonProtocol, XmlTemplateReader}
 
 
 case class ApplyConfigToolOptions(rootDir: Path, templateDir: Option[Path] = None) extends LoggerConfig

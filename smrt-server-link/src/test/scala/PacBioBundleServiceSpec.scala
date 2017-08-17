@@ -1,5 +1,4 @@
-import com.pacbio.common.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest

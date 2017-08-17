@@ -10,12 +10,12 @@ import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
 
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
 import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._

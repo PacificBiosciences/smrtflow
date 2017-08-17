@@ -1,13 +1,11 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.PacBioServiceErrors.{ConflictError, ResourceNotFoundError}
-import com.pacbio.common.services.utils.FutureSecurityDirectives
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ConflictError, ResourceNotFoundError}
+import com.pacbio.secondary.smrtlink.services.utils.FutureSecurityDirectives
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDaoProvider, JobsDao}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._
 import spray.json._

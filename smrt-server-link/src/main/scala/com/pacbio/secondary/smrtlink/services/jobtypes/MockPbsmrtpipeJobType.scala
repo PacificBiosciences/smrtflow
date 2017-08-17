@@ -4,12 +4,11 @@ import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.ActorRef
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.UserRecord
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{BoundEntryPoint, JobTypeIds, ServiceTaskOptionBase}
-import com.pacbio.secondary.analysis.jobtypes.MockPbSmrtPipeJobOptions
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BoundEntryPoint, JobTypeIds, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider

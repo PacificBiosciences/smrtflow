@@ -1,17 +1,14 @@
 import akka.actor.ActorRefFactory
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.auth.Authenticator._
-import com.pacbio.common.auth.{AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
-import com.pacbio.common.dependency.{SetBindings, Singleton}
-import com.pacbio.common.models.UserRecord
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.auth.Authenticator._
+import com.pacbio.secondary.smrtlink.auth.{AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
+import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider}
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification

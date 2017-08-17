@@ -4,17 +4,17 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacbio.secondary.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.analysis.engine.{CommonMessages, EngineConfig}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.engine.{CommonMessages, EngineConfig}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
@@ -34,7 +34,7 @@ import java.sql.SQLException
 
 import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
@@ -377,9 +377,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       case Some(job) => {
         logger.info(s"dequeueing job ${job.job.uuid}")
         _runnableJobs.remove(job.job.uuid)
-        Future(Right(job))
+        Future.successful(Right(job))
       }
-      case None => Future(Left(noWork))
+      case None => Future.successful(Left(noWork))
     }
   }
 
@@ -679,7 +679,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case x =>
         val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
         logger.warn(msg)
-        Future(MessageResponse(msg))
+        Future.successful(MessageResponse(msg))
     }
   }
 
@@ -697,7 +697,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
 
     if (ds.isChunked) {
-      Future(MessageResponse(s"Skipping inserting of Chunked DataStoreFile $ds"))
+      Future.successful(MessageResponse(s"Skipping inserting of Chunked DataStoreFile $ds"))
     } else {
 
       /**
@@ -707,7 +707,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
         val addDataStoreServiceFile = existing match {
           case Some(_) =>
-            DBIO.from(Future(s"Already imported. Skipping inserting of datastore file $ds"))
+            DBIO.from(Future.successful(s"Already imported. Skipping inserting of datastore file $ds"))
           case None =>
             logger.info(s"importing datastore file into db $ds")
             val dss = DataStoreServiceFile(ds.uniqueId, ds.fileTypeId, ds.sourceId, ds.fileSize, createdAt, modifiedAt, importedAt, ds.path, engineJob.id, engineJob.uuid, ds.name, ds.description)
@@ -731,9 +731,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case None =>
             existing match {
               case Some(_) =>
-                DBIO.from(Future(MessageResponse(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}.")))
+                DBIO.from(Future.successful(MessageResponse(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}.")))
               case None =>
-                DBIO.from(Future(MessageResponse(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
+                DBIO.from(Future.successful(MessageResponse(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
             }
         }
         // 3 of 3: run the appropriate actions in a transaction
@@ -862,7 +862,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case Some(_) =>
         val msg = s"$dsTypeStr ${ds.uuid} already imported. Skipping importing of $ds"
         logger.debug(msg)
-        Future(MessageResponse(msg))
+        Future.successful(MessageResponse(msg))
       case None => db.run {
         insertMetaData(ds).flatMap {
           id => insertFxn(id)
@@ -1313,14 +1313,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       // 1 of 3: delete the DataStoreServiceFile, if it isn't already in the DB
       val deleteDsFile = ds
           .map(dsFile => DBIO.from(deleteDataStoreFile(id)))
-          .getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file with ID $id found"))))
+          .getOrElse(DBIO.from(Future.successful(MessageResponse(s"No datastore file with ID $id found"))))
 
       // 2 of 3: insert of the data set, if it is a known/supported file type
       val optionalDelete = ds.map { dsFile =>
           DataSetMetaTypes.toDataSetType(dsFile.fileTypeId)
               .map(_ => DBIO.from(deleteDataSetById(dsFile.uuid)))
-              .getOrElse(DBIO.from(Future(MessageResponse(s"File type ${dsFile.fileTypeId} is not a dataset, so no metadata to delete."))))
-        }.getOrElse(DBIO.from(Future(MessageResponse(s"No datastore file, so no dataset metadata to delete"))))
+              .getOrElse(DBIO.from(Future.successful(MessageResponse(s"File type ${dsFile.fileTypeId} is not a dataset, so no metadata to delete."))))
+        }.getOrElse(DBIO.from(Future.successful(MessageResponse(s"No datastore file, so no dataset metadata to delete"))))
 
       // 3 of 3: run the appropriate actions in a transaction
       val fin = for {

@@ -20,12 +20,12 @@ import spray.httpx.UnsuccessfulResponseException
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.datasets.MockDataSetUtils
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{CallSaWriterIndex, PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}

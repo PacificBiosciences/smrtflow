@@ -4,13 +4,13 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
-import com.pacbio.common.auth.{Authenticator, AuthenticatorProvider}
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.{CommonModelImplicits, Constants, UserRecord}
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.secondary.analysis.jobs.CoreJob
-import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, EngineJob, JobTypeIds, TsJobManifest}
-import com.pacbio.secondary.analysis.jobtypes.{TsJobBundleJob, TsJobBundleJobOptions}
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.common.models.{CommonModelImplicits, Constants}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BundleTypes, EngineJob, JobTypeIds, TsJobManifest}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{TsJobBundleJob, TsJobBundleJobOptions}
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -22,6 +22,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import spray.json._
 import spray.httpx.SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.UserRecord
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import org.joda.time.{DateTime => JodaDateTime}
 

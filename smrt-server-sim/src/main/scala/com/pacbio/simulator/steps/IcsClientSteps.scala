@@ -1,29 +1,20 @@
 package com.pacbio.simulator.steps
 
 
-import java.util.UUID
-
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels
-import com.pacbio.common.tools.GetSmrtServerStatus
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
-import com.pacbio.common.models._
 import com.pacbio.simulator.clients.{ICSState, InstrumentControlClient}
-import com.pacificbiosciences.pacbiodatasets._
-import java.net.URL
 
-import scala.concurrent.Future
 import com.pacbio.simulator.ICSModel.{ICSRun, RunObj}
 import com.pacbio.simulator.ICSJsonProtocol._
-import spray.json.JsValue
+import com.pacbio.simulator.clients.ICSState
+import ICSState._
 
+import spray.json._
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import com.pacbio.simulator.clients.ICSState
-import ICSState._
 
 /**
   * Created by amaster on 2/10/17.

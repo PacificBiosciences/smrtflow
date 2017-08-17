@@ -7,7 +7,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import slick.driver.PostgresDriver.api._
 
 // This is a potential problem
-import com.pacbio.common.time.PacBioDateTimeDatabaseFormat
+import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat
 // This is a problem
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 

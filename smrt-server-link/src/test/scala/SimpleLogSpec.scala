@@ -1,18 +1,14 @@
 import scala.concurrent.duration._
-
 import spray.http.StatusCodes
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.testkit.Specs2RouteTest
-
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.common.models.LogLevel
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.models.LogLevel
 import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, SmrtLinkJsonProtocols}
-import com.pacbio.secondary.smrtlink.services.SimpleLogServiceProvider
+import com.pacbio.secondary.smrtlink.services.{ServiceComposer, SimpleLogServiceProvider}
 
 class SimpleLogSpec extends Specification
   with NoTimeConversions

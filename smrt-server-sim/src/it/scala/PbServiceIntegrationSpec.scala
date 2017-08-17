@@ -1,7 +1,7 @@
 import java.nio.file.{Files, Path, Paths}
 
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 

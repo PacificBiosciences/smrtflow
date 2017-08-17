@@ -9,15 +9,14 @@ import spray.json._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.pacbio.secondary.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.jobs.JobModels._
-import com.pacbio.secondary.analysis.reports.ReportModels._
-import com.pacbio.common.client._
-import com.pacbio.common.models.{Constants, ServiceStatus}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
+import com.pacbio.common.models.Constants
 import com.pacbio.common.semver.SemVersion
-import com.pacbio.secondary.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 
 
 trait ClientUtils extends timeUtils with DataSetFileUtils {

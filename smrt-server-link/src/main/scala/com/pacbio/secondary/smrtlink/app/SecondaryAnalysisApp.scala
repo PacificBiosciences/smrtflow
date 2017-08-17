@@ -1,9 +1,8 @@
 package com.pacbio.secondary.smrtlink.app
 
-import com.pacbio.common.app.BaseServer
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.logging.{LogResources, LoggerFactoryProvider}
-import com.pacbio.common.models.LogResourceRecord
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.logging.{LogResources, LoggerFactoryProvider}
+import com.pacbio.secondary.smrtlink.models.LogResourceRecord
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.services.jobtypes._
@@ -31,9 +30,6 @@ trait SecondaryAnalysisProviders
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
   override val actorSystemName = Some("smrtlink-analysis-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
-
-  Singleton(LogResourceRecord("pbsmrtpipe Analysis Jobs", "pbsmrtpipe", "pbsmrtpipe jobs")).bindToSet(LogResources)
-  Singleton(LogResourceRecord("SMRT Link UI", "smrtlink", "SMRTLink UI")).bindToSet(LogResources)
 }
 
 trait SecondaryApi extends SmrtLinkApi with LazyLogging {
