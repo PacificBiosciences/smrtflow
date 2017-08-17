@@ -119,4 +119,13 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   // host via https
   val smrtLinkUiPort: Singleton[Int] = Singleton(() => 8243)
 
+  val mailHost: Singleton[Option[String]] =
+    Singleton(() => Try{ conf.getString("pacBioSystem.mailHost") }.toOption)
+  val mailPort: Singleton[Int] =
+    Singleton(() => Try{ conf.getInt("pacBioSystem.mailPort") }.toOption.getOrElse(25))
+  val mailUser: Singleton[Option[String]] =
+    Singleton(() => Try{ conf.getString("pacBioSystem.mailUser") }.toOption)
+  val mailPassword: Singleton[Option[String]] =
+    Singleton(() => Try{ conf.getString("pacBioSystem.mailPassword") }.toOption)
+
 }
