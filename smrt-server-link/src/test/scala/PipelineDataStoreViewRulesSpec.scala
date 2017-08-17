@@ -18,11 +18,15 @@ class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJson
 
   val RESOURCE_DIR = "pipeline-datastore-view-rules"
 
-  def getTestResource(name: String): Path = Paths.get(getClass.getResource(s"$RESOURCE_DIR/$name").toURI)
+  def getTestResource(name: String): Path = {
+    val xs = s"$RESOURCE_DIR/$name"
+    // println(s"Attempting to load/get $xs")
+    Paths.get(getClass.getResource(s"$RESOURCE_DIR/$name").toURI)
+  }
 
   "Test loading PipelineDataStoreViewRules" should {
     "Sanity test for loading Test file" in {
-      val name = "pipeline_datastore_view_rules-dev-01.json"
+      val name = "pipeline_datastore_view_rules-dev_01.json"
       val p = getTestResource(name)
       val x = Source.fromFile(p.toFile).mkString
       // println(x)
@@ -91,7 +95,7 @@ class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJson
       dao.getById("dev_01", Some("3.0")) must beNone
       val dao2 = new PipelineDataStoreViewRulesDao(Seq.empty[PipelineDataStoreViewRules])
       dao2.getById("dev_01") must beNone
-      dao2.getResources must be empty
+      dao2.getResources.isEmpty must beTrue
     }
   }
 
