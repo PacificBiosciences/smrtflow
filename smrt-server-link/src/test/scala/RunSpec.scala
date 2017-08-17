@@ -69,39 +69,45 @@ class RunSpec
   val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
   val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
-  val FAKE_RUN_DATA_MODEL = XmlTemplateReader
-    .fromStream(getClass.getResourceAsStream("/fake_run_data_model.xml"))
-    .globally().substituteAll(
-      "{RUN_ID}"                 -> (() => RUN_ID),
-      "{RUN_NAME}"               -> (() => RUN_NAME),
-      "{RUN_SUMMARY}"            -> (() => RUN_SUMMARY),
-      "{CREATED_AT}"             -> (() => CREATED_AT),
-      "{CREATED_BY}"             -> (() => CREATED_BY),
+  private def getRunDataModelFromTemplate(resourcePath: String,
+                                          runId: UUID = RUN_ID) = {
+    XmlTemplateReader
+      .fromStream(getClass.getResourceAsStream(resourcePath))
+      .globally().substituteAll(
+        "{RUN_ID}"                 -> (() => runId),
+        "{RUN_NAME}"               -> (() => RUN_NAME),
+        "{RUN_SUMMARY}"            -> (() => RUN_SUMMARY),
+        "{CREATED_AT}"             -> (() => CREATED_AT),
+        "{CREATED_BY}"             -> (() => CREATED_BY),
 
-      "{SUBREAD_ID_1}"           -> (() => SUBREAD_ID_1),
-      "{NAME_1}"                 -> (() => NAME_1),
-      "{SUMMARY_1}"              -> (() => SUMMARY_1),
-      "{WELL_NAME_1}"            -> (() => WELL_NAME_1),
-      "{EXTERNAL_RESOURCE_ID_1}" -> (() => EXTERNAL_RESOURCE_ID_1),
-      "{CONTEXT_ID_1}"           -> (() => CONTEXT_ID_1),
-      "{STATUS_1}"               -> (() => STATUS_1.value()),
-      "{INSTRUMENT_ID_1}"        -> (() => INSTRUMENT_ID_1),
-      "{MOVIE_MINUTES_1}"        -> (() => MOVIE_MINUTES_1),
-      "{STARTED_AT_1}"           -> (() => STARTED_AT_1),
-      "{PATH_URI_1}"             -> (() => PATH_URI_1),
+        "{SUBREAD_ID_1}"           -> (() => SUBREAD_ID_1),
+        "{NAME_1}"                 -> (() => NAME_1),
+        "{SUMMARY_1}"              -> (() => SUMMARY_1),
+        "{WELL_NAME_1}"            -> (() => WELL_NAME_1),
+        "{EXTERNAL_RESOURCE_ID_1}" -> (() => EXTERNAL_RESOURCE_ID_1),
+        "{CONTEXT_ID_1}"           -> (() => CONTEXT_ID_1),
+        "{STATUS_1}"               -> (() => STATUS_1.value()),
+        "{INSTRUMENT_ID_1}"        -> (() => INSTRUMENT_ID_1),
+        "{MOVIE_MINUTES_1}"        -> (() => MOVIE_MINUTES_1),
+        "{STARTED_AT_1}"           -> (() => STARTED_AT_1),
+        "{PATH_URI_1}"             -> (() => PATH_URI_1),
 
-      "{SUBREAD_ID_2}"           -> (() => SUBREAD_ID_2),
-      "{NAME_2}"                 -> (() => NAME_2),
-      "{WELL_NAME_2}"            -> (() => WELL_NAME_2),
-      "{EXTERNAL_RESOURCE_ID_2}" -> (() => EXTERNAL_RESOURCE_ID_2),
-      "{STATUS_2}"               -> (() => STATUS_2.value()),
-      "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2),
+        "{SUBREAD_ID_2}"           -> (() => SUBREAD_ID_2),
+        "{NAME_2}"                 -> (() => NAME_2),
+        "{WELL_NAME_2}"            -> (() => WELL_NAME_2),
+        "{EXTERNAL_RESOURCE_ID_2}" -> (() => EXTERNAL_RESOURCE_ID_2),
+        "{STATUS_2}"               -> (() => STATUS_2.value()),
+        "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2),
 
-      "{ACQ_1_STARTED_AT}"       -> (() => ACQ_1_STARTED_AT),
-      "{ACQ_1_COMPLETED_AT}"     -> (() => ACQ_1_COMPLETED_AT),
-      "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
-      "{RUN_COMPLETED_AT}"       -> (() => RUN_COMPLETED_AT)
-    ).result().mkString
+        "{ACQ_1_STARTED_AT}"       -> (() => ACQ_1_STARTED_AT),
+        "{ACQ_1_COMPLETED_AT}"     -> (() => ACQ_1_COMPLETED_AT),
+        "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
+        "{RUN_COMPLETED_AT}"       -> (() => RUN_COMPLETED_AT)
+      ).result().mkString
+  }
+
+  val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
+    "/run-data-models/fake_run_data_model.xml")
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
@@ -132,6 +138,27 @@ class RunSpec
   trait daoSetup extends Scope {
     TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()
     Await.ready(TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)), 10.seconds)
+  }
+
+  "Data model parser" should {
+    "Parse XML string" in {
+      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
+      val run = results.run
+      run.uniqueId === RUN_ID
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === None
+      run.summary === Some(RUN_SUMMARY)
+    }
+    "Parse XML including chemistry" in {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml", newId)
+      val results = DataModelParserImpl(dataModel)
+      val run = results.run
+      run.uniqueId === newId
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+    }
   }
 
   "Run Service" should {
@@ -208,6 +235,7 @@ class RunSpec
         run.numCellsFailed === 0
         run.completedAt === Some(RUN_COMPLETED_AT)
         run.transfersCompletedAt === Some(RUN_TRANS_COMPLETED_AT)
+        run.chemistrySwVersion === None
       }
     }
 
@@ -292,6 +320,30 @@ class RunSpec
         run.createdBy === Some(newCreator)
         run.reserved === false
         run.dataModel === newModel
+      }
+    }
+
+    "create a run where chemistry version is defined" in new daoSetup {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml", newId)
+      val create = RunCreate(dataModel)
+      Post("/smrt-link/runs", create) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val run = responseAs[RunSummary]
+        run.uniqueId === newId
+        run.createdBy === Some(CREATED_BY)
+        run.reserved === false
+        run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+      }
+
+      Get(s"/smrt-link/runs/$newId") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val run = responseAs[Run]
+        run.uniqueId === newId
+        run.createdBy === Some(CREATED_BY)
+        run.reserved === false
+        run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
       }
     }
 
