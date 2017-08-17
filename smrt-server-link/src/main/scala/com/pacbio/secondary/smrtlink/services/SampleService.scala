@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{SampleServiceActor, SampleServiceActorRefProvider}
 import com.pacbio.secondary.smrtlink.models._
 import spray.httpx.SprayJsonSupport._

@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.actor.ActorRef
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.{ImportDataStoreFileByJobId, MessageResponse}
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.{ImportDataStoreFileByJobId, MessageResponse}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.typesafe.scalalogging.LazyLogging

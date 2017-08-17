@@ -5,10 +5,10 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 

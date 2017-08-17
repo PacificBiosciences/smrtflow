@@ -9,9 +9,8 @@ import akka.pattern._
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.logging.{LoggerFactory, LoggerFactoryProvider}
-import com.pacbio.common.models.CommonModels.{UUIDIdAble, IntIdAble}
+import com.pacbio.common.models.CommonModels.{IntIdAble, UUIDIdAble}
 import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
@@ -21,7 +20,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, _}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.http._

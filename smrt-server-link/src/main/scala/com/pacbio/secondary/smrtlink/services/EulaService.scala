@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._

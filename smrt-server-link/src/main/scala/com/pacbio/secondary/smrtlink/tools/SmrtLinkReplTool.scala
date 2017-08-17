@@ -30,7 +30,7 @@ trait SmrtLinkReplTool {
                  |import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer => S}
                  |import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetIOLoader._
                  |import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader._
-                 |import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+                 |import com.pacbio.secondary.smrtlink.models.EngineConfig
                  |import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
                  |import com.pacbio.secondary.smrtlink.actors.JobsDao
                  |import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader

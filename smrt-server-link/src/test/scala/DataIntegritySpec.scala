@@ -1,16 +1,14 @@
-import java.nio.file.{Paths,Files}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDataTime}
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, TestDalProvider}
 import com.pacbio.secondary.smrtlink.dataintegrity.{DataSetIntegrityRunner, JobStateIntegrityRunner}
-import com.pacbio.secondary.smrtlink.models.SubreadServiceDataSet
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, SubreadServiceDataSet}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.common.models.CommonModelImplicits._
-
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions

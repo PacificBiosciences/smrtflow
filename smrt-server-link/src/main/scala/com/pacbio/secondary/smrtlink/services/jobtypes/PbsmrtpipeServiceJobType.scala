@@ -6,14 +6,12 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern._
-
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.models.{LogLevel, LogMessageRecord, UserRecord}
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, LogLevel, LogMessageRecord, UserRecord, _}
 import com.pacbio.common.models.CommonModels.{IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions, PbsmrtpipeJobUtils}
@@ -22,7 +20,6 @@ import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
-import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.http._

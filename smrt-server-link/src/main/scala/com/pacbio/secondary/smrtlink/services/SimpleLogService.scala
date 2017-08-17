@@ -6,7 +6,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, SmrtLinkJsonProtocols, LogLevel}
 
 

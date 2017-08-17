@@ -22,7 +22,7 @@ import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._

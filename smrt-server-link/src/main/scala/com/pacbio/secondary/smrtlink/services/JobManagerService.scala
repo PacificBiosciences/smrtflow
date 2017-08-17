@@ -7,12 +7,11 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.dependency.{SetBinding, SetBindings, Singleton}
 import com.pacbio.secondary.smrtlink.services.utils.{StatusGenerator, StatusGeneratorProvider}
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.actors.{ActorSystemProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, _}
 import com.pacbio.secondary.smrtlink.services.jobtypes._
 import spray.httpx.SprayJsonSupport._
 import spray.http.HttpHeaders

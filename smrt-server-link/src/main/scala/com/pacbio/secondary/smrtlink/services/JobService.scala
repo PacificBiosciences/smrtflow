@@ -14,7 +14,7 @@ import com.pacbio.common.models.CommonModels._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.{MessageResponse, ImportDataStoreFileByJobId}
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.{MessageResponse, ImportDataStoreFileByJobId}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._

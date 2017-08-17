@@ -1,21 +1,16 @@
-package com.pacbio.secondary.smrtlink.analysis.engine.actors
+package com.pacbio.secondary.smrtlink.actors
 
 import java.io.FileWriter
-import java.net.InetAddress
-import java.nio.file.{Files, Paths}
 
-import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.pattern.ask
+import com.pacbio.common.models.CommonModelImplicits
+import CommonMessages._
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
-import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages
-import CommonMessages._
-import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.smrtlink.analysis.jobs._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 
 
 object EngineWorkerActor {

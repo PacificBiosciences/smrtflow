@@ -1,11 +1,11 @@
-package com.pacbio.secondary.smrtlink.analysis.engine
+package com.pacbio.secondary.smrtlink.actors
 
 import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, JobResult}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, ImportAble, JobResult, RunnableJob}
 
 object CommonMessages {
 

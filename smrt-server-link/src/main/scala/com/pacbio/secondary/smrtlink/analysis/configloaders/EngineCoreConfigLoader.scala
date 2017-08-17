@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.analysis.configloaders
 
 import java.nio.file.{Files, Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
+import com.pacbio.secondary.smrtlink.models.EngineConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 

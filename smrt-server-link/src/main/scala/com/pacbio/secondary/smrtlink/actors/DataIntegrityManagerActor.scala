@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dataintegrity.{BaseDataIntegrity, DataSetIntegrityRunner, JobStateIntegrityRunner}

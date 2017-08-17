@@ -1,10 +1,6 @@
-package com.pacbio.secondary.smrtlink.analysis.engine
+package com.pacbio.secondary.smrtlink.models
 
-import java.nio.file.{Path, Files, Paths}
-
-import com.typesafe.config.{Config, ConfigFactory}
-
-import scala.util.Try
+import java.nio.file.Path
 
 /**
  *
@@ -24,4 +20,3 @@ case class EngineConfig(
     pbToolsEnv: Option[Path],
     pbRootJobDir: Path,
     debugMode: Boolean)
-

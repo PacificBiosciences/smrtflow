@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
 import com.pacbio.secondary.smrtlink.models._

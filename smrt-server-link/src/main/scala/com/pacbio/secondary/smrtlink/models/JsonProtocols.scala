@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.models
 
 import com.pacbio.common.models._
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import fommil.sjs.FamilyFormats
 import org.joda.time.{DateTime => JodaDateTime}

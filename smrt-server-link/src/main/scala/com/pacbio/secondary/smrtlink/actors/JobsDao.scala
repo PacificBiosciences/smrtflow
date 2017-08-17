@@ -11,14 +11,13 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.engine.{CommonMessages, EngineConfig}
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
-import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, _}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 

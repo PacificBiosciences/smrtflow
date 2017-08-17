@@ -17,7 +17,7 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions

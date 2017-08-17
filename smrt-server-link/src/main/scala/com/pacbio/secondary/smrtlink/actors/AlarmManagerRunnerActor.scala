@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.file.FileSystemUtilProvider
 import com.pacbio.secondary.smrtlink.models.{AlarmSeverity, AlarmStatus}
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmDaoActor.UpdateAlarmStatus
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.{RunAlarmById, RunAlarms}
 import com.pacbio.secondary.smrtlink.alarms.{AlarmRunner, _}

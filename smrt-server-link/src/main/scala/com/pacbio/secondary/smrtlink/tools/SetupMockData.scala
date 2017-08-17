@@ -9,7 +9,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.EngineCoreConfigLoad
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResolver}
