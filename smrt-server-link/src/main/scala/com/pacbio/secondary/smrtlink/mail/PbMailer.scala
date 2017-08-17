@@ -5,6 +5,7 @@ import javax.mail.internet.InternetAddress
 
 import scala.util.control.NonFatal
 import scala.concurrent.Future
+import scala.util.{Try,Success,Failure}
 
 import courier._
 import com.typesafe.scalalogging.LazyLogging
@@ -66,10 +67,10 @@ trait PbMailer extends LazyLogging{
                 mailHost: Option[String] = None,
                 mailPort: Int = 25,
                 mailUser: Option[String] = None,
-                mailPassword: Option[String] = None): Unit = {
+                mailPassword: Option[String] = None): Future[String] = {
     mailHost.map { host =>
-      Tuple2(job.createdByEmail, job.jobTypeId) match {
-        case Tuple2(Some(email), JobTypeIds.PBSMRTPIPE.id) if job.isComplete =>
+      Tuple3(job.createdByEmail, job.jobTypeId, job.isComplete) match {
+        case Tuple3(Some(email), JobTypeIds.PBSMRTPIPE.id, true) =>
           // Note, because of the js "#" the URL or URI resolving doesn't work as expected.
           val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
           val toAddress = new InternetAddress(email)
@@ -77,13 +78,12 @@ trait PbMailer extends LazyLogging{
           val emailInput = SmrtLinkEmailInput(toAddress, job.id, job.name, job.state, job.createdAt, job.updatedAt, jobIdUrl, job.smrtlinkVersion)
           val result = if (job.isSuccessful) EmailJobSuccessTemplate(emailInput) else EmailJobFailedTemplate(emailInput)
           logger.info(s"Attempting to send email with input $emailInput")
-          sender(result, toAddress, DEFAULT_FROM, host, mailPort, mailUser, mailPassword)
+          sender(result, toAddress, toAddress, host, mailPort, mailUser, mailPassword).flatMap(_ => Future.successful(s"Successfully sent email to $email"))
         case _ =>
           val msg = s"Unable to send email. BaseUrl:$jobsBaseUrl Address:${job.createdByEmail} JobType:${job.jobTypeId} JobId: ${job.id} state: ${job.state}"
           logger.debug(msg)
+          Future.failed(new RuntimeException(msg))
       }
-    }.getOrElse {
-      logger.debug("mailHost not configured")
-    }
+    }.getOrElse(Future.failed(new RuntimeException("Mail host not set")))
   }
 }
