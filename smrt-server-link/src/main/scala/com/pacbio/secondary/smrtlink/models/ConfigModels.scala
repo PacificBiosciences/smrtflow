@@ -24,7 +24,7 @@ object ConfigModels {
                                         remoteBundleUrl: Option[URL] = None,
                                         smrtLinkSystemRoot: Option[Path] = None,
                                         smrtLinkSystemId: Option[UUID] = None, // This needs to be made required after DEP changes
-                                        mailPort: Int = 25,
+                                        mailPort: Option[Int] = Some(25),
                                         mailHost: Option[String] = None,
                                         mailUser: Option[String] = None,
                                         mailPassword: Option[String] = None)
