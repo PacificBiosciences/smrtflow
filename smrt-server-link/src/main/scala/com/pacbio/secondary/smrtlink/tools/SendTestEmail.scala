@@ -9,11 +9,12 @@ import java.net.URL
 
 import scala.util.{Try, Success,Failure}
 import scala.concurrent.duration._
-import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.language.postfixOps
 
-import scopt.OptionParser
+import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
+import scopt.OptionParser
 import spray.json._
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
@@ -33,13 +34,11 @@ case class SendTestEmailOptions(email: String,
                                 password: Option[String]) extends LoggerConfig
 
 object SendTestEmail extends PbMailer {
-  def apply(c: SendTestEmailOptions): Try[String] = {
+  def apply(c: SendTestEmailOptions): Future[String] = {
     val startedAt = JodaDateTime.now()
     val job = JobModels.EngineJob(1, UUID.randomUUID(), "fake test job", "Hello world!", startedAt, startedAt, AnalysisJobStates.SUCCESSFUL, "pbsmrtpipe", "/", "", Some("nobody"), Some(c.email), None)
     val jobsBaseUrl = new URL("http://localhost:8243/sl/#/analysis/job")
-    Try {
-      Await.result(sendEmail(job, jobsBaseUrl, c.host, c.port, c.user, c.password), 30.seconds)
-    }
+    sendEmail(job, jobsBaseUrl, c.host, c.port, c.user, c.password)
   }
 }
 
@@ -61,8 +60,7 @@ object SendTestEmailTool
   val defaults = SendTestEmailOptions(null, mailHost(), mailPort(), mailUser(), mailPassword())
 
   def loadConfig(file: File): RootSmrtflowConfig = {
-    scala.io.Source.fromFile(file)
-        .mkString
+    FileUtils.readFileToString(file, "UTF-8")
         .parseJson
         .convertTo[RootSmrtflowConfig]
   }
@@ -96,25 +94,16 @@ object SendTestEmailTool
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def run(c: SendTestEmailOptions): Either[ToolFailure, ToolSuccess] = {
-    val startedAt = JodaDateTime.now()
-    val status = SendTestEmail(c)
-    val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
-    status match {
-      case Success(msg) =>
-        println(msg)
-        logger.info(msg)
-        Right(ToolSuccess(toolId, runTime))
-      case Failure(ex) =>
-        println(ex.getMessage)
-        logger.error(ex.getMessage)
-        Left(ToolFailure(toolId, runTime, ex.getMessage))
-    }
+  override def runTool(c: SendTestEmailOptions): Try[String] = {
+    runAndBlock(SendTestEmail(c), 30.seconds)
   }
+
+  def run(c: SendTestEmailOptions): Either[ToolFailure, ToolSuccess] =
+    Left(ToolFailure(toolId, 0, "NOT Supported"))
 }
 
 
 object SendTestEmailApp extends App {
   import SendTestEmailTool._
-  runner(args)
+  runnerWithArgsAndExit(args)
 }
