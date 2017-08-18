@@ -51,7 +51,7 @@ echo "smrtflow revision: $SMRTFLOW_SHA ; UI revision: $UI_SHA"
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
 SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
 
-WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0.zip
+WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0-stock-plus-postgres.zip
 TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
 
 
