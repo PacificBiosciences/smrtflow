@@ -17,6 +17,5 @@ export JAVA_OPTS="-Dconfig.file=${config}"
 
 "${rootBundleDir}/tools/bin/send-test-email" \
     --log-file "${logStartFile}" \
-    --config-json "${config}" \
     "$@"
 exit $?
