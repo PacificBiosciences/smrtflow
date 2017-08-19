@@ -205,7 +205,7 @@
             "default": null
           },
           {
-            "doc": "DNS name of SMTP server for sending email notifications",
+            "doc": "DNS name of SMTP server for sending email notifications; if no mail host is defined, all email features will be disabled",
             "name": "mailHost",
             "type": ["string", "null"],
             "default": null
