@@ -31,7 +31,11 @@
     "tmpDir": "/tmp",
     "logDir": "./resources/logs",
     "pgDataDir": "./resources/pg-data",
-    "smrtLinkSystemRoot": "./resources/smrtlink-root"
+    "smrtLinkSystemRoot": "./resources/smrtlink-root",
+    "mailPort": 25,
+    "mailHost": null,
+    "mailUser": null,
+    "mailPassword": null
   },
   "comment": "SL System Default config example for Schema Version 2.0"
 }

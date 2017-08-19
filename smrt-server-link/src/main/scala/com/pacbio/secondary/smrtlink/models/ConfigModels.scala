@@ -23,8 +23,11 @@ object ConfigModels {
                                         smrtLinkServerMemoryMax: Int = 4096,
                                         remoteBundleUrl: Option[URL] = None,
                                         smrtLinkSystemRoot: Option[Path] = None,
-                                        smrtLinkSystemId: Option[UUID] = None // This needs to be made required after DEP changes
-                                       )
+                                        smrtLinkSystemId: Option[UUID] = None, // This needs to be made required after DEP changes
+                                        mailPort: Option[Int] = Some(25),
+                                        mailHost: Option[String] = None,
+                                        mailUser: Option[String] = None,
+                                        mailPassword: Option[String] = None)
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,
                                   user: String,
