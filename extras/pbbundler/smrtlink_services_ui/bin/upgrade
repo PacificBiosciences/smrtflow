@@ -36,6 +36,7 @@ export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 
 # Install from a fresh install (create users/db/tables if necessary)
+${rootBundleDir}/bin/dbctrl init -c ${config} --log-file=${logFile} --log-level=DEBUG
 ${rootBundleDir}/bin/dbctrl start -c ${config} --log-file=${logFile} --log-level=DEBUG
 ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-dir=${newWso2} --wso2-init=${wso2Templates}/wso2-init.sql
 
