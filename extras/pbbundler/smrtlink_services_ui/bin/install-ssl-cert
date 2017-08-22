@@ -76,7 +76,7 @@ find . -type f -print0 | xargs -0 sed -i "s/wso2carbon.jks/${JKS_FILE}/;"
 
 # replace 'localhost' or the local IP with the FQDN in all config files,
 # *except* where we point WSO2 to postgres
-find . -type f -print0 | grep -v "master-datasources.xml" | xargs -0 sed -i "s/localhost/$FQDN/g;"
+find . -type f | grep -v "master-datasources.xml" | xargs sed -i "s/localhost/$FQDN/g;"
 sed -i "s/\${carbon.local.ip}/$FQDN/g" api-manager.xml
 sed -i "s#<\!--HostName>www.wso2.org</HostName-->#<HostName>$FQDN</HostName>#;" carbon.xml
 
