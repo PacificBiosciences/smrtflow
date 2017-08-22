@@ -51,7 +51,7 @@ object SendTestEmailTool
   import ConfigModelsJsonProtocol._
 
   override val VERSION = "0.1.0"
-  override val toolId: String = "tech_support_uploader"
+  override val toolId: String = "send_test_email"
   override val DESCRIPTION =
     """
       |Tool to test sending notification emails upon job completion.
