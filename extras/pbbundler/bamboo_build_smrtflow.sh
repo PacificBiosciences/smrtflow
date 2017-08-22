@@ -10,6 +10,8 @@ SMRTFLOW_ROOT_DIR=$(readlink -f "${__dir}/../..")
 
 PB_TEST_DATA_FILES=$(readlink -f repos/PacBioTestData/data/files.json)
 export PB_TEST_DATA_FILES="${PB_TEST_DATA_FILES}"
+SMRT_PIPELINE_BUNDLE_DIR=$(readlink -f repos/pbpipeline-resources)
+export SMRT_PIPELINE_BUNDLE_DIR="${SMRT_PIPELINE_BUNDLE_DIR}"
 
 source /mnt/software/Modules/current/init/bash
 module load jdk/1.8.0_71 sbt postgresql

@@ -1,8 +1,0 @@
-{
-  "id": "pbsmrtpipe.pipelines.polished_falcon_fat",
-  "name": "Override Pipeline Display Name",
-  "description": "Override Description",
-  "taskOptions": [
-    {"id": "falcon_ns.task_options.HGAP_GenomeLength_str", "hidden": false, "advanced": false}
-  ]
-}

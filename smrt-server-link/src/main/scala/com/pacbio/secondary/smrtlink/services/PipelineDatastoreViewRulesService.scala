@@ -62,7 +62,7 @@ trait PipelineDataStoreViewRulesServiceProvider {
   this: ServiceComposer with PipelineDataStoreViewRulesServiceProvider =>
 
   val pipelineDataStoreRulesService: Singleton[PipelineDataStoreViewRulesService] =
-    Singleton(() => new PipelineDataStoreViewRulesService(new PipelineDataStoreViewRulesDao(PipelineDataStoreViewRulesResourceLoader.resources)))
+    Singleton(() => new PipelineDataStoreViewRulesService(new PipelineDataStoreViewRulesDao(PipelineDataStoreViewRulesResourceLoader.loadResources)))
 
   addService(pipelineDataStoreRulesService)
 }

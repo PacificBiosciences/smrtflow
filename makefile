@@ -42,9 +42,6 @@ tools-tarball:
 	sbt smrt-server-link/pack
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
-generate-test-pipeline-json:
-	pbsmrtpipe show-templates --output-templates-json smrt-server-link/src/main/resources/resolved-pipeline-templates
-
 repl:
 	sbt smrtflow/test:console
 

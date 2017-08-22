@@ -9,6 +9,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{PipelineStrOption,
 object PbsmrtpipeConstants {
 
   // pbsmrtpipe ENV vars
+  final val ENV_BUNDLE_DIR = "SMRT_PIPELINE_BUNDLE_DIR"
   final val ENV_TOOL_CONTACT_DIR = "PB_TOOL_CONTRACT_DIR"
   final val ENV_PIPELINE_TEMPLATE_DIR = "PB_PIPELINE_TEMPLATE_DIR"
 
