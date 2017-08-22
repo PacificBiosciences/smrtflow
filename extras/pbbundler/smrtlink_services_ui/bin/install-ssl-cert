@@ -71,7 +71,7 @@ JKS_FILE=$(basename "$KEYSTORE")
 # modify conf files
 cd ${WSO2_ROOT}/repository/conf
 find . -type f -print0 | xargs -0 sed -i "s/wso2carbon.jks/${JKS_FILE}/;"
-find . -type f -print0 | xargs -0 sed -i "s/localhost/$FQDN/g;"
+find . -type f -print0 | grep -v "master-datasources.xml" | xargs -0 sed -i "s/localhost/$FQDN/g;"
 sed -i "s/\${carbon.local.ip}/$FQDN/g" api-manager.xml
 sed -i "s#<\!--HostName>www.wso2.org</HostName-->#<HostName>$FQDN</HostName>#;" carbon.xml
 sed -i "s#<KeyAlias>wso2carbon</KeyAlias>#<KeyAlias>server</KeyAlias>#;" carbon.xml
