@@ -90,7 +90,7 @@ test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/fil
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
 test-int: export SMRT_PIPELINE_BUNDLE_DIR := ${ROOT_DIR}/repos/pbpipeline-resources
 
-test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-resources repos/tools-smrt-server-link tools-smrt-server-sim
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-resources tools-smrt-server-link tools-smrt-server-sim
 	@echo "PATH"
 	@echo $$PATH
 	@echo "TEST DATA"
