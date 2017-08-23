@@ -6,7 +6,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFou
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineDataStoreViewRules
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineDataStoreViewRulesDao
 import com.pacbio.secondary.smrtlink.loaders.PipelineDataStoreViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import DefaultJsonProtocol._
@@ -20,7 +20,7 @@ import scala.concurrent.duration._
   */
 class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) extends JobsBaseMicroService{
 
-  import SecondaryAnalysisJsonProtocols._
+  import SmrtLinkJsonProtocols._
 
   def failIfNone[T](x: Option[T], message: String): Future[T] =
     x.map(p => Future {p}).getOrElse(Future.failed(new ResourceNotFoundError(message)))

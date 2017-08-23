@@ -21,6 +21,7 @@ import spray.json._
 import scala.collection.immutable.Seq
 import scala.collection.mutable._
 import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
@@ -266,14 +267,20 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.m
   protected def runMergeDataSetsTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size < 2) throw new Exception("At least two dataset entry points are required for this job type.")
     val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path))
-    val ids = entryPoints.map(e => e.datasetId.left.get)
+
     val dsTypes = entryPoints.map(e => e.fileTypeId).toSet
     val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
       throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
     }
     // FIXME
     val dsMetaType = DataSetMetaTypes.fromString(dsType).get
-    Await.result(sal.mergeDataSets(dsMetaType, ids, cfg.testId), TIMEOUT)
+
+    val fx = for {
+      ids <- Future.sequence(entryPoints.map(e => sal.getDataSet(e.datasetId))).map(_.map(_.id))
+      job <- sal.mergeDataSets(dsMetaType, ids, cfg.testId)
+    } yield job
+
+    Await.result(fx, TIMEOUT)
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,

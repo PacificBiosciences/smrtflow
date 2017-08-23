@@ -281,7 +281,7 @@ case class JobTypeEndPoint(jobTypeId: String, description: String) {
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
-case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Either[Int,UUID])
+case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: IdAble)
 
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
@@ -894,3 +894,21 @@ case class TechSupportSystemStatusRecord(name: String, comment: String)
 case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
 
 case class ClientLogMessage(level: LogLevel.LogLevel, message: String, sourceId: String)
+
+// POST creation of a job event
+case class JobEventRecord(
+                             state: String,
+                             message: String)
+
+case class ReportViewRule(id: String, rules: JsObject)
+
+case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
+                                       outputPath: String)
+case class DataSetDeleteServiceOptions(datasetType: String, ids: Seq[Int],
+                                       removeFiles: Boolean = true)
+
+case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
+
+case class TsSystemStatusServiceOptions(user: String, comment: String)
+
+case class DbBackUpServiceJobOptions(user: String, comment: String)

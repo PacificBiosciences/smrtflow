@@ -23,18 +23,14 @@ import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.models._
 
-
-object ServicesClientJsonProtocol
-    extends SmrtLinkJsonProtocols
-    with ReportJsonProtocol
-    with DataSetJsonProtocols
-    with SecondaryAnalysisJsonProtocols {}
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
@@ -44,10 +40,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
   import CommonModelImplicits._
   import CommonModels._
-  import JobModels._
-  import ReportModels._
-  import SecondaryModels._
-  import ServicesClientJsonProtocol._
+  import SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth

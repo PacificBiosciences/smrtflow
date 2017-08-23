@@ -10,6 +10,8 @@ import shapeless.cachedImplicit
 import java.util.UUID
 
 import com.pacbio.common.semver.SemVersion
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportJsonProtocol
 
 
 trait SupportedRunStatesProtocols extends DefaultJsonProtocol {
@@ -32,20 +34,6 @@ trait SupportedAcquisitionStatesProtocols extends DefaultJsonProtocol {
   }
 }
 
-
-trait EntryPointProtocols extends DefaultJsonProtocol with UUIDJsonProtocol {
-  implicit object EitherIntOrUUIDFormat extends RootJsonFormat[Either[Int,UUID]] {
-    def write(id: Either[Int, UUID]): JsValue = id match {
-      case Left(num) => JsNumber(num)
-      case Right(uuid) => uuid.toJson
-    }
-    def read(v: JsValue): Either[Int, UUID] = v match {
-      case JsNumber(x) => Left(x.toInt)
-      case JsString(s) => Right(UUID.fromString(s))
-      case _ => deserializationError("Expected datasetId as either JsString or JsNumber")
-    }
-  }
-}
 
 trait ProjectEnumProtocols extends DefaultJsonProtocol {
   import scala.util.control.Exception._
@@ -78,13 +66,17 @@ trait ProjectEnumProtocols extends DefaultJsonProtocol {
   }
 }
 
-trait PbSmrtPipeServiceOptionsProtocol
-    extends DefaultJsonProtocol
-    with PipelineTemplateOptionProtocol
-    with EntryPointProtocols {
+
+trait BoundServiceEntryPointJsonProtocol extends DefaultJsonProtocol with FamilyFormats{
+  implicit val idAbleFormat = IdAbleJsonProtocol.IdAbleFormat
+  implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
+}
+
+trait PbSmrtPipeServiceOptionsProtocol extends DefaultJsonProtocol with PipelineTemplateOptionProtocol with BoundServiceEntryPointJsonProtocol{
   import JobModels._
 
-  implicit val serviceBoundEntryPointFormat = jsonFormat3(BoundServiceEntryPoint)
+  //implicit val idAbleFormat = IdAbleJsonProtocol.IdAbleFormat
+
   implicit object PbSmrtPipeServiceOptionsFormat extends RootJsonFormat[PbSmrtPipeServiceOptions] {
     def write(o: PbSmrtPipeServiceOptions): JsValue = JsObject(
       "name" -> o.name.toJson,
@@ -117,6 +109,19 @@ trait PbSmrtPipeServiceOptionsProtocol
   }
 }
 
+trait ReportViewRuleProtocol extends DefaultJsonProtocol {
+  implicit object reportViewRuleFormat extends RootJsonFormat[ReportViewRule] {
+    def write(r: ReportViewRule) = r.rules
+    def read(value: JsValue) = {
+      val rules = value.asJsObject
+      rules.getFields("id") match {
+        case Seq(JsString(id)) => ReportViewRule(id, rules)
+        case x => deserializationError(s"Expected ReportViewRule, got $x")
+      }
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
   extends BaseJsonProtocol
   with JobStatesJsonProtocol
@@ -127,8 +132,12 @@ trait SmrtLinkJsonProtocols
   with UrlProtocol
   with ProjectEnumProtocols
   with LogLevelProtocol
-  with EntryPointProtocols
+  with DataSetMetaTypesProtocol
   with PbSmrtPipeServiceOptionsProtocol
+  with BoundServiceEntryPointJsonProtocol
+  with ReportViewRuleProtocol
+  with ReportJsonProtocol
+  with DataSetJsonProtocols
   with FamilyFormats {
 
   implicit val pbSampleFormat = jsonFormat5(Sample)
@@ -210,6 +219,27 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
   implicit val clientLogMessageFormat = jsonFormat3(ClientLogMessage)
+
+  // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
+  // of namespace conflicts.
+  implicit val pipelineTemplateFormat = SecondaryJobProtocols.PipelineTemplateFormat
+  implicit val pipelineTemplateViewRule = SecondaryJobProtocols.pipelineTemplateViewRule
+  implicit val importDataStoreOptionsFormat = SecondaryJobProtocols.ImportDataStoreOptionsFormat
+  implicit val importConvertFastaOptionsFormat = SecondaryJobProtocols.ConvertImportFastaOptionsFormat
+  implicit val movieMetadataToHdfSubreadOptionsFormat = SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
+  implicit val mergeDataSetOptionsFormat = SecondaryJobProtocols.MergeDataSetOptionsFormat
+  implicit val importConvertFastaBarcodeOptionsFormat = SecondaryJobProtocols.ConvertImportFastaBarcodesOptionsFormat
+  implicit val importDataSetOptionsFormat = SecondaryJobProtocols.ImportDataSetOptionsFormat
+
+  // Jobs
+  implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
+
+  implicit val exportOptions = jsonFormat3(DataSetExportServiceOptions)
+  implicit val deleteDataSetsOptions = jsonFormat3(DataSetDeleteServiceOptions)
+
+  // this is here to break a tie between otherwise-ambiguous implicits;
+  // see the spray-json-shapeless documentation
+  implicit val llFormat = LogLevelFormat
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

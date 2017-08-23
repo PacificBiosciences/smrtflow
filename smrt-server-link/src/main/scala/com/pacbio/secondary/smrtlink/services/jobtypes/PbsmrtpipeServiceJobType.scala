@@ -60,12 +60,7 @@ class PbsmrtpipeServiceJobType(
    * @param e BoundServiceEntryPoint
    */
   private def resolveEntry(e: BoundServiceEntryPoint): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
-    // This is more yakk shaving. the Either[UUID, Int] needs to be deleted.
-    val id = e.datasetId match {
-      case Right(uuid) => UUIDIdAble(uuid)
-      case Left(i) => IntIdAble(i)
-    }
-    ValidateImportDataSetUtils.resolveDataSet(e.fileTypeId, id, dbActor).map { d =>
+    ValidateImportDataSetUtils.resolveDataSet(e.fileTypeId, e.datasetId, dbActor).map { d =>
       (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
     }
   }

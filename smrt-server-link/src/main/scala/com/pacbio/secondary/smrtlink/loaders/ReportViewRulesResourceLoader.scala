@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.loaders
 
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
-import com.pacbio.secondary.smrtlink.models.SecondaryModels.ReportViewRule
+import com.pacbio.secondary.smrtlink.models.ReportViewRule
 import spray.json._
 
 

@@ -21,9 +21,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.TsSystemStatusBundleOptio
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryModels.TsSystemStatusServiceOptions
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
-import com.pacbio.secondary.smrtlink.models.UserRecord
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.{TsSystemStatusServiceOptions, UserRecord}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 
 

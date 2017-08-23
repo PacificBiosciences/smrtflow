@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.loaders
 import java.util.regex.Pattern
 
 import com.pacbio.common.utils.ResourceList
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{Charsets, IOUtils}
 
@@ -19,7 +19,7 @@ import scala.util.Try
  *
  * All of the JSON protocols are loaded, so 
  */
-trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SecondaryAnalysisJsonProtocols with LazyLogging{
+trait JsonResourceLoader[T] extends ResourceLoaderBase[T] with SmrtLinkJsonProtocols with LazyLogging{
 
   // Root Directory of the resources within the CLASSPATH
   // example, "resolved-pipeline-templates"

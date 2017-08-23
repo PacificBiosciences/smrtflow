@@ -9,6 +9,7 @@ import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.{FakeClockProvider, PacBioDateTimeFormat}
 import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{RunService, ServiceComposer}
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates

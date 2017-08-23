@@ -1,14 +1,18 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
 
 /**
   * Created by mkocher on 8/17/17.
   */
-case class MergeDataSetJobOptions(path: String, name: Option[String], description: Option[String]) extends ServiceJobOptions {
-  override val projectId: Int = 1 // Need to think about how this is set from the EngineJob or if it's even necessary
+case class MergeDataSetJobOptions(datasetType: DataSetMetaTypes.DataSetMetaType,
+                                  ids: Seq[Int],
+                                  name: Option[String],
+                                  description: Option[String],
+                                  projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override val jobTypeId: JobTypeId = JobTypeIds.MERGE_DATASETS
   override def validate() = None
   override def toJob() = new MergeDataSetJob(this)

@@ -4,7 +4,7 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateViewRule
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.{SecondaryAnalysisJsonProtocols,PacBioComponentManifest}
+import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols,PacBioComponentManifest}
 import spray.json._
 import spray.httpx.SprayJsonSupport._
 
@@ -15,7 +15,7 @@ import spray.httpx.SprayJsonSupport._
  */
 class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) extends JobsBaseMicroService {
 
-  import SecondaryAnalysisJsonProtocols._
+  import SmrtLinkJsonProtocols._
 
   val PTVR_PREFIX = "pipeline-template-view-rules"
 

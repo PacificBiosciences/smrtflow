@@ -1,4 +1,4 @@
-package com.pacbio.secondary.smrtlink.models
+package com.pacbio.secondary.smrtlink.io
 
 import java.io.{ByteArrayInputStream, File, FileInputStream, InputStream}
 import java.net.URL

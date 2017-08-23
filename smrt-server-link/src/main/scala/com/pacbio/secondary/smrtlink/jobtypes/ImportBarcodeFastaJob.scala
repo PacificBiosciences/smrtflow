@@ -8,8 +8,9 @@ import spray.json._
 
 
 //FIXME(mpkocher)(8-17-2017) There's a giant issue with the job "name" versus "name" used in job options.
-case class ImportBarcodeFastaJobOptions(path: String, name: Option[String], description: Option[String]) extends ServiceJobOptions {
-  override val projectId: Int = 1 // Need to think about how this is set from the EngineJob or if it's even necessary
+case class ImportBarcodeFastaJobOptions(path: String, name: Option[String], description: Option[String],
+                                        projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)
+                                       ) extends ServiceJobOptions {
   override val jobTypeId: JobTypeId = JobTypeIds.HELLO_WORLD
   override def validate() = None
   override def toJob() = new ImportBarcodeFastaJob(this)

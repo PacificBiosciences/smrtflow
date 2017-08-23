@@ -8,8 +8,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResult
 /**
   * Created by mkocher on 8/17/17.
   */
-case class SimpleJobOptions(path: String, name: Option[String], description: Option[String]) extends ServiceJobOptions {
-  override val projectId: Int = 1 // Need to think about how this is set from the EngineJob or if it's even necessary
+case class SimpleJobOptions(path: String,
+                            name: Option[String],
+                            description: Option[String],
+                            projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override val jobTypeId: JobTypeId = JobTypeIds.SIMPLE
   override def validate() = None
   override def toJob() = new SimpleJob(this)

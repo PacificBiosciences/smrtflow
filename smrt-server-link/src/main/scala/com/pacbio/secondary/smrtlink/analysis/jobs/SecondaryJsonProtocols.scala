@@ -7,7 +7,7 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
-import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacbio.common.models.{JodaDateTimeProtocol, PathProtocols, URIJsonProtocol, UUIDJsonProtocol}
 import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -50,40 +50,6 @@ trait DataSetMetaTypesProtocol extends DefaultJsonProtocol {
 
 }
 
-
-// These are borrowed from Base SMRT Server
-trait JodaDateTimeProtocol extends DefaultJsonProtocol {
-
-  implicit object JodaDateTimeFormat extends JsonFormat[JodaDateTime] {
-    def write(obj: JodaDateTime): JsValue = JsString(obj.toString)
-
-    def read(json: JsValue): JodaDateTime = json match {
-      case JsString(x) => JodaDateTime.parse(x)
-      case _ => deserializationError("Expected DateTime as JsString")
-    }
-  }
-
-}
-
-trait PathProtocols extends DefaultJsonProtocol {
-  implicit object PathFormat extends RootJsonFormat[Path] {
-    def write(p: Path): JsValue = JsString(p.toString)
-    def read(v: JsValue): Path = v match {
-      case JsString(s) => Paths.get(s)
-      case _ => deserializationError("Expected Path as JsString")
-    }
-  }
-}
-
-trait UrlProtocol extends DefaultJsonProtocol {
-  implicit object UrlFormat extends RootJsonFormat[URL] {
-    def write(u: URL): JsValue = JsString(u.toString)
-    def read(v: JsValue): URL = v match {
-      case JsString(sx) => new URL(sx) // Should this default to file:// if not provided?
-      case _ => deserializationError("Expected URL as JsString")
-    }
-  }
-}
 
 // FIXME backwards compatibility for pbservice and older versions of smrtlink -
 // this should be eliminated in favor of the automatic protocol if and when
@@ -416,25 +382,17 @@ trait PipelineTemplatePresetJsonProtocol extends DefaultJsonProtocol with Pipeli
   }
 }
 
-trait URIJsonProtocol extends DefaultJsonProtocol {
-
-  implicit object URIJsonProtocolFormat extends RootJsonFormat[URI] {
-    def write(x: URI) = JsString(x.toString)
-    def read(value: JsValue) = {
-      value match {
-        case JsString(x) => new URI(x)
-        case _ => deserializationError("Expected URI")
-      }
-    }
-  }
-
-}
 
 trait JsonProjectSupport {
   def getProjectId(jsObj: JsObject): Int = jsObj.getFields("projectId") match {
     case Seq(JsNumber(projectId)) => projectId.toInt
     case _ => JobConstants.GENERAL_PROJECT_ID
   }
+}
+
+case class ExampleServiceJobOption(name: String, private val projectId: Option[Int]) {
+  val DEFAULT_PROJECT_ID = 1
+  val projId:Int = projectId.getOrElse(DEFAULT_PROJECT_ID)
 }
 
 trait JobOptionsProtocols
@@ -538,20 +496,6 @@ trait JobOptionsProtocols
     }
   }
 
-  implicit object SimpleDataTransferOptionsFormat extends RootJsonFormat[SimpleDataTransferOptions] {
-    def write(o: SimpleDataTransferOptions) = JsObject(
-      "src" -> o.src.toJson,
-      "dest" -> o.dest.toJson,
-      "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): SimpleDataTransferOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("src", "dest") match {
-        case Seq(JsString(src), JsString(dest)) =>
-          SimpleDataTransferOptions(src, dest, getProjectId(jsObj))
-        case x => deserializationError(s"Expected SimpleDataTransferOptions, got $x")
-      }
-    }
-  }
 }
 
 

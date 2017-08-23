@@ -9,8 +9,6 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 import scala.xml.Node
 
-import com.pacbio.secondary.smrtlink.models.{XmlTemplateReader => GenTemplateReader}
-
 class RunDesignTemplateReader(xmlFile: Path) {
   private def randomId(): UUID = UUID.randomUUID()
   private def randomContextId(): String = toRandomMovieContextId("SIM")

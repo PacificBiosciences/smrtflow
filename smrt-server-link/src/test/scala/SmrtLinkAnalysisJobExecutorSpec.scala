@@ -1,11 +1,11 @@
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 
 
 class SmrtLinkAnalysisJobExecutorSpec extends SmrtLinkAnalysisJobExecutorSpecBase {
 
-  import SecondaryAnalysisJsonProtocols._
+  import SmrtLinkJsonProtocols._
 
   "Job Execution Status" should {
     "Sanity 'Example' Job Execution test" in {

@@ -5,8 +5,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
 
 
-case class DbBackUpJobOptions(user: String, comment: String, name: Option[String], description: Option[String]) extends ServiceJobOptions {
-  override val projectId: Int = 1
+case class DbBackUpJobOptions(user: String,
+                              comment: String,
+                              name: Option[String],
+                              description: Option[String],
+                              projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override val jobTypeId: JobTypeId = JobTypeIds.DB_BACKUP
   override def validate() = None
   override def toJob() = new DbBackUpJob(this)

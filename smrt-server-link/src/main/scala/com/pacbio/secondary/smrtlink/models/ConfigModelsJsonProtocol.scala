@@ -1,9 +1,8 @@
 package com.pacbio.secondary.smrtlink.models
 
-import com.pacbio.secondary.smrtlink.analysis.jobs.{PathProtocols, UrlProtocol}
 import spray.json._
 import ConfigModels._
-import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacbio.common.models.{PathProtocols, UUIDJsonProtocol, UrlProtocol}
 
 /**
   * Created by mkocher on 1/4/17.

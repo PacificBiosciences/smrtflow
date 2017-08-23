@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.ConvertImportFastaBarcode
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx.SprayJsonSupport._

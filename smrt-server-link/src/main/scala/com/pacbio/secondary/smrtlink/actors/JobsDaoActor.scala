@@ -14,15 +14,14 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreJobFile, PacBioDataStore, _}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobTask, JobTypeIds, RunnableJobWithId, UpdateJobTask, DataStoreFile}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.DbBackUpJobOptions
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
-import com.pacbio.secondary.smrtlink.models.SecondaryModels.DbBackUpServiceJobOptions
-import com.pacbio.secondary.smrtlink.models.{EngineConfig, EngineJobEntryPointRecord, EulaRecord}
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, EngineJobEntryPointRecord, EulaRecord, DbBackUpServiceJobOptions}
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
 
 import scala.collection.mutable
 import scala.concurrent.duration._

@@ -14,15 +14,14 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.{TsJobBundleJob, TsJobBun
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.CreateJobType
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryModels.TsJobBundleJobServiceOptions
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import spray.json._
 import spray.httpx.SprayJsonSupport._
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols._
-import com.pacbio.secondary.smrtlink.models.UserRecord
+import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.models.{TsJobBundleJobServiceOptions, UserRecord}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import org.joda.time.{DateTime => JodaDateTime}
 

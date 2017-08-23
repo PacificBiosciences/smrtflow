@@ -42,7 +42,7 @@ object TestkitModels {
 
 }
 
-trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols {
+trait TestkitJsonProtocol extends SmrtLinkJsonProtocols {
 
   import TestkitModels._
 
