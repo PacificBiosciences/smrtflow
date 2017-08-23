@@ -8,7 +8,7 @@ import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.{FakeClock, FakeClockProvider}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.models.{RegistryResource, RegistryResourceCreate, RegistryResourceUpdate, SmrtLinkJsonProtocols, UserRecord}
+import com.pacbio.secondary.smrtlink.models.{RegistryResource, RegistryResourceCreate, RegistryResourceUpdate, UserRecord}
 import com.pacbio.secondary.smrtlink.services.{RegistryService, ServiceComposer}
 import org.specs2.mock._
 import org.specs2.mutable.Specification
@@ -23,7 +23,7 @@ import scalaj.http.{BaseHttp, HttpConstants, HttpRequest, HttpResponse}
 class RegistryServiceSpec extends Specification with Directives with Specs2RouteTest with Mockito with PacBioServiceErrors {
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import Authenticator._
   
   val FAKE_HOST = "fake.server.com"

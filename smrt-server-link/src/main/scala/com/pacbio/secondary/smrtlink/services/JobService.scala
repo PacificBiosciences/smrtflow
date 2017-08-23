@@ -60,7 +60,7 @@ trait JobService
 
   implicit val timeout = Timeout(30.seconds)
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import CommonModelSpraySupport._
   import CommonModelImplicits._
 

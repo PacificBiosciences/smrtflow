@@ -12,7 +12,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoa
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, SmrtLinkJsonProtocols, UserRecord}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, PbSmrtPipeServiceOptions, UserRecord}
 import com.pacbio.secondary.smrtlink.services.jobtypes.{MockPbsmrtpipeJobTypeProvider, SimpleServiceJobTypeProvider}
 import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData

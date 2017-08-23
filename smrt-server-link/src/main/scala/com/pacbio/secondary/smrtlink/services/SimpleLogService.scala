@@ -7,7 +7,7 @@ import spray.json._
 import spray.routing._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, SmrtLinkJsonProtocols, LogLevel}
+import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, LogLevel}
 
 
 class SimpleLogService
@@ -15,7 +15,7 @@ class SimpleLogService
   with StatusCodeJoiners
   with Directives {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val ROUTE_PREFIX = "loggers"
 

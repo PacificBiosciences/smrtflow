@@ -32,7 +32,7 @@ class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  aut
     extends BaseSmrtService with JobServiceConstants with OSUtils {
 
   import JobsDaoActor._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("eula"),

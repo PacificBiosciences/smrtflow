@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.services
 
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.models.{PacBioComponentManifest, ReportViewRule, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{PacBioComponentManifest, ReportViewRule}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.loaders.ReportViewRulesResourceLoader
 import spray.httpx.SprayJsonSupport._
@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport._
  */
 class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends JobsBaseMicroService {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val PTVR_PREFIX = "report-view-rules"
 

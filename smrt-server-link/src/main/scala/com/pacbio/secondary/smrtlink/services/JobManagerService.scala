@@ -34,7 +34,7 @@ class JobManagerService(
   extends JobService with JobsBaseMicroService with FileAndResourceDirectives {
 
   import JobsDaoActor._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   override implicit val timeout = Timeout(30.seconds)
 

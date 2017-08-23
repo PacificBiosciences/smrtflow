@@ -3,10 +3,10 @@ package com.pacbio.secondary.smrtlink
 import java.net.InetAddress
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobTypeId, JobTypeIds, JobResourceBase, ResultFailed, EngineJob}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobResourceBase, JobTypeId, JobTypeIds, ResultFailed}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter}
-import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols // as a temporary workaround
+import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
+// as a temporary workaround
 
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._

@@ -40,7 +40,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
   import CommonModelImplicits._
   import CommonModels._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth

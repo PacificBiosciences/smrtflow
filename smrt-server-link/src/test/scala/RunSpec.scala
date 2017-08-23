@@ -35,7 +35,7 @@ class RunSpec
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import Authenticator._
 
   val RUN_ID = UUID.randomUUID()

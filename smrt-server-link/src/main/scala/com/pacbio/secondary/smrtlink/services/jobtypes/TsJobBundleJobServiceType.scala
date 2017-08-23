@@ -20,7 +20,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import spray.json._
 import spray.httpx.SprayJsonSupport._
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.models.{TsJobBundleJobServiceOptions, UserRecord}
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
 import org.joda.time.{DateTime => JodaDateTime}

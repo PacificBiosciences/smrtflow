@@ -1,5 +1,5 @@
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 
 

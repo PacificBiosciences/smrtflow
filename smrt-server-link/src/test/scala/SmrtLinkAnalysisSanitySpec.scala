@@ -7,7 +7,7 @@ import spray.testkit.Specs2RouteTest
 
 class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val providers = new SecondaryAnalysisProviders {}
   val totalRoutes = providers.routes()

@@ -41,7 +41,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import CommonModelImplicits._
 
   implicit val routeTestTimeout = RouteTestTimeout(5.seconds)

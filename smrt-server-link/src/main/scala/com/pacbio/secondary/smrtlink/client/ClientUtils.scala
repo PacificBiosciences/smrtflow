@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 
 trait ClientUtils extends timeUtils with DataSetFileUtils {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   def listFilesByExtension(f: File, ext: String): Array[File] = {
     if (! f.isDirectory) throw new IllegalArgumentException(s"${f.toString} is not a directory")

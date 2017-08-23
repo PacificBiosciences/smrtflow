@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.models._
 class SmrtLinkModelsSpec extends Specification {
 
   import JobModels._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   sequential
 

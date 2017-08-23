@@ -520,7 +520,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                  val maxTime: FiniteDuration) extends LazyLogging with ClientUtils with DaoFutureUtils{
   import CommonModelImplicits._
   import CommonModels._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   // the is the default for timeout for common tasks
   protected val TIMEOUT = 30 seconds

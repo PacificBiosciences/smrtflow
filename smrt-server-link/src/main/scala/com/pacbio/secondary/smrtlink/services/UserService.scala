@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 class UserService(authenticator: Authenticator) extends PacBioService {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val timeout = Timeout(10.seconds)
 

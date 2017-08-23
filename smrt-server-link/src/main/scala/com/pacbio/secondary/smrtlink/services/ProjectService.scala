@@ -22,7 +22,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
   with SmrtLinkConstants {
 
   // import serialzation protocols
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.project"),

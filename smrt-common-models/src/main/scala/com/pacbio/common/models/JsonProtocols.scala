@@ -8,6 +8,8 @@ import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 import fommil.sjs.FamilyFormats
 
+import scala.concurrent.duration.Duration
+
 trait UUIDJsonProtocol extends DefaultJsonProtocol with FamilyFormats {
   implicit object UUIDFormat extends JsonFormat[UUID] {
     def write(obj: UUID): JsValue = JsString(obj.toString)
@@ -83,9 +85,20 @@ trait URIJsonProtocol extends DefaultJsonProtocol {
       }
     }
   }
-
 }
 
-object CommonJsonProtocols extends UUIDJsonProtocol with IdAbleJsonProtocol with JodaDateTimeProtocol with PathProtocols with UrlProtocol with URIJsonProtocol
+trait DurationProtocol extends DefaultJsonProtocol with FamilyFormats {
+
+  implicit object DurationProtocol extends JsonFormat[Duration] {
+    def write(obj: Duration): JsValue = JsString(obj.toString)
+
+    def read(json: JsValue): Duration = json match {
+      case JsString(x) => Duration(x)
+      case _ => deserializationError("Expected Duration type as JsString")
+    }
+  }
+}
+
+object CommonJsonProtocols extends UUIDJsonProtocol with IdAbleJsonProtocol with JodaDateTimeProtocol with PathProtocols with UrlProtocol with URIJsonProtocol with DurationProtocol
 
 object IdAbleJsonProtocol extends IdAbleJsonProtocol

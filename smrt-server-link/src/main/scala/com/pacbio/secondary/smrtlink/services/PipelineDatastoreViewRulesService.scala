@@ -6,10 +6,10 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFou
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineDataStoreViewRules
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineDataStoreViewRulesDao
 import com.pacbio.secondary.smrtlink.loaders.PipelineDataStoreViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import DefaultJsonProtocol._
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._

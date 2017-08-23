@@ -5,8 +5,8 @@ import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateResourceLoader
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 
 

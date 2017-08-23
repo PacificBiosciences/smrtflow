@@ -15,7 +15,7 @@ import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
+import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 
 
 case class ApplyConfigToolOptions(rootDir: Path, templateDir: Option[Path] = None) extends LoggerConfig

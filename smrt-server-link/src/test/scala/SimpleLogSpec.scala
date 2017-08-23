@@ -7,14 +7,14 @@ import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models.LogLevel
-import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.ClientLogMessage
 import com.pacbio.secondary.smrtlink.services.{ServiceComposer, SimpleLogServiceProvider}
 
 class SimpleLogSpec extends Specification
   with NoTimeConversions
   with Specs2RouteTest {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 

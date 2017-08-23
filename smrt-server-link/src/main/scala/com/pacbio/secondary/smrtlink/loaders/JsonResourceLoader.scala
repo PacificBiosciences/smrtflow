@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.loaders
 import java.util.regex.Pattern
 
 import com.pacbio.common.utils.ResourceList
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{Charsets, IOUtils}
 

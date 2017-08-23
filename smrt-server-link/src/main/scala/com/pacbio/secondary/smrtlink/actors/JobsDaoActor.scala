@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.{EngineConfig, EngineJobEntryPointRecord, EulaRecord, DbBackUpServiceJobOptions}
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
 import scala.collection.mutable
 import scala.concurrent.duration._

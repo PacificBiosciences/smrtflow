@@ -9,6 +9,7 @@ import com.pacbio.secondary.smrtlink.auth.AuthenticatorProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{RegistryServiceActor, RegistryServiceActorRefProvider}
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import spray.http.{HttpEntity, HttpHeader, HttpMethod, HttpResponse => SprayHttpResponse}
 import spray.httpx.SprayJsonSupport._

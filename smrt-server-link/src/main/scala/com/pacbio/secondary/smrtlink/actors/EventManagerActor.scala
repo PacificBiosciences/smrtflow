@@ -17,6 +17,7 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.client.EventServerClient
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.mail.PbMailer
 import com.pacbio.secondary.smrtlink.models._
 

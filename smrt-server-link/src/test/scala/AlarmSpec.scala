@@ -37,7 +37,7 @@ class AlarmSpec
 
   import Authenticator._
   import AlarmSeverity._
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val mockFileSystemUtil = mock[FileSystemUtil]
 

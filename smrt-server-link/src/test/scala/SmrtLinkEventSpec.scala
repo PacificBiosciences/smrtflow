@@ -35,7 +35,7 @@ class SmrtLinkEventSpec extends Specification
     with SmrtLinkConstants
     with TestUtils{
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   sequential
 

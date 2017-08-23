@@ -42,7 +42,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Jo
 
   // For all the serialization protocols
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.dataset"),

@@ -8,8 +8,8 @@ import java.nio.file.Files
 import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.tools.CommandLineToolVersion
+import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
 import org.wso2.carbon.apimgt.rest.api.publisher
@@ -18,7 +18,7 @@ import spray.json._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 
 object AmClientModes {

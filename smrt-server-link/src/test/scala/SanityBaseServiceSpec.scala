@@ -1,5 +1,5 @@
 import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
-import com.pacbio.secondary.smrtlink.models.{ServiceStatus, PacBioJsonProtocol}
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import org.specs2.mutable.Specification
 import spray.json._
 import spray.http._
@@ -10,7 +10,7 @@ import spray.testkit.Specs2RouteTest
 
 class SanityBaseServiceSpec extends Specification with Directives with Specs2RouteTest {
 
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   object Api extends BaseApi {
     override val providers: CoreProviders = new CoreProviders {}

@@ -1,8 +1,8 @@
-package com.pacbio.secondary.smrtlink.models
+package com.pacbio.secondary.smrtlink.jsonprotocols
 
-import spray.json._
-import ConfigModels._
 import com.pacbio.common.models.{PathProtocols, UUIDJsonProtocol, UrlProtocol}
+import com.pacbio.secondary.smrtlink.models.ConfigModels._
+import spray.json._
 
 /**
   * Created by mkocher on 1/4/17.

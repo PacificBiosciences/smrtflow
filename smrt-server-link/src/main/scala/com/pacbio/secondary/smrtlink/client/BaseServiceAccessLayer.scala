@@ -35,7 +35,7 @@ trait Retrying {
 
 class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) extends Retrying {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   implicit val executionContext = actorSystem.dispatcher

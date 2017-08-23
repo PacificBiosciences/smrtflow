@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.models.UserRecord
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.{CreateJobType, GetJobByIdAble}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.unmarshalling._
 import spray.json._

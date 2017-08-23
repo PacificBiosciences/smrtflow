@@ -44,7 +44,7 @@ with SmrtLinkConstants with TestUtils{
 
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import Authenticator._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
