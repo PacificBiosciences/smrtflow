@@ -77,32 +77,6 @@ if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
   pip install sphinx
 fi
 
-if [ "$BAMBOO_USE_PBSMRTPIPE_ARTIFACTS" != "true" ]; then
-  if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
-    echo "Installing pbsmrtpipe to virtualenv"
-    cd "${SRC}/pbcore"
-    pip install -r requirements.txt
-    python setup.py install
-    cd ..
-    (cd ${SRC}/pbcommand && make clean && python setup.py install)
-    (cd ${SRC}/pbsmrtpipe && make clean && python setup.py install)
-  fi
-
-  # Create Resolved Pipeline Template Docs
-  tmpDocs=$(mktemp -d)
-  pbsmrtpipe show-templates --output-templates-json "${tmpDocs}"
-  python -m pbsmrtpipe.tools.resources_to_rst "${tmpDocs}" -o "${tmpDocs}"
-  cd "${tmpDocs}"
-  make html
-  pipelineDocs=${DOC_ROOT}/pipelines
-  mkdir -p "${pipelineDocs}"
-  cp -R "${tmpDocs}/_build/html" "${pipelineDocs}"
-  cd -
-  # cleanup
-  rm -rf "${tmpDocs}"
-
-fi
-
 # Copy docs from sl-help into ${DOC_ROOT}/help
 if [[ -d "${DOC_HELP_ROOT}" ]]; then
   cp -R "${DOC_HELP_ROOT}" "${DOC_ROOT}/help"

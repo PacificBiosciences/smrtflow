@@ -222,24 +222,6 @@ def _copy_chemistry_bundle(chemistry_bundle_dir, dest_dir):
     log.info("Chemistry bundle is {t}".format(t=tarball))
 
 
-# this assumes that the pbpipeline-resources bundle has already been placed
-# in the pacbio-bundles directory
-def _setup_pbpipeline_resources_bundle(dest_dir):
-    cwd = os.getcwd()
-    log.info("Unpacking pbpipeline-resources bundle in {d}".format(d=dest_dir))
-    for file_name in os.listdir(dest_dir):
-        if (file_name.startswith("pbpipeline-resources") and
-            file_name.endswith(".tar.gz")):
-            os.chdir(dest_dir)
-            local("tar czvf {t}".format(t=file_name))
-            dir_name = file_name.replace(".tar.gz", "")
-            assert os.path.isdir(dir_name)
-            os.symlink(dir_name, "pbpipeline-resources-active")
-            os.chdir(cwd)
-            return True
-    log.error("Couldn't find pbpipeline-resources bundle")
-
-
 def _copy_bundle_from_template(template_dir, bundle_version_dir):
     if os.path.exists(bundle_version_dir):
         log.warn("Bundle {v} already exists.".format(v=bundle_version_dir))
@@ -382,7 +364,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     :param services_root_dir: smrtflow root directory to the scala services
     code
     :param output_bundle_dir: Path to output bundle directory
-    resolved pipeline template JSON files
     :param ivy_cache: Custom ivy-cache location
     :param analysis_server: sbt smrt-server subproject name
 
@@ -457,7 +438,6 @@ def build_smrtlink_services_ui(version,
     $> fab build_smrtlink_services_ui:"0.2.2-1234",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/ui/main/apps/smrtlink",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow",
-    "/Users/mkocher/workspaces/mk_mb_pbbundler/resolved-pipeline-templates",
     ivy_cache="~/.ivy-cache-custom",
     analysis_server="smrt-server-link",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
@@ -498,7 +478,6 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
-    _setup_pbpipeline_resources_bundle(output_bundle_dir)
     if chemistry_bundle_dir is not None:
         _copy_chemistry_bundle(chemistry_bundle_dir, output_bundle_dir)
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
