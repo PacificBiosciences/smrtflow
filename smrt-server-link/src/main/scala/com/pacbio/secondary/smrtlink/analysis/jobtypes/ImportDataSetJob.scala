@@ -47,7 +47,7 @@ with MockJobUtils with timeUtils {
   type Out = PacBioDataStore
   // Note, this is inconsistent with the id defined in JobTypeIds "import-dataset"
   // Changing this will break backward compatibility with the source id in the datastore
-  val jobTypeId = JobTypeId("import_dataset")
+  val jobTypeId = JobTypeIds.IMPORT_DATASET
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
@@ -77,7 +77,7 @@ with MockJobUtils with timeUtils {
       // This should never stop a dataset from being imported
       val reports = Try { DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter) }
 
-      val reportFiles = reports match {
+      val reportFiles:Seq[DataStoreFile] = reports match {
         case Success(rpts) => rpts
         case Failure(ex) =>
           val errorMsg = s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"

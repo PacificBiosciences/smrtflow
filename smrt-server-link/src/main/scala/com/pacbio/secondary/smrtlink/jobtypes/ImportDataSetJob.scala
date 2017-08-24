@@ -14,7 +14,7 @@ case class ImportDataSetJobOptions(path: String,
                                    description: Option[String],
                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)
                                   ) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.HELLO_WORLD
+  override def jobTypeId = JobTypeIds.IMPORT_DATASET
   override def validate() = None
 
   override def toJob() = new ImportDataSetJob(this)

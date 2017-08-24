@@ -38,7 +38,7 @@ case class DbBackUpJobOptions(rootBackUpDir: Path,
 class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJobOptions) with timeUtils with MockJobUtils{
 
   type Out = PacBioDataStore
-  override val jobTypeId = JobTypeId("smrtlink_db_backup")
+  override val jobTypeId = JobTypeIds.DB_BACKUP
 
 
   /**

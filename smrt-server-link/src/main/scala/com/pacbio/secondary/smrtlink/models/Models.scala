@@ -286,6 +286,7 @@ case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
 
+//FIXME(mpkocher)(8-22-2017) The dataset metatype needs to be a proper type
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
 // Service related Job Tasks

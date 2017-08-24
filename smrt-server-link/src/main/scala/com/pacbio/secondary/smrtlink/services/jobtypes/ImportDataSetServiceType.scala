@@ -21,6 +21,7 @@ import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
+import com.pacbio.secondary.smrtlink.jobtypes.ImportDataSetJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -63,8 +64,11 @@ class ImportDataSetServiceType(dbActor: ActorRef,
     } yield engineJob
   }
 
-  override def createJob(sopts: ImportDataSetOptions, user: Option[UserRecord]): Future[CreateJobType] = validate(sopts).map { vopts =>
+  override def createJob(sopts: ImportDataSetOptions, user: Option[UserRecord]): Future[CreateJobType] = validate(ImportDataSetOptions(sopts.path, sopts.datasetType)).map { vopts =>
     logger.info(s"Attempting to create import-dataset Job with options $sopts")
+
+    // workaround
+    val opts = ImportDataSetOptions(vopts.path, vopts.datasetType)
 
     val uuid = UUID.randomUUID()
     CreateJobType(
@@ -72,7 +76,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
       s"Job $endpoint",
       "Importing DataSet",
       endpoint,
-      CoreJob(uuid, sopts),
+      CoreJob(uuid, opts),
       None,
       sopts.toJson.toString(),
       user.map(_.userId),
@@ -87,7 +91,7 @@ class ImportDataSetServiceType(dbActor: ActorRef,
       val creator = createJob(opts, user).flatMap { c => (dbActor ? c).mapTo[EngineJob]}
 
       for {
-        _ <- validate(opts)
+        //_ <- validate(sopts)
         job <- updateDbIfNecessary(opts).recoverWith { case err: ResourceNotFoundError => creator }
       } yield job
   }

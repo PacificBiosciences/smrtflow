@@ -56,7 +56,7 @@ with ExternalToolsUtils {
   val DEFAULT_JOB_SH = "pbscala-job.sh"
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("pbsmrtpipe")
+  val jobTypeId = JobTypeIds.PBSMRTPIPE
 
   // For datastore de-serialization
 

@@ -12,7 +12,7 @@ case class TsJobBundleJobOptions(path: String,
                                  name: Option[String],
                                  description: Option[String],
                                  projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.TS_JOB
+  override def jobTypeId = JobTypeIds.TS_JOB
   override def validate() = None
   override def toJob() = new TsJobBundleJob(this)
 }

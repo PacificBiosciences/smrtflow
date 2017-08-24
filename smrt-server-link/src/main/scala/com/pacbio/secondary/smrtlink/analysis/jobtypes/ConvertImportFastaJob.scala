@@ -42,7 +42,7 @@ with MockJobUtils
 with timeUtils {
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("convert_fasta_to_dataset")
+  val jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
 
   private def toDataStoreFile(uuid: UUID, path: Path) = {
     val importedAt = JodaDateTime.now()

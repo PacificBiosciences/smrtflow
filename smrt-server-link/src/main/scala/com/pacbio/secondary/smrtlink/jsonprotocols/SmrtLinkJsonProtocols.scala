@@ -7,6 +7,7 @@ import shapeless.cachedImplicit
 import spray.json._
 
 // This common model should not be defined here
+import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import com.pacbio.common.models._
 import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -15,7 +16,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.DataStoreJobFile
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportJsonProtocol
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.jobtypes.ImportDataSetJobOptions
 
 
 trait SupportedRunStatesProtocols extends DefaultJsonProtocol {
@@ -260,8 +262,12 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
+  // Old Job Options
   implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
   implicit val deleteJobServiceOptions = jsonFormat4(DeleteJobServiceOptions)
+
+  // New Job Options model
+  implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
   implicit val fullProjectFormat: RootJsonFormat[FullProject] = cachedImplicit
@@ -294,7 +300,6 @@ trait SmrtLinkJsonProtocols
   // of namespace conflicts.
   implicit val pipelineTemplateFormat = SecondaryJobProtocols.PipelineTemplateFormat
   implicit val pipelineTemplateViewRule = SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val importDataStoreOptionsFormat = SecondaryJobProtocols.ImportDataStoreOptionsFormat
   implicit val importConvertFastaOptionsFormat = SecondaryJobProtocols.ConvertImportFastaOptionsFormat
   implicit val movieMetadataToHdfSubreadOptionsFormat = SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
   implicit val mergeDataSetOptionsFormat = SecondaryJobProtocols.MergeDataSetOptionsFormat

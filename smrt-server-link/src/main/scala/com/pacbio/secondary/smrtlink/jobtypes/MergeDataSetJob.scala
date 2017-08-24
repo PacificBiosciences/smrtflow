@@ -13,7 +13,7 @@ case class MergeDataSetJobOptions(datasetType: DataSetMetaTypes.DataSetMetaType,
                                   name: Option[String],
                                   description: Option[String],
                                   projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.MERGE_DATASETS
+  override def jobTypeId = JobTypeIds.MERGE_DATASETS
   override def validate() = None
   override def toJob() = new MergeDataSetJob(this)
 }

@@ -15,7 +15,7 @@ case class PbsmrtpipeJobOptions(name: Option[String],
                                 taskOptions: Seq[ServiceTaskOptionBase],
                                 workflowOptions: Seq[ServiceTaskOptionBase],
                                 projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.PBSMRTPIPE
+  override def jobTypeId = JobTypeIds.PBSMRTPIPE
   override def validate() = None
   override def toJob() = new PbsmrtpipeJob(this)
 }

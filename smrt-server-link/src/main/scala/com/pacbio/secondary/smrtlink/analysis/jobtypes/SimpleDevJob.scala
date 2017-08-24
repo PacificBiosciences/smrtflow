@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.jobtypes
 
-import com.pacbio.secondary.smrtlink.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJobOptions}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobTypeId, JobResourceBase, ResultFailed}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{BaseCoreJob, BaseJobOptions, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobResourceBase, JobTypeId, JobTypeIds, ResultFailed}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 
@@ -15,7 +15,7 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
   with MockJobUtils {
 
   type Out = Int
-  val jobTypeId = JobTypeId("simple")
+  val jobTypeId = JobTypeIds.SIMPLE
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 

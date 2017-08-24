@@ -16,7 +16,7 @@ case class DeleteDataSetJobOptions(jobId: UUID,
                                    name: Option[String],
                                    description: Option[String],
                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.DELETE_DATASETS
+  override def jobTypeId = JobTypeIds.DELETE_DATASETS
   override def validate() = None
   override def toJob() = new DeleteDataSetJob(this)
 }

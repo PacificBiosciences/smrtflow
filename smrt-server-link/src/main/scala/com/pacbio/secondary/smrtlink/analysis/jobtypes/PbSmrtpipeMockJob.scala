@@ -149,7 +149,7 @@ with MockJobUtils {
 
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("mock_pbsmrtpipe")
+  val jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, PacBioDataStore] = {
 

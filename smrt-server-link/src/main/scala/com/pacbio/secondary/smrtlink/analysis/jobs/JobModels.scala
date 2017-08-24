@@ -101,52 +101,54 @@ object JobModels {
     val GENERAL_PROJECT_ID = 1
   }
 
+  sealed trait JobType {
+    // Note, "id" will be used as the job prefix in the URL and by convention use hypen to avoid the camelcase vs snakecase naming
+    val id: String
+    val name: String
+    val description: String
+    def isQuick: Boolean = false
+  }
+
+  case class JobTypeId(id: String, name: String, description: String) extends JobType
+  case class QuickJobTypeId(id: String, name: String, description: String) extends JobType {
+    override def isQuick: Boolean = true
+  }
+
   // This needs to be made a proper type
   object JobTypeIds {
-    val HELLO_WORLD = JobTypeId("hello-world")
-    val CONVERT_FASTA_BARCODES = JobTypeId("convert-fasta-barcodes")
-    val CONVERT_FASTA_REFERENCE = JobTypeId("convert-fasta-reference")
-    val CONVERT_RS_MOVIE = JobTypeId("convert-rs-movie")
-    val DELETE_DATASETS = JobTypeId("delete-datasets")
-    val DELETE_JOB = JobTypeId("delete-job")
-    val EXPORT_DATASETS = JobTypeId("export-datasets")
-    val IMPORT_DATASET = JobTypeId("import-dataset")
-    val IMPORT_DATASTORE = JobTypeId("import-datastore")
-    val MERGE_DATASETS = JobTypeId("merge-datasets")
-    val MOCK_PBSMRTPIPE = JobTypeId("mock-pbsmrtpipe")
-    val PBSMRTPIPE = JobTypeId("pbsmrtpipe")
-    val PBSMRTPIPE_DIRECT = JobTypeId("pbsmrtpipe-direct")
-    val SIMPLE = JobTypeId("simple")
-    val TS_JOB = JobTypeId("tech-support-job")
-    val TS_SYSTEM_STATUS = JobTypeId("tech-support-status")
-    val DB_BACKUP = JobTypeId("db-backup")
+    val HELLO_WORLD = QuickJobTypeId("hello-world", "Hello World", "Sanity Test hello-world job")
+    val CONVERT_FASTA_BARCODES = JobTypeId("convert-fasta-barcodes", "Convert Barcode Fasta", "Convert Barcode Fasta file to BarcodeSet XML")
+    val CONVERT_FASTA_REFERENCE = JobTypeId("convert-fasta-reference", "Convert Fasta to ReferenceSet", "Convert PacBio spec Fasta file to ReferenceSet XML")
+    val CONVERT_RS_MOVIE = QuickJobTypeId("convert-rs-movie", "Convert RS to HdfSubreadSet", "Convert a Legacy RS movie XML file to HdfSubreadSet XML")
+    val DELETE_DATASETS = QuickJobTypeId("delete-datasets", "Delete DataSet", "(Soft) delete of PacBio DataSet XML")
+    val DELETE_JOB = QuickJobTypeId("delete-job", "Delete Job", "(Soft) Delete of a SMRT Link Job")
+    val EXPORT_DATASETS = JobTypeId("export-datasets", "Export DataSet", "Export DataSet XML(s) as zip")
+    val IMPORT_DATASET = QuickJobTypeId("import-dataset", "Import PacBio DataSet", "Import a")
+    val MERGE_DATASETS = QuickJobTypeId("merge-datasets", "Merge PacBio DataSet(s)", "Merge DatatSet(s) Only SubreadSet, HdfSubreadSet dataset types are supported")
+    val MOCK_PBSMRTPIPE = QuickJobTypeId("mock-pbsmrtpipe", "Mock Pbsmrtpipe Job", "Mock Pbsmrtpipe for testing")
+    val PBSMRTPIPE = JobTypeId("pbsmrtpipe", "Pbsmrtpipe", "Pbsmrtpipe (i.e., analysis) Jobs")
+    val SIMPLE = QuickJobTypeId("simple", "Simple", "Simple Job type for testing")
+    val TS_JOB = QuickJobTypeId("tech-support-job", "PacBio TechSupport Failed Job", "Create a TechSupport TGZ bundle from a failed job")
+    val TS_SYSTEM_STATUS = QuickJobTypeId("tech-support-status", "PacBio Tech Support System Status", "Create a TechSupport system status TGZ bundle")
+    val DB_BACKUP = QuickJobTypeId("db-backup", "SMRT Link db backup", "Create a DB backup of the SMRT Link system")
 
     val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
-                  EXPORT_DATASETS, IMPORT_DATASET, IMPORT_DATASTORE,
+                  EXPORT_DATASETS, IMPORT_DATASET,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-                  PBSMRTPIPE_DIRECT, SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
+      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
 
     def fromString(s: String) = ALL.map(x => (x.id, x)).toMap.get(s)
 
     // Job Types that require minimal memory and cpu resources and
     // run very quickly. Approximately 1-2 minutes.
-    val QUICK_JOB_TYPES: Set[JobTypeId] = Set(
+    val QUICK_JOB_TYPES: Set[JobType] = Set(
       CONVERT_FASTA_BARCODES,
       IMPORT_DATASET, MERGE_DATASETS,
       MOCK_PBSMRTPIPE, SIMPLE,
       TS_JOB, TS_SYSTEM_STATUS,
-      DB_BACKUP,
-      JobTypeId("import_dataset"), // These are backward compatible slop for naming
-      JobTypeId("merge_dataset")  // inconsistencies
-    )
+      DB_BACKUP)
 
-  }
-
-  // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
-  // the 'id' is the short name
-  case class JobTypeId(id: String) {
-    def fullName = s"pbscala.job_types.$id"
   }
 
   trait JobResourceBase {

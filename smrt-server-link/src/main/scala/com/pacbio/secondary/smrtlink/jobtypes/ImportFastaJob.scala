@@ -12,7 +12,7 @@ case class ImportFastaJobOptions(path: String,
                                  name: Option[String],
                                  description: Option[String],
                                  projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.HELLO_WORLD
+  override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
   override def validate() = None
   override def toJob() = new ImportFastaJob(this)
 }

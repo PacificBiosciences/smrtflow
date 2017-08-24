@@ -12,7 +12,7 @@ case class SimpleJobOptions(path: String,
                             name: Option[String],
                             description: Option[String],
                             projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.SIMPLE
+  override def jobTypeId = JobTypeIds.SIMPLE
   override def validate() = None
   override def toJob() = new SimpleJob(this)
 }

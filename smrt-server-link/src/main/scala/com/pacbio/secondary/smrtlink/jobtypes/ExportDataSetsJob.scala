@@ -14,7 +14,7 @@ case class ExportDataSetsJobOptions(datasetType: String,
                                     description: Option[String],
                                     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   // Need to think about how this is set from the EngineJob or if it's even necessary
-  override val jobTypeId: JobTypeId = JobTypeIds.HELLO_WORLD
+  override def jobTypeId = JobTypeIds.EXPORT_DATASETS
   override def validate() = None
   override def toJob() = new ExportDataSetJob(this)
 

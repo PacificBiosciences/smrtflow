@@ -482,20 +482,6 @@ trait JobOptionsProtocols
       }
     }
   }
-
-  implicit object ImportDataStoreOptionsFormat extends RootJsonFormat[ImportDataStoreOptions] {
-    def write(o: ImportDataStoreOptions) = JsObject(
-      "path" -> o.path.toJson,
-      "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): ImportDataStoreOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("path") match {
-        case Seq(JsString(path)) => ImportDataStoreOptions(path, getProjectId(jsObj))
-        case x => deserializationError(s"Expected ImportDataStoreOptions, got $x")
-      }
-    }
-  }
-
 }
 
 

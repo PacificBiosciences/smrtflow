@@ -10,7 +10,7 @@ case class TsSystemStatusBundleJobOptions(path: String,
                                           name: Option[String],
                                           description: Option[String],
                                           projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.TS_SYSTEM_STATUS
+  override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
   override def validate() = None
   override def toJob() = new TsSystemStatusBundleJob(this)
 }

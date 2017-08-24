@@ -23,7 +23,7 @@ case class TsSystemStatusBundleOptions(smrtLinkSystemRoot: Path, manifest: TsSys
 class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCoreJob(opts: TsSystemStatusBundleOptions){
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("ts_bundle_system_status")
+  val jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 

@@ -23,7 +23,7 @@ case class TsJobBundleJobOptions(jobRoot: Path, manifest: TsJobManifest) extends
 class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJobBundleJobOptions) {
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("ts_bundle_job")
+  val jobTypeId = JobTypeIds.TS_JOB
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 

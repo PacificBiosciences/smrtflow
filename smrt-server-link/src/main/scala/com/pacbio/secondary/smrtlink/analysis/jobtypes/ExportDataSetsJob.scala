@@ -36,7 +36,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
     with MockJobUtils with timeUtils {
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("export_datasets")
+  val jobTypeId = JobTypeIds.EXPORT_DATASETS
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 

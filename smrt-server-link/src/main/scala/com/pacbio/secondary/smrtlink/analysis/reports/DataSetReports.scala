@@ -114,7 +114,7 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       inPath: Path,
       dst: DataSetMetaTypes.DataSetMetaType,
       jobPath: Path,
-      jobTypeId: JobTypeId,
+      jobTypeId: JobType,
       log: JobResultWriter): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
@@ -143,7 +143,7 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       inPath: Path,
       dst: DataSetMetaTypes.DataSetMetaType,
       jobPath: Path,
-      jobTypeId: JobTypeId): DataStoreFile = {
+      jobTypeId: JobType): DataStoreFile = {
 
 
     def attribs(md: DataSetMetadataType) =

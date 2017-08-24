@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResult
   */
 case class RsConvertMovieToDataSetJobOptions(path: String, name: Option[String], description: Option[String],
                                              projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.CONVERT_RS_MOVIE
+  override def jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
   override def validate() = None
   override def toJob() = new RsConvertMovieToDataSetJob(this)
 }

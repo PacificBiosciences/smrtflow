@@ -18,7 +18,7 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
   // These are from NEW JobType Option data model
 
   implicit val mergeDataSetJobOptionJsonFormat = jsonFormat5(MergeDataSetJobOptions)
-  implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
+  //implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
 
   implicit val exportDataSetJobOptionJsonFormat = jsonFormat6(ExportDataSetsJobOptions)
   implicit val importBarcodeFastaJobOptionsJsonFormat = jsonFormat4(ImportBarcodeFastaJobOptions)

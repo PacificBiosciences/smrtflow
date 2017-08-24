@@ -15,7 +15,7 @@ case class MockPbsmrtpipeJobOptions(name: Option[String],
                                     taskOptions: Seq[ServiceTaskOptionBase],
                                     workflowOptions: Seq[ServiceTaskOptionBase],
                                     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
+  override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
   override def validate() = None
   override def toJob() = new MockPbsmrtpipeJob(this)
 }

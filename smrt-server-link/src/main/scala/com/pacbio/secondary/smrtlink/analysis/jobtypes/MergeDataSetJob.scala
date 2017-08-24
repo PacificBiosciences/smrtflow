@@ -42,7 +42,7 @@ with MockJobUtils with timeUtils {
   type Out = PacBioDataStore
   // Note, this is inconsistent with the id defined in JobTypeIds "merge-datasets"
   // Changing this will break backward compatibility with the source id in the datastore
-  val jobTypeId = JobTypeId("merge_dataset")
+  val jobTypeId = JobTypeIds.MERGE_DATASETS
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 

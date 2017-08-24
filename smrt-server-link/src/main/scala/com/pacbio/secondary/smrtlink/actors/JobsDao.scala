@@ -37,6 +37,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
+import spray.json.JsObject
 
 
 trait DalProvider {
@@ -367,7 +368,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
         .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
 
 
-  private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
+  private def getNextRunnableJobByType(jobTypeFilter: JobType => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
     // Sort the Jobs by id to run the first one
     _runnableJobs.values.toSeq.sortWith(_.id < _.id).find((rj) =>
@@ -382,8 +383,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     }
   }
 
-  private def filterByQuickJobType(j: JobTypeId): Boolean = QUICK_TASK_IDS contains j
-  def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobTypeId) => !filterByQuickJobType(j))
+  private def filterByQuickJobType(j: JobType): Boolean = QUICK_TASK_IDS contains j
+  def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobType) => !filterByQuickJobType(j))
   def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
 
   /**
@@ -427,6 +428,56 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
 
     f
+  }
+
+  /** New Actor-less model **/
+  def createJob2(uuid: UUID,
+                 name: String,
+                 description: String,
+                 jobTypeId: JobType,
+                 entryPoints: Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord],
+                 jsonSetting: JsObject,
+                 createdBy: Option[String] = None,
+                 createdByEmail: Option[String] = None,
+                 smrtLinkVersion: Option[String] = None,
+                 projectId: Int = 1): Future[EngineJob] = {
+
+    val path = ""
+    val createdAt = JodaDateTime.now()
+
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId.id,
+      path, jsonSetting.toString(), createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
+
+    val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
+      val jobId = job.id
+
+      // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
+      // Resolving Path so we can update the state in the DB
+      //val rJob = RunnableJobWithId(jobId, coreJob, job.state)
+      //val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
+      val resolvedPath = Paths.get("1234")
+
+      val jobEvent = JobEvent(
+        UUID.randomUUID(),
+        jobId,
+        AnalysisJobStates.CREATED,
+        s"Created job $jobId type $jobTypeId with ${uuid.toString}",
+        JodaDateTime.now())
+
+      DBIO.seq(
+        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath.toString),
+        jobEvents += jobEvent,
+        engineJobsDataSets ++= entryPoints.map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
+      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath.toString))
+    }
+
+    val action = projects.filter(_.id === projectId).exists.result.flatMap {
+      case true => updates
+      case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
+    }
+
+    db.run(action.transactionally)
+
   }
 
   /**

@@ -3,9 +3,10 @@ package com.pacbio.secondary.smrtlink
 import java.net.InetAddress
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobResourceBase, JobTypeId, JobTypeIds, ResultFailed}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter}
 import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.EngineJobEntryPointRecord
 // as a temporary workaround
 
 import com.typesafe.scalalogging.LazyLogging
@@ -18,7 +19,7 @@ package object jobtypes {
 
   trait ServiceCoreJobModel extends LazyLogging {
     type Out
-    val jobTypeId: JobTypeId
+    val jobTypeId: JobType
 
     // This should be rethought
     def host = InetAddress.getLocalHost.getHostName
@@ -47,7 +48,7 @@ package object jobtypes {
     val projectId: Option[Int]
 
     // This needs to be defined at the job option level to be a globally unique type.
-    val jobTypeId: JobTypeId
+    def jobTypeId: JobType // This is a def for seralization reasons.
     def toJob(): ServiceCoreJob
 
     /**
@@ -60,6 +61,8 @@ package object jobtypes {
       * @return
       */
     def validate(): Option[InvalidJobOptionError]
+
+    def resolveEntryPoints(): Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord]
   }
 
 
@@ -85,17 +88,17 @@ package object jobtypes {
 
       val jx = engineJob.jsonSettings.parseJson
 
-      JobTypeId(engineJob.jobTypeId) match {
-        case JobTypeIds.HELLO_WORLD => jx.convertTo[HelloWorldJobOptions]
-        case JobTypeIds.DB_BACKUP => jx.convertTo[DbBackUpJobOptions]
-        case JobTypeIds.DELETE_DATASETS => jx.convertTo[DeleteDataSetJobOptions]
-        case JobTypeIds.EXPORT_DATASETS => jx.convertTo[ExportDataSetsJobOptions]
-        case JobTypeIds.CONVERT_FASTA_BARCODES => jx.convertTo[ImportBarcodeFastaJobOptions]
-        case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
-        case JobTypeIds.CONVERT_FASTA_REFERENCE => jx.convertTo[ImportFastaJobOptions]
-        case JobTypeIds.MERGE_DATASETS => jx.convertTo[MergeDataSetJobOptions]
-        case JobTypeIds.MOCK_PBSMRTPIPE => jx.convertTo[MockPbsmrtpipeJobOptions]
-        case JobTypeIds.PBSMRTPIPE => jx.convertTo[PbsmrtpipeJobOptions]
+      engineJob.jobTypeId match {
+        case JobTypeIds.HELLO_WORLD.id => jx.convertTo[HelloWorldJobOptions]
+        case JobTypeIds.DB_BACKUP.id => jx.convertTo[DbBackUpJobOptions]
+        case JobTypeIds.DELETE_DATASETS.id => jx.convertTo[DeleteDataSetJobOptions]
+        case JobTypeIds.EXPORT_DATASETS.id => jx.convertTo[ExportDataSetsJobOptions]
+        case JobTypeIds.CONVERT_FASTA_BARCODES.id => jx.convertTo[ImportBarcodeFastaJobOptions]
+        case JobTypeIds.IMPORT_DATASET.id => jx.convertTo[ImportDataSetJobOptions]
+        case JobTypeIds.CONVERT_FASTA_REFERENCE.id => jx.convertTo[ImportFastaJobOptions]
+        case JobTypeIds.MERGE_DATASETS.id => jx.convertTo[MergeDataSetJobOptions]
+        case JobTypeIds.MOCK_PBSMRTPIPE.id => jx.convertTo[MockPbsmrtpipeJobOptions]
+        case JobTypeIds.PBSMRTPIPE.id => jx.convertTo[PbsmrtpipeJobOptions]
       }
     }
   }

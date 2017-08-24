@@ -51,7 +51,7 @@ trait DeleteResourcesBase {
   this: BaseCoreJob with timeUtils =>
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("delete_resources")
+  //val jobTypeId = JobTypeId("delete_resources")
   val resourceType = "Unknown Path"
 
   protected def deleteFileOrDirectory(f: File, ignoreFailures: Boolean = true): DeletedFile = {
@@ -143,7 +143,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
     extends BaseCoreJob(opts: DeleteResourcesOptions)
     with DeleteResourcesBase
     with timeUtils {
-  override val jobTypeId = JobTypeId("delete_job")
+  override val jobTypeId = JobTypeIds.DELETE_JOB
   override val resourceType = "Job"
 
   private def deleteDirFiles(targetDir: File, ignoreFailures: Boolean = true): Seq[DeletedFile] = {
@@ -193,7 +193,7 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
     extends BaseCoreJob(opts: DeleteDatasetsOptions)
     with DeleteResourcesBase
     with timeUtils {
-  override val jobTypeId = JobTypeId("delete_dataset")
+  override val jobTypeId = JobTypeIds.DELETE_DATASETS
   override val resourceType = "Dataset"
   private val DEFAULT_BAM_FILTER_METATYPES = FileTypes.BAM_RESOURCES.map(x => x.fileTypeId).toSet
 

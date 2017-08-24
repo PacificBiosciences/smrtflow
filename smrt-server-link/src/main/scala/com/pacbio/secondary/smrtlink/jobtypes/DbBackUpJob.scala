@@ -10,7 +10,7 @@ case class DbBackUpJobOptions(user: String,
                               name: Option[String],
                               description: Option[String],
                               projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
-  override val jobTypeId: JobTypeId = JobTypeIds.DB_BACKUP
+  override def jobTypeId = JobTypeIds.DB_BACKUP
   override def validate() = None
   override def toJob() = new DbBackUpJob(this)
 
