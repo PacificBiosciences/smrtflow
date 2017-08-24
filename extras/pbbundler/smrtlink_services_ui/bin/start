@@ -52,6 +52,9 @@ SL_SERVICES_LOG_ARGS=$(cat ${__root}/services-log-args)
 SL_SERVICES_CONF=${__root}/smrtlink-system-config.json
 SL_SERVICES_APP_CONF=${__root}/application.json
 
+# XXX should this be set somewhere else?
+export SMRT_PIPELINE_BUNDLE_DIR=${__root}/resources/pacbio-bundles/pbpipeline-resources-active
+
 SL_SERVICES_TOOLS_DIR=${__root}/tools
 AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json

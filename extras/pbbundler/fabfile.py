@@ -222,6 +222,24 @@ def _copy_chemistry_bundle(chemistry_bundle_dir, dest_dir):
     log.info("Chemistry bundle is {t}".format(t=tarball))
 
 
+# this assumes that the pbpipeline-resources bundle has already been placed
+# in the pacbio-bundles directory
+def _setup_pbpipeline_resources_bundle(dest_dir):
+    cwd = os.getcwd()
+    log.info("Unpacking pbpipeline-resources bundle in {d}".format(d=dest_dir))
+    for file_name in os.listdir(dest_dir):
+        if (file_name.startswith("pbpipeline-resources") and
+            file_name.endswith(".tar.gz")):
+            os.chdir(dest_dir)
+            local("tar czvf {t}".format(t=file_name))
+            dir_name = file_name.replace(".tar.gz", "")
+            assert os.path.isdir(dir_name)
+            os.symlink(dir_name, "pbpipeline-resources-active")
+            os.chdir(cwd)
+            return True
+    log.error("Couldn't find pbpipeline-resources bundle")
+
+
 def _copy_bundle_from_template(template_dir, bundle_version_dir):
     if os.path.exists(bundle_version_dir):
         log.warn("Bundle {v} already exists.".format(v=bundle_version_dir))
@@ -306,43 +324,6 @@ def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
     log.info("Copied tomcat-users.xml from {s} to {d}".format(s=src, d=dest))
 
 
-def __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir):
-    """
-    Copy all resolved pipeline templates into smrt-server-link within smrtflow.
-
-    Note, this will overwrite all existing files
-    """
-
-    def to_scala_path(x):
-        return os.path.join(services_root_dir, x)
-
-    if resolved_pipeline_templates_dir is not None:
-        target_json_dir = to_scala_path(
-            "smrt-server-link/src/main/resources/resolved-pipeline-templates")
-        if os.path.exists(target_json_dir):
-            log.warn("removing old resolved pipeline templates dir {d}".format(
-                d=target_json_dir))
-            shutil.rmtree(target_json_dir)
-        os.mkdir(target_json_dir)
-        log.info("copying resolved pipeline templates in {d}...".format(
-            d=resolved_pipeline_templates_dir))
-        nfiles = 0
-        for json_file in os.listdir(resolved_pipeline_templates_dir):
-            src_file = os.path.join(resolved_pipeline_templates_dir, json_file)
-            if json_file.endswith(".json"):
-                nfiles += 1
-                target_file = os.path.join(target_json_dir, json_file)
-                if os.path.exists(target_file):
-                    os.remove(target_file)
-                log.debug("  cp {s} {t}".format(s=src_file, t=target_file))
-                shutil.copyfile(src_file, target_file)
-        if nfiles == 0:
-            # the services require at least one. MK this should fixed.
-            emsg = "No resolved pipeline templates found in {d}. SMRT Link " \
-                   "services requires at least one pipeline template".format(d=resolved_pipeline_templates_dir)
-            raise ValueError(emsg)
-
-
 def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     """
     Extract and add custom
@@ -393,7 +374,6 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
 
 
 def _build_smrtlink_services(services_root_dir, output_bundle_dir,
-                             resolved_pipeline_templates_dir=None,
                              ivy_cache=None,
                              analysis_server="smrt-server-link"):
     """
@@ -402,7 +382,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     :param services_root_dir: smrtflow root directory to the scala services
     code
     :param output_bundle_dir: Path to output bundle directory
-    :param resolved_pipeline_templates_dir: Path to directory containing
     resolved pipeline template JSON files
     :param ivy_cache: Custom ivy-cache location
     :param analysis_server: sbt smrt-server subproject name
@@ -413,11 +392,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     # Build Scala Services
     def to_scala_path(x):
         return os.path.join(services_root_dir, x)
-
-    if resolved_pipeline_templates_dir is not None:
-        __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir)
-    else:
-        log.warn("No Resolved Pipeline Templates dir provided")
 
     sbt_cmd = _to_sbt_cmd(ivy_cache)
 
@@ -441,7 +415,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 def build_smrtlink_services_ui(version,
                                smrtlink_ui_dir,
                                smrtflow_root_dir,
-                               resolved_pipeline_templates_dir,
                                publish_to=None,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
@@ -462,9 +435,6 @@ def build_smrtlink_services_ui(version,
     :param smrtflow_root_dir: Root Directory to the smrtflow repo (e.g.,
 
     Example: /Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow)
-
-    :param resolved_pipeline_templates_dir: Directory containing resolved
-    pipeline template JSON files
 
     :param publish_to: Copy the bundle.tgz to output directory. Ignore if
     not given
@@ -507,7 +477,6 @@ def build_smrtlink_services_ui(version,
 
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
     smrtlink_ui_dir = to_p(smrtlink_ui_dir)
-    resolved_pipeline_templates_dir = to_p(resolved_pipeline_templates_dir)
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
     tomcat_tgz = to_p(tomcat_tgz)
     doc_dir = to_p(doc_dir) if doc_dir is not None else doc_dir
@@ -515,7 +484,6 @@ def build_smrtlink_services_ui(version,
     # Validation to fail early
     _raise_if_not_exists(smrtlink_ui_dir, "SMRTLink UI not found.")
     _raise_if_not_exists(smrtflow_root_dir, "smrtflow services not found.")
-    _raise_if_not_exists(resolved_pipeline_templates_dir, "pbsmrtpipe Resources not found.")
     _raise_if_not_exists(wso2_api_manager_zip, "Unable to find wso2 API Manager zip '{}'".format(wso2_api_manager_zip))
     _raise_if_not_exists(tomcat_tgz, "Unable to find tomcat from '{}'".format(tomcat_tgz))
 
@@ -530,6 +498,7 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
+    _setup_pbpipeline_resources_bundle(output_bundle_dir)
     if chemistry_bundle_dir is not None:
         _copy_chemistry_bundle(chemistry_bundle_dir, output_bundle_dir)
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
@@ -582,7 +551,6 @@ def build_smrtlink_services_ui(version,
 
     # Build Scala SMRT Link Analysis Services
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
-                             resolved_pipeline_templates_dir=resolved_pipeline_templates_dir,
                              ivy_cache=ivy_cache,
                              analysis_server="smrt-server-link")
     # build simulator tools
