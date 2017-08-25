@@ -294,21 +294,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case GetEulas => pipeWith(dao.getEulas)
-
-    case GetEulaByVersion(version) =>
-      pipeWith {dao.getEulaByVersion(version) }
-
-    case AddEulaRecord(eulaRecord) =>
-      pipeWith(dao.addEulaRecord(eulaRecord))
-
-    case DeleteEula(version) => pipeWith {
-      dao.removeEula(version).map(x =>
-        if (x == 0) SuccessMessage(s"No user agreement for version $version was found")
-        else SuccessMessage(s"Removed user agreement for version $version")
-      )
-    }
-
     case GetUserProjects(login) => pipeWith(dao.getUserProjects(login))
 
     case SubmitDbBackUpJob(user: String, dbConfig: DatabaseConfig, rootBackUpDir: Path) => {
