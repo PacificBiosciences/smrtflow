@@ -146,7 +146,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator) extends SmrtLin
               complete {
                 ok {
                   getProjectIds(projectId, user)
-                      .map { ids => GetDataSets(DS_LIMIT, showAll.isDefined, ids) }.mapTo[Seq[R]]
+                      .map { ids => GetDataSets(DS_LIMIT, showAll.isDefined, ids) }
                 }
               }
             }
