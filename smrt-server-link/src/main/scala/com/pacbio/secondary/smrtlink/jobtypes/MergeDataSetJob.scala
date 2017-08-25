@@ -1,9 +1,12 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
+import java.nio.file.Path
+
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
 
 /**
   * Created by mkocher on 8/17/17.
@@ -21,6 +24,12 @@ case class MergeDataSetJobOptions(datasetType: DataSetMetaTypes.DataSetMetaType,
 class MergeDataSetJob(opts: MergeDataSetJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+
+    val name = opts.name.getOrElse("Merge-DataSet")
+    // This have to be resolved from the Dao
+    val paths: Seq[String] = Seq.empty[String]
+    val oldOpts = MergeDataSetOptions(opts.datasetType.toString, paths, name, opts.getProjectId())
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }

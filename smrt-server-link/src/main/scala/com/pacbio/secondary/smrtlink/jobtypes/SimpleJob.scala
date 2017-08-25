@@ -4,6 +4,7 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 
 /**
   * Created by mkocher on 8/17/17.
@@ -20,6 +21,9 @@ case class SimpleJobOptions(path: String,
 class SimpleJob(opts: SimpleJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+    // shim
+    val oldOpts = SimpleDevJobOptions(1, 2, opts.getProjectId())
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }

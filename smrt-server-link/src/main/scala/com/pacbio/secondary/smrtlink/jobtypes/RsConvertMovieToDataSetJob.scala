@@ -4,6 +4,7 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MovieMetadataToHdfSubreadOptions
 
 /**
   * Created by mkocher on 8/17/17.
@@ -18,6 +19,10 @@ case class RsConvertMovieToDataSetJobOptions(path: String, name: Option[String],
 class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+    // SHIM
+    val name = opts.name.getOrElse("RS-to-HdfSubreadSet")
+    val oldOpts = MovieMetadataToHdfSubreadOptions(opts.path, name, opts.getProjectId())
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }

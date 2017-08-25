@@ -476,8 +476,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
     }
 
-    db.run(action.transactionally)
+    val f = db.run(action.transactionally)
 
+    // Need to send an event to EngineManager to Check for work
+    f onSuccess { case engineJob: EngineJob => sendEventToManager(engineJob)}
+
+    f
   }
 
   /**

@@ -1,6 +1,8 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ConvertImportFastaOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
 
@@ -20,6 +22,11 @@ case class ImportFastaJobOptions(path: String,
 class ImportFastaJob(opts: ImportFastaJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+    // Shim layer
+    val name = opts.name.getOrElse("Fasta-Convert")
+    val projectId = opts.projectId.getOrElse(GENERAL_PROJECT_ID)
+    val oldOpts = ConvertImportFastaOptions(opts.path, name, opts.ploidy, opts.organism, projectId)
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }

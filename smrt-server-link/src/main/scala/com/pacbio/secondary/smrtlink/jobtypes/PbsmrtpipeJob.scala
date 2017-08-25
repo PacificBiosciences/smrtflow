@@ -1,9 +1,13 @@
 
 package com.pacbio.secondary.smrtlink.jobtypes
 
+import java.net.URI
+import java.nio.file.Path
+
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.models.BoundServiceEntryPoint
 
 /**
@@ -11,6 +15,7 @@ import com.pacbio.secondary.smrtlink.models.BoundServiceEntryPoint
   */
 case class PbsmrtpipeJobOptions(name: Option[String],
                                 description: Option[String],
+                                pipelineId: String,
                                 entryPoints: Seq[BoundServiceEntryPoint],
                                 taskOptions: Seq[ServiceTaskOptionBase],
                                 workflowOptions: Seq[ServiceTaskOptionBase],
@@ -22,7 +27,20 @@ case class PbsmrtpipeJobOptions(name: Option[String],
 
 class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
+
+
+
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+
+    //FIXME
+    val entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint]
+
+    // These need to be pulled from the System config
+    val envPath: Option[Path] = None
+    val serviceURI: Option[URI] = None
+
+    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, opts.workflowOptions, envPath, serviceURI, None, opts.getProjectId())
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }

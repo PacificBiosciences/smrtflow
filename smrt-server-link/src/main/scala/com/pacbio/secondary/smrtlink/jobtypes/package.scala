@@ -47,6 +47,10 @@ package object jobtypes {
     val description: Option[String]
     val projectId: Option[Int]
 
+    // This is duplicated with projectId because of JSON optional options. It would be better if
+    // "projectId" was private.
+    def getProjectId(): Int = projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+
     // This needs to be defined at the job option level to be a globally unique type.
     def jobTypeId: JobType // This is a def for seralization reasons.
     def toJob(): ServiceCoreJob

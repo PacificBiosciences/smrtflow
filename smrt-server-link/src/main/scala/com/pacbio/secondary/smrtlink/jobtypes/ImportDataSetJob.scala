@@ -4,6 +4,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 
 /**
   * Created by mkocher on 8/17/17.
@@ -23,7 +24,10 @@ case class ImportDataSetJobOptions(path: String,
 class ImportDataSetJob(opts: ImportDataSetJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
-    Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
+    // shim layer
+    val oldOpts = ImportDataSetOptions(opts.path, opts.datasetType, opts.getProjectId())
+    val job = oldOpts.toJob
+    job.run(resources, resultsWriter)
   }
 }
 
