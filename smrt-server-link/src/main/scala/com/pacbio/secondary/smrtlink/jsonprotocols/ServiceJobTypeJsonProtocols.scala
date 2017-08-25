@@ -25,8 +25,8 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
   implicit val importFastaJobOptionsJsonFormat = jsonFormat6(ImportFastaJobOptions)
 
   // Renaming workaround
-  implicit val pbsmrtpipeJobOptionsJsonFormat = jsonFormat6(PbsmrtpipeJobOptions)
-  implicit val mockPbsmrtpipeJobOptionsJsonFormat = jsonFormat6(MockPbsmrtpipeJobOptions)
+  implicit val pbsmrtpipeJobOptionsJsonFormat = jsonFormat7(PbsmrtpipeJobOptions)
+  implicit val mockPbsmrtpipeJobOptionsJsonFormat = jsonFormat7(MockPbsmrtpipeJobOptions)
 
 
 

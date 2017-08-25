@@ -1,32 +1,28 @@
-package com.pacbio.secondary.smrtlink.services.jobtypes
+package com.pacbio.secondary.smrtlink.validators
 
 import java.nio.file.{Files, Paths}
-import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
+import com.pacbio.secondary.smrtlink.actors.JobsDaoActor
 import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
-import com.pacbio.secondary.smrtlink.actors.JobsDaoActor
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+import scalaz.Scalaz._
 import scalaz._
-import Scalaz._
 
 // To avoid colliding with scalaz. This is pretty terrible naming
-import scala.util.{Try => ScTry, Failure => ScFailure, Success => ScSuccess}
+import scala.util.{Failure => ScFailure, Success => ScSuccess, Try => ScTry}
 
 trait ValidateImportDataSetUtils extends DataSetFileUtils{
 
   implicit val timeout = Timeout(12.seconds)
-  import CommonModelImplicits._
 
 
   type ValidationErrorMsg = String

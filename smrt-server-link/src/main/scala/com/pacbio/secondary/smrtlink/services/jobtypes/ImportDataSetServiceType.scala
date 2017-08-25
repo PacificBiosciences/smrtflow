@@ -6,12 +6,10 @@ import java.nio.file.Paths
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
-
 import akka.actor.ActorRef
 import akka.pattern.ask
 import spray.httpx.SprayJsonSupport._
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
@@ -25,9 +23,10 @@ import com.pacbio.secondary.smrtlink.jobtypes.ImportDataSetJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActor._
 import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.{DataSetMetaDataSet,UserRecord}
+import com.pacbio.secondary.smrtlink.models.{DataSetMetaDataSet, UserRecord}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
 
 class ImportDataSetServiceType(dbActor: ActorRef,
                                authenticator: Authenticator,

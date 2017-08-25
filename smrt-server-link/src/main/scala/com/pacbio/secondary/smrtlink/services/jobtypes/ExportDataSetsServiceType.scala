@@ -16,6 +16,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
 import com.typesafe.scalalogging.LazyLogging
 import spray.httpx.SprayJsonSupport._
 import spray.json._

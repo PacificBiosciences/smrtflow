@@ -3,8 +3,9 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Created by mkocher on 8/17/17.
@@ -14,9 +15,12 @@ case class ImportDataSetJobOptions(path: String,
                                    name: Option[String],
                                    description: Option[String],
                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)
-                                  ) extends ServiceJobOptions {
+                                  ) extends ServiceJobOptions with LazyLogging{
   override def jobTypeId = JobTypeIds.IMPORT_DATASET
-  override def validate() = None
+  override def validate(): Option[InvalidJobOptionError] = {
+    logger.warn(s"Job ${jobTypeId.id} Validation is disabled")
+    None
+  }
 
   override def toJob() = new ImportDataSetJob(this)
 }

@@ -21,6 +21,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDaoActorProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.services.JobManagerServiceProvider
+import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
 import com.typesafe.scalalogging.LazyLogging
 import spray.http._
 import spray.httpx.SprayJsonSupport._
