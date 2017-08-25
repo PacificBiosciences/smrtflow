@@ -7,7 +7,6 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.PbsmrtpipeConfigLoad
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider, DatabaseUtils}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
-import com.pacbio.secondary.smrtlink.services.jobtypes._
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
@@ -25,7 +24,6 @@ object SmrtLinkApp
 
 trait SmrtLinkProviders extends
   AuthenticatedCoreProviders with
-  JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   AlarmDaoActorProvider with
   AlarmRunnerLoaderProvider with
@@ -53,16 +51,19 @@ trait SmrtLinkProviders extends
   RegistryServiceActorRefProvider with
   DatabaseRunDaoProvider with
   DatabaseSampleDaoProvider with
-  ImportDataSetServiceTypeProvider with
-  MergeDataSetServiceJobTypeProvider with
-  MockPbsmrtpipeJobTypeProvider with
-  DeleteJobServiceTypeProvider with
-  DbBackUpServiceJobTypeProvider with
   InMemoryRegistryDaoProvider with
   DataModelParserImplProvider with
   SimpleLogServiceProvider with
+  PipelineDataStoreViewRulesServiceProvider with
+  PipelineTemplateProvider with
+  ResolvedPipelineTemplateServiceProvider with
+  PipelineTemplateViewRulesServiceProvider with
+  ReportViewRulesResourceProvider with
+  ReportViewRulesServiceProvider with
   JobsServiceProvider {
-  override val actorSystemName = Some("smrtlink-smrt-server")
+
+  override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
+  override val actorSystemName = Some("smrtlink-analysis-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }
 

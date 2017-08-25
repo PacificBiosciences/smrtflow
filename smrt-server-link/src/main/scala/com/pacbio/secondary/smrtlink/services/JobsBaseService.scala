@@ -167,6 +167,15 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
             }
           }
         }
+      } ~
+      get {
+        parameters('showAll.?, 'projectId.?.as[Option[Int]]) { (showAll, projectId) =>
+          complete {
+            ok {
+              dao.getJobsByTypeId(jobTypeId.id, showAll.isDefined, projectId)
+            }
+          }
+        }
       }
     }
 
@@ -512,9 +521,6 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBi
     }
   }
 
-  //def wrap(t: JobTypeService[_]): Route = pathPrefix(SERVICE_PREFIX / JOB_ROOT_PREFIX) { t.routes }
-  //val jobServiceTypeRoutes = jobTypes.map(wrap).reduce(_ ~ _)
-
   def getServiceJobRoutes(): Route = {
 
     // This will NOT be wrapped in a job-type prefix
@@ -530,8 +536,9 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBi
 
     val allJobRoutes:Route = jobTypeRoutes ~ nakedJob.allJobRoutes ~ rx
 
-
-    pathPrefix("smrt-link-test") { allJobRoutes }
+    // These need to be prefixed with secondary-analysis as well
+    // Keep the backward compatibility of /smrt-link/ and /secondary-analysis root prefix
+    pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes }
   }
 
   override def routes: Route = getServiceJobRoutes()

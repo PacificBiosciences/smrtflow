@@ -237,7 +237,7 @@ lazy val smrtServerLink =
   toPacBioProject("smrt-server-link")
       .dependsOn(logging, common)
       .settings(
-        mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"),
+        mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"),
         assemblyJarName in assembly := "smrt-server-link-analysis.jar")
 
 lazy val smrtServerSim =

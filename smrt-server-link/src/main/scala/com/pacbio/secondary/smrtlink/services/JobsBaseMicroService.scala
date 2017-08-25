@@ -9,6 +9,9 @@ import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Base trait for Jobs services. Adds a prefix to to all endpoints. See {{{JobServiceConstants}}}.
+  *
+  * This is mis-named and not job specific,  it only adds the "root" prefix
+  * This should be deleted or collapsed with SmrtLinkBaseMicroService
  */
 trait JobsBaseMicroService extends PacBioService with JobServiceConstants with LazyLogging {
   implicit val timeout = Timeout(30.seconds)
