@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 /**
   * Created by mkocher on 8/18/16.
   */
-class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) extends JobsBaseMicroService{
+class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao) extends SmrtLinkBaseRouteMicroService{
 
   import SmrtLinkJsonProtocols._
 

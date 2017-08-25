@@ -16,7 +16,7 @@ import spray.httpx.SprayJsonSupport._
  *
  * Created by mkocher on 9/21/15.
  */
-class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBaseMicroService {
+class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends SmrtLinkBaseRouteMicroService {
 
   import SmrtLinkJsonProtocols._
 

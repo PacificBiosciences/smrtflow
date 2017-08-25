@@ -11,7 +11,7 @@ import spray.httpx.SprayJsonSupport._
  *
  * Created by mkocher on 9/25/15.
  */
-class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends JobsBaseMicroService {
+class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends SmrtLinkBaseRouteMicroService {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 

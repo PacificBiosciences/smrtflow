@@ -17,7 +17,7 @@ import scala.concurrent.Future
  * Accessing Projects
  */
 class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
-  extends JobsBaseMicroService
+  extends SmrtLinkBaseRouteMicroService
   with FutureSecurityDirectives
   with SmrtLinkConstants {
 

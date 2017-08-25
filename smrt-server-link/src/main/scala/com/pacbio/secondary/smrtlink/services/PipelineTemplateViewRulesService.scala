@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport._
  *
  * Created by mkocher on 9/24/15.
  */
-class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) extends JobsBaseMicroService {
+class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) extends SmrtLinkBaseRouteMicroService {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 

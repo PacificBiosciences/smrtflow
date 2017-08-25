@@ -13,7 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
   * This is mis-named and not job specific,  it only adds the "root" prefix
   * This should be deleted or collapsed with SmrtLinkBaseMicroService
  */
-trait JobsBaseMicroService extends PacBioService with JobServiceConstants with LazyLogging {
+trait SmrtLinkBaseRouteMicroService extends PacBioService with JobServiceConstants with LazyLogging {
   implicit val timeout = Timeout(30.seconds)
 
   // Duplicate the Routes here to have backward compatibility

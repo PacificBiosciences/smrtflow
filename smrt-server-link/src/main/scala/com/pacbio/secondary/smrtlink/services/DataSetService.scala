@@ -34,7 +34,7 @@ import com.pacbio.common.models.CommonModelSpraySupport._
  * Accessing DataSets by type. Currently several datasets types are
  * not completely supported (ContigSet, CCSreads, CCS Alignments)
  */
-class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends JobsBaseMicroService with SmrtLinkConstants {
+class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends SmrtLinkBaseRouteMicroService with SmrtLinkConstants {
   // For all the Message types
 
   import JobsDaoActor._
