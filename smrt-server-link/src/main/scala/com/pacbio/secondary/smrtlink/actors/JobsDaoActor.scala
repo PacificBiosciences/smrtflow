@@ -44,53 +44,6 @@ object MessageTypes {
 object JobsDaoActor {
   import MessageTypes._
 
-  // All Job Message Protocols
-  case object GetAllJobs extends JobMessage
-
-  case class GetJobByIdAble(ix: IdAble) extends JobMessage
-
-  case class GetJobsByJobType(jobTypeId: String, includeInactive: Boolean = false, projectId: Option[Int] = None) extends JobMessage
-
-  case class GetJobEventsByJobId(jobId: Int) extends JobMessage
-
-  case class GetJobTasks(jobId: IdAble) extends JobMessage
-
-  case class GetJobTask(taskId: UUID) extends JobMessage
-
-  // createdAt is when the task was created, not when the Service has
-  // created the record. This is attempting to defer to the layer that
-  // has defined how tasks are created and not to create duplicate, and
-  // potentially inconsistent state (i.e., the database has createdAt that
-  // is different from the pbmsrtpipe createdAt datetime)
-  case class CreateJobTask(uuid: UUID,
-                           jobId: IdAble,
-                           taskId: String,
-                           taskTypeId: String,
-                           name: String,
-                           createdAt: JodaDateTime) extends JobMessage
-
-  // Update a Job Task status
-  case class UpdateJobTaskStatus(uuid: UUID, jobId: Int, state: String, message: String, errorMessage: Option[String])
-
-  case class CreateJobType(
-      uuid: UUID,
-      name: String,
-      comment: String,
-      jobTypeId: String,
-      coreJob: CoreJob,
-      engineEntryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-      jsonSettings: String,
-      createdBy: Option[String],
-      createdByEmail: Option[String],
-      smrtLinkVersion: Option[String]) extends JobMessage
-
-  case class GetJobChildrenById(jobId: IdAble) extends JobMessage
-
-  case class DeleteJobById(jobId: IdAble) extends JobMessage
-
-  // Get all DataSet Entry Points
-  case class GetEngineJobEntryPoints(jobId: Int) extends JobMessage
-
   // DataSet
   case object GetDataSetTypes extends DataSetMessage
 
@@ -201,43 +154,10 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   import JobsDaoActor._
   import CommonModelImplicits._
 
-  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
-
   implicit val timeout = Timeout(5.second)
 
-  val logStatusInterval = if (engineConfig.debugMode) 1.minute else 10.minutes
-
-  //MK Probably want to have better model for this
-  val checkForWorkInterval = 5.seconds
-
-  val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
-
-  // Keep track of workers
-  val workers = mutable.Queue[ActorRef]()
-
-  val maxNumQuickWorkers = 10
-  // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
-  val quickWorkers = mutable.Queue[ActorRef]()
-
-  // This is not awesome
-  val jobRunner = new SimpleAndImportJobRunner(self)
-  val serviceRunner = new ServiceJobRunner(dao)
-
-
   override def preStart(): Unit = {
-    log.info(s"Starting engine manager actor $self with $engineConfig")
-
-    (0 until engineConfig.maxWorkers).foreach { x =>
-      val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-worker-$x")
-      workers.enqueue(worker)
-      log.debug(s"Creating worker $worker")
-    }
-
-    (0 until maxNumQuickWorkers).foreach { x =>
-      val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-quick-worker-$x")
-      quickWorkers.enqueue(worker)
-      log.debug(s"Creating Quick worker $worker")
-    }
+    log.info(s"Starting JobsDaoActor manager actor $self with $engineConfig")
   }
 
   override def preRestart(reason:Throwable, message:Option[Any]){
@@ -245,75 +165,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
     log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
-  // Takes the given RunnableJobWithId and starts it with the given worker.  If
-  // the job can't be started, re-adds the worker to the workerQueue
-  // This should return a Future
-  def addJobToWorker(runnableJobWithId: RunnableJobWithId, workerQueue: mutable.Queue[ActorRef], worker: ActorRef): Unit = {
-    log.info(s"Adding job ${runnableJobWithId.job.uuid} to worker $worker.  numWorkers ${workers.size}, numQuickWorkers ${quickWorkers.size}")
-    log.info(s"Found jobOptions work ${runnableJobWithId.job.jobOptions.toJob.jobTypeId}. Updating state and starting task.")
-
-    // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
-    // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    val f = for {
-      m1 <- dao.updateJobState(runnableJobWithId.job.uuid, AnalysisJobStates.SUBMITTED, "Updated to Submitted")
-      m2 <- dao.updateJobState(runnableJobWithId.job.uuid, AnalysisJobStates.RUNNING, "Updated to Running")
-    } yield s"$m1,$m2"
-
-    f onComplete {
-      case Success(_) =>
-        val outputDir = resolver.resolve(runnableJobWithId)
-        val rjob = RunJob(runnableJobWithId.job, outputDir)
-        log.info(s"Sending worker $worker job (type:${rjob.job.jobOptions.toJob.jobTypeId}) $rjob")
-        worker ! rjob
-      case Failure(ex) =>
-        workerQueue.enqueue(worker)
-        val emsg = s"addJobToWorker Unable to update state ${runnableJobWithId.job.uuid} Marking as Failed. Error ${ex.getMessage}"
-        log.error(emsg)
-        self ! UpdateJobState(runnableJobWithId.job.uuid, AnalysisJobStates.FAILED, s"Updating state to Failed from worker $worker", Some(emsg))
-    }
-  }
-
-  // This should return a future
-  def checkForWork(): Unit = {
-    //log.info(s"Checking for work. # of Workers ${workers.size} # Quick Workers ${quickWorkers.size} ")
-
-    if (workers.nonEmpty) {
-      val worker = workers.dequeue()
-      val f = dao.getNextRunnableJobWithId
-
-      f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, workers, worker)
-        case Left(e) =>
-          workers.enqueue(worker)
-          log.debug(s"No work found. ${e.message}")
-      }
-
-      f onFailure {
-        case e =>
-          workers.enqueue(worker)
-          log.error(s"Failure checking for new work ${e.getMessage}")
-      }
-    } else {
-      log.debug("No available workers.")
-    }
-    if (quickWorkers.nonEmpty) {
-      val worker = quickWorkers.dequeue()
-      val f = dao.getNextRunnableQuickJobWithId
-      f onSuccess {
-        case Right(runnableJob) => addJobToWorker(runnableJob, quickWorkers, worker)
-        case Left(e) =>
-          quickWorkers.enqueue(worker)
-          log.debug(s"No work found. ${e.message}")
-      }
-      f onFailure {
-        case e =>
-          quickWorkers.enqueue(worker)
-          log.error(s"Failure checking for new work ${e.getMessage}")
-      }
-    } else {
-      log.debug("No available workers.")
-    }
-  }
 
   def toMd5(text: String): String =
     MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
@@ -321,97 +172,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
   def toE(msg: String) = throw new ResourceNotFoundError(msg)
 
   def receive: Receive = {
-
-
-    case CheckForRunnableJob =>
-      //FIXME. This Try is probably not necessary
-      Try {
-        checkForWork()
-      } match {
-        case Success(_) =>
-        case Failure(ex) => log.error(s"Failed check for runnable jobs ${ex.getMessage}")
-      }
-
-    case UpdateJobCompletedResult(result, workerType) =>
-      log.info(s"Worker $sender completed $result")
-      workerType match {
-        case QuickWorkType => quickWorkers.enqueue(sender)
-        case StandardWorkType => workers.enqueue(sender)
-      }
-
-      val errorMessage = result.state match {
-        case AnalysisJobStates.FAILED => Some(result.message)
-        case _ => None
-      }
-
-      val f = dao.updateJobState(result.uuid, result.state, s"Updated to ${result.state}", errorMessage)
-
-      f onComplete {
-        case Success(_) =>
-          log.info(s"Successfully updated job ${result.uuid} to ${result.state}")
-          self ! CheckForRunnableJob
-        case Failure(ex) =>
-          log.error(s"Failed to update job ${result.uuid} state to ${result.state} Error ${ex.getMessage}")
-          self ! CheckForRunnableJob
-      }
-
-    case GetSystemJobSummary =>
-      dao.getJobs(1000).map { rs =>
-        val states = rs.map(_.state).toSet
-        // Summary of job states by type
-        val results = states.toList.map(x => (x, rs.count(e => e.state == x)))
-        log.debug(s"Results $results")
-        dao.getDataStoreFiles(true).map { dsJobFiles =>
-          log.debug(s"Number of active DataStore files ${dsJobFiles.size}")
-          dsJobFiles.foreach { x => log.debug(s"DS File $x") }
-          rs.foreach { x => log.debug(s"Job result id ${x.id} -> ${x.uuid} ${x.state} ${x.jobTypeId}") }
-        }
-      }
-
-    case HasNextRunnableJobWithId => dao.getNextRunnableJobWithId pipeTo sender
-
-    // End of EngineDaoActor
-
-    case GetAllJobs => pipeWith(dao.getJobs(1000))
-
-    case GetJobsByJobType(jobTypeId, includeInactive: Boolean, projectId: Option[Int]) =>
-      pipeWith(dao.getJobsByTypeId(jobTypeId, includeInactive, projectId))
-
-    case GetJobByIdAble(ix) => pipeWith { dao.getJobById(ix) }
-
-    case GetJobEventsByJobId(jobId: Int) => pipeWith(dao.getJobEventsByJobId(jobId))
-
-    // Job Task related message
-    case CreateJobTask(uuid, jobId, taskId, taskTypeId, name, createdAt) => pipeWith {
-      for {
-        job <- dao.getJobById(jobId)
-        jobTask <- dao.addJobTask(JobTask(uuid, job.id, taskId, taskTypeId, name, AnalysisJobStates.CREATED.toString, createdAt, createdAt, None))
-      } yield jobTask
-    }
-
-    case UpdateJobTaskStatus(taskUUID, jobId, state, message, errorMessage) =>
-      pipeWith {dao.updateJobTask(UpdateJobTask(jobId, taskUUID, state, message, errorMessage))}
-
-    case GetJobChildrenById(jobId: IdAble) => dao.getJobChildrenByJobId(jobId) pipeTo sender
-
-    case DeleteJobById(jobId: IdAble) => pipeWith {
-      // FIXME(mpkocher) This inner map call is essentially a foreach
-      dao.deleteJobById(jobId).map { job =>
-        dao.getDataStoreFilesByJobId(job.uuid).map { dss =>
-          dss.map(ds => dao.deleteDataStoreJobFile(ds.dataStoreFile.uniqueId))
-        }
-        job
-      }
-    }
-
-    case GetJobTasks(ix: IdAble) => pipeWith { dao.getJobTasks(ix) }
-
-    case GetJobTask(taskId: UUID) => pipeWith { dao.getJobTask(taskId) }
-
-    case DeleteDataStoreFile(uuid: UUID) => dao.deleteDataStoreJobFile(uuid) pipeTo sender
-
-    case UpdateDataStoreFile(uuid: UUID, setIsActive: Boolean, path: Option[String], fileSize: Option[Long]) =>
-      pipeWith {dao.updateDataStoreFile(uuid, path, fileSize, setIsActive)}
 
     case GetDataSetMetaById(i: IdAble) => pipeWith { dao.getDataSetById(i) }
 
@@ -534,17 +294,6 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
 
     case ImportDataStoreFileByJobId(dsf: DataStoreFile, jobId) => pipeWith(dao.insertDataStoreFileById(dsf, jobId))
 
-    case CreateJobType(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion) =>
-      val fx = dao.createJob(uuid, name, comment, jobTypeId, coreJob, entryPointRecords, jsonSettings, createdBy, createdByEmail, smrtLinkVersion)
-      fx onSuccess { case _ => self ! CheckForRunnableJob}
-      //fx onFailure { case ex => log.error(s"Failed creating job uuid:$uuid name:$name ${ex.getMessage}")}
-      pipeWith(fx)
-
-    case UpdateJobState(jobId, state: AnalysisJobStates.JobStates, message, errorMessage) =>
-      pipeWith(dao.updateJobState(jobId, state, message, errorMessage))
-
-    case GetEngineJobEntryPoints(jobId) => pipeWith(dao.getJobEntryPoints(jobId))
-
     case GetEulas => pipeWith(dao.getEulas)
 
     case GetEulaByVersion(version) =>
@@ -579,12 +328,9 @@ class JobsDaoActor(dao: JobsDao, val engineConfig: EngineConfig, val resolver: J
         dbPassword = dbConfig.password)
 
       val coreJob = CoreJob(uuid, jobOpts)
-      val cJob = CreateJobType(uuid, name, comment, JobTypeIds.DB_BACKUP.id, coreJob, None,
-        opts.toJson.toString(), Some(user), None, None)
-
-      log.info(s"Automated DB backup request created $cJob")
-
-      self ! cJob
+      //val cJob = CreateJobType(uuid, name, comment, JobTypeIds.DB_BACKUP.id, coreJob, None, opts.toJson.toString(), Some(user), None, None)
+      //log.info(s"Automated DB backup request created $cJob")
+      //self ! cJob
 
     }
 

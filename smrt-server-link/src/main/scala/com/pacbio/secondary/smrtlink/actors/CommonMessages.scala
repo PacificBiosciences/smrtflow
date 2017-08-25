@@ -41,7 +41,6 @@ object CommonMessages {
 
   case object AllJobsCompleted
 
-  case class GetAllJobs(limit: Int)
 
   case object GetSystemJobSummary
 

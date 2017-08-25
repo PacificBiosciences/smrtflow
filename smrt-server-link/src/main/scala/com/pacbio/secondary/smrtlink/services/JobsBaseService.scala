@@ -22,6 +22,7 @@ import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import spray.http.{HttpData, HttpEntity, _}
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.unmarshalling.Unmarshaller
@@ -35,6 +36,27 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
+
+
+object JobResourceUtils extends  LazyLogging{
+  // FIXME. This is a very lackluster idea.
+  // This assumes an id -> file which is wrong
+  def getJobResource(jobDir: String, imageFileName: String): Option[String] = {
+    val jobP = Paths.get(jobDir)
+    val ext = FilenameUtils.getExtension(imageFileName)
+    val filterExt = if (ext.isEmpty) Seq("*") else Seq(ext)
+    logger.debug(s"Trying to resolve resource '$imageFileName' with ext '$ext' from '$jobDir'")
+    val it = FileUtils.iterateFiles(jobP.toFile, filterExt.toArray, true).filter(x => x.getName == imageFileName)
+    it.toList.headOption match {
+      case Some(x) => Some(x.toPath.toAbsolutePath.toString)
+      case _ => None
+    }
+  }
+
+  def resolveResourceFrom(rootJobDir: Path, imageFileName: String)(implicit ec: ExecutionContext) = Future {
+    JobResourceUtils.getJobResource(rootJobDir.toAbsolutePath.toString, imageFileName).getOrElse(s"Failed to find resource '$imageFileName' from $rootJobDir")
+  }
+}
 
 trait JobServiceRoutes {
   def jobTypeId: JobType
