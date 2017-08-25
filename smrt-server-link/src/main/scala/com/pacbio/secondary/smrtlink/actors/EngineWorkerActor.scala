@@ -20,9 +20,7 @@ object EngineWorkerActor {
   def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new EngineWorkerActor(daoActor, jobRunner, serviceRunner))
 }
 
-class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor
-with ActorLogging
-with timeUtils {
+class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
 
   val WORK_TYPE:WorkerType = StandardWorkType
   import CommonModelImplicits._
@@ -36,40 +34,6 @@ with timeUtils {
   }
 
   def receive: Receive = {
-    case RunJob(job, outputDir) =>
-      val jobTypeId = job.jobOptions.toJob.jobTypeId
-      val msg = s"Worker $self running job type ${jobTypeId.id} Job: $job"
-      log.info(msg)
-
-      // This would be nice to remove and to make the worker really dumb and simple.
-      val pJob = JobResource(job.uuid, outputDir, AnalysisJobStates.RUNNING)
-      // This might not be the best message
-      sender ! UpdateJobState(job.uuid, AnalysisJobStates.RUNNING, msg, None)
-
-      val stderrFw = new FileWriter(outputDir.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
-      val stdoutFw = new FileWriter(outputDir.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
-      val jobResultsWriter = new FileJobResultsWriter(stdoutFw, stderrFw)
-
-      // This will block
-      // This should only return Either[Failure, Success]
-      // and then update the Job State. The JobRunner abstraction
-      // should handle everything else (e.g., write task-report.json)
-      val result = jobRunner.runJobFromOpts(job.jobOptions, pJob, jobResultsWriter)
-
-      val message = result match {
-        case Right(x) =>
-          UpdateJobCompletedResult(x, WORK_TYPE)
-        case Left(ex) =>
-          val emsg = s"Failed job type ${jobTypeId.id} in ${outputDir.toAbsolutePath} Job: $job  ${ex.message}"
-          log.error(emsg)
-          UpdateJobCompletedResult(ex, WORK_TYPE)
-      }
-
-      stderrFw.close()
-      stdoutFw.close()
-      // Send Message back to EngineManager
-      sender ! message
-
     case RunEngineJob(engineJob) => {
 
       val tx = Try {
