@@ -13,6 +13,7 @@ import com.pacbio.secondary.smrtlink.jobtypes.{Converters, ServiceJobRunner}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Try,Success,Failure}
 
 
 object EngineWorkerActor {
@@ -69,29 +70,39 @@ with timeUtils {
       // Send Message back to EngineManager
       sender ! message
 
-    case RunEngineJob(engineJob) =>
+    case RunEngineJob(engineJob) => {
 
-      val outputDir = Paths.get(engineJob.path)
-      // need to convert a engineJob.settings into ServiceJobOptions
-      val opts = Converters.convertEngineToOptions(engineJob) // Maybe this should be encapsulated at the ServiceRunner?
-      val result = serviceRunner.run(opts, engineJob.uuid, outputDir) // this blocks
+      val tx = Try {
 
-      log.info(s"Results from ServiceRunner $result")
+        val outputDir = Paths.get(engineJob.path)
+        // need to convert a engineJob.settings into ServiceJobOptions
+        val opts = Converters.convertEngineToOptions(engineJob)
+        // Maybe this should be encapsulated at the ServiceRunner?
+        serviceRunner.run(opts, engineJob.uuid, outputDir) // this blocks and will update the file job state in the db. Need to handle error case
+      }
+
+      log.info(s"Results from ServiceRunner $tx")
       // This only needs to communicate back to the EngineManager that it's completed processing the results
       // and is free to run more work.
       // Adding some copy and paste in here get it to work mechanistically
-      val message = result match {
-        case Right(x) =>
-          UpdateJobCompletedResult(x, WORK_TYPE)
-        case Left(ex) =>
-          val emsg = s"Failed job type ${opts.jobTypeId.id} in ${outputDir.toAbsolutePath} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.message}"
+      val message = tx match {
+        case Success(rx) =>
+          rx match {
+            case Right(x) =>
+              UpdateJobCompletedResult(x, WORK_TYPE)
+            case Left(ex) =>
+              val emsg = s"Failed job type ${engineJob.jobTypeId} in ${engineJob.path} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.message}"
+              log.error(emsg)
+              UpdateJobCompletedResult(ex, WORK_TYPE)
+          }
+        case Failure(ex) =>
+          val emsg = s"Failed job type ${engineJob.jobTypeId} in ${engineJob.path} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.getMessage}"
           log.error(emsg)
-          UpdateJobCompletedResult(ex, WORK_TYPE)
+          UpdateJobCompletedResult(ResultFailed(engineJob.uuid, engineJob.jobTypeId, emsg, 0, AnalysisJobStates.FAILED, "localhost"), WORK_TYPE)
       }
 
-      // Send Message back to EngineManager
       sender ! message
-
+    }
 
     case x => log.debug(s"Unhandled Message to Engine Worker $x")
   }

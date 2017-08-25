@@ -336,6 +336,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
   final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
 
+  val NO_WORK = NoAvailableWorkError("No Available work to run.")
+
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
   val resolver: JobResourceResolver
@@ -367,9 +369,34 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     db.run(qEngineJobById(ix).result.headOption)
         .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
 
+  def getNextRunnableEngineJob(): Future[Either[NoAvailableWorkError, EngineJob]] = {
+
+    logger.info("Checking for next runnable EngineJobs")
+    import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
+    // I can't get this to work with AnalysisJobState type
+    //val q0 = engineJobs.filter(_.state === AnalysisJobStates.CREATED).sortBy(_.id).take(1)
+
+    val q0 = sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' ORDER BY job_id LIMIT 1".as[Int]
+
+    // This is NOT correct. This head will fail and caught in the recover. This needs to be be robust.
+    val fx = for {
+      jobId <- q0.head
+      _ <- qEngineJobById(jobId).map(j => (j.state, j.updatedAt)).update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
+      _ <- jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.SUBMITTED, s"Updating state to ${AnalysisJobStates.SUBMITTED}", JodaDateTime.now())
+      job <- qEngineJobById(jobId).result.head
+    } yield job
+
+
+    db.run(fx.transactionally)
+        .map(engineJob => Right(engineJob))
+        .recover {case NonFatal(ex) =>
+          logger.info("No available work")
+          Left(NO_WORK)}
+  }
 
   private def getNextRunnableJobByType(jobTypeFilter: JobType => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
     val noWork = NoAvailableWorkError("No Available work to run.")
+
     // Sort the Jobs by id to run the first one
     _runnableJobs.values.toSeq.sortWith(_.id < _.id).find((rj) =>
       rj.state == AnalysisJobStates.CREATED &&
