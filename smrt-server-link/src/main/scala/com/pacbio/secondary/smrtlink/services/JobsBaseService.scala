@@ -388,11 +388,11 @@ class ImportDataSetJobsService(override val dao: JobsDao, override val authentic
 
   private def updatePathIfNecessary(opts: ImportDataSetJobOptions): Future[EngineJob] = {
     for {
-      dsMini <- Future.fromTry(Try(getDataSetMiniMeta(Paths.get(opts.path))))
+      dsMini <- Future.fromTry(Try(getDataSetMiniMeta(opts.path)))
       ds <- dao.getDataSetById(dsMini.uuid)
       engineJob <- dao.getJobById(ds.jobId)
-      m1 <- dao.updateDataStoreFile(ds.uuid, Some(opts.path), None, true)
-      m2 <- dao.updateDataSetById(ds.uuid, opts.path, true)
+      m1 <- dao.updateDataStoreFile(ds.uuid, Some(opts.path.toString), None, true)
+      m2 <- dao.updateDataSetById(ds.uuid, opts.path.toString, true)
       _ <- Future.successful(andLog(s"$m1 $m2"))
 
     } yield engineJob

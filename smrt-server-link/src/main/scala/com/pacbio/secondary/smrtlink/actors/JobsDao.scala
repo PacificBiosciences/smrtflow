@@ -1341,6 +1341,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   /**
     * Update the Path and the Activity of a DataStore file
     *
+    * FIXME. These should be using Path, not String
+    *
     * @param id          Unique id of the datastore file
     * @param path        Absolute path to the file
     * @param setIsActive activity of the file
