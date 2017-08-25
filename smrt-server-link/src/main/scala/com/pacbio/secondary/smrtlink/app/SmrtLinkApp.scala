@@ -11,7 +11,6 @@ import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
-import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
@@ -36,7 +35,6 @@ trait SmrtLinkProviders extends
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
   SmrtLinkEventServiceProvider with
-  JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
   DataIntegrityManagerActorProvider with
@@ -96,9 +94,9 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
       case Some(rootBackUpDir) =>
 
         val dbBackupKey = providers.conf.getString("pacBioSystem.dbBackUpSchedule")
-        val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
-        logger.info(s"Scheduling '$dbBackupKey' db backup $m")
-        scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+        //val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
+        //logger.info(s"Scheduling '$dbBackupKey' db backup $m")
+        // scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
 
         val alarmSchedule = providers.conf.getString("pacBioSystem.alarmSchedule")
         logger.info(s"Scheduling $alarmSchedule Alarm Manager Runner(s)")

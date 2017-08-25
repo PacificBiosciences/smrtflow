@@ -9,7 +9,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoa
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.services.jobtypes.MockPbsmrtpipeJobTypeProvider
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData

@@ -6,7 +6,7 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.secondary.smrtlink.actors.JobsDaoActor
+import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.models._
@@ -80,23 +80,22 @@ trait ValidateImportDataSetUtils extends DataSetFileUtils{
    *
    * @param datasetType DataSet Metdata type
    * @param id Int id of the dataset
-   * @param dbActor Database Actor to resolve the DataSet resource
+   * @param dao Database interface
    * @return
    */
-  def resolveDataSet(datasetType: String, id: IdAble, dbActor: ActorRef): Future[ServiceDataSetMetadata] = {
-    import JobsDaoActor._
+  def resolveDataSet(datasetType: String, id: IdAble, dao: JobsDao): Future[ServiceDataSetMetadata] = {
 
     try {
       DataSetMetaTypes.toDataSetType(datasetType) match {
-        case Some(DataSetMetaTypes.HdfSubread) => (dbActor ? GetHdfSubreadDataSetById(id)).mapTo[HdfSubreadServiceDataSet]
-        case Some(DataSetMetaTypes.Subread) => (dbActor ? GetSubreadDataSetById(id)).mapTo[SubreadServiceDataSet]
-        case Some(DataSetMetaTypes.Reference) => (dbActor ? GetReferenceDataSetById(id)).mapTo[ReferenceServiceDataSet]
-        case Some(DataSetMetaTypes.Alignment) => (dbActor ? GetAlignmentDataSetById(id)).mapTo[AlignmentServiceDataSet]
-        case Some(DataSetMetaTypes.Barcode) => (dbActor ? GetBarcodeDataSetById(id)).mapTo[BarcodeServiceDataSet]
-        case Some(DataSetMetaTypes.CCS) => (dbActor ? GetConsensusReadDataSetById(id)).mapTo[ConsensusReadServiceDataSet]
-        case Some(DataSetMetaTypes.AlignmentCCS) => (dbActor ? GetConsensusAlignmentDataSetById(id)).mapTo[ConsensusAlignmentServiceDataSet]
-        case Some(DataSetMetaTypes.Contig) => (dbActor ? GetContigDataSetById(id)).mapTo[ContigServiceDataSet]
-        case Some(DataSetMetaTypes.GmapReference) => (dbActor ? GetGmapReferenceDataSetById(id)).mapTo[GmapReferenceServiceDataSet]
+        case Some(DataSetMetaTypes.HdfSubread) => dao.getHdfDataSetById(id)
+        case Some(DataSetMetaTypes.Subread) => dao.getSubreadDataSetById(id)
+        case Some(DataSetMetaTypes.Reference) => dao.getReferenceDataSetById(id)
+        case Some(DataSetMetaTypes.Alignment) => dao.getAlignmentDataSetById(id)
+        case Some(DataSetMetaTypes.Barcode) => dao.getBarcodeDataSetById(id)
+        case Some(DataSetMetaTypes.CCS) => dao.getConsensusReadDataSetById(id)
+        case Some(DataSetMetaTypes.AlignmentCCS) => dao.getConsensusAlignmentDataSetById(id)
+        case Some(DataSetMetaTypes.Contig) => dao.getContigDataSetById(id)
+        case Some(DataSetMetaTypes.GmapReference) => dao.getGmapReferenceDataSetById(id)
         case _ => Future.failed(new UnprocessableEntityError(s"Unsupported dataset type: $datasetType"))
         }
     } catch {

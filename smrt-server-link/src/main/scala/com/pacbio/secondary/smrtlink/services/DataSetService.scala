@@ -23,7 +23,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImpl
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
-import com.pacbio.secondary.smrtlink.actors.{JobsDaoActor, JobsDaoActorProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.common.models.CommonModels._
@@ -34,10 +34,9 @@ import com.pacbio.common.models.CommonModelSpraySupport._
  * Accessing DataSets by type. Currently several datasets types are
  * not completely supported (ContigSet, CCSreads, CCS Alignments)
  */
-class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends SmrtLinkBaseRouteMicroService with SmrtLinkConstants {
+class DataSetService(dao: JobsDao, authenticator: Authenticator) extends SmrtLinkBaseRouteMicroService with SmrtLinkConstants {
   // For all the Message types
 
-  import JobsDaoActor._
   import CommonModelImplicits._
 
   // For all the serialization protocols
@@ -69,17 +68,73 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
   def getProjectIds(projectId: Option[Int], user: Option[UserRecord]): Future[Seq[Int]] =
     (projectId, user) match {
       case (Some(id), _) => Future(Seq(id))
-      case (None, Some(u)) => (dbActor ? GetUserProjects(u.userId))
-        .mapTo[Seq[UserProjectResponse]]
-        .map(_.map(_.project.id) :+ GENERAL_PROJECT_ID)
+      case (None, Some(u)) => dao.getUserProjects(u.userId).map(_.map(_.project.id) :+ GENERAL_PROJECT_ID)
       case (None, None) => Future(Nil)
     }
 
+  // Need to add boilerplate getters here to plug into the current model and adhere to the interface
+  // This should be cleaned up at somepoint.
+
+  // SubreadSet
+  def getSubreadSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
+    dao.getSubreadDataSets(limit, includeInactive, projectIds)
+  def getSubreadSetById(i: IdAble):Future[SubreadServiceDataSet] = dao.getSubreadDataSetById(i)
+  def getSubreadSetDetailsById(i: IdAble): Future[String] = dao.getSubreadDataSetDetailsById(i)
+
+  // HdfSubreadSet
+  def getHdfSubreadSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
+    dao.getHdfDataSets(limit, includeInactive, projectIds)
+  def getHdfSubreadById(i: IdAble):Future[HdfSubreadServiceDataSet] = dao.getHdfDataSetById(i)
+  def getHdfSubreadDetailsById(i: IdAble): Future[String] = dao.getHdfDataSetDetailsById(i)
+
+  // AlignmentSets
+  def getAlignmentSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
+    dao.getAlignmentDataSets(limit, includeInactive, projectIds)
+  def getAlignmentSetById(i: IdAble):Future[AlignmentServiceDataSet] = dao.getAlignmentDataSetById(i)
+  def getAlignmentSetDetails(i: IdAble): Future[String] = dao.getAlignmentDataSetDetailsById(i)
+
+  // ReferenceSets
+  def getReferenceSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
+    dao.getReferenceDataSets(limit, includeInactive, projectIds)
+  def getReferenceSetById(i: IdAble):Future[ReferenceServiceDataSet] = dao.getReferenceDataSetById(i)
+  def getReferenceSetDetails(i: IdAble): Future[String] = dao.getReferenceDataSetDetailsById(i)
+
+  // GmapReferenceSet
+  def getGmapReferenceSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
+    dao.getGmapReferenceDataSets(limit, includeInactive, projectIds)
+  def getGmapReferenceSetById(i: IdAble):Future[GmapReferenceServiceDataSet] = dao.getGmapReferenceDataSetById(i)
+  def getGmapReferenceSetDetails(i: IdAble): Future[String] = dao.getGmapReferenceDataSetDetailsById(i)
+
+  /// BarcodeSet
+  def getBarcodeSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
+    dao.getBarcodeDataSets(limit, includeInactive, projectIds)
+  def getBarcodeSetById(i: IdAble):Future[BarcodeServiceDataSet] = dao.getBarcodeDataSetById(i)
+  def getBarcodeSetDetails(i: IdAble): Future[String] = dao.getBarcodeDataSetDetailsById(i)
+
+  // Consensus Reads
+  def getConsensusReadSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
+    dao.getConsensusReadDataSets(limit, includeInactive, projectIds)
+  def getConsensusReadSetById(i: IdAble):Future[ConsensusReadServiceDataSet] = dao.getConsensusReadDataSetById(i)
+  def getConsensusReadSetDetails(i: IdAble): Future[String] = dao.getConsensusReadDataSetDetailsById(i)
+
+  // Consensus AlignmentSets
+  def getConsensusAlignmentSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ConsensusAlignmentServiceDataSet]] =
+    dao.getConsensusAlignmentDataSets(limit, includeInactive, projectIds)
+  def getConsensusAlignmentSetById(i: IdAble):Future[ConsensusAlignmentServiceDataSet] = dao.getConsensusAlignmentDataSetById(i)
+  def getConsensusAlignmentSetDetails(i: IdAble): Future[String] = dao.getConsensusAlignmentDataSetDetailsById(i)
+
+  // ContigSets
+  def getContigDataSet(limit: Int, includeInactive: Boolean = false, projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
+    dao.getContigDataSets(limit, includeInactive, projectIds)
+  def getContigDataSetById(i: IdAble):Future[ContigServiceDataSet] = dao.getContigDataSetById(i)
+  def getContigDataSetDetails(i: IdAble): Future[String] = dao.getContigDataSetDetailsById(i)
+
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: (Int, Boolean, Seq[Int]) => Any,
-      GetDataSetById: IdAble => Any,
-      GetDetailsById: IdAble => Any)(
+      GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
+      GetDataSetById: IdAble => Future[R],
+      GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
       ma: Marshaller[R],
       sm: Marshaller[Seq[R]]): Route =
@@ -90,9 +145,8 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
             parameters('showAll.?, 'projectId.as[Int].?) { (showAll, projectId) =>
               complete {
                 ok {
-                  getProjectIds(projectId, user).flatMap { ids =>
-                    (dbActor ? GetDataSets(DS_LIMIT, showAll.isDefined, ids)).mapTo[Seq[R]]
-                  }
+                  getProjectIds(projectId, user)
+                      .map { ids => GetDataSets(DS_LIMIT, showAll.isDefined, ids) }.mapTo[Seq[R]]
                 }
               }
             }
@@ -103,7 +157,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
             get {
               complete {
                 ok {
-                  (dbActor ? GetDataSetById(id)).mapTo[R]
+                  GetDataSetById(id)
                 }
               }
             } ~
@@ -112,9 +166,9 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
                 complete {
                   ok {
                     if (sopts.isActive) {
-                      throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
+                      Future.failed(throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
                     } else {
-                      (dbActor ? DeleteDataSetById(id)).mapTo[MessageResponse]
+                      dao.deleteDataSetById(id)
                     }
                   }
                 }
@@ -126,7 +180,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
               respondWithMediaType(MediaTypes.`application/json`) {
                 complete {
                   ok {
-                    (dbActor ? GetDetailsById(id)).mapTo[String]
+                    GetDetailsById(id)
                   }
                 }
               }
@@ -136,11 +190,10 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
             get {
               complete {
                 ok {
-                  val dataset: Future[R] = (dbActor ? GetDataSetById(id)).mapTo[R]
-                  val reports: Future[Seq[DataStoreReportFile]] = dataset.flatMap { s =>
-                    (dbActor ? GetDataStoreReportFilesByJobId(s.jobId)).mapTo[Seq[DataStoreReportFile]]
-                  }
-                  reports
+                  for {
+                    dataset <- GetDataSetById(id)
+                    reports <- dao.getDataStoreReportFilesByJobId(dataset.jobId)
+                  } yield reports
                 }
               }
             }
@@ -156,7 +209,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
         get {
           complete {
             ok {
-              (dbActor ? GetDataSetTypes).mapTo[Seq[ServiceDataSetMetaType]]
+              dao.getDataSetTypes
             }
           }
         }
@@ -166,7 +219,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
           complete {
             ok {
               DataSetMetaTypes.fromShortName(shortName)
-                .map(t => (dbActor ? GetDataSetTypeById(t.dsId)).mapTo[ServiceDataSetMetaType])
+                .map(t => dao.getDataSetTypeById(t.dsId))
                 .getOrElse(throw new ResourceNotFoundError(s"Unable to find dataset type Id '$shortName"))
             }
           }
@@ -178,7 +231,7 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
         get {
           complete {
             ok {
-              (dbActor ? GetDataSetMetaById(id)).mapTo[DataSetMetaDataSet]
+              dao.getDataSetById(id)
             }
           }
         } ~
@@ -187,9 +240,9 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
             complete {
               ok {
                 if (sopts.isActive) {
-                  throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import.")
+                  Future.failed(throw new MethodNotImplementedError("Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
                 } else {
-                  (dbActor ? DeleteDataSetById(id)).mapTo[MessageResponse]
+                  dao.deleteDataSetById(id)
                 }
               }
             }
@@ -200,64 +253,64 @@ class DataSetService(dbActor: ActorRef, authenticator: Authenticator) extends Sm
         get {
           complete {
             ok {
-              (dbActor ? GetDataSetJobsByUUID(uuid)).mapTo[Seq[EngineJob]]
+              dao.getDataSetJobsByUUID(uuid)
             }
           }
         }
       } ~
       datasetRoutes[SubreadServiceDataSet](
         DataSetMetaTypes.Subread.shortName,
-        GetSubreadDataSets,
-        GetSubreadDataSetById,
-        GetSubreadDataSetDetailsById) ~
+        getSubreadSet,
+        getSubreadSetById,
+        getSubreadSetDetailsById) ~
       datasetRoutes[HdfSubreadServiceDataSet](
         DataSetMetaTypes.HdfSubread.shortName,
-        GetHdfSubreadDataSets,
-        GetHdfSubreadDataSetById,
-        GetHdfSubreadDataSetDetailsById) ~
+        getHdfSubreadSet,
+        getHdfSubreadById,
+        getHdfSubreadDetailsById) ~
       datasetRoutes[AlignmentServiceDataSet](
         DataSetMetaTypes.Alignment.shortName,
-        GetAlignmentDataSets,
-        GetAlignmentDataSetById,
-        GetAlignmentDataSetDetailsById) ~
+        getAlignmentSet,
+        getAlignmentSetById,
+        getAlignmentSetDetails) ~
       datasetRoutes[ReferenceServiceDataSet](
         DataSetMetaTypes.Reference.shortName,
-        GetReferenceDataSets,
-        GetReferenceDataSetById,
-        GetReferenceDataSetDetailsById) ~
+        getReferenceSet,
+        getReferenceSetById,
+        getReferenceSetDetails) ~
       datasetRoutes[GmapReferenceServiceDataSet](
         DataSetMetaTypes.GmapReference.shortName,
-        GetGmapReferenceDataSets,
-        GetGmapReferenceDataSetById,
-        GetGmapReferenceDataSetDetailsById) ~
+        getGmapReferenceSet,
+        getGmapReferenceSetById,
+        getGmapReferenceSetDetails) ~
       datasetRoutes[BarcodeServiceDataSet](
         DataSetMetaTypes.Barcode.shortName,
-        GetBarcodeDataSets,
-        GetBarcodeDataSetById,
-        GetBarcodeDataSetDetailsById) ~
+        getBarcodeSet,
+        getBarcodeSetById,
+        getBarcodeSetDetails) ~
       datasetRoutes[ConsensusReadServiceDataSet](
         DataSetMetaTypes.CCS.shortName,
-        GetConsensusReadDataSets,
-        GetConsensusReadDataSetById,
-        GetConsensusReadDataSetDetailsById) ~
+        getConsensusReadSet,
+        getConsensusReadSetById,
+        getConsensusReadSetDetails) ~
       datasetRoutes[ConsensusAlignmentServiceDataSet](
         DataSetMetaTypes.AlignmentCCS.shortName,
-        GetConsensusAlignmentDataSets,
-        GetConsensusAlignmentDataSetById,
-        GetConsensusAlignmentDataSetDetailsById) ~
+        getConsensusAlignmentSet,
+        getConsensusAlignmentSetById,
+        getConsensusAlignmentSetDetails) ~
       datasetRoutes[ContigServiceDataSet](
         DataSetMetaTypes.Contig.shortName,
-        GetContigDataSets,
-        GetContigDataSetById,
-        GetContigDataSetDetailsById)
+        getContigDataSet,
+        getContigDataSetById,
+        getContigDataSetDetails)
     }
 }
 
 trait DataSetServiceProvider {
-  this: JobsDaoActorProvider with AuthenticatorProvider with ServiceComposer =>
+  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDaoActor(), authenticator()))
+    Singleton(() => new DataSetService(jobsDao(), authenticator()))
 
   addService(dataSetService)
 }

@@ -28,7 +28,7 @@ import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProv
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ProjectServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import slick.driver.PostgresDriver.api._
