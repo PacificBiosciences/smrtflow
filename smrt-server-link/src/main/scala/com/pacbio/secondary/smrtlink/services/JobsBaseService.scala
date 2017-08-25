@@ -68,6 +68,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
   val authenticator: Authenticator
 
   implicit val um: Unmarshaller[T]
+  implicit val sm: Marshaller[T]
+  implicit val jwriter: JsonWriter[T]
 
   //implicit val timeout = Timeout(30.seconds)
 
@@ -129,9 +131,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     val name = opts.name.getOrElse(opts.jobTypeId.id)
     val comment = opts.description.getOrElse(s"Description for job ${opts.jobTypeId}")
 
-    // Workaround to get the code to compile
-    //val jsettings = opts.toJson.asJsObject
-    val jsettings = "{}".parseJson.asJsObject
+    // This will require an implicit JsonWriter in scope
+    val jsettings = opts.toJson.asJsObject
 
     val projectId = opts.projectId.getOrElse(1)
 
@@ -395,23 +396,23 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
 
 
 // All Service Jobs should be defined here. This a bit boilerplate, but it's very simple and there aren't a large number of job types
-class HelloWorldJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[HelloWorldJobOptions]) extends CommonJobsRoutes[HelloWorldJobOptions] {
+class HelloWorldJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[HelloWorldJobOptions], implicit val sm: Marshaller[HelloWorldJobOptions], implicit val jwriter: JsonWriter[HelloWorldJobOptions]) extends CommonJobsRoutes[HelloWorldJobOptions] {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
 }
 
-class DbBackupJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DbBackUpJobOptions]) extends CommonJobsRoutes[DbBackUpJobOptions] {
+class DbBackupJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DbBackUpJobOptions], implicit val sm: Marshaller[DbBackUpJobOptions], implicit val jwriter: JsonWriter[DbBackUpJobOptions]) extends CommonJobsRoutes[DbBackUpJobOptions] {
   override def jobTypeId = JobTypeIds.DB_BACKUP
 }
 
-class DeleteDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DeleteDataSetJobOptions]) extends CommonJobsRoutes[DeleteDataSetJobOptions] {
+class DeleteDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DeleteDataSetJobOptions], implicit val sm: Marshaller[DeleteDataSetJobOptions], implicit val jwriter: JsonWriter[DeleteDataSetJobOptions]) extends CommonJobsRoutes[DeleteDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.DELETE_DATASETS
 }
 
-class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
+class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
 }
 
-class ImportDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportDataSetJobOptions]) extends CommonJobsRoutes[ImportDataSetJobOptions] with DataSetFileUtils {
+class ImportDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportDataSetJobOptions], implicit val sm: Marshaller[ImportDataSetJobOptions], implicit val jwriter: JsonWriter[ImportDataSetJobOptions]) extends CommonJobsRoutes[ImportDataSetJobOptions] with DataSetFileUtils {
   //type T = ImportDataSetJobOptions
   import CommonModelImplicits._
 
@@ -452,47 +453,47 @@ class ImportDataSetJobsService(override val dao: JobsDao, override val authentic
 
 }
 
-class ImportFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportFastaJobOptions]) extends CommonJobsRoutes[ImportFastaJobOptions] {
+class ImportFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportFastaJobOptions], implicit val sm: Marshaller[ImportFastaJobOptions], implicit val jwriter: JsonWriter[ImportFastaJobOptions]) extends CommonJobsRoutes[ImportFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
 
 }
 
-class MergeDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MergeDataSetJobOptions]) extends CommonJobsRoutes[MergeDataSetJobOptions] {
+class MergeDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MergeDataSetJobOptions], implicit val sm: Marshaller[MergeDataSetJobOptions], implicit val jwriter: JsonWriter[MergeDataSetJobOptions]) extends CommonJobsRoutes[MergeDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
 }
 
 
-class MockPbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions]) extends CommonJobsRoutes[MockPbsmrtpipeJobOptions] {
+class MockPbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions], implicit val sm: Marshaller[MockPbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[MockPbsmrtpipeJobOptions]) extends CommonJobsRoutes[MockPbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
 }
 
 
-class PbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[PbsmrtpipeJobOptions]) extends CommonJobsRoutes[PbsmrtpipeJobOptions] {
+class PbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[PbsmrtpipeJobOptions], implicit val sm: Marshaller[PbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[PbsmrtpipeJobOptions]) extends CommonJobsRoutes[PbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
 }
 
 
-class RsConvertMovieToDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions]) extends CommonJobsRoutes[RsConvertMovieToDataSetJobOptions] {
+class RsConvertMovieToDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions], implicit val sm: Marshaller[RsConvertMovieToDataSetJobOptions], implicit val jwriter: JsonWriter[RsConvertMovieToDataSetJobOptions]) extends CommonJobsRoutes[RsConvertMovieToDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
 }
 
 
-class SimpleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
+class SimpleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
 }
 
 
-class TsJobBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsJobBundleJobOptions]) extends CommonJobsRoutes[TsJobBundleJobOptions] {
+class TsJobBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsJobBundleJobOptions], implicit val sm: Marshaller[TsJobBundleJobOptions], implicit val jwriter: JsonWriter[TsJobBundleJobOptions]) extends CommonJobsRoutes[TsJobBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_JOB
 }
 
 
-class TsSystemStatusBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions]) extends CommonJobsRoutes[TsSystemStatusBundleJobOptions] {
+class TsSystemStatusBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions], implicit val sm: Marshaller[TsSystemStatusBundleJobOptions], implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions]) extends CommonJobsRoutes[TsSystemStatusBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
 }
 
 // This is the used for the "Naked" untyped job route service <smrt-link>/<job-manager>/jobs
-class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
+class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
   override def createJob(opts: SimpleJobOptions, user: Option[UserRecord]): Future[EngineJob] =
     Future.failed(throw new UnprocessableEntityError("Unsupported Request for Job creation. Using specific job type endpoint"))
