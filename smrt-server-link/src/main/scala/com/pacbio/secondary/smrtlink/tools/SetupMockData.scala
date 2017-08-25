@@ -12,7 +12,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobEvent}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, SimpleUUIDJobResolver}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
@@ -344,7 +344,7 @@ trait MockUtils extends LazyLogging{
 
 trait TmpDirJobResolver {
   val tmpPath = FileUtils.getTempDirectory
-  val resolver = new SimpleUUIDJobResolver(tmpPath.toPath)
+  val resolver = new PacBioIntJobResolver(tmpPath.toPath)
 }
 
 trait InitializeTables extends MockUtils {

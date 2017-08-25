@@ -334,21 +334,16 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
   import CommonModelImplicits._
 
-  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
-
-  val NO_WORK = NoAvailableWorkError("No Available work to run.")
+  private val NO_WORK = NoAvailableWorkError("No Available work to run.")
 
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
   val resolver: JobResourceResolver
-  // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
-  // should be deleted. This should probably just be stored as a json blob in the database.
-  var _runnableJobs: TrieMap[UUID, RunnableJobWithId]
 
   /**
-    * Raw Insert of an Engine Job into the system. This will not run a job.
+    * Raw Insert of an Engine Job into the system. If the job is in the CREATED state it will be
+    * eligible to be run.
     *
-    * Use the RunnableJob interface to create a job that should be run.
     *
     * @param job Engine Job instance
     * @return
@@ -373,7 +368,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
     logger.info("Checking for next runnable EngineJobs")
     import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
-    // I can't get this to work with AnalysisJobState type
+
+    //FIXME(mpkocher)(8-25-2017) I can't get this to work with AnalysisJobState type
     //val q0 = engineJobs.filter(_.state === AnalysisJobStates.CREATED).sortBy(_.id).take(1)
 
     val q0 = sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' ORDER BY job_id LIMIT 1".as[Int]
@@ -393,26 +389,6 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
           logger.info("No available work")
           Left(NO_WORK)}
   }
-
-  private def getNextRunnableJobByType(jobTypeFilter: JobType => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
-    val noWork = NoAvailableWorkError("No Available work to run.")
-
-    // Sort the Jobs by id to run the first one
-    _runnableJobs.values.toSeq.sortWith(_.id < _.id).find((rj) =>
-      rj.state == AnalysisJobStates.CREATED &&
-      jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
-      case Some(job) => {
-        logger.info(s"dequeueing job ${job.job.uuid}")
-        _runnableJobs.remove(job.job.uuid)
-        Future.successful(Right(job))
-      }
-      case None => Future.successful(Left(noWork))
-    }
-  }
-
-  private def filterByQuickJobType(j: JobType): Boolean = QUICK_TASK_IDS contains j
-  def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobType) => !filterByQuickJobType(j))
-  def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
 
   /**
    * Get all the Job Events associated with a specific job
@@ -480,9 +456,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
       // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
       // Resolving Path so we can update the state in the DB
-      //val rJob = RunnableJobWithId(jobId, coreJob, job.state)
-      //val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
-      val resolvedPath = Paths.get("1234")
+      val resolvedPath = resolver.resolve(jobId).toAbsolutePath.toString
 
       val jobEvent = JobEvent(
         UUID.randomUUID(),
@@ -509,74 +483,6 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     f onSuccess { case engineJob: EngineJob => sendEventToManager(engineJob)}
 
     f
-  }
-
-  /**
-   * This is the new interface will replace the original createJob
-   *
-   * @param uuid        UUID
-   * @param name        Name of job
-   * @param description This is really a comment. FIXME
-   * @param jobTypeId   String of the job type identifier. This should be consistent with the
-   *                    jobTypeId defined in CoreJob
-   * @return
-   */
-  def createJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: String,
-      coreJob: CoreJob,
-      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-      jsonSetting: String,
-      createdBy: Option[String],
-      createdByEmail: Option[String],
-      smrtLinkVersion: Option[String]): Future[EngineJob] = {
-
-    // This should really have been Option[String]. The Job Int Id needs to be assigned before we can resolve the path
-    val path = ""
-
-    val createdAt = JodaDateTime.now()
-
-    val projectId = coreJob.jobOptions.projectId
-
-    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId,
-      path, jsonSetting, createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
-
-    logger.info(s"Creating Job $engineJob")
-
-    val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
-      val jobId = job.id
-
-      // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
-      // Resolving Path so we can update the state in the DB
-      val rJob = RunnableJobWithId(jobId, coreJob, job.state)
-      val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
-
-      val jobEvent = JobEvent(
-        UUID.randomUUID(),
-        jobId,
-        AnalysisJobStates.CREATED,
-        s"Created job $jobId type $jobTypeId with ${uuid.toString}",
-        JodaDateTime.now())
-
-      DBIO.seq(
-        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath),
-        jobEvents += jobEvent,
-        engineJobsDataSets ++= entryPoints.getOrElse(Nil).map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
-      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath))
-    }
-
-    val action = projects.filter(_.id === projectId).exists.result.flatMap {
-      case true => updates
-      case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
-    }
-
-    db.run(action.transactionally).map(job => {
-      val rJob = RunnableJobWithId(job.id, coreJob, job.state)
-      _runnableJobs.update(uuid, rJob)
-      job
-    })
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
@@ -1491,8 +1397,6 @@ with JobDataStore
 with DataSetStore {
 
   import JobModels._
-
-  var _runnableJobs = TrieMap.empty[UUID, RunnableJobWithId]
 
   override def sendEventToManager[T](message: T): Unit = {
     eventManager.map(a => a ! message)
