@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask, MigrationStatusRow}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobEvent, JobTask}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
 import org.joda.time.{DateTime => JodaDateTime}
@@ -155,6 +155,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def projectId: Rep[Int] = column[Int]("project_id")
 
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
+
+    def findByState(state: AnalysisJobStates.JobStates) = engineJobs.filter(_.state === state)
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
