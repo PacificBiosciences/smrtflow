@@ -70,15 +70,20 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
     dao.updateJobState(uuid, state, message.getOrElse(s"Updating Job $uuid state to $state"))
   }
 
-
-  def runEngineJob(engineJob: EngineJob)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
-    val opts = Converters.convertEngineToOptions(engineJob)
-    run(opts, engineJob.uuid, Paths.get(engineJob.path))
-  }
-
-
-  private def run(opts: ServiceJobOptions, uuid: UUID, output: Path)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
+  /**
+    * Central interface for running jobs.
+    *
+    * This single place is responsible for handling ALL job state and importing results (e.g., import datastore files)
+    *
+    * @param engineJob Engine Job to run
+    * @param timeout Timeout for interfacing with the jobs dao
+    */
+  def run(engineJob: EngineJob)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
     val startedAt = JodaDateTime.now()
+
+    val opts = Converters.convertEngineToOptions(engineJob)
+    val uuid = engineJob.uuid
+    val output = Paths.get(engineJob.path)
 
     // This abstraction needs to be fixed.
     val resource = JobResource(uuid, output, AnalysisJobStates.RUNNING)

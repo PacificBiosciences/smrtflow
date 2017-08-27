@@ -1,16 +1,10 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.io.FileWriter
-import java.nio.file.Paths
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.pacbio.common.models.CommonModelImplicits
 import CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.jobtypes.{Converters, ServiceJobRunner}
-import org.joda.time.{DateTime => JodaDateTime}
+import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Try,Success,Failure}
@@ -41,7 +35,7 @@ class EngineWorkerActor(engineManagerActor: ActorRef, serviceRunner: ServiceJobR
       // All functionality should be encapsulated in the service running layer. We shouldn't even really handle the Failure case of the Try a in here
       // Within this runEngineJob, it should handle all updating of state on failure
       log.info(s"Worker $self attempting to run $engineJob")
-      val tx = Try { serviceRunner.runEngineJob(engineJob)} // this blocks
+      val tx = Try { serviceRunner.run(engineJob)} // this blocks
 
       log.info(s"Worker $self Results from ServiceRunner $tx")
 
