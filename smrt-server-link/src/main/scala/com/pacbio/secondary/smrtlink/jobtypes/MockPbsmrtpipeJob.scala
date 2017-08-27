@@ -9,6 +9,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.models.BoundServiceEntryPoint
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 /**
   * Created by mkocher on 8/17/17.
@@ -21,13 +22,13 @@ case class MockPbsmrtpipeJobOptions(name: Option[String],
                                     workflowOptions: Seq[ServiceTaskOptionBase],
                                     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
-  override def validate() = None
+  override def validate(dao: JobsDao, config: SystemJobConfig) = None
   override def toJob() = new MockPbsmrtpipeJob(this)
 }
 
 class MockPbsmrtpipeJob(opts: MockPbsmrtpipeJobOptions) extends ServiceCoreJob(opts){
   type Out = PacBioDataStore
-  override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
+  override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
     //FIXME
     val entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint]

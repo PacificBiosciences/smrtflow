@@ -5,6 +5,7 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResultWriter}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 /**
   * Created by mkocher on 8/17/17.
@@ -17,14 +18,14 @@ case class DeleteDataSetJobOptions(jobId: UUID,
                                    description: Option[String],
                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.DELETE_DATASETS
-  override def validate() = None
+  override def validate(dao: JobsDao, config: SystemJobConfig) = None
   override def toJob() = new DeleteDataSetJob(this)
 }
 
 class DeleteDataSetJob(opts: DeleteDataSetJobOptions) extends ServiceCoreJob(opts) {
   type Out = PacBioDataStore
 
-  override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, PacBioDataStore] = {
+  override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, ddao: JobsDao, config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     Left(ResultFailed(resources.jobId, jobTypeId.id, "Failed because of X", 1, AnalysisJobStates.FAILED, host))
   }
 }

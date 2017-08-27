@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.analysis.configloaders.EngineCoreConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{ConfigLoader, EngineCoreConfigLoader}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
@@ -16,13 +16,12 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioInt
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-import org.joda.time.{Duration => JodaDuration, DateTime => JodaDateTime}
+import org.joda.time.{DateTime => JodaDateTime, Duration => JodaDuration}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-
 import slick.driver.PostgresDriver.api._
 
 
@@ -369,7 +368,7 @@ trait InitializeTables extends MockUtils {
 object InsertMockData extends App
     with TmpDirJobResolver
     with InitializeTables
-    with EngineCoreConfigLoader
+    with ConfigLoader
     with SetupMockData{
 
   // Max number of jobs to query
@@ -389,7 +388,7 @@ object InsertMockData extends App
 
   val db = Database.forConfig("smrtflow.db")
 
-  val dao = new JobsDao(db, engineConfig, resolver)
+  val dao = new JobsDao(db, resolver)
 
   def runner(args: Array[String]): Int = {
     println(s"Loading DB ${dao.db}")

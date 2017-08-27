@@ -6,6 +6,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter}
 import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.EngineJobEntryPointRecord
 // as a temporary workaround
 
@@ -31,13 +32,14 @@ package object jobtypes {
       * At the job level, the job is responsible for importing any data back into the system and sending
       * "Status" update events.
       *
-      * @param resources Resources for the Job to use (e.g., job id, root path) This needs to be expanded to include the system config.
-      *                  This be renamed for clarity
+      * @param resources     Resources for the Job to use (e.g., job id, root path) This needs to be expanded to include the system config.
+      *                      This be renamed for clarity
       * @param resultsWriter Writer to write to job stdout and stderr
-      * @param dao interface to the DB. See above comments on suggested use and responsibility
+      * @param dao           interface to the DB. See above comments on suggested use and responsibility
+      * @param config        System Job config. Any specific config for any job type needs to be pushed into this layer
       * @return
       */
-    def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao): Either[ResultFailed, Out]
+    def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, Out]
 
   }
 
@@ -64,9 +66,9 @@ package object jobtypes {
       * Validate the Options (and make sure they're consistent within the system config if necessary)
       * @return
       */
-    def validate(): Option[InvalidJobOptionError]
+    def validate(dao: JobsDao, config: SystemJobConfig): Option[InvalidJobOptionError]
 
-    def resolveEntryPoints(): Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord]
+    def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord]
   }
 
 

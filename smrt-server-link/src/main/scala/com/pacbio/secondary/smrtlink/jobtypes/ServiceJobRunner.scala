@@ -1,8 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.io.FileWriter
-import java.net.InetAddress
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
@@ -11,6 +10,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -24,11 +24,12 @@ import scala.concurrent.{Await, ExecutionContext, Future}
   * Interface for running jobs
   *
   * @param dao Persistence layer for interfacing with the db
+  * @param config System Job Config
   */
-class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
+class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging {
   import CommonModelImplicits._
 
-  def host = InetAddress.getLocalHost.getHostName
+  def host = config.host
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID):Future[MessageResponse] = {
     if (ds.isChunked) {
@@ -52,7 +53,7 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
   }
 
   private def validate(opts: ServiceJobOptions, uuid: UUID, writer: JobResultWriter): Option[ResultFailed] = {
-    opts.validate() match {
+    opts.validate(dao, config) match {
       case Some(errors) =>
         val msg = s"Failed to validate Job options $opts Error $errors"
         writer.writeLineError(msg)
@@ -104,7 +105,7 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
 
         // Need to clarify who is responsible for updating the task state
         // updateStateToRunning(resource.jobId) // This needs to be blocking
-        opts.toJob().run(resource, writer, dao) match {
+        opts.toJob().run(resource, writer, dao, config) match {
           case Left(a) =>
             val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.FAILED, Some(a.message)), timeout)
             Left(a)

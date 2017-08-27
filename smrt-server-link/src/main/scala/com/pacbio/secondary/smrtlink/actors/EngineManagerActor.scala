@@ -12,7 +12,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResour
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
-import com.pacbio.secondary.smrtlink.models.EngineConfig
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -26,17 +26,19 @@ import scala.util.{Failure, Success, Try}
   *
   * Adding some hacks to adhere to the JobsDaoActor interface and get the code to compile
   */
-class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: JobResourceResolver) extends Actor with ActorLogging {
+class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:SystemJobConfig) extends Actor with ActorLogging {
 
   import CommonModelImplicits._
 
   //MK Probably want to have better model for this
-  val checkForWorkInterval = 5.seconds
+  val checkForWorkInterval = 10.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
   // For debugging
-  val checkStatusForWorkTick = context.system.scheduler.schedule(5.seconds, 10.seconds, self, GetEngineManagerStatus)
+  val checkForEngineManagerStatusInterval = 10.seconds
+
+  val checkStatusForWorkTick = context.system.scheduler.schedule(5.seconds, checkForEngineManagerStatusInterval, self, GetEngineManagerStatus)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -44,7 +46,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
-  val serviceRunner = new ServiceJobRunner(dao)
+  val serviceRunner = new ServiceJobRunner(dao, config)
 
   def andLog(sx: String): Future[String] = Future {
     log.info(sx)
@@ -53,9 +55,9 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
 
   private def getManagerStatus() = {
-    val n = engineConfig.maxWorkers - workers.length
-    val m = engineConfig.numQuickWorkers - quickWorkers.length
-    EngineManagerStatus(engineConfig.maxWorkers, n, engineConfig.numQuickWorkers, m)
+    val n = config.numGeneralWorkers - workers.length
+    val m = config.numQuickWorkers - quickWorkers.length
+    EngineManagerStatus(config.numGeneralWorkers, n, config.numQuickWorkers, m)
   }
   /**
     * Returns a status message
@@ -124,15 +126,15 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   }
 
   override def preStart(): Unit = {
-    log.info(s"Starting engine manager actor $self with $engineConfig")
+    log.info(s"Starting engine manager actor $self with $config")
 
-    (0 until engineConfig.numQuickWorkers).foreach { x =>
+    (0 until config.numQuickWorkers).foreach { x =>
       val worker = context.actorOf(QuickEngineWorkerActor.props(self, serviceRunner), s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.info(s"Creating Quick worker $worker")
     }
 
-    (0 until engineConfig.maxWorkers).foreach { x =>
+    (0 until config.numGeneralWorkers).foreach { x =>
       val worker = context.actorOf(EngineWorkerActor.props(self, serviceRunner), s"engine-worker-$x")
       workers.enqueue(worker)
       log.info(s"Creating worker $worker")
@@ -186,6 +188,6 @@ trait EngineManagerActorProvider {
   this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val engineManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EngineManagerActor], jobsDao(), jobEngineConfig(), jobResolver()), "EngineManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EngineManagerActor], jobsDao(), jobResolver(), systemJobConfig()), "EngineManagerActor"))
 }
 

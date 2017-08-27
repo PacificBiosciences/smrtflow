@@ -4,12 +4,16 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 import spray.json._
 
 /**
   * Created by mkocher on 1/4/17.
   */
 object ConfigModels {
+
+  val DEFAULT_MAX_GENERAL_WORKERS = 35
+  val DEFAULT_MAX_QUICK_WORKERS = 10
 
   // PacBio SMRT Link System Configuration IO. These must be consistent with the Avro Schema
   // See the SmrtLinkSystemConfig.avsc for model details and documentation.
@@ -40,7 +44,7 @@ object ConfigModels {
                                   dnsName: Option[String],
                                   bundleDir: Path)
 
-  case class SmrtflowEngineConfig(maxWorkers: Int = 35,
+  case class SmrtflowEngineConfig(maxWorkers: Int = DEFAULT_MAX_GENERAL_WORKERS,
                                   jobRootDir: Path,
                                   pbsmrtpipePresetXml: Option[Path])
 
@@ -53,4 +57,14 @@ object ConfigModels {
                                 comment: Option[String])
 
   case class Wso2Credentials(wso2User: String, wso2Password: String)
+
+  // Adding a new Job specific "system" config to be used in the new Job running layer
+  // This should replace the EngineConfig layer
+  case class SystemJobConfig(pbSmrtPipeEngineOptions: PbsmrtpipeEngineOptions,
+                             host: String,
+                             port: Int,
+                             smrtLinkVersion: Option[String],
+                             numGeneralWorkers: Int = DEFAULT_MAX_GENERAL_WORKERS,
+                             numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS
+                            )
 }

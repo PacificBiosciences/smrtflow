@@ -1390,7 +1390,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   * @param resolver Resolver that will determine where to write jobs to
   * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
   */
-class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends DalComponent
+class JobsDao(val db: Database, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends DalComponent
 with SmrtLinkConstants
 with EventComponent
 with ProjectDataStore
@@ -1409,5 +1409,5 @@ trait JobsDaoProvider {
   this: DalProvider with SmrtLinkConfigProvider with EventManagerActorProvider =>
 
   val jobsDao: Singleton[JobsDao] =
-    Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver(), Some(eventManagerActor())))
+    Singleton(() => new JobsDao(db(), jobResolver(), Some(eventManagerActor())))
 }

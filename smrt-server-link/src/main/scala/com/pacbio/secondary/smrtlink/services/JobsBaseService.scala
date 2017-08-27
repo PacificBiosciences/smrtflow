@@ -8,19 +8,21 @@ import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.common.models.CommonModels._
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModelSpraySupport
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbsmrtpipeJobUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import spray.http.{HttpData, HttpEntity, _}
@@ -66,6 +68,7 @@ trait JobServiceRoutes {
 trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService with JobServiceConstants with JobServiceRoutes {
   val dao: JobsDao
   val authenticator: Authenticator
+  val config: SystemJobConfig
 
   implicit val um: Unmarshaller[T]
   implicit val sm: Marshaller[T]
@@ -105,11 +108,20 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     * @return
     */
   def validator(opts: T, user: Option[UserRecord]): Future[T] = {
-    opts.validate() match {
+    opts.validate(dao, config) match {
       case Some(ex) => Future.failed(throw new UnprocessableEntityError(ex.msg))
       case _ => Future.successful(opts)
     }
   }
+
+  /**
+    * Optional Termination implementation of a Job. By default this method is not supported.
+    *
+    * @param jobId Job id to terminateb
+    * @return
+    */
+  def terminateJob(jobId: IdAble): Future[MessageResponse] =
+    Future.failed(throw new MethodNotImplementedError(s"Job type ${jobTypeId.id} does NOT support termination"))
 
   /**
     * Central interface for creating Jobs using the ServiceJobOptions.
@@ -136,15 +148,12 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
 
     val projectId = opts.projectId.getOrElse(1)
 
-    // Mock this out. The system config will be passed into the JobService or createJob interface
-    val smrtLinkVersion = Some("1.1.1")
-
     for {
       vopts <- validator(opts, user) // This will fail the Future if any validation errors occur.
-      entryPoints <- Future(vopts.resolveEntryPoints())
+      entryPoints <- Future(vopts.resolveEntryPoints(dao))
       engineJob <- dao.createJob2(uuid, name, comment, vopts.jobTypeId, entryPoints, jsettings, user.map(_.userId),
         user.flatMap(_.userEmail),
-        smrtLinkVersion, projectId)
+        config.smrtLinkVersion, projectId)
     } yield engineJob
   }
 
@@ -210,6 +219,39 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
           complete {
             ok {
               dao.getJobById(jobId)
+            }
+          }
+        }
+      } ~
+      path(LOG_PREFIX) {
+        post {
+          entity(as[LogMessageRecord]) { m =>
+            respondWithMediaType(MediaTypes.`application/json`) {
+              complete {
+                created {
+                  val f = jobId match {
+                    case IntIdAble(n) => Future.successful(n)
+                    case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)
+                  }
+                  f.map { intId =>
+                    val message = s"${LOG_PB_SMRTPIPE_RESOURCE_ID}::job::$intId::${m.sourceId} ${m.message}"
+                    // FIXME. Need to map this to the proper log level
+                    logger.info(message)
+                    Map("message" -> s"Successfully logged. ${message}")
+                  }
+                }
+              }
+            }
+          }
+        }
+      } ~
+      path("terminate") {
+        pathEndOrSingleSlash {
+          post {
+            complete {
+              ok {
+                terminateJob(jobId)
+              }
             }
           }
         }
@@ -396,23 +438,23 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
 
 
 // All Service Jobs should be defined here. This a bit boilerplate, but it's very simple and there aren't a large number of job types
-class HelloWorldJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[HelloWorldJobOptions], implicit val sm: Marshaller[HelloWorldJobOptions], implicit val jwriter: JsonWriter[HelloWorldJobOptions]) extends CommonJobsRoutes[HelloWorldJobOptions] {
+class HelloWorldJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[HelloWorldJobOptions], implicit val sm: Marshaller[HelloWorldJobOptions], implicit val jwriter: JsonWriter[HelloWorldJobOptions]) extends CommonJobsRoutes[HelloWorldJobOptions] {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
 }
 
-class DbBackupJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DbBackUpJobOptions], implicit val sm: Marshaller[DbBackUpJobOptions], implicit val jwriter: JsonWriter[DbBackUpJobOptions]) extends CommonJobsRoutes[DbBackUpJobOptions] {
+class DbBackupJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[DbBackUpJobOptions], implicit val sm: Marshaller[DbBackUpJobOptions], implicit val jwriter: JsonWriter[DbBackUpJobOptions]) extends CommonJobsRoutes[DbBackUpJobOptions] {
   override def jobTypeId = JobTypeIds.DB_BACKUP
 }
 
-class DeleteDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[DeleteDataSetJobOptions], implicit val sm: Marshaller[DeleteDataSetJobOptions], implicit val jwriter: JsonWriter[DeleteDataSetJobOptions]) extends CommonJobsRoutes[DeleteDataSetJobOptions] {
+class DeleteDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[DeleteDataSetJobOptions], implicit val sm: Marshaller[DeleteDataSetJobOptions], implicit val jwriter: JsonWriter[DeleteDataSetJobOptions]) extends CommonJobsRoutes[DeleteDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.DELETE_DATASETS
 }
 
-class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
+class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
 }
 
-class ImportDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportDataSetJobOptions], implicit val sm: Marshaller[ImportDataSetJobOptions], implicit val jwriter: JsonWriter[ImportDataSetJobOptions]) extends CommonJobsRoutes[ImportDataSetJobOptions] with DataSetFileUtils {
+class ImportDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportDataSetJobOptions], implicit val sm: Marshaller[ImportDataSetJobOptions], implicit val jwriter: JsonWriter[ImportDataSetJobOptions]) extends CommonJobsRoutes[ImportDataSetJobOptions] with DataSetFileUtils {
   //type T = ImportDataSetJobOptions
   import CommonModelImplicits._
 
@@ -453,47 +495,66 @@ class ImportDataSetJobsService(override val dao: JobsDao, override val authentic
 
 }
 
-class ImportFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[ImportFastaJobOptions], implicit val sm: Marshaller[ImportFastaJobOptions], implicit val jwriter: JsonWriter[ImportFastaJobOptions]) extends CommonJobsRoutes[ImportFastaJobOptions] {
+class ImportFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportFastaJobOptions], implicit val sm: Marshaller[ImportFastaJobOptions], implicit val jwriter: JsonWriter[ImportFastaJobOptions]) extends CommonJobsRoutes[ImportFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
 
 }
 
-class MergeDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MergeDataSetJobOptions], implicit val sm: Marshaller[MergeDataSetJobOptions], implicit val jwriter: JsonWriter[MergeDataSetJobOptions]) extends CommonJobsRoutes[MergeDataSetJobOptions] {
+class MergeDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[MergeDataSetJobOptions], implicit val sm: Marshaller[MergeDataSetJobOptions], implicit val jwriter: JsonWriter[MergeDataSetJobOptions]) extends CommonJobsRoutes[MergeDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
 }
 
 
-class MockPbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions], implicit val sm: Marshaller[MockPbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[MockPbsmrtpipeJobOptions]) extends CommonJobsRoutes[MockPbsmrtpipeJobOptions] {
+class MockPbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions], implicit val sm: Marshaller[MockPbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[MockPbsmrtpipeJobOptions]) extends CommonJobsRoutes[MockPbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
 }
 
 
-class PbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[PbsmrtpipeJobOptions], implicit val sm: Marshaller[PbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[PbsmrtpipeJobOptions]) extends CommonJobsRoutes[PbsmrtpipeJobOptions] {
+class PbsmrtpipeJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[PbsmrtpipeJobOptions], implicit val sm: Marshaller[PbsmrtpipeJobOptions], implicit val jwriter: JsonWriter[PbsmrtpipeJobOptions]) extends CommonJobsRoutes[PbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
+
+  override def terminateJob(jobId: IdAble): Future[MessageResponse] = {
+    for {
+      engineJob <- dao.getJobById(jobId)
+      message <- terminatePbsmrtpipeJob(engineJob)
+    } yield message
+  }
+
+  private def failIfNotRunning(engineJob: EngineJob): Future[EngineJob] = {
+    if (engineJob.isRunning) Future { engineJob }
+    else Future.failed(new UnprocessableEntityError(s"Only terminating ${AnalysisJobStates.RUNNING} is supported"))
+  }
+
+  private def terminatePbsmrtpipeJob(engineJob: EngineJob): Future[MessageResponse] = {
+    for {
+      runningJob <- failIfNotRunning(engineJob)
+      _ <- Future { PbsmrtpipeJobUtils.terminateJobFromDir(Paths.get(runningJob.path))} // FIXME Handle failure in better well defined model
+    } yield MessageResponse(s"Attempting to terminate analysis job ${runningJob.id} in ${runningJob.path}")
+  }
 }
 
 
-class RsConvertMovieToDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions], implicit val sm: Marshaller[RsConvertMovieToDataSetJobOptions], implicit val jwriter: JsonWriter[RsConvertMovieToDataSetJobOptions]) extends CommonJobsRoutes[RsConvertMovieToDataSetJobOptions] {
+class RsConvertMovieToDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions], implicit val sm: Marshaller[RsConvertMovieToDataSetJobOptions], implicit val jwriter: JsonWriter[RsConvertMovieToDataSetJobOptions]) extends CommonJobsRoutes[RsConvertMovieToDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
 }
 
 
-class SimpleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
+class SimpleJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
 }
 
 
-class TsJobBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsJobBundleJobOptions], implicit val sm: Marshaller[TsJobBundleJobOptions], implicit val jwriter: JsonWriter[TsJobBundleJobOptions]) extends CommonJobsRoutes[TsJobBundleJobOptions] {
+class TsJobBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[TsJobBundleJobOptions], implicit val sm: Marshaller[TsJobBundleJobOptions], implicit val jwriter: JsonWriter[TsJobBundleJobOptions]) extends CommonJobsRoutes[TsJobBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_JOB
 }
 
 
-class TsSystemStatusBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions], implicit val sm: Marshaller[TsSystemStatusBundleJobOptions], implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions]) extends CommonJobsRoutes[TsSystemStatusBundleJobOptions] {
+class TsSystemStatusBundleJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions], implicit val sm: Marshaller[TsSystemStatusBundleJobOptions], implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions]) extends CommonJobsRoutes[TsSystemStatusBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
 }
 
 // This is the used for the "Naked" untyped job route service <smrt-link>/<job-manager>/jobs
-class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticator: Authenticator)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
+class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[SimpleJobOptions], implicit val sm: Marshaller[SimpleJobOptions], implicit val jwriter: JsonWriter[SimpleJobOptions]) extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
   override def createJob(opts: SimpleJobOptions, user: Option[UserRecord]): Future[EngineJob] =
     Future.failed(throw new UnprocessableEntityError("Unsupported Request for Job creation. Using specific job type endpoint"))
@@ -505,7 +566,7 @@ class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticat
   * @param dao
   * @param authenticator
   */
-class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBioService with JobServiceConstants with LazyLogging {
+class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: SystemJobConfig) extends PacBioService with JobServiceConstants with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -515,19 +576,19 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBi
     "0.1.0", "New Job Service")
 
   def getServiceJobs():Seq[JobServiceRoutes] = Seq(
-    new DbBackupJobsService(dao, authenticator),
-    new DeleteDataSetJobsService(dao, authenticator),
-    new HelloWorldJobsService(dao, authenticator),
-    new ImportBarcodeFastaJobsService(dao, authenticator),
-    new ImportDataSetJobsService(dao, authenticator),
-    new ImportFastaJobsService(dao, authenticator),
-    new MergeDataSetJobsService(dao, authenticator),
-    new MockPbsmrtpipeJobsService(dao, authenticator),
-    new PbsmrtpipeJobsService(dao, authenticator),
-    new RsConvertMovieToDataSetJobsService(dao, authenticator),
-    new SimpleJobsService(dao, authenticator),
-    new TsJobBundleJobsService(dao, authenticator),
-    new TsSystemStatusBundleJobsService(dao, authenticator)
+    new DbBackupJobsService(dao, authenticator, config),
+    new DeleteDataSetJobsService(dao, authenticator, config),
+    new HelloWorldJobsService(dao, authenticator, config),
+    new ImportBarcodeFastaJobsService(dao, authenticator, config),
+    new ImportDataSetJobsService(dao, authenticator, config),
+    new ImportFastaJobsService(dao, authenticator, config),
+    new MergeDataSetJobsService(dao, authenticator, config),
+    new MockPbsmrtpipeJobsService(dao, authenticator, config),
+    new PbsmrtpipeJobsService(dao, authenticator, config),
+    new RsConvertMovieToDataSetJobsService(dao, authenticator, config),
+    new SimpleJobsService(dao, authenticator, config),
+    new TsJobBundleJobsService(dao, authenticator, config),
+    new TsSystemStatusBundleJobsService(dao, authenticator, config)
   )
 
   def getJobTypesRoute(jobTypes: Seq[JobType]): Route = {
@@ -547,7 +608,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBi
   def getServiceJobRoutes(): Route = {
 
     // This will NOT be wrapped in a job-type prefix
-    val nakedJob = new NakedNoTypeJobsService(dao, authenticator)
+    val nakedJob = new NakedNoTypeJobsService(dao, authenticator, config)
 
     // These will be wrapped with the a job-type-id specific prefix
     val jobs = getServiceJobs()
@@ -571,7 +632,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator) extends PacBi
 trait JobsServiceProvider {
   this: ActorRefFactoryProvider with AuthenticatorProvider with ServiceComposer with JobsDaoProvider with SmrtLinkConfigProvider =>
 
-  val newJobService: Singleton[JobsServiceUtils] = Singleton(() => new JobsServiceUtils(jobsDao(), authenticator()))
+  val newJobService: Singleton[JobsServiceUtils] = Singleton(() => new JobsServiceUtils(jobsDao(), authenticator(), systemJobConfig()))
 
   addService(newJobService)
 }
