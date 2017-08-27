@@ -7,8 +7,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter}
 import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.models.EngineJobEntryPointRecord
-// as a temporary workaround
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobEntryPointRecord}
+import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
@@ -67,6 +70,23 @@ package object jobtypes {
       * @return
       */
     def validate(dao: JobsDao, config: SystemJobConfig): Option[InvalidJobOptionError]
+
+    /**
+      * Common Util for resolving entry points
+      *
+      * @param e Bound Service Entry Point
+      * @param dao
+      * @return
+      */
+    def resolveEntry(e: BoundServiceEntryPoint, dao:JobsDao): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
+      ValidateImportDataSetUtils.resolveDataSet(e.fileTypeId, e.datasetId, dao).map { d =>
+        (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
+      }
+    }
+
+    def resolver(entryPoints: Seq[BoundServiceEntryPoint], dao: JobsDao): Future[Seq[(EngineJobEntryPointRecord, BoundEntryPoint)]] =
+      Future.sequence(entryPoints.map(ep => resolveEntry(ep, dao)))
+
 
     def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord]
   }

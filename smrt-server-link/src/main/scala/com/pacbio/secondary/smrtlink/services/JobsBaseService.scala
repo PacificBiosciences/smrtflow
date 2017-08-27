@@ -74,18 +74,14 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
   implicit val sm: Marshaller[T]
   implicit val jwriter: JsonWriter[T]
 
-  //implicit val timeout = Timeout(30.seconds)
-
   import SmrtLinkJsonProtocols._
   import CommonModelSpraySupport._
   import CommonModelImplicits._
 
-
-  // Just to get this to compile
   override val manifest = PacBioComponentManifest(
-    toServiceId("status"),
-    "Status Service",
-    "0.2.0", "Subsystem Status Service")
+    toServiceId(s"job_service_${jobTypeId.id.replace("-", "_")}"),
+    s"JobService ${jobTypeId.id} Service",
+    "0.2.0", s"Job Service ${jobTypeId.id} ${jobTypeId.description}")
 
 
   /**
@@ -187,7 +183,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     }
   }
 
-  val routeCreateJob: Route =
+  val allRootJobRoutes: Route =
     pathEndOrSingleSlash {
       post {
         optionalAuthenticate(authenticator.wso2Auth) { user =>
@@ -212,7 +208,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     }
 
 
-  def allJobRoutes(implicit ec: ExecutionContext): Route =
+  def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
     pathPrefix(IdAbleMatcher) { jobId =>
       pathEndOrSingleSlash {
         get {
@@ -433,7 +429,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
       }
     }
 
-  override def routes:Route = allJobRoutes ~ routeCreateJob
+  override def routes:Route = allIdAbleJobRoutes ~ allRootJobRoutes
 }
 
 
@@ -501,7 +497,7 @@ class ImportFastaJobsService(override val dao: JobsDao, override val authenticat
 }
 
 class MergeDataSetJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[MergeDataSetJobOptions], implicit val sm: Marshaller[MergeDataSetJobOptions], implicit val jwriter: JsonWriter[MergeDataSetJobOptions]) extends CommonJobsRoutes[MergeDataSetJobOptions] {
-  override def jobTypeId = JobTypeIds.HELLO_WORLD
+  override def jobTypeId = JobTypeIds.MERGE_DATASETS
 }
 
 
@@ -570,7 +566,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
 
   import SmrtLinkJsonProtocols._
 
-  val manifest = PacBioComponentManifest(
+  override val manifest = PacBioComponentManifest(
     toServiceId("new_job_service"),
     "New Job Service",
     "0.1.0", "New Job Service")
@@ -618,7 +614,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     // Create all routes with <job-type-id> prefix
     val rx = jobs.map(j => pathPrefix(j.jobTypeId.id) {j.routes}).reduce(_ ~ _)
 
-    val allJobRoutes:Route = jobTypeRoutes ~ nakedJob.allJobRoutes ~ rx
+    val allJobRoutes:Route = jobTypeRoutes ~ nakedJob.allIdAbleJobRoutes ~ rx
 
     // These need to be prefixed with secondary-analysis as well
     // Keep the backward compatibility of /smrt-link/ and /secondary-analysis root prefix

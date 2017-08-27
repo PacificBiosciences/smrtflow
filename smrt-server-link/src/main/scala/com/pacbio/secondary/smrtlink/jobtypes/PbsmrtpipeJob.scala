@@ -12,7 +12,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions}
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobEntryPointRecord}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -30,17 +29,8 @@ case class PbsmrtpipeJobOptions(name: Option[String],
                                 projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
 
-  private def resolveEntry(e: BoundServiceEntryPoint, dao:JobsDao): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
-    ValidateImportDataSetUtils.resolveDataSet(e.fileTypeId, e.datasetId, dao).map { d =>
-      (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
-    }
-  }
-
-  def resolver(dao: JobsDao): Future[Seq[(EngineJobEntryPointRecord, BoundEntryPoint)]] =
-    Future.sequence(entryPoints.map(ep => resolveEntry(ep, dao)))
-
   override def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
-    val fx = resolver(dao).map(_.map(_._1))
+    val fx = resolver(entryPoints, dao).map(_.map(_._1))
     Await.result(fx, 5.seconds)
   }
 
@@ -67,7 +57,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts) wit
     val serviceURI: Option[URI] = Some(toURL(rootUpdateURL, resources.jobId))
 
     // Resolve Entry Points
-    val fx:Future[Seq[BoundEntryPoint]] = opts.resolver(dao).map(_.map(_._2))
+    val fx:Future[Seq[BoundEntryPoint]] = opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
     val entryPoints: Seq[BoundEntryPoint] = Await.result(fx, 5.seconds)
 
     val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, opts.workflowOptions, envPath, serviceURI, None, opts.getProjectId())
