@@ -27,7 +27,7 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
     val report = ReportUtils.toMockTaskReport("smrtflow_dev_simple", "smrtflow Report")
     ReportUtils.writeReport(report, resources.jobReportJson)
     val total = opts.a + opts.b
-    resultsWriter.writeStdout(s"Simple job ${opts.a} + ${opts.b} = $total ")
+    resultsWriter.write(s"Simple job ${opts.a} + ${opts.b} = $total ")
     Thread.sleep(1000)
 
 

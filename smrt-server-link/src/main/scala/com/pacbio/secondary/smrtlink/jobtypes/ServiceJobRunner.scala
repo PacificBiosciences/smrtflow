@@ -6,6 +6,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
@@ -14,7 +15,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 
 /**
@@ -28,16 +30,37 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
 
   def host = InetAddress.getLocalHost.getHostName
 
+  private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID):Future[MessageResponse] = {
+    if (ds.isChunked) {
+      Future.successful(MessageResponse(s"skipping import of intermediate chunked file $ds"))
+    } else {
+      dao.insertDataStoreFileById(ds, jobUUID)
+    }
+  }
+
+  private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
+    // Filter out non-chunked files. The are presumed to be intermediate files
+    val nonChunked = dataStore.files.filter(!_.isChunked)
+    Future.sequence(nonChunked.map(x => importDataStoreFile(x, jobUUID)))
+  }
+
+  private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Seq[MessageResponse]] = {
+    x match {
+      case x: DataStoreFile => importDataStoreFile(x, jobUUID).map(List(_))
+      case x: PacBioDataStore => importDataStore(x, jobUUID)
+    }
+  }
+
   private def validate(opts: ServiceJobOptions, uuid: UUID, writer: JobResultWriter): Option[ResultFailed] = {
     opts.validate() match {
       case Some(errors) =>
         val msg = s"Failed to validate Job options $opts Error $errors"
-        writer.writeLineStderr(msg)
+        writer.writeLineError(msg)
         logger.error(msg)
         Some(ResultFailed(uuid, opts.jobTypeId.id, msg, 1, AnalysisJobStates.FAILED, host))
-      case _ =>
+      case None =>
         val msg = s"Successfully validated Job Options $opts"
-        writer.writeLineStdout(msg)
+        writer.writeLine(msg)
         logger.info(msg)
         None
     }
@@ -62,10 +85,13 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
 
     val stderrFw = new FileWriter(output.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
     val stdoutFw = new FileWriter(output.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
+
     val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
 
     val smsg = s"Validating job-type ${opts.jobTypeId.id} ${opts.toString} in ${resource.path.toString}"
+
     logger.info(smsg)
+    writer.writeLine(smsg)
 
     validate(opts, uuid, writer) match {
       case None =>
@@ -77,10 +103,19 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
           case Left(a) =>
             val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.FAILED, Some(a.message)), timeout)
             Left(a)
-          case Right(_) =>
+          case Right(xs:ImportAble) =>
+            // Need to add dataset importing
             val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
             val msg = s"Successfully completed job ${resource.jobId} in $runTime sec"
-            stderrFw.write(msg)
+            writer.writeLine(msg)
+            val importResult = Await.result(importAbleFile(xs, uuid), timeout)
+            val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.SUCCESSFUL, Some(msg)), timeout)
+            Right(ResultSuccess(resource.jobId, opts.jobTypeId.id, msg, runTime, AnalysisJobStates.SUCCESSFUL, host))
+          case Right(_) =>
+            // Need to add dataset importing
+            val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
+            val msg = s"Successfully completed job ${resource.jobId} in $runTime sec"
+            writer.writeLineError(msg)
             val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.SUCCESSFUL, Some(msg)), timeout)
             Right(ResultSuccess(resource.jobId, opts.jobTypeId.id, msg, runTime, AnalysisJobStates.SUCCESSFUL, host))
         }
@@ -88,7 +123,7 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
       case Some(r) =>
         // Job Option Validation Failed
         val result = Await.result(updateJobState(resource.jobId, r.state, Some(r.message)), timeout)
-        stderrFw.write(r.message)
+        writer.writeError(r.message)
         Left(r)
     }
   }

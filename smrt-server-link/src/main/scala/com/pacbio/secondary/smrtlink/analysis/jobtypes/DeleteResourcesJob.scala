@@ -105,7 +105,7 @@ trait DeleteResourcesBase {
   def run(job: JobResourceBase, resultsWriter: JobResultWriter):
             Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
-    //resultsWriter.writeLineStdout(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
+    //resultsWriter.writeLine(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the delete resources job")
     val reportPath = job.path.resolve("delete_report.json")
@@ -155,7 +155,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 
   override def runDelete(job: JobResourceBase, resultsWriter: JobResultWriter): Seq[DeletedFile] = {
     val startedAt = JodaDateTime.now()
-    resultsWriter.writeLineStdout(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
+    resultsWriter.writeLine(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val reportPath = job.path.resolve("delete_report.json")
     val jobDir = opts.path.toFile
 

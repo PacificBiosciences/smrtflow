@@ -70,7 +70,7 @@ with timeUtils {
 
     def w(sx: String): Unit = {
       logger.debug(sx)
-      resultsWriter.writeLineStdout(sx)
+      resultsWriter.writeLine(sx)
     }
     val startedAt = JodaDateTime.now()
 

@@ -67,12 +67,12 @@ with ExternalToolsUtils {
     val startedAt = JodaDateTime.now()
 
     def writer(s: String): Unit = {
-      resultsWriter.writeLineStdout(s)
+      resultsWriter.writeLine(s)
       logger.info(s)
     }
 
-    resultsWriter.writeLineStdout(s"pbsmrtpipe job with Engine opts:")
-    opts.workflowOptions.foreach { x => resultsWriter.writeLineStdout(s"${x.id} -> ${x.value}")}
+    resultsWriter.writeLine(s"pbsmrtpipe job with Engine opts:")
+    opts.workflowOptions.foreach { x => resultsWriter.writeLine(s"${x.id} -> ${x.value}")}
 
     val engineOpts = PbsmrtpipeEngineOptions(opts.workflowOptions)
 

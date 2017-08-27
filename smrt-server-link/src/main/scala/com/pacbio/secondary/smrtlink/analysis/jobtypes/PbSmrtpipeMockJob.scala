@@ -85,8 +85,8 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       outputDir,
       tasksPath,
       workflowPath,
-      toP("logs"),
-      toP("html"),
+      logPath,
+      htmlPath,
       toFx(workflowPath, "datastore.json"),
       toFx(workflowPath, "entry-points.json"),
       toFx(workflowPath, "jobOptions-report.json"))

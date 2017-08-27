@@ -8,7 +8,7 @@ import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, EngineManagerStatus, NoAvailableWorkError}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver, SimpleAndImportJobRunner}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
@@ -44,8 +44,6 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
-  // This is not awesome
-  val jobRunner = new SimpleAndImportJobRunner(self)
   val serviceRunner = new ServiceJobRunner(dao)
 
   def andLog(sx: String): Future[String] = Future {
@@ -129,13 +127,13 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
     log.info(s"Starting engine manager actor $self with $engineConfig")
 
     (0 until engineConfig.numQuickWorkers).foreach { x =>
-      val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-quick-worker-$x")
+      val worker = context.actorOf(QuickEngineWorkerActor.props(self, serviceRunner), s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.info(s"Creating Quick worker $worker")
     }
 
     (0 until engineConfig.maxWorkers).foreach { x =>
-      val worker = context.actorOf(EngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-worker-$x")
+      val worker = context.actorOf(EngineWorkerActor.props(self, serviceRunner), s"engine-worker-$x")
       workers.enqueue(worker)
       log.info(s"Creating worker $worker")
     }

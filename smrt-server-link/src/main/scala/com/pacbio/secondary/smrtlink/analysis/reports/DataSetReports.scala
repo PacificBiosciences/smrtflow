@@ -78,12 +78,12 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
     reportDir.toFile.mkdir()
     val reportFile = reportDir.resolve(s"${rpt.reportModule}.json")
 
-    log.writeLineStdout(s"running report ${rpt.reportModule}")
+    log.writeLine(s"running report ${rpt.reportModule}")
 
     rpt.run(srcPath, reportFile) match {
       case Left(failure) => {
-        log.writeLineStdout("failed to generate report:")
-        log.writeLineStdout(failure.msg)
+        log.writeLine("failed to generate report:")
+        log.writeLine(failure.msg)
         None
       }
       case Right(report) => Some(toDataStoreFile(report.outputJson, report.taskId))
@@ -95,11 +95,11 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
                   log: JobResultWriter): Seq[DataStoreFile] = {
     val dsFile = parentDir.resolve("datastore.json")
     val rpt = PbReports.SubreadReports
-    log.writeLineStdout(s"running report ${rpt.reportModule}")
+    log.writeLine(s"running report ${rpt.reportModule}")
     rpt.run(srcPath, dsFile) match {
       case Left(failure) => {
-        log.writeLineStdout("failed to generate report:")
-        log.writeLineStdout(failure.msg)
+        log.writeLine("failed to generate report:")
+        log.writeLine(failure.msg)
         println(failure.msg)
         Seq.empty[DataStoreFile]
       }
@@ -124,11 +124,11 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       if (PbReports.SubreadReports.canProcess(dst, hasStatsXml(inPath, dst))) {
         runCombined(inPath, rptParent, log)
       } else {
-        log.writeLineStdout("Can't process this dataset")
+        log.writeLine("Can't process this dataset")
         Seq.empty[DataStoreFile]
       }
     } else {
-      log.writeLineStdout("pbreports is unavailable")
+      log.writeLine("pbreports is unavailable")
       Seq.empty[DataStoreFile]
     }
 

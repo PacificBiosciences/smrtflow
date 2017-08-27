@@ -48,10 +48,10 @@ with MockJobUtils with timeUtils {
 
     val startedAt = JodaDateTime.now()
 
-    resultsWriter.writeLineStdout(s"Starting dataset merging of ${opts.paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
+    resultsWriter.writeLine(s"Starting dataset merging of ${opts.paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
 
-    resultsWriter.writeLineStdout(s"DataSet Merging options: $opts")
-    opts.paths.foreach(x => resultsWriter.writeLineStdout(s"File $x"))
+    resultsWriter.writeLine(s"DataSet Merging options: $opts")
+    opts.paths.foreach(x => resultsWriter.writeLine(s"File $x"))
 
     val outputPath = job.path.resolve("merged.dataset.xml")
     val datastoreJson = job.path.resolve("datastore.json")
@@ -81,13 +81,13 @@ with MockJobUtils with timeUtils {
       case Some(DataSetMetaTypes.HdfSubread) => Some((DataSetMerger.mergeHdfSubreadSetPathsTo(paths, opts.name, outputPath), DataSetMetaTypes.HdfSubread))
       case Some(DataSetMetaTypes.Alignment) => Some((DataSetMerger.mergeAlignmentSetPathsTo(paths, opts.name, outputPath), DataSetMetaTypes.Alignment))
       case x =>
-        resultsWriter.writeLineStderr(s"Unsupported DataSet type $x")
+        resultsWriter.writeLineError(s"Unsupported DataSet type $x")
         None
     }
 
     result match {
       case Some((dataset, dst)) =>
-        resultsWriter.writeStdout(s"Successfully merged datasets to ${outputPath.toAbsolutePath}")
+        resultsWriter.write(s"Successfully merged datasets to ${outputPath.toAbsolutePath}")
         val dataStoreFile = toDF(dataset)
         val now = JodaDateTime.now()
 
@@ -100,7 +100,7 @@ with MockJobUtils with timeUtils {
         // FIX hardcoded version
         val ds = PacBioDataStore(now, now, "0.2.1", Seq(dataStoreFile, logFile) ++ reportFiles)
         writeDataStore(ds, datastoreJson)
-        resultsWriter.writeStdout(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
+        resultsWriter.write(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
         Right(ds)
       case _ =>
         Left(ResultFailed(job.jobId, jobTypeId.id, s"Failed to merge datasets. Unsupported dataset type '${opts.datasetType}'", computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))

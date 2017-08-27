@@ -27,7 +27,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
-    resultsWriter.writeLineStdout(s"TechSupport Bundle Opts $opts")
+    resultsWriter.writeLine(s"TechSupport Bundle Opts $opts")
 
     val outputTgz = job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
     val outputDs = job.path.resolve("datastore.json")
@@ -39,7 +39,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
     TechSupportUtils.writeJobBundleTgz(opts.jobRoot, opts.manifest, outputTgz)
 
     val totalSizeMB = outputTgz.toFile.length / 1024.0 / 1024.0
-    resultsWriter.writeLineStdout(s"Total file size $totalSizeMB MB")
+    resultsWriter.writeLine(s"Total file size $totalSizeMB MB")
 
     // Create DataStore
     val createdAt = JodaDateTime.now()
@@ -60,7 +60,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJo
     val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile, logDsFile, manifestDs))
     FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
 
-    resultsWriter.writeLineStdout(s"Successfully create TS TGZ bundle ${opts.manifest.id}")
+    resultsWriter.writeLine(s"Successfully create TS TGZ bundle ${opts.manifest.id}")
     Right(ds)
   }
 }

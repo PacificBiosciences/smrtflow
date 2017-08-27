@@ -17,10 +17,10 @@ import scala.util.{Try,Success,Failure}
 
 
 object EngineWorkerActor {
-  def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new EngineWorkerActor(daoActor, jobRunner, serviceRunner))
+  def props(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner): Props = Props(new EngineWorkerActor(engineManagerActor, serviceRunner))
 }
 
-class EngineWorkerActor(engineManagerActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
+class EngineWorkerActor(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
 
   val WORK_TYPE:WorkerType = StandardWorkType
   import CommonModelImplicits._
@@ -61,9 +61,9 @@ class EngineWorkerActor(engineManagerActor: ActorRef, jobRunner: JobRunner, serv
 }
 
 object QuickEngineWorkerActor {
-  def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new QuickEngineWorkerActor(daoActor, jobRunner, serviceRunner))
+  def props(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner): Props = Props(new QuickEngineWorkerActor(engineManagerActor, serviceRunner))
 }
 
-class QuickEngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends EngineWorkerActor(daoActor, jobRunner, serviceRunner){
+class QuickEngineWorkerActor(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner) extends EngineWorkerActor(engineManagerActor,  serviceRunner){
   override val WORK_TYPE = QuickWorkType
 }

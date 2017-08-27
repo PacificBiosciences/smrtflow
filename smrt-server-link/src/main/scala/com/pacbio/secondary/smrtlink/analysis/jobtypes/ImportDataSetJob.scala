@@ -82,7 +82,7 @@ with MockJobUtils with timeUtils {
         case Failure(ex) =>
           val errorMsg = s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
           logger.error(errorMsg)
-          resultsWriter.writeLineStderr(errorMsg)
+          resultsWriter.writeLineError(errorMsg)
           // Might want to consider adding a report attribute that has this warning message
           Nil
       }

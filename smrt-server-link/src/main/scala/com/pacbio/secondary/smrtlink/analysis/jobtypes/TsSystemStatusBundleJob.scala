@@ -27,7 +27,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
-    resultsWriter.writeLineStdout(s"TechSupport System Status Bundle Opts $opts")
+    resultsWriter.writeLine(s"TechSupport System Status Bundle Opts $opts")
 
     val outputTgz = job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
     val outputDs = job.path.resolve("datastore.json")
@@ -46,9 +46,9 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
 
     val totalSize = outputTgz.toFile.length()
     val totalSizeMB = totalSize / 1024.0 / 1024.0
-    resultsWriter.writeLineStdout(s"Total file size $totalSizeMB MB")
+    resultsWriter.writeLine(s"Total file size $totalSizeMB MB")
 
-    resultsWriter.writeLineStdout(s"Wrote TGZ to ${outputTgz.toAbsolutePath}")
+    resultsWriter.writeLine(s"Wrote TGZ to ${outputTgz.toAbsolutePath}")
 
     val createdAt = JodaDateTime.now()
 
@@ -70,7 +70,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCor
     val ds = PacBioDataStore(createdAt, createdAt, "0.2.0", Seq(dsFile, logDsFile, manifestDs))
     FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
 
-    resultsWriter.writeLineStdout(s"Successfully create TS TGZ bundle ${opts.manifest.id}")
+    resultsWriter.writeLine(s"Successfully create TS TGZ bundle ${opts.manifest.id}")
     Right(ds)
   }
 }
