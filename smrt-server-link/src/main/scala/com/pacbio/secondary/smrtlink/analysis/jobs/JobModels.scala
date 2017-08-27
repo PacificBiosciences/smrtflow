@@ -175,7 +175,8 @@ object JobModels {
   // This needs to be fixed.
   case class ResultSuccess(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String) extends JobResult
 
-  case class ResultFailed(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String) extends JobResult
+  // On Failed Results, and datastore files in the datastore will also be imported
+  case class ResultFailed(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String, datastore: Option[PacBioDataStore] = None) extends JobResult
 
   case class NoAvailableWorkError(message: String)
 

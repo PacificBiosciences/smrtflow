@@ -52,29 +52,33 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       logger.error(s"output dir is not a Dir ${outputDir.toString}")
     }
 
-    def toPx(x: Path, name: String) = {
+    def toPx(x: Path, name: String):Path = {
       val p = x.resolve(name)
       if (!Files.exists(p)) {
-        Files.createDirectory(p)
+        logger.info(s"Creating dir $p")
+        Files.createDirectories(p)
       }
       p
     }
 
-    def toFx(x: Path, name: String) = {
+    def toFx(x: Path, name: String):Path = {
       val p = x.resolve(name)
-      if (!Files.exists(p)) {
-        Files.createFile(p)
-      }
+//      if (!Files.exists(p)) {
+//        Files.createFile(p)
+//      }
       p
     }
 
     val toP = toPx(outputDir, _: String)
     val toF = toFx(outputDir, _: String)
 
-    val tasksPath = toP("tasks")
+    // This is where the datastore.json will be written. Keep this
     val workflowPath = toP("workflow")
-    val htmlPath = toP("html")
-    val logPath = toP("logs")
+
+    // Don't create these for non-pbsmrtpipe jobs. This makes little sense to try to adhere to this interface
+    val tasksPath = outputDir.resolve("tasks")
+    val htmlPath = outputDir.resolve("html")
+    val logPath = outputDir.resolve("logs")
 
     logger.debug(s"creating resources in ${outputDir.toAbsolutePath}")
     val r = AnalysisJobResources(
@@ -107,7 +111,7 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
   }
 
   def writeDataStore(ds: PacBioDataStore, path: Path): Path = {
-    FileUtils.writeStringToFile(path.toFile, ds.toJson.toString)
+    FileUtils.writeStringToFile(path.toFile, ds.toJson.prettyPrint.toString)
     path
   }
 

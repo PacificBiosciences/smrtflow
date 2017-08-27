@@ -378,7 +378,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     val fx = for {
       jobId <- q0.head
       _ <- qEngineJobById(jobId).map(j => (j.state, j.updatedAt)).update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
-      _ <- jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.SUBMITTED, s"Updating state to ${AnalysisJobStates.SUBMITTED}", JodaDateTime.now())
+      _ <- jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.SUBMITTED, s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)", JodaDateTime.now())
       job <- qEngineJobById(jobId).result.head
     } yield job
 
@@ -456,6 +456,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
       // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
       // Resolving Path so we can update the state in the DB
+      // Note, this will raise if the path can't be created
       val resolvedPath = resolver.resolve(jobId).toAbsolutePath.toString
 
       val jobEvent = JobEvent(
@@ -568,7 +569,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
   }
 
   def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false, projectId: Option[Int] = None): Future[Seq[EngineJob]] = {
-    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId)
+    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId).sortBy(_.id.desc)
     val q2 = if (!includeInactive) q1.filter(_.isActive) else q1
     val q3 = if (projectId.isDefined) q2.filter(_.projectId === projectId.get) else q2
     db.run(q3.result)

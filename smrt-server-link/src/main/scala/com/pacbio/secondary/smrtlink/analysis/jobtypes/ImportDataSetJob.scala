@@ -104,7 +104,9 @@ with MockJobUtils with timeUtils {
     } yield dstore
 
     tx match{
-      case Success(datastore) => Right(datastore)
+      case Success(datastore) =>
+        logger.info(s"${jobTypeId.id} was successful. Generated datastore with ${datastore.files.length} files.")
+        Right(datastore)
       case Failure(ex) =>
         val runTime = computeTimeDeltaFromNow(startedAt)
         val msg = s"Failed to import dataset ${opts.path} in $runTime sec. Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"

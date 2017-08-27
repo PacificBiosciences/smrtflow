@@ -36,33 +36,17 @@ class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner:
   def receive: Receive = {
     case RunEngineJob(engineJob) => {
 
-      val tx = Try {
+      sender ! StartingWork
+      // All functionality should be encapsulated here. We shouldn't even really handle the Failure case of the Try a in here
+      // Within this runEngineJob, it should handle all updating of state on failure
+      log.info(s"Worker $self attempting to run $engineJob")
+      val tx = Try { serviceRunner.runEngineJob(engineJob)} // this blocks
 
-        val outputDir = Paths.get(engineJob.path)
-        // need to convert a engineJob.settings into ServiceJobOptions
-        val opts = Converters.convertEngineToOptions(engineJob)
-        // Maybe this should be encapsulated at the ServiceRunner?
-        serviceRunner.run(opts, engineJob.uuid, outputDir) // this blocks and will update the file job state in the db. Need to handle error case
-      }
+      log.info(s"Worker $self Results from ServiceRunner $tx")
 
-      log.info(s"Results from ServiceRunner $tx")
-      // This only needs to communicate back to the EngineManager that it's completed processing the results
-      // and is free to run more work.
-      // Adding some copy and paste in here get it to work mechanistically
       val message = tx match {
-        case Success(rx) =>
-          rx match {
-            case Right(x) =>
-              UpdateJobCompletedResult(x, WORK_TYPE)
-            case Left(ex) =>
-              val emsg = s"Failed job type ${engineJob.jobTypeId} in ${engineJob.path} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.message}"
-              log.error(emsg)
-              UpdateJobCompletedResult(ex, WORK_TYPE)
-          }
-        case Failure(ex) =>
-          val emsg = s"Failed job type ${engineJob.jobTypeId} in ${engineJob.path} Job id:${engineJob.id} uuid:${engineJob.uuid}  ${ex.getMessage}"
-          log.error(emsg)
-          UpdateJobCompletedResult(ResultFailed(engineJob.uuid, engineJob.jobTypeId, emsg, 0, AnalysisJobStates.FAILED, "localhost"), WORK_TYPE)
+        case Success(rx) => CompletedWork(WORK_TYPE)
+        case Failure(ex) => CompletedWork(WORK_TYPE)
       }
 
       sender ! message

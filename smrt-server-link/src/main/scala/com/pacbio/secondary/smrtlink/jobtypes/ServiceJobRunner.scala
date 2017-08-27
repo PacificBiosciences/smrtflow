@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.io.FileWriter
 import java.net.InetAddress
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
@@ -48,11 +48,18 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
   }
 
 
+  def runEngineJob(engineJob: EngineJob)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
+    val opts = Converters.convertEngineToOptions(engineJob)
+    run(opts, engineJob.uuid, Paths.get(engineJob.path))
+  }
 
-  def run(opts: ServiceJobOptions, uuid: UUID, output: Path)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
+
+  private def run(opts: ServiceJobOptions, uuid: UUID, output: Path)(implicit timeout: Duration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
     val startedAt = JodaDateTime.now()
 
+    // This abstraction needs to be fixed.
     val resource = JobResource(uuid, output, AnalysisJobStates.RUNNING)
+
     val stderrFw = new FileWriter(output.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
     val stdoutFw = new FileWriter(output.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
     val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
@@ -61,19 +68,28 @@ class ServiceJobRunner(dao: JobsDao) extends timeUtils with LazyLogging {
     logger.info(smsg)
 
     validate(opts, uuid, writer) match {
-      case Some(r) => Left(r)
-      case _ =>
-        // For now, the EngineWorker is responsible for setting the state so other Workers don't take the work
-        // The job should really be set to SUBMITTED or similar to indicate it's "checked-out"
+      case None =>
+        // Validation was successful. Let's start running the job
+
+        // Need to clarify who is responsible for updating the task state
         // updateStateToRunning(resource.jobId) // This needs to be blocking
         opts.toJob().run(resource, writer, dao) match {
-          case Left(a) => Left(a)
+          case Left(a) =>
+            val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.FAILED, Some(a.message)), timeout)
+            Left(a)
           case Right(_) =>
             val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
-            val msg = s"Successfully completed job ${resource.jobId}"
+            val msg = s"Successfully completed job ${resource.jobId} in $runTime sec"
+            stderrFw.write(msg)
             val result = Await.result(updateJobState(resource.jobId, AnalysisJobStates.SUCCESSFUL, Some(msg)), timeout)
-            Right(ResultSuccess(resource.jobId, opts.jobTypeId.id, msg, runTime, AnalysisJobStates.FAILED, host))
+            Right(ResultSuccess(resource.jobId, opts.jobTypeId.id, msg, runTime, AnalysisJobStates.SUCCESSFUL, host))
         }
+
+      case Some(r) =>
+        // Job Option Validation Failed
+        val result = Await.result(updateJobState(resource.jobId, r.state, Some(r.message)), timeout)
+        stderrFw.write(r.message)
+        Left(r)
     }
   }
 }

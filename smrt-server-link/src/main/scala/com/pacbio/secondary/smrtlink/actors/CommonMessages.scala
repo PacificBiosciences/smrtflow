@@ -19,6 +19,9 @@ object CommonMessages {
   case object StandardWorkType extends WorkerType
 
   case class UpdateJobCompletedResult(result: JobResult, workerType: WorkerType)
+  // Messages for communicating between the EngineManager and EngineWorker
+  case object StartingWork
+  case class CompletedWork(workerType: WorkerType)
 
   // Some endpoints were originally implemented to return string-typed
   // responses, but the smrt-link client has been sending an Accept:

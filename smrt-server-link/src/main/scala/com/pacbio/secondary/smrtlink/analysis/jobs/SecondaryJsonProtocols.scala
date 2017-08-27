@@ -509,7 +509,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
 
   // Job results
   implicit val jobResultSuccesFormat = jsonFormat6(ResultSuccess)
-  implicit val jobResultFailureFormat = jsonFormat6(ResultFailed)
+  implicit val jobResultFailureFormat = jsonFormat7(ResultFailed)
   implicit val jobResultFormat = jsonFormat2(JobCompletedResult)
 
   implicit val pipelineOptionViewRule = jsonFormat3(PipelineOptionViewRule)
