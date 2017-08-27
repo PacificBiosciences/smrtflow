@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.actors
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, EngineJob, JobResult}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
@@ -20,7 +21,7 @@ object CommonMessages {
 
   // Messages for communicating between the EngineManager and EngineWorker
   case object StartingWork
-  case class CompletedWork(workerType: WorkerType)
+  case class CompletedWork(worker: ActorRef, workerType: WorkerType)
 
   // Some endpoints were originally implemented to return string-typed
   // responses, but the smrt-link client has been sending an Accept:

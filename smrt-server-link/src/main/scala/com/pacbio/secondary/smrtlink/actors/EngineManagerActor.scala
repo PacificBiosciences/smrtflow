@@ -56,7 +56,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
   private def getManagerStatus() = {
     val n = engineConfig.maxWorkers - workers.length
-    val m = engineConfig.maxWorkers - quickWorkers.length
+    val m = engineConfig.numQuickWorkers - quickWorkers.length
     EngineManagerStatus(engineConfig.maxWorkers, n, engineConfig.numQuickWorkers, m)
   }
   /**
@@ -122,7 +122,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
       _ <- andLog(s"Checking for work. ${getManagerStatus().prettySummary}")
       _ <- checkForWorker(workers)
       _ <- checkForWorker(quickWorkers) // this might be better as a andThen call
-    } yield "Completed checking for work"
+    } yield s"Completed checking for work ${getManagerStatus().prettySummary}"
   }
 
   override def preStart(): Unit = {
@@ -148,7 +148,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
 
   override def receive: Receive = {
-    case CheckForRunnableJob =>
+    case CheckForRunnableJob => {
       checkForWork() onComplete {
         case Success(_) =>
           log.debug("Completed checking for work")
@@ -158,20 +158,27 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
           log.error(s"Failed check for runnable jobs ${ex.getMessage}")
           log.error(sw.toString)
       }
+    }
 
-    case CompletedWork(workerType) =>
-      log.info(s"Worker $workerType $sender completed")
+    case CompletedWork(worker, workerType) => {
+      log.info(s"Completed worker-type:$workerType worker:$worker")
       workerType match {
-        case QuickWorkType => quickWorkers.enqueue(sender)
-        case StandardWorkType => workers.enqueue(sender)
+        case QuickWorkType =>
+          log.info(s"Enqueuing worker-type:$workerType worker:$worker")
+          quickWorkers.enqueue(worker)
+        case StandardWorkType =>
+          log.info(s"Enqueuing worker-type:$workerType worker:$worker")
+          workers.enqueue(worker)
       }
 
       self ! CheckForRunnableJob
+    }
 
-    case GetEngineManagerStatus =>
+    case GetEngineManagerStatus => {
       val status = getManagerStatus()
       log.info(s"EngineManager status ${status.prettySummary}")
       sender ! status
+    }
 
     case x => log.warning(s"Unhandled message $x to $self")
   }

@@ -20,7 +20,7 @@ object EngineWorkerActor {
   def props(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner): Props = Props(new EngineWorkerActor(daoActor, jobRunner, serviceRunner))
 }
 
-class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
+class EngineWorkerActor(engineManagerActor: ActorRef, jobRunner: JobRunner, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
 
   val WORK_TYPE:WorkerType = StandardWorkType
   import CommonModelImplicits._
@@ -37,19 +37,23 @@ class EngineWorkerActor(daoActor: ActorRef, jobRunner: JobRunner, serviceRunner:
     case RunEngineJob(engineJob) => {
 
       sender ! StartingWork
-      // All functionality should be encapsulated here. We shouldn't even really handle the Failure case of the Try a in here
+
+      // All functionality should be encapsulated in the service running layer. We shouldn't even really handle the Failure case of the Try a in here
       // Within this runEngineJob, it should handle all updating of state on failure
       log.info(s"Worker $self attempting to run $engineJob")
       val tx = Try { serviceRunner.runEngineJob(engineJob)} // this blocks
 
       log.info(s"Worker $self Results from ServiceRunner $tx")
 
-      val message = tx match {
-        case Success(rx) => CompletedWork(WORK_TYPE)
-        case Failure(ex) => CompletedWork(WORK_TYPE)
-      }
+      val completedWork = CompletedWork(self, WORK_TYPE)
 
-      sender ! message
+      // We don't care about the result. This is captured and handled in the service runner layer
+      val message = tx.map(_ => completedWork).getOrElse(completedWork)
+      log.info(s"sending $message to $sender from $self")
+
+      // Make an explicit call to the EngineManagerActor. Using sender ! message doesn't appear to work because of
+      // the Future context
+      engineManagerActor ! message
     }
 
     case x => log.debug(s"Unhandled Message to Engine Worker $x")
