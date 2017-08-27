@@ -19,4 +19,5 @@ case class EngineConfig(
     maxWorkers: Int,
     pbToolsEnv: Option[Path],
     pbRootJobDir: Path,
-    debugMode: Boolean)
+    debugMode: Boolean,
+    numQuickWorkers: Int = 10)

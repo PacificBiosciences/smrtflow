@@ -18,7 +18,6 @@ object CommonMessages {
   case object QuickWorkType extends WorkerType
   case object StandardWorkType extends WorkerType
 
-  case class UpdateJobCompletedResult(result: JobResult, workerType: WorkerType)
   // Messages for communicating between the EngineManager and EngineWorker
   case object StartingWork
   case class CompletedWork(workerType: WorkerType)
@@ -43,6 +42,9 @@ object CommonMessages {
   case object CheckForRunnableJob
 
   case object AllJobsCompleted
+
+  // Summary of the number of workers
+  case object GetEngineManagerStatus
 
 
   case object GetSystemJobSummary

@@ -180,6 +180,10 @@ object JobModels {
 
   case class NoAvailableWorkError(message: String)
 
+  case class EngineManagerStatus(totalGeneralWorkers: Int, activeGeneralWorkers: Int, totalQuickWorkers: Int, activeQuickWorkers: Int) {
+    def prettySummary = s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
+  }
+
   // New Job Models
   case class RunnableJob(job: CoreJob, state: AnalysisJobStates.JobStates)
 

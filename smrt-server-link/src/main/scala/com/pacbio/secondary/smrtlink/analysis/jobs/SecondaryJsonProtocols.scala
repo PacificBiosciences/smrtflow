@@ -520,7 +520,7 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
   implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
 
   // Engine Config
-  implicit val engineConfigFormat = jsonFormat4(EngineConfig)
+  implicit val engineConfigFormat = jsonFormat5(EngineConfig)
 
   // Pipeline DataStore Rules
   implicit val datastoreFileViewRules = jsonFormat5(DataStoreFileViewRule)

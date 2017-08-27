@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, NoAvailableWorkError}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, EngineManagerStatus, NoAvailableWorkError}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver, SimpleAndImportJobRunner}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
@@ -35,10 +35,12 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
   val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
+  // For debugging
+  val checkStatusForWorkTick = context.system.scheduler.schedule(5.seconds, 10.seconds, self, GetEngineManagerStatus)
+
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
 
-  val maxNumQuickWorkers = 10
   // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
@@ -52,6 +54,11 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   }
 
 
+  private def getManagerStatus() = {
+    val n = engineConfig.maxWorkers - workers.length
+    val m = engineConfig.maxWorkers - quickWorkers.length
+    EngineManagerStatus(engineConfig.maxWorkers, n, engineConfig.numQuickWorkers, m)
+  }
   /**
     * Returns a status message
     *
@@ -112,7 +119,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   // This should return a future
   def checkForWork(): Future[String] = {
     for {
-      _ <- andLog(s"Checking for work.  ${workers.size} General Workers, ${quickWorkers.size} Quick Workers")
+      _ <- andLog(s"Checking for work. ${getManagerStatus().prettySummary}")
       _ <- checkForWorker(workers)
       _ <- checkForWorker(quickWorkers) // this might be better as a andThen call
     } yield "Completed checking for work"
@@ -121,7 +128,7 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
   override def preStart(): Unit = {
     log.info(s"Starting engine manager actor $self with $engineConfig")
 
-    (0 until maxNumQuickWorkers).foreach { x =>
+    (0 until engineConfig.numQuickWorkers).foreach { x =>
       val worker = context.actorOf(QuickEngineWorkerActor.props(self, jobRunner, serviceRunner), s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.info(s"Creating Quick worker $worker")
@@ -142,7 +149,6 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
   override def receive: Receive = {
     case CheckForRunnableJob =>
-      //FIXME. This Try is probably not necessary
       checkForWork() onComplete {
         case Success(_) =>
           log.debug("Completed checking for work")
@@ -153,8 +159,8 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
           log.error(sw.toString)
       }
 
-    case UpdateJobCompletedResult(result, workerType) =>
-      log.info(s"Worker $sender completed $result")
+    case CompletedWork(workerType) =>
+      log.info(s"Worker $workerType $sender completed")
       workerType match {
         case QuickWorkType => quickWorkers.enqueue(sender)
         case StandardWorkType => workers.enqueue(sender)
@@ -162,7 +168,12 @@ class EngineManagerActor(dao: JobsDao, engineConfig: EngineConfig, resolver: Job
 
       self ! CheckForRunnableJob
 
-    case x => log.warning(s"Unhandled message $x to database actor.")
+    case GetEngineManagerStatus =>
+      val status = getManagerStatus()
+      log.info(s"EngineManager status ${status.prettySummary}")
+      sender ! status
+
+    case x => log.warning(s"Unhandled message $x to $self")
   }
 }
 
