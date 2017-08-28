@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 /**
   * Created by mkocher on 8/17/17.
   */
-case class SimpleJobOptions(path: String,
+case class SimpleJobOptions(n: Int,
                             name: Option[String],
                             description: Option[String],
                             projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
