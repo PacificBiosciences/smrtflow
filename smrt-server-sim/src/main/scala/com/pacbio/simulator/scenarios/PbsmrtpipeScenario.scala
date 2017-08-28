@@ -154,7 +154,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   import JobModels._
 
   override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
+  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
   val diagnosticJobTests = Seq(
     projectId := CreateProject(projectName, projectDesc),

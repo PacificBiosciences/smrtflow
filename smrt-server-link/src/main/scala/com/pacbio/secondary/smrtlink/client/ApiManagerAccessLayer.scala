@@ -1,4 +1,4 @@
-package com.pacbio.secondary.smrtlink.tools
+package com.pacbio.secondary.smrtlink.client
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -22,31 +22,9 @@ import scala.util.Random
 import scala.xml._
 
 
-class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pass: String)(implicit actorSystem: ActorSystem) extends LazyLogging {
-
-  import ApiManagerJsonProtocols._
-  import SprayJsonSupport._
-  import actorSystem.dispatcher
-
-  implicit val timeout: Timeout = 200.seconds
-
+trait ApiManagerClientBase {
   val ADMIN_PORT = 9443
   val API_PORT = 8243
-
-  // this enum isn't described in the wso2 swagger, so I'm including a
-  // hand-written version here
-  type ApiLifecycleAction = ApiLifecycleAction.Value
-
-  object ApiLifecycleAction extends Enumeration {
-    val PUBLISH = Value("Publish")
-    val DEPLOY_AS_PROTOTYPE = Value("Deploy as a Prototype")
-    val DEMOTE_TO_CREATED = Value("Demote to Created")
-    val DEMOTE_TO_PROTOTYPED = Value("Demote to Prototyped")
-    val BLOCK = Value("Block")
-    val DEPRECATE = Value("Deprecate")
-    val RE_PUBLISH = Value("Re-Publish")
-    val RETIRE = Value("Retire")
-  }
 
   implicit val sslContext = {
     // Create a trust manager that does not validate certificate chains.
@@ -66,18 +44,54 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
     ctx
   }
 
+}
+
+class ApiManagerAccessLayer(
+      host: String,
+      portOffset: Int = 0,
+      user: String,
+      password: String)
+    (implicit actorSystem: ActorSystem)
+    extends ApiManagerClientBase
+    with LazyLogging {
+
+  import ApiManagerJsonProtocols._
+  import SprayJsonSupport._
+  import Wso2Models._
+
+  implicit val executionContext = actorSystem.dispatcher
+  implicit val timeout: Timeout = 200.seconds
+
+  // this enum isn't described in the wso2 swagger, so I'm including a
+  // hand-written version here
+  type ApiLifecycleAction = ApiLifecycleAction.Value
+
+  object ApiLifecycleAction extends Enumeration {
+    val PUBLISH = Value("Publish")
+    val DEPLOY_AS_PROTOTYPE = Value("Deploy as a Prototype")
+    val DEMOTE_TO_CREATED = Value("Demote to Created")
+    val DEMOTE_TO_PROTOTYPED = Value("Demote to Prototyped")
+    val BLOCK = Value("Block")
+    val DEPRECATE = Value("Deprecate")
+    val RE_PUBLISH = Value("Re-Publish")
+    val RETIRE = Value("Retire")
+  }
+
+  protected def getWso2Connection(portNumber: Int) = {
+    IO(Http) ? Http.HostConnectorSetup(host, port = portNumber + portOffset, sslEncryption = true)
+  }
+
+  // request pipeline for the API port
+  val apiPipe: Future[SendReceive] = {
+    for (
+      Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT)
+    ) yield sendReceive(connector)
+  }
+
   // request pipeline for the admin port
   val adminPipe: Future[SendReceive] =
     for (
-      Http.HostConnectorInfo(connector, _) <-
-        IO(Http) ? Http.HostConnectorSetup(host, port = ADMIN_PORT + portOffset, sslEncryption = true)
-    ) yield sendReceive(connector)
-
-  // request pipeline for the API port
-  val apiPipe: Future[SendReceive] =
-    for (
-      Http.HostConnectorInfo(connector, _) <-
-        IO(Http) ? Http.HostConnectorSetup(host, port = API_PORT + portOffset, sslEncryption = true)
+      Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT)
     ) yield sendReceive(connector)
 
   def register(): Future[ClientRegistrationResponse] = {
@@ -85,10 +99,30 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
 
     val request = (
       Post(s"/client-registration/v0.10/register", body)
-        ~> addCredentials(BasicHttpCredentials(user, pass))
+        ~> addCredentials(BasicHttpCredentials(user, password))
     )
 
     adminPipe.flatMap(_(request)).map(unmarshal[ClientRegistrationResponse])
+  }
+
+  // the consumer key and secret can come from the dynamic client
+  // registration mechanism (the register() method) or they can come
+  // from some existing configuration, like the UI's app-config.json
+  def login(consumerKey: String,
+            consumerSecret: String,
+            scopes: Set[String]): Future[OauthToken] = {
+    val body = FormData(Map(
+      "grant_type" -> "password",
+      "username" -> user,
+      "password" -> password,
+      "scope" -> scopes.mkString(" ")
+    ))
+
+    val request = (
+      Post(s"/token", body)
+        ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
+    )
+    apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
   }
 
   def waitForStart(tries: Int = 40, delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
@@ -133,24 +167,6 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
         }
       }
     })
-  }
-
-  // the consumer key and secret can come from the dynamic client
-  // registration mechanism (the register() method) or they can come
-  // from some existing configuration, like the UI's app-config.json
-  def login(consumerKey: String, consumerSecret: String, scopes: Set[String]): Future[OauthToken] = {
-    val body = FormData(Map(
-      "grant_type" -> "password",
-      "username" -> user,
-      "password" -> pass,
-      "scope" -> scopes.mkString(" ")
-    ))
-
-    val request = (
-      Post(s"/token", body)
-        ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
-    )
-    apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
   }
 
   // Store APIs
@@ -240,7 +256,7 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
   // User Store admin API
   val userStoreUrl = "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
 
-  def soapCall(action: String, content: Elem, user: String, pass: String): Future[NodeSeq] = {
+  def soapCall(action: String, content: Elem, user: String, password: String): Future[NodeSeq] = {
     val body = <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
                  <soap-env:Body>
                    {content}
@@ -248,41 +264,41 @@ class ApiManagerAccessLayer(host: String, portOffset: Int = 0, user: String, pas
                </soap-env:Envelope>
     val request = (
       Post(userStoreUrl, body)
-        ~> addCredentials(BasicHttpCredentials(user, pass))
+        ~> addCredentials(BasicHttpCredentials(user, password))
         ~> addHeader("SOAPAction", action)
     )
     adminPipe.flatMap(_(request))
       .map(unmarshal[NodeSeq])
   }
 
-  def getRoleNames(user: String, pass: String): Future[Seq[String]] = {
+  def getRoleNames(user: String, password: String): Future[Seq[String]] = {
     val params = <wso2um:getRoleNames xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                  </wso2um:getRoleNames>
-    soapCall("urn:getRoleNames", params, user, pass)
+    soapCall("urn:getRoleNames", params, user, password)
       .map(x => (x \ "Body" \ "getRoleNamesResponse" \ "return").map(_.text))
   }
 
-  def addRole(user: String, pass: String, role: String): Future[NodeSeq] = {
+  def addRole(user: String, password: String, role: String): Future[NodeSeq] = {
     val params = <wso2um:addRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                  </wso2um:addRole>
-    soapCall("urn:addRole", params, user, pass)
+    soapCall("urn:addRole", params, user, password)
   }
 
-  def getUserListOfRole(user: String, pass: String, role: String): Future[Seq[String]] = {
+  def getUserListOfRole(user: String, password: String, role: String): Future[Seq[String]] = {
     val params = <wso2um:getUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                  </wso2um:getUserListOfRole>
-    soapCall("urn:getUserListOfRole", params, user, pass)
+    soapCall("urn:getUserListOfRole", params, user, password)
       .map(x => (x \ "Body" \ "getUserListOfRoleResponse" \ "return").map(_.text))
   }
 
-  def updateUserListOfRole(user: String, pass: String, role: String, users: Seq[String]): Future[NodeSeq] = {
+  def updateUserListOfRole(user: String, password: String, role: String, users: Seq[String]): Future[NodeSeq] = {
     val newUserList = users.map(u => <wso2um:newUsers>{u}</wso2um:newUsers>)
     val params = <wso2um:updateUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                    {newUserList}
                  </wso2um:updateUserListOfRole>
-    soapCall("urn:updateUserListOfRole", params, user, pass)
+    soapCall("urn:updateUserListOfRole", params, user, password)
   }
 }
