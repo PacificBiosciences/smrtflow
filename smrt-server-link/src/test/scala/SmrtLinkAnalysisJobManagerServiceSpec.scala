@@ -10,6 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.jobtypes.SimpleJobOptions
 import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -68,11 +69,13 @@ with JobServiceConstants with TestUtils{
   val totalRoutes = TestProviders.newJobService().prefixedRoutes
   TestProviders.eventManagerActor()
 
+  val projectId = 1
+  val record = SimpleJobOptions(1, Some("Job name"), Some("Description"), Some(projectId))
+
   step(setupDb(TestProviders.dbConfig))
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {
-      val record = SimpleDevJobOptions(7, 13)
       Post(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple", record) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
