@@ -251,7 +251,9 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
       var complete = false
       var retry = 0
-      val maxRetries = 30
+      // this job should completely within seconds. Having a large number of retries only makes the test hang
+      // without have any feedback that it's running
+      val maxRetries = 5 // this job should completely within seconds. Having a large number of retries only makes the test hang
       val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType("mock-pbsmrtpipe")) ~> totalRoutes ~> check {
