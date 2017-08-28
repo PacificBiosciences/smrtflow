@@ -40,8 +40,10 @@ trait PbsmrtpipeScenarioCore
     with ConditionalSteps
     with IOSteps
     with SmrtLinkSteps {
+
   import JobModels._
   import OptionTypes._
+  import CommonModelImplicits._
 
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
 
@@ -72,7 +74,7 @@ trait PbsmrtpipeScenarioCore
                           triggerFailure: Boolean = false,
                           name: String = "diagnostic-test", projectId: Int = JobConstants.GENERAL_PROJECT_ID):PbSmrtPipeServiceOptions = {
     val pipelineId = "pbsmrtpipe.pipelines.dev_diagnostic"
-    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, Right(referenceSet))
+    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, referenceSet)
 
     val taskOptions = Seq(
       ServiceTaskBooleanOption(toI("dev_diagnostic_strict"), true, BOOL.optionTypeId),
@@ -103,10 +105,10 @@ trait PbsmrtpipeScenarioCore
       "pbsmrtpipe.pipelines.sa3_sat",
       Seq(BoundServiceEntryPoint("eid_ref_dataset",
                                  "PacBio.DataSet.ReferenceSet",
-                                 Right(refUuid.get)),
+                                 refUuid.get),
           BoundServiceEntryPoint("eid_subread",
                                  "PacBio.DataSet.SubreadSet",
-                                 Right(subreadsUuid.get))),
+                                 subreadsUuid.get)),
       Seq[ServiceTaskOptionBase](),
       Seq(
         ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true,

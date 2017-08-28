@@ -61,7 +61,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData) ext
   def failedDevDiagnosticOpts(uuid: UUID): Var[PbSmrtPipeServiceOptions] = {
 
     //MK I don't understand why this has issue with dsUUID.get This will yield a NPE
-    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, Right(lambdaNeb.uuid))
+    val ep = BoundServiceEntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, lambdaNeb.uuid)
     val workflowOptions = Seq.empty[ServiceTaskOptionBase]
 
     val taskOption = ServiceTaskBooleanOption("pbsmrtpipe.task_options.raise_exception", true, BOOL.optionTypeId)
