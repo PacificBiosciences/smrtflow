@@ -7,7 +7,8 @@ import spray.json._
 import spray.routing._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.{LogLevel, LogMessageRecord, PacBioComponentManifest}
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.models.{LogLevels, LogMessageRecord, PacBioComponentManifest}
 
 
 class SimpleLogService
@@ -35,13 +36,13 @@ class SimpleLogService
                 val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
                 val response = "message logged"
                 msg.level match {
-                  case LogLevel.TRACE    => logger.trace(msgString)
-                  case LogLevel.DEBUG    => logger.debug(msgString)
-                  case LogLevel.INFO     => logger.info(msgString)
-                  case LogLevel.WARN     => logger.warn(msgString)
-                  case LogLevel.ERROR    => logger.error(msgString)
-                  case LogLevel.CRITICAL => logger.error(msgString)
-                  case LogLevel.FATAL    => logger.error(msgString)
+                  case LogLevels.TRACE    => logger.trace(msgString)
+                  case LogLevels.DEBUG    => logger.debug(msgString)
+                  case LogLevels.INFO     => logger.info(msgString)
+                  case LogLevels.WARN     => logger.warn(msgString)
+                  case LogLevels.ERROR    => logger.error(msgString)
+                  case LogLevels.CRITICAL => logger.error(msgString)
+                  case LogLevels.FATAL    => logger.error(msgString)
                 }
                 MessageResponse(response)
               }

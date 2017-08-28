@@ -31,7 +31,8 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
-object LogLevel {
+object LogLevels {
+
   sealed abstract class LogLevel
 
   case object TRACE extends LogLevel
@@ -43,7 +44,11 @@ object LogLevel {
   case object FATAL extends LogLevel
 
   val ALL = Seq(TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL)
-  val logLevelByName = ALL.map(x => x.toString.toLowerCase -> x).toMap
+
+  // Allow some slop with case-ing here
+  def fromString(sx: String): Option[LogLevel] =
+    ALL.map(x => x.toString.toLowerCase -> x).toMap.get(sx.toLowerCase)
+
 }
 
 // Subsystem Settings
@@ -87,11 +92,7 @@ case class AlarmStatus(id: String, value: Double, message: Option[String], sever
 // Logging System
 case class LogResourceRecord(description: String, id: String, name: String)
 
-case class LogResource(createdAt: JodaDateTime, description: String, id: String, name: String)
-
-case class LogMessageRecord(message: String, level: LogLevel.LogLevel, sourceId: String)
-
-case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, level: LogLevel.LogLevel, sourceId: String)
+case class LogMessageRecord(message: String, level: LogLevels.LogLevel, sourceId: String)
 
 
 // Users

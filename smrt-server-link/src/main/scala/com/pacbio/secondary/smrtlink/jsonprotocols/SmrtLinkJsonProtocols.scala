@@ -159,11 +159,15 @@ trait AlarmProtocols extends DefaultJsonProtocol with FamilyFormats {
 
 trait LogLevelProtocol extends DefaultJsonProtocol with FamilyFormats {
 
-  implicit object LogLevelFormat extends JsonFormat[LogLevel.LogLevel] {
-    def write(obj: LogLevel.LogLevel): JsValue = JsString(obj.toString)
+  implicit object LogLevelFormat extends JsonFormat[LogLevels.LogLevel] {
+    def write(obj: LogLevels.LogLevel): JsValue = JsString(obj.toString)
 
-    def read(json: JsValue): LogLevel.LogLevel = json match {
-      case JsString(x) => LogLevel.logLevelByName(x.toLowerCase)
+    def read(json: JsValue): LogLevels.LogLevel = json match {
+      case JsString(x) =>
+        LogLevels.fromString(x) match {
+          case Some(level) => level
+          case _ => deserializationError(s"Invalid log level '$x'")
+        }
       case _ => deserializationError("Expected LogLevel type as JsString")
     }
   }
@@ -317,10 +321,9 @@ trait SmrtLinkJsonProtocols
   implicit val pbServiceStatusFormat = jsonFormat6(ServiceStatus)
   implicit val pbAlarmFormat = jsonFormat3(Alarm)
   implicit val pbAlarmStatusFormat = jsonFormat5(AlarmStatus)
-  implicit val pbLogResourceRecordFormat = jsonFormat3(LogResourceRecord)
-  implicit val pbLogResourceFormat = jsonFormat4(LogResource)
+
   implicit val pbLogMessageRecordFormat = jsonFormat3(LogMessageRecord)
-  implicit val pbLogMessageFormat = jsonFormat5(LogMessage)
+
   implicit val pbUserRecordFormat = jsonFormat5(UserRecord)
   implicit val pbFileResourceFormat = jsonFormat5(FileResource)
   implicit val pbDiskSpaceResourceFormat = jsonFormat3(DiskSpaceResource)
@@ -329,9 +332,11 @@ trait SmrtLinkJsonProtocols
   implicit val subSystemConfigFormat = jsonFormat3(SubsystemConfig)
   implicit val pbMessageResponseFormat = jsonFormat1(MessageResponse)
 
+  // MK. I don't know why this was added. It will yield a runtime error when
+  // trying to serialize/de-serialize LogMessageRecord
   // this is here to break a tie between otherwise-ambiguous implicits;
   // see the spray-json-shapeless documentation
-  implicit val llFormat = LogLevelFormat
+  //implicit val llFormat = LogLevelFormat
 }
 
 object SmrtLinkJsonProtocols extends SmrtLinkJsonProtocols

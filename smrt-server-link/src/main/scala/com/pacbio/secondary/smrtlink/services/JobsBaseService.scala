@@ -137,7 +137,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     val uuid = UUID.randomUUID()
 
     val name = opts.name.getOrElse(opts.jobTypeId.id)
-    val comment = opts.description.getOrElse(s"Description for job ${opts.jobTypeId}")
+    val comment = opts.description.getOrElse(s"Description for job ${opts.jobTypeId.name}")
 
     // This will require an implicit JsonWriter in scope
     val jsettings = opts.toJson.asJsObject
