@@ -294,8 +294,6 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportSystemStatusRecordFormat = jsonFormat2(TechSupportSystemStatusRecord.apply)
   implicit val techSupportJobRecordFormat = jsonFormat3(TechSupportJobRecord.apply)
 
-  implicit val clientLogMessageFormat = jsonFormat3(ClientLogMessage)
-
   // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
   // of namespace conflicts.
   implicit val pipelineTemplateFormat = SecondaryJobProtocols.PipelineTemplateFormat

@@ -265,12 +265,5 @@ class JobModelsSpec extends Specification  {
       val opts = getJson("import_fasta_options.json").convertTo[ConvertImportFastaOptions]
       opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
-    "SimpleDataTransferOptions" in {
-      val o = SimpleDataTransferOptions("/path/to/src", "/path/to/dest", 666)
-      val oj = o.toJson.convertTo[SimpleDataTransferOptions]
-      oj.projectId must beEqualTo(666)
-      val opts = getJson("simple_transfer_options.json").convertTo[SimpleDataTransferOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
   }
 }

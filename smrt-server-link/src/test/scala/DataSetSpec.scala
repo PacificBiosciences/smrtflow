@@ -40,9 +40,7 @@ with JobServiceConstants with TestUtils{
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
       DataSetServiceProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
       TestDalProvider with

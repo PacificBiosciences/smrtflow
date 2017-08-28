@@ -6,8 +6,7 @@ import spray.testkit.Specs2RouteTest
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.LogLevel
-import com.pacbio.secondary.smrtlink.models.ClientLogMessage
+import com.pacbio.secondary.smrtlink.models.{LogLevel, LogMessageRecord}
 import com.pacbio.secondary.smrtlink.services.{ServiceComposer, SimpleLogServiceProvider}
 
 class SimpleLogSpec extends Specification
@@ -25,7 +24,8 @@ class SimpleLogSpec extends Specification
 
   val routes = TestProviders.routes()
 
-  val logMessage = ClientLogMessage(LogLevel.WARN, "test warning", "test")
+  val sourceId = "test"
+  val logMessage = LogMessageRecord("test warning", LogLevel.WARN, sourceId)
 
   "Simple log service" should {
     "accept a log message" in {

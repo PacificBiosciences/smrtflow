@@ -41,14 +41,14 @@ class EulaServiceSpec extends Specification
   val testSmrtLinkVersion = "1.2.3"
 
   trait TestEulaServiceProvider {
-    this: JobsDaoActorProvider
+    this: JobsDaoProvider
         with SmrtLinkConfigProvider
         with AuthenticatorProvider
         with ServiceComposer =>
 
     val eulaService: Singleton[EulaService] =
       Singleton { () =>
-        new EulaService(Some(testSmrtLinkVersion), jobsDaoActor(), authenticator())
+        new EulaService(Some(testSmrtLinkVersion), jobsDao(), authenticator())
       }
 
     addService(eulaService)
@@ -60,10 +60,8 @@ class EulaServiceSpec extends Specification
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
       TestEulaServiceProvider with
       DataSetServiceProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
       TestDalProvider with

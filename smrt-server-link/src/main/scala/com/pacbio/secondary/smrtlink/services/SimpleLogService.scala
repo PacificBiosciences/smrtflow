@@ -7,7 +7,7 @@ import spray.json._
 import spray.routing._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, LogLevel}
+import com.pacbio.secondary.smrtlink.models.{LogLevel, LogMessageRecord, PacBioComponentManifest}
 
 
 class SimpleLogService
@@ -21,7 +21,7 @@ class SimpleLogService
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.loggers"),
-    "SMRT Link DataSetService Service",
+    "SMRT Link General Log Service",
     "0.1.0",
     "SMRT Link Log Service")
 
@@ -29,11 +29,11 @@ class SimpleLogService
     pathPrefix(ROUTE_PREFIX) {
       pathEndOrSingleSlash {
         post {
-          entity(as[ClientLogMessage]) { msg =>
+          entity(as[LogMessageRecord]) { msg =>
             complete {
               created {
                 val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
-                var response = "message logged"
+                val response = "message logged"
                 msg.level match {
                   case LogLevel.TRACE    => logger.trace(msgString)
                   case LogLevel.DEBUG    => logger.debug(msgString)

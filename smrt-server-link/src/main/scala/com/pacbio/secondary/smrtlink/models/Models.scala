@@ -894,8 +894,6 @@ case class TechSupportSystemStatusRecord(name: String, comment: String)
 // Request to create a Job (any job type is supported) bundle
 case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
 
-case class ClientLogMessage(level: LogLevel.LogLevel, message: String, sourceId: String)
-
 // POST creation of a job event
 case class JobEventRecord(
                              state: String,

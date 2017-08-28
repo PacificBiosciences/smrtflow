@@ -24,11 +24,10 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoa
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTask}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.services.jobtypes.{DeleteJobServiceTypeProvider, MockPbsmrtpipeJobTypeProvider}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, ProjectServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import slick.driver.PostgresDriver.api._
@@ -49,16 +48,12 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   object TestProviders extends
   ServiceComposer with
   ProjectServiceProvider with
-  JobManagerServiceProvider with
-  MockPbsmrtpipeJobTypeProvider with
-  DeleteJobServiceTypeProvider with
-  JobsDaoActorProvider with
   StatusGeneratorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
   TestDalProvider with
   SmrtLinkConfigProvider with
-  JobRunnerProvider with
+  JobsServiceProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
@@ -80,7 +75,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   }
 
   val dao: JobsDao = TestProviders.jobsDao()
-  val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
+  val totalRoutes = TestProviders.newJobService().prefixedRoutes
 
   def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
@@ -95,7 +90,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   val mockOpts = PbSmrtPipeServiceOptions(
     jobName,
     "pbsmrtpipe.pipelines.mock_dev01",
-    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
+    Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
     Nil,
     Nil,
     projectId = -1)

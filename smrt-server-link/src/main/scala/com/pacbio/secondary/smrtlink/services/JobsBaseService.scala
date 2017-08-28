@@ -220,9 +220,9 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
         }
       } ~
       path(LOG_PREFIX) {
-        post {
-          entity(as[LogMessageRecord]) { m =>
-            respondWithMediaType(MediaTypes.`application/json`) {
+        pathEndOrSingleSlash {
+          post {
+            entity(as[LogMessageRecord]) { m =>
               complete {
                 created {
                   val f = jobId match {
@@ -230,10 +230,10 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
                     case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)
                   }
                   f.map { intId =>
-                    val message = s"${LOG_PB_SMRTPIPE_RESOURCE_ID}::job::$intId::${m.sourceId} ${m.message}"
+                    val message = s"$LOG_PB_SMRTPIPE_RESOURCE_ID::job::$intId::${m.sourceId} ${m.message}"
                     // FIXME. Need to map this to the proper log level
                     logger.info(message)
-                    Map("message" -> s"Successfully logged. ${message}")
+                    MessageResponse(s"Successfully logged. $message")
                   }
                 }
               }
@@ -590,7 +590,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
   def getJobTypesRoute(jobTypes: Seq[JobType]): Route = {
     val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description))
 
-    pathPrefix(SERVICE_PREFIX / JOB_TYPES_PREFIX) {
+    pathPrefix(JOB_TYPES_PREFIX) {
       pathEndOrSingleSlash {
         get {
           complete {
@@ -609,16 +609,19 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     // These will be wrapped with the a job-type-id specific prefix
     val jobs = getServiceJobs()
 
-    val jobTypeRoutes = getJobTypesRoute(jobs.map(_.jobTypeId))
+    // Unprefix routes
+    val jobTypeRoutes:Route = getJobTypesRoute(jobs.map(_.jobTypeId))
 
-    // Create all routes with <job-type-id> prefix
+    // Create all Job Routes with <job-type-id> prefix
     val rx = jobs.map(j => pathPrefix(j.jobTypeId.id) {j.routes}).reduce(_ ~ _)
 
-    val allJobRoutes:Route = jobTypeRoutes ~ nakedJob.allIdAbleJobRoutes ~ rx
+    val allJobRoutes:Route = nakedJob.allIdAbleJobRoutes ~ rx
+
+    val prefixedJobTypeRoutes = pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX) {jobTypeRoutes} ~  pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX) {jobTypeRoutes}
 
     // These need to be prefixed with secondary-analysis as well
     // Keep the backward compatibility of /smrt-link/ and /secondary-analysis root prefix
-    pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes }
+    prefixedJobTypeRoutes ~ pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) {rx}
   }
 
   override def routes: Route = getServiceJobRoutes()
@@ -628,6 +631,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
 trait JobsServiceProvider {
   this: ActorRefFactoryProvider with AuthenticatorProvider with ServiceComposer with JobsDaoProvider with SmrtLinkConfigProvider =>
 
+  //FIXME(mpkocher)(8-27-2017) Rename this to something sensible
   val newJobService: Singleton[JobsServiceUtils] = Singleton(() => new JobsServiceUtils(jobsDao(), authenticator(), systemJobConfig()))
 
   addService(newJobService)

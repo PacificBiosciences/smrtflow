@@ -27,7 +27,7 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
   val engineConfig = EngineConfig(1, None, Paths.get("/tmp"), debugMode = true)
   val resolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
-  val dao = new JobsDao(db(), engineConfig, resolver, None)
+  val dao = new JobsDao(db(), resolver, None)
 
   val createdAt = JodaDataTime.now()
   val updatedAt = JodaDataTime.now()

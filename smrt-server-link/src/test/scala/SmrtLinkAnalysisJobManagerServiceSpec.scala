@@ -10,9 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
-import com.pacbio.secondary.smrtlink.services.jobtypes.SimpleServiceJobTypeProvider
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
@@ -31,7 +29,7 @@ with JobServiceConstants with TestUtils{
 
   sequential
 
-  import SecondaryAnalysisJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
@@ -39,15 +37,12 @@ with JobServiceConstants with TestUtils{
 
   object TestProviders extends
   ServiceComposer with
-  JobManagerServiceProvider with
-  SimpleServiceJobTypeProvider with
+  JobsServiceProvider with
   StatusGeneratorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
-  JobsDaoActorProvider with
   TestDalProvider with
   SmrtLinkConfigProvider with
-  JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
@@ -70,7 +65,7 @@ with JobServiceConstants with TestUtils{
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
+  val totalRoutes = TestProviders.newJobService().prefixedRoutes
   TestProviders.eventManagerActor()
 
   step(setupDb(TestProviders.dbConfig))
