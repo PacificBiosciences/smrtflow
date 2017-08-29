@@ -5,10 +5,11 @@ import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import spray.json._
 
 
-trait PipelineDataStoreViewRulesResourceLoader extends JsonAndEnvResourceLoader[PipelineDataStoreViewRules] {
+trait PipelineDataStoreViewRulesResourceLoader
+    extends BundleResourceLoader[PipelineDataStoreViewRules] {
 
   val ENV_VAR = PbsmrtpipeConstants.ENV_PB_RULES_DATASTORE_VIEW_DIR
-
+  val BUNDLE_ENV_VAR = PbsmrtpipeConstants.ENV_BUNDLE_DIR
   val ROOT_DIR_PREFIX = "pipeline-datastore-view-rules"
 
   override def loadMessage(x: PipelineDataStoreViewRules) =

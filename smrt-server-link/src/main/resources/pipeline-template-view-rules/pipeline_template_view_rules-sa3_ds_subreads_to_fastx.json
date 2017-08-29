@@ -1,8 +1,0 @@
-{
-  "id": "pbsmrtpipe.pipelines.sa3_ds_subreads_to_fastx",
-  "name": "Convert BAM to FASTX",
-  "description": "Override Description",
-  "taskOptions": [
-    {"id": "pbsmrtpipe.task_options.min_subread_length", "hidden": false, "advanced": false}
-  ]
-}
