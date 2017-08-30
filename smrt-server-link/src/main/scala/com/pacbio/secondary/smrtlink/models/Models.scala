@@ -641,10 +641,6 @@ case class GmapReferenceServiceDataSet(
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
-case class DeleteJobServiceOptions(jobId: UUID,
-                                   removeFiles: Boolean = false,
-                                   dryRun: Option[Boolean] = None,
-                                   force: Option[Boolean] = None)
 
 // Project models
 

@@ -446,6 +446,10 @@ class DeleteDataSetJobsService(override val dao: JobsDao, override val authentic
   override def jobTypeId = JobTypeIds.DELETE_DATASETS
 }
 
+class DeleteSmrtLinkJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[DeleteSmrtLinkJobOptions], implicit val sm: Marshaller[DeleteSmrtLinkJobOptions], implicit val jwriter: JsonWriter[DeleteSmrtLinkJobOptions]) extends CommonJobsRoutes[DeleteSmrtLinkJobOptions] {
+  override def jobTypeId = JobTypeIds.DELETE_JOB
+}
+
 class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
 }
@@ -558,9 +562,12 @@ class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticat
 }
 
 /**
-  * Util to Adhere to the current SL System design
-  * @param dao
-  * @param authenticator
+  * This is factor-ish util to Adhere to the current SL System design.
+  *
+  * This has all the job related endpoints and a few misc routes.
+  *
+  * @param dao JobDao
+  * @param authenticator Authenticator
   */
 class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: SystemJobConfig) extends PacBioService with JobServiceConstants with LazyLogging {
 
@@ -574,6 +581,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
   def getServiceJobs():Seq[JobServiceRoutes] = Seq(
     new DbBackupJobsService(dao, authenticator, config),
     new DeleteDataSetJobsService(dao, authenticator, config),
+    new DeleteSmrtLinkJobsService(dao, authenticator, config),
     new HelloWorldJobsService(dao, authenticator, config),
     new ImportBarcodeFastaJobsService(dao, authenticator, config),
     new ImportDataSetJobsService(dao, authenticator, config),
@@ -586,6 +594,30 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     new TsJobBundleJobsService(dao, authenticator, config),
     new TsSystemStatusBundleJobsService(dao, authenticator, config)
   )
+
+  // Note these is duplicated within a Job
+  def datastoreRoute():Route =
+    pathPrefix(DATASTORE_FILES_PREFIX) {
+      path(JavaUUID) { dsFileUUID =>
+        get {
+          complete {
+            ok {
+              dao.getDataStoreFile(dsFileUUID)
+            }
+          }
+        } ~
+        put {
+          entity(as[DataStoreFileUpdateRequest]) { sopts =>
+            complete {
+              ok {
+                dao.updateDataStoreFile(dsFileUUID, sopts.path, sopts.fileSize, sopts.isActive)
+              }
+            }
+          }
+        }
+      }
+
+  }
 
   def getJobTypesRoute(jobTypes: Seq[JobType]): Route = {
     val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description))
@@ -609,7 +641,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     // These will be wrapped with the a job-type-id specific prefix
     val jobs = getServiceJobs()
 
-    // Unprefix routes
+    // Unprefix Job (Meta) Type routes for each registered Job type
     val jobTypeRoutes:Route = getJobTypesRoute(jobs.map(_.jobTypeId))
 
     // Create all Job Routes with <job-type-id> prefix
@@ -617,11 +649,17 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
 
     val allJobRoutes:Route = nakedJob.allIdAbleJobRoutes ~ rx
 
-    val prefixedJobTypeRoutes = pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX) {jobTypeRoutes} ~  pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX) {jobTypeRoutes}
+    val prefixedJobTypeRoutes = pathPrefix(ROOT_SERVICE_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes} ~  pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes}
+
+    def jobWrap(jobRoutes: Route): Route = pathPrefix(ROOT_SERVICE_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes }
+
+    // Misc DataStore routes. This should probable migrated to a cleaner subroute.
+
+    val prefixedDataStoreFileRoutes = pathPrefix(ROOT_SERVICE_PREFIX) {datastoreRoute()} ~ pathPrefix(ROOT_SL_PREFIX) {datastoreRoute()}
 
     // These need to be prefixed with secondary-analysis as well
     // Keep the backward compatibility of /smrt-link/ and /secondary-analysis root prefix
-    prefixedJobTypeRoutes ~ pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) { allJobRoutes } ~ pathPrefix(ROOT_SERVICE_PREFIX / SERVICE_PREFIX / JOB_ROOT_PREFIX) {rx}
+    prefixedJobTypeRoutes ~ jobWrap(allJobRoutes) ~ jobWrap(rx) ~ prefixedDataStoreFileRoutes
   }
 
   override def routes: Route = getServiceJobRoutes()

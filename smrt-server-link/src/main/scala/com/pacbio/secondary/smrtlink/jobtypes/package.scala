@@ -10,11 +10,14 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobEntryPointRecord}
 import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
+
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+
+import scala.util.{Try, Success, Failure}
 
 /**
   * Created by mkocher on 8/17/17.
@@ -44,6 +47,10 @@ package object jobtypes {
       */
     def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, Out]
 
+
+    def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =
+      Try { Await.result(fx, timeOut)}
+
   }
 
   trait ServiceJobOptions {
@@ -71,6 +78,22 @@ package object jobtypes {
       */
     def validate(dao: JobsDao, config: SystemJobConfig): Option[InvalidJobOptionError]
 
+
+    /**
+      * Validation func for resolving a future and translating any errors to
+      * the InvalidJobOption error.
+      *
+      * @param fx Func to run
+      * @param timeout timeout
+      * @tparam T
+      * @return
+      */
+    def validateAndBlock[T](fx: => Future[T], timeout: FiniteDuration): Option[InvalidJobOptionError] = {
+      Try(Await.result(fx, timeout)) match {
+        case Success(_) => None
+        case Failure(ex) => Some(InvalidJobOptionError(s"Failed option validation. ${ex.getMessage}"))
+      }
+    }
     /**
       * Common Util for resolving entry points
       *
@@ -114,6 +137,7 @@ package object jobtypes {
 
       val jx = engineJob.jsonSettings.parseJson
 
+      // FIXME, this really should be sealed trait to leverage the compiler
       engineJob.jobTypeId match {
         case JobTypeIds.HELLO_WORLD.id => jx.convertTo[HelloWorldJobOptions]
         case JobTypeIds.DB_BACKUP.id => jx.convertTo[DbBackUpJobOptions]
@@ -125,6 +149,9 @@ package object jobtypes {
         case JobTypeIds.MERGE_DATASETS.id => jx.convertTo[MergeDataSetJobOptions]
         case JobTypeIds.MOCK_PBSMRTPIPE.id => jx.convertTo[MockPbsmrtpipeJobOptions]
         case JobTypeIds.PBSMRTPIPE.id => jx.convertTo[PbsmrtpipeJobOptions]
+        case JobTypeIds.SIMPLE.id => jx.convertTo[SimpleJobOptions]
+        case JobTypeIds.DELETE_JOB.id => jx.convertTo[DeleteSmrtLinkJobOptions]
+        case x => throw new UnsupportedOperationException(s"Job type $x is not supported")
       }
     }
   }

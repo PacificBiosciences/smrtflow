@@ -266,10 +266,6 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreServiceFileFormat = jsonFormat13(DataStoreServiceFile)
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
-  // Old Job Options
-  implicit val mergeDataSetServiceOptionFormat = jsonFormat3(DataSetMergeServiceOptions)
-  implicit val deleteJobServiceOptions = jsonFormat4(DeleteJobServiceOptions)
-
   // New Job Options model
   implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
 

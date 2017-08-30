@@ -8,14 +8,12 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scalaj.http.Base64
-
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
@@ -29,6 +27,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 
 
@@ -482,7 +481,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
                 force: Boolean = false): Future[EngineJob] = getJobPipeline {
     logger.debug(s"Deleting job $jobId")
     Post(toUrl(ROOT_JOBS + "/delete-job"),
-         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun), force = Some(force)))
+      DeleteSmrtLinkJobOptions(jobId, Some(s"Delete job $jobId name"), None, removeFiles, dryRun = Some(dryRun), force = Some(force)))
   }
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
@@ -558,7 +557,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
     logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         DataSetMergeServiceOptions(datasetType.toString, ids, name))
+      MergeDataSetJobOptions(datasetType, ids, Some(name), None))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {

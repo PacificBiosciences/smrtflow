@@ -66,7 +66,8 @@ with JobServiceConstants with TestUtils{
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.newJobService().prefixedRoutes
+
+  val totalRoutes = TestProviders.routes
   TestProviders.eventManagerActor()
 
   val projectId = 1
