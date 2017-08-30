@@ -35,7 +35,7 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
     "Test basic use case" in {
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val opts = DeleteResourcesOptions(targetDir, true)
       val j = new DeleteResourcesJob(opts)
       val jobResult = j.run(job, writer)
@@ -51,7 +51,7 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
     "Test behavior when delete is turned off" in {
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val opts = DeleteResourcesOptions(targetDir, false)
       val j = new DeleteResourcesJob(opts)
       val jobResult = j.run(job, writer)
@@ -73,7 +73,7 @@ class DeleteDatasetsSpec extends Specification with LazyLogging{
   private def runJob(paths: Seq[Path]) = {
     val writer = new PrinterJobResultsWriter
     val outputDir = Files.createTempDirectory("delete-job")
-    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+    val job = JobResource(UUID.randomUUID, outputDir)
     val opts = DeleteDatasetsOptions(paths, true)
     val j = new DeleteDatasetsJob(opts)
     j.run(job, writer)

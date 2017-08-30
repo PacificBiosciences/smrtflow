@@ -222,20 +222,19 @@ object JobModels {
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
       SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
 
-    def fromString(s: String):Option[JobType] = ALL.map(x => (x.id, x)).toMap.get(s.toUpperCase)
+    def fromString(s: String):Option[JobType] =
+      ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
   }
 
   trait JobResourceBase {
     val jobId: UUID
     val path: Path
-    val state: AnalysisJobStates.JobStates
   }
 
   // This is a terrible name
   case class JobResource(
       jobId: UUID,
-      path: Path,
-      state: AnalysisJobStates.JobStates) extends JobResourceBase
+      path: Path) extends JobResourceBase
 
   trait JobResult {
     val uuid: UUID
@@ -459,6 +458,9 @@ object JobModels {
       s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" +
           files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
     }
+
+    override def toString: String = summary
+
   }
 
   // Should think about making this a Path

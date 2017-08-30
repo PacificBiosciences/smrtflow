@@ -47,6 +47,17 @@ package object jobtypes {
       */
     def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, Out]
 
+    // Util layer to get the ServiceJobRunner to compose better.
+    def runTry(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Try[Out] = {
+      Try {run(resources, resultsWriter, dao, config)} match {
+        case Success(result) =>
+          result match {
+            case Right(rx) => Success(rx)
+            case Left(rx) => Failure(new Exception(s"Failed to run job ${rx.message}"))
+          }
+        case Failure(ex) => Failure(new Exception(s"Failed to run job ${ex.getMessage}"))
+      }
+    }
 
     def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =
       Try { Await.result(fx, timeOut)}
@@ -138,7 +149,7 @@ package object jobtypes {
 
       // The EngineJob data model should be using a proper type
       val jobTypeId:JobTypeIds.JobType = JobTypeIds.fromString(engineJob.jobTypeId)
-          .getOrElse(throw new IllegalArgumentException(s"Job type ${engineJob.jobTypeId} is not supported"))
+          .getOrElse(throw new IllegalArgumentException(s"Job type '${engineJob.jobTypeId}' is not supported"))
 
       convertToOption(jobTypeId, jx)
     }

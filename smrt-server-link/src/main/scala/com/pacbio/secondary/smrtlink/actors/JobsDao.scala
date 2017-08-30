@@ -719,7 +719,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case None =>
             existing match {
               case Some(_) =>
-                DBIO.from(Future.successful(MessageResponse(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}.")))
+                DBIO.from(Future.successful(MessageResponse(s"Skipping previously imported FileType:${ds.fileTypeId} UUID:${ds.uniqueId} name:${ds.name}")))
               case None =>
                 DBIO.from(Future.successful(MessageResponse(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
             }

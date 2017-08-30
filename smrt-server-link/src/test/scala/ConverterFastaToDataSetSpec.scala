@@ -63,7 +63,7 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
     val path = Paths.get(getClass.getResource(name).toURI)
     val opts = ConvertImportFastaOptions(path.toString, referenceName, "Haploid", "Lambda")
     val outputDir = Files.createTempDirectory("fasta-job-test")
-    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+    val job = JobResource(UUID.randomUUID, outputDir)
     println(s"Merge job output dir is ${outputDir.toString}")
     val j = opts.toJob
     val startedAt = JodaDateTime.now()

@@ -44,7 +44,7 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val outputDir = Files.createTempDirectory("export-job-test")
       val dsType = DataSetMetaTypes.Reference
       val opts = ExportDataSetsOptions(dsType, datasets, zipPath)
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val j = opts.toJob
       val jobResult = j.run(job, writer)
       jobResult.isRight must beTrue
