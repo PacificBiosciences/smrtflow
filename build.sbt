@@ -11,14 +11,23 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.7.0-SNAPSHOT"
+version in ThisBuild := "0.8.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
 // Seeing a lot of evicted calls
 scalaVersion in ThisBuild := "2.11.8"
 
-scalacOptions in ThisBuild := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
+// This is useful, but is really chattery. "-Ywarn-dead-code"
+scalacOptions in ThisBuild := Seq(
+  "-target:jvm-1.8",
+  "-encoding", "UTF-8",
+  "-unchecked",
+  "-deprecation",
+  "-feature",
+  "-Xfatal-warnings"
+  // "-Ywarn-dead-code"
+)
 
 // NOT WORKING. This should enables Ctl+C to not exit SBT
 // cancelable in Global := true
