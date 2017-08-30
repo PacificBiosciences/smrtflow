@@ -482,6 +482,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("primary_analysis_sw_version")
 
+    def chemistrySwVersion: Rep[Option[String]] = column[Option[String]]("chemistry_sw_version")
+
     def context: Rep[Option[String]] = column[Option[String]]("context")
 
     def terminationInfo: Rep[Option[String]] = column[Option[String]]("termination_info")
@@ -505,6 +507,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         instrumentSerialNumber,
         instrumentSwVersion,
         primaryAnalysisSwVersion,
+        chemistrySwVersion,
         context,
         terminationInfo,
         reserved) <>(RunSummary.tupled, RunSummary.unapply)

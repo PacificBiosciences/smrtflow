@@ -162,6 +162,7 @@ case class RunSummary(
     instrumentSerialNumber: Option[String],
     instrumentSwVersion: Option[String],
     primaryAnalysisSwVersion: Option[String],
+    chemistrySwVersion: Option[String],
     context: Option[String],
     terminationInfo: Option[String],
     reserved: Boolean) {
@@ -184,6 +185,7 @@ case class RunSummary(
       instrumentSerialNumber,
       instrumentSwVersion,
       primaryAnalysisSwVersion,
+      chemistrySwVersion,
       context,
       terminationInfo,
       reserved)
@@ -207,6 +209,7 @@ case class Run(
     instrumentSerialNumber: Option[String],
     instrumentSwVersion: Option[String],
     primaryAnalysisSwVersion: Option[String],
+    chemistrySwVersion: Option[String],
     context: Option[String],
     terminationInfo: Option[String],
     reserved: Boolean) {
@@ -228,6 +231,7 @@ case class Run(
       instrumentSerialNumber,
       instrumentSwVersion,
       primaryAnalysisSwVersion,
+      chemistrySwVersion,
       context,
       terminationInfo,
       reserved)
@@ -795,7 +799,8 @@ case class PacBioDataBundle(typeId: String,
                             version: String,
                             importedAt: JodaDateTime,
                             createdBy: Option[String],
-                            isActive: Boolean = false) {
+                            isActive: Boolean = false,
+                            description: Option[String] = None) {
   // This is bad OO to duplicate data (version and semVersion)
   // However, this is used to sort bundles and is
   // exposed publicly, but we don't want this to leak to serialization layers (e.g., jsonFormat).

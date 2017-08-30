@@ -484,7 +484,9 @@ object ApplyConfigUtils extends LazyLogging{
     val dbProps = c.smrtflow.db.properties
     updateMasterDatasources(resolver.masterDatasourcesConfig.toFile,
                             templateResolver.masterDatasources.toFile,
-                            dbProps.serverName, dbProps.portNumber,
+                            // if the db ever ends up on another machine,
+                            // "localhost" should become dbProps.serverName
+                            "localhost", dbProps.portNumber,
                             dbProps.user, dbProps.password)
 
 

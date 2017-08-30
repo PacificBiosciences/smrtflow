@@ -57,6 +57,4 @@ trait EnvResourceLoader[T] extends ResourceLoaderBase[T] with LazyLogging{
         .map(parseValue)
         .getOrElse(Seq.empty[T])
   }
-
-
 }

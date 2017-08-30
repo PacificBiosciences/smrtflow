@@ -7,6 +7,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, SecondaryJobProtocols}
 import com.pacbio.secondary.smrtlink.services.{PipelineDataStoreViewRulesServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 
 
 class PipelineDatastoreViewRulesServiceSpec extends Specification
@@ -15,6 +16,8 @@ class PipelineDatastoreViewRulesServiceSpec extends Specification
     with JobServiceConstants {
 
   sequential
+
+  args(skipAll = scala.util.Properties.envOrNone(PbsmrtpipeConstants.ENV_BUNDLE_DIR).isEmpty)
 
   val CURRENT_VERSION = "5.1"
 

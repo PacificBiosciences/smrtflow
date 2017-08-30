@@ -37,6 +37,7 @@ export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
 # Install from a fresh install (create users/db/tables if necessary)
 ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-dir=${newWso2} --wso2-init=${wso2Templates}/wso2-init.sql
+${rootBundleDir}/bin/dbctrl start -c ${config} --log-file=${logFile} --log-level=DEBUG
 
 
 # configure/upgrade wso2
@@ -61,6 +62,17 @@ function waitThenKill {
     fi
     # wait for ports to go through TIME_WAIT
     sleep 60
+}
+
+function cleanUp {
+    local wso2Pid=$1; shift;
+
+    echo 'cleaning up'
+
+    ${rootBundleDir}/bin/dbctrl stop -c ${config} --log-file=${logFile} --log-level=DEBUG
+
+    kill ${wso2Pid} 2> /dev/null || true
+    waitThenKill ${wso2Pid}
 }
 
 clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
@@ -95,7 +107,7 @@ if [ -e "${legacyConfig}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --start
             sleep 5
             wso2Pid=$(< ${oldWso2}/wso2carbon.pid)
-            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
+            trap "cleanUp ${wso2Pid}" EXIT
 
             env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
             bash ${oldWso2}/bin/wso2server.sh --stop
@@ -109,7 +121,7 @@ if [ -e "${legacyConfig}" ]; then
             bash ${newWso2}/bin/wso2server.sh --start
             sleep 5
             wso2Pid=$(< ${newWso2}/wso2carbon.pid)
-            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
+            trap "cleanUp ${wso2Pid}" EXIT
 
             env "$clientEnv" ${amClient} create-roles ${amClientArgs}
             env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles}
@@ -123,3 +135,5 @@ if [ -e "${legacyConfig}" ]; then
 fi
 
 trap - EXIT
+
+${rootBundleDir}/bin/dbctrl stop -c ${config} --log-file=${logFile} --log-level=DEBUG

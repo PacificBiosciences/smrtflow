@@ -31,7 +31,7 @@ import spray.json._
   */
 trait ConfigModelsJsonProtocol extends DefaultJsonProtocol with PathProtocols with UrlProtocol with UUIDJsonProtocol{
 
-  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat11(SmrtflowPacBioSystemConfig)
+  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat15(SmrtflowPacBioSystemConfig)
   implicit val smrtflowDbPropertiesConfigFormat = jsonFormat5(SmrtflowDbPropertiesConfig)
   implicit val smrtflowDbConfigFormat = jsonFormat1(SmrtflowDbConfig)
   implicit val smrtflowServerConfigFormat = jsonFormat5(SmrtflowServerConfig)

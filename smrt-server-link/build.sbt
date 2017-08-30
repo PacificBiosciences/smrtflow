@@ -45,6 +45,7 @@ packMain := Map(
   "bundler-set-password" -> "com.pacbio.secondary.smrtlink.tools.SetPasswordToolApp",
   "accept-user-agreement" -> "com.pacbio.secondary.smrtlink.tools.AcceptUserAgreementApp",
   "validate-run-design" -> "com.pacbio.secondary.smrtlink.tools.ValidateRunApp",
+  "send-test-email" -> "com.pacbio.secondary.smrtlink.tools.SendTestEmailApp",
   "smrtlink-repl" -> "com.pacbio.secondary.smrtlink.tools.SmrtLinkReplApp", // Start of Analysis Tools
   "fasta-to-reference" -> "com.pacbio.secondary.smrtlink.analysis.tools.FastaToReferenceApp",
   "fasta-to-gmap-reference" -> "com.pacbio.secondary.smrtlink.analysis.tools.FastaToGmapReferenceSetApp",
@@ -55,7 +56,6 @@ packMain := Map(
   "ds-tools" -> "com.pacbio.secondary.smrtlink.analysis.tools.PbDataSetToolsApp",
   "smrtflow-example-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleToolApp",
   "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp"
-
 )
 
 

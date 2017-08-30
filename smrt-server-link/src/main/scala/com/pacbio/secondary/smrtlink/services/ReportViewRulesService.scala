@@ -52,7 +52,7 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule]) extends SmrtLinkBaseRou
 }
 
 trait ReportViewRulesResourceProvider {
-  val reportViewRules = ReportViewRulesResourceLoader.resources
+  val reportViewRules = ReportViewRulesResourceLoader.loadResources
 }
 
 

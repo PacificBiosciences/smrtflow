@@ -203,6 +203,30 @@
             "name": "smrtLinkSystemRoot",
             "type": ["string", "null"],
             "default": null
+          },
+          {
+            "doc": "DNS name of SMTP server for sending email notifications; if no mail host is defined, all email features will be disabled",
+            "name": "mailHost",
+            "type": ["string", "null"],
+            "default": null
+          },
+          {
+            "doc": "Port number of SMTP server",
+            "name": "mailPort",
+            "type": "int",
+            "default": 25
+          },
+          {
+            "doc": "User name for authenticating with SMTP server",
+            "name": "mailUser",
+            "type": ["string", "null"],
+            "default": null
+          },
+          {
+            "doc": "Password for authenticating with SMTP server; required if mailUser is defined",
+            "name": "mailPassword",
+            "type": ["string", "null"],
+            "default": null
           }
         ]
       }

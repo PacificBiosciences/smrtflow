@@ -14,6 +14,8 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableE
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacificbiosciences.pacbiobasedatamodel.{RecordedEventType, SupportedAcquisitionStates}
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
+import com.pacificbiosciences.pacbiocollectionmetadata.{CollectionMetadata => XsdCollectionMetadata}
+
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.collection.JavaConversions._
@@ -147,6 +149,13 @@ object DataModelParserImpl extends DataModelParser {
       .getCollectionMetadata
       .head
 
+    def getComponentVersion(md: XsdCollectionMetadata,
+                            componentId: String): Option[String] = {
+      Option(md.getComponentVersions).flatMap { versions =>
+        versions.getValue.getVersionInfo.filter(_.getName == componentId).headOption.map(_.getVersion)
+      }
+    }
+
     val run = Run(
       dataModel,
       UUID.fromString(runModel.getUniqueId),
@@ -165,6 +174,7 @@ object DataModelParserImpl extends DataModelParser {
       Option(arbitraryCollectionMetadata.getInstrumentId),
       Option(arbitraryCollectionMetadata.getInstCtrlVer),
       Option(arbitraryCollectionMetadata.getSigProcVer),
+      getComponentVersion(arbitraryCollectionMetadata, "chemistry"),
       Option(runModel.getTimeStampedName),
       terminationInfo = None, // TODO(smcclellan): Populate terminationInfo field when upstream data is available
       reserved = false

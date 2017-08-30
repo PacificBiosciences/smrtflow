@@ -40,10 +40,7 @@ tools-tarball:
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
 	sbt smrt-server-link/pack
-	cd smrt-sever-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
-
-generate-test-pipeline-json:
-	pbsmrtpipe show-templates --output-templates-json smrt-server-link/src/main/resources/resolved-pipeline-templates
+	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 repl:
 	sbt smrtflow/test:console
@@ -58,6 +55,9 @@ repos/pacbiotestdata:
 	mkdir -p repos
 	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
 
+repos/pbpipeline-resources:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/pbpipeline-resources.git
 
 import-pbdata: insert-pbdata
 
@@ -83,14 +83,14 @@ test: validate-pacbio-manifests
 test-int-clean: db-reset-prod
 	rm -rf jobs-root
 
-
 test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
 test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
 test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
 test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/files.json
 test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
+test-int: export SMRT_PIPELINE_BUNDLE_DIR := ${ROOT_DIR}/repos/pbpipeline-resources
 
-test-int: repos/pacbiotestdata repos/chemistry-data-bundle tools-smrt-server-link tools-smrt-server-sim
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-resources tools-smrt-server-link tools-smrt-server-sim
 	@echo "PATH"
 	@echo $$PATH
 	@echo "TEST DATA"

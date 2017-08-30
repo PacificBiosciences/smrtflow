@@ -1,5 +1,6 @@
 import java.nio.file.{Path, Paths}
 
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFileViewRule, PipelineDataStoreViewRules}
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
@@ -15,6 +16,7 @@ import scala.io.Source
   */
 class PipelineDataStoreViewRulesSpec extends Specification with SecondaryJobJsonProtocol with LazyLogging {
 
+  args(skipAll = scala.util.Properties.envOrNone(PbsmrtpipeConstants.ENV_BUNDLE_DIR).isEmpty)
 
   val RESOURCE_DIR = "pipeline-datastore-view-rules"
 

@@ -39,7 +39,11 @@ class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
                         externalEveUrl: Option[URL],
                         apiSecret: String,
-                        smrtLinkUiPort: Int)
+                        smrtLinkUiPort: Int,
+                        mailHost: Option[String] = None,
+                        mailPort: Int = 25,
+                        mailUser: Option[String] = None,
+                        mailPassword: Option[String] = None)
     extends Actor with LazyLogging with SmrtLinkJsonProtocols with PbMailer{
 
   import EventManagerActor._
@@ -145,7 +149,7 @@ class EventManagerActor(smrtLinkId: UUID,
       // This is a fire and forget
       uiJobsUrl match {
         case Some(jobsBaseUrl) =>
-          sendEmail(job, jobsBaseUrl)
+          sendEmail(job, jobsBaseUrl, mailHost, mailPort, mailUser, mailPassword)
         case _ =>
           logger.debug(s"System is not configured to send email. Must provide DNS name in SMRT Link System Config")
       }
@@ -158,5 +162,5 @@ trait EventManagerActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val eventManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEveUrl(), apiSecret(), smrtLinkUiPort()), "EventManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EventManagerActor], serverId(), dnsName(), externalEveUrl(), apiSecret(), smrtLinkUiPort(), mailHost(), mailPort(), mailUser(), mailPassword()), "EventManagerActor"))
 }
