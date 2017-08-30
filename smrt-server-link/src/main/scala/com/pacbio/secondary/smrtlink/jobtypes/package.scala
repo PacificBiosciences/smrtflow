@@ -26,7 +26,7 @@ package object jobtypes {
 
   trait ServiceCoreJobModel extends LazyLogging {
     type Out
-    val jobTypeId: JobType
+    val jobTypeId: JobTypeIds.JobType
 
     // This should be rethought
     def host = InetAddress.getLocalHost.getHostName
@@ -64,7 +64,7 @@ package object jobtypes {
     def getProjectId(): Int = projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     // This needs to be defined at the job option level to be a globally unique type.
-    def jobTypeId: JobType // This is a def for seralization reasons.
+    def jobTypeId: JobTypeIds.JobType // This is a def for seralization reasons.
     def toJob(): ServiceCoreJob
 
     /**
@@ -126,35 +126,48 @@ package object jobtypes {
       * Load the JSON Settings from an Engine job and create the companion ServiceJobOption
       * instance.
       *
+      * If there's a deseralization issue, this will raise.
+      *
       * @param engineJob EngineJob
       * @tparam T ServiceJobOptions
       * @return
       */
     def convertEngineToOptions[T >: ServiceJobOptions](engineJob: EngineJob): T = {
 
+      val jx = engineJob.jsonSettings.parseJson
+
+      // The EngineJob data model should be using a proper type
+      val jobTypeId:JobTypeIds.JobType = JobTypeIds.fromString(engineJob.jobTypeId)
+          .getOrElse(throw new IllegalArgumentException(s"Job type ${engineJob.jobTypeId} is not supported"))
+
+      convertToOption(jobTypeId, jx)
+    }
+
+    private def convertToOption[T >: ServiceJobOptions](jobTypeId:JobTypeIds.JobType, jx: JsValue): T = {
+
       import SmrtLinkJsonProtocols._
       import ServiceJobTypeJsonProtocols._
 
-      val jx = engineJob.jsonSettings.parseJson
-
-      // FIXME, this really should be sealed trait to leverage the compiler
-      engineJob.jobTypeId match {
-        case JobTypeIds.HELLO_WORLD.id => jx.convertTo[HelloWorldJobOptions]
-        case JobTypeIds.DB_BACKUP.id => jx.convertTo[DbBackUpJobOptions]
-        case JobTypeIds.DELETE_DATASETS.id => jx.convertTo[DeleteDataSetJobOptions]
-        case JobTypeIds.EXPORT_DATASETS.id => jx.convertTo[ExportDataSetsJobOptions]
-        case JobTypeIds.CONVERT_FASTA_BARCODES.id => jx.convertTo[ImportBarcodeFastaJobOptions]
-        case JobTypeIds.IMPORT_DATASET.id => jx.convertTo[ImportDataSetJobOptions]
-        case JobTypeIds.CONVERT_FASTA_REFERENCE.id => jx.convertTo[ImportFastaJobOptions]
-        case JobTypeIds.MERGE_DATASETS.id => jx.convertTo[MergeDataSetJobOptions]
-        case JobTypeIds.MOCK_PBSMRTPIPE.id => jx.convertTo[MockPbsmrtpipeJobOptions]
-        case JobTypeIds.PBSMRTPIPE.id => jx.convertTo[PbsmrtpipeJobOptions]
-        case JobTypeIds.SIMPLE.id => jx.convertTo[SimpleJobOptions]
-        case JobTypeIds.DELETE_JOB.id => jx.convertTo[DeleteSmrtLinkJobOptions]
-        case x => throw new UnsupportedOperationException(s"Job type $x is not supported")
+      jobTypeId match {
+        case JobTypeIds.HELLO_WORLD => jx.convertTo[HelloWorldJobOptions]
+        case JobTypeIds.DB_BACKUP => jx.convertTo[DbBackUpJobOptions]
+        case JobTypeIds.DELETE_DATASETS => jx.convertTo[DeleteDataSetJobOptions]
+        case JobTypeIds.EXPORT_DATASETS => jx.convertTo[ExportDataSetsJobOptions]
+        case JobTypeIds.CONVERT_FASTA_BARCODES => jx.convertTo[ImportBarcodeFastaJobOptions]
+        case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
+        case JobTypeIds.CONVERT_FASTA_REFERENCE => jx.convertTo[ImportFastaJobOptions]
+        case JobTypeIds.MERGE_DATASETS => jx.convertTo[MergeDataSetJobOptions]
+        case JobTypeIds.MOCK_PBSMRTPIPE => jx.convertTo[MockPbsmrtpipeJobOptions]
+        case JobTypeIds.PBSMRTPIPE => jx.convertTo[PbsmrtpipeJobOptions]
+        case JobTypeIds.SIMPLE => jx.convertTo[SimpleJobOptions]
+        case JobTypeIds.CONVERT_RS_MOVIE => jx.convertTo[RsConvertMovieToDataSetJobOptions]
+        case JobTypeIds.DELETE_JOB => jx.convertTo[DeleteSmrtLinkJobOptions]
+        case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
+        case JobTypeIds.TS_SYSTEM_STATUS => jx.convertTo[TsSystemStatusBundleJobOptions]
       }
     }
   }
+
   object Converters extends Converters
 
 

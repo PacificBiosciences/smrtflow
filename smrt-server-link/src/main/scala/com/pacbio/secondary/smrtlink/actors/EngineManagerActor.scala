@@ -85,7 +85,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
   def checkForWorker(workerQueue: mutable.Queue[ActorRef]): Future[String] = {
 
     /**
-      * Util to sort out the composibility with the dao engine interface
+      * Util to sort out the compatibility with the dao engine interface
       *
       * @param et
       * @return
@@ -96,8 +96,8 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
           val worker = workerQueue.dequeue()
           // This needs to handle failure case and enqueue the worker
           addJobToWorker(engineJob, workers, worker)
-              .recoverWith {case NonFatal(ex) =>
-                val msg = s"Failed to add Job ${engineJob.id} to worker $worker"
+              .recoverWith { case NonFatal(ex) =>
+                val msg = s"Failed to add Job ${engineJob.id} to worker $worker ${ex.getMessage}"
                 log.error(msg)
                   workerQueue.enqueue(worker)
                   Future.successful(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue")

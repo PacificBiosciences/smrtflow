@@ -2,7 +2,7 @@ import java.nio.file.{Files, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobTypeId, JobTypeIds}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.smrtlink.analysis.jobs.NullJobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.typesafe.scalalogging.LazyLogging

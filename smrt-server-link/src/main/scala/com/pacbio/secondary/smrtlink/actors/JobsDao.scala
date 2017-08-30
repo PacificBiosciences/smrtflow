@@ -437,7 +437,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
   def createJob2(uuid: UUID,
                  name: String,
                  description: String,
-                 jobTypeId: JobType,
+                 jobTypeId: JobTypeIds.JobType,
                  entryPoints: Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord],
                  jsonSetting: JsObject,
                  createdBy: Option[String] = None,

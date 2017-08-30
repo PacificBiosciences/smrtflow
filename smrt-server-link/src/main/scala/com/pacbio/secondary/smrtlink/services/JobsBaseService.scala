@@ -61,7 +61,7 @@ object JobResourceUtils extends  LazyLogging{
 }
 
 trait JobServiceRoutes {
-  def jobTypeId: JobType
+  def jobTypeId: JobTypeIds.JobType
   def routes: Route
 }
 
@@ -619,7 +619,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
 
   }
 
-  def getJobTypesRoute(jobTypes: Seq[JobType]): Route = {
+  def getJobTypesRoute(jobTypes: Seq[JobTypeIds.JobType]): Route = {
     val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description))
 
     pathPrefix(JOB_TYPES_PREFIX) {
