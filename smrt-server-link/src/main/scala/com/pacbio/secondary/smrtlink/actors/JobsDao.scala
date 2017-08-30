@@ -364,15 +364,27 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     db.run(qEngineJobById(ix).result.headOption)
         .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
 
-  def getNextRunnableEngineJob(): Future[Either[NoAvailableWorkError, EngineJob]] = {
+  /**
+    * Get next runnable job.
+    *
+    * @param isQuick Only select quick job types.
+    * @return
+    */
+  def getNextRunnableEngineJob(isQuick: Boolean = false): Future[Either[NoAvailableWorkError, EngineJob]] = {
 
-    logger.info("Checking for next runnable EngineJobs")
+    logger.info(s"Checking for next runnable isQuick? $isQuick EngineJobs")
     import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
 
     //FIXME(mpkocher)(8-25-2017) I can't get this to work with AnalysisJobState type
     //val q0 = engineJobs.filter(_.state === AnalysisJobStates.CREATED).sortBy(_.id).take(1)
 
-    val q0 = sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' ORDER BY job_id LIMIT 1".as[Int]
+    val quickJobTypeIds = JobTypeIds.ALL.filter(_.isQuick).map(i => s"'${i.id}'").reduce(_ + "," + _)
+
+    val q0 = if (isQuick) {
+      sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' AND job_type_id IN (#${quickJobTypeIds}) ORDER BY job_id LIMIT 1".as[Int]
+    } else {
+      sql"SELECT job_id from engine_jobs WHERE state = 'CREATED'  ORDER BY job_id LIMIT 1".as[Int]
+    }
 
     // This is NOT correct. This head will fail and caught in the recover. This needs to be be robust.
     val fx = for {
@@ -384,9 +396,11 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
 
     db.run(fx.transactionally)
-        .map(engineJob => Right(engineJob))
-        .recover {case NonFatal(ex) =>
-          logger.info("No available work")
+        .map { engineJob =>
+            logger.info(s"Found runnable job id:${engineJob.id} type:${engineJob.jobTypeId} in state ${engineJob.state} isQuick:$isQuick")
+            Right(engineJob)
+        }.recover {case NonFatal(ex) =>
+          logger.info(s"No available work")
           Left(NO_WORK)}
   }
 
@@ -1386,7 +1400,6 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   * Core SMRT Link Data Access Object for interacting with DataSets, Projects and Jobs.
   *
   * @param db Postgres Database Config
-  * @param engineConfig Engine Manager config (for root job, number of workers)
   * @param resolver Resolver that will determine where to write jobs to
   * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
   */

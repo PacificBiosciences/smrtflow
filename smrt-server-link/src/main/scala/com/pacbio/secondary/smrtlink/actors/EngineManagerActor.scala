@@ -72,8 +72,8 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
     // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
     implicit val timeOut = Timeout(5.seconds)
     val f:Future[String] = for {
-      job <- dao.updateJobState(engineJob.id, AnalysisJobStates.RUNNING, "Updated to Running")
-      _ <- andLog(s"Updated state of ${job.id} type:${job.jobTypeId} to state:${job.state}")
+      job <- dao.updateJobState(engineJob.id, AnalysisJobStates.RUNNING, s"Updated to Running from $self")
+      _ <- andLog(s"Updated state of ${job.id} type:${job.jobTypeId} to state:${job.state} from $self")
       _ <- andLog(s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId}")
       _ <- worker ? RunEngineJob(engineJob)
       workerMsg <- andLog(s"Started job id:${engineJob.id} type:${engineJob.jobTypeId} on Engine worker $worker")
@@ -82,7 +82,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
     f
   }
 
-  def checkForWorker(workerQueue: mutable.Queue[ActorRef]): Future[String] = {
+  def checkForWorker(workerQueue: mutable.Queue[ActorRef], isQuick: Boolean): Future[String] = {
 
     /**
       * Util to sort out the compatibility with the dao engine interface
@@ -97,7 +97,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
           // This needs to handle failure case and enqueue the worker
           addJobToWorker(engineJob, workers, worker)
               .recoverWith { case NonFatal(ex) =>
-                val msg = s"Failed to add Job ${engineJob.id} to worker $worker ${ex.getMessage}"
+                val msg = s"Failed to add Job ${engineJob.id} jobtype:${engineJob.jobTypeId} to worker $worker ${ex.getMessage}"
                 log.error(msg)
                   workerQueue.enqueue(worker)
                   Future.successful(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue")
@@ -108,7 +108,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
 
     if (workerQueue.nonEmpty) {
       for {
-        engineJobOrNoWork <- dao.getNextRunnableEngineJob()
+        engineJobOrNoWork <- dao.getNextRunnableEngineJob(isQuick)
         msg <- workerToFuture(engineJobOrNoWork)
       } yield msg
     } else {
@@ -120,8 +120,8 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
   def checkForWork(): Future[String] = {
     for {
       _ <- andLog(s"Checking for work. ${getManagerStatus().prettySummary}")
-      _ <- checkForWorker(workers)
-      _ <- checkForWorker(quickWorkers) // this might be better as a andThen call
+      _ <- checkForWorker(quickWorkers, true)
+      _ <- checkForWorker(workers, false) // this might be better as a andThen call
     } yield s"Completed checking for work ${getManagerStatus().prettySummary}"
   }
 
