@@ -374,7 +374,7 @@ with SmrtLinkConstants with TestUtils{
         proj.datasets.size === (dsCount - 1)
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$jobType/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val movedJob = responseAs[EngineJob]
         movedJob.id === jobToMove.id
