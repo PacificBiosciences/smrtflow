@@ -71,9 +71,10 @@ with JobServiceConstants with TestUtils{
   TestProviders.eventManagerActor()
 
   val projectId = 1
-  val record = SimpleJobOptions(1, Some("Job name"), Some("Description"), Some(projectId))
+  val record = SimpleJobOptions(1, Some("Job name"), Some("Description"))
 
   step(setupDb(TestProviders.dbConfig))
+  step(setupJobDir(TestProviders.engineConfig.pbRootJobDir))
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {
@@ -87,4 +88,5 @@ with JobServiceConstants with TestUtils{
       }
     }
   }
+  step(cleanUpJobDir(TestProviders.engineConfig.pbRootJobDir))
 }
