@@ -9,7 +9,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, Se
 import com.pacbio.secondary.smrtlink.services.{PipelineDataStoreViewRulesServiceProvider, ServiceComposer}
 
 
-class PipelineDataStoreViewRulesServiceSpec extends Specification
+class PipelineDatastoreViewRulesServiceSpec extends Specification
     with Specs2RouteTest
     with SecondaryJobJsonProtocol
     with JobServiceConstants {
