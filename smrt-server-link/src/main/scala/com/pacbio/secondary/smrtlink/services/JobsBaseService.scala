@@ -4,8 +4,9 @@ import java.io.File
 import java.util.UUID
 import java.nio.file.{Files, Path, Paths}
 
+import akka.actor.ActorSystem
 import akka.util.Timeout
-import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, JobsDao, JobsDaoProvider}
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, ActorSystemProvider, JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError, UnprocessableEntityError}
@@ -31,6 +32,7 @@ import spray.httpx.unmarshalling.Unmarshaller
 import spray.httpx.marshalling.Marshaller
 import spray.json._
 import spray.routing._
+import spray.routing.directives.FileAndResourceDirectives
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
@@ -569,9 +571,15 @@ class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticat
   * @param dao JobDao
   * @param authenticator Authenticator
   */
-class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: SystemJobConfig) extends PacBioService with JobServiceConstants with LazyLogging {
+class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: SystemJobConfig)(implicit val actorSystem: ActorSystem) extends PacBioService
+    with JobServiceConstants
+    with FileAndResourceDirectives
+    with LazyLogging {
 
   import SmrtLinkJsonProtocols._
+
+  // For getFile and friends to work correctly
+  implicit val routing = RoutingSettings.default
 
   override val manifest = PacBioComponentManifest(
     toServiceId("new_job_service"),
@@ -596,28 +604,48 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
   )
 
   // Note these is duplicated within a Job
-  def datastoreRoute():Route =
-    pathPrefix(DATASTORE_FILES_PREFIX) {
-      path(JavaUUID) { dsFileUUID =>
-        get {
-          complete {
-            ok {
-              dao.getDataStoreFile(dsFileUUID)
-            }
-          }
-        } ~
-        put {
-          entity(as[DataStoreFileUpdateRequest]) { sopts =>
+  def datastoreRoute(): Route = {
+    pathPrefix(DATASTORE_FILES_PREFIX / JavaUUID) { dsFileUUID =>
+        pathEndOrSingleSlash {
+          get {
             complete {
               ok {
-                dao.updateDataStoreFile(dsFileUUID, sopts.path, sopts.fileSize, sopts.isActive)
+                dao.getDataStoreFile(dsFileUUID)
               }
             }
-          }
-        }
+          } ~
+              put {
+                entity(as[DataStoreFileUpdateRequest]) { sopts =>
+                  complete {
+                    ok {
+                      dao.updateDataStoreFile(dsFileUUID, sopts.path, sopts.fileSize, sopts.isActive)
+                    }
+                  }
+                }
+              }
+        } ~
+            path("download") {
+              get {
+                onSuccess(dao.getDataStoreFileByUUID(dsFileUUID)) { file =>
+                  val fn = s"job-${file.jobId}-${file.uuid.toString}-${Paths.get(file.path).toAbsolutePath.getFileName}"
+                  respondWithHeader(HttpHeaders.`Content-Disposition`("attachment; filename=" + fn)) {
+                    getFromFile(file.path)
+                  }
+                }
+              }
+            } ~
+            path("resources") {
+              get {
+                parameter("relpath") { relpath =>
+                  onSuccess(dao.getDataStoreFileByUUID(dsFileUUID)) { file =>
+                    val resourcePath = Paths.get(file.path).resolveSibling(relpath)
+                    getFromFile(resourcePath.toFile)
+                  }
+                }
+              }
+            }
       }
-
-  }
+    }
 
   def getJobTypesRoute(jobTypes: Seq[JobTypeIds.JobType]): Route = {
     val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description))
@@ -667,10 +695,17 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
 }
 
 trait JobsServiceProvider {
-  this: ActorRefFactoryProvider with AuthenticatorProvider with ServiceComposer with JobsDaoProvider with SmrtLinkConfigProvider =>
+  this: ActorRefFactoryProvider
+      with ActorSystemProvider
+      with AuthenticatorProvider
+      with ServiceComposer
+      with JobsDaoProvider
+      with SmrtLinkConfigProvider =>
 
   //FIXME(mpkocher)(8-27-2017) Rename this to something sensible
-  val newJobService: Singleton[JobsServiceUtils] = Singleton(() => new JobsServiceUtils(jobsDao(), authenticator(), systemJobConfig()))
+  val newJobService: Singleton[JobsServiceUtils] = Singleton {() =>
+    implicit val system = actorSystem()
+    new JobsServiceUtils(jobsDao(), authenticator(), systemJobConfig())}
 
   addService(newJobService)
 }
