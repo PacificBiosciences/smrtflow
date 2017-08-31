@@ -21,7 +21,7 @@ trait ExportBase extends LazyLogging {
   protected val haveFiles = mutable.Set.empty[String]
   protected val BUFFER_SIZE = 2048
 
-  def newFile(zipPath: Path): ZipOutputStream = {
+  def newZip(zipPath: Path): ZipOutputStream = {
     val dest = new FileOutputStream(zipPath.toFile)
     new ZipOutputStream(new BufferedOutputStream(dest))
   }
@@ -180,8 +180,9 @@ object ExportDataSets extends DataSetExporter {
             dsType: DataSetMetaTypes.DataSetMetaType,
             zipPath: Path,
             skipMissingFiles: Boolean = false): Int = {
-    val out = newFile(zipPath)
+    val out = newZip(zipPath)
     val n = datasets.map(writeDataSetAuto(out, _, dsType, skipMissingFiles)).sum
+    out.close
     logger.info(s"wrote $n bytes")
     n
   }

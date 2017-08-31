@@ -108,6 +108,14 @@ class DataSetExportSpecAdvanced
     ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
   }
 
+  private def exportDataSets(dsIds: Seq[String],
+                             dsType: DataSetMetaTypes.DataSetMetaType) = {
+    val datasets = getData(dsIds)
+    val zipPath = Files.createTempFile("DataSets", ".zip")
+    val n = ExportDataSets(datasets, dsType, zipPath)
+    n must beGreaterThan(0)
+  }
+
   "Export Datasets from PacBioTestData" should {
     "Export SubreadSet with relative paths" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
@@ -149,46 +157,26 @@ class DataSetExportSpecAdvanced
       zipAndUnzip(dsTmp)
     }
     "Generate ZIP file from multiple SubreadSets" in {
-      val datasets = getData(Seq("subreads-sequel", "subreads-xml"))
-      val zipPath = Files.createTempFile("subreadsets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("subreads-sequel", "subreads-xml"),
+                     DataSetMetaTypes.Subread)
     }
     "Export AlignmentSet" in {
-      val datasets = getData(Seq("aligned-ds-2"))
-      val zipPath = Files.createTempFile("alignmentsets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Alignment, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("aligned-ds-2"), DataSetMetaTypes.Alignment)
     }
     "Export ConsensusReadSet" in {
-      val datasets = getData(Seq("rsii-ccs"))
-      val zipPath = Files.createTempFile("ccssets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.CCS, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("rsii-ccs"), DataSetMetaTypes.CCS)
     }
     "Export ConsensusAlignmentSet" in {
-      val datasets = getData(Seq("rsii-ccs-aligned"))
-      val zipPath = Files.createTempFile("ccsaligned", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.AlignmentCCS, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("rsii-ccs-aligned"), DataSetMetaTypes.AlignmentCCS)
     }
     "Export HdfSubreadSet" in {
-      val datasets = getData(Seq("hdfsubreads"))
-      val zipPath = Files.createTempFile("hdfsubreads", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.HdfSubread, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("hdfsubreads"), DataSetMetaTypes.HdfSubread)
     }
     "Export BarcodeSet" in {
-      val datasets = getData(Seq("barcodeset"))
-      val zipPath = Files.createTempFile("barcodes", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Barcode, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("barcodeset"), DataSetMetaTypes.Barcode)
     }
     "Export ContigSet" in {
-      val datasets = getData(Seq("contigset"))
-      val zipPath = Files.createTempFile("contigs", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Contig, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("contigset"), DataSetMetaTypes.Contig)
     }
     "Export two SubreadSets that reference the same BarcodeSet" in {
       val pbdata = PacBioTestData()

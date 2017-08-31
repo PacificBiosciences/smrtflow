@@ -58,14 +58,14 @@ trait JobUtils
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption.map{ m =>
           val destPath = basePath.relativize(path)
-          writeDataSet(out, path, destPath, m.metatype, skipMissingFiles = true) //XXX
+          writeDataSet(out, path, destPath, m.metatype, skipMissingFiles = true)
         }.getOrElse(exportFile(out, path, basePath))
       } else {
         exportFile(out, path, basePath)
       }
     } else if (f.isDirectory) {
       logger.info(s"Exporting subdirectory ${path.toString}...")
-      f.listFiles.map(fn => exportPath(out, f.toPath, basePath)).sum
+      f.listFiles.map(fn => exportPath(out, fn.toPath, basePath)).sum
     } else {
       logger.warn(s"Skipping ${path.toString}")
       0
@@ -78,13 +78,18 @@ trait JobUtils
    * @param zipFileName  path to output zip file
    */
   def exportJob(job: EngineJob,
-                jobPath: Path,
                 zipFileName: Path): Try[JobExportSummary] = Try {
+    val jobPath = Paths.get(job.path)
     if (jobPath.toFile.isFile) {
       throw new RuntimeException(s"${jobPath.toString} is not a directory")
     }
-    val out = newFile(zipFileName)
-    var nBytes = exportPath(out, jobPath, jobPath)
+    val out = newZip(zipFileName)
+    val manifest = Files.createTempFile("manifest", ".json")
+    FileUtils.writeStringToFile(manifest.toFile, job.toJson.toString, "UTF-8")
+    var nBytes = exportPath(out, jobPath, jobPath) +
+                 exportFile(out, jobPath.resolve("manifest.json"), jobPath,
+                            Some(manifest))
+    out.close
     JobExportSummary(nBytes)
   }
 }
