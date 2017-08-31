@@ -17,7 +17,7 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -31,7 +31,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
   import CommonModelImplicits._
 
   //MK Probably want to have better model for this
-  val checkForWorkInterval = 10.seconds
+  val checkForWorkInterval = 5.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
@@ -48,7 +48,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
 
   val serviceRunner = new ServiceJobRunner(dao, config)
 
-  def andLog(sx: String): Future[String] = Future {
+  def andLog(sx: String): Future[String] = Future.successful {
     log.info(sx)
     sx
   }
@@ -82,7 +82,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
     f
   }
 
-  def checkForWorker(workerQueue: mutable.Queue[ActorRef], isQuick: Boolean): Future[String] = {
+  def checkForWorker(workerQueue: mutable.Queue[ActorRef], isQuick: Boolean): Future[Either[NoAvailableWorkError, EngineJob]] = {
 
     /**
       * Util to sort out the compatibility with the dao engine interface
@@ -90,21 +90,27 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
       * @param et Either results from checking for work
       * @return
       */
-    def workerToFuture(et: Either[NoAvailableWorkError, EngineJob]): Future[String] = {
+    def workerToFuture(et: Either[NoAvailableWorkError, EngineJob]): Future[Either[NoAvailableWorkError, EngineJob]] = {
       et match {
-        case Right(engineJob) =>
+        case Right(engineJob) => {
+
           val worker = workerQueue.dequeue()
+          log.info(s"Attempting to add job id:${engineJob.id} type:${engineJob.jobTypeId} state:${engineJob.state} to worker $worker")
+
           // This needs to handle failure case and enqueue the worker
           val f = addJobToWorker(engineJob, workers, worker)
+              .map(_ => Right(engineJob))
               .recoverWith { case NonFatal(ex) =>
                 val msg = s"Failed to add Job ${engineJob.id} jobtype:${engineJob.jobTypeId} to worker $worker ${ex.getMessage}"
                 log.error(msg)
-                  workerQueue.enqueue(worker)
-                  Future.successful(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue")
+                workerQueue.enqueue(worker)
+                // Not sure exactly what should return from here? This should update the db to make sure the engine job
+                // is marked as failed.
+                Future.successful(Left(NoAvailableWorkError(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue ${ex.getMessage} ")))
               }
-          f.onSuccess { case _ => self ! CheckForRunnableJob } // If we found work, let's immediately check to see if there's other work to do
           f
-        case Left(_) => Future.successful("No available work found")
+        }
+        case Left(_) => Future.successful(Left(NoAvailableWorkError("No work found")))
       }
     }
 
@@ -112,19 +118,28 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
       for {
         engineJobOrNoWork <- dao.getNextRunnableEngineJob(isQuick)
         msg <- workerToFuture(engineJobOrNoWork)
-      } yield msg
+      } yield engineJobOrNoWork
     } else {
-      Future.successful(s"Worker queue (${workerQueue.length}) is full")
+      Future.successful(Left(NoAvailableWorkError(s"Worker queue (${workerQueue.length}) is full")))
     }
   }
 
   // This should return a future
-  def checkForWork(): Future[String] = {
-    for {
-      _ <- andLog(s"Checking for work. ${getManagerStatus().prettySummary}")
-      _ <- checkForWorker(quickWorkers, true)
-      _ <- checkForWorker(workers, false) // this might be better as a andThen call
-    } yield s"Completed checking for work ${getManagerStatus().prettySummary}"
+  def checkForWork(timeout: FiniteDuration = 10.seconds): String = {
+    // This must be blocking so that a different workers don't
+    // pull the same job.
+    val x1 = Await.result(checkForWorker(quickWorkers, true), timeout)
+    val x2 = Await.result(checkForWorker(workers, false), timeout)
+
+    val msg = s"Completed checking for work ${getManagerStatus().prettySummary}"
+    log.info(msg)
+
+    // If either worker found work to run, then send a self check for work message
+    // to attempt to continue to process other work in queue
+    if (x1.isRight || x2.isRight) {
+      self ! CheckForRunnableJob
+    }
+    msg
   }
 
   override def preStart(): Unit = {
@@ -151,9 +166,9 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
 
   override def receive: Receive = {
     case CheckForRunnableJob => {
-      checkForWork() onComplete {
-        case Success(_) =>
-          log.debug("Completed checking for work")
+      Try(checkForWork()) match {
+        case Success(msg) =>
+          log.debug(s"Completed checking for work $msg")
         case Failure(ex) =>
           val sw = new StringWriter
           ex.printStackTrace(new PrintWriter(sw))

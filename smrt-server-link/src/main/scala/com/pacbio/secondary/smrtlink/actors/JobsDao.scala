@@ -380,6 +380,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
     val quickJobTypeIds = JobTypeIds.ALL.filter(_.isQuick).map(i => s"'${i.id}'").reduce(_ + "," + _)
 
+    // This needs to be thought out a bit more. The entire table needs to be locked.
     val q0 = if (isQuick) {
       sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' AND job_type_id IN (#${quickJobTypeIds}) ORDER BY job_id LIMIT 1".as[Int]
     } else {
@@ -399,7 +400,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
         .map { engineJob =>
             logger.info(s"Found runnable job id:${engineJob.id} type:${engineJob.jobTypeId} in state ${engineJob.state} isQuick:$isQuick")
             Right(engineJob)
-        }.recover {case NonFatal(ex) =>
+        }.recover {case NonFatal(_) =>
           logger.info(s"No available work")
           Left(NO_WORK)}
   }
