@@ -77,8 +77,23 @@ package object jobtypes {
     def toJob(): ServiceCoreJob
 
     /**
+      * This the default timeout for DAO operations.
       *
-      * Does this also need UserRecord passed in?
+      * It's important this is a def, otherwise there will be runtime errors from spray serialization
+      *
+      * @return
+      */
+    def DEFAULT_TIMEOUT = 10.seconds
+
+    /**
+      * Job Option validation
+      *
+      * This should be relatively quick (e.g., not validation of 1G fasta file)
+      *
+      * Any time or resource consuming validation should be pushed to job run time.
+      *
+      *
+      * TODO: Does this also need UserRecord passed in?
       *
       * Validate the Options (and make sure they're consistent within the system config if necessary)
       * @return
