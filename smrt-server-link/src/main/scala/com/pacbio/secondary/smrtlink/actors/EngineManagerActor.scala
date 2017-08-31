@@ -87,7 +87,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
     /**
       * Util to sort out the compatibility with the dao engine interface
       *
-      * @param et
+      * @param et Either results from checking for work
       * @return
       */
     def workerToFuture(et: Either[NoAvailableWorkError, EngineJob]): Future[String] = {
@@ -95,13 +95,15 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
         case Right(engineJob) =>
           val worker = workerQueue.dequeue()
           // This needs to handle failure case and enqueue the worker
-          addJobToWorker(engineJob, workers, worker)
+          val f = addJobToWorker(engineJob, workers, worker)
               .recoverWith { case NonFatal(ex) =>
                 val msg = s"Failed to add Job ${engineJob.id} jobtype:${engineJob.jobTypeId} to worker $worker ${ex.getMessage}"
                 log.error(msg)
                   workerQueue.enqueue(worker)
                   Future.successful(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue")
               }
+          f.onSuccess { case _ => self ! CheckForRunnableJob } // If we found work, let's immediately check to see if there's other work to do
+          f
         case Left(_) => Future.successful("No available work found")
       }
     }
