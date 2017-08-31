@@ -29,7 +29,7 @@ case class DeleteSmrtLinkJobOptions(jobId: IdAble,
                                    ) extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.DELETE_JOB
   override def validate(dao: JobsDao, config: SystemJobConfig):Option[InvalidJobOptionError] = {
-    validateAndBlock(confirmIsDeletable(dao, jobId, force.getOrElse(false)), 5.seconds)
+    validateOptionsAndBlock(confirmIsDeletable(dao, jobId, force.getOrElse(false)), 5.seconds)
   }
 
   override def toJob() = new DeleteSmrtLinkJob(this)

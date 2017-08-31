@@ -8,16 +8,14 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobRe
 import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, EngineJobEntryPointRecord}
-import com.pacbio.secondary.smrtlink.validators.ValidateImportDataSetUtils
-
+import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by mkocher on 8/17/17.
@@ -79,8 +77,6 @@ package object jobtypes {
     def toJob(): ServiceCoreJob
 
     /**
-      * The probably needs to the Dao and SMRT Link System Config passed in.
-      * This exposes a lot of surface area.
       *
       * Does this also need UserRecord passed in?
       *
@@ -99,7 +95,7 @@ package object jobtypes {
       * @tparam T
       * @return
       */
-    def validateAndBlock[T](fx: => Future[T], timeout: FiniteDuration): Option[InvalidJobOptionError] = {
+    def validateOptionsAndBlock[T](fx: => Future[T], timeout: FiniteDuration): Option[InvalidJobOptionError] = {
       Try(Await.result(fx, timeout)) match {
         case Success(_) => None
         case Failure(ex) => Some(InvalidJobOptionError(s"Failed option validation. ${ex.getMessage}"))
@@ -108,14 +104,19 @@ package object jobtypes {
     /**
       * Common Util for resolving entry points
       *
+      * Only DataSet types will be resolved, but the entry point is a general file type
+      *
       * @param e Bound Service Entry Point
-      * @param dao
+      * @param dao db DAO
       * @return
       */
     def resolveEntry(e: BoundServiceEntryPoint, dao:JobsDao): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
-      ValidateImportDataSetUtils.resolveDataSet(e.fileTypeId, e.datasetId, dao).map { d =>
-        (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
-      }
+      // Only DataSet types will be resolved, but the entry point is a general file type id
+
+      for {
+        datasetType <- ValidateServiceDataSetUtils.validateDataSetType(e.fileTypeId)
+        d <- ValidateServiceDataSetUtils.resolveDataSet(datasetType, e.datasetId, dao)
+      } yield  (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
     }
 
     def resolver(entryPoints: Seq[BoundServiceEntryPoint], dao: JobsDao): Future[Seq[(EngineJobEntryPointRecord, BoundEntryPoint)]] =

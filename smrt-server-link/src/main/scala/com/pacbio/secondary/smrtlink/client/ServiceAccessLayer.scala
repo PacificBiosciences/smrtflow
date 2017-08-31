@@ -554,7 +554,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
-  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
+  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[IdAble], name: String) = runJobPipeline {
     logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
       MergeDataSetJobOptions(datasetType, ids, Some(name), None))
