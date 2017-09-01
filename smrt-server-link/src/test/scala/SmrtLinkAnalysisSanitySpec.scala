@@ -1,5 +1,5 @@
 import com.pacbio.secondary.smrtlink.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.app.{BaseServer, SmrtLinkApi}
+import com.pacbio.secondary.smrtlink.app.{BaseServer, SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
@@ -15,6 +15,7 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   object TestProviders extends BaseServer with SmrtLinkApi {
+    override val providers = new SmrtLinkProviders {}
     override val host = providers.serverHost()
     override val port = providers.serverPort()
   }
