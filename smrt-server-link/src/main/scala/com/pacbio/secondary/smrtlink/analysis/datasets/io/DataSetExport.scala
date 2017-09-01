@@ -18,10 +18,13 @@ import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 
 trait ExportBase extends LazyLogging {
+  // XXX note that because of this mutable tracking variable, this trait should
+  // always be used as a mixin for self-contained classes
   protected val haveFiles = mutable.Set.empty[String]
   protected val BUFFER_SIZE = 2048
 
   def newZip(zipPath: Path): ZipOutputStream = {
+    haveFiles.clear
     val dest = new FileOutputStream(zipPath.toFile)
     new ZipOutputStream(new BufferedOutputStream(dest))
   }
@@ -62,12 +65,12 @@ trait ExportBase extends LazyLogging {
                            path: Path,
                            basePath: Path,
                            srcPath: Option[Path] = None): Int = {
-    val destPath = basePath.relativize(path)
+    val destPath = basePath.relativize(path).toString
     if (haveFiles contains destPath) {
       logger.info(s"Skipping duplicate file ${destPath}"); 0
     } else {
       logger.info(s"Writing file ${destPath} to zip")
-      writeFile(out, srcPath.getOrElse(path), destPath.toString)
+      writeFile(out, srcPath.getOrElse(path), destPath)
     }
   }
 }
@@ -107,12 +110,12 @@ trait DataSetExporter extends ExportBase with LazyLogging {
         rawPath
       }
       val resourceDestPath = destPath.resolve(finalPath.toString).toString
+      res.setResourceId(finalPath.toString)
       if (haveFiles contains resourceDestPath) {
         logger.info(s"skipping duplicate file $resourceDestPath"); 0
       } else {
         logger.info(s"writing $resourcePath")
         haveFiles += resourceDestPath
-        res.setResourceId(finalPath.toString)
         writeFile(out, resourcePath, resourceDestPath)
       }
     }
@@ -125,11 +128,11 @@ trait DataSetExporter extends ExportBase with LazyLogging {
                                dsType: DataSetMetaTypes.DataSetMetaType,
                                skipMissingFiles: Boolean): Int = {
     val basePath = dsPath.getParent
+    val destPath = Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
     val nbytes = Option(ds.getExternalResources).map { extRes =>
       extRes.getExternalResource.map { er =>
-        val destPath = Paths.get(dsId.toString)
         writeResourceFile(out, destPath, er, basePath, skipMissingFiles) +
         Option(er.getExternalResources).map { extRes2 =>
           extRes2.getExternalResource.map { rr =>
