@@ -34,7 +34,7 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
   implicit val rsConvertMovieToDataSetJobOptionsFormat = jsonFormat4(RsConvertMovieToDataSetJobOptions)
 
   implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat4(TsSystemStatusBundleJobOptions)
-  implicit val techSupportJobBundleJobOptionsFormat = jsonFormat4(TsJobBundleJobOptions)
+  implicit val techSupportJobBundleJobOptionsFormat = jsonFormat6(TsJobBundleJobOptions)
 
 
 

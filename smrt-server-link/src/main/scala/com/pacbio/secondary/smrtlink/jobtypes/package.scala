@@ -149,7 +149,8 @@ package object jobtypes {
 
 
     /**
-      * This is used to communicate the EntryPoints used for the Job
+      * This is used to communicate the EntryPoints used for the Job. This is abstract so that the model is explicit.
+      *
       *
       * @param dao JobsDoa
       * @return

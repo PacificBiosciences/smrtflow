@@ -125,9 +125,12 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     SystemJobConfig(
       pbsmrtpipeEngineOptions(),
       dnsName().getOrElse("localhost"),
-      port(), smrtLinkVersion(),
+      port(),
+      smrtLinkVersion(),
+      serverId(),
       engineConfig.maxWorkers,
-      engineConfig.numQuickWorkers)
+      engineConfig.numQuickWorkers,
+      externalEveUrl())
   }
 
   // Mail Specific Config
