@@ -128,6 +128,7 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
       port(),
       smrtLinkVersion(),
       serverId(),
+      smrtLinkSystemRoot(),
       engineConfig.maxWorkers,
       engineConfig.numQuickWorkers,
       externalEveUrl())

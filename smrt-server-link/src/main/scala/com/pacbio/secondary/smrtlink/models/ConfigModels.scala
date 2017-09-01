@@ -68,6 +68,7 @@ object ConfigModels {
                              port: Int,
                              smrtLinkVersion: Option[String],
                              smrtLinkSystemId: UUID,
+                             smrtLinkSystemRoot: Option[Path],
                              numGeneralWorkers: Int = DEFAULT_MAX_GENERAL_WORKERS,
                              numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS,
                              externalEveUrl: Option[URL]
