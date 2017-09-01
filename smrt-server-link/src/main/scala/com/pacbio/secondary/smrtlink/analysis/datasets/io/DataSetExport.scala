@@ -70,7 +70,43 @@ trait ExportBase extends LazyLogging {
       logger.info(s"Skipping duplicate file ${destPath}"); 0
     } else {
       logger.info(s"Writing file ${destPath} to zip")
+      haveFiles += destPath
       writeFile(out, srcPath.getOrElse(path), destPath)
+    }
+  }
+
+  /**
+   * Given a resource path of unknown form, a base path for the file(s)
+   * referencing this resource, and a root destination in the zip file,
+   * determine the appropriate relative resource path, and the path to write
+   * to the zip file.  This allows us to cope with cases where a dataset and
+   * its resources live in different directories under the directory being
+   * exported.
+   * @param resource  resourceId field from a DataSet, or similar
+   * @param basePath  directory from which this resource is being reference (i.e. directory of the current dataset)
+   * @param destPath  base destination path in the zip file
+   * @param archiveRoot  optional root directory for the entire export
+   */
+  protected def relativizeResourcePath(
+      resource: Path,
+      basePath: Path,
+      destPath: Path,
+      archiveRoot: Option[Path]): (Path, Path) = {
+    if (resource.isAbsolute) {
+      if (resource.startsWith(basePath)) {
+        // if the resourceId is an absolute path, but a subdirectory of the
+        // base path, we convert it to the corresponding relative path first
+        val finalPath = basePath.relativize(resource)
+        (finalPath, destPath.resolve(finalPath))
+      } else if (archiveRoot.isDefined && resource.startsWith(archiveRoot.get)) {
+        (basePath.relativize(resource), archiveRoot.get.relativize(resource).normalize())
+      } else {
+        val finalPath = Paths.get(s".${resource}")
+        (finalPath, destPath.resolve(finalPath).normalize())
+      }
+    } else {
+      // FIXME what if the resource is relative and outside basePath?
+      (resource, destPath.resolve(resource).normalize())
     }
   }
 }
@@ -81,6 +117,7 @@ trait DataSetExporter extends ExportBase with LazyLogging {
                                   destPath: Path,
                                   res: InputOutputDataType,
                                   basePath: Path,
+                                  archiveRootPath: Option[Path],
                                   ignoreMissing: Boolean = false): Int = {
     val rid = res.getResourceId
     val uri = URI.create(rid.replaceAll(" ", "%20"))
@@ -98,23 +135,13 @@ trait DataSetExporter extends ExportBase with LazyLogging {
         throw new Exception(msg)
       }
     } else {
-      val finalPath = if (rawPath.isAbsolute) {
-        if (rawPath.startsWith(basePath)) {
-          // if the resourceId is an absolute path, but a subdirectory of the
-          // base path, we convert it to the corresponding relative path first
-          basePath.relativize(rawPath)
-        } else {
-          Paths.get(s".${rawPath}")
-        }
-      } else {
-        rawPath
-      }
-      val resourceDestPath = destPath.resolve(finalPath.toString).toString
-      res.setResourceId(finalPath.toString)
+      val paths = relativizeResourcePath(rawPath, basePath, destPath, archiveRootPath)
+      val (finalPath, resourceDestPath) = (paths._1.toString, paths._2.toString)
+      res.setResourceId(finalPath)
       if (haveFiles contains resourceDestPath) {
         logger.info(s"skipping duplicate file $resourceDestPath"); 0
       } else {
-        logger.info(s"writing $resourcePath")
+        logger.info(s"writing $resourceDestPath")
         haveFiles += resourceDestPath
         writeFile(out, resourcePath, resourceDestPath)
       }
@@ -126,6 +153,7 @@ trait DataSetExporter extends ExportBase with LazyLogging {
                                dsPath: Path,
                                dsOutPath: String,
                                dsType: DataSetMetaTypes.DataSetMetaType,
+                               archiveRootPath: Option[Path],
                                skipMissingFiles: Boolean): Int = {
     val basePath = dsPath.getParent
     val destPath = Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
@@ -133,19 +161,19 @@ trait DataSetExporter extends ExportBase with LazyLogging {
     val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
     val nbytes = Option(ds.getExternalResources).map { extRes =>
       extRes.getExternalResource.map { er =>
-        writeResourceFile(out, destPath, er, basePath, skipMissingFiles) +
+        writeResourceFile(out, destPath, er, basePath, archiveRootPath, skipMissingFiles) +
         Option(er.getExternalResources).map { extRes2 =>
           extRes2.getExternalResource.map { rr =>
-            writeResourceFile(out, destPath, rr, basePath, skipMissingFiles) +
+            writeResourceFile(out, destPath, rr, basePath, archiveRootPath, skipMissingFiles) +
             Option(rr.getFileIndices).map { fi =>
               fi.getFileIndex.map {
-                writeResourceFile(out, destPath, _, basePath, skipMissingFiles)
+                writeResourceFile(out, destPath, _, basePath, archiveRootPath, skipMissingFiles)
               }.sum
             }.getOrElse(0)
           }.sum
         }.getOrElse(0) + Option(er.getFileIndices).map { fi =>
           fi.getFileIndex.map {
-            writeResourceFile(out, destPath, _, basePath, skipMissingFiles)
+            writeResourceFile(out, destPath, _, basePath, archiveRootPath, skipMissingFiles)
           }.sum
         }.getOrElse(0)
       }.sum
@@ -158,9 +186,10 @@ trait DataSetExporter extends ExportBase with LazyLogging {
                              dsPath: Path,
                              dsOutPath: Path,
                              dsType: DataSetMetaTypes.DataSetMetaType,
+                             archiveRootPath: Option[Path],
                              skipMissingFiles: Boolean = false): Int = {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
-    writeDataSetImpl(out, ds, dsPath, dsOutPath.toString, dsType, skipMissingFiles)
+    writeDataSetImpl(out, ds, dsPath, dsOutPath.toString, dsType, archiveRootPath, skipMissingFiles)
   }
 
   /**
@@ -174,7 +203,8 @@ trait DataSetExporter extends ExportBase with LazyLogging {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
-    writeDataSetImpl(out, ds, dsPath, dsOutPath, dsType, skipMissingFiles)
+    writeDataSetImpl(out, ds, dsPath, dsOutPath, dsType, None,
+                     skipMissingFiles = skipMissingFiles)
   }
 }
 

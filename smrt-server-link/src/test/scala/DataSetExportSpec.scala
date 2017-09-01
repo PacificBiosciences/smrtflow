@@ -21,6 +21,86 @@ import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
 
+class ExportBaseSpec extends Specification with ExportBase with LazyLogging {
+
+  def toPaths(resource: String, basePath: String, destPath: String,
+              archiveRoot: Option[String]): (Path, Path) =
+    relativizeResourcePath(Paths.get(resource), Paths.get(basePath),
+                           Paths.get(destPath), archiveRoot.map(Paths.get(_)))
+
+  "Base functions" should {
+    "Relativize resource paths" in {
+      // relative, no archiveRoot
+      val (resource, dest) = toPaths("subreads.bam",
+                                     "/data/movie1",
+                                     "exported",
+                                     None)
+      resource.toString must beEqualTo("subreads.bam")
+      dest.toString must beEqualTo("exported/subreads.bam")
+      // relative with subdir, no archiveRoot
+      val (resource1, dest1) = toPaths("mydata/subreads.bam",
+                                       "/data/movie1",
+                                       "exported",
+                                       None)
+      resource1.toString must beEqualTo("mydata/subreads.bam")
+      dest1.toString must beEqualTo("exported/mydata/subreads.bam")
+      // relative, archiveRoot defined
+      val (resource2, dest2) = toPaths("subreads.bam",
+                                       "/data/movie1",
+                                       "movie1",
+                                       Some("/data"))
+      resource2.toString must beEqualTo("subreads.bam")
+      dest2.toString must beEqualTo("movie1/subreads.bam")
+      // absolute, no archiveRoot
+      val (resource3, dest3) = toPaths("/data/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "movie1",
+                                       None)
+      resource3.toString must beEqualTo("./data/barcodes/2.xml")
+      dest3.toString must beEqualTo("movie1/data/barcodes/2.xml")
+      // absolute, archiveRoot includes path
+      val (resource4, dest4) = toPaths("/data/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "exported/movie1",
+                                       Some("/data"))
+      resource4.toString must beEqualTo("../barcodes/2.xml")
+      dest4.toString must beEqualTo("barcodes/2.xml")
+      // absolute, archiveRoot does *not* include path
+      val (resource5, dest5) = toPaths("/data2/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "movie1",
+                                       Some("/data"))
+      resource5.toString must beEqualTo("./data2/barcodes/2.xml")
+      dest5.toString must beEqualTo("movie1/data2/barcodes/2.xml")
+      // absolute, archiveRoot includes path
+      val (resource6, dest6) = toPaths("/data/jobs/1/tasks/task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "tasks/gather-1",
+                                       Some("/data/jobs/1"))
+      resource6.toString must beEqualTo("../task-1/subreads.bam")
+      dest6.toString must beEqualTo("tasks/task-1/subreads.bam")
+      // relative with parent dir, subdir of archiveRoot
+      val (resource7, dest7) = toPaths("../task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "tasks/gather-1",
+                                       Some("/data/jobs/1"))
+      resource7.toString must beEqualTo("../task-1/subreads.bam")
+      dest7.toString must beEqualTo("tasks/task-1/subreads.bam")
+      // relative with parent dir, *not* a subdir of archiveRoot
+      // FIXME This is probably going to break, although I do not think it
+      // is likely to happen in real-world uses like pbsmrtpipe job export
+      /*
+      val (resource8, dest8) = toPaths("../task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "exported",
+                                       Some("/data/jobs/1/tasks/gather-1"))
+      resource8.toString must beEqualTo("../task-1/subreads.bam")
+      dest8.toString must beEqualTo("task-1/subreads.bam")
+      */
+    }
+  }
+}
+
 class DataSetExportSpec extends Specification with LazyLogging {
 
   sequential

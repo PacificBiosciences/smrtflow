@@ -79,7 +79,11 @@ trait JobUtils
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption.map{ m =>
           val destPath = basePath.relativize(path)
-          writeDataSet(out, path, destPath, m.metatype, skipMissingFiles = true)
+          if (haveFiles contains destPath.toString) {
+            logger.warn(s"Skipping duplicate entry ${destPath.toString}"); 0
+          } else {
+            writeDataSet(out, path, destPath, m.metatype, Some(basePath), skipMissingFiles = true)
+          }
         }.getOrElse(exportFile(out, path, basePath))
       } else {
         exportFile(out, path, basePath)
@@ -88,8 +92,7 @@ trait JobUtils
       logger.info(s"Exporting subdirectory ${path.toString}...")
       f.listFiles.map(fn => exportPath(out, fn.toPath, basePath)).sum
     } else {
-      logger.warn(s"Skipping ${path.toString}")
-      0
+      logger.warn(s"Skipping ${path.toString}"); 0
     }
   }
 
@@ -117,6 +120,7 @@ trait JobUtils
       fos.close();
       if (FilenameUtils.getName(fileName) == "datastore.json") {
         logger.info(s"Updating paths in ${fileName}")
+        println("Fixing datastore")
         absolutizeDataStore(jobPath, newFile.toPath, Some(newFile.toPath))
       }
       ze = Option(zis.getNextEntry())
@@ -137,7 +141,7 @@ class JobExporter(job: EngineJob) extends JobUtils {
    * @param jobPath  path to job contents
    * @param zipFileName  path to output zip file
    */
-  def toZip(zipFileName: Path): Try[JobExportSummary] = Try {
+  def toZip(zipFileName: Path): Try[JobExportSummary] = {
     haveFiles.clear
     val jobPath = Paths.get(job.path)
     if (jobPath.toFile.isFile) {
@@ -150,7 +154,7 @@ class JobExporter(job: EngineJob) extends JobUtils {
                  exportFile(out, jobPath.resolve("engine-job.json"), jobPath,
                             Some(manifest))
     out.close
-    JobExportSummary(nBytes)
+    Try{JobExportSummary(nBytes)}
   }
 }
 

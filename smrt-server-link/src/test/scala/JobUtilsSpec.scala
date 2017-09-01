@@ -4,23 +4,23 @@ import java.util.UUID
 
 import scala.collection.JavaConversions._
 
-import org.apache.commons.io.FileUtils
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, JobUtils, ExportJob}
 
 
-class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
-
+trait MockJobExport {
   import JobModels._
 
-  private def setupFakeJob: EngineJob = {
+  protected def setupFakeJob: EngineJob = {
     val jobPath = Files.createTempDirectory("export-job")
     val fastaPath = jobPath.resolve("contigs.fasta")
     FileUtils.writeStringToFile(fastaPath.toFile, ">chr1\nacgtacgt", "UTF-8")
@@ -34,12 +34,22 @@ class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
       Some("4.0.0"), projectId = 10)
   }
 
-  private def setupFakeDataStore(job: EngineJob): PacBioDataStore = {
+  protected def setupFakeDataStore(job: EngineJob): PacBioDataStore = {
     val dsf = Seq(
-      DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.LOG.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), Paths.get(job.path).resolve("logs").resolve("master.log").toString, false, "Log file", "Log file"),
+      DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.LOG.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), Paths.get(job.path).resolve("logs/master.log").toString, false, "Log file", "Log file"),
       DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.FASTA.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), Paths.get(job.path).resolve("contigs.fasta").toString, false, "FASTA file", "FASTA file"))
     PacBioDataStore(JodaDateTime.now(), JodaDateTime.now(), "1.0", dsf)
   }
+}
+
+
+class JobUtilsSpec
+    extends Specification
+    with JobUtils
+    with MockJobExport
+    with LazyLogging {
+
+  import JobModels._
 
   val REF_PATH = "/dataset-references/example_reference_dataset/reference.dataset.xml"
   val SEQ_PATH = "/dataset-references/example_reference_dataset/sequence"
@@ -55,7 +65,7 @@ class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
   }
 
 
-  "Job Utils" should {
+  "JobExporter" should {
     "Export minimal fake job directory" in {
       val job = setupFakeJob
       val zipPath = Files.createTempFile("job", ".zip")
@@ -97,7 +107,7 @@ class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
       val unzipPath = Files.createTempDirectory("import-job")
       val result2 = expandJob(zipPath, unzipPath).toOption.get
       result2.nFiles === 10
-      val ds2Path = unzipPath.resolve("workflow").resolve("datastore.json")
+      val ds2Path = unzipPath.resolve("workflow/datastore.json")
       val ds2 = FileUtils.readFileToString(ds2Path.toFile, "UTF-8")
                          .parseJson.convertTo[PacBioDataStore]
       ds2.files.foreach { f =>
@@ -107,6 +117,7 @@ class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
       }
       val ref2Path = unzipPath.resolve("example.referenceset.xml")
       val ref2 = DataSetLoader.loadReferenceSet(ref2Path)
+      DataSetValidator.validate(ref2, unzipPath)
       val resPaths2 = ref2.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths2.forall(Paths.get(_).isAbsolute) must beFalse
       // now absolutize paths and make sure they exist
@@ -115,16 +126,52 @@ class JobUtilsSpec extends Specification with JobUtils with LazyLogging {
       resPaths3.forall(Paths.get(_).toFile.exists) === true
     }
   }
+  // TODO standalone expandJob test
 }
 
-/*
-class JobUtilsAdvancedSpec extends Specification with LazyLogging {
+
+class JobUtilsAdvancedSpec
+    extends Specification
+    with JobUtils
+    with MockJobExport
+    with LazyLogging {
+
+  import JobModels._
 
   args(skipAll = !PacBioTestData.isAvailable)
 
-  "Job Export" should {
-    "Export job containing complete SubreadSet" in {
+  "Job Export using PacBioTestData" should {
+    // this is somewhat redundant with JobUtilsSpec, but we want to check
+    // SubreadSet export very carefully
+    "Export job containing complete SubreadSet and BarcodeSet" in {
+      val job = setupFakeJob
+      val tasksDir = Paths.get(job.path).resolve("tasks")
+      val fakeTaskDir = tasksDir.resolve("pbcommand.tasks.dev_mixed_app")
+      fakeTaskDir.toFile.mkdirs
+      val ds = setupFakeDataStore(job)
+      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads(Some(fakeTaskDir))
+      val files2 = Seq(
+        DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.DS_BARCODE.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), barcodes.toString, false, "BarcodeSet XML", "BarcodeSet XML"),
+        DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.DS_SUBREADS.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), subreads.toString, false, "SubreadSet XML", "SubreadSet XML"))
+      val workflowDir = Paths.get(job.path).resolve("workflow")
+      workflowDir.toFile.mkdir
+      val dsFile = workflowDir.resolve("datastore.json")
+      val dsJson = ds.copy(files = ds.files ++ files2).toJson.prettyPrint
+      FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
+      val zipPath = Files.createTempFile("job", ".zip")
+      //val zipPath = Paths.get("job2.zip")
+      val result = ExportJob(job, zipPath)
+      result.toOption.get.nBytes must beGreaterThan(0)
+      // wipe the original directory, unpack and check files
+      FileUtils.deleteDirectory(Paths.get(job.path).toFile)
+      val unzipPath = Files.createTempDirectory("import-job")
+      val result2 = expandJob(zipPath, unzipPath).toOption.get
+      result2.nFiles === 12
+      val subreads2Path = unzipPath.resolve("tasks/pbcommand.tasks.dev_mixed_app/SubreadSet").resolve(FilenameUtils.getName(subreads.toString))
+      val subreads2 = DataSetLoader.loadAndResolveSubreadSet(subreads2Path)
+      DataSetValidator.validate(subreads2, unzipPath)
+      val resPaths2 = subreads2.getExternalResources.getExternalResource.map(_.getResourceId)
+      resPaths2.forall(Paths.get(_).toFile.exists) === true
     }
   }
-   
-}*/
+}
