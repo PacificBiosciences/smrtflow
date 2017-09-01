@@ -1,7 +1,7 @@
 
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
@@ -26,9 +26,12 @@ case class TsSystemStatusBundleJobOptions(user: String,
     *
     */
   override def validate(dao: JobsDao, config: SystemJobConfig): Option[InvalidJobOptionError] = {
+    val errorPrefix = "Unable to created System Status Bundle."
     config.smrtLinkSystemRoot match {
-      case Some(_) => None
-      case _  => Some(InvalidJobOptionError("Unable to created System Status Bundle. System is not configured with a SMRT LINK root directory path."))
+      case Some(path) =>
+        if (Files.exists(path)) None
+        else Option(InvalidJobOptionError(s"$errorPrefix Unable to find '$path'"))
+      case None  => Some(InvalidJobOptionError(s"$errorPrefix System is not configured with a SMRT LINK root directory path."))
     }
   }
 
