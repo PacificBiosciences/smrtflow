@@ -44,6 +44,7 @@ class AlarmSpec
   object TestProviders extends
       ServiceComposer with
       ActorRefFactoryProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       DefaultConfigProvider with
       ActorSystemProvider with

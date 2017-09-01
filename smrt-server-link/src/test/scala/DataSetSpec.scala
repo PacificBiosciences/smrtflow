@@ -37,13 +37,13 @@ with JobServiceConstants with TestUtils{
 
   object TestProviders extends
       ServiceComposer with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
       DataSetServiceProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

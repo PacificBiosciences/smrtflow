@@ -3,21 +3,19 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.nio.file.Paths
-
 import java.util.UUID
 import java.net.URL
 
-import scala.util.{Try, Success,Failure}
+import scala.util.Try
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.language.postfixOps
-
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 import spray.json._
-
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.smrtlink.actors.SmrtLinkDalProvider
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.analysis.jobs._
@@ -44,6 +42,7 @@ object SendTestEmail extends PbMailer {
 
 object SendTestEmailTool
     extends CommandLineToolRunner[SendTestEmailOptions]
+    with SmrtLinkDalProvider
     with SmrtLinkConfigProvider
     with EngineCoreConfigLoader
     with PbsmrtpipeConfigLoader {

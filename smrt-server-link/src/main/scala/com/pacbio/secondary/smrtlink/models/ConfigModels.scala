@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
+import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import spray.json._
 
 /**
@@ -71,6 +72,8 @@ object ConfigModels {
                              smrtLinkSystemRoot: Option[Path],
                              numGeneralWorkers: Int = DEFAULT_MAX_GENERAL_WORKERS,
                              numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS,
-                             externalEveUrl: Option[URL]
+                             externalEveUrl: Option[URL],
+                             rootDbBackUp: Option[Path],
+                             dbConfig: DatabaseConfig
                             )
 }

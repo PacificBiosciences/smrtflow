@@ -11,7 +11,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, SmrtLinkDalProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._
@@ -42,6 +42,7 @@ class EulaServiceSpec extends Specification
 
   trait TestEulaServiceProvider {
     this: JobsDaoProvider
+        with SmrtLinkTestDalProvider
         with SmrtLinkConfigProvider
         with AuthenticatorProvider
         with ServiceComposer =>
@@ -57,6 +58,7 @@ class EulaServiceSpec extends Specification
   object TestProviders extends
       ServiceComposer with
       ProjectServiceProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
@@ -64,7 +66,6 @@ class EulaServiceSpec extends Specification
       DataSetServiceProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

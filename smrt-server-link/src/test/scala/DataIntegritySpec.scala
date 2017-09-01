@@ -4,7 +4,7 @@ import java.util.UUID
 import org.joda.time.{DateTime => JodaDataTime}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
-import com.pacbio.secondary.smrtlink.actors.{JobsDao, TestDalProvider}
+import com.pacbio.secondary.smrtlink.actors.{JobsDao, SmrtLinkTestDalProvider}
 import com.pacbio.secondary.smrtlink.dataintegrity.{DataSetIntegrityRunner, JobStateIntegrityRunner}
 import com.pacbio.secondary.smrtlink.models.{EngineConfig, SubreadServiceDataSet}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
@@ -18,7 +18,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeConversions with TestDalProvider with TestUtils with LazyLogging{
+class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeConversions with SmrtLinkTestDalProvider with TestUtils with LazyLogging{
 
   // Sequentially run the tests
   sequential

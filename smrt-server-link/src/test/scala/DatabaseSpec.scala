@@ -4,7 +4,7 @@ import java.sql
 
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
-import com.pacbio.secondary.smrtlink.actors.TestDalProvider
+import com.pacbio.secondary.smrtlink.actors.SmrtLinkTestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
@@ -35,7 +35,7 @@ import scala.concurrent.duration._
   * entity (often by uuid) that has been inserted into the db.
   *
   */
-class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with TestDalProvider with TestUtils{
+class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with SmrtLinkTestDalProvider with TestUtils{
   import PacBioDateTimeFormat.TIME_ZONE
   import JobModels._
   import TableModels._

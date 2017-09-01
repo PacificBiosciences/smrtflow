@@ -4,6 +4,7 @@ import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import com.pacbio.secondary.smrtlink.actors.DalProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
@@ -20,7 +21,7 @@ import scala.util.{Failure, Success, Try}
 
 
 trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
-  this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
+  this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader with DalProvider =>
 
   /**
     * Create a Directories (mkdir -p) if they don't exist.
@@ -131,7 +132,10 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
       smrtLinkSystemRoot(),
       engineConfig.maxWorkers,
       engineConfig.numQuickWorkers,
-      externalEveUrl())
+      externalEveUrl(),
+      rootDataBaseBackUpDir(),
+      dbConfigSingleton()
+    )
   }
 
   // Mail Specific Config

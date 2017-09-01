@@ -52,7 +52,7 @@ class SmrtLinkEventSpec extends Specification
       EventManagerActorProvider with
       SmrtLinkEventServiceProvider with
       JobsDaoProvider with
-      TestDalProvider with
+      SmrtLinkTestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

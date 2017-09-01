@@ -17,16 +17,15 @@ import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
-import com.pacbio.secondary.smrtlink.models.{EngineConfig, _}
+import com.pacbio.secondary.smrtlink.models.EngineConfig
+import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
@@ -42,11 +41,12 @@ import spray.json.JsObject
 
 trait DalProvider {
   val db: Singleton[Database]
+  val dbConfig: DatabaseConfig
+  // this is duplicated for the cake vs provider model
+  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
 }
 
-trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
-  this: SmrtLinkConfigProvider =>
-
+trait DbConfigLoader extends ConfigLoader {
   /**
     * Database config to be used within the specs
     *
@@ -66,15 +66,17 @@ trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
 
     DatabaseConfig(dbName, user, password, server, port, maxConnections)
   }
-  // this is duplicated for the cake vs provider model
-  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
+}
+
+
+trait SmrtLinkDalProvider extends DalProvider with DbConfigLoader{
 
   override val db: Singleton[Database] =
     Singleton(() => Database.forConfig("smrtflow.db"))
 }
 
 @VisibleForTesting
-trait TestDalProvider extends DalProvider with ConfigLoader{
+trait SmrtLinkTestDalProvider extends DalProvider with ConfigLoader{
 
 
   /**

@@ -61,12 +61,12 @@ with SmrtLinkConstants with TestUtils{
       ConfigProvider with
       JobsServiceProvider with
       ProjectServiceProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

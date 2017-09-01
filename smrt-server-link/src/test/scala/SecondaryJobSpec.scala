@@ -37,7 +37,7 @@ with JobServiceConstants with TestUtils {
   StatusGeneratorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
-  TestDalProvider with
+  SmrtLinkTestDalProvider with
   SmrtLinkConfigProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
