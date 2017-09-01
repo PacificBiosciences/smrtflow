@@ -20,8 +20,9 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
     override val port = providers.serverPort()
   }
 
-  val totalRoutes = TestProviders.routes
-  //val eventManagerActorX = TestProviders.eventManagerActor()
+  val totalRoutes = TestProviders.providers.routes
+  val eventManagerActor = TestProviders.providers.eventManagerActor()
+  val engineManagerActor = TestProviders.providers.engineManagerActor()
 
 
   "Service list" should {
