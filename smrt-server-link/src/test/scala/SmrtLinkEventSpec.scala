@@ -47,7 +47,6 @@ class SmrtLinkEventSpec extends Specification
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobsServiceProvider with
       EulaServiceProvider with
       DataSetServiceProvider with
       EventManagerActorProvider with
