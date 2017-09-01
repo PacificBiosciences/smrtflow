@@ -16,7 +16,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{TechSupportConstants, TechSupportUtils}
 import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols._
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 
 

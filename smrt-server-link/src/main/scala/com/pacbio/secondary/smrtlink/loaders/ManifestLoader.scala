@@ -24,7 +24,7 @@ trait ManifestLoader extends LazyLogging{
   // be confused with the services version)
   val SMRTLINK_ID = "smrtlink"
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   def loadFrom(file: File): Seq[PacBioComponentManifest] =
     scala.io.Source.fromFile(file)

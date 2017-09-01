@@ -1,5 +1,6 @@
 import java.nio.file.{Files, Path, Paths}
 
+import com.pacbio.secondary.smrtlink.analysis.bio.FastaMockUtils
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
 import com.typesafe.scalalogging.LazyLogging
@@ -41,8 +42,18 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
   def getSubreadSetsPath(): Path = getByDataSetType("SubreadSet")
   def getLambdaPath(): Path = testData.getFile("lambdaNEB")
 
-  def toCmd(args: String*): Seq[String] = Seq("pbservice") ++ args
-  def runPbservice(args: String*): Option[ExternalCmdFailure] = ExternalToolsUtils.runSimpleCmd(toCmd(args:_*))
+  val DEEP_DEBUG = true
+
+  def toCmd(args: String*): Seq[String] = {
+    val dx = if (DEEP_DEBUG) Seq("--log2stdout", "--debug") else Seq.empty[String]
+    Seq("pbservice") ++ args ++ dx
+  }
+
+  def runPbservice(args: String*): Option[ExternalCmdFailure] = {
+    logger.info(s"Running pbservice command $args")
+    val rx = ExternalToolsUtils.runSimpleCmd(toCmd(args: _*))
+    rx
+  }
 
   "pbservice cram test " should {
     "pbservice exe is found in PATH" in {
@@ -119,5 +130,17 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
     "get-alarms" in {
       runPbservice("get-alarms") must beNone
     }
+    "show-pipelines" in {
+      runPbservice("show-pipelines") must beNone
+    }
+    "import-barcodes" in {
+      val fastaPath = FastaMockUtils.writeMockTmpFastaFile()
+      runPbservice("import-barcodes", fastaPath.toAbsolutePath.toString, "MyBarcodes") must beNone
+    }
+    // This requires sawriter
+    //    "import-fasta" in {
+    //      val fastaPath:Path = FastaMockUtils.writeMockTmpFastaFile()
+    //      runPbservice("import-fasta", fastaPath.toAbsolutePath.toString, "--name", "MyRef", "--organism", "MyOrg", "--ploidy", "haploid", "--log2stdout")
+    //    }
   }
 }

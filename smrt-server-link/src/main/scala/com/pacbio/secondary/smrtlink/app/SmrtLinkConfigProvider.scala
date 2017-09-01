@@ -4,14 +4,15 @@ import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import com.pacbio.secondary.smrtlink.actors.DalProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.smrtlink.analysis.engine.EngineConfig
 import com.pacbio.secondary.smrtlink.analysis.jobs.{JobResourceResolver, PacBioIntJobResolver}
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{CommandTemplate, PbsmrtpipeEngineOptions}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
-import com.pacbio.secondary.smrtlink.models.PacBioDataBundleIO
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.models.{EngineConfig, PacBioDataBundleIO}
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 import com.typesafe.scalalogging.LazyLogging
 
@@ -20,7 +21,7 @@ import scala.util.{Failure, Success, Try}
 
 
 trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
-  this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader =>
+  this: PbsmrtpipeConfigLoader with EngineCoreConfigLoader with DalProvider =>
 
   /**
     * Create a Directories (mkdir -p) if they don't exist.
@@ -42,6 +43,7 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val host: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
   val dnsName: Singleton[Option[String]] = Singleton(() => Try { conf.getString("smrtflow.server.dnsName") }.toOption)
 
+  // See comments for systemJobConfig. This "EngineConfig" should be replaced with SystemJobConfig
   val jobEngineConfig: Singleton[EngineConfig] = Singleton(() => engineConfig)
   val cmdTemplate: Singleton[Option[CommandTemplate]] = Singleton(() => loadCmdTemplate)
   val pbsmrtpipeEngineOptions: Singleton[PbsmrtpipeEngineOptions] =
@@ -119,6 +121,24 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   // host via https
   val smrtLinkUiPort: Singleton[Int] = Singleton(() => 8243)
 
+  // There's some duplication here. and translation from
+  val systemJobConfig: Singleton[SystemJobConfig] = Singleton {() =>
+    SystemJobConfig(
+      pbsmrtpipeEngineOptions(),
+      dnsName().getOrElse("localhost"),
+      port(),
+      smrtLinkVersion(),
+      serverId(),
+      smrtLinkSystemRoot(),
+      engineConfig.maxWorkers,
+      engineConfig.numQuickWorkers,
+      externalEveUrl(),
+      rootDataBaseBackUpDir(),
+      dbConfigSingleton()
+    )
+  }
+
+  // Mail Specific Config
   val mailHost: Singleton[Option[String]] =
     Singleton(() => Try{ conf.getString("pacBioSystem.mailHost") }.toOption)
   val mailPort: Singleton[Int] =

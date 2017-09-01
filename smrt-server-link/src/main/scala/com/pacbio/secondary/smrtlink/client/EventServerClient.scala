@@ -12,7 +12,7 @@ import spray.http.HttpRequest
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import akka.actor.ActorSystem
-import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
@@ -31,7 +31,7 @@ import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConf
 class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) with DefaultSigner with SignerConfig with LazyLogging{
 
   import SprayJsonSupport._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   private val SEGMENT_EVENTS = "events"
   private val SEGMENT_FILES = "files"

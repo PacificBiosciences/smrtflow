@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 class DiskSpaceService(config: Config, fileSystemUtil: FileSystemUtil)
   extends BaseSmrtService with EngineCoreConfigLoader {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val timeout = Timeout(10.seconds)
 

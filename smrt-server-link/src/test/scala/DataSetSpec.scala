@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, JobRunnerProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
@@ -31,21 +31,19 @@ with JobServiceConstants with TestUtils{
 
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
   object TestProviders extends
       ServiceComposer with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
       DataSetServiceProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

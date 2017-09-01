@@ -16,7 +16,7 @@ class SimpleDevJobSpec extends Specification with LazyLogging{
   "Sanity test for running simple dev jobOptions" should {
     "Basic adding jobOptions " in {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val opts = SimpleDevJobOptions(5, 7)
       val j = new SimpleDevJob(opts)
       val jobResult = j.run(job, writer)

@@ -101,63 +101,140 @@ object JobModels {
     val GENERAL_PROJECT_ID = 1
   }
 
+  // This needs to be made a proper type
   object JobTypeIds {
-    val CONVERT_FASTA_BARCODES = JobTypeId("convert-fasta-barcodes")
-    val CONVERT_FASTA_REFERENCE = JobTypeId("convert-fasta-reference")
-    val CONVERT_RS_MOVIE = JobTypeId("convert-rs-movie")
-    val DELETE_DATASETS = JobTypeId("delete-datasets")
-    val DELETE_JOB = JobTypeId("delete-job")
-    val EXPORT_DATASETS = JobTypeId("export-datasets")
-    val IMPORT_DATASET = JobTypeId("import-dataset")
-    val IMPORT_DATASTORE = JobTypeId("import-datastore")
-    val MERGE_DATASETS = JobTypeId("merge-datasets")
-    val MOCK_PBSMRTPIPE = JobTypeId("mock-pbsmrtpipe")
-    val PBSMRTPIPE = JobTypeId("pbsmrtpipe")
-    val PBSMRTPIPE_DIRECT = JobTypeId("pbsmrtpipe-direct")
-    val SIMPLE = JobTypeId("simple")
-    val TS_JOB = JobTypeId("tech-support-job")
-    val TS_SYSTEM_STATUS = JobTypeId("tech-support-status")
-    val DB_BACKUP = JobTypeId("db-backup")
 
+    // This is done as sealed trait to leverage the compiler for JobType matching
+    sealed trait JobType {
+      // Note, "id" will be used as the job prefix in the URL and by convention use hypen to avoid the camelcase vs snakecase naming
+      val id: String
+      val name: String
+      val description: String
+      def isQuick: Boolean = false
+    }
+
+    case object HELLO_WORLD extends JobType {
+      val id = "hello-world"
+      val name =  "Hello World"
+      val description = "Sanity Test hello-world job"
+      override def isQuick: Boolean = true
+    }
+
+    case object CONVERT_FASTA_BARCODES extends JobType {
+      val id = "convert-fasta-barcodes"
+      val name = "Convert Barcode Fasta"
+      val description = "Convert Barcode Fasta file to BarcodeSet XML"
+    }
+
+    case object CONVERT_FASTA_REFERENCE extends JobType {
+      val id = "convert-fasta-reference"
+      val name = "Convert Fasta to ReferenceSet"
+      val description = "Convert PacBio spec Fasta file to ReferenceSet XML"
+    }
+
+    case object CONVERT_RS_MOVIE extends JobType {
+      val id = "convert-rs-movie"
+      val name = "Convert RS to HdfSubreadSet"
+      val description = "Convert a Legacy RS movie XML file to HdfSubreadSet XML"
+      override def isQuick: Boolean = true
+    }
+
+    case object DELETE_DATASETS  extends JobType {
+      val id = "delete-datasets"
+      val name = "Delete DataSet"
+      val description = "(Soft) delete of PacBio DataSet XML"
+      override def isQuick: Boolean = true
+    }
+
+    case object DELETE_JOB extends JobType {
+      val id = "delete-job"
+      val name = "Delete Job"
+      val description = "(Soft) Delete of a SMRT Link Job"
+      override def isQuick: Boolean = true
+    }
+
+    case object EXPORT_DATASETS extends JobType {
+      val id = "export-datasets"
+      val name = "Export DataSet"
+      val description = "Export DataSet XML(s) as zip"
+      override def isQuick: Boolean = true
+    }
+
+
+    case object IMPORT_DATASET extends JobType{
+      val id ="import-dataset"
+      val name ="Import PacBio DataSet"
+      val description = "Import a PacBio XML DataSet"
+      override def isQuick: Boolean = true
+    }
+    case object MERGE_DATASETS extends JobType {
+      val id ="merge-datasets"
+      val name = "Merge PacBio DataSet(s)"
+      val description = "Merge DatatSet(s) Only SubreadSet, HdfSubreadSet dataset types are supported"
+      override def isQuick: Boolean = true
+    }
+
+    case object MOCK_PBSMRTPIPE extends JobType {
+      val id ="mock-pbsmrtpipe"
+      val name = "Mock Pbsmrtpipe Job"
+      val description = "Mock Pbsmrtpipe for testing"
+      override def isQuick: Boolean = true
+    }
+
+    case object PBSMRTPIPE extends JobType{
+      val id ="pbsmrtpipe"
+      val name = "Pbsmrtpipe"
+      val description = "Pbsmrtpipe (i.e., analysis) Jobs"
+    }
+
+    case object SIMPLE extends JobType{
+      val id ="simple"
+      val name = "Simple"
+      val description ="Simple Job type for testing"
+      override def isQuick: Boolean = true
+    }
+
+    case object TS_JOB extends JobType{
+      val id = "tech-support-job"
+      val name = "PacBio TechSupport Failed Job"
+      val description ="Create a TechSupport TGZ bundle from a failed job"
+      override def isQuick: Boolean = true
+    }
+
+    case object TS_SYSTEM_STATUS extends JobType {
+      val id ="tech-support-status"
+      val name = "PacBio Tech Support System Status"
+      val description = "Create a TechSupport system status TGZ bundle"
+      override def isQuick: Boolean = true
+    }
+
+    case object DB_BACKUP extends JobType{
+      val id ="db-backup"
+      val name = "SMRT Link db backup"
+      val description ="Create a DB backup of the SMRT Link system"
+      override def isQuick: Boolean = true
+    }
+
+    // This really shouldn't be private
     val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
-                  EXPORT_DATASETS, IMPORT_DATASET, IMPORT_DATASTORE,
+                  EXPORT_DATASETS, IMPORT_DATASET,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-                  PBSMRTPIPE_DIRECT, SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
+      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
 
-    def fromString(s: String) = ALL.map(x => (x.id, x)).toMap.get(s)
-
-    // Job Types that require minimal memory and cpu resources and
-    // run very quickly. Approximately 1-2 minutes.
-    val QUICK_JOB_TYPES: Set[JobTypeId] = Set(
-      CONVERT_FASTA_BARCODES,
-      IMPORT_DATASET, MERGE_DATASETS,
-      MOCK_PBSMRTPIPE, SIMPLE,
-      TS_JOB, TS_SYSTEM_STATUS,
-      DB_BACKUP,
-      JobTypeId("import_dataset"), // These are backward compatible slop for naming
-      JobTypeId("merge_dataset")  // inconsistencies
-    )
-
-  }
-
-  // Uses the pbsmrtpipe Task Id format (e.g., "pbsmrtpipe.tasks.my_task")
-  // the 'id' is the short name
-  case class JobTypeId(id: String) {
-    def fullName = s"pbscala.job_types.$id"
+    def fromString(s: String):Option[JobType] =
+      ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
   }
 
   trait JobResourceBase {
     val jobId: UUID
     val path: Path
-    val state: AnalysisJobStates.JobStates
   }
 
   // This is a terrible name
   case class JobResource(
       jobId: UUID,
-      path: Path,
-      state: AnalysisJobStates.JobStates) extends JobResourceBase
+      path: Path) extends JobResourceBase
 
   trait JobResult {
     val uuid: UUID
@@ -171,9 +248,14 @@ object JobModels {
   // This needs to be fixed.
   case class ResultSuccess(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String) extends JobResult
 
-  case class ResultFailed(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String) extends JobResult
+  // On Failed Results, and datastore files in the datastore will also be imported
+  case class ResultFailed(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String, datastore: Option[PacBioDataStore] = None) extends JobResult
 
   case class NoAvailableWorkError(message: String)
+
+  case class EngineManagerStatus(totalGeneralWorkers: Int, activeGeneralWorkers: Int, totalQuickWorkers: Int, activeQuickWorkers: Int) {
+    def prettySummary = s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
+  }
 
   // New Job Models
   case class RunnableJob(job: CoreJob, state: AnalysisJobStates.JobStates)
@@ -376,6 +458,9 @@ object JobModels {
       s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" +
           files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
     }
+
+    override def toString: String = summary
+
   }
 
   // Should think about making this a Path

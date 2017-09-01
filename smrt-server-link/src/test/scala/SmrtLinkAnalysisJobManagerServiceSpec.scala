@@ -10,9 +10,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
-import com.pacbio.secondary.smrtlink.services.jobtypes.SimpleServiceJobTypeProvider
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.jobtypes.SimpleJobOptions
+import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
@@ -31,7 +30,7 @@ with JobServiceConstants with TestUtils{
 
   sequential
 
-  import SecondaryAnalysisJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
@@ -39,15 +38,12 @@ with JobServiceConstants with TestUtils{
 
   object TestProviders extends
   ServiceComposer with
-  JobManagerServiceProvider with
-  SimpleServiceJobTypeProvider with
+  JobsServiceProvider with
   StatusGeneratorProvider with
   EventManagerActorProvider with
   JobsDaoProvider with
-  JobsDaoActorProvider with
-  TestDalProvider with
+  SmrtLinkTestDalProvider with
   SmrtLinkConfigProvider with
-  JobRunnerProvider with
   PbsmrtpipeConfigLoader with
   EngineCoreConfigLoader with
   AuthenticatorImplProvider with
@@ -70,14 +66,18 @@ with JobServiceConstants with TestUtils{
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
-  val totalRoutes = TestProviders.jobManagerService().prefixedRoutes
+
+  val totalRoutes = TestProviders.routes
   TestProviders.eventManagerActor()
 
+  val projectId = 1
+  val record = SimpleJobOptions(1, Some("Job name"), Some("Description"))
+
   step(setupDb(TestProviders.dbConfig))
+  step(setupJobDir(TestProviders.engineConfig.pbRootJobDir))
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {
-      val record = SimpleDevJobOptions(7, 13)
       Post(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple", record) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
@@ -88,4 +88,5 @@ with JobServiceConstants with TestUtils{
       }
     }
   }
+  step(cleanUpJobDir(TestProviders.engineConfig.pbRootJobDir))
 }

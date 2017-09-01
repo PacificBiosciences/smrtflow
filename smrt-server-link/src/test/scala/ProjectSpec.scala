@@ -6,18 +6,15 @@ import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, PacBioServiceErrors, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
-import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJob
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobManagerServiceProvider, JobRunnerProvider, ProjectServiceProvider, ServiceComposer}
-import com.pacbio.secondary.smrtlink.services.jobtypes.SimpleServiceJobTypeProvider
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
@@ -44,7 +41,7 @@ with SmrtLinkConstants with TestUtils{
 
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import Authenticator._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
@@ -62,17 +59,14 @@ with SmrtLinkConstants with TestUtils{
       ServiceComposer with
       ActorSystemProvider with
       ConfigProvider with
-      JobManagerServiceProvider with
-      SimpleServiceJobTypeProvider with
+      JobsServiceProvider with
       ProjectServiceProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with
@@ -332,9 +326,12 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "move datasets to a new project" in {
-      val jobType = JobTypeIds.SIMPLE.id
+      val jobType = JobTypeIds.SIMPLE
       val opts = SimpleDevJobOptions(1, 7)
-      val jsonSettings = opts.toJson.toString()
+      val jsonSettings = opts.toJson.asJsObject
+      val jobUUID = UUID.randomUUID()
+      val jobName = "test"
+      val jobDescription = "description"
 
       val jobFut = for {
         // getting datasets here because the project dataset list
@@ -342,17 +339,14 @@ with SmrtLinkConstants with TestUtils{
         ds <- dao.getSubreadDataSets(projectIds = List(GENERAL_PROJECT_ID))
         dsToMove = ds.head
         entryPoint = EngineJobEntryPointRecord(dsToMove.uuid, dsToMove.datasetType)
-        cJob = CoreJob(UUID.randomUUID(), opts)
-        jobToMove <- dao.createJob(
-          cJob.uuid, "test", "", jobType, cJob, Some(List(entryPoint)),
-          jsonSettings, None, None, None)
+        jobToMove <- dao.createJob2(jobUUID, jobName, jobDescription, jobType, Seq(entryPoint), jsonSettings, None, None, None)
       } yield (jobToMove, dsToMove)
 
       val (jobToMove, dsToMove) = Await.result(jobFut, 30 seconds)
 
       movingDsId = dsToMove.id
 
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$jobType/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val movedJob = responseAs[EngineJob]
         movedJob.projectId === GENERAL_PROJECT_ID
@@ -380,7 +374,7 @@ with SmrtLinkConstants with TestUtils{
         proj.datasets.size === (dsCount - 1)
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$jobType/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val movedJob = responseAs[EngineJob]
         movedJob.id === jobToMove.id

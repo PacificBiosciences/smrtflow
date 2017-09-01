@@ -1,4 +1,4 @@
-import com.pacbio.common.models.{CommonModels,CommonModelImplicits}
+import com.pacbio.common.models.{CommonModelImplicits, CommonModels, IdAbleJsonProtocol}
 import org.specs2.mutable.Specification
 import java.util.UUID
 
@@ -7,43 +7,14 @@ import spray.json._
 import scala.language.implicitConversions
 
 
-object TestModels {
-  import CommonModels._
-  case class Person(i: IdAble, name: String)
-}
+class ModelsSpec extends Specification with IdAbleJsonProtocol{
 
-
-trait CustomJsonProtocol extends DefaultJsonProtocol {
-  import TestModels._
   import CommonModels._
   import CommonModelImplicits._
 
-  implicit object IdAbleFormat extends JsonFormat[IdAble] {
-    def write(i: IdAble): JsValue =
-      i match {
-        case IntIdAble(n) => JsNumber(n)
-        case UUIDIdAble(n) => JsString(n.toString)
-      }
-    def read(json: JsValue): IdAble = {
-      json match {
-        case JsString(n) => UUIDIdAble(UUID.fromString(n))
-        case JsNumber(n) => IntIdAble(n.toInt)
-        case _ => deserializationError("Expected IdAble Int or UUID format")
-      }
-    }
-  }
+  case class Person(i: IdAble, name: String)
 
   implicit val personFormat = jsonFormat2(Person)
-
-}
-object CustomJsonProtocol extends CustomJsonProtocol
-
-
-class ModelsSpec extends Specification {
-
-  import TestModels._
-  import CommonModelImplicits._
-  import CustomJsonProtocol._
 
   "Example/Test usage of IdAble" should {
     "Sanity Test to Serialize IdAble" in {

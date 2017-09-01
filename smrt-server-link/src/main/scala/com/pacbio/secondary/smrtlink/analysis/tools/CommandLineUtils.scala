@@ -185,7 +185,7 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
       case Some(validateOpts) =>
         logger.info(s"Successfully Parsed options $validateOpts")
         Success(validateOpts)
-      case _ => Failure(throw new ParseException(s"Failed to parse options '$prettyArgs'", 0))
+      case _ => Failure(new ParseException(s"Failed to parse options '$prettyArgs'", 0))
     }
   }
 
@@ -221,7 +221,7 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
   // It's too much effort to update all of the tools. Adding this hack to create
   // a provide an intermediate model. This should be abstract once runner(args) and and run(config) has been
   // removed from the interface and all the tools have migrated to runTool interface
-  def runTool(opts: T): Try[String] = Failure(throw new Exception(s"'runTool' Not Supported in $toolId"))
+  def runTool(opts: T): Try[String] = Failure(new Exception(s"'runTool' Not Supported in $toolId"))
 
   /**
     * Deprecated method.
@@ -336,7 +336,7 @@ trait CommandLineSubParserToolRunner[T <: HasModeAndLoggingConfig] extends LazyL
     val errorMessage = s"Invalid subparser mode '$modeName'. Valid modes: ${subModesMap.keys.toSeq.reduce(_ + "," + _)}"
     subModesMap.get(modeName) match {
       case Some(m) => Success(m)
-      case _ => Failure(throw new Exception(errorMessage))
+      case _ => Failure(new Exception(errorMessage))
     }
   }
 

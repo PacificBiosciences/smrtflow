@@ -8,7 +8,7 @@ import org.slf4j.{LoggerFactory => LogbackFactory}
  * Trait designed to simplify interaction with the Log Service.
  */
 trait Logger extends ContextualLogging {
-  import LogLevel._
+  import LogLevels._
 
   val logId: String
   val sourceId: String

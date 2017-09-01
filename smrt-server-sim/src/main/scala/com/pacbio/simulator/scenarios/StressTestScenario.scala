@@ -8,6 +8,7 @@ import java.util.UUID
 
 import scala.collection._
 import akka.actor.ActorSystem
+import com.pacbio.common.models.CommonModelImplicits
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
@@ -42,6 +43,8 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
     with SmrtLinkSteps
     with ClientUtils {
 
+  import CommonModelImplicits._
+
   override val name = "StressTestScenario"
   override val requirements = Seq("SL-41", "SL-1295")
 
@@ -62,7 +65,7 @@ class StressTestScenario(host: String, port: Int, nJobs: Int, maxTime: FiniteDur
       "pbsmrtpipe.pipelines.dev_diagnostic_stress",
       Seq(BoundServiceEntryPoint("eid_ref_dataset",
                                  "PacBio.DataSet.ReferenceSet",
-                                 Right(refUuid.get))),
+                                 refUuid.get)),
       Seq[ServiceTaskOptionBase](),
       Seq[ServiceTaskOptionBase]()))
   val jobId: Var[UUID] = Var()

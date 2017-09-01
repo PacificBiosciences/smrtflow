@@ -55,7 +55,7 @@ class DbBackUpJobSpec extends Specification with SecondaryJobJsonProtocol with L
 
       val job = new MockedDbBackUpJob(jobOptions)
 
-      val jResource = JobResource(UUID.randomUUID(), jobDir, AnalysisJobStates.CREATED)
+      val jResource = JobResource(UUID.randomUUID(), jobDir)
       val jWriter = new LogJobResultsWriter()
 
       val pbJob = job.run(jResource, jWriter)

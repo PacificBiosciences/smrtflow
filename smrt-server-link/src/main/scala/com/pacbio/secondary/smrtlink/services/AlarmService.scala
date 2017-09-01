@@ -15,7 +15,7 @@ import scala.concurrent.duration._
 
 class AlarmService(alarmDaoActor: ActorRef) extends SmrtLinkBaseMicroService with DefaultJsonProtocol with DaoFutureUtils{
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import AlarmDaoActor._
 
   val manifest = PacBioComponentManifest(

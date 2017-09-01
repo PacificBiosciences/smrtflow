@@ -1,11 +1,10 @@
 import java.nio.file.{Path, Paths}
 
+import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import org.apache.commons.io.FileUtils
-
 import org.specs2.mutable.Specification
 import spray.json._
 import com.pacbio.secondary.smrtlink.models.ConfigModels._
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 
 /**
   * Created by mkocher on 1/4/17.

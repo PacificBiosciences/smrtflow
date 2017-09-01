@@ -6,8 +6,9 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.models.{ClientLogMessage, PacBioComponentManifest, SmrtLinkJsonProtocols, LogLevel}
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.models.{LogLevels, LogMessageRecord, PacBioComponentManifest}
 
 
 class SimpleLogService
@@ -15,13 +16,13 @@ class SimpleLogService
   with StatusCodeJoiners
   with Directives {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val ROUTE_PREFIX = "loggers"
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.loggers"),
-    "SMRT Link DataSetService Service",
+    "SMRT Link General Log Service",
     "0.1.0",
     "SMRT Link Log Service")
 
@@ -29,19 +30,19 @@ class SimpleLogService
     pathPrefix(ROUTE_PREFIX) {
       pathEndOrSingleSlash {
         post {
-          entity(as[ClientLogMessage]) { msg =>
+          entity(as[LogMessageRecord]) { msg =>
             complete {
               created {
                 val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
-                var response = "message logged"
+                val response = "message logged"
                 msg.level match {
-                  case LogLevel.TRACE    => logger.trace(msgString)
-                  case LogLevel.DEBUG    => logger.debug(msgString)
-                  case LogLevel.INFO     => logger.info(msgString)
-                  case LogLevel.WARN     => logger.warn(msgString)
-                  case LogLevel.ERROR    => logger.error(msgString)
-                  case LogLevel.CRITICAL => logger.error(msgString)
-                  case LogLevel.FATAL    => logger.error(msgString)
+                  case LogLevels.TRACE    => logger.trace(msgString)
+                  case LogLevels.DEBUG    => logger.debug(msgString)
+                  case LogLevels.INFO     => logger.info(msgString)
+                  case LogLevels.WARN     => logger.warn(msgString)
+                  case LogLevels.ERROR    => logger.error(msgString)
+                  case LogLevels.CRITICAL => logger.error(msgString)
+                  case LogLevels.FATAL    => logger.error(msgString)
                 }
                 MessageResponse(response)
               }

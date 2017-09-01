@@ -129,7 +129,7 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
                                      paths.map(_.toString), "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val j = opts.toJob
       val startedAt = JodaDateTime.now()
       val jobResult = j.run(job, writer)
@@ -171,7 +171,7 @@ class DataSetMergerScalingSpec extends Specification with LazyLogging with timeU
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
                                      paths.map(_.toString), "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       println(s"Merge job output dir is ${outputDir.toString}")
       val j = opts.toJob
       val startedAt = JodaDateTime.now()

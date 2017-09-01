@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 
 class StatusService(statusGenerator: StatusGenerator) extends PacBioService {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val timeout = Timeout(10.seconds)
 

@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink
 
 import java.nio.file.{Files, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.models.DataSetMetaDataSet
 import com.typesafe.scalalogging.LazyLogging

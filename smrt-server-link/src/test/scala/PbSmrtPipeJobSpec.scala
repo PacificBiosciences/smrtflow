@@ -20,7 +20,7 @@ with SecondaryJobJsonProtocol {
       val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
       // Path to source path.stuff.sh
       val envPath:Option[Path] = None
-      val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+      val job = JobResource(UUID.randomUUID, outputDir)
       val taskOptions = Seq[ServiceTaskOptionBase]()
       val opts = MockPbSmrtPipeJobOptions("pbscala.pipelines.mock_dev_01", entryPoints, taskOptions, PbsmrtpipeEngineOptions.defaultWorkflowOptions.map(_.asServiceOption), envPath)
       val s = new PbSmrtpipeMockJob(opts)

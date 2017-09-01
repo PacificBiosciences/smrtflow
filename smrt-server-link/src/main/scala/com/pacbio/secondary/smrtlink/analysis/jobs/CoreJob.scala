@@ -32,7 +32,7 @@ import com.typesafe.scalalogging.LazyLogging
  */
 trait CoreJobModel extends LazyLogging{
   type Out
-  val jobTypeId: JobTypeId
+  val jobTypeId: JobTypeIds.JobType
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out]
 

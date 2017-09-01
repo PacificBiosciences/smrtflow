@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
   */
 
 trait ServiceEndpointConstants extends JobServiceConstants {
-  val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$SERVICE_PREFIX"
+  val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$JOB_MANAGER_PREFIX"
   val ROOT_JOBS = s"$ROOT_JM/$JOB_ROOT_PREFIX"
   val ROOT_DS = s"/$ROOT_SERVICE_PREFIX/datasets"
   val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"

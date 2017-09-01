@@ -20,7 +20,7 @@ import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BundleTypes, TsSystemStatusManifest}
 import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 
 /**

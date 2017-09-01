@@ -32,7 +32,7 @@ class RsMovieToHdfDataSetJob(opts: MovieMetadataToHdfSubreadOptions) extends Bas
 with MockJobUtils with timeUtils {
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("rs_movie_to_hdfsubread")
+  val jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
     // Just to have Data to import back into the system

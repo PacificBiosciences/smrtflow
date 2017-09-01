@@ -5,8 +5,8 @@ import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateResourceLoader
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
 import spray.httpx.SprayJsonSupport._
 
 
@@ -16,9 +16,9 @@ import spray.httpx.SprayJsonSupport._
  *
  * Created by mkocher on 9/21/15.
  */
-class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends JobsBaseMicroService {
+class ResolvedPipelineTemplateService(dao: PipelineTemplateDao) extends SmrtLinkBaseRouteMicroService {
 
-  import SecondaryAnalysisJsonProtocols._
+  import SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(toServiceId("resolved_pipeline_templates"),
     "Pipeline Template Service",

@@ -3,10 +3,11 @@ package com.pacbio.simulator.steps
 import java.util.UUID
 import java.nio.file.Path
 
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
@@ -305,15 +306,21 @@ trait SmrtLinkSteps extends LazyLogging {
     override val name = "WaitForJob"
     override def runWith = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      logger.debug(s"Starting to poll for Job ${jobId.get}")
+      logger.info(s"Starting to poll for Job ${jobId.get}")
       smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1)
+    }.recoverWith { case NonFatal(ex) =>
+        logger.error(s"Failed to wait for job $jobId")
+        Future.failed(ex)
     }
   }
   case class WaitForSuccessfulJob(jobId: Var[UUID], maxTime: Var[FiniteDuration] = Var(1800.seconds)) extends VarStep[EngineJob] {
     override val name = "WaitForSuccessfulJob"
     override def runWith = Future.fromTry {
-      logger.debug(s"Start to poll for Successful Job ${jobId.get}")
+      logger.info(s"Start to poll for Successful Job ${jobId.get}")
       smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get))
+    }.recoverWith { case NonFatal(ex) =>
+      logger.error(s"Failed to wait for Succesful job $jobId")
+      Future.failed(ex)
     }
   }
 
@@ -329,15 +336,15 @@ trait SmrtLinkSteps extends LazyLogging {
 
   case class MergeDataSets(dsType: Var[DataSetMetaType], ids: Var[Seq[Int]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
-    override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.get, dsName.get).map(_.uuid)
+    override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.get.map(IntIdAble), dsName.get).map(_.uuid)
   }
 
   // XXX this isn't ideal, but I can't figure out another way to convert from
   // Seq[Var[Int]] to Var[Seq[Int]] at the appropriate time (i.e. not at
   // program startup)
-  case class MergeDataSetsMany(dsType: Var[DataSetMetaType], ids: Seq[Var[Int]], dsName: Var[String]) extends VarStep[UUID] {
+  case class MergeDataSetsMany(dsType: Var[DataSetMetaType], ids: Var[Seq[IdAble]], dsName: Var[String]) extends VarStep[UUID] {
     override val name = "MergeDataSets"
-    override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.map(_.get), dsName.get).map(_.uuid)
+    override def runWith = smrtLinkClient.mergeDataSets(dsType.get, ids.get, dsName.get).map(_.uuid)
   }
 
   case class ConvertRsMovie(path: Var[Path]) extends VarStep[UUID] {

@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.services.{PipelineDataStoreViewRulesService
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 
 
-class PipelineDataStoreViewRulesServiceSpec extends Specification
+class PipelineDatastoreViewRulesServiceSpec extends Specification
     with Specs2RouteTest
     with SecondaryJobJsonProtocol
     with JobServiceConstants {
