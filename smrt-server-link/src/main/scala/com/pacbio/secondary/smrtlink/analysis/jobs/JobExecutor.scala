@@ -79,6 +79,7 @@ class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobRe
   override def writeError(msg: String) = {
     val logMsg = toTimeStampMessage(msg, level = "ERROR")
     stderr.append(msg)
+    stderr.flush()
     // This is to have the errors also be written the "log"
     stdout.append(logMsg)
     stdout.flush()
