@@ -15,7 +15,6 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   object TestProviders extends BaseServer with SmrtLinkApi {
-    override val providers = new SmrtLinkProviders {}
     override val host = providers.serverHost()
     override val port = providers.serverPort()
   }
@@ -37,11 +36,6 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
         // Uptime is in sec, not millisec
         // this is the best we can do
         status.uptime must be_>=(0L)
-      }
-    }
-    "Get export dataset job list" in {
-      Get("/secondary-analysis/job-manager/jobs/export-datasets") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
       }
     }
   }
