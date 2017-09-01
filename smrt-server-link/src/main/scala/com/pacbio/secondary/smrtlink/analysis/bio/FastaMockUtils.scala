@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.bio
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.UUID
 
 
@@ -34,5 +34,9 @@ object FastaMockUtils extends FastaWriter {
   def writeMockFastaFile(numRecords: Int, p: Path): Path = {
     writeRecords(p.toFile, mockRecords(numRecords))
     p
+  }
+  def writeMockTmpFastaFile(numRecords: Int = 10): Path = {
+    val p = Files.createTempFile("mock-fasta-file", ".fasta")
+    writeMockFastaFile(numRecords, p)
   }
 }

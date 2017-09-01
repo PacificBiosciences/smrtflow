@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink
 
+import java.io.{PrintWriter, StringWriter}
 import java.net.InetAddress
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
@@ -51,9 +52,18 @@ package object jobtypes {
         case Success(result) =>
           result match {
             case Right(rx) => Success(rx)
-            case Left(rx) => Failure(new Exception(s"Failed to run job ${rx.message}"))
+            case Left(rx) =>
+              val msg = s"Failed to run job ${rx.message}"
+              resultsWriter.writeLineError(msg)
+              Failure(new Exception(msg))
           }
-        case Failure(ex) => Failure(new Exception(s"Failed to run job ${ex.getMessage}"))
+        case Failure(ex) =>
+          val msg = s"Failed to run job ${ex.getMessage}"
+          resultsWriter.writeLineError(msg)
+          val sw = new StringWriter
+          ex.printStackTrace(new PrintWriter(sw))
+          resultsWriter.writeLineError(sw.toString)
+          Failure(new Exception(msg))
       }
     }
 
@@ -138,6 +148,12 @@ package object jobtypes {
       Future.sequence(entryPoints.map(ep => resolveEntry(ep, dao)))
 
 
+    /**
+      * This is used to communicate the EntryPoints used for the Job
+      *
+      * @param dao JobsDoa
+      * @return
+      */
     def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord]
   }
 

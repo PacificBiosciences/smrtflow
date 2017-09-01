@@ -144,7 +144,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
     // This will require an implicit JsonWriter in scope
     val jsettings = opts.toJson.asJsObject
 
-    val projectId = opts.projectId.getOrElse(1)
+    val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     for {
       vopts <- validator(opts, user) // This will fail the Future if any validation errors occur.
@@ -452,6 +452,10 @@ class DeleteSmrtLinkJobsService(override val dao: JobsDao, override val authenti
   override def jobTypeId = JobTypeIds.DELETE_JOB
 }
 
+class ExportDataSetsJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ExportDataSetsJobOptions], implicit val sm: Marshaller[ExportDataSetsJobOptions], implicit val jwriter: JsonWriter[ExportDataSetsJobOptions]) extends CommonJobsRoutes[ExportDataSetsJobOptions] {
+  override def jobTypeId = JobTypeIds.EXPORT_DATASETS
+}
+
 class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
 }
@@ -590,6 +594,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     new DbBackupJobsService(dao, authenticator, config),
     new DeleteDataSetJobsService(dao, authenticator, config),
     new DeleteSmrtLinkJobsService(dao, authenticator, config),
+    new ExportDataSetsJobsService(dao, authenticator, config),
     new HelloWorldJobsService(dao, authenticator, config),
     new ImportBarcodeFastaJobsService(dao, authenticator, config),
     new ImportDataSetJobsService(dao, authenticator, config),

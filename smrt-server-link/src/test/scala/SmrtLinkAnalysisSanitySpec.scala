@@ -5,6 +5,11 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 
+/**
+  * This should be used as a sanity test to make sure routes are found and the
+  * routes are correctly configured.
+  *
+  */
 class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
@@ -30,6 +35,11 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
         // Uptime is in sec, not millisec
         // this is the best we can do
         status.uptime must be_>=(0L)
+      }
+    }
+    "Get export dataset job list" in {
+      Get("/secondary-analysis/job-manager/jobs/export-datasets") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
       }
     }
   }

@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.FileWriter
+import java.io.{FileWriter, PrintWriter, StringWriter}
 import java.nio.file.Paths
 import java.util.UUID
 
@@ -99,7 +99,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
   }
 
   // This takes a lot of args and is a bit clumsy, however it's explicit and straightforward
-  private def runJobAndImport[T <: ServiceJobOptions](opts: T, resource: JobResourceBase, writer: JobResultWriter, dao: JobsDao, config: SystemJobConfig, startedAt: JodaDateTime, timeout: FiniteDuration): Try[ResultSuccess] = {
+  private def runJobAndImport[T <: ServiceJobOptions](jobIntId: Int, opts: T, resource: JobResourceBase, writer: JobResultWriter, dao: JobsDao, config: SystemJobConfig, startedAt: JodaDateTime, timeout: FiniteDuration): Try[ResultSuccess] = {
 
     val jobId = resource.jobId
 
@@ -108,7 +108,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
     def andWrite(msg: String) = Try(writer.writeLine(msg))
 
-    for {
+    val tx = for {
       results <- opts.toJob.runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
       _ <- andWrite(s"Successfully completed running core job. $results")
       msg <- importer(jobId, results, timeout)
@@ -117,6 +117,18 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
       _ <- andWrite(s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
       _ <- andWrite(s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
     } yield toSuccess(msg)
+
+    // This is a little clumsy to get the error message written to the correct place
+    // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
+    tx match {
+      case Success(result) => Success(result)
+      case Failure(ex) =>
+        writer.writeLineError(s"Failed to Run and Import $jobIntId. ${ex.getMessage}")
+        val sw = new StringWriter
+        ex.printStackTrace(new PrintWriter(sw))
+        writer.writeLineError(sw.toString)
+        Failure(ex)
+    }
   }
 
   /**
@@ -174,7 +186,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     val tx = for {
       rxs <- convertAndSetup(engineJob)
       _ <- validateOpts(rxs._1, rxs._2)
-      results <- runJobAndImport(rxs._1, rxs._3, rxs._2, dao, config, startedAt, timeout)
+      results <- runJobAndImport(engineJob.id, rxs._1, rxs._3, rxs._2, dao, config, startedAt, timeout)
     } yield Right(results)
 
 

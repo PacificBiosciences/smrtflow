@@ -306,15 +306,21 @@ trait SmrtLinkSteps extends LazyLogging {
     override val name = "WaitForJob"
     override def runWith = Future {
       // Return non-zero exit code. This probably needs to be refactored at the Sim level
-      logger.debug(s"Starting to poll for Job ${jobId.get}")
+      logger.info(s"Starting to poll for Job ${jobId.get}")
       smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get), sleepTime.get).map(_ => 0).getOrElse(1)
+    }.recoverWith { case NonFatal(ex) =>
+        logger.error(s"Failed to wait for job $jobId")
+        Future.failed(ex)
     }
   }
   case class WaitForSuccessfulJob(jobId: Var[UUID], maxTime: Var[FiniteDuration] = Var(1800.seconds)) extends VarStep[EngineJob] {
     override val name = "WaitForSuccessfulJob"
     override def runWith = Future.fromTry {
-      logger.debug(s"Start to poll for Successful Job ${jobId.get}")
+      logger.info(s"Start to poll for Successful Job ${jobId.get}")
       smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get))
+    }.recoverWith { case NonFatal(ex) =>
+      logger.error(s"Failed to wait for Succesful job $jobId")
+      Future.failed(ex)
     }
   }
 

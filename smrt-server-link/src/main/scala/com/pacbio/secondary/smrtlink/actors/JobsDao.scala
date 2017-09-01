@@ -680,14 +680,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertContigDataSet(sds)
       case x =>
-        val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
+        val msg = s"Non PacBio DataSet file type ($x) detected. Only DataStoreFile will be imported. Skipping Advanced DataSet importing of $path"
         logger.warn(msg)
         Future.successful(MessageResponse(msg))
     }
   }
 
   protected def insertDataStoreFileByJob(engineJob: EngineJob, ds: DataStoreFile): Future[MessageResponse] = {
-    logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
+    logger.info(s"Inserting DataStore File $ds with job id:${engineJob.id} name:${engineJob.name}")
 
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()

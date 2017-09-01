@@ -13,7 +13,7 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
   // put these here for now
   implicit val helloWorldJobOptionJsonFormat = jsonFormat4(HelloWorldJobOptions)
   implicit val dbBackUpJobOptionJsonFormat = jsonFormat5(DbBackUpJobOptions)
-  implicit val deleteDataSetobOptionJsonFormat = jsonFormat7(DeleteDataSetJobOptions)
+  implicit val deleteDataSetobOptionJsonFormat = jsonFormat6(DeleteDataSetJobOptions)
 
   // These are from NEW JobType Option data model
 

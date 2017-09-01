@@ -121,6 +121,14 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
     Future.sequence(datasets.map(id => resolveAndValidatePath(dsType, id, dao)))
   }
 
+  /**
+    * Resolve a list of DataSets from an IdAble and verify the XML file exists.
+    *
+    * @param dsType DataSet MetaType
+    * @param ids    List of DataSet IdAbles
+    * @param dao    db DAO
+    * @return
+    */
   def resolveInputs(dsType: DataSetMetaTypes.DataSetMetaType, ids: Seq[IdAble], dao: JobsDao): Future[Seq[ServiceDataSetMetadata]] =
     Future.sequence(ids.map(x=> resolveAndValidatePath(dsType, x, dao)))
 

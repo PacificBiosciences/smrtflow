@@ -673,7 +673,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
     def failIfNotState(state: AnalysisJobStates.JobStates, job: EngineJob): Try[EngineJob] = {
       if (job.state == state) Success(job)
-      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt} ${job.errorMessage.getOrElse("")}"))
     }
 
     def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
@@ -721,7 +721,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
     runningJob match {
       case Some(job) => failIfNotSuccessfulJob(job)
-      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}. ${runningJob.map(_.errorMessage).getOrElse("")}"))
     }
   }
 
@@ -783,7 +783,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     // be created.
     runningJob match {
       case Some(job) => Success(job)
-      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}. ${runningJob.map(_.errorMessage).getOrElse("")}"))
     }
   }
 
