@@ -47,7 +47,7 @@ with MockJobUtils with timeUtils {
   type Out = PacBioDataStore
   // Note, this is inconsistent with the id defined in JobTypeIds "import-dataset"
   // Changing this will break backward compatibility with the source id in the datastore
-  val jobTypeId = JobTypeId("import_dataset")
+  val jobTypeId = JobTypeIds.IMPORT_DATASET
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
@@ -77,12 +77,12 @@ with MockJobUtils with timeUtils {
       // This should never stop a dataset from being imported
       val reports = Try { DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter) }
 
-      val reportFiles = reports match {
+      val reportFiles:Seq[DataStoreFile] = reports match {
         case Success(rpts) => rpts
         case Failure(ex) =>
           val errorMsg = s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
           logger.error(errorMsg)
-          resultsWriter.writeLineStderr(errorMsg)
+          resultsWriter.writeLineError(errorMsg)
           // Might want to consider adding a report attribute that has this warning message
           Nil
       }
@@ -104,7 +104,9 @@ with MockJobUtils with timeUtils {
     } yield dstore
 
     tx match{
-      case Success(datastore) => Right(datastore)
+      case Success(datastore) =>
+        logger.info(s"${jobTypeId.id} was successful. Generated datastore with ${datastore.files.length} files.")
+        Right(datastore)
       case Failure(ex) =>
         val runTime = computeTimeDeltaFromNow(startedAt)
         val msg = s"Failed to import dataset ${opts.path} in $runTime sec. Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"

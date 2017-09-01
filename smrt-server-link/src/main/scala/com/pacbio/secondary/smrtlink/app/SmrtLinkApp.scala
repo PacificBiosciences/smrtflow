@@ -7,12 +7,10 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.PbsmrtpipeConfigLoad
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider, DatabaseUtils}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
-import com.pacbio.secondary.smrtlink.services.jobtypes._
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
-import com.pacbio.secondary.smrtlink.actors.JobsDaoActor.SubmitDbBackUpJob
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
@@ -25,7 +23,6 @@ object SmrtLinkApp
 
 trait SmrtLinkProviders extends
   AuthenticatedCoreProviders with
-  JobManagerServiceProvider with
   SmrtLinkConfigProvider with
   AlarmDaoActorProvider with
   AlarmRunnerLoaderProvider with
@@ -38,7 +35,6 @@ trait SmrtLinkProviders extends
   PacBioBundleServiceProvider with
   EventManagerActorProvider with
   SmrtLinkEventServiceProvider with
-  JobsDaoActorProvider with
   JobsDaoProvider with
   SmrtLinkDalProvider with
   DataIntegrityManagerActorProvider with
@@ -53,15 +49,20 @@ trait SmrtLinkProviders extends
   RegistryServiceActorRefProvider with
   DatabaseRunDaoProvider with
   DatabaseSampleDaoProvider with
-  ImportDataSetServiceTypeProvider with
-  MergeDataSetServiceJobTypeProvider with
-  MockPbsmrtpipeJobTypeProvider with
-  DeleteJobServiceTypeProvider with
-  DbBackUpServiceJobTypeProvider with
   InMemoryRegistryDaoProvider with
   DataModelParserImplProvider with
-  SimpleLogServiceProvider {
-  override val actorSystemName = Some("smrtlink-smrt-server")
+  SimpleLogServiceProvider with
+  PipelineDataStoreViewRulesServiceProvider with
+  PipelineTemplateProvider with
+  ResolvedPipelineTemplateServiceProvider with
+  PipelineTemplateViewRulesServiceProvider with
+  ReportViewRulesResourceProvider with
+  ReportViewRulesServiceProvider with
+  JobsServiceProvider with
+  EngineManagerActorProvider{
+
+  override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
+  override val actorSystemName = Some("smrtlink-analysis-server")
   override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
 }
 
@@ -80,6 +81,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     // Is this necessary because there's not an explicit dep on this?
     val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
     val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
+    val engineManagerActor = providers.engineManagerActor()
 
     // Setup Quartz Schedule
     // ALl the cron-esque tasks in SL should be folded back here
@@ -92,9 +94,9 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
       case Some(rootBackUpDir) =>
 
         val dbBackupKey = providers.conf.getString("pacBioSystem.dbBackUpSchedule")
-        val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
-        logger.info(s"Scheduling '$dbBackupKey' db backup $m")
-        scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+        //val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
+        //logger.info(s"Scheduling '$dbBackupKey' db backup $m")
+        // scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
 
         val alarmSchedule = providers.conf.getString("pacBioSystem.alarmSchedule")
         logger.info(s"Scheduling $alarmSchedule Alarm Manager Runner(s)")

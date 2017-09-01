@@ -5,7 +5,7 @@ import java.util.UUID
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{UnprocessableEntityError, ResourceNotFoundError}
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.collection.mutable

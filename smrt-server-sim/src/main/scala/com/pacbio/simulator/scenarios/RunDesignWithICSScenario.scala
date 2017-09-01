@@ -7,6 +7,7 @@ import java.util.UUID
 import scala.collection.Seq
 import spray.httpx.UnsuccessfulResponseException
 import akka.actor.ActorSystem
+import com.pacbio.common.models.CommonModelImplicits
 import com.typesafe.config.Config
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskOptionBase, _}
@@ -52,6 +53,7 @@ class RunDesignWithICSScenario(host: String,
   import scala.concurrent.duration._
   import com.pacbio.simulator.clients.ICSState
   import ICSState._
+  import CommonModelImplicits._
 
   override val name = "RunDesignWithICSScenario"
 
@@ -90,8 +92,8 @@ class RunDesignWithICSScenario(host: String,
  def satOpts(runTempInfo : RunDesignTemplateInfo) = PbSmrtPipeServiceOptions(
    "site-acceptance-test",
    "pbsmrtpipe.pipelines.sa3_sat",
-   Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", Right(refUuid.get)),
-       BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", Right(runTempInfo.subreadsetUuid))),
+   Seq(BoundServiceEntryPoint("eid_ref_dataset", "PacBio.DataSet.ReferenceSet", refUuid.get),
+       BoundServiceEntryPoint("eid_subread", "PacBio.DataSet.SubreadSet", runTempInfo.subreadsetUuid)),
    Seq[ServiceTaskOptionBase](),
    Seq(ServiceTaskBooleanOption("pbsmrtpipe.options.chunk_mode", true, OptionTypes.BOOL.optionTypeId),
        ServiceTaskIntOption("pbsmrtpipe.options.max_nchunks", 2, OptionTypes.INT.optionTypeId)))

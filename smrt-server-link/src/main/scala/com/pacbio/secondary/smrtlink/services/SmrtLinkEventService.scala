@@ -19,7 +19,7 @@ import com.pacbio.secondary.smrtlink.actors.EventManagerActorProvider
 
 class SmrtLinkEventService(eventManagerActor: ActorRef) extends SmrtLinkBaseMicroService {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import com.pacbio.secondary.smrtlink.actors.EventManagerActor._
 
   val ROUTE_PREFIX = "events"

@@ -27,7 +27,7 @@ trait DataSetImports { self: Specification =>
     val outputDir = Files.createTempDirectory("import-test")
     println(outputDir)
     val opts = ImportDataSetOptions(path, dsType)
-    val job = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+    val job = JobResource(UUID.randomUUID, outputDir)
     val j = opts.toJob
     val jobResult = j.run(job, resultWriter)
     jobResult.isRight must beTrue

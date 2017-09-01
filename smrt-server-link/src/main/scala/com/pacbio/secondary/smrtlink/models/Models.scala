@@ -31,7 +31,8 @@ object PacBioNamespaces {
 
 case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
 
-object LogLevel {
+object LogLevels {
+
   sealed abstract class LogLevel
 
   case object TRACE extends LogLevel
@@ -43,7 +44,11 @@ object LogLevel {
   case object FATAL extends LogLevel
 
   val ALL = Seq(TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL)
-  val logLevelByName = ALL.map(x => x.toString.toLowerCase -> x).toMap
+
+  // Allow some slop with case-ing here
+  def fromString(sx: String): Option[LogLevel] =
+    ALL.map(x => x.toString.toLowerCase -> x).toMap.get(sx.toLowerCase)
+
 }
 
 // Subsystem Settings
@@ -87,11 +92,7 @@ case class AlarmStatus(id: String, value: Double, message: Option[String], sever
 // Logging System
 case class LogResourceRecord(description: String, id: String, name: String)
 
-case class LogResource(createdAt: JodaDateTime, description: String, id: String, name: String)
-
-case class LogMessageRecord(message: String, level: LogLevel.LogLevel, sourceId: String)
-
-case class LogMessage(createdAt: JodaDateTime, uuid: UUID, message: String, level: LogLevel.LogLevel, sourceId: String)
+case class LogMessageRecord(message: String, level: LogLevels.LogLevel, sourceId: String)
 
 
 // Users
@@ -285,11 +286,12 @@ case class JobTypeEndPoint(jobTypeId: String, description: String) {
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
-case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Either[Int,UUID])
+case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: IdAble)
 
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
 
+//FIXME(mpkocher)(8-22-2017) The dataset metatype needs to be a proper type
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
 // Service related Job Tasks
@@ -643,10 +645,6 @@ case class GmapReferenceServiceDataSet(
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
 case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
-case class DeleteJobServiceOptions(jobId: UUID,
-                                   removeFiles: Boolean = false,
-                                   dryRun: Option[Boolean] = None,
-                                   force: Option[Boolean] = None)
 
 // Project models
 
@@ -898,4 +896,20 @@ case class TechSupportSystemStatusRecord(name: String, comment: String)
 // Request to create a Job (any job type is supported) bundle
 case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
 
-case class ClientLogMessage(level: LogLevel.LogLevel, message: String, sourceId: String)
+// POST creation of a job event
+case class JobEventRecord(
+                             state: String,
+                             message: String)
+
+case class ReportViewRule(id: String, rules: JsObject)
+
+case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
+                                       outputPath: String)
+case class DataSetDeleteServiceOptions(datasetType: String, ids: Seq[Int],
+                                       removeFiles: Boolean = true)
+
+case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
+
+case class TsSystemStatusServiceOptions(user: String, comment: String)
+
+case class DbBackUpServiceJobOptions(user: String, comment: String)

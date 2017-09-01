@@ -18,16 +18,15 @@ import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern._
-
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
 import com.pacbio.secondary.smrtlink.services._
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{ActorSystemProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 
 
 class PacBioBundleService(daoActor: ActorRef, rootBundle: Path, externalPollActor: ActorRef, eventManagerActor: ActorRef)(implicit val actorSystem: ActorSystem) extends SmrtLinkBaseMicroService

@@ -308,7 +308,9 @@ object Converters {
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
     // There is no description at the root level. There's a description in the ExternalResource
-    val comments = s"Barcode ${dataset.getDataSetMetadata.getBarcodeConstruction} imported"
+    // MK. It's not clear to me what's going on here. If it's null, Barcode null imported is on several datasets
+    val barcodeConstruction = Option(dataset.getDataSetMetadata.getBarcodeConstruction).getOrElse("")
+    val comments = s"Barcode $barcodeConstruction imported"
 
     val tags = Try { Some(dataset.getTags).getOrElse("") }.getOrElse("")
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0

@@ -8,33 +8,28 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scalaj.http.Base64
-
 import akka.actor.ActorSystem
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 
-
-object ServicesClientJsonProtocol
-    extends SmrtLinkJsonProtocols
-    with ReportJsonProtocol
-    with DataSetJsonProtocols
-    with SecondaryAnalysisJsonProtocols {}
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
@@ -44,10 +39,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
   import CommonModelImplicits._
   import CommonModels._
-  import JobModels._
-  import ReportModels._
-  import SecondaryModels._
-  import ServicesClientJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth
@@ -489,7 +481,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
                 force: Boolean = false): Future[EngineJob] = getJobPipeline {
     logger.debug(s"Deleting job $jobId")
     Post(toUrl(ROOT_JOBS + "/delete-job"),
-         DeleteJobServiceOptions(jobId, removeFiles, dryRun = Some(dryRun), force = Some(force)))
+      DeleteSmrtLinkJobOptions(jobId, Some(s"Delete job $jobId name"), None, removeFiles, dryRun = Some(dryRun), force = Some(force)))
   }
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
@@ -562,10 +554,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       ConvertImportFastaBarcodesOptions(toP(path), name))
   }
 
-  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[Int], name: String) = runJobPipeline {
+  def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType, ids: Seq[IdAble], name: String) = runJobPipeline {
     logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         DataSetMergeServiceOptions(datasetType.toString, ids, name))
+      MergeDataSetJobOptions(datasetType, ids, Some(name), None))
   }
 
   def convertRsMovie(path: Path, name: String) = runJobPipeline {
@@ -681,7 +673,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
     def failIfNotState(state: AnalysisJobStates.JobStates, job: EngineJob): Try[EngineJob] = {
       if (job.state == state) Success(job)
-      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
+      else Failure(new Exception(s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt} ${job.errorMessage.getOrElse("")}"))
     }
 
     def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
@@ -729,7 +721,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
 
     runningJob match {
       case Some(job) => failIfNotSuccessfulJob(job)
-      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}. ${runningJob.map(_.errorMessage).getOrElse("")}"))
     }
   }
 
@@ -791,7 +783,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     // be created.
     runningJob match {
       case Some(job) => Success(job)
-      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}."))
+      case _ => Failure(new Exception(s"Failed to run job ${jobId.toIdString}. ${runningJob.map(_.errorMessage).getOrElse("")}"))
     }
   }
 

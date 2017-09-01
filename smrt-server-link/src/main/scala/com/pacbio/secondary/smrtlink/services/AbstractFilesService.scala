@@ -22,7 +22,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes, fileSystemUtil: FileSy
     implicit val ec: ExecutionContext)
   extends PacBioService {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   implicit val timeout = Timeout(10.seconds)

@@ -6,7 +6,7 @@ fork in Test := true
 // Don't run the test before building the jar
 test in assembly := {}
 
-val mainServer = "com.pacbio.secondary.smrtlink.app.SecondaryAnalysisServer"
+val mainServer = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"
 
 Revolver.settings
 

@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.testkit
 
 import java.nio.file.{Path, Paths}
 
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import spray.json._
 
@@ -42,7 +43,7 @@ object TestkitModels {
 
 }
 
-trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols {
+trait TestkitJsonProtocol extends SmrtLinkJsonProtocols {
 
   import TestkitModels._
 

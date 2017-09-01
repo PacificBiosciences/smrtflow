@@ -35,7 +35,7 @@ import com.pacbio.secondary.smrtlink.services.{PacBioService, RoutedHttpService}
 import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{EventTypes, PacBioComponentManifest, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.models.{EventTypes, PacBioComponentManifest, SmrtLinkSystemEvent}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
@@ -121,7 +121,7 @@ class EventLoggingProcessor extends EventProcessor with LazyLogging{
   */
 class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLogging with EveFileUtils{
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val name = s"File Writer Event Processor to Dir $rootDir"
 
@@ -159,7 +159,7 @@ class EventService(eventProcessor: EventProcessor,
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit var auth = EveAuth(Some(EveAccount(apiSecret)), Some(apiSecret))
 

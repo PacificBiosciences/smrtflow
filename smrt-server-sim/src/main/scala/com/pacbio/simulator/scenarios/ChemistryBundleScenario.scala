@@ -40,6 +40,8 @@ class ChemistryBundleScenario(host: String, port: Int)
     with ClientUtils
     with PacBioDataBundleIOUtils {
 
+  import com.pacbio.common.models.CommonModelImplicits._
+
   override val name = "ChemistryBundleScenario"
   override val requirements = Seq("SEQ-306", "SL-458", "SL-998")
 
@@ -64,7 +66,7 @@ class ChemistryBundleScenario(host: String, port: Int)
       "pbsmrtpipe.pipelines.dev_verify_chemistry",
       Seq(BoundServiceEntryPoint("eid_subread",
                                  FileTypes.DS_SUBREADS.fileTypeId,
-                                 Right(subreadsUuid.get))),
+                                 subreadsUuid.get)),
       Seq(ServiceTaskStrOption("pbsmrtpipe.task_options.chemistry_version",
                                version)),
       Seq[ServiceTaskOptionBase]())

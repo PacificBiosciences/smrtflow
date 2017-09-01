@@ -35,7 +35,7 @@ class SmrtLinkEventSpec extends Specification
     with SmrtLinkConstants
     with TestUtils{
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   sequential
 
@@ -47,14 +47,12 @@ class SmrtLinkEventSpec extends Specification
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
       EulaServiceProvider with
       DataSetServiceProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       SmrtLinkEventServiceProvider with
       JobsDaoProvider with
-      TestDalProvider with
+      SmrtLinkTestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

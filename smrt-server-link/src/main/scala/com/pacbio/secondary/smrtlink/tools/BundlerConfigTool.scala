@@ -21,7 +21,7 @@ case class BundlerConfigOptions(file: File) extends LoggerConfig
 
 object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
 
-  import ConfigModelsJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
 
   val toolId = "smrtflow.tools.bundler_config"
   val VERSION = "0.1.2"

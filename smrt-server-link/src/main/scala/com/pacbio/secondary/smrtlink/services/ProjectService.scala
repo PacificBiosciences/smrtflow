@@ -17,12 +17,12 @@ import scala.concurrent.Future
  * Accessing Projects
  */
 class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
-  extends JobsBaseMicroService
+  extends SmrtLinkBaseRouteMicroService
   with FutureSecurityDirectives
   with SmrtLinkConstants {
 
   // import serialzation protocols
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("smrtlink.project"),

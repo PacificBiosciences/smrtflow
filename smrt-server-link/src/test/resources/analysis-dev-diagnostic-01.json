@@ -8,7 +8,7 @@
       "fileTypeId": "PacBio.DataSet.ReferenceSet"
     }
   ],
-  "name": "Job name",
+  "name": "Dev Analysis Diagnostic Job name",
   "pipelineId": "pbsmrtpipe.pipelines.dev_diagnostic",
   "taskOptions": [],
   "workflowOptions": []

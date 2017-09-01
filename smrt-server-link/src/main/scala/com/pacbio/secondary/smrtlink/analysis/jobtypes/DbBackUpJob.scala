@@ -38,7 +38,7 @@ case class DbBackUpJobOptions(rootBackUpDir: Path,
 class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJobOptions) with timeUtils with MockJobUtils{
 
   type Out = PacBioDataStore
-  override val jobTypeId = JobTypeId("smrtlink_db_backup")
+  override val jobTypeId = JobTypeIds.DB_BACKUP
 
 
   /**
@@ -159,7 +159,7 @@ class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJo
   override def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
     val createdAt = JodaDateTime.now()
-    resultsWriter.writeLineStdout(s"Starting Db Backup with Options $opts")
+    resultsWriter.writeLine(s"Starting Db Backup with Options $opts")
 
     val outputDs = job.path.resolve("datastore.json")
     val reportPath = job.path.resolve("smrtlink_db_backup_report.json")
@@ -185,9 +185,9 @@ class DbBackUpJob(opts: DbBackUpJobOptions) extends BaseCoreJob(opts: DbBackUpJo
 
     tx match {
       case Success((ds, deletedBackups)) =>
-        resultsWriter.writeLineStdout(s"Deleted ${deletedBackups.length}")
+        resultsWriter.writeLine(s"Deleted ${deletedBackups.length}")
         deletedBackups.foreach { f =>
-          resultsWriter.writeLineStdout(s"Deleted $f")
+          resultsWriter.writeLine(s"Deleted $f")
         }
         Right(ds)
       case Failure(ex) =>

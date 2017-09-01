@@ -26,7 +26,7 @@ import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.converters._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.analysis.pipelines._
@@ -520,7 +520,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
                  val maxTime: FiniteDuration) extends LazyLogging with ClientUtils with DaoFutureUtils{
   import CommonModelImplicits._
   import CommonModels._
-  import ServicesClientJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   // the is the default for timeout for common tasks
   protected val TIMEOUT = 30 seconds
@@ -1365,7 +1365,8 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
     val analysisOpts = {
 
-      val ep = BoundServiceEntryPoint("eid_ref_dataset", DataSetMetaTypes.Reference.toString, Left(0))
+      // FIXME. WTF is up with this 0 usage?
+      val ep = BoundServiceEntryPoint("eid_ref_dataset", DataSetMetaTypes.Reference.toString, IntIdAble(0))
 
       val taskOptions: Seq[ServiceTaskOptionBase] =
         Seq(
@@ -1409,19 +1410,14 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   protected def validateEntryPoints(entryPoints: Seq[BoundServiceEntryPoint]): Int = {
     for (entryPoint <- entryPoints) {
-      // FIXME
-      val datasetId: IdAble = entryPoint.datasetId match {
-        case Left(id) => IntIdAble(id)
-        case Right(uuid) => UUIDIdAble(uuid)
-      }
-      getDataSet(datasetId) match {
+      getDataSet(entryPoint.datasetId) match {
         case Success(dsInfo) => {
           // TODO check metatype against input
-          println(s"Found entry point ${entryPoint.entryId} (datasetId = ${datasetId})")
+          println(s"Found entry point ${entryPoint.entryId} (datasetId = ${entryPoint.datasetId})")
           printDataSetInfo(dsInfo)
         }
         case Failure(err) => {
-          return errorExit(s"can't retrieve datasetId ${datasetId}")
+          return errorExit(s"can't retrieve datasetId ${entryPoint.datasetId}")
         }
       }
     }
@@ -1466,11 +1462,11 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     var xc = runImportDataSetSafe(xmlPath)
     if (xc != 0) throw new Exception(s"Could not import dataset ${eid}:${xmlPath}")
     // this is stupidly inefficient
-    val dsId = getDataSet(dsMeta.uuid) match {
+    val dsId:IdAble = getDataSet(dsMeta.uuid) match {
       case Success(ds) => ds.id
       case Failure(err) => throw new Exception(err.getMessage)
     }
-    BoundServiceEntryPoint(eid, dsMeta.metatype.toString, Left(dsId))
+    BoundServiceEntryPoint(eid, dsMeta.metatype.toString, dsId)
   }
 
   protected def importEntryPointAutomatic(entryPoint: String): BoundServiceEntryPoint = {

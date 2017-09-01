@@ -37,7 +37,7 @@ object PbSmrtpipeHackyTest extends App with LazyLogging {
   val cmd = IOUtils.toCmd(ePoints, pipelineId, outputDir, taskOpts, workflowOpts, serviceUri)
   println(s"Command '$cmd'")
 
-  val jobResource = JobResource(UUID.randomUUID, outputDir, AnalysisJobStates.CREATED)
+  val jobResource = JobResource(UUID.randomUUID, outputDir)
   val opts = PbSmrtPipeJobOptions(pipelineId, ePoints, taskOpts, workflowOpts, envShellWrapper, serviceUri, cmdTemplate)
   val job = opts.toJob
 

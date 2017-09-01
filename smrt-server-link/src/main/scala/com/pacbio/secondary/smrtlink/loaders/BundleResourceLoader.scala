@@ -2,16 +2,15 @@ package com.pacbio.secondary.smrtlink.loaders
 
 import java.nio.file.Paths
 
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
-
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
 
 /**
  * Loader for resources located in an external bundle of known structure
  */
 trait BundleResourceLoader[T]
     extends EnvResourceLoader[T]
-    with SecondaryAnalysisJsonProtocols
+    with SmrtLinkJsonProtocols
     with LazyLogging {
   val BUNDLE_ENV_VAR: String
   val ROOT_DIR_PREFIX: String

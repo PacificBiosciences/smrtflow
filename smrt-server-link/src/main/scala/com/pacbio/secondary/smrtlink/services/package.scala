@@ -125,7 +125,7 @@ package object services {
 
   trait PacBioServiceErrors extends BasicToResponseMarshallers with LazyLogging {
     import CORSSupport._
-    import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol.pbThrowableResponseFormat
+    import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
     import PacBioServiceErrors._
     import SprayJsonSupport._
 
@@ -187,7 +187,7 @@ package object services {
 
   class RoutedHttpService(route: Route) extends Actor with HttpService with ActorLogging with PacBioServiceErrors {
     import CORSSupport._
-    import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol.pbThrowableResponseFormat
+    import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
 
     implicit def actorRefFactory = context
 

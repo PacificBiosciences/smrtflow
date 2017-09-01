@@ -11,13 +11,13 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.engine.{CommonMessages, EngineConfig}
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
+import com.pacbio.secondary.smrtlink.models.EngineConfig
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
@@ -25,9 +25,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 import slick.driver.PostgresDriver.api._
 import java.sql.SQLException
@@ -38,15 +36,17 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
 import org.postgresql.util.PSQLException
+import spray.json.JsObject
 
 
 trait DalProvider {
   val db: Singleton[Database]
+  val dbConfig: DatabaseConfig
+  // this is duplicated for the cake vs provider model
+  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
 }
 
-trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
-  this: SmrtLinkConfigProvider =>
-
+trait DbConfigLoader extends ConfigLoader {
   /**
     * Database config to be used within the specs
     *
@@ -66,15 +66,17 @@ trait SmrtLinkDalProvider extends DalProvider with ConfigLoader{
 
     DatabaseConfig(dbName, user, password, server, port, maxConnections)
   }
-  // this is duplicated for the cake vs provider model
-  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
+}
+
+
+trait SmrtLinkDalProvider extends DalProvider with DbConfigLoader{
 
   override val db: Singleton[Database] =
     Singleton(() => Database.forConfig("smrtflow.db"))
 }
 
 @VisibleForTesting
-trait TestDalProvider extends DalProvider with ConfigLoader{
+trait SmrtLinkTestDalProvider extends DalProvider with ConfigLoader{
 
 
   /**
@@ -334,19 +336,16 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
 
   import CommonModelImplicits._
 
-  final val QUICK_TASK_IDS = JobTypeIds.QUICK_JOB_TYPES
+  private val NO_WORK = NoAvailableWorkError("No Available work to run.")
 
   val DEFAULT_MAX_DATASET_LIMIT = 5000
 
   val resolver: JobResourceResolver
-  // This is local queue of the Runnable Job instances. Once they're turned into an EngineJob, and submitted, it
-  // should be deleted. This should probably just be stored as a json blob in the database.
-  var _runnableJobs: TrieMap[UUID, RunnableJobWithId]
 
   /**
-    * Raw Insert of an Engine Job into the system. This will not run a job.
+    * Raw Insert of an Engine Job into the system. If the job is in the CREATED state it will be
+    * eligible to be run.
     *
-    * Use the RunnableJob interface to create a job that should be run.
     *
     * @param job Engine Job instance
     * @return
@@ -367,25 +366,46 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     db.run(qEngineJobById(ix).result.headOption)
         .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
 
+  /**
+    * Get next runnable job.
+    *
+    * @param isQuick Only select quick job types.
+    * @return
+    */
+  def getNextRunnableEngineJob(isQuick: Boolean = false): Future[Either[NoAvailableWorkError, EngineJob]] = {
 
-  private def getNextRunnableJobByType(jobTypeFilter: JobTypeId => Boolean): Future[Either[NoAvailableWorkError, RunnableJobWithId]] = {
-    val noWork = NoAvailableWorkError("No Available work to run.")
-    // Sort the Jobs by id to run the first one
-    _runnableJobs.values.toSeq.sortWith(_.id < _.id).find((rj) =>
-      rj.state == AnalysisJobStates.CREATED &&
-      jobTypeFilter(rj.job.jobOptions.toJob.jobTypeId)) match {
-      case Some(job) => {
-        logger.info(s"dequeueing job ${job.job.uuid}")
-        _runnableJobs.remove(job.job.uuid)
-        Future.successful(Right(job))
-      }
-      case None => Future.successful(Left(noWork))
+    logger.info(s"Checking for next runnable isQuick? $isQuick EngineJobs")
+    import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
+
+    //FIXME(mpkocher)(8-25-2017) I can't get this to work with AnalysisJobState type
+    //val q0 = engineJobs.filter(_.state === AnalysisJobStates.CREATED).sortBy(_.id).take(1)
+
+    val quickJobTypeIds = JobTypeIds.ALL.filter(_.isQuick).map(i => s"'${i.id}'").reduce(_ + "," + _)
+
+    // This needs to be thought out a bit more. The entire table needs to be locked.
+    val q0 = if (isQuick) {
+      sql"SELECT job_id from engine_jobs WHERE state = 'CREATED' AND job_type_id IN (#${quickJobTypeIds}) ORDER BY job_id LIMIT 1".as[Int]
+    } else {
+      sql"SELECT job_id from engine_jobs WHERE state = 'CREATED'  ORDER BY job_id LIMIT 1".as[Int]
     }
-  }
 
-  private def filterByQuickJobType(j: JobTypeId): Boolean = QUICK_TASK_IDS contains j
-  def getNextRunnableJobWithId = getNextRunnableJobByType((j: JobTypeId) => !filterByQuickJobType(j))
-  def getNextRunnableQuickJobWithId = getNextRunnableJobByType(filterByQuickJobType)
+    // This is NOT correct. This head will fail and caught in the recover. This needs to be be robust.
+    val fx = for {
+      jobId <- q0.head
+      _ <- qEngineJobById(jobId).map(j => (j.state, j.updatedAt)).update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
+      _ <- jobEvents += JobEvent(UUID.randomUUID(), jobId, AnalysisJobStates.SUBMITTED, s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)", JodaDateTime.now())
+      job <- qEngineJobById(jobId).result.head
+    } yield job
+
+
+    db.run(fx.transactionally)
+        .map { engineJob =>
+            logger.info(s"Found runnable job id:${engineJob.id} type:${engineJob.jobTypeId} in state ${engineJob.state} isQuick:$isQuick")
+            Right(engineJob)
+        }.recover {case NonFatal(_) =>
+          logger.info(s"No available work")
+          Left(NO_WORK)}
+  }
 
   /**
    * Get all the Job Events associated with a specific job
@@ -430,47 +450,31 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     f
   }
 
-  /**
-   * This is the new interface will replace the original createJob
-   *
-   * @param uuid        UUID
-   * @param name        Name of job
-   * @param description This is really a comment. FIXME
-   * @param jobTypeId   String of the job type identifier. This should be consistent with the
-   *                    jobTypeId defined in CoreJob
-   * @return
-   */
-  def createJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: String,
-      coreJob: CoreJob,
-      entryPoints: Option[Seq[EngineJobEntryPointRecord]] = None,
-      jsonSetting: String,
-      createdBy: Option[String],
-      createdByEmail: Option[String],
-      smrtLinkVersion: Option[String]): Future[EngineJob] = {
+  /** New Actor-less model **/
+  def createJob2(uuid: UUID,
+                 name: String,
+                 description: String,
+                 jobTypeId: JobTypeIds.JobType,
+                 entryPoints: Seq[EngineJobEntryPointRecord] = Seq.empty[EngineJobEntryPointRecord],
+                 jsonSetting: JsObject,
+                 createdBy: Option[String] = None,
+                 createdByEmail: Option[String] = None,
+                 smrtLinkVersion: Option[String] = None,
+                 projectId: Int = 1): Future[EngineJob] = {
 
-    // This should really have been Option[String]. The Job Int Id needs to be assigned before we can resolve the path
     val path = ""
-
     val createdAt = JodaDateTime.now()
 
-    val projectId = coreJob.jobOptions.projectId
-
-    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId,
-      path, jsonSetting, createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
-
-    logger.info(s"Creating Job $engineJob")
+    val engineJob = EngineJob(-1, uuid, name, description, createdAt, createdAt, AnalysisJobStates.CREATED, jobTypeId.id,
+      path, jsonSetting.toString(), createdBy, createdByEmail, smrtLinkVersion, projectId = projectId)
 
     val updates = (engineJobs returning engineJobs.map(_.id) into ((j, i) => j.copy(id = i)) += engineJob) flatMap { job =>
       val jobId = job.id
 
       // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
       // Resolving Path so we can update the state in the DB
-      val rJob = RunnableJobWithId(jobId, coreJob, job.state)
-      val resolvedPath = resolver.resolve(rJob).toAbsolutePath.toString
+      // Note, this will raise if the path can't be created
+      val resolvedPath = resolver.resolve(jobId).toAbsolutePath.toString
 
       val jobEvent = JobEvent(
         UUID.randomUUID(),
@@ -480,10 +484,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
         JodaDateTime.now())
 
       DBIO.seq(
-        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath),
+        engineJobs.filter(_.id === jobId).map(_.path).update(resolvedPath.toString),
         jobEvents += jobEvent,
-        engineJobsDataSets ++= entryPoints.getOrElse(Nil).map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
-      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath))
+        engineJobsDataSets ++= entryPoints.map(e => EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
+      ).map(_ => engineJob.copy(id = jobId, path = resolvedPath.toString))
     }
 
     val action = projects.filter(_.id === projectId).exists.result.flatMap {
@@ -491,11 +495,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
       case false => DBIO.failed(new UnprocessableEntityError(s"Project id $projectId does not exist"))
     }
 
-    db.run(action.transactionally).map(job => {
-      val rJob = RunnableJobWithId(job.id, coreJob, job.state)
-      _runnableJobs.update(uuid, rJob)
-      job
-    })
+    val f = db.run(action.transactionally)
+
+    // Need to send an event to EngineManager to Check for work
+    f onSuccess { case engineJob: EngineJob => sendEventToManager(engineJob)}
+
+    f
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
@@ -581,7 +586,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
   }
 
   def getJobsByTypeId(jobTypeId: String, includeInactive: Boolean = false, projectId: Option[Int] = None): Future[Seq[EngineJob]] = {
-    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId)
+    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId).sortBy(_.id.desc)
     val q2 = if (!includeInactive) q1.filter(_.isActive) else q1
     val q3 = if (projectId.isDefined) q2.filter(_.projectId === projectId.get) else q2
     db.run(q3.result)
@@ -677,14 +682,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         val sds = Converters.convert(dataset, path.toAbsolutePath, createdBy, jobId, projectId)
         insertContigDataSet(sds)
       case x =>
-        val msg = s"Unsupported DataSet type $x. Skipping DataSet Import of $path"
+        val msg = s"Non PacBio DataSet file type ($x) detected. Only DataStoreFile will be imported. Skipping Advanced DataSet importing of $path"
         logger.warn(msg)
         Future.successful(MessageResponse(msg))
     }
   }
 
   protected def insertDataStoreFileByJob(engineJob: EngineJob, ds: DataStoreFile): Future[MessageResponse] = {
-    logger.info(s"Inserting DataStore File $ds with job id ${engineJob.id}")
+    logger.info(s"Inserting DataStore File $ds with job id:${engineJob.id} name:${engineJob.name}")
 
     // TODO(smcclellan): Use dependency-injected Clock instance
     val createdAt = JodaDateTime.now()
@@ -731,7 +736,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case None =>
             existing match {
               case Some(_) =>
-                DBIO.from(Future.successful(MessageResponse(s"Previously somehow imported unsupported DataSet type ${ds.fileTypeId}.")))
+                DBIO.from(Future.successful(MessageResponse(s"Skipping previously imported FileType:${ds.fileTypeId} UUID:${ds.uniqueId} name:${ds.name}")))
               case None =>
                 DBIO.from(Future.successful(MessageResponse(s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
             }
@@ -1287,6 +1292,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   /**
     * Update the Path and the Activity of a DataStore file
     *
+    * FIXME. These should be using Path, not String
+    *
     * @param id          Unique id of the datastore file
     * @param path        Absolute path to the file
     * @param setIsActive activity of the file
@@ -1396,11 +1403,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   * Core SMRT Link Data Access Object for interacting with DataSets, Projects and Jobs.
   *
   * @param db Postgres Database Config
-  * @param engineConfig Engine Manager config (for root job, number of workers)
   * @param resolver Resolver that will determine where to write jobs to
   * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
   */
-class JobsDao(val db: Database, engineConfig: EngineConfig, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends DalComponent
+class JobsDao(val db: Database, val resolver: JobResourceResolver, eventManager: Option[ActorRef] = None) extends DalComponent
 with SmrtLinkConstants
 with EventComponent
 with ProjectDataStore
@@ -1408,8 +1414,6 @@ with JobDataStore
 with DataSetStore {
 
   import JobModels._
-
-  var _runnableJobs = TrieMap.empty[UUID, RunnableJobWithId]
 
   override def sendEventToManager[T](message: T): Unit = {
     eventManager.map(a => a ! message)
@@ -1421,5 +1425,5 @@ trait JobsDaoProvider {
   this: DalProvider with SmrtLinkConfigProvider with EventManagerActorProvider =>
 
   val jobsDao: Singleton[JobsDao] =
-    Singleton(() => new JobsDao(db(), jobEngineConfig(), jobResolver(), Some(eventManagerActor())))
+    Singleton(() => new JobsDao(db(), jobResolver(), Some(eventManagerActor())))
 }

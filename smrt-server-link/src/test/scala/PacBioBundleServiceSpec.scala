@@ -1,4 +1,4 @@
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols, ServiceStatus}
+import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
@@ -14,7 +14,7 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 
   val routes = Api.routes
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   "Bundle Service tests" should {
     "Uptime should be >0" in {

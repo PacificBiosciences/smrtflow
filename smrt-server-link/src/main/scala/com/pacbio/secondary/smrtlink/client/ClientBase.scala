@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait ClientBase extends Retrying{
 
   // This starts to tangle up specific JSON conversion with the Client
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   implicit val actorSystem: ActorSystem

@@ -7,9 +7,10 @@ package com.pacbio.simulator
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
-import scala.xml.Node
 
-import com.pacbio.secondary.smrtlink.models.{XmlTemplateReader => GenTemplateReader}
+import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
+
+import scala.xml.Node
 
 class RunDesignTemplateReader(xmlFile: Path) {
   private def randomId(): UUID = UUID.randomUUID()
@@ -28,7 +29,7 @@ class RunDesignTemplateReader(xmlFile: Path) {
   }
 
   def read :Node =
-    GenTemplateReader
+    XmlTemplateReader
       .fromFile(xmlFile)
       .globally()            .substitute("{RUN_ID}", randomId())
       .perInstance()         .substitute("{STATUS}", "Ready")

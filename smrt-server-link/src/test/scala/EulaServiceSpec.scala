@@ -11,7 +11,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
+import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, SmrtLinkDalProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._
@@ -32,7 +32,7 @@ class EulaServiceSpec extends Specification
     with SmrtLinkConstants
     with TestUtils{
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   sequential
 
@@ -41,14 +41,15 @@ class EulaServiceSpec extends Specification
   val testSmrtLinkVersion = "1.2.3"
 
   trait TestEulaServiceProvider {
-    this: JobsDaoActorProvider
+    this: JobsDaoProvider
+        with SmrtLinkTestDalProvider
         with SmrtLinkConfigProvider
         with AuthenticatorProvider
         with ServiceComposer =>
 
     val eulaService: Singleton[EulaService] =
       Singleton { () =>
-        new EulaService(Some(testSmrtLinkVersion), jobsDaoActor(), authenticator())
+        new EulaService(Some(testSmrtLinkVersion), jobsDao(), authenticator())
       }
 
     addService(eulaService)
@@ -57,16 +58,14 @@ class EulaServiceSpec extends Specification
   object TestProviders extends
       ServiceComposer with
       ProjectServiceProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       PbsmrtpipeConfigLoader with
       EngineCoreConfigLoader with
-      JobRunnerProvider with
       TestEulaServiceProvider with
       DataSetServiceProvider with
-      JobsDaoActorProvider with
       EventManagerActorProvider with
       JobsDaoProvider with
-      TestDalProvider with
       AuthenticatorImplProvider with
       JwtUtilsProvider with
       FakeClockProvider with

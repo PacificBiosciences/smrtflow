@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.jobtypes
 
-import com.pacbio.secondary.smrtlink.analysis.jobs.{JobResultWriter, BaseCoreJob, BaseJobOptions}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobTypeId, JobResourceBase, ResultFailed}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{BaseCoreJob, BaseJobOptions, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 
@@ -14,8 +14,8 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
   extends BaseCoreJob(opts: SimpleDevJobOptions)
   with MockJobUtils {
 
-  type Out = Int
-  val jobTypeId = JobTypeId("simple")
+  type Out = PacBioDataStore
+  val jobTypeId = JobTypeIds.SIMPLE
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
@@ -27,11 +27,11 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
     val report = ReportUtils.toMockTaskReport("smrtflow_dev_simple", "smrtflow Report")
     ReportUtils.writeReport(report, resources.jobReportJson)
     val total = opts.a + opts.b
-    resultsWriter.writeStdout(s"Simple job ${opts.a} + ${opts.b} = $total ")
+    resultsWriter.write(s"Simple job ${opts.a} + ${opts.b} = $total ")
     Thread.sleep(1000)
 
 
-    Right(total)
+    Right(ds)
   }
 
 }

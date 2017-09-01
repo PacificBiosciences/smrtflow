@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.client
 import java.net.URL
 
 import akka.actor.ActorSystem
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.PacBioDataBundle
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 // and everything should work as expected.
 trait PacBioDataBundleClientTrait extends ClientBase{
   import SprayJsonSupport._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   /**
     * This will resolve the URL to bundle root service.

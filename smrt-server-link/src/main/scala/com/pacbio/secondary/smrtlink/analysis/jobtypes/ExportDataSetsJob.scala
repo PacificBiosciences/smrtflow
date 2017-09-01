@@ -36,16 +36,16 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
     with MockJobUtils with timeUtils {
 
   type Out = PacBioDataStore
-  val jobTypeId = JobTypeId("export_datasets")
+  val jobTypeId = JobTypeIds.EXPORT_DATASETS
 
   def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
 
     val startedAt = JodaDateTime.now()
 
-    resultsWriter.writeLineStdout(s"Starting export of ${opts.paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
+    resultsWriter.writeLine(s"Starting export of ${opts.paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
 
-    resultsWriter.writeLineStdout(s"DataSet Export options: $opts")
-    opts.paths.foreach(x => resultsWriter.writeLineStdout(s"File ${x.toString}"))
+    resultsWriter.writeLine(s"DataSet Export options: $opts")
+    opts.paths.foreach(x => resultsWriter.writeLine(s"File ${x.toString}"))
 
     val datastoreJson = job.path.resolve("datastore.json")
 
@@ -54,7 +54,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
 
 
     val nbytes = ExportDataSets(opts.paths, opts.datasetType, opts.outputPath)
-    resultsWriter.writeStdout(s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
+    resultsWriter.write(s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
     val now = JodaDateTime.now()
     val dataStoreFile = DataStoreFile(
       UUID.randomUUID(),
@@ -70,7 +70,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
 
     val ds = PacBioDataStore(now, now, "0.2.1", Seq(dataStoreFile, logFile))
     writeDataStore(ds, datastoreJson)
-    resultsWriter.writeStdout(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
+    resultsWriter.write(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
     Right(ds)
   }
 }

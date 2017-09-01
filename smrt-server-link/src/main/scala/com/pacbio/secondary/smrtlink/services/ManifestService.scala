@@ -13,7 +13,7 @@ import scala.concurrent.Future
 // MK. There's duplication between these two implementations due to the service composer model versus the old model.
 class ManifestService(manifests: Set[PacBioComponentManifest]) extends PacBioService with DefaultJsonProtocol {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("service_manifests"),
@@ -67,7 +67,7 @@ trait ManifestServiceProvider {
 
 class ManifestServicex(services: ServiceComposer) extends PacBioService with DefaultJsonProtocol {
 
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("service_manifests"),

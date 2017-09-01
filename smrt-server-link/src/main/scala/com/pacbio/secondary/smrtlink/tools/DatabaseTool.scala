@@ -109,7 +109,7 @@ object DatabaseTool extends CommandLineToolRunner[DatabaseToolOptions] with Engi
 
     // This is not great that engine config and job resolver is
     // required to get the Summary of the database
-    val jobsDao = new JobsDao(db, engineConfig, jobResolver)
+    val jobsDao = new JobsDao(db, jobResolver)
     val summary = Await.result(jobsDao.getSystemSummary(), Duration.Inf)
     println(s"Summary for $db")
     println(summary)

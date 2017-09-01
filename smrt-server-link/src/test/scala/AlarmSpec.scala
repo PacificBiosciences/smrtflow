@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.dependency.{DefaultConfigProvider, StringCo
 import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
+import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunner
@@ -37,13 +37,14 @@ class AlarmSpec
 
   import Authenticator._
   import AlarmSeverity._
-  import com.pacbio.secondary.smrtlink.models.PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val mockFileSystemUtil = mock[FileSystemUtil]
 
   object TestProviders extends
       ServiceComposer with
       ActorRefFactoryProvider with
+      SmrtLinkTestDalProvider with
       SmrtLinkConfigProvider with
       DefaultConfigProvider with
       ActorSystemProvider with

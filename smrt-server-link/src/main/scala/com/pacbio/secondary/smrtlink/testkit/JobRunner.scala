@@ -7,6 +7,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import com.pacbio.common.models.CommonModels.IntIdAble
 import com.pacbio.common.models._
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -15,12 +16,14 @@ import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.tools.PbService
+import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
 import scopt.OptionParser
 import spray.json._
 
 import scala.collection.immutable.Seq
 import scala.collection.mutable._
 import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
@@ -266,14 +269,20 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer) extends PbService(sal, 30.m
   protected def runMergeDataSetsTestJob(cfg: TestkitConfig): EngineJob = {
     if (cfg.entryPoints.size < 2) throw new Exception("At least two dataset entry points are required for this job type.")
     val entryPoints = cfg.entryPoints.map(e => importEntryPoint(e.entryId, e.path))
-    val ids = entryPoints.map(e => e.datasetId.left.get)
+
     val dsTypes = entryPoints.map(e => e.fileTypeId).toSet
     val dsType = if (dsTypes.size == 1) dsTypes.toList(0) else {
       throw new Exception(s"Multiple dataset types found: ${dsTypes.toList.mkString}")
     }
-    // FIXME
-    val dsMetaType = DataSetMetaTypes.fromString(dsType).get
-    Await.result(sal.mergeDataSets(dsMetaType, ids, cfg.testId), TIMEOUT)
+
+    val fx = for {
+      dsMetaType <- ValidateServiceDataSetUtils.validateDataSetType(dsType)
+      intIds <- Future.sequence(entryPoints.map(e => sal.getDataSet(e.datasetId)))
+      ids <- Future.successful(intIds.map(x => IntIdAble(x.id)))
+      job <- sal.mergeDataSets(dsMetaType, ids, cfg.testId)
+    } yield job
+
+    Await.result(fx, TIMEOUT)
   }
 
   def runTestkitCfg(cfgFile: File, xunitOut: File, skipTests: Boolean = false,

@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.jobs
 
 import java.io.IOException
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.RunnableJobWithId
 import com.typesafe.scalalogging.LazyLogging
@@ -11,8 +11,9 @@ import com.typesafe.scalalogging.LazyLogging
  * Interface that resolves a job to a directory on the file systema
  */
 trait JobResourceResolver extends LazyLogging {
-  // This should resolve the root directory for a given jobtype
-  def resolve(runnableJobWithId: RunnableJobWithId): Path
+
+  // This should resolve the root directory
+  def resolve(jobId: Int): Path
 
   def createIfNecessary(p: Path): Path = {
     // Maybe this approach isn't the best idea.
@@ -22,39 +23,14 @@ trait JobResourceResolver extends LazyLogging {
         Files.createDirectory(p)
       }
     } catch {
+      case e: FileAlreadyExistsException =>
+        logger.warn(s"Directory already exists. Skipping creation of $p")
       case ioe: IOException =>
         logger.warn(s"IOException. Failed to create directory ${ioe.getMessage}")
       case e: Exception =>
         logger.error(s"Failed to create directory ${e.getMessage}")
     }
     p
-  }
-}
-
-/**
- * Determines where a jobOptions will be written to.
- *
- * Create the jobtype subdir to the root location and
- * resolved the job directory based on the job UUID
- *
- * Created by mkocher on 5/8/15.
- */
-
-/**
- * Resolve Paths for jobs to be written to
- *
- * @param rootDir Root path for jobs to be written to. 
- */
-class SimpleUUIDJobResolver(rootDir: Path) extends JobResourceResolver {
-  type In = CoreJob
-
-  def resolve(runnableJobWithId: RunnableJobWithId) = {
-    // Create the root jobOptions type dir if it doesn't exist.
-    // This is awkward
-    val basename = "jobtypes-" + runnableJobWithId.job.jobOptions.toJob.jobTypeId.id
-    val jobTypeRoot = createIfNecessary(rootDir.resolve(basename))
-    val jobOutputDir = createIfNecessary(jobTypeRoot.resolve(runnableJobWithId.job.uuid.toString))
-    jobOutputDir
   }
 }
 
@@ -71,11 +47,9 @@ class SimpleUUIDJobResolver(rootDir: Path) extends JobResourceResolver {
  */
 class PacBioIntJobResolver(rootDir: Path) extends JobResourceResolver with LazyLogging {
 
-  def toJobBasePrefix(n: Int) = {
-    toJobDirString(n) slice(0, 3)
-  }
+  private def toJobBasePrefix(n: Int):String = toJobDirString(n) slice(0, 3)
 
-  def toJobDirString(n: Int) = {
+  private def toJobDirString(n: Int):String = {
     val ns = n.toString
     6 - ns.length match {
       case 0 => ns
@@ -84,17 +58,37 @@ class PacBioIntJobResolver(rootDir: Path) extends JobResourceResolver with LazyL
   }
 
   // Full
-  def toJobDir(n: Int) = {
-    s"${toJobBasePrefix(n)}/${toJobDirString(n)}"
-  }
+  private def toJobDir(n: Int):String = s"${toJobBasePrefix(n)}/${toJobDirString(n)}"
 
-  def resolve(runnableJobWithId: RunnableJobWithId) = {
-    val jobDir = toJobDir(runnableJobWithId.id)
-    val baseDir = toJobBasePrefix(runnableJobWithId.id)
 
+  /**
+    * This should always be wrapped in a Try
+    *
+    * @throws IOException
+    * @param jobId
+    * @return
+    */
+  def resolve(jobId: Int):Path = {
+    val jobDir = toJobDir(jobId)
+    val baseDir = toJobBasePrefix(jobId)
+
+    // The base dir for a block of jobs (e.g., 012) could
+    // potentially be created different job instances, hence we'll
+    // ignore the exception here
     val basePath = createIfNecessary(rootDir.resolve(baseDir))
-    val jobPath = createIfNecessary(rootDir.resolve(jobDir))
 
-    jobPath
+    // full job path
+    val fullJobPath = rootDir.resolve(jobDir)
+
+    // If the job path already exists, this means there's jobs
+    // trying to "resuse" (and overwrite previous job's output)
+    // Here we raise if the job directory already exists.
+    if (Files.exists(fullJobPath)) {
+      throw new IOException(s"Job $jobId directory already exists. This could be from a previous install $fullJobPath")
+    } else {
+      Files.createDirectory(fullJobPath)
+    }
+
+    fullJobPath
   }
 }

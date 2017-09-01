@@ -1,14 +1,14 @@
 import java.nio.file.Paths
 
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.PacBioDataBundle
 import org.specs2.mutable.Specification
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
 class PacBioBundleUtilsSpec extends Specification{
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   def loader(name: String) = {
     Paths.get(getClass.getResource(name).toURI)

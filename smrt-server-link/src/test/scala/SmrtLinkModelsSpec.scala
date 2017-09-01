@@ -13,16 +13,19 @@ import com.pacbio.secondary.smrtlink.models._
 class SmrtLinkModelsSpec extends Specification {
 
   import JobModels._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+  import com.pacbio.common.models.CommonModelImplicits._
 
   sequential
+
+  val entryPointSubread = BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)
 
   "Test serialization of smrtlink models" should {
     "PbSmrtPipeServiceOptions" in {
       val opts = PbSmrtPipeServiceOptions(
         "test_job",
         "pbsmrtpipe.pipelines.mock_dev01",
-        Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
+        Seq(entryPointSubread),
         Nil,
         Nil)
       val j = opts.toJson
@@ -32,7 +35,7 @@ class SmrtLinkModelsSpec extends Specification {
       val opts2 = PbSmrtPipeServiceOptions(
         "test_job2",
         "pbsmrtpipe.pipelines.mock_dev01",
-        Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", Left(1))),
+        Seq(entryPointSubread),
         Nil,
         Nil,
         3)

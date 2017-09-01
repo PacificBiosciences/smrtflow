@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtlink.services
 
-import java.nio.file.{Files, Paths}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -15,24 +14,21 @@ import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages._
+import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.common.utils.OSUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import org.apache.commons.io.FileUtils
-import org.apache.commons.lang.SystemUtils
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Future
 
 
-class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  authenticator: Authenticator)
+class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao,  authenticator: Authenticator)
     extends BaseSmrtService with JobServiceConstants with OSUtils {
 
-  import JobsDaoActor._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(
     toServiceId("eula"),
@@ -54,20 +50,31 @@ class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  aut
     }
   }
 
+  // This is crufty. The error handling is captured in the get by version call
+  def deleteEula(version: String): Future[SuccessMessage] = {
+    dao.removeEula(version).map(x =>
+      if (x == 0) SuccessMessage(s"No user agreement for version $version was found")
+      else SuccessMessage(s"Removed user agreement for version $version")
+    )
+  }
+
   override val routes =
     pathPrefix("eula") {
       path(Segment) { version =>
         get {
           complete {
             ok {
-              (dbActor ? GetEulaByVersion(version)).mapTo[EulaRecord]
+              dao.getEulaByVersion(version)
             }
           }
         } ~
         delete {
           complete {
             ok {
-              (dbActor ? DeleteEula(version)).mapTo[SuccessMessage]
+              for {
+                _ <- dao.getEulaByVersion(version)
+                msg <- deleteEula(version)
+              } yield msg
             }
           }
         }
@@ -79,7 +86,7 @@ class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  aut
               created {
                 for {
                   eulaRecord <- convertToEulaRecord(sopts.user, sopts.enableInstallMetrics)
-                  acceptedRecord <-  (dbActor ? AddEulaRecord(eulaRecord)).mapTo[EulaRecord]
+                  acceptedRecord <-  dao.addEulaRecord(eulaRecord)
                 } yield acceptedRecord
               }
             }
@@ -88,7 +95,7 @@ class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  aut
         get {
           complete {
             ok {
-              (dbActor ? GetEulas).mapTo[Seq[EulaRecord]]
+              dao.getEulas
             }
           }
         }
@@ -98,14 +105,14 @@ class EulaService(smrtLinkSystemVersion: Option[String], dbActor: ActorRef,  aut
 }
 
 trait EulaServiceProvider {
-  this: JobsDaoActorProvider
+  this: JobsDaoProvider
     with SmrtLinkConfigProvider
     with AuthenticatorProvider
     with ServiceComposer =>
 
   val eulaService: Singleton[EulaService] =
     Singleton { () =>
-      new EulaService(smrtLinkVersion(), jobsDaoActor(), authenticator())
+      new EulaService(smrtLinkVersion(), jobsDao(), authenticator())
     }
 
   addService(eulaService)

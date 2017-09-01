@@ -2,7 +2,7 @@ import java.nio.file.{Files, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeId
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.smrtlink.analysis.jobs.NullJobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.typesafe.scalalogging.LazyLogging
@@ -33,6 +33,9 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
 
   args(skipAll = !(PbReports.isAvailable() && PacBioTestData.isAvailable))
 
+  // For the interface to work
+  val jobTypeId = JobTypeIds.SIMPLE
+
   val log = new NullJobResultsWriter
   "Utility functions" should {
     "Verify sts.xml in Sequel dataset" in {
@@ -54,7 +57,7 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
       val f = pbdata.getFile("subreads-sequel")
       val tmpDir = Files.createTempDirectory("reports")
       val rpts = DataSetReports.runAll(f, DataSetMetaTypes.Subread,
-                                       tmpDir, JobTypeId("reports"), log)
+                                       tmpDir, jobTypeId, log)
       rpts.size must beEqualTo(3)
       val reportIds = rpts.map(_.sourceId).sorted
       reportIds must beEqualTo(
@@ -67,7 +70,7 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
       val f = pbdata.getFile("subreads-xml")
       val tmpDir = Files.createTempDirectory("reports")
       val rpts = DataSetReports.runAll(f, DataSetMetaTypes.Subread,
-                                       tmpDir, JobTypeId("reports"), log)
+                                       tmpDir, jobTypeId, log)
       rpts.size must beEqualTo(1)
     }
   }
@@ -85,7 +88,7 @@ class PbReportsSubreadsControlSpec extends Specification with LazyLogging {
     "create four reports for a newer Sequel dataset with control" in {
       val tmpDir = Files.createTempDirectory("reports")
       val rpts = DataSetReports.runAll(DS_PATH, DataSetMetaTypes.Subread,
-                                       tmpDir, JobTypeId("reports"), log)
+                                       tmpDir, JobTypeIds.SIMPLE, log)
       rpts.size must beEqualTo(4)
       val reportIds = rpts.map(_.sourceId).sorted
       reportIds must beEqualTo(
