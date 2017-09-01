@@ -36,7 +36,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
   val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
 
   // For debugging
-  val checkForEngineManagerStatusInterval = 10.seconds
+  val checkForEngineManagerStatusInterval = 10.minutes
 
   val checkStatusForWorkTick = context.system.scheduler.schedule(5.seconds, checkForEngineManagerStatusInterval, self, GetEngineManagerStatus)
 
