@@ -91,8 +91,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
 //      // This requires the system to be configured/mocked with the SMRT Link System Root with the necessary dirs
 //      runScenario("TechSupportScenario") must beNone
 //    }
-//    "Pbsmrtpipe Scenario" in {
-//      runScenario("PbsmrtpipeScenario") must beNone
-//    }
+    "Pbsmrtpipe Scenario" in {
+      runScenario("PbsmrtpipeScenario") must beNone
+    }
   }
 }

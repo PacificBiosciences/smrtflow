@@ -164,8 +164,8 @@ class PbsmrtpipeScenario(host: String, port: Int)
     WaitForSuccessfulJob(jobId),
     //fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
     dataStore := GetAnalysisJobDataStore(jobId),
-    fail(s"job:${jobId.get} Expected four datastore files") IF dataStore.mapWith(_.size) !=? 4,
-    fail(s"job:${jobId.get} Analysis log file size is 0") IF dataStore.mapWith{ ds =>
+    fail(s"job:${jobId} Expected four datastore files") IF dataStore.mapWith(_.size) !=? 4,
+    fail(s"job:${jobId} Analysis log file size is 0") IF dataStore.mapWith{ ds =>
       ds.filter(_.sourceId == "pbsmrtpipe::pbsmrtpipe.log").head.fileSize
     } ==? 0,
     fail("Master log file size is 633 bytes") IF dataStore.mapWith{ ds =>
@@ -225,7 +225,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     // fail("Expected original job to be returned") IF jobId2 !=? jobId, //MK I don't understand why the job to be deleted is returned.
     jobId := DeleteJob(jobId, Var(false)),
     jobStatus := WaitForJob(jobId),
-    fail(s"Delete job ${jobId.get} failed") IF jobStatus !=? EXIT_SUCCESS,
+    fail(s"Delete job ${jobId} failed") IF jobStatus !=? EXIT_SUCCESS,
     fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
     fail(s"Datastore files for ${job.mapWith(_.id)} Expected isActive=false") IF dataStore.mapWith(_.count(f => f.isActive)) !=? 0,
