@@ -1,4 +1,4 @@
-package com.pacbio.secondary.smrtlink.tools
+package com.pacbio.secondary.smrtlink.client
 
 import spray.json._
 

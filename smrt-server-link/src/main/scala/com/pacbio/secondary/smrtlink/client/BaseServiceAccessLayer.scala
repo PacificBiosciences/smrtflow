@@ -8,6 +8,7 @@ import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import spray.client.pipelining._
 import spray.http._
 import spray.httpx.SprayJsonSupport
+import spray.httpx.unmarshalling.FromResponseUnmarshaller
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -59,11 +60,12 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
   def serviceStatusEndpoints: Vector[String] = Vector()
 
   // Pipelines and serialization
-  protected def respPipeline: HttpRequest => Future[HttpResponse] = sendReceive
-  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] = sendReceive ~> unmarshal[Array[Byte]]
+  protected def requestPipe: HttpRequest => Future[HttpResponse] = sendReceive
+  protected def respPipeline: HttpRequest => Future[HttpResponse] = requestPipe
+  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] = requestPipe ~> unmarshal[Array[Byte]]
   // XXX This is misnamed - it could just as easily be XML or plaintext
-  protected def rawJsonPipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
+  protected def rawJsonPipeline: HttpRequest => Future[String] = requestPipe ~> unmarshal[String]
+  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = requestPipe ~> unmarshal[ServiceStatus]
 
   // We should try to standardize on nomenclature here, 'Segment' for relative and
   // and 'Endpoint' for absolute URL?
