@@ -43,6 +43,7 @@ trait PbsmrtpipeScenarioCore
 
   import JobModels._
   import OptionTypes._
+  import CommonModels._
   import CommonModelImplicits._
 
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
@@ -50,6 +51,7 @@ trait PbsmrtpipeScenarioCore
   protected val EXIT_SUCCESS: Var[Int] = Var(0)
   protected val EXIT_FAILURE: Var[Int] = Var(1)
 
+  protected val tmpDir = Files.createTempDirectory("export-job")
   protected val testdata = PacBioTestData()
   protected def getSubreads = testdata.getTempDataSet("subreads-xml", true,
     tmpDirBase = "dataset contents")
@@ -193,6 +195,14 @@ class PbsmrtpipeScenario(host: String, port: Int)
     // there are two tasks, each one has CREATED and SUCCESSFUL events
     fail("Expected four task_status events") IF jobEvents.mapWith(_.count(_.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS)) !=? 4,
     fail("Expected three SUCCESSFUL events") IF jobEvents.mapWith(_.count(_.state == AnalysisJobStates.SUCCESSFUL)) !=? 3,
+    // Export job(s)
+    jobId := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
+    WaitForSuccessfulJob(jobId),
+    dataStore := GetAnalysisJobDataStore(jobId),
+    fail("Expected two files in datastore") IF dataStore.mapWith(_.size) !=? 2,
+    fail("Expected one ZIP file in datastore") IF dataStore.mapWith { ds =>
+      Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path).toFile.isFile
+    } !=? true,
     // Failure mode
     jobId2 := RunAnalysisPipeline(failOpts),
     jobStatus := WaitForJob(jobId2),
