@@ -157,7 +157,7 @@ class JobModelsSpec extends Specification  {
       dsf.toString must beEqualTo(dsf2.toString)
       val dsf3 = dsf2.relativize(Paths.get("/var"))
       dsf3.path must beEqualTo("tmp/report.json")
-      val dsf4 = dsf3.absolutize("/data/smrtlink")
+      val dsf4 = dsf3.absolutize(Paths.get("/data/smrtlink"))
       dsf4.path must beEqualTo("/data/smrtlink/tmp/report.json")
       val dsjf = DataStoreJobFile(UUID.randomUUID(), dsf)
       val dsjf2 = dsjf.toJson.convertTo[DataStoreJobFile]
