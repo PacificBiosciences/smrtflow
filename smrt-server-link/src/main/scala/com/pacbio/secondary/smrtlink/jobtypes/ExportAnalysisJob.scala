@@ -101,7 +101,7 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     val datastoreJson = resources.path.resolve("datastore.json")
 
     val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    //val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the Export DataSet Job job")
+    val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the Export DataSet Job job")
 
     var nErrors = 0
     var dsFiles = new ArrayBuffer[DataStoreFile]()//logFile)

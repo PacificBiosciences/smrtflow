@@ -54,6 +54,7 @@ object Modes {
   case object JOBS extends Mode {val name = "get-jobs"}
   case object TERMINATE_JOB extends Mode { val name = "terminate-job"} // This currently ONLY supports Analysis Jobs
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
+  case object EXPORT_JOB extends Mode { val name = "export-job" }
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object DELETE_DATASET extends Mode {val name = "delete-dataset"}

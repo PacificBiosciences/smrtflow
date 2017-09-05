@@ -27,11 +27,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions}
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions, ExportAnalysisJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
+class SmrtLinkServiceAccessLayer(baseUrl: URL)
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with ServiceEndpointConstants
@@ -486,6 +486,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.CONVERT_FASTA_BARCODES.id, jobId)
   def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.CONVERT_RS_MOVIE.id, jobId)
   def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.EXPORT_DATASETS.id, jobId)
+  def getExportJobsDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.EXPORT_JOBS.id, jobId)
 
   def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, JobTypeIds.PBSMRTPIPE.id)
 
@@ -629,6 +630,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
     logger.debug("Submitting database backup job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
+  }
+
+  /**
+   * Start export of SMRT Link job(s)
+   */
+  def exportJobs(jobIds: Seq[IdAble],
+                 outputPath: Path,
+                 name: Option[String] = None,
+                 description: Option[String] = None) = runJobPipeline {
+    logger.debug("Submitting export-jobs job")
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
+         ExportAnalysisJobOptions(jobIds, outputPath, name, description))
   }
 
   def getAlarms() = getAlarmsPipeline {Get(toUrl(ROOT_ALARMS))}

@@ -30,11 +30,9 @@ trait JobUtils extends SecondaryJobJsonProtocol {
                                     dsOutPath: Option[Path] = None): Path = {
     val ds = FileUtils.readFileToString(dataStorePath.toFile, "UTF-8")
                       .parseJson.convertTo[PacBioDataStore]
-    val dss = ds.copy(files = ds.files.map { f =>
-      f.copy(path = rootPath.relativize(Paths.get(f.path)).toString)
-    }).toJson.toString
+                      .relativize(rootPath)
     val dsOut = dsOutPath.getOrElse(Files.createTempFile(s"datastore-relpaths", ".json"))
-    FileUtils.writeStringToFile(dsOut.toFile, dss, "UTF-8")
+    FileUtils.writeStringToFile(dsOut.toFile, ds.toJson.prettyPrint, "UTF-8")
     dsOut
   }
 
@@ -50,11 +48,9 @@ trait JobUtils extends SecondaryJobJsonProtocol {
                                     dsOutPath: Option[Path] = None): Path = {
     val ds = FileUtils.readFileToString(dataStorePath.toFile, "UTF-8")
                       .parseJson.convertTo[PacBioDataStore]
-    val dss = ds.copy(files = ds.files.map { f =>
-      f.copy(path = rootPath.resolve(f.path).toString)
-    }).toJson.toString
+                      .absolutize(rootPath)
     val dsOut = dsOutPath.getOrElse(Files.createTempFile(s"datastore-abspaths", ".json"))
-    FileUtils.writeStringToFile(dsOut.toFile, dss, "UTF-8")
+    FileUtils.writeStringToFile(dsOut.toFile, ds.toJson.prettyPrint, "UTF-8")
     dsOut
   }
 }
