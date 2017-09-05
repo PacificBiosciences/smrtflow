@@ -60,7 +60,19 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts) wit
     val fx:Future[Seq[BoundEntryPoint]] = opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
     val entryPoints: Seq[BoundEntryPoint] = Await.result(fx, 5.seconds)
 
-    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, opts.workflowOptions, envPath, serviceURI, None, opts.getProjectId())
+    val workflowLevelOptions = config.pbSmrtPipeEngineOptions.toPipelineOptions.map(_.asServiceOption)
+
+    // This is a bit odd of an interface. We currently don't allow users to set system configuration parameters on a
+    // per job basis.
+    if (opts.workflowOptions.nonEmpty) {
+      val msg =
+        """WARNING Supplied Workflow level options are not supported on a per job basis.
+          |Using system configured workflow level options for workflow engine.
+        """.stripMargin
+      resultsWriter.writeLine(msg)
+    }
+
+    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, workflowLevelOptions, envPath, serviceURI, None, opts.getProjectId())
     val job = oldOpts.toJob
     job.run(resources, resultsWriter)
   }
