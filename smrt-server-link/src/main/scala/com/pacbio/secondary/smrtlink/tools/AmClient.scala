@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.tools.CommandLineToolVersion
 import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
-import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModels.Wso2Credentials
+import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{ApiManagerAccessLayer,ApiManagerJsonProtocols}
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
