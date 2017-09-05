@@ -160,6 +160,12 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object EXPORT_JOBS extends JobType {
+      val id = "export-jobs"
+      val name = "Export Jobs"
+      val description = "Export Job(s) as zip file(s)"
+      override def isQuick: Boolean = false
+    }
 
     case object IMPORT_DATASET extends JobType{
       val id ="import-dataset"
@@ -167,6 +173,7 @@ object JobModels {
       val description = "Import a PacBio XML DataSet"
       override def isQuick: Boolean = true
     }
+
     case object MERGE_DATASETS extends JobType {
       val id ="merge-datasets"
       val name = "Merge PacBio DataSet(s)"

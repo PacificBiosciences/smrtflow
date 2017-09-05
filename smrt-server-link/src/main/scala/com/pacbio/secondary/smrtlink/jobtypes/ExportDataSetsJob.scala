@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
 
-object ValidatorDataSetExportServiceOptions {
+trait ValidateJobUtils {
 
   // I think this should be deleted.
   def projectJoiner(projectIds: Seq[Int]): Int = {
@@ -29,27 +29,20 @@ object ValidatorDataSetExportServiceOptions {
     else JobConstants.GENERAL_PROJECT_ID
   }
 
+  def validateOutputDir(dir: Path): Future[Path] = {
+    if (! dir.toFile.exists) Future.failed(new UnprocessableEntityError(s"The directory ${dir.toString} does not exist"))
+    else if (! Files.isWritable(dir)) Future.failed(new UnprocessableEntityError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
+    else Future.successful(dir)
+  }
+
   def validateOutputPath(p: Path): Future[Path] = {
     val dir = p.getParent
     if (p.toFile.exists) Future.failed(new UnprocessableEntityError(s"The file $p already exists"))
-    else if (! dir.toFile.exists) Future.failed(new UnprocessableEntityError(s"The directory ${dir.toString} does not exist"))
-    else if (! Files.isWritable(dir)) Future.failed(new UnprocessableEntityError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
-    else Future.successful(p)
-  }
-
-  def validate(opts: ExportDataSetsJobOptions, dao: JobsDao): Future[ExportDataSetsOptions] = {
-    for {
-      outputPath <- validateOutputPath(opts.outputPath)
-      datasets <- ValidateServiceDataSetUtils.validateDataSetsExist(opts.ids, opts.datasetType, dao)
-      paths <- Future.successful(datasets.map(ds => Paths.get(ds.path)))
-      projectId <- Future.successful(projectJoiner(datasets.map(_.projectId)))
-    } yield ExportDataSetsOptions(opts.datasetType, paths, outputPath, projectId)
-  }
-
-  def apply(opts: ExportDataSetsJobOptions, dao: JobsDao): Future[ExportDataSetsOptions] = {
-    validate(opts, dao)
+    else validateOutputDir(dir).map(d => p)
   }
 }
+
+
 /**
   * Created by mkocher on 8/17/17.
   */
@@ -58,7 +51,7 @@ case class ExportDataSetsJobOptions(datasetType: DataSetMetaTypes.DataSetMetaTyp
                                     outputPath: Path,
                                     name: Option[String],
                                     description: Option[String],
-                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions {
+                                    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions with ValidateJobUtils {
 
   import CommonModelImplicits._
 
@@ -73,14 +66,6 @@ case class ExportDataSetsJobOptions(datasetType: DataSetMetaTypes.DataSetMetaTyp
     } yield entryPoints
 
     Await.result(fx, DEFAULT_TIMEOUT)
-  }
-
-  private def validateOutputPath(p: Path): Future[Path] = {
-    val dir = p.getParent
-    if (p.toFile.exists) Future.failed(new UnprocessableEntityError(s"The file $p already exists"))
-    else if (! dir.toFile.exists) Future.failed(new UnprocessableEntityError(s"The directory ${dir.toString} does not exist"))
-    else if (! Files.isWritable(dir)) Future.failed(new UnprocessableEntityError(s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
-    else Future { p }
   }
 
   override def validate(dao: JobsDao, config: SystemJobConfig):Option[InvalidJobOptionError] = {

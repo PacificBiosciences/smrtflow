@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, JobUtils, ExportJob}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, JobImportUtils, ExportJob}
 
 
 trait MockJobExport {
@@ -45,7 +45,7 @@ trait MockJobExport {
 
 class JobUtilsSpec
     extends Specification
-    with JobUtils
+    with JobImportUtils
     with MockJobExport
     with LazyLogging {
 
@@ -70,7 +70,7 @@ class JobUtilsSpec
       val job = setupFakeJob
       val zipPath = Files.createTempFile("job", ".zip")
       val result = ExportJob(job, zipPath)
-      result.toOption.get.nBytes must beGreaterThan(0)
+      result.toOption.get.nBytes must beGreaterThan(0L)
     }
     "Export with datastore JSON" in {
       val job = setupFakeJob
@@ -81,14 +81,14 @@ class JobUtilsSpec
       FileUtils.writeStringToFile(dsFile.toFile, ds.toJson.prettyPrint, "UTF-8")
       val zipPath = Files.createTempFile("job", ".zip")
       val result = ExportJob(job, zipPath)
-      result.toOption.get.nBytes must beGreaterThan(0)
+      result.toOption.get.nBytes must beGreaterThan(0L)
     }
     "Export with referenceset XML" in {
       val job = setupFakeJob
       val rs = setupDataSet(job)
       val zipPath = Files.createTempFile("job", ".zip")
       val result = ExportJob(job, zipPath)
-      result.toOption.get.nBytes must beGreaterThan(0)
+      result.toOption.get.nBytes must beGreaterThan(0L)
     }
     "Combined with datastore and dataset XML, unzipped and validated" in {
       val job = setupFakeJob
@@ -101,7 +101,7 @@ class JobUtilsSpec
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
       val zipPath = Files.createTempFile("job", ".zip")
       val result = ExportJob(job, zipPath)
-      result.toOption.get.nBytes must beGreaterThan(0)
+      result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")
@@ -132,7 +132,7 @@ class JobUtilsSpec
 
 class JobUtilsAdvancedSpec
     extends Specification
-    with JobUtils
+    with JobImportUtils
     with MockJobExport
     with LazyLogging {
 
@@ -161,7 +161,7 @@ class JobUtilsAdvancedSpec
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")
       val result = ExportJob(job, zipPath)
-      result.toOption.get.nBytes must beGreaterThan(0)
+      result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")

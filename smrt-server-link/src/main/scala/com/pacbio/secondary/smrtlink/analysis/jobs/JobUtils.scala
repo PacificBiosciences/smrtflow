@@ -9,6 +9,7 @@ import java.util.zip._
 import scala.util.Try
 
 import org.apache.commons.io.{FileUtils,FilenameUtils}
+import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
@@ -16,11 +17,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetExporter
 import JobModels._
 
 
-trait JobUtils
-    extends DataSetExporter
-    with DataSetFileUtils
-    with SecondaryJobJsonProtocol {
-
+trait JobUtils extends SecondaryJobJsonProtocol {
   /**
    * Load a datastore JSON and convert all paths to relative, writing it to a
    * temporary file (or optional output path)
@@ -60,6 +57,17 @@ trait JobUtils
     FileUtils.writeStringToFile(dsOut.toFile, dss, "UTF-8")
     dsOut
   }
+}
+
+
+class JobExporter(job: EngineJob, zipPath: Path)
+    extends DataSetExporter(zipPath)
+    with DataSetFileUtils
+    with JobUtils
+    with SecondaryJobJsonProtocol
+    with LazyLogging {
+
+  case class JobExportSummary(nBytes: Long)
 
   /**
    * Recursively export the contents of an arbitrary directory, relative to a
@@ -68,33 +76,63 @@ trait JobUtils
    * @param path  directory path to export
    * @param basePath  root path, archive paths will be relative to this
    */
-  protected def exportPath(out: ZipOutputStream,
-                           path: Path,
-                           basePath: Path): Int = {
+  protected def exportPath(path: Path,
+                           basePath: Path): Long = {
     val f = path.toFile
     if (f.isFile) {
       if (FilenameUtils.getName(path.toString) == "datastore.json") {
         val ds = relativizeDataStore(basePath, path)
-        exportFile(out, path, basePath, Some(ds))
+        exportFile(path, basePath, Some(ds))
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption.map{ m =>
           val destPath = basePath.relativize(path)
           if (haveFiles contains destPath.toString) {
             logger.warn(s"Skipping duplicate entry ${destPath.toString}"); 0
           } else {
-            writeDataSet(out, path, destPath, m.metatype, Some(basePath), skipMissingFiles = true)
+            writeDataSet(path, destPath, m.metatype, Some(basePath), skipMissingFiles = true)
           }
-        }.getOrElse(exportFile(out, path, basePath))
+        }.getOrElse(exportFile(path, basePath))
       } else {
-        exportFile(out, path, basePath)
+        exportFile(path, basePath)
       }
     } else if (f.isDirectory) {
       logger.info(s"Exporting subdirectory ${path.toString}...")
-      f.listFiles.map(fn => exportPath(out, fn.toPath, basePath)).sum
+      f.listFiles.map(fn => exportPath(fn.toPath, basePath)).sum
     } else {
       logger.warn(s"Skipping ${path.toString}"); 0
     }
   }
+
+  /**
+   * Package the entire job directory into a zipfile.
+   */
+  def toZip: Try[JobExportSummary] = {
+    haveFiles.clear
+    val jobPath = Paths.get(job.path)
+    if (jobPath.toFile.isFile) {
+      throw new RuntimeException(s"${jobPath.toString} is not a directory")
+    }
+    val manifest = Files.createTempFile("engine-job", ".json")
+    FileUtils.writeStringToFile(manifest.toFile, job.toJson.prettyPrint, "UTF-8")
+    var nBytes: Long = exportPath(jobPath, jobPath) +
+                       exportFile(jobPath.resolve("engine-job.json"),
+                                  jobPath, Some(manifest))
+    out.close
+    Try{JobExportSummary(nBytes)}
+  }
+}
+
+object ExportJob {
+  def apply(job: EngineJob, zipFileName: Path) = {
+    new JobExporter(job, zipFileName).toZip
+  }
+}
+
+trait JobImportUtils
+    extends SecondaryJobJsonProtocol
+    with JobUtils
+    with LazyLogging {
+  protected val BUFFER_SIZE = 2048
 
   case class JobImportSummary(nFiles: Int)
 
@@ -120,7 +158,6 @@ trait JobUtils
       fos.close();
       if (FilenameUtils.getName(fileName) == "datastore.json") {
         logger.info(s"Updating paths in ${fileName}")
-        println("Fixing datastore")
         absolutizeDataStore(jobPath, newFile.toPath, Some(newFile.toPath))
       }
       ze = Option(zis.getNextEntry())
@@ -129,37 +166,5 @@ trait JobUtils
     zis.closeEntry
     zis.close
     JobImportSummary(nFiles)
-  }
-}
-
-class JobExporter(job: EngineJob) extends JobUtils {
-
-  case class JobExportSummary(nBytes: Int)
-
-  /**
-   * Package an entire job directory into a zipfile.
-   * @param jobPath  path to job contents
-   * @param zipFileName  path to output zip file
-   */
-  def toZip(zipFileName: Path): Try[JobExportSummary] = {
-    haveFiles.clear
-    val jobPath = Paths.get(job.path)
-    if (jobPath.toFile.isFile) {
-      throw new RuntimeException(s"${jobPath.toString} is not a directory")
-    }
-    val out = newZip(zipFileName)
-    val manifest = Files.createTempFile("engine-job", ".json")
-    FileUtils.writeStringToFile(manifest.toFile, job.toJson.prettyPrint, "UTF-8")
-    var nBytes = exportPath(out, jobPath, jobPath) +
-                 exportFile(out, jobPath.resolve("engine-job.json"), jobPath,
-                            Some(manifest))
-    out.close
-    Try{JobExportSummary(nBytes)}
-  }
-}
-
-object ExportJob {
-  def apply(job: EngineJob, zipFileName: Path) = {
-    new JobExporter(job).toZip(zipFileName)
   }
 }

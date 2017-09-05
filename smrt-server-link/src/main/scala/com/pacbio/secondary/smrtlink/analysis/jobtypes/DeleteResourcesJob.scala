@@ -48,7 +48,7 @@ case class DeletedFile(path: String, isDirectory: Boolean, nBytes: Long, wasDele
  * This handles the mechanics of job setup, file deletion, and reporting.
  */
 trait DeleteResourcesBase {
-  this: BaseCoreJob with timeUtils =>
+  this: BaseCoreJob with timeUtils with MockJobUtils =>
 
   type Out = PacBioDataStore
   //val jobTypeId = JobTypeId("delete_resources")
@@ -142,6 +142,7 @@ trait DeleteResourcesBase {
 class DeleteResourcesJob(opts: DeleteResourcesOptions)
     extends BaseCoreJob(opts: DeleteResourcesOptions)
     with DeleteResourcesBase
+    with MockJobUtils
     with timeUtils {
   override val jobTypeId = JobTypeIds.DELETE_JOB
   override val resourceType = "Job"
@@ -192,6 +193,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
 class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
     extends BaseCoreJob(opts: DeleteDatasetsOptions)
     with DeleteResourcesBase
+    with MockJobUtils
     with timeUtils {
   override val jobTypeId = JobTypeIds.DELETE_DATASETS
   override val resourceType = "Dataset"

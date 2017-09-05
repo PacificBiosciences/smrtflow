@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
 
-class ExportBaseSpec extends Specification with ExportBase with LazyLogging {
+class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
 
   def toPaths(resource: String, basePath: String, destPath: String,
               archiveRoot: Option[String]): (Path, Path) =
@@ -115,7 +115,7 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val zipPath = Files.createTempFile("referencesets", ".zip")
       val dsType = DataSetMetaTypes.Reference
       val n = ExportDataSets(datasets, dsType, zipPath)
-      n must beGreaterThan(0)
+      n must beGreaterThan(0L)
     }
     "Run via jobs API" in {
       val url = getClass.getResource(ds)
@@ -143,7 +143,7 @@ class DataSetExportSpec extends Specification with LazyLogging {
       result.isSuccess must beFalse
       // repeat with skipMissingFiles = true
       val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath, true)
-      n must beGreaterThan(0)
+      n must beGreaterThan(0L)
     }
     "Failure mode: wrong metatype" in {
       val url = getClass.getResource(ds)
@@ -174,7 +174,7 @@ class DataSetExportSpecAdvanced
   private def zipAndUnzip(ds: Path) = {
     val zipPath = Files.createTempFile("subreadsets", ".zip")
     val n = ExportDataSets(Seq(ds), DataSetMetaTypes.Subread, zipPath)
-    n must beGreaterThan(0)
+    n must beGreaterThan(0L)
     val uuid = getDataSetMiniMeta(ds).uuid
     FileUtils.deleteDirectory(ds.getParent.toFile)
     val dest = Files.createTempDirectory("subreads-extracted")
@@ -193,7 +193,7 @@ class DataSetExportSpecAdvanced
     val datasets = getData(dsIds)
     val zipPath = Files.createTempFile("DataSets", ".zip")
     val n = ExportDataSets(datasets, dsType, zipPath)
-    n must beGreaterThan(0)
+    n must beGreaterThan(0L)
   }
 
   "Export Datasets from PacBioTestData" should {
@@ -287,7 +287,7 @@ class DataSetExportSpecAdvanced
       val datasets = Seq(subreadsTmp)
       val zipPath = Files.createTempFile("subreadsets", ".zip")
       val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
-      n must beGreaterThan(0)
+      n must beGreaterThan(0L)
     }
   }
 }
