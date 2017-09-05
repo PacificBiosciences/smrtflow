@@ -21,15 +21,18 @@ import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.models._
 
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL)
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with ServiceEndpointConstants
@@ -37,7 +40,6 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
 
   import CommonModelImplicits._
   import CommonModels._
-  import SecondaryModels._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
