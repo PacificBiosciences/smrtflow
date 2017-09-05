@@ -256,6 +256,14 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.state) must beSome(mockUpdateTaskRecord.state)
       }
     }
+    "Export job" in {
+      val tmpDir = Files.createTempDirectory("export-job")
+      val params = ExportAnalysisJobOptions(Seq(1), tmpDir, None, None)
+      Post(toJobType(JobTypeIds.EXPORT_JOBS.id), params) ~> totalRoutes ~> check {
+        val jobs = responseAs[EngineJob]
+        success
+      }
+    }
     "Get List of delete job types" in {
       Get(toJobType(JobTypeIds.DELETE_JOB.id)) ~> totalRoutes ~> check {
         val jobs = responseAs[Seq[EngineJob]]

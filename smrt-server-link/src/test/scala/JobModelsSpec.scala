@@ -168,7 +168,7 @@ class JobModelsSpec extends Specification  {
       val ds3 = ds.relativize(Paths.get("/var"))
       ds3.files(0).path must beEqualTo("tmp/report.json")
       val ds4 = ds3.absolutize(Paths.get("/data/smrtlink"))
-      ds3.files(0).path must beEqualTo("/data/smrtlink/tmp/report.json")
+      ds4.files(0).path must beEqualTo("/data/smrtlink/tmp/report.json")
     }
     "PipelineTemplateViewRule" in {
       val rules = Seq(
