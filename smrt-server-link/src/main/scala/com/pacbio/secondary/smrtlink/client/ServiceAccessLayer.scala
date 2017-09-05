@@ -21,7 +21,6 @@ import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.smrtlink.analysis.engine.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
@@ -29,12 +28,6 @@ import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.models._
 
-
-object ServicesClientJsonProtocol
-    extends SmrtLinkJsonProtocols
-    with ReportJsonProtocol
-    with DataSetJsonProtocols
-    with SecondaryAnalysisJsonProtocols {}
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL)
     (implicit actorSystem: ActorSystem)
@@ -44,10 +37,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
 
   import CommonModelImplicits._
   import CommonModels._
-  import JobModels._
-  import ReportModels._
   import SecondaryModels._
-  import ServicesClientJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
