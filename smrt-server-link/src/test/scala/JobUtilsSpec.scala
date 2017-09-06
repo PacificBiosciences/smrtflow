@@ -96,7 +96,7 @@ class JobUtilsSpec
       val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job_eps.zip")
-      val result = ExportJob(job, zipPath, Some(eps))
+      val result = ExportJob(job, zipPath, eps)
       result.toOption.get.nBytes must beGreaterThan(0L)
     }
     "Combined with datastore and dataset XML, unzipped and validated" in {
@@ -110,9 +110,9 @@ class JobUtilsSpec
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
       val refPath = Paths.get(getClass.getResource(REF_PATH).getPath)
       val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
-      //val zipPath = Files.createTempFile("job", ".zip")
-      val zipPath = Paths.get("job_eps.zip")
-      val result = ExportJob(job, zipPath, Some(eps))
+      val zipPath = Files.createTempFile("job", ".zip")
+      //val zipPath = Paths.get("job_eps.zip")
+      val result = ExportJob(job, zipPath, eps)
       result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
@@ -183,7 +183,7 @@ class JobUtilsAdvancedSpec
       val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")
-      val result = ExportJob(job, zipPath, Some(eps))
+      val result = ExportJob(job, zipPath, eps)
       result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)

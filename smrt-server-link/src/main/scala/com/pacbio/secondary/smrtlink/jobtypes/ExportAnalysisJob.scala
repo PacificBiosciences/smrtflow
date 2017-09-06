@@ -19,9 +19,10 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter, ExportJob}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter, ExportJob, AnalysisJobStates}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
@@ -54,10 +55,10 @@ case class ExportAnalysisJobOptions(ids: Seq[IdAble],
 
 class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils {
+    with MockJobUtils
+    with timeUtils {
 
   type Out = PacBioDataStore
-  type OptEntryPoints = Option[Seq[BoundEntryPoint]]
 
   import com.pacbio.common.models.CommonModelImplicits._
 
@@ -66,7 +67,7 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
 
   private def runOne(job: EngineJob,
                      outputPath: Path,
-                     eps: OptEntryPoints): Try[DataStoreFile] = {
+                     eps: Seq[BoundEntryPoint]): Try[DataStoreFile] = {
     val startedAt = JodaDateTime.now()
     val now = DateTimeFormat.forPattern("yyyyddMM").print(startedAt)
     val zipName = s"ExportJob_${job.id}_${now}.zip"
@@ -84,13 +85,15 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
           isChunked = false,
           "ZIP file",
           s"ZIP file containing job ${job.id}") }
-      case Failure(err) => Failure(err)
+      case Failure(err) =>
+        logger.error(err.getMessage)
+        Failure(err)
     }
   }
 
   private def resolveEntryPoints(dao: JobsDao,
                                  jobs: Seq[EngineJob]):
-                                 Future[Seq[OptEntryPoints]] = {
+                                 Future[Seq[Seq[BoundEntryPoint]]] = {
     Future.sequence(jobs.map { job =>
       for {
         serviceEntryPoints <- dao.getJobEntryPoints(job.id)
@@ -100,7 +103,7 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
             BoundEntryPoint(entryId.getOrElse("unknown"), ds.path)
           }
         })
-      } yield Some(eps)
+      } yield eps
     })
   }
 
@@ -117,10 +120,10 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     val fx2 = for {
       entryPoints <- resolveEntryPoints(dao, jobs)
     } yield entryPoints
-    val entryPoints: Seq[OptEntryPoints] = if (opts.includeEntryPoints) {
+    val entryPoints: Seq[Seq[BoundEntryPoint]] = if (opts.includeEntryPoints) {
       Await.result(fx2, opts.DEFAULT_TIMEOUT)
     } else {
-      jobs.map(_ => None)
+      jobs.map(_ => Seq.empty[BoundEntryPoint])
     }
 
     val startedAt = JodaDateTime.now()
@@ -131,21 +134,21 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath, "Log file of the details of the Export DataSet Job job")
 
-    var nErrors = 0
-    var dsFiles = new ArrayBuffer[DataStoreFile]()//logFile)
-    jobs.zip(entryPoints).foreach { case (job, eps) =>
-      runOne(job, opts.outputPath, eps) match {
-        case Success(f) => dsFiles += f
-        case Failure(err) =>
-          resultsWriter.writeLine(s"Export of job ${job.id} failed:")
-          resultsWriter.writeLine(s"  ${err.getMessage}")
-          nErrors += 1
-      }
+    val results = jobs.zip(entryPoints).map { case (job, eps) =>
+      runOne(job, opts.outputPath, eps)
     }
-    val endedAt = JodaDateTime.now()
-    val ds = PacBioDataStore(startedAt, endedAt, "0.1.0", dsFiles.toList)
-    writeDataStore(ds, datastoreJson)
-    resultsWriter.write(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
-    Right(ds)
+    val dsFiles: Seq[DataStoreFile] = Seq(logFile) ++ results.filter(_.isSuccess).map(_.toOption.get)
+    val nErrors = results.count(_.isFailure == true)
+    if (nErrors > 0) {
+      val msg = s"One or more jobs could not be exported"
+      resultsWriter.writeLine(msg)
+      Left(ResultFailed(resources.jobId, jobTypeId.toString, msg, computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host))
+    } else {
+      val endedAt = JodaDateTime.now()
+      val ds = PacBioDataStore(startedAt, endedAt, "0.1.0", dsFiles)
+      writeDataStore(ds, datastoreJson)
+      resultsWriter.write(s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
+      Right(ds)
+    }
   }
 }

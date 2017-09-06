@@ -47,8 +47,8 @@ case class DeletedFile(path: String, isDirectory: Boolean, nBytes: Long, wasDele
  *
  * This handles the mechanics of job setup, file deletion, and reporting.
  */
-trait DeleteResourcesBase {
-  this: BaseCoreJob with timeUtils with MockJobUtils =>
+trait DeleteResourcesBase extends MockJobUtils with timeUtils {
+  this: BaseCoreJob =>
 
   type Out = PacBioDataStore
   //val jobTypeId = JobTypeId("delete_resources")
