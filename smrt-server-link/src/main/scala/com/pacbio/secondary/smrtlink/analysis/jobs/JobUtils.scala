@@ -83,7 +83,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
         Try { getDataSetMiniMeta(path) }.toOption.map{ m =>
           val destPath = basePath.relativize(path)
           if (haveFiles contains destPath.toString) {
-            logger.warn(s"Skipping duplicate entry ${destPath.toString}"); 0
+            logger.warn(s"Skipping duplicate entry ${destPath.toString}"); 0L
           } else {
             writeDataSet(path, destPath, m.metatype, Some(basePath), skipMissingFiles = true)
           }
@@ -95,15 +95,41 @@ class JobExporter(job: EngineJob, zipPath: Path)
       logger.info(s"Exporting subdirectory ${path.toString}...")
       f.listFiles.map(fn => exportPath(fn.toPath, basePath)).sum
     } else {
-      logger.warn(s"Skipping ${path.toString}"); 0
+      logger.warn(s"Skipping ${path.toString}"); 0L
     }
+  }
+
+  /**
+   * Write the entry points to a subdirectory in the zip, along with a JSON
+   * file referencing them
+   */
+  protected def exportEntryPoints(entryPoints: Seq[BoundEntryPoint],
+                                  jobPath: Path): Long = {
+    val epsOut = entryPoints.map { e =>
+      e.copy(path = Paths.get(s"entry-points/${e.entryId}").resolve(FilenameUtils.getName(e.path)).toString)
+    }
+    val epsJson = Files.createTempFile("entry-points", ".json")
+    FileUtils.writeStringToFile(epsJson.toFile, epsOut.toJson.prettyPrint, "UTF-8")
+    entryPoints.zip(epsOut).map { case (e, o) =>
+      val (ep, op) = (Paths.get(e.path), Paths.get(o.path))
+      if (! ep.toFile.exists) {
+        logger.warn(s"Skipping entry point ${e.entryId}:${e.path} because the path no longer exists"); 0L
+      } else {
+        Try { getDataSetMiniMeta(ep) }.toOption.map{ m =>
+          if (haveFiles contains op.toString) {
+            logger.warn(s"Skipping duplicate entry ${op.toString}"); 0L
+          } else {
+            writeDataSet(ep, op, m.metatype, None, skipMissingFiles = true)
+          }
+        }.getOrElse(exportFile(op, Paths.get(""), Some(ep)))
+      }
+    }.sum + exportFile(jobPath.resolve("entry-points.json"), jobPath, Some(epsJson))
   }
 
   /**
    * Package the entire job directory into a zipfile.
    */
-  def toZip: Try[JobExportSummary] = {
-    haveFiles.clear
+  def toZip(entryPoints: Option[Seq[BoundEntryPoint]] = None): Try[JobExportSummary] = {
     val jobPath = Paths.get(job.path)
     if (jobPath.toFile.isFile) {
       throw new RuntimeException(s"${jobPath.toString} is not a directory")
@@ -111,6 +137,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
     val manifest = Files.createTempFile("engine-job", ".json")
     FileUtils.writeStringToFile(manifest.toFile, job.toJson.prettyPrint, "UTF-8")
     var nBytes: Long = exportPath(jobPath, jobPath) +
+                       entryPoints.map(exportEntryPoints(_, jobPath)).getOrElse(0L) +
                        exportFile(jobPath.resolve("engine-job.json"),
                                   jobPath, Some(manifest))
     out.close
@@ -119,8 +146,10 @@ class JobExporter(job: EngineJob, zipPath: Path)
 }
 
 object ExportJob {
-  def apply(job: EngineJob, zipFileName: Path) = {
-    new JobExporter(job, zipFileName).toZip
+  def apply(job: EngineJob,
+            zipFileName: Path,
+            entryPoints: Option[Seq[BoundEntryPoint]] = None) = {
+    new JobExporter(job, zipFileName).toZip(entryPoints)
   }
 }
 

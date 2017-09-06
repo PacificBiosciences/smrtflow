@@ -18,6 +18,10 @@ import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 
 
+/**
+ * Miscellaneous functions essential for exporting datasets and other file
+ * types.
+ */
 trait ExportUtils {
   /**
    * Given a resource path of unknown form, a base path for the file(s)
@@ -55,7 +59,9 @@ trait ExportUtils {
   }
 }
 
-
+/**
+ * Core zip export machinery, independent of input type
+ */
 abstract class ExportBase(zipPath: Path)
     extends ExportUtils
     with LazyLogging {
@@ -112,6 +118,10 @@ abstract class ExportBase(zipPath: Path)
   }
 }
 
+/**
+ * Base class for exporting DataSet XML and all external resources to a zip
+ * archive.  Used both here and in the job export in JobUtils.scala
+ */
 abstract class DataSetExporter(zipPath: Path)
     extends ExportBase(zipPath)
     with LazyLogging {
@@ -206,7 +216,6 @@ abstract class DataSetExporter(zipPath: Path)
                      skipMissingFiles = skipMissingFiles)
   }
 }
-
 
 class ExportDataSets(zipPath: Path) extends DataSetExporter(zipPath)
 

@@ -90,8 +90,17 @@ class JobUtilsSpec
       val result = ExportJob(job, zipPath)
       result.toOption.get.nBytes must beGreaterThan(0L)
     }
-    "Combined with datastore and dataset XML, unzipped and validated" in {
+    "Export with entry point" in {
       val job = setupFakeJob
+      val refPath = Paths.get(getClass.getResource(REF_PATH).getPath)
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
+      val zipPath = Files.createTempFile("job", ".zip")
+      //val zipPath = Paths.get("job_eps.zip")
+      val result = ExportJob(job, zipPath, Some(eps))
+      result.toOption.get.nBytes must beGreaterThan(0L)
+    }
+    "Combined with datastore and dataset XML, unzipped and validated" in {
+            val job = setupFakeJob
       val rs = setupDataSet(job)
       val ds = setupFakeDataStore(job)
       val workflowDir = Paths.get(job.path).resolve("workflow")
@@ -99,14 +108,21 @@ class JobUtilsSpec
       val dsFile = workflowDir.resolve("datastore.json")
       val dsJson = ds.copy(files = ds.files ++ Seq(rs)).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
-      val zipPath = Files.createTempFile("job", ".zip")
-      val result = ExportJob(job, zipPath)
+      val refPath = Paths.get(getClass.getResource(REF_PATH).getPath)
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
+      //val zipPath = Files.createTempFile("job", ".zip")
+      val zipPath = Paths.get("job_eps.zip")
+      val result = ExportJob(job, zipPath, Some(eps))
       result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")
       val result2 = expandJob(zipPath, unzipPath).toOption.get
-      result2.nFiles === 10
+      result2.nFiles === 17
+      val epPath = unzipPath.resolve("entry-points.json")
+      val epsUnzip = FileUtils.readFileToString(epPath.toFile, "UTF-8")
+                              .parseJson.convertTo[Seq[BoundEntryPoint]]
+      epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
       val ds2Path = unzipPath.resolve("workflow/datastore.json")
       val ds2 = FileUtils.readFileToString(ds2Path.toFile, "UTF-8")
                          .parseJson.convertTo[PacBioDataStore]
@@ -124,6 +140,11 @@ class JobUtilsSpec
       val ref3 = DataSetLoader.loadAndResolveReferenceSet(ref2Path)
       val resPaths3 = ref3.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths3.forall(Paths.get(_).toFile.exists) === true
+      // and now the entry point dataset
+      val ref4Path = unzipPath.resolve(epsUnzip(0).path)
+      val ref4 = DataSetLoader.loadAndResolveReferenceSet(ref4Path)
+      val resPaths4 = ref4.getExternalResources.getExternalResource.map(_.getResourceId)
+      resPaths4.forall(Paths.get(_).toFile.exists) === true
     }
   }
   // TODO standalone expandJob test
@@ -158,15 +179,21 @@ class JobUtilsAdvancedSpec
       val dsFile = workflowDir.resolve("datastore.json")
       val dsJson = ds.copy(files = ds.files ++ files2).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
+      val refPath = PacBioTestData().getFile("lambdaNEB")
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")
-      val result = ExportJob(job, zipPath)
+      val result = ExportJob(job, zipPath, Some(eps))
       result.toOption.get.nBytes must beGreaterThan(0L)
       // wipe the original directory, unpack and check files
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")
       val result2 = expandJob(zipPath, unzipPath).toOption.get
-      result2.nFiles === 12
+      result2.nFiles === 17
+      val epPath = unzipPath.resolve("entry-points.json")
+      val epsUnzip = FileUtils.readFileToString(epPath.toFile, "UTF-8")
+                              .parseJson.convertTo[Seq[BoundEntryPoint]]
+      epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
       val subreads2Path = unzipPath.resolve("tasks/pbcommand.tasks.dev_mixed_app/SubreadSet").resolve(FilenameUtils.getName(subreads.toString))
       val subreads2 = DataSetLoader.loadAndResolveSubreadSet(subreads2Path)
       DataSetValidator.validate(subreads2, unzipPath)
