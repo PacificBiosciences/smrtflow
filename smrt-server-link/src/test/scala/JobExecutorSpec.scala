@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.jobtypes.DeleteSmrtLinkJobOptions
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, ExportAnalysisJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
