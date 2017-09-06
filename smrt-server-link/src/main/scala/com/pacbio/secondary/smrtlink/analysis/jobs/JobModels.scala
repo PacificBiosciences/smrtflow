@@ -9,11 +9,10 @@ import spray.json._
 
 object AnalysisJobStates {
 
+  // Changing this to a sealed trait creates ambigious implicit errors with spray
   trait JobStates {
     val stateId: Int
   }
-
-  trait Completed
 
   case object CREATED extends JobStates {
     val stateId = 1
@@ -27,15 +26,15 @@ object AnalysisJobStates {
     val stateId = 3
   }
 
-  case object TERMINATED extends JobStates with Completed {
+  case object TERMINATED extends JobStates {
     val stateId = 4
   }
 
-  case object SUCCESSFUL extends JobStates with Completed {
+  case object SUCCESSFUL extends JobStates {
     val stateId = 5
   }
 
-  case object FAILED extends JobStates with Completed {
+  case object FAILED extends JobStates {
     val stateId = 6
   }
 
