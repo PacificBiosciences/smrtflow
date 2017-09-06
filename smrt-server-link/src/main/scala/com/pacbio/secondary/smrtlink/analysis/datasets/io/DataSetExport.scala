@@ -14,7 +14,7 @@ import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets._
-import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType
+import com.pacificbiosciences.pacbiobasedatamodel.{InputOutputDataType, IndexedDataType}
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 
 
@@ -56,6 +56,24 @@ trait ExportUtils {
       // FIXME what if the resource is relative and outside basePath?
       (resource, destPath.resolve(resource).normalize())
     }
+  }
+
+  private def getIndices(res: IndexedDataType): Seq[InputOutputDataType] = {
+    Option(res.getFileIndices).map { fi =>
+      fi.getFileIndex.toSeq
+    }.getOrElse(Seq.empty[InputOutputDataType])
+  }
+
+  protected def getResources(ds: DataSetType): Seq[InputOutputDataType] = {
+    Option(ds.getExternalResources).map { extRes =>
+      extRes.getExternalResource.map { er => Seq(er) ++
+        Option(er.getExternalResources).map { extRes2 =>
+          extRes2.getExternalResource.map { rr =>
+            Seq(rr) ++ getIndices(rr)
+          }.flatten
+        }.getOrElse(Seq.empty[InputOutputDataType]) ++ getIndices(er)
+      }.flatten
+    }.getOrElse(Seq.empty[InputOutputDataType])
   }
 }
 
@@ -170,25 +188,10 @@ abstract class DataSetExporter(zipPath: Path)
     val destPath = Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
-    val nbytes: Long = Option(ds.getExternalResources).map { extRes =>
-      extRes.getExternalResource.map { er =>
-        writeResourceFile(destPath, er, basePath, archiveRootPath, skipMissingFiles) +
-        Option(er.getExternalResources).map { extRes2 =>
-          extRes2.getExternalResource.map { rr =>
-            writeResourceFile(destPath, rr, basePath, archiveRootPath, skipMissingFiles) +
-            Option(rr.getFileIndices).map { fi =>
-              fi.getFileIndex.map {
-                writeResourceFile(destPath, _, basePath, archiveRootPath, skipMissingFiles)
-              }.sum
-            }.getOrElse(0L)
-          }.sum
-        }.getOrElse(0L) + Option(er.getFileIndices).map { fi =>
-          fi.getFileIndex.map {
-            writeResourceFile(destPath, _, basePath, archiveRootPath, skipMissingFiles)
-          }.sum
-        }.getOrElse(0L)
-      }.sum
-    }.getOrElse(0L)
+    val resources = getResources(ds)
+    val nbytes: Long = resources.map { er =>
+      writeResourceFile(destPath, er, basePath, archiveRootPath, skipMissingFiles)
+    }.sum
     DataSetWriter.writeDataSet(dsType, ds, dsTmp)
     writeFile(dsTmp, dsOutPath) + nbytes
   }

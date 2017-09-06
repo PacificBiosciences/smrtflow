@@ -98,6 +98,13 @@ class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
       dest8.toString must beEqualTo("task-1/subreads.bam")
       */
     }
+    "Get external resources from dataset" in {
+      val REF = "/dataset-references/example_reference_dataset/reference.dataset.xml"
+      val refXml = Paths.get(getClass.getResource(REF).getPath)
+      val ds = DataSetLoader.loadAndResolveReferenceSet(refXml)
+      val resources = getResources(ds)
+      resources.size must beEqualTo(5)
+    }
   }
 }
 
@@ -161,6 +168,7 @@ class DataSetExportSpecAdvanced
     extends Specification
     with DataSetFileUtils
     with ExternalToolsUtils
+    with ExportUtils
     with LazyLogging {
   args(skipAll = !PacBioTestData.isAvailable)
 
@@ -194,6 +202,15 @@ class DataSetExportSpecAdvanced
     val zipPath = Files.createTempFile("DataSets", ".zip")
     val n = ExportDataSets(datasets, dsType, zipPath)
     n must beGreaterThan(0L)
+  }
+
+  "Extract external resources from datasets" should {
+    "SubreadSet with scraps and stats xml" in {
+      val ds = PacBioTestData().getFile("subreads-sequel")
+      val subreads = DataSetLoader.loadAndResolveSubreadSet(ds)
+      val resources = getResources(subreads)
+      resources.size must beEqualTo(5)
+    }
   }
 
   "Export Datasets from PacBioTestData" should {
