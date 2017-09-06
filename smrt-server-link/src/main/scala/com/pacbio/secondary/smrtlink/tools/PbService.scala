@@ -147,6 +147,7 @@ object PbServiceParser extends CommandLineToolVersion{
       password: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
       usePassword: Boolean = false,
       comment: String = "Sent via pbservice",
+      includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
   ) extends LoggerConfig
 
@@ -351,6 +352,21 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(force = true)
       } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
+
+    note("\nEXPORT JOB\n")
+    cmd(Modes.EXPORT_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.EXPORT_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[String]("output-dir") action { (p, c) =>
+        c.copy(path = Paths.get(p))
+      } text "Output directory for job ZIP file; must be writable by smrtlink",
+      opt[Unit]("include-entry-points") action { (_, c) =>
+        c.copy(includeEntryPoints = true)
+      } text "Include input datasets in exported job ZIP file"
+    ) text "Export a job to a ZIP file"
 
     note("\nEMIT ANALYSIS JSON TEMPLATE\n")
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -1597,6 +1613,39 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  /**
+   * Run export of a single job, returning a Path to the zip file
+   */
+  protected def runExportJobImpl(jobId: IdAble,
+                                 destPath: Path,
+                                 includeEntryPoints: Boolean): Try[Path] = {
+    for {
+      job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      exportJob <- Try { Await.result(sal.exportJobs(Seq(job.id), destPath, includeEntryPoints, Some(s"pbservice-export-job-$jobId"), Some(s"Run from 'pbservice export-job $jobId'")), TIMEOUT) }
+      _ <- sal.pollForSuccessfulJob(exportJob.uuid, Some(maxTime))
+      ds <- Try { Await.result(sal.getExportJobsDataStore(exportJob.id), TIMEOUT) }
+    } yield ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId)
+              .headOption.map(f => Paths.get(f.path)).getOrElse {
+      throw new Exception(s"Can't get ZIP file from export job datastore")
+    }
+  }
+
+  def runExportJob(jobId: IdAble,
+                   destPath: Path,
+                   includeEntryPoints: Boolean): Int = {
+    val actualDestPath = Option(destPath).getOrElse {
+      val defaultPath = Paths.get("").toAbsolutePath
+      val msg = s"No output path supplied, defaulting to current working directory ($defaultPath); this will fail if SMRT Link is unable to write here"
+      logger.warn(msg)
+      println(msg)
+      defaultPath
+    }
+    runExportJobImpl(jobId, actualDestPath, includeEntryPoints) match {
+      case Success(p) => println(s"Job exported to ${p.toString}"); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
   def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
 
   def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
@@ -1749,6 +1798,7 @@ object PbService extends LazyLogging{
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
+        case Modes.EXPORT_JOB => ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
