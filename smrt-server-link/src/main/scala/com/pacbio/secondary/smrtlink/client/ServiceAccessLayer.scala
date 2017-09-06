@@ -637,11 +637,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
    */
   def exportJobs(jobIds: Seq[IdAble],
                  outputPath: Path,
+                 includeEntryPoints: Boolean = false,
                  name: Option[String] = None,
                  description: Option[String] = None) = runJobPipeline {
     logger.debug("Submitting export-jobs job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
-         ExportAnalysisJobOptions(jobIds, outputPath, name, description))
+         ExportAnalysisJobOptions(jobIds, outputPath, includeEntryPoints, name, description))
   }
 
   def getAlarms() = getAlarmsPipeline {Get(toUrl(ROOT_ALARMS))}

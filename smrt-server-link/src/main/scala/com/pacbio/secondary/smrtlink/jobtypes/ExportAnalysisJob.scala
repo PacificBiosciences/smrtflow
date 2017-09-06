@@ -21,12 +21,14 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter, ExportJob}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
 
 case class ExportAnalysisJobOptions(ids: Seq[IdAble],
                                     outputPath: Path,
+                                    includeEntryPoints: Boolean,
                                     name: Option[String],
                                     description: Option[String],
                                     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions with ValidateJobUtils {
@@ -55,17 +57,20 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     with MockJobUtils {
 
   type Out = PacBioDataStore
+  type OptEntryPoints = Option[Seq[BoundEntryPoint]]
 
   import com.pacbio.common.models.CommonModelImplicits._
 
-  def resolveJobs(dao: JobsDao, jobIds: Seq[IdAble]): Future[Seq[EngineJob]] =
+  private def resolveJobs(dao: JobsDao, jobIds: Seq[IdAble]): Future[Seq[EngineJob]] =
     Future.sequence(jobIds.map(dao.getJobById(_)))
 
-  def runOne(job: EngineJob, outputPath: Path): Try[DataStoreFile] = {
+  private def runOne(job: EngineJob,
+                     outputPath: Path,
+                     eps: OptEntryPoints): Try[DataStoreFile] = {
     val startedAt = JodaDateTime.now()
     val now = DateTimeFormat.forPattern("yyyyddMM").print(startedAt)
     val zipName = s"ExportJob_${job.id}_${now}.zip"
-    ExportJob(job, outputPath.resolve(zipName)) match {
+    ExportJob(job, outputPath.resolve(zipName), eps) match {
       case Success(result) =>
         val endedAt = JodaDateTime.now()
         Try { DataStoreFile(
@@ -83,6 +88,22 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
     }
   }
 
+  private def resolveEntryPoints(dao: JobsDao,
+                                 jobs: Seq[EngineJob]):
+                                 Future[Seq[OptEntryPoints]] = {
+    Future.sequence(jobs.map { job =>
+      for {
+        serviceEntryPoints <- dao.getJobEntryPoints(job.id)
+        eps <- Future.sequence(serviceEntryPoints.map { e =>
+          dao.getDataSetMetaData(e.datasetUUID).map{ ds =>
+            val entryId = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
+            BoundEntryPoint(entryId.getOrElse("unknown"), ds.path)
+          }
+        })
+      } yield Some(eps)
+    })
+  }
+
   override def run(resources: JobResourceBase,
                    resultsWriter: JobResultWriter,
                    dao: JobsDao,
@@ -90,10 +111,17 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
                    Either[ResultFailed, PacBioDataStore] = {
     val fx = for {
       jobs <- resolveJobs(dao, opts.ids)
-      paths <- Future.successful(jobs.map(runOne(_, opts.outputPath)))
     } yield jobs
-
     val jobs: Seq[EngineJob] = Await.result(fx, opts.DEFAULT_TIMEOUT)
+
+    val fx2 = for {
+      entryPoints <- resolveEntryPoints(dao, jobs)
+    } yield entryPoints
+    val entryPoints: Seq[OptEntryPoints] = if (opts.includeEntryPoints) {
+      Await.result(fx2, opts.DEFAULT_TIMEOUT)
+    } else {
+      jobs.map(_ => None)
+    }
 
     val startedAt = JodaDateTime.now()
     resultsWriter.writeLine(s"Starting export of ${opts.ids.length} jobs at ${startedAt.toString}")
@@ -105,8 +133,8 @@ class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
 
     var nErrors = 0
     var dsFiles = new ArrayBuffer[DataStoreFile]()//logFile)
-    jobs.foreach { job =>
-      runOne(job, opts.outputPath) match {
+    jobs.zip(entryPoints).foreach { case (job, eps) =>
+      runOne(job, opts.outputPath, eps) match {
         case Success(f) => dsFiles += f
         case Failure(err) =>
           resultsWriter.writeLine(s"Export of job ${job.id} failed:")

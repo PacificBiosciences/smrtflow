@@ -29,6 +29,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.pipelines._
 import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
@@ -528,13 +529,6 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   // the is the default for timeout for common tasks
   protected val TIMEOUT = 30 seconds
-  private lazy val entryPointsLookup = Map(
-    "PacBio.DataSet.SubreadSet" -> "eid_subread",
-    "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
-    "PacBio.DataSet.BarcodeSet" -> "eid_barcode",
-    "PacBio.DataSet.HdfSubreadSet" -> "eid_hdfsubread",
-    "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
-    "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
   private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
     Seq[ServiceTaskOptionBase](),
     Seq[ServiceTaskOptionBase]())
@@ -1481,7 +1475,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsMeta = getDataSetMiniMeta(xmlPath)
-      val eid = entryPointsLookup(dsMeta.metatype.toString)
+      val eid = PbsmrtpipeConstants.metaTypeToEntryId(dsMeta.metatype.toString).getOrElse(throw new Exception(s"Can't determine entryId for ${dsMeta.metatype.toString}"))
       importEntryPoint(eid, xmlPath)
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }

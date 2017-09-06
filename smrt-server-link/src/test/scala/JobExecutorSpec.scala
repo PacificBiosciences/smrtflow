@@ -258,7 +258,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     }
     "Export job" in {
       val tmpDir = Files.createTempDirectory("export-job")
-      val params = ExportAnalysisJobOptions(Seq(1), tmpDir, None, None)
+      val params = ExportAnalysisJobOptions(Seq(1), tmpDir, false, None, None)
       Post(toJobType(JobTypeIds.EXPORT_JOBS.id), params) ~> totalRoutes ~> check {
         val jobs = responseAs[EngineJob]
         success
