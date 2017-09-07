@@ -2278,7 +2278,7 @@
     },
     "/secondary-analysis/job-manager/jobs/export-jobs": {
       "post": {
-        "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs",
+        "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs.  These will be listed individually in the job datastore with sourceId 'pbscala::export-jobs' and fileTypeId 'PacBio.FileTypes.zip'.",
         "responses": {
           "201": {
             "description": "New job object",
