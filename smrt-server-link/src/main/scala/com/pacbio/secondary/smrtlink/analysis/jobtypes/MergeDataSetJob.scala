@@ -61,7 +61,7 @@ with MockJobUtils with timeUtils {
       val createdAt = JodaDateTime.now()
       val modifiedAt = createdAt
       DataStoreFile(uuid,
-        s"pbscala::${jobTypeId.id}",
+        s"pbscala::merge_dataset",
         ds.getMetaType,
         outputPath.toFile.length,
         createdAt,
