@@ -100,9 +100,14 @@ package object datasets {
       }
     }
 
-    def makeBarcodedSubreads = {
+    /**
+     * copy a SubreadSet and BarcodeSet from PacBioTestData to a target dir,
+     * either passed as an option or a new temporary directory
+     * @param destDir  optional destination, defaults to temp dir
+     */
+    def makeBarcodedSubreads(destDir: Option[Path]): (Path, Path) = {
       val pbdata = PacBioTestData()
-      val targetDir = Files.createTempDirectory("dataset-contents")
+      val targetDir = destDir.getOrElse(Files.createTempDirectory("dataset-contents"))
       val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
       val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
       val subreadsSrc = pbdata.getFile("barcoded-subreadset")
@@ -126,6 +131,8 @@ package object datasets {
       DataSetWriter.writeBarcodeSet(dsBarcodes, barcodes)
       (subreads, barcodes)
     }
+
+    def makeBarcodedSubreads: (Path, Path) = makeBarcodedSubreads(None)
 
     def makeTmpDataset(dsPath: Path,
                        metaType: DataSetMetaTypes.DataSetMetaType,
@@ -151,4 +158,3 @@ package object datasets {
   }
 
 }
-

@@ -160,6 +160,12 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object EXPORT_JOBS extends JobType {
+      val id = "export-jobs"
+      val name = "Export Jobs"
+      val description = "Export Job(s) as zip file(s)"
+      override def isQuick: Boolean = false
+    }
 
     case object IMPORT_DATASET extends JobType{
       val id ="import-dataset"
@@ -167,6 +173,7 @@ object JobModels {
       val description = "Import a PacBio XML DataSet"
       override def isQuick: Boolean = true
     }
+
     case object MERGE_DATASETS extends JobType {
       val id ="merge-datasets"
       val name = "Merge PacBio DataSet(s)"
@@ -443,6 +450,18 @@ object JobModels {
     def fileExists: Boolean = Paths.get(path).toFile.exists
 
     def summary: String = toString
+
+    /**
+     * Convert file path to be absolute starting from a base directory
+     */
+    def absolutize(base: Path) = copy(path = base.resolve(path).toString)
+
+    /**
+     * Convert file path to be relative to a base directory path
+     */
+    def relativize(base: Path) = copy(
+      path = base.relativize(Paths.get(path)).toString
+    )
   }
 
   // Container for file created from a Job.
@@ -461,6 +480,15 @@ object JobModels {
 
     override def toString: String = summary
 
+    /**
+     * Convert all file paths to be absolute starting from a base directory
+     */
+    def absolutize(base: Path) = copy(files = files.map(_.absolutize(base)))
+
+    /**
+     * Convert all file paths to be relative to a base directory path
+     */
+    def relativize(base: Path) = copy(files = files.map(_.relativize(base)))
   }
 
   // Should think about making this a Path

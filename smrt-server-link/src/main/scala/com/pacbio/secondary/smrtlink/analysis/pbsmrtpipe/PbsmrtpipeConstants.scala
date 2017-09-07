@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe
 
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{PipelineStrOption, PipelineIntOption, PipelineBaseOption}
 
 /**
@@ -65,5 +66,31 @@ object PbsmrtpipeConstants {
   case object MAX_NWORKERS extends PbsmrtpipeEngineOption {
     def id = toI("max_nworkers")
   }
-}
 
+  // Associations between pbsmrtpipe's entry point IDs (which have no meaning
+  // in the rest of SMRT Link) and dataset metatypes
+  private lazy val entryPointDatasetTypes = Seq(
+    ("eid_subread", DataSetMetaTypes.Subread),
+    ("eid_ref_dataset", DataSetMetaTypes.Reference),
+    ("eid_hdfsubread", DataSetMetaTypes.HdfSubread),
+    ("eid_barcode", DataSetMetaTypes.Barcode),
+    ("eid_gmapref_dataset", DataSetMetaTypes.GmapReference),
+    ("eid_align", DataSetMetaTypes.Alignment),
+    ("eid_ccs", DataSetMetaTypes.CCS))
+
+  /**
+   * Get the dataset metatype (e.g. PacBio.DataSet.SubreadSet) associated
+   * with a pbsmrtpipe entry point ID (e.g. eid_subread)
+   */
+  def entryIdToMetaType(eid: String): Option[DataSetMetaTypes.DataSetMetaType] =
+    entryPointDatasetTypes.toMap.get(eid)
+
+  /**
+   * Get the pbsmrtpipe entry point ID (e.g. eid_subread) given a dataset
+   * metatype string (e.g. PacBio.DataSet.SubreadSet)
+   */
+  def metaTypeToEntryId(metaType: String): Option[String] =
+    entryPointDatasetTypes.map{
+      case (e, t) => (t.toString, e)
+    }.toMap.get(metaType)
+}

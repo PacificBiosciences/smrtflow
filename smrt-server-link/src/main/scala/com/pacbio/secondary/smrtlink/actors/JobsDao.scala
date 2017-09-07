@@ -847,6 +847,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   private def getDataSetMetaDataSet(id: IdAble): Future[Option[DataSetMetaDataSet]] =
     db.run(qDsMetaDataById(id).result.headOption)
 
+  def getDataSetMetaData(id: IdAble): Future[DataSetMetaDataSet] =
+    getDataSetMetaDataSet(id).flatMap(failIfNone(s"Unable to find dataset with ID ${id.toIdString}"))
+
   // removes a query that seemed like it was potentially nested based on race condition with executor
   private def getDataSetMetaDataSetBlocking(uuid: UUID): Option[DataSetMetaDataSet] =
     Await.result(getDataSetMetaDataSet(uuid), 23456 milliseconds)

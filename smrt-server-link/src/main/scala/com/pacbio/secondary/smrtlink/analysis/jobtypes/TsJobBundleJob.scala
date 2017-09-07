@@ -20,7 +20,9 @@ case class TsJobBundleJobOptions(jobRoot: Path, manifest: TsJobManifest) extends
 
 }
 
-class TsJobBundleJob(opts: TsJobBundleJobOptions) extends BaseCoreJob(opts: TsJobBundleJobOptions) {
+class TsJobBundleJob(opts: TsJobBundleJobOptions)
+    extends BaseCoreJob(opts: TsJobBundleJobOptions)
+    with MockJobUtils {
 
   type Out = PacBioDataStore
   val jobTypeId = JobTypeIds.TS_JOB

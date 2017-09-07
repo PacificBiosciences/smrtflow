@@ -456,6 +456,15 @@ class ExportDataSetsJobsService(override val dao: JobsDao, override val authenti
   override def jobTypeId = JobTypeIds.EXPORT_DATASETS
 }
 
+class ExportJobsService(override val dao: JobsDao,
+                        override val authenticator: Authenticator,
+                        override val config: SystemJobConfig)
+                       (implicit val um: Unmarshaller[ExportSmrtLinkJobOptions],
+                        implicit val sm: Marshaller[ExportSmrtLinkJobOptions],
+                        implicit val jwriter: JsonWriter[ExportSmrtLinkJobOptions]) extends CommonJobsRoutes[ExportSmrtLinkJobOptions] {
+  override def jobTypeId = JobTypeIds.EXPORT_JOBS
+}
+
 class ImportBarcodeFastaJobsService(override val dao: JobsDao, override val authenticator: Authenticator, override val config: SystemJobConfig)(implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions], implicit val sm: Marshaller[ImportBarcodeFastaJobOptions], implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions]) extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
 }
@@ -595,6 +604,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     new DeleteDataSetJobsService(dao, authenticator, config),
     new DeleteSmrtLinkJobsService(dao, authenticator, config),
     new ExportDataSetsJobsService(dao, authenticator, config),
+    new ExportJobsService(dao, authenticator, config),
     new HelloWorldJobsService(dao, authenticator, config),
     new ImportBarcodeFastaJobsService(dao, authenticator, config),
     new ImportDataSetJobsService(dao, authenticator, config),

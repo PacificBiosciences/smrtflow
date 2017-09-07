@@ -1,4 +1,4 @@
-package com.pacbio.secondary.smrtlink.tools
+package com.pacbio.secondary.smrtlink.client
 
 import fommil.sjs.FamilyFormats
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
@@ -6,6 +6,8 @@ import shapeless.{Typeable, cachedImplicit}
 import spray.json._
 
 object ApiManagerJsonProtocols extends DefaultJsonProtocol with FamilyFormats {
+
+  import Wso2Models._
 
   // client reg
   implicit val clientRegistrationRequestFormat = jsonFormat6(ClientRegistrationRequest)
