@@ -147,8 +147,7 @@ abstract class DataSetExporter(zipPath: Path)
   protected def writeResourceFile(destPath: Path,
                                   res: InputOutputDataType,
                                   basePath: Path,
-                                  archiveRootPath: Option[Path],
-                                  ignoreMissing: Boolean = false): Long = {
+                                  archiveRootPath: Option[Path]): Long = {
     val rid = res.getResourceId
     val uri = URI.create(rid.replaceAll(" ", "%20"))
     val rawPath = if (uri.getScheme == null) Paths.get(rid) else Paths.get(uri)
@@ -159,11 +158,8 @@ abstract class DataSetExporter(zipPath: Path)
     }
     if (! resourcePath.toFile.exists) {
       val msg = s"resource ${resourcePath.toString} is missing"
-      if (ignoreMissing) {
-        logger.error(msg); 0L
-      } else {
-        throw new Exception(msg)
-      }
+      logger.error(msg)
+      throw new IOException(msg)
     } else {
       val paths = relativizeResourcePath(rawPath, basePath, destPath, archiveRootPath)
       val (finalPath, resourceDestPath) = (paths._1.toString, paths._2.toString)
@@ -182,15 +178,14 @@ abstract class DataSetExporter(zipPath: Path)
                                dsPath: Path,
                                dsOutPath: String,
                                dsType: DataSetMetaTypes.DataSetMetaType,
-                               archiveRootPath: Option[Path],
-                               skipMissingFiles: Boolean): Long = {
+                               archiveRootPath: Option[Path]): Long = {
     val basePath = dsPath.getParent
     val destPath = Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
     val resources = getResources(ds)
     val nbytes: Long = resources.map { er =>
-      writeResourceFile(destPath, er, basePath, archiveRootPath, skipMissingFiles)
+      writeResourceFile(destPath, er, basePath, archiveRootPath)
     }.sum
     DataSetWriter.writeDataSet(dsType, ds, dsTmp)
     writeFile(dsTmp, dsOutPath) + nbytes
@@ -199,10 +194,9 @@ abstract class DataSetExporter(zipPath: Path)
   protected def writeDataSet(dsPath: Path,
                              dsOutPath: Path,
                              dsType: DataSetMetaTypes.DataSetMetaType,
-                             archiveRootPath: Option[Path],
-                             skipMissingFiles: Boolean = false): Long = {
+                             archiveRootPath: Option[Path]): Long = {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
-    writeDataSetImpl(ds, dsPath, dsOutPath.toString, dsType, archiveRootPath, skipMissingFiles)
+    writeDataSetImpl(ds, dsPath, dsOutPath.toString, dsType, archiveRootPath)
   }
 
   /**
@@ -210,13 +204,11 @@ abstract class DataSetExporter(zipPath: Path)
    * generated from the UUID and base file name.
    */
   protected def writeDataSetAuto(dsPath: Path,
-                                 dsType: DataSetMetaTypes.DataSetMetaType,
-                                 skipMissingFiles: Boolean = false): Long = {
+                                 dsType: DataSetMetaTypes.DataSetMetaType): Long = {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
-    writeDataSetImpl(ds, dsPath, dsOutPath, dsType, None,
-                     skipMissingFiles = skipMissingFiles)
+    writeDataSetImpl(ds, dsPath, dsOutPath, dsType, None)
   }
 }
 
@@ -225,10 +217,9 @@ class ExportDataSets(zipPath: Path) extends DataSetExporter(zipPath)
 object ExportDataSets extends LazyLogging {
   def apply(datasets: Seq[Path],
             dsType: DataSetMetaTypes.DataSetMetaType,
-            zipPath: Path,
-            skipMissingFiles: Boolean = false): Long = {
+            zipPath: Path): Long = {
     val e = new ExportDataSets(zipPath)
-    val n = datasets.map(e.writeDataSetAuto(_, dsType, skipMissingFiles)).sum
+    val n = datasets.map(e.writeDataSetAuto(_, dsType)).sum
     e.close
     logger.info(s"wrote $n bytes")
     n

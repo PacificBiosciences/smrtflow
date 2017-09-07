@@ -148,9 +148,6 @@ class DataSetExportSpec extends Specification with LazyLogging {
         val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath)
       }
       result.isSuccess must beFalse
-      // repeat with skipMissingFiles = true
-      val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath, true)
-      n must beGreaterThan(0L)
     }
     "Failure mode: wrong metatype" in {
       val url = getClass.getResource(ds)

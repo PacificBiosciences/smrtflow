@@ -85,7 +85,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
           if (haveFiles contains destPath.toString) {
             logger.warn(s"Skipping duplicate entry ${destPath.toString}"); 0L
           } else {
-            writeDataSet(path, destPath, m.metatype, Some(basePath), skipMissingFiles = true)
+            writeDataSet(path, destPath, m.metatype, Some(basePath))
           }
         }.getOrElse(exportFile(path, basePath))
       } else {
@@ -120,7 +120,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
           if (haveFiles contains op.toString) {
             logger.warn(s"Skipping duplicate entry ${op.toString}"); 0L
           } else {
-            writeDataSet(ep, op, m.metatype, None, skipMissingFiles = true)
+            writeDataSet(ep, op, m.metatype, None)
           }
         }.getOrElse(exportFile(op, Paths.get(""), Some(ep)))
       }
