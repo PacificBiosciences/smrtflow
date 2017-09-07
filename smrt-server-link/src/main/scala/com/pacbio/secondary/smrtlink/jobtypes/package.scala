@@ -197,7 +197,7 @@ package object jobtypes {
         case JobTypeIds.DB_BACKUP => jx.convertTo[DbBackUpJobOptions]
         case JobTypeIds.DELETE_DATASETS => jx.convertTo[DeleteDataSetJobOptions]
         case JobTypeIds.EXPORT_DATASETS => jx.convertTo[ExportDataSetsJobOptions]
-        case JobTypeIds.EXPORT_JOBS => jx.convertTo[ExportAnalysisJobOptions]
+        case JobTypeIds.EXPORT_JOBS => jx.convertTo[ExportSmrtLinkJobOptions]
         case JobTypeIds.CONVERT_FASTA_BARCODES => jx.convertTo[ImportBarcodeFastaJobOptions]
         case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
         case JobTypeIds.CONVERT_FASTA_REFERENCE => jx.convertTo[ImportFastaJobOptions]

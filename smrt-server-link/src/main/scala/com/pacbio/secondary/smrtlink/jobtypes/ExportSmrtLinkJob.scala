@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
 
-case class ExportAnalysisJobOptions(ids: Seq[IdAble],
+case class ExportSmrtLinkJobOptions(ids: Seq[IdAble],
                                     outputPath: Path,
                                     includeEntryPoints: Boolean,
                                     name: Option[String],
@@ -35,7 +35,7 @@ case class ExportAnalysisJobOptions(ids: Seq[IdAble],
                                     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID)) extends ServiceJobOptions with ValidateJobUtils {
 
   override def jobTypeId = JobTypeIds.EXPORT_JOBS
-  override def toJob() = new ExportAnalysisJob(this)
+  override def toJob() = new ExportSmrtLinkJob(this)
 
   def validateJobIds(dao: JobsDao, jobIds: Seq[IdAble]): Future[Seq[UUID]] =
     Future.sequence(jobIds.map(dao.getJobById(_).map(_.uuid)))
@@ -47,13 +47,13 @@ case class ExportAnalysisJobOptions(ids: Seq[IdAble],
       _ <- validateJobIds(dao, ids)
     } yield None
 
-    val f2 = f.recover {case NonFatal(ex) => Some(InvalidJobOptionError(s"Invalid ExportAnalysisJob options ${ex.getMessage}"))}
+    val f2 = f.recover {case NonFatal(ex) => Some(InvalidJobOptionError(s"Invalid ExportSmrtLinkJob options ${ex.getMessage}"))}
 
     Await.result(f2, DEFAULT_TIMEOUT)
   }
 }
 
-class ExportAnalysisJob(opts: ExportAnalysisJobOptions)
+class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
     with timeUtils {

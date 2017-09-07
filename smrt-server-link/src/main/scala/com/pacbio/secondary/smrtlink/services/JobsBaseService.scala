@@ -459,9 +459,9 @@ class ExportDataSetsJobsService(override val dao: JobsDao, override val authenti
 class ExportJobsService(override val dao: JobsDao,
                         override val authenticator: Authenticator,
                         override val config: SystemJobConfig)
-                       (implicit val um: Unmarshaller[ExportAnalysisJobOptions],
-                        implicit val sm: Marshaller[ExportAnalysisJobOptions],
-                        implicit val jwriter: JsonWriter[ExportAnalysisJobOptions]) extends CommonJobsRoutes[ExportAnalysisJobOptions] {
+                       (implicit val um: Unmarshaller[ExportSmrtLinkJobOptions],
+                        implicit val sm: Marshaller[ExportSmrtLinkJobOptions],
+                        implicit val jwriter: JsonWriter[ExportSmrtLinkJobOptions]) extends CommonJobsRoutes[ExportSmrtLinkJobOptions] {
   override def jobTypeId = JobTypeIds.EXPORT_JOBS
 }
 

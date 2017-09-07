@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions, ExportAnalysisJobOptions}
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions, ExportSmrtLinkJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 
 
@@ -642,7 +642,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
                  description: Option[String] = None) = runJobPipeline {
     logger.debug("Submitting export-jobs job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
-         ExportAnalysisJobOptions(jobIds, outputPath, includeEntryPoints, name, description))
+         ExportSmrtLinkJobOptions(jobIds, outputPath, includeEntryPoints, name, description))
   }
 
   def getAlarms() = getAlarmsPipeline {Get(toUrl(ROOT_ALARMS))}
