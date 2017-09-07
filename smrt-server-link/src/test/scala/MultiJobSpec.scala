@@ -6,7 +6,25 @@ import org.specs2.mutable.Specification
 import org.joda.time.{DateTime => JodaDateTime}
 
 
-// Take a test driven development approach here.
+// Take a test driven development approach here to sketch out the basic idea.
+
+/**
+  * Take a test driven development-ish approach here to sketch out the basic idea. Specifically, these three items.
+  *
+  * 1. create a engine data model that has a "workflow" that will contain the data/state of the multi-job (in the dat
+  * 2. create a simple example to demonstrate the model
+  * 3. Add an example Multi-Job runner/executor
+  *
+  * Real todo items:
+  *
+  * - Add workflow:JsObject and isMultiJob: Boolean to Engine table in db
+  * - Create new MultiJob model, add filters on isMultiJob to make sure existing "EngineJob" usage isn't changing
+  * - Add new job-manager/multi-jobs/ endpoint for Multi-Job job types
+  * - Add hello world multi-job (migrated/borrowed from the model described in the test below)
+  * - Add EngineMultiJobManager. This will periodicially search for MultiJobs in a non-terminal state and "run" them and update the state in the db
+  * - Add Multi-Job case for the barcoding usecase (e.g., Wait for SubreadSets alpha, beta, gamma, then create N analysis/pbsmrtpipe "core" jobs
+  *
+  */
 object Utils extends LazyLogging{
 
   // Testing data
