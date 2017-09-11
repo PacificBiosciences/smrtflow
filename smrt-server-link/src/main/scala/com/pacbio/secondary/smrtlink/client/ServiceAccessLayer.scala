@@ -31,7 +31,7 @@ import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDa
 import com.pacbio.secondary.smrtlink.models._
 
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL)
+class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
     (implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with ServiceEndpointConstants
@@ -42,8 +42,15 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
-  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port))(actorSystem)
+  val headers = authUser
+    .map(u => "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
+    .map(c => Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
+    .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
+    .toSeq
+
+  def this(host: String, port: Int, authUser: Option[String] = None)
+          (implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
   }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
@@ -390,19 +397,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL)
   }
 
   def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ROOT_PROJECTS))
+    Get(toUrl(ROOT_PROJECTS)).withHeaders(headers:_*)
   }
 
   def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ROOT_PROJECTS + s"/$projectId"))
+    Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers:_*)
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None))
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None)).withHeaders(headers:_*)
   }
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
-    Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
+    Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request).withHeaders(headers:_*)
   }
 
   // User agreements (not really a EULA)
