@@ -196,9 +196,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Expected four task_status events") IF jobEvents.mapWith(_.count(_.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS)) !=? 4,
     fail("Expected three SUCCESSFUL events") IF jobEvents.mapWith(_.count(_.state == AnalysisJobStates.SUCCESSFUL)) !=? 3,
     // Export job(s)
-    jobId := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
+    jobId2 := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
     WaitForSuccessfulJob(jobId),
-    dataStore := GetAnalysisJobDataStore(jobId),
+    dataStore := GetAnalysisJobDataStore(jobId2),
     fail("Expected two files in datastore") IF dataStore.mapWith(_.size) !=? 2,
     fail("Expected one ZIP file in datastore") IF dataStore.mapWith { ds =>
       Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path).toFile.isFile
@@ -233,10 +233,11 @@ class PbsmrtpipeScenario(host: String, port: Int)
     job := GetJob(jobId),
     jobId2 := DeleteJob(jobId, Var(true)),
     jobStatus := WaitForJob(jobId2),
-    // fail("Expected original job to be returned") IF jobId2 !=? jobId, //MK I don't understand why the job to be deleted is returned.
-    jobId := DeleteJob(jobId, Var(false)),
+    fail(s"Delete job ${jobId2} failed with dryRun=true") IF jobStatus !=? EXIT_SUCCESS,
+    jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail(s"Delete job ${jobId} failed") IF jobStatus !=? EXIT_SUCCESS,
+    jobReports := GetAnalysisJobReports(job.mapWith(_.uuid)),
     fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
     fail(s"Datastore files for ${job.mapWith(_.id)} Expected isActive=false") IF dataStore.mapWith(_.count(f => f.isActive)) !=? 0,
