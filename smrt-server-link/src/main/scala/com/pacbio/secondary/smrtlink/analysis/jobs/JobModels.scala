@@ -225,9 +225,9 @@ object JobModels {
     // This really shouldn't be private
     val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
-                  EXPORT_DATASETS, IMPORT_DATASET,
+                  EXPORT_DATASETS, IMPORT_DATASET, EXPORT_JOBS,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
+                  SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
 
     def fromString(s: String):Option[JobType] =
       ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
