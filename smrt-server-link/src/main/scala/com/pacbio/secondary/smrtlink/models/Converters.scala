@@ -32,8 +32,19 @@ object Converters {
   val DEFAULT_BSAMPLE_NAME = UNKNOWN
   val DEFAULT_CELL_ID = UNKNOWN
   val DEFAULT_INST_CTL_VERSION = UNKNOWN
+  val MULTIPLE_BSAMPLES_NAME = "[multiple]"
 
   def toMd5(text: String): String = MessageDigest.getInstance("MD5").digest(text.getBytes).map("%02x".format(_)).mkString
+
+  private def getBioSampleName(ds: ReadSetType): String = {
+    Try {
+      Option(ds.getDataSetMetadata.getBioSamples.getBioSample).map { s =>
+        if (s.length == 1) s.head.getName
+        else if (s.length > 1) MULTIPLE_BSAMPLES_NAME
+        else DEFAULT_BSAMPLE_NAME
+      } getOrElse DEFAULT_BSAMPLE_NAME
+    } getOrElse DEFAULT_BSAMPLE_NAME
+  }
 
   def convert(dataset: SubreadSet, path: Path, createdBy: Option[String], jobId: Int, projectId: Int): SubreadServiceDataSet = {
     // this is not correct, but the timestamps are often written correctly
@@ -62,7 +73,9 @@ object Converters {
     val instrumentName = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstrumentName).getOrElse(DEFAULT_INST) } getOrElse DEFAULT_INST
     val instrumentControlVersion = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstCtrlVer).getOrElse(DEFAULT_INST_CTL_VERSION)} getOrElse(DEFAULT_INST_CTL_VERSION)
 
-    val bioSampleName = Try { Option(dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getName).getOrElse(DEFAULT_BSAMPLE_NAME) } getOrElse DEFAULT_BSAMPLE_NAME
+    // This one is slightly messier because we need to handle the case of
+    // multiple bio samples
+    val bioSampleName = getBioSampleName(dataset)
 
     val cellId = Try { Option(dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getCellPac.getBarcode).getOrElse(DEFAULT_CELL_ID)}.getOrElse(DEFAULT_CELL_ID)
 
@@ -114,7 +127,7 @@ object Converters {
     val contextId = Try { dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getContext } getOrElse UNKNOWN
     val instrumentName = Try { dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstrumentName } getOrElse UNKNOWN
 
-    val bioSampleName = Try { dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getName } getOrElse UNKNOWN
+    val bioSampleName = getBioSampleName(dataset)
 
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords} getOrElse 0
     val totalLength = Try {dataset.getDataSetMetadata.getTotalLength } getOrElse 0L

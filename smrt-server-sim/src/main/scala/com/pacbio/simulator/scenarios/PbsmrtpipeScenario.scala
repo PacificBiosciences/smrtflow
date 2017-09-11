@@ -232,6 +232,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     jobId2 := DeleteJob(jobId, Var(true)),
+    jobStatus := WaitForJob(jobId2),
     // fail("Expected original job to be returned") IF jobId2 !=? jobId, //MK I don't understand why the job to be deleted is returned.
     jobId := DeleteJob(jobId, Var(false)),
     jobStatus := WaitForJob(jobId),
