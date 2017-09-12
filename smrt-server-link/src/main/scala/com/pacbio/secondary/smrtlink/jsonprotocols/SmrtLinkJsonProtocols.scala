@@ -234,7 +234,7 @@ trait SmrtLinkJsonProtocols
 
   // TODO(smcclellan): We should fix this by having pacbio-secondary import formats from base-smrt-server.
   // These should be acquired by mixing in SecondaryJobJsonProtocol, but we can't because of JodaDateTimeFormat collisions.
-  implicit val engineJobFormat = SecondaryJobProtocols.EngineJobFormat
+  implicit val engineJobFormat = SecondaryJobProtocols.engineJobFormat
   implicit val engineConfigFormat = SecondaryJobProtocols.engineConfigFormat
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
@@ -243,7 +243,7 @@ trait SmrtLinkJsonProtocols
   implicit val simpleDevJobOptionsFormat  = SecondaryJobProtocols.simpleDevJobOptionsFormat
 
 
-  implicit val jobTypeFormat = jsonFormat2(JobTypeEndPoint)
+  implicit val jobTypeFormat = jsonFormat4(JobTypeEndPoint)
 
   // Jobs
   implicit val pbSimpleStatusFormat = jsonFormat3(SimpleStatus)

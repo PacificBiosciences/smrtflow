@@ -280,9 +280,9 @@ case class RegistryProxyRequest(path: String, method: String, data: Option[Array
 // This is terse Status message used in sub-component endpoints root/my-endpoints/status
 case class SimpleStatus(id: String, msg: String, uptime: Long)
 
-case class JobTypeEndPoint(jobTypeId: String, description: String) {
-  def globalId = s"jobtypes-$jobTypeId"
-}
+// This is a little wrong to generalize by Job type, each job instance needs to have a isQuick (e.g., Fasta converter).
+case class JobTypeEndPoint(jobTypeId: String, description: String, isQuick: Boolean, isMultiJob: Boolean)
+
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
@@ -913,3 +913,22 @@ case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: Strin
 case class TsSystemStatusServiceOptions(user: String, comment: String)
 
 case class DbBackUpServiceJobOptions(user: String, comment: String)
+
+// Multi Job Options
+
+// Because this is a deferred entity, this must only be a UUID, not IdAble
+case class DeferredEntryPoint(fileTypeId: String, uuid: UUID, entryId: String)
+
+// This is explicitly encoded to enable the client
+// to specify different Task Options, job name, an so on. for each
+// Job that is created
+// Note that each list of entry points provided must be consistent with
+// the pipeline template provided by pipelineId.
+case class DeferredJob(entryPoints: Seq[DeferredEntryPoint],
+                       pipelineId: String,
+                       taskOptions: Seq[ServiceTaskOptionBase],
+                       workflowOptions: Seq[ServiceTaskOptionBase],
+                       name: Option[String],
+                       description: Option[String],
+                       projectId: Option[Int]
+                      )

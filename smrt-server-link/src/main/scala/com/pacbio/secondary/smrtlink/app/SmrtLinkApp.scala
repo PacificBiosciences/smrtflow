@@ -59,7 +59,9 @@ trait SmrtLinkProviders extends
   ReportViewRulesResourceProvider with
   ReportViewRulesServiceProvider with
   JobsServiceProvider with
-  EngineManagerActorProvider{
+  EngineCoreJobManagerActorProvider with
+  EngineMultiJobManagerActorProvider
+{
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
   override val actorSystemName = Some("smrtlink-analysis-server")
@@ -82,6 +84,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
     val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
     val engineManagerActor = providers.engineManagerActor()
+    val engineMultiJobManagerActor = providers.engineMultiJobManagerActor()
 
     // Setup Quartz Schedule
     // ALl the cron-esque tasks in SL should be folded back here

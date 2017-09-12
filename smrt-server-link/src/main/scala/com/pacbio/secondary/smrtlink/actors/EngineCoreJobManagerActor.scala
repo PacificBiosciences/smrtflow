@@ -26,7 +26,7 @@ import scala.util.{Failure, Success, Try}
   *
   * Adding some hacks to adhere to the JobsDaoActor interface and get the code to compile
   */
-class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:SystemJobConfig) extends Actor with ActorLogging {
+class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:SystemJobConfig) extends Actor with ActorLogging {
 
   import CommonModelImplicits._
 
@@ -116,7 +116,7 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
 
     if (workerQueue.nonEmpty) {
       for {
-        engineJobOrNoWork <- dao.getNextRunnableEngineJob(isQuick)
+        engineJobOrNoWork <- dao.getNextRunnableEngineCoreJob(isQuick)
         msg <- workerToFuture(engineJobOrNoWork)
       } yield engineJobOrNoWork
     } else {
@@ -146,13 +146,13 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
     log.info(s"Starting engine manager actor $self with $config")
 
     (0 until config.numQuickWorkers).foreach { x =>
-      val worker = context.actorOf(QuickEngineWorkerActor.props(self, serviceRunner), s"engine-quick-worker-$x")
+      val worker = context.actorOf(QuickEngineCoreJobWorkerActor.props(self, serviceRunner), s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.info(s"Creating Quick worker $worker")
     }
 
     (0 until config.numGeneralWorkers).foreach { x =>
-      val worker = context.actorOf(EngineWorkerActor.props(self, serviceRunner), s"engine-worker-$x")
+      val worker = context.actorOf(EngineCoreJobWorkerActor.props(self, serviceRunner), s"engine-worker-$x")
       workers.enqueue(worker)
       log.info(s"Creating worker $worker")
     }
@@ -201,10 +201,10 @@ class EngineManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:Sys
   }
 }
 
-trait EngineManagerActorProvider {
+trait EngineCoreJobManagerActorProvider {
   this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
 
   val engineManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EngineManagerActor], jobsDao(), jobResolver(), systemJobConfig()), "EngineManagerActor"))
+    Singleton(() => actorRefFactory().actorOf(Props(classOf[EngineCoreJobManagerActor], jobsDao(), jobResolver(), systemJobConfig()), "EngineCoreJobManagerActor"))
 }
 

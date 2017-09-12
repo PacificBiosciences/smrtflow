@@ -64,7 +64,7 @@ with JobServiceConstants with TestUtils {
   val totalRoutes = TestProviders.routes()
   val eventManagerActorX = TestProviders.eventManagerActor()
 
-  def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
+  def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: Int) = s"${toJobType(x)}/$i"
   def toJobTypeByIdWithRest(x: String, i: Int, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 

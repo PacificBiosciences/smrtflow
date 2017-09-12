@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.jsonprotocols
 
 import com.pacbio.secondary.smrtlink.jobtypes._
+import com.pacbio.secondary.smrtlink.models.{DeferredEntryPoint, DeferredJob}
 import fommil.sjs.FamilyFormats
 import spray.json.DefaultJsonProtocol
 
@@ -35,6 +36,14 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
 
   implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat5(TsSystemStatusBundleJobOptions)
   implicit val techSupportJobBundleJobOptionsFormat = jsonFormat6(TsJobBundleJobOptions)
+
+  implicit val helloWorldMultiJobOptionsFormat = jsonFormat4(HelloWorldMultiJobOptions)
+
+  implicit val entryPointDeferredJobFormat = jsonFormat3(DeferredEntryPoint)
+  implicit val deferredJobFormat = jsonFormat7(DeferredJob)
+  implicit val multiAnalysisJobOptionsFormat = jsonFormat4(MultiAnalysisJobOptions)
+
+
 
 
 

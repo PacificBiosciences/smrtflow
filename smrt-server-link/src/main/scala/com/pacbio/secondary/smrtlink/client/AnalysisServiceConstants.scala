@@ -7,17 +7,17 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
   */
 
 trait ServiceEndpointConstants extends JobServiceConstants {
-  val ROOT_JM = s"/$ROOT_SERVICE_PREFIX/$JOB_MANAGER_PREFIX"
+  val ROOT_JM = s"/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX"
   val ROOT_JOBS = s"$ROOT_JM/$JOB_ROOT_PREFIX"
-  val ROOT_DS = s"/$ROOT_SERVICE_PREFIX/datasets"
-  val ROOT_DATASTORE = s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX"
-  val ROOT_PROJECTS = s"/$ROOT_SERVICE_PREFIX/projects"
+  val ROOT_DS = s"/$ROOT_SA_PREFIX/datasets"
+  val ROOT_DATASTORE = s"/$ROOT_SA_PREFIX/$DATASTORE_FILES_PREFIX"
+  val ROOT_PROJECTS = s"/$ROOT_SA_PREFIX/projects"
   val ROOT_SERVICE_MANIFESTS = "/services/manifests" // keeping with the naming convention
   val ROOT_EULA = "/smrt-base/eula"
-  val ROOT_PT = s"/$ROOT_SERVICE_PREFIX/resolved-pipeline-templates"
-  val ROOT_PTRULES = s"/$ROOT_SERVICE_PREFIX/pipeline-template-view-rules"
-  val ROOT_REPORT_RULES = s"/$ROOT_SERVICE_PREFIX/report-view-rules"
-  val ROOT_DS_RULES = s"/$ROOT_SERVICE_PREFIX/pipeline-datastore-view-rules"
+  val ROOT_PT = s"/$ROOT_SA_PREFIX/resolved-pipeline-templates"
+  val ROOT_PTRULES = s"/$ROOT_SA_PREFIX/pipeline-template-view-rules"
+  val ROOT_REPORT_RULES = s"/$ROOT_SA_PREFIX/report-view-rules"
+  val ROOT_DS_RULES = s"/$ROOT_SA_PREFIX/pipeline-datastore-view-rules"
   // Not sure where this should go
   val TERMINATE_JOB = "terminate"
 

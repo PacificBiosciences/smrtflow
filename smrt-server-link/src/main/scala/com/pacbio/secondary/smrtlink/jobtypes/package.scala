@@ -208,6 +208,8 @@ package object jobtypes {
         case JobTypeIds.DELETE_JOB => jx.convertTo[DeleteSmrtLinkJobOptions]
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS => jx.convertTo[TsSystemStatusBundleJobOptions]
+        case JobTypeIds.MJOB_HELLO_WORLD => jx.convertTo[HelloWorldMultiJobOptions]
+        case JobTypeIds.MJOB_MULTI_ANALYSIS => jx.convertTo[HelloWorldMultiJobOptions]
       }
     }
   }

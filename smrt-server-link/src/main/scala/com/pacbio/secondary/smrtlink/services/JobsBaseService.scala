@@ -146,12 +146,22 @@ trait CommonJobsRoutes[T <: ServiceJobOptions] extends SmrtLinkBaseMicroService 
 
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
+
+    def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
+      if (opts.jobTypeId.isMultiJob) {
+        dao.createMultiJob(uuid, name, comment, opts.jobTypeId, epoints, jsettings, user.map(_.userId),
+          user.flatMap(_.userEmail), config.smrtLinkVersion, projectId)
+      } else {
+        dao.createCoreJob(uuid, name, comment, opts.jobTypeId, epoints, jsettings, user.map(_.userId),
+          user.flatMap(_.userEmail),
+          config.smrtLinkVersion, projectId)
+      }
+    }
+
     for {
       vopts <- validator(opts, user) // This will fail the Future if any validation errors occur.
       entryPoints <- Future(vopts.resolveEntryPoints(dao))
-      engineJob <- dao.createJob2(uuid, name, comment, vopts.jobTypeId, entryPoints, jsettings, user.map(_.userId),
-        user.flatMap(_.userEmail),
-        config.smrtLinkVersion, projectId)
+      engineJob <- creator(entryPoints)
     } yield engineJob
   }
 
@@ -567,6 +577,27 @@ class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticat
 
 }
 
+
+// Multi Jobs
+class MultiHelloWorldJobsService(override val dao: JobsDao,
+                                 override val authenticator: Authenticator,
+                                 override val config: SystemJobConfig)
+                                (implicit val um: Unmarshaller[HelloWorldMultiJobOptions],
+                                 implicit val sm: Marshaller[HelloWorldMultiJobOptions],
+                                 implicit val jwriter: JsonWriter[HelloWorldMultiJobOptions]) extends CommonJobsRoutes[HelloWorldMultiJobOptions] {
+  override def jobTypeId = JobTypeIds.MJOB_HELLO_WORLD
+}
+
+class MultiAnalysisJobService(override val dao: JobsDao,
+                                 override val authenticator: Authenticator,
+                                 override val config: SystemJobConfig)
+                                (implicit val um: Unmarshaller[MultiAnalysisJobOptions],
+                                 implicit val sm: Marshaller[MultiAnalysisJobOptions],
+                                 implicit val jwriter: JsonWriter[MultiAnalysisJobOptions]) extends CommonJobsRoutes[MultiAnalysisJobOptions] {
+  override def jobTypeId = JobTypeIds.MJOB_MULTI_ANALYSIS
+}
+
+
 /**
   * This is factor-ish util to Adhere to the current SL System design.
   *
@@ -589,6 +620,11 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     toServiceId("new_job_service"),
     "New Job Service",
     "0.1.0", "New Job Service")
+
+  def getServiceMultiJobs(): Seq[JobServiceRoutes] = Seq(
+    new MultiHelloWorldJobsService(dao, authenticator, config),
+    new MultiAnalysisJobService(dao, authenticator, config)
+  )
 
   def getServiceJobs():Seq[JobServiceRoutes] = Seq(
     new DbBackupJobsService(dao, authenticator, config),
@@ -653,7 +689,7 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     }
 
   def getJobTypesRoute(jobTypes: Seq[JobTypeIds.JobType]): Route = {
-    val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description))
+    val jobTypeEndPoints = jobTypes.map(x => JobTypeEndPoint(x.id, x.description, x.isQuick, x.isMultiJob))
 
     pathPrefix(JOB_TYPES_PREFIX) {
       pathEndOrSingleSlash {
@@ -666,33 +702,55 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     }
   }
 
+  /**
+    * This is a bit sloppy and could be cleaned up. The model is to have a single factory-ish func to return
+    * a complete list of routes that already prefixed correctly.
+    *
+    * @return
+    */
   def getServiceJobRoutes(): Route = {
 
     // This will NOT be wrapped in a job-type prefix
-    val nakedJob = new NakedNoTypeJobsService(dao, authenticator, config)
+    val nakedCoreJob = new NakedNoTypeJobsService(dao, authenticator, config)
 
     // These will be wrapped with the a job-type-id specific prefix
-    val jobs = getServiceJobs()
+    val coreJobs = getServiceJobs()
+    val multiJobs = getServiceMultiJobs()
 
+    val allJobTypeIds = coreJobs.map(_.jobTypeId) ++ multiJobs.map(_.jobTypeId)
+
+    /** Job Type Endpoints **/
+    // Total List (core+multi jobs) of JobTypeEndPoints
     // Unprefix Job (Meta) Type routes for each registered Job type
-    val jobTypeRoutes:Route = getJobTypesRoute(jobs.map(_.jobTypeId))
+    val jobTypeRoutes:Route = getJobTypesRoute(allJobTypeIds)
+    val prefixedJobTypeRoutes = pathPrefix(ROOT_SA_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes} ~  pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes}
 
-    // Create all Job Routes with <job-type-id> prefix
-    val rx = jobs.map(j => pathPrefix(j.jobTypeId.id) {j.routes}).reduce(_ ~ _)
+    /** Core Jobs **/
+    // Create all Core Job Routes with <job-type-id> prefix
+    val coreJobsPrefixedByType = coreJobs.map(j => pathPrefix(j.jobTypeId.id) {j.routes}).reduce(_ ~ _)
 
-    val allJobRoutes:Route = nakedJob.allIdAbleJobRoutes ~ rx
+    val allCoreJobRoutes:Route = nakedCoreJob.allIdAbleJobRoutes ~ coreJobsPrefixedByType
 
-    val prefixedJobTypeRoutes = pathPrefix(ROOT_SERVICE_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes} ~  pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX) {jobTypeRoutes}
+    /** MultiJob **/
+    // Create all Multi Job Routes with <job-type-id> prefix
+    val multiJobsPrefixedByType = multiJobs.map(j => pathPrefix(j.jobTypeId.id) {j.routes}).reduce(_ ~ _)
 
-    def jobWrap(jobRoutes: Route): Route = pathPrefix(ROOT_SERVICE_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes }
+    //FIXME (mpkocher)(2017-9-11) We really can't reuse these core job route types for the multi-job model
+    val allMultiJobRoutes:Route = nakedCoreJob.allIdAbleJobRoutes ~ multiJobsPrefixedByType
 
-    // Misc DataStore routes. This should probable migrated to a cleaner subroute.
-
-    val prefixedDataStoreFileRoutes = pathPrefix(ROOT_SERVICE_PREFIX) {datastoreRoute()} ~ pathPrefix(ROOT_SL_PREFIX) {datastoreRoute()}
-
+    /** Utils to Wrap **/
     // These need to be prefixed with secondary-analysis as well
     // Keep the backward compatibility of /smrt-link/ and /secondary-analysis root prefix
-    prefixedJobTypeRoutes ~ jobWrap(allJobRoutes) ~ jobWrap(rx) ~ prefixedDataStoreFileRoutes
+    def wrapWithJobPrefix(jobRoutes: Route): Route = pathPrefix(ROOT_SA_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX / JOB_ROOT_PREFIX) { jobRoutes }
+
+    def wrapWithMultiJobPrefix(jobRoutes: Route): Route = pathPrefix(ROOT_SA_PREFIX / JOB_MANAGER_PREFIX / JOB_MULTI_ROOT_PREFIX) { jobRoutes } ~ pathPrefix(ROOT_SL_PREFIX / JOB_MANAGER_PREFIX / JOB_MULTI_ROOT_PREFIX) { jobRoutes }
+
+    /** Random datastore routes that are rooted in an odd prefixed location **/
+    // Misc DataStore routes. This should probable migrated to a cleaner subroute.
+    val prefixedDataStoreFileRoutes = pathPrefix(ROOT_SA_PREFIX) {datastoreRoute()} ~ pathPrefix(ROOT_SL_PREFIX) {datastoreRoute()}
+
+    /** Final Route list **/
+    prefixedJobTypeRoutes ~ wrapWithJobPrefix(allCoreJobRoutes) ~ wrapWithJobPrefix(coreJobsPrefixedByType) ~ prefixedDataStoreFileRoutes ~ wrapWithMultiJobPrefix(allMultiJobRoutes) ~ wrapWithMultiJobPrefix(multiJobsPrefixedByType)
   }
 
   override def routes: Route = getServiceJobRoutes()

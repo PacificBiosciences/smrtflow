@@ -78,12 +78,12 @@ with JobServiceConstants with TestUtils{
 
   "Smoke test for 'simple' job type" should {
     "Simple job should run" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple", record) ~> totalRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/job-manager/jobs/simple", record) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Get Simple types" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/simple") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/job-manager/jobs/simple") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }

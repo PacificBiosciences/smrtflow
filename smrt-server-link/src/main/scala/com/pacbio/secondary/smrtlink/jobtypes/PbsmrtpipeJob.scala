@@ -48,7 +48,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts) wit
 
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    val rootUpdateURL = new URL(s"http://${config.host}:${config.port}/$ROOT_SERVICE_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
+    val rootUpdateURL = new URL(s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
     // These need to be pulled from the System config
     val envPath: Option[Path] = None

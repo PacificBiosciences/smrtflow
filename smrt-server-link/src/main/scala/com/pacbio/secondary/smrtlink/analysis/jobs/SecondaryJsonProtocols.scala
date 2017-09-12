@@ -51,75 +51,6 @@ trait DataSetMetaTypesProtocol extends DefaultJsonProtocol {
 }
 
 
-// FIXME backwards compatibility for pbservice and older versions of smrtlink -
-// this should be eliminated in favor of the automatic protocol if and when
-// we can get away with it
-trait EngineJobProtocol
-    extends DefaultJsonProtocol
-    with UUIDJsonProtocol
-    with JodaDateTimeProtocol
-    with JobStatesJsonProtocol {
-
-  implicit object EngineJobFormat extends RootJsonFormat[EngineJob] {
-    def write(obj: EngineJob): JsObject = {
-      JsObject(
-        "id" -> JsNumber(obj.id),
-        "uuid" -> obj.uuid.toJson,
-        "name" -> JsString(obj.name),
-        "comment" -> JsString(obj.comment),
-        "createdAt" -> obj.createdAt.toJson,
-        "updatedAt" -> obj.updatedAt.toJson,
-        "state" -> obj.state.toJson,
-        "jobTypeId" -> JsString(obj.jobTypeId),
-        "path" -> JsString(obj.path),
-        "jsonSettings" -> JsString(obj.jsonSettings),
-        "createdBy" -> obj.createdBy.toJson,
-        "createdByEmail" -> obj.createdByEmail.toJson,
-        "smrtlinkVersion" -> obj.smrtlinkVersion.toJson,
-        "isActive" -> obj.isActive.toJson,
-        "errorMessage" -> obj.errorMessage.toJson,
-        "projectId" -> JsNumber(obj.projectId)
-      )
-    }
-
-    def read(value: JsValue): EngineJob = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("id", "uuid", "name", "comment", "createdAt", "updatedAt", "state", "jobTypeId", "path", "jsonSettings") match {
-        case Seq(JsNumber(id), JsString(uuid), JsString(name), JsString(comment), JsString(createdAt), JsString(updatedAt), JsString(state), JsString(jobTypeId), JsString(path), JsString(jsonSettings)) =>
-
-          def getBy(fieldName: String): Option[String] = {
-            jsObj.getFields(fieldName) match {
-              case Seq(JsString(aValue)) => Some(aValue)
-              case _ => None
-            }
-          }
-          val createdBy = getBy("createdBy")
-          val createdByEmail = getBy("createdByEmail")
-          val smrtlinkVersion = getBy("smrtlinkVersion")
-          val errorMessage = getBy("errorMessage")
-          val projectId = jsObj.getFields("projectId") match {
-            case Seq(JsNumber(pid)) => pid.toInt
-            case _ => JobConstants.GENERAL_PROJECT_ID
-          }
-
-          val isActive = jsObj.getFields("isActive") match {
-            case Seq(JsBoolean(b)) => b
-            case _ => true
-          }
-
-          EngineJob(id.toInt, UUID.fromString(uuid), name, comment,
-                    JodaDateTime.parse(createdAt),
-                    JodaDateTime.parse(updatedAt),
-                    AnalysisJobStates.toState(state).get,
-                    jobTypeId, path, jsonSettings,
-                    createdBy, createdByEmail, smrtlinkVersion,
-                    isActive, errorMessage, projectId)
-        case x => deserializationError(s"Expected EngineJob, got $x")
-      }
-    }
-  }
-}
-
 trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
 
   implicit object PipelineTemplateOptionFormat extends RootJsonFormat[PipelineBaseOption] {
@@ -489,7 +420,6 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
     with JodaDateTimeProtocol
     with UUIDJsonProtocol
     with JobStatesJsonProtocol
-    with EngineJobProtocol
     with DataSetMetaTypesProtocol
     with PipelineTemplateJsonProtocol
     with PipelineTemplatePresetJsonProtocol
@@ -499,6 +429,8 @@ trait JobTypeSettingProtocol extends DefaultJsonProtocol
 
 
   import JobModels._
+
+  implicit val engineJobFormat = jsonFormat19(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile)

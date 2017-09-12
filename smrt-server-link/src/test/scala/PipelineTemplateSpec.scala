@@ -35,7 +35,7 @@ class PipelineTemplateSpec extends Specification
   // The PT options/taskOptions are translated into JsonSchema compatible form
   "Service lists" should {
     "Get workflow Templates" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$workflowPrefix") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val pipelineTemplates = responseAs[List[PipelineTemplate]]
         pipelineTemplates.length must beGreaterThan(0)
@@ -43,7 +43,7 @@ class PipelineTemplateSpec extends Specification
       }
     }
     "Get Workflow template by id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix/$mockPipelineId") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$workflowPrefix/$mockPipelineId") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val rpt = responseAs[PipelineTemplate]
         rpt.id must beEqualTo(mockPipelineId)
@@ -58,13 +58,13 @@ class PipelineTemplateSpec extends Specification
     //      }
     //    }
     "Get Workflow template preset by workflow template id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix/$mockPipelineId/presets") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$workflowPrefix/$mockPipelineId/presets") ~> totalRoutes ~> check {
         //val templates = responseAs[List[PipelineTemplatePreset]]
         status.isSuccess must beTrue
       }
     }
     "Get Workflow template preset by workflow template preset id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$workflowPrefix/$mockPipelineId/presets/$mockPresetPipelineId") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$workflowPrefix/$mockPipelineId/presets/$mockPresetPipelineId") ~> totalRoutes ~> check {
         //val templates = responseAs[PipelineTemplatePreset]
         status.isSuccess must beFalse
       }
