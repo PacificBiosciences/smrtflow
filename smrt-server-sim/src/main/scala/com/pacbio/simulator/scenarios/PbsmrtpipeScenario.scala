@@ -197,7 +197,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Expected three SUCCESSFUL events") IF jobEvents.mapWith(_.count(_.state == AnalysisJobStates.SUCCESSFUL)) !=? 3,
     // Export job(s)
     jobId2 := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
-    WaitForSuccessfulJob(jobId),
+    WaitForSuccessfulJob(jobId2),
     dataStore := GetAnalysisJobDataStore(jobId2),
     fail("Expected two files in datastore") IF dataStore.mapWith(_.size) !=? 2,
     fail("Expected one ZIP file in datastore") IF dataStore.mapWith { ds =>
