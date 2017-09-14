@@ -21,6 +21,93 @@ import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
 
+class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
+
+  def toPaths(resource: String, basePath: String, destPath: String,
+              archiveRoot: Option[String]): (Path, Path) =
+    relativizeResourcePath(Paths.get(resource), Paths.get(basePath),
+                           Paths.get(destPath), archiveRoot.map(Paths.get(_)))
+
+  "Base functions" should {
+    "Relativize resource paths" in {
+      // relative, no archiveRoot
+      val (resource, dest) = toPaths("subreads.bam",
+                                     "/data/movie1",
+                                     "exported",
+                                     None)
+      resource.toString must beEqualTo("subreads.bam")
+      dest.toString must beEqualTo("exported/subreads.bam")
+      // relative with subdir, no archiveRoot
+      val (resource1, dest1) = toPaths("mydata/subreads.bam",
+                                       "/data/movie1",
+                                       "exported",
+                                       None)
+      resource1.toString must beEqualTo("mydata/subreads.bam")
+      dest1.toString must beEqualTo("exported/mydata/subreads.bam")
+      // relative, archiveRoot defined
+      val (resource2, dest2) = toPaths("subreads.bam",
+                                       "/data/movie1",
+                                       "movie1",
+                                       Some("/data"))
+      resource2.toString must beEqualTo("subreads.bam")
+      dest2.toString must beEqualTo("movie1/subreads.bam")
+      // absolute, no archiveRoot
+      val (resource3, dest3) = toPaths("/data/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "movie1",
+                                       None)
+      resource3.toString must beEqualTo("./data/barcodes/2.xml")
+      dest3.toString must beEqualTo("movie1/data/barcodes/2.xml")
+      // absolute, archiveRoot includes path
+      val (resource4, dest4) = toPaths("/data/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "exported/movie1",
+                                       Some("/data"))
+      resource4.toString must beEqualTo("../barcodes/2.xml")
+      dest4.toString must beEqualTo("barcodes/2.xml")
+      // absolute, archiveRoot does *not* include path
+      val (resource5, dest5) = toPaths("/data2/barcodes/2.xml",
+                                       "/data/movie1",
+                                       "movie1",
+                                       Some("/data"))
+      resource5.toString must beEqualTo("./data2/barcodes/2.xml")
+      dest5.toString must beEqualTo("movie1/data2/barcodes/2.xml")
+      // absolute, archiveRoot includes path
+      val (resource6, dest6) = toPaths("/data/jobs/1/tasks/task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "tasks/gather-1",
+                                       Some("/data/jobs/1"))
+      resource6.toString must beEqualTo("../task-1/subreads.bam")
+      dest6.toString must beEqualTo("tasks/task-1/subreads.bam")
+      // relative with parent dir, subdir of archiveRoot
+      val (resource7, dest7) = toPaths("../task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "tasks/gather-1",
+                                       Some("/data/jobs/1"))
+      resource7.toString must beEqualTo("../task-1/subreads.bam")
+      dest7.toString must beEqualTo("tasks/task-1/subreads.bam")
+      // relative with parent dir, *not* a subdir of archiveRoot
+      // FIXME This is probably going to break, although I do not think it
+      // is likely to happen in real-world uses like pbsmrtpipe job export
+      /*
+      val (resource8, dest8) = toPaths("../task-1/subreads.bam",
+                                       "/data/jobs/1/tasks/gather-1",
+                                       "exported",
+                                       Some("/data/jobs/1/tasks/gather-1"))
+      resource8.toString must beEqualTo("../task-1/subreads.bam")
+      dest8.toString must beEqualTo("task-1/subreads.bam")
+      */
+    }
+    "Get external resources from dataset" in {
+      val REF = "/dataset-references/example_reference_dataset/reference.dataset.xml"
+      val refXml = Paths.get(getClass.getResource(REF).getPath)
+      val ds = DataSetLoader.loadAndResolveReferenceSet(refXml)
+      val resources = getResources(ds)
+      resources.size must beEqualTo(5)
+    }
+  }
+}
+
 class DataSetExportSpec extends Specification with LazyLogging {
 
   sequential
@@ -35,7 +122,7 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val zipPath = Files.createTempFile("referencesets", ".zip")
       val dsType = DataSetMetaTypes.Reference
       val n = ExportDataSets(datasets, dsType, zipPath)
-      n must beGreaterThan(0)
+      n must beGreaterThan(0L)
     }
     "Run via jobs API" in {
       val url = getClass.getResource(ds)
@@ -61,9 +148,6 @@ class DataSetExportSpec extends Specification with LazyLogging {
         val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath)
       }
       result.isSuccess must beFalse
-      // repeat with skipMissingFiles = true
-      val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath, true)
-      n must beGreaterThan(0)
     }
     "Failure mode: wrong metatype" in {
       val url = getClass.getResource(ds)
@@ -81,6 +165,7 @@ class DataSetExportSpecAdvanced
     extends Specification
     with DataSetFileUtils
     with ExternalToolsUtils
+    with ExportUtils
     with LazyLogging {
   args(skipAll = !PacBioTestData.isAvailable)
 
@@ -94,7 +179,7 @@ class DataSetExportSpecAdvanced
   private def zipAndUnzip(ds: Path) = {
     val zipPath = Files.createTempFile("subreadsets", ".zip")
     val n = ExportDataSets(Seq(ds), DataSetMetaTypes.Subread, zipPath)
-    n must beGreaterThan(0)
+    n must beGreaterThan(0L)
     val uuid = getDataSetMiniMeta(ds).uuid
     FileUtils.deleteDirectory(ds.getParent.toFile)
     val dest = Files.createTempDirectory("subreads-extracted")
@@ -106,6 +191,23 @@ class DataSetExportSpecAdvanced
     resPaths.forall(Paths.get(_).isAbsolute) must beFalse
     val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
     ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
+  }
+
+  private def exportDataSets(dsIds: Seq[String],
+                             dsType: DataSetMetaTypes.DataSetMetaType) = {
+    val datasets = getData(dsIds)
+    val zipPath = Files.createTempFile("DataSets", ".zip")
+    val n = ExportDataSets(datasets, dsType, zipPath)
+    n must beGreaterThan(0L)
+  }
+
+  "Extract external resources from datasets" should {
+    "SubreadSet with scraps and stats xml" in {
+      val ds = PacBioTestData().getFile("subreads-sequel")
+      val subreads = DataSetLoader.loadAndResolveSubreadSet(ds)
+      val resources = getResources(subreads)
+      resources.size must beEqualTo(5)
+    }
   }
 
   "Export Datasets from PacBioTestData" should {
@@ -149,46 +251,26 @@ class DataSetExportSpecAdvanced
       zipAndUnzip(dsTmp)
     }
     "Generate ZIP file from multiple SubreadSets" in {
-      val datasets = getData(Seq("subreads-sequel", "subreads-xml"))
-      val zipPath = Files.createTempFile("subreadsets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("subreads-sequel", "subreads-xml"),
+                     DataSetMetaTypes.Subread)
     }
     "Export AlignmentSet" in {
-      val datasets = getData(Seq("aligned-ds-2"))
-      val zipPath = Files.createTempFile("alignmentsets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Alignment, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("aligned-ds-2"), DataSetMetaTypes.Alignment)
     }
     "Export ConsensusReadSet" in {
-      val datasets = getData(Seq("rsii-ccs"))
-      val zipPath = Files.createTempFile("ccssets", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.CCS, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("rsii-ccs"), DataSetMetaTypes.CCS)
     }
     "Export ConsensusAlignmentSet" in {
-      val datasets = getData(Seq("rsii-ccs-aligned"))
-      val zipPath = Files.createTempFile("ccsaligned", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.AlignmentCCS, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("rsii-ccs-aligned"), DataSetMetaTypes.AlignmentCCS)
     }
     "Export HdfSubreadSet" in {
-      val datasets = getData(Seq("hdfsubreads"))
-      val zipPath = Files.createTempFile("hdfsubreads", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.HdfSubread, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("hdfsubreads"), DataSetMetaTypes.HdfSubread)
     }
     "Export BarcodeSet" in {
-      val datasets = getData(Seq("barcodeset"))
-      val zipPath = Files.createTempFile("barcodes", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Barcode, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("barcodeset"), DataSetMetaTypes.Barcode)
     }
     "Export ContigSet" in {
-      val datasets = getData(Seq("contigset"))
-      val zipPath = Files.createTempFile("contigs", ".zip")
-      val n = ExportDataSets(datasets, DataSetMetaTypes.Contig, zipPath)
-      n must beGreaterThan(0)
+      exportDataSets(Seq("contigset"), DataSetMetaTypes.Contig)
     }
     "Export two SubreadSets that reference the same BarcodeSet" in {
       val pbdata = PacBioTestData()
@@ -219,7 +301,7 @@ class DataSetExportSpecAdvanced
       val datasets = Seq(subreadsTmp)
       val zipPath = Files.createTempFile("subreadsets", ".zip")
       val n = ExportDataSets(datasets, DataSetMetaTypes.Subread, zipPath)
-      n must beGreaterThan(0)
+      n must beGreaterThan(0L)
     }
   }
 }

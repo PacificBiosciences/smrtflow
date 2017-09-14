@@ -29,6 +29,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.pipelines._
 import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
@@ -54,6 +55,7 @@ object Modes {
   case object JOBS extends Mode {val name = "get-jobs"}
   case object TERMINATE_JOB extends Mode { val name = "terminate-job"} // This currently ONLY supports Analysis Jobs
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
+  case object EXPORT_JOB extends Mode { val name = "export-job" }
   case object DATASET extends Mode {val name = "get-dataset"}
   case object DATASETS extends Mode {val name = "get-datasets"}
   case object DELETE_DATASET extends Mode {val name = "delete-dataset"}
@@ -142,7 +144,10 @@ object PbServiceParser extends CommandLineToolVersion{
       searchPath: Option[String] = None,
       force: Boolean = false,
       user: String = System.getProperty("user.name"),
+      password: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
+      usePassword: Boolean = false,
       comment: String = "Sent via pbservice",
+      includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
   ) extends LoggerConfig
 
@@ -183,10 +188,21 @@ object PbServiceParser extends CommandLineToolVersion{
       c.copy(port = x)
     } text s"Services port on smrtlink server (default: $defaultPort).  Override default with env PB_SERVICE_PORT."
 
-    // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
-    /*opt[String]("token") action { (t, c) =>
+    opt[String]('u', "user") action { (u, c) =>
+      c.copy(user = u)
+    } text "User ID (requires password if used for authentication)"
+
+    /*opt[String]("password") action { (p, c) =>
+      c.copy(password = Some(p))
+    } text "Authentication password"
+
+    opt[Unit]('p', "ask-pass") action { (_, c) =>
+      c.copy(usePassword = true)
+    } text "Prompt for authentication password"*/
+
+    opt[String]('t', "token") action { (t, c) =>
       c.copy(authToken = Some(getToken(t)))
-    } text "Authentication token (required for project services)"*/
+    } text "Authentication token (required for project services)"
 
     // This needs to be folded back into each subparser for clarity. --json isn't supported by every subparser
     opt[Unit]("json") action { (_, c) =>
@@ -225,29 +241,26 @@ object PbServiceParser extends CommandLineToolVersion{
          """.stripMargin)
           .action((p, c) => c.copy(path = p.toPath)),
 
-        opt[Int]("timeout")
-            .text(s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})")
-            .action((t, c) =>c.copy(maxTime = t.seconds)),
+      opt[Int]("timeout")
+          .text(s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})")
+          .action((t, c) =>c.copy(maxTime = t.seconds)),
 
-        opt[String]("non-local")
-          .validate(validateDataSetMetaType)
-          .text("Import non-local dataset require specified the dataset metatype (e.g. PacBio.DataSet.SubreadSet)")
-          .action { (t, c) => c.copy(nonLocal = DataSetMetaTypes.toDataSetType(t))},
-
-
-        opt[Unit]("block")
-            .text(s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --no-block")
-            .action((t, c) => c.copy(blockImportDataSet = true)),
-
-        opt[Unit]("non-block")
-            .text(s"Disable blocking mode to poll for job to completion. Import Job will only be submitted. (Default ${!defaults.blockImportDataSet}). Mutually exclusive with --block")
-            .action((t, c) => c.copy(blockImportDataSet = false))
+      opt[String]("non-local")
+        .validate(validateDataSetMetaType)
+        .text("Import non-local dataset require specified the dataset metatype (e.g. PacBio.DataSet.SubreadSet)")
+        .action { (t, c) => c.copy(nonLocal = DataSetMetaTypes.toDataSetType(t))},
 
 
-        /*,
+      opt[Unit]("block")
+          .text(s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --no-block")
+          .action((t, c) => c.copy(blockImportDataSet = true)),
+
+      opt[Unit]("non-block")
+          .text(s"Disable blocking mode to poll for job to completion. Import Job will only be submitted. (Default ${!defaults.blockImportDataSet}). Mutually exclusive with --block")
+          .action((t, c) => c.copy(blockImportDataSet = false)),
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this dataset"*/
+      } text "Name of project associated with this dataset"
     ) text "Import PacBio DataSet(s) into SMRTLink"
 
     note("\nIMPORT FASTA\n")
@@ -268,10 +281,10 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Ploidy",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t.seconds)
-      } text s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})" /*,
+      } text s"Maximum time to poll for running job status in seconds (Default ${defaults.maxTime})",
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this reference" */
+      } text "Name of project associated with this reference"
     ) text "Import Reference FASTA"
 
     note("\nIMPORT BARCODE\n")
@@ -283,10 +296,10 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "FASTA path",
       arg[String]("name") required() action { (name, c) =>
         c.copy(name = name)
-      } text "Name of BarcodeSet" /*,
+      } text "Name of BarcodeSet",
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with these barcodes" */
+      } text "Name of project associated with these barcodes"
     ) text "Import Barcodes FASTA"
 
     note("\nIMPORT RSII MOVIE\n")
@@ -298,10 +311,10 @@ object PbServiceParser extends CommandLineToolVersion{
       } text "Path to RS II movie metadata XML file (or directory)",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name)
-      } text "Name of imported HdfSubreadSet" /*,
+      } text "Name of imported HdfSubreadSet",
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
-      } text "Name of project associated with this dataset"*/
+      } text "Name of project associated with this dataset"
     ) text "Import RS II movie metadata XML legacy format as HdfSubreadSet"
 
     note("\nRUN ANALYSIS JOB\n")
@@ -339,6 +352,21 @@ object PbServiceParser extends CommandLineToolVersion{
         c.copy(force = true)
       } text "Force job delete even if it is still running or has active child jobs (NOT RECOMMENDED)"
     ) text "Delete a pbsmrtpipe job, including all output files"
+
+    note("\nEXPORT JOB\n")
+    cmd(Modes.EXPORT_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.EXPORT_JOB)
+    } children(
+      arg[String]("job-id") required() action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i => validateId(i, "Job") } text "Job ID",
+      opt[String]("output-dir") action { (p, c) =>
+        c.copy(path = Paths.get(p))
+      } text "Output directory for job ZIP file; must be writable by smrtlink",
+      opt[Unit]("include-entry-points") action { (_, c) =>
+        c.copy(includeEntryPoints = true)
+      } text "Include input datasets in exported job ZIP file"
+    ) text "Export a job to a ZIP file"
 
     note("\nEMIT ANALYSIS JSON TEMPLATE\n")
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -465,8 +493,7 @@ object PbServiceParser extends CommandLineToolVersion{
       c.copy(command = (c) => println(c), mode = Modes.BUNDLES)
     } text "Get a List of PacBio Data Bundles registered to SMRT Link"
 
-    // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
-    /*cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
+    cmd(Modes.CREATE_PROJECT.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.CREATE_PROJECT)
     } children(
       arg[String]("name") required() action { (n, c) =>
@@ -475,15 +502,12 @@ object PbServiceParser extends CommandLineToolVersion{
       arg[String]("description") required() action { (d, c) =>
         c.copy(description = d)
       } text "Project description"
-    ) text "Start a new project"*/
+    ) text "Start a new project"
 
     note("\nTECH SUPPORT SYSTEM STATUS REQUEST\n")
     cmd(Modes.TS_STATUS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
     } children(
-      opt[String]("user") action { (u, c) =>
-        c.copy(user = u)
-      } text s"User name to send (default: ${defaults.user})",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
@@ -496,9 +520,6 @@ object PbServiceParser extends CommandLineToolVersion{
       arg[String]("job-id") required() action { (i, c) =>
         c.copy(jobId = entityIdOrUuid(i))
       } text "ID of job whose details should be sent to tech support",
-      opt[String]("user") action { (u, c) =>
-        c.copy(user = u)
-      } text s"User name to send (default: ${defaults.user})",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = s)
       } text s"Comments to include (default: ${defaults.comment})"
@@ -524,13 +545,6 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
 
   // the is the default for timeout for common tasks
   protected val TIMEOUT = 30 seconds
-  private lazy val entryPointsLookup = Map(
-    "PacBio.DataSet.SubreadSet" -> "eid_subread",
-    "PacBio.DataSet.ReferenceSet" -> "eid_ref_dataset",
-    "PacBio.DataSet.BarcodeSet" -> "eid_barcode",
-    "PacBio.DataSet.HdfSubreadSet" -> "eid_hdfsubread",
-    "PacBio.DataSet.ConsensusReadSet" -> "eid_ccs",
-    "PacBio.DataSet.AlignmentSet" -> "eid_alignment")
   private lazy val defaultPresets = PipelineTemplatePreset("default", "any",
     Seq[ServiceTaskOptionBase](),
     Seq[ServiceTaskOptionBase]())
@@ -1477,7 +1491,7 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsMeta = getDataSetMiniMeta(xmlPath)
-      val eid = entryPointsLookup(dsMeta.metatype.toString)
+      val eid = PbsmrtpipeConstants.metaTypeToEntryId(dsMeta.metatype.toString).getOrElse(throw new Exception(s"Can't determine entryId for ${dsMeta.metatype.toString}"))
       importEntryPoint(eid, xmlPath)
     } else throw new Exception(s"Can't interpret argument ${entryPoint}")
   }
@@ -1599,6 +1613,39 @@ class PbService (val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  /**
+   * Run export of a single job, returning a Path to the zip file
+   */
+  protected def runExportJobImpl(jobId: IdAble,
+                                 destPath: Path,
+                                 includeEntryPoints: Boolean): Try[Path] = {
+    for {
+      job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
+      exportJob <- Try { Await.result(sal.exportJobs(Seq(job.id), destPath, includeEntryPoints, Some(s"pbservice-export-job-$jobId"), Some(s"Run from 'pbservice export-job $jobId'")), TIMEOUT) }
+      _ <- sal.pollForSuccessfulJob(exportJob.uuid, Some(maxTime))
+      ds <- Try { Await.result(sal.getExportJobsDataStore(exportJob.id), TIMEOUT) }
+    } yield ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId)
+              .headOption.map(f => Paths.get(f.path)).getOrElse {
+      throw new Exception(s"Can't get ZIP file from export job datastore")
+    }
+  }
+
+  def runExportJob(jobId: IdAble,
+                   destPath: Path,
+                   includeEntryPoints: Boolean): Int = {
+    val actualDestPath = Option(destPath).getOrElse {
+      val defaultPath = Paths.get("").toAbsolutePath
+      val msg = s"No output path supplied, defaulting to current working directory ($defaultPath); this will fail if SMRT Link is unable to write here"
+      logger.warn(msg)
+      println(msg)
+      defaultPath
+    }
+    runExportJobImpl(jobId, actualDestPath, includeEntryPoints) match {
+      case Success(p) => println(s"Job exported to ${p.toString}"); 0
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
   def manifestSummary(m: PacBioComponentManifest) = s"Component name:${m.name} id:${m.id} version:${m.version}"
 
   def manifestsSummary(manifests:Seq[PacBioComponentManifest]): String = {
@@ -1704,11 +1751,31 @@ object PbService extends LazyLogging{
     }
   }
 
+  protected def getPass = "foo"
 
   def apply (c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port, c.authToken)(actorSystem)
+    def toClient = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    def toAuthClient(t: String) =
+      new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
+    def toAuthClientLogin(u: String, p: String) = Try {
+      AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
+    } match {
+      case Success(s) => s
+      case Failure(err) =>
+        System.err.println(s"${err.getMessage}")
+        System.err.println("Will fall back on unauthenticated client")
+        toClient
+    }
+    val sal = c.authToken match {
+      case Some(t) => toAuthClient(t)
+      case None => c.password match {
+        case Some(password) => toAuthClientLogin(c.user, password)
+        case None =>
+          if (c.usePassword) toAuthClientLogin(c.user, getPass) else toClient
+      }
+    }
     val ps = new PbService(sal, c.maxTime)
 
     try {
@@ -1731,6 +1798,7 @@ object PbService extends LazyLogging{
         case Modes.JOBS => ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
+        case Modes.EXPORT_JOB => ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS => ps.runGetDataSets(c.datasetType, c.maxItems, c.asJson, c.searchName, c.searchPath)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
@@ -1740,7 +1808,7 @@ object PbService extends LazyLogging{
         case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
         case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
         case Modes.ALARMS => ps.runGetAlarms(c.maxTime)
-/*        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)*/
+        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)
         case x => {
           System.err.println(s"Unsupported action '$x'")
           1

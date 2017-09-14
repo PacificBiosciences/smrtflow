@@ -2276,6 +2276,42 @@
         ]
       }
     },
+    "/secondary-analysis/job-manager/jobs/export-jobs": {
+      "post": {
+        "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs.  These will be listed individually in the job datastore with sourceId 'pbscala::export-jobs' and fileTypeId 'PacBio.FileTypes.zip'.",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset export job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ExportSmrtLinkJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/secondary-analysis/job-manager/jobs/delete-datasets": {
       "post": {
         "description": "Remove a dataset from the database and delete external resource files",
@@ -5819,6 +5855,29 @@
           "type": "string",
           "title": "Output ZIP file",
           "description": "Path to output ZIP file containing datasets, must not already exist"
+        }
+      }
+    },
+    "ExportSmrtLinkJobOptions": {
+      "properties": {
+        "ids": {
+          "type": "array",
+          "title": "Job IDs",
+          "description": "Integer IDs or UUIDs of jobs in SMRT Link database",
+          "items": {
+            "type": ["integer", "string"]
+          }
+        },
+        "outputPath": {
+          "type": "string",
+          "title": "Output directory",
+          "description": "Path to output ZIP files containing jobs (must be writable)"
+        },
+        "includeEntryPoints": {
+          "type": "boolean",
+          "default": false,
+          "title": "Include Entry Points",
+          "description": "Include input datasets in exported ZIP files"
         }
       }
     },

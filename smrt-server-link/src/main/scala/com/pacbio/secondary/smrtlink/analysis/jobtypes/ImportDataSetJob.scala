@@ -60,7 +60,7 @@ with MockJobUtils with timeUtils {
     def toDataStoreFile(ds: DataSetType) =
       DataStoreFile(
         UUID.fromString(ds.getUniqueId),
-        s"pbscala::${jobTypeId.id}",
+        s"pbscala::import_dataset",
         ds.getMetaType,
         fileSize,
         createdAt,

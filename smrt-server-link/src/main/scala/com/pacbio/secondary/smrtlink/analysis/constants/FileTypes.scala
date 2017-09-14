@@ -89,6 +89,7 @@ object FileTypes {
   final val TS_TGZ = FileBaseType(toFT("ts_tgz"), "tech-support", "tar.gz", MimeTypes.GZIP)
 
   final val REPORT = FileBaseType(toFT("JsonReport"), "file", "report.json", MimeTypes.JSON)
+  final val DATASTORE = FileBaseType(toFT("Datastore"), "datastore", "datastore.json", MimeTypes.JSON)
 
   // FIXME This is duplicated in DataSetMetaTypes
   final val DS_SUBREADS = DataSetBaseType(toDS("SubreadSet"), "file", "subreadset.xml", MimeTypes.XML)

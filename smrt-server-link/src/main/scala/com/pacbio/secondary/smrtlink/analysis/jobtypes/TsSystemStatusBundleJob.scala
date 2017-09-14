@@ -20,7 +20,9 @@ case class TsSystemStatusBundleOptions(smrtLinkSystemRoot: Path, manifest: TsSys
   override def toJob = new TsSystemStatusBundleJob(this)
 }
 
-class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions) extends BaseCoreJob(opts: TsSystemStatusBundleOptions){
+class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions)
+    extends BaseCoreJob(opts: TsSystemStatusBundleOptions)
+    with MockJobUtils {
 
   type Out = PacBioDataStore
   val jobTypeId = JobTypeIds.TS_SYSTEM_STATUS

@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions}
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, MergeDataSetJobOptions, ExportSmrtLinkJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 
 
@@ -42,14 +42,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
-  // TODO(smcclellan): Apply header to all endpoints, or at least all requiring auth
   val headers = authUser
     .map(u => "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
     .map(c => Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
     .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
     .toSeq
 
-  def this(host: String, port: Int, authUser: Option[String] = None)(implicit actorSystem: ActorSystem) {
+  def this(host: String, port: Int, authUser: Option[String] = None)
+          (implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
   }
 
@@ -90,17 +90,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
       ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName)
 
 
-  // FIXME(nechols)(2016-09-21) disabled due to WSO2, will revisit later
-  /*protected def sendReceiveAuthenticated = authToken match {
-    case Some(token) => addHeader("Authorization", s"Bearer $token") ~> sendReceive
-    case None => sendReceive
-  }*/
-  protected def sendReceiveAuthenticated = sendReceive
-
   // Pipelines and serialization
-  protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = sendReceiveAuthenticated ~> unmarshal[DataSetMetaDataSet]
+  protected def getDataSetMetaDataPipeline: HttpRequest => Future[DataSetMetaDataSet] = requestPipe ~> unmarshal[DataSetMetaDataSet]
 
-  private def getDataSetPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceiveAuthenticated ~> unmarshal[T]
+  private def getDataSetPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = requestPipe ~> unmarshal[T]
   protected def getSubreadSetPipeline = getDataSetPipeline[SubreadServiceDataSet]
   protected def getHdfSubreadSetPipeline = getDataSetPipeline[HdfSubreadServiceDataSet]
   protected def getReferenceSetPipeline = getDataSetPipeline[ReferenceServiceDataSet]
@@ -112,7 +105,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
 
   // DATASET DETAILS (full object parsed from XML)
-  private def getDataSetDetailsPipeline[T <: DataSetType](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = sendReceiveAuthenticated ~> unmarshal[T]
+  private def getDataSetDetailsPipeline[T <: DataSetType](implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] = requestPipe ~> unmarshal[T]
   protected def getSubreadSetDetailsPipeline = getDataSetDetailsPipeline[SubreadSet]
   protected def getHdfSubreadSetDetailsPipeline = getDataSetDetailsPipeline[HdfSubreadSet]
   protected def getReferenceSetDetailsPipeline = getDataSetDetailsPipeline[ReferenceSet]
@@ -123,7 +116,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   protected def getConsensusAlignmentSetDetailsPipeline = getDataSetDetailsPipeline[ConsensusAlignmentSet]
   protected def getContigSetDetailsPipeline = getDataSetDetailsPipeline[ContigSet]
 
-  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = sendReceiveAuthenticated ~> unmarshal[Seq[T]]
+  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](implicit fmt: FromResponseUnmarshaller[Seq[T]]): HttpRequest => Future[Seq[T]] = requestPipe ~> unmarshal[Seq[T]]
   protected def getSubreadSetsPipeline = getDataSetsPipeline[SubreadServiceDataSet]
   protected def getHdfSubreadSetsPipeline = getDataSetsPipeline[HdfSubreadServiceDataSet]
   protected def getReferenceSetsPipeline = getDataSetsPipeline[ReferenceServiceDataSet]
@@ -134,48 +127,48 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   protected def getConsensusAlignmentSetsPipeline = getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
   protected def getContigSetsPipeline = getDataSetsPipeline[ContigServiceDataSet]
 
-  protected def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = sendReceiveAuthenticated ~> unmarshal[Seq[DataStoreServiceFile]]
-  protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = sendReceiveAuthenticated ~> unmarshal[Seq[EngineJobEntryPoint]]
-  protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = sendReceiveAuthenticated ~> unmarshal[Seq[DataStoreReportFile]]
-  protected def getReportPipeline: HttpRequest => Future[Report] = sendReceiveAuthenticated ~> unmarshal[Report]
-  protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] = sendReceiveAuthenticated ~> unmarshal[Seq[JobTask]]
-  protected def getJobTaskPipeline: HttpRequest => Future[JobTask] = sendReceiveAuthenticated ~> unmarshal[JobTask]
-  protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] = sendReceiveAuthenticated ~> unmarshal[Seq[JobEvent]]
-  protected def getJobOptionsPipeline: HttpRequest => Future[PipelineTemplatePreset] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplatePreset]
+  protected def getDataStorePipeline: HttpRequest => Future[Seq[DataStoreServiceFile]] = requestPipe ~> unmarshal[Seq[DataStoreServiceFile]]
+  protected def getEntryPointsPipeline: HttpRequest => Future[Seq[EngineJobEntryPoint]] = requestPipe ~> unmarshal[Seq[EngineJobEntryPoint]]
+  protected def getReportsPipeline: HttpRequest => Future[Seq[DataStoreReportFile]] = requestPipe ~> unmarshal[Seq[DataStoreReportFile]]
+  protected def getReportPipeline: HttpRequest => Future[Report] = requestPipe ~> unmarshal[Report]
+  protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] = requestPipe ~> unmarshal[Seq[JobTask]]
+  protected def getJobTaskPipeline: HttpRequest => Future[JobTask] = requestPipe ~> unmarshal[JobTask]
+  protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] = requestPipe ~> unmarshal[Seq[JobEvent]]
+  protected def getJobOptionsPipeline: HttpRequest => Future[PipelineTemplatePreset] = requestPipe ~> unmarshal[PipelineTemplatePreset]
 
-  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = sendReceiveAuthenticated ~> unmarshal[Seq[RunSummary]]
-  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = sendReceiveAuthenticated ~> unmarshal[RunSummary]
-  protected def getRunPipeline: HttpRequest => Future[Run] = sendReceiveAuthenticated ~> unmarshal[Run]
-  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = sendReceiveAuthenticated ~> unmarshal[Seq[CollectionMetadata]]
-  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = sendReceiveAuthenticated ~> unmarshal[CollectionMetadata]
+  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] = requestPipe ~> unmarshal[Seq[RunSummary]]
+  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] = requestPipe ~> unmarshal[RunSummary]
+  protected def getRunPipeline: HttpRequest => Future[Run] = requestPipe ~> unmarshal[Run]
+  protected def getCollectionsPipeline: HttpRequest => Future[Seq[CollectionMetadata]] = requestPipe ~> unmarshal[Seq[CollectionMetadata]]
+  protected def getCollectionPipeline: HttpRequest => Future[CollectionMetadata] = requestPipe ~> unmarshal[CollectionMetadata]
 
-  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = sendReceiveAuthenticated ~> unmarshal[Seq[Project]]
-  protected def getProjectPipeline: HttpRequest => Future[FullProject] = sendReceiveAuthenticated ~> unmarshal[FullProject]
+  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] = requestPipe ~> unmarshal[Seq[Project]]
+  protected def getProjectPipeline: HttpRequest => Future[FullProject] = requestPipe ~> unmarshal[FullProject]
 
-  protected def getEulaPipeline: HttpRequest => Future[EulaRecord] = sendReceiveAuthenticated ~> unmarshal[EulaRecord]
-  protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] = sendReceiveAuthenticated ~> unmarshal[Seq[EulaRecord]]
+  protected def getEulaPipeline: HttpRequest => Future[EulaRecord] = requestPipe ~> unmarshal[EulaRecord]
+  protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] = requestPipe ~> unmarshal[Seq[EulaRecord]]
 
-  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = sendReceiveAuthenticated ~> unmarshal[MessageResponse]
+  protected def getMessageResponsePipeline: HttpRequest => Future[MessageResponse] = requestPipe ~> unmarshal[MessageResponse]
 
-  def getJobPipeline: HttpRequest => Future[EngineJob] = sendReceiveAuthenticated ~> unmarshal[EngineJob]
+  def getJobPipeline: HttpRequest => Future[EngineJob] = requestPipe ~> unmarshal[EngineJob]
   // XXX this fails when createdBy is an object instead of a string
-  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = sendReceiveAuthenticated ~> unmarshal[Seq[EngineJob]]
-  def runJobPipeline: HttpRequest => Future[EngineJob] = sendReceiveAuthenticated ~> unmarshal[EngineJob]
-  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[ReportViewRule]]
-  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] = sendReceiveAuthenticated ~> unmarshal[ReportViewRule]
-  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplate]
-  def getPipelineTemplatesPipeline: HttpRequest => Future[Seq[PipelineTemplate]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplate]]
-  def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = sendReceiveAuthenticated ~> unmarshal[Seq[PipelineTemplateViewRule]]
-  def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = sendReceiveAuthenticated ~> unmarshal[PipelineTemplateViewRule]
-  def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = sendReceiveAuthenticated ~> unmarshal[PipelineDataStoreViewRules]
+  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] = requestPipe ~> unmarshal[Seq[EngineJob]]
+  def runJobPipeline: HttpRequest => Future[EngineJob] = requestPipe ~> unmarshal[EngineJob]
+  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] = requestPipe ~> unmarshal[Seq[ReportViewRule]]
+  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] = requestPipe ~> unmarshal[ReportViewRule]
+  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] = requestPipe ~> unmarshal[PipelineTemplate]
+  def getPipelineTemplatesPipeline: HttpRequest => Future[Seq[PipelineTemplate]] = requestPipe ~> unmarshal[Seq[PipelineTemplate]]
+  def getPipelineTemplateViewRulesPipeline: HttpRequest => Future[Seq[PipelineTemplateViewRule]] = requestPipe ~> unmarshal[Seq[PipelineTemplateViewRule]]
+  def getPipelineTemplateViewRulePipeline: HttpRequest => Future[PipelineTemplateViewRule] = requestPipe ~> unmarshal[PipelineTemplateViewRule]
+  def getPipelineDataStoreViewRulesPipeline: HttpRequest => Future[PipelineDataStoreViewRules] = requestPipe ~> unmarshal[PipelineDataStoreViewRules]
 
-  def getPacBioDataBundlesPipeline: HttpRequest => Future[Seq[PacBioDataBundle]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioDataBundle]]
-  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] = sendReceiveAuthenticated ~> unmarshal[PacBioDataBundle]
+  def getPacBioDataBundlesPipeline: HttpRequest => Future[Seq[PacBioDataBundle]] = requestPipe ~> unmarshal[Seq[PacBioDataBundle]]
+  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] = requestPipe ~> unmarshal[PacBioDataBundle]
 
-  def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = sendReceiveAuthenticated ~> unmarshal[Seq[PacBioComponentManifest]]
-  def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = sendReceiveAuthenticated ~> unmarshal[PacBioComponentManifest]
+  def getServiceManifestsPipeline: HttpRequest => Future[Seq[PacBioComponentManifest]] = requestPipe ~> unmarshal[Seq[PacBioComponentManifest]]
+  def getServiceManifestPipeline: HttpRequest => Future[PacBioComponentManifest] = requestPipe ~> unmarshal[PacBioComponentManifest]
 
-  def getAlarmsPipeline: HttpRequest => Future[Seq[AlarmStatus]] = sendReceiveAuthenticated ~> unmarshal[Seq[AlarmStatus]]
+  def getAlarmsPipeline: HttpRequest => Future[Seq[AlarmStatus]] = requestPipe ~> unmarshal[Seq[AlarmStatus]]
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] = getDataSetMetaDataPipeline {
     logger.debug(s"Retrieving metadata for dataset ${datasetId.toIdString}")
@@ -412,12 +405,11 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   }
 
   def createProject(name: String, description: String): Future[FullProject] = getProjectPipeline {
-    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None))
-      .withHeaders(headers:_*)
+    Post(toUrl(ROOT_PROJECTS), ProjectRequest(name, description, None, None, None, None)).withHeaders(headers:_*)
   }
 
   def updateProject(projectId: Int, request: ProjectRequest): Future[FullProject] = getProjectPipeline {
-    Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
+    Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request).withHeaders(headers:_*)
   }
 
   // User agreements (not really a EULA)
@@ -501,6 +493,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def getImportBarcodesJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.CONVERT_FASTA_BARCODES.id, jobId)
   def getConvertRsMovieJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.CONVERT_RS_MOVIE.id, jobId)
   def getExportDataSetsJobDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.EXPORT_DATASETS.id, jobId)
+  def getExportJobsDataStore(jobId: IdAble) = getJobDataStore(JobTypeIds.EXPORT_JOBS.id, jobId)
 
   def getAnalysisJobReports(jobId: IdAble) = getJobReports(jobId, JobTypeIds.PBSMRTPIPE.id)
 
@@ -644,6 +637,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])
   def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
     logger.debug("Submitting database backup job")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id), DbBackUpServiceJobOptions(user, comment))
+  }
+
+  /**
+   * Start export of SMRT Link job(s)
+   */
+  def exportJobs(jobIds: Seq[IdAble],
+                 outputPath: Path,
+                 includeEntryPoints: Boolean = false,
+                 name: Option[String] = None,
+                 description: Option[String] = None) = runJobPipeline {
+    logger.debug("Submitting export-jobs job")
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
+         ExportSmrtLinkJobOptions(jobIds, outputPath, includeEntryPoints, name, description))
   }
 
   def getAlarms() = getAlarmsPipeline {Get(toUrl(ROOT_ALARMS))}

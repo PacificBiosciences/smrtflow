@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.jobtypes.DeleteSmrtLinkJobOptions
+import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, ExportSmrtLinkJobOptions}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ProjectServiceProvider, ServiceComposer}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
@@ -254,6 +254,14 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         status.isSuccess must beTrue
         val jobTasks = responseAs[Seq[JobTask]]
         jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.state) must beSome(mockUpdateTaskRecord.state)
+      }
+    }
+    "Export job" in {
+      val tmpDir = Files.createTempDirectory("export-job")
+      val params = ExportSmrtLinkJobOptions(Seq(1), tmpDir, false, None, None)
+      Post(toJobType(JobTypeIds.EXPORT_JOBS.id), params) ~> totalRoutes ~> check {
+        val jobs = responseAs[EngineJob]
+        success
       }
     }
     "Get List of delete job types" in {

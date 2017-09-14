@@ -155,12 +155,20 @@ class JobModelsSpec extends Specification  {
       val dsf = DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.JSON.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), "/var/tmp/report.json", false, "JSON file", "JSON file")
       val dsf2 = dsf.toJson.convertTo[DataStoreFile]
       dsf.toString must beEqualTo(dsf2.toString)
+      val dsf3 = dsf2.relativize(Paths.get("/var"))
+      dsf3.path must beEqualTo("tmp/report.json")
+      val dsf4 = dsf3.absolutize(Paths.get("/data/smrtlink"))
+      dsf4.path must beEqualTo("/data/smrtlink/tmp/report.json")
       val dsjf = DataStoreJobFile(UUID.randomUUID(), dsf)
       val dsjf2 = dsjf.toJson.convertTo[DataStoreJobFile]
       dsjf.toString must beEqualTo(dsjf2.toString)
       val ds = PacBioDataStore(JodaDateTime.now(), JodaDateTime.now(), "0.1.0",Seq(dsf))
       val ds2 = ds.toJson.convertTo[PacBioDataStore]
       ds2.toString must beEqualTo(ds.toString)
+      val ds3 = ds.relativize(Paths.get("/var"))
+      ds3.files(0).path must beEqualTo("tmp/report.json")
+      val ds4 = ds3.absolutize(Paths.get("/data/smrtlink"))
+      ds4.files(0).path must beEqualTo("/data/smrtlink/tmp/report.json")
     }
     "PipelineTemplateViewRule" in {
       val rules = Seq(

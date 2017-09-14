@@ -43,6 +43,7 @@ trait PbsmrtpipeScenarioCore
 
   import JobModels._
   import OptionTypes._
+  import CommonModels._
   import CommonModelImplicits._
 
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
@@ -50,6 +51,7 @@ trait PbsmrtpipeScenarioCore
   protected val EXIT_SUCCESS: Var[Int] = Var(0)
   protected val EXIT_FAILURE: Var[Int] = Var(1)
 
+  protected val tmpDir = Files.createTempDirectory("export-job")
   protected val testdata = PacBioTestData()
   protected def getSubreads = testdata.getTempDataSet("subreads-xml", true,
     tmpDirBase = "dataset contents")
@@ -193,6 +195,14 @@ class PbsmrtpipeScenario(host: String, port: Int)
     // there are two tasks, each one has CREATED and SUCCESSFUL events
     fail("Expected four task_status events") IF jobEvents.mapWith(_.count(_.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS)) !=? 4,
     fail("Expected three SUCCESSFUL events") IF jobEvents.mapWith(_.count(_.state == AnalysisJobStates.SUCCESSFUL)) !=? 3,
+    // Export job(s)
+    jobId2 := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
+    WaitForSuccessfulJob(jobId2),
+    dataStore := GetAnalysisJobDataStore(jobId2),
+    fail("Expected two files in datastore") IF dataStore.mapWith(_.size) !=? 2,
+    fail("Expected one ZIP file in datastore") IF dataStore.mapWith { ds =>
+      Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path).toFile.isFile
+    } !=? true,
     // Failure mode
     jobId2 := RunAnalysisPipeline(failOpts),
     jobStatus := WaitForJob(jobId2),
@@ -222,10 +232,12 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(jobId),
     jobId2 := DeleteJob(jobId, Var(true)),
-    // fail("Expected original job to be returned") IF jobId2 !=? jobId, //MK I don't understand why the job to be deleted is returned.
-    jobId := DeleteJob(jobId, Var(false)),
+    jobStatus := WaitForJob(jobId2),
+    fail(s"Delete job ${jobId2} failed with dryRun=true") IF jobStatus !=? EXIT_SUCCESS,
+    jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail(s"Delete job ${jobId} failed") IF jobStatus !=? EXIT_SUCCESS,
+    jobReports := GetAnalysisJobReports(job.mapWith(_.uuid)),
     fail("Expected report file to be deleted") IF jobReports.mapWith(_(0).dataStoreFile.fileExists) !=? false,
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
     fail(s"Datastore files for ${job.mapWith(_.id)} Expected isActive=false") IF dataStore.mapWith(_.count(f => f.isActive)) !=? 0,
