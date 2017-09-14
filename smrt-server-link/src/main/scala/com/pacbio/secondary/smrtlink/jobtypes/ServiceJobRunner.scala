@@ -1,18 +1,23 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.{FileWriter, PrintWriter, StringWriter}
+import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
+
+import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
+import DefaultJsonProtocol._
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,8 +35,25 @@ import scala.util.{Failure, Success, Try}
   */
 class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging with JobRunnerUtils {
   import CommonModelImplicits._
+  import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
   def host = config.host
+
+  def loadDataStoreFiles(ds: PacBioDataStore): Seq[DataStoreFile] = {
+    ds.files.filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
+        .foldLeft[Seq[DataStoreFile]](ds.files) { (f, dsf) =>
+          val datastore = loadDataStoreFrom(Paths.get(dsf.path).toFile)
+          f ++ datastore.files
+        }
+  }
+
+  def loadDataStoreFrom(file: File): PacBioDataStore = {
+    //logger.info(s"Loading raw DataStore from $file")
+    val sx = FileUtils.readFileToString(file, "UTF-8")
+    val ds = sx.parseJson.convertTo[PacBioDataStore]
+    val files = loadDataStoreFiles(ds).map(f => f.uniqueId -> f).toMap.values.toSeq
+    ds.copy(files = files)
+  }
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID):Future[MessageResponse] = {
     if (ds.isChunked) {
@@ -43,8 +65,8 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
   private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     // Filter out non-chunked files. The are presumed to be intermediate files
-    val nonChunked = dataStore.files.filter(!_.isChunked)
-    Future.sequence(nonChunked.map(x => importDataStoreFile(x, jobUUID)))
+    val files = loadDataStoreFiles(dataStore).filter(!_.isChunked)
+    Future.sequence(files.map(x => importDataStoreFile(x, jobUUID)))
   }
 
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Seq[MessageResponse]] = {
