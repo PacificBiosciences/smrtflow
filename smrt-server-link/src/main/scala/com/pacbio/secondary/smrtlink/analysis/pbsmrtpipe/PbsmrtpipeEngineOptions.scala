@@ -46,6 +46,17 @@ case class PbsmrtpipeEngineOptions(
   def getPipelineOptionById(sx: String): Option[PipelineBaseOption] = {
     (toPipelineOptions.map(x => (x.id, x)) toMap).get(sx)
   }
+
+  def summary(): String = {
+
+    val opts = toPipelineOptions
+
+    val pad = 4
+    val maxName = opts.map(_.id.length).max
+
+    toPipelineOptions.map(p => f"${p.id}%-38s ${p.value.toString}%-34s ${p.name}").reduce(_  + "\n" + _)
+  }
+
 }
 
 object PbsmrtpipeEngineOptions {

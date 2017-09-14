@@ -125,8 +125,14 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
       connMessage <- Future { TestConnection(dataSource)}
       migrationMessage <- Future { Migrator(dataSource)}
       summary <- providers.jobsDao().getSystemSummary("Database Startup Test")
-      jobDir <- Future { createJobDir(providers.engineConfig.pbRootJobDir)}
-    } yield s"$connMessage\n$migrationMessage\n$summary\nCreated Job Root $jobDir"
+      jobDir <- Future.successful(createJobDir(providers.engineConfig.pbRootJobDir))
+    } yield
+      s"""$connMessage
+         |$migrationMessage
+         |$summary
+         |Created Job Root $jobDir
+         |Loaded Pbsmrtpipe Workflow Level Options:
+         |${providers.systemJobConfig().pbSmrtPipeEngineOptions.summary()}""".stripMargin
 
     startUpValidation.andThen { case _ => dataSource.close()}
 
