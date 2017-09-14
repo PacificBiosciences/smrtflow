@@ -158,7 +158,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def workflow: Rep[String] = column[String]("json_workflow", O.Default("{}"))
 
-    def parentMultiJobId: Rep[Option[Int]] = column[Option[Int]]("parent_multi_job_id")
+    def parentMultiJobId: Rep[Option[Int]] = column[Option[Int]]("parent_multi_job_id", O.Default(None))
 
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 

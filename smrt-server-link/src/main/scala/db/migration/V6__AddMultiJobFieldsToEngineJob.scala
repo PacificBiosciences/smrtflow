@@ -15,8 +15,8 @@ class V6__AddMultiJobFieldsToEngineJob  extends JdbcMigration with SlickMigratio
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(
       DBIO.seq(
-        sqlu"""ALTER TABLE engine_jobs ADD COLUMN is_multi_job BOOLEAN DEFAULT FALSE""",
-        sqlu"""ALTER TABLE engine_jobs ADD COLUMN json_workflow TEXT DEFAULT '{}'""",
+        sqlu"""ALTER TABLE engine_jobs ADD COLUMN is_multi_job BOOLEAN DEFAULT FALSE NOT NULL """,
+        sqlu"""ALTER TABLE engine_jobs ADD COLUMN json_workflow TEXT DEFAULT '{}' NOT NULL """,
         sqlu"""ALTER TABLE engine_jobs ADD COLUMN parent_multi_job_id INTEGER DEFAULT NULL"""
     ))
   }
