@@ -132,7 +132,7 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     val x2 = Await.result(checkForWorker(workers, false), timeout)
 
     val msg = s"Completed checking for work ${getManagerStatus().prettySummary}"
-    log.info(msg)
+    //log.debug(msg)
 
     // If either worker found work to run, then send a self check for work message
     // to attempt to continue to process other work in queue
@@ -168,7 +168,7 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     case CheckForRunnableJob => {
       Try(checkForWork()) match {
         case Success(msg) =>
-          log.debug(s"Completed checking for work $msg")
+          //log.debug(s"Completed checking for work $msg")
         case Failure(ex) =>
           val sw = new StringWriter
           ex.printStackTrace(new PrintWriter(sw))
@@ -189,6 +189,7 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
       }
 
       self ! CheckForRunnableJob
+      self ! GetEngineManagerStatus
     }
 
     case GetEngineManagerStatus => {

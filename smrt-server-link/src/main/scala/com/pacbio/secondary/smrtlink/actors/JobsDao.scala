@@ -397,7 +397,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     */
   def getNextRunnableEngineCoreJob(isQuick: Boolean = false): Future[Either[NoAvailableWorkError, EngineJob]] = {
 
-    logger.info(s"Checking for next runnable isQuick? $isQuick EngineJobs")
+    //logger.debug(s"Checking for next runnable isQuick? $isQuick EngineJobs")
     import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
 
     //FIXME(mpkocher)(8-25-2017) I can't get this to work with AnalysisJobState type
@@ -426,7 +426,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
             logger.info(s"Found runnable job id:${engineJob.id} type:${engineJob.jobTypeId} in state ${engineJob.state} isQuick:$isQuick")
             Right(engineJob)
         }.recover {case NonFatal(_) =>
-          logger.info(s"No available work")
+          //logger.debug(s"No available work")
           Left(NO_WORK)}
   }
 
