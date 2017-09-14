@@ -50,6 +50,8 @@ object AnalysisJobStates {
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
 
+  def notCompleted(state: JobStates): Boolean = !isCompleted(state)
+
   def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
 
   def intToState(i: Int): Option[JobStates] = VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
@@ -238,7 +240,8 @@ object JobModels {
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
                   EXPORT_DATASETS, IMPORT_DATASET,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
+      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP,
+      MJOB_HELLO_WORLD, MJOB_MULTI_ANALYSIS)
 
     def fromString(s: String):Option[JobType] =
       ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)

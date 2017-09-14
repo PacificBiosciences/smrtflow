@@ -923,12 +923,12 @@ case class DeferredEntryPoint(fileTypeId: String, uuid: UUID, entryId: String)
 // to specify different Task Options, job name, an so on. for each
 // Job that is created
 // Note that each list of entry points provided must be consistent with
-// the pipeline template provided by pipelineId.
+// the pipeline template provided by pipelineId, otherwise the job
+// will fail at runtime
 case class DeferredJob(entryPoints: Seq[DeferredEntryPoint],
                        pipelineId: String,
                        taskOptions: Seq[ServiceTaskOptionBase],
                        workflowOptions: Seq[ServiceTaskOptionBase],
                        name: Option[String],
                        description: Option[String],
-                       projectId: Option[Int]
-                      )
+                       projectId: Option[Int])
