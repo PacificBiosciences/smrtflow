@@ -279,7 +279,7 @@ trait MockUtils extends LazyLogging{
           .map(s => JobEvent(UUID.randomUUID, jobId, s, "Update status", JodaDateTime.now()))
 
     val fx = for {
-      engineJobs <- dao.getJobs()
+      engineJobs <- dao.getEngineCoreJobs()
       jobIds <- Future { engineJobs.filter(_.name.startsWith(MOCK_JOB_NAME_PREFIX)).map(_.id)}
       events <- Future {jobIds.map(toJobEvents).flatMap(identity)}
       batchedEvents <- Future {events.grouped(scala.math.min(nchunks, events.length))}
@@ -310,7 +310,7 @@ trait MockUtils extends LazyLogging{
     }
 
     val fx = for {
-      engineJobs <- dao.getJobs()
+      engineJobs <- dao.getEngineCoreJobs()
       files <- Future { engineJobs.map(toDataStoreFile).flatMap(identity)}
       batchedFiles <- Future { files.grouped(scala.math.min(nchunks, files.length)) }
       _ <- Future.sequence(batchedFiles.map(xs => dao.db.run(datastoreServiceFiles ++= xs)))

@@ -70,7 +70,7 @@ with JobServiceConstants with TestUtils{
   override val db = dao.db
   val totalRoutes = TestProviders.newJobService().prefixedRoutes
 
-  def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
+  def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
 
   val mockOpts = {
     val ep = BoundServiceEntryPoint("e_01", "DataSet.DataSet.SubreadSet", 1)

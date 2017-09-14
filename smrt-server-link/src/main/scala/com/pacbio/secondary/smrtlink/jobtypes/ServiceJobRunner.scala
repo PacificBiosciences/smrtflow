@@ -1,18 +1,23 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.{FileWriter, PrintWriter, StringWriter}
+import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
+
+import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
+import DefaultJsonProtocol._
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,10 +33,27 @@ import scala.util.{Failure, Success, Try}
   * @param dao Persistence layer for interfacing with the db
   * @param config System Job Config
   */
-class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging {
+class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging with JobRunnerUtils {
   import CommonModelImplicits._
+  import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
   def host = config.host
+
+  def loadDataStoreFiles(ds: PacBioDataStore): Seq[DataStoreFile] = {
+    ds.files.filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
+        .foldLeft[Seq[DataStoreFile]](ds.files) { (f, dsf) =>
+          val datastore = loadDataStoreFrom(Paths.get(dsf.path).toFile)
+          f ++ datastore.files
+        }
+  }
+
+  def loadDataStoreFrom(file: File): PacBioDataStore = {
+    //logger.info(s"Loading raw DataStore from $file")
+    val sx = FileUtils.readFileToString(file, "UTF-8")
+    val ds = sx.parseJson.convertTo[PacBioDataStore]
+    val files = loadDataStoreFiles(ds).map(f => f.uniqueId -> f).toMap.values.toSeq
+    ds.copy(files = files)
+  }
 
   private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID):Future[MessageResponse] = {
     if (ds.isChunked) {
@@ -43,8 +65,8 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
   private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     // Filter out non-chunked files. The are presumed to be intermediate files
-    val nonChunked = dataStore.files.filter(!_.isChunked)
-    Future.sequence(nonChunked.map(x => importDataStoreFile(x, jobUUID)))
+    val files = loadDataStoreFiles(dataStore).filter(!_.isChunked)
+    Future.sequence(files.map(x => importDataStoreFile(x, jobUUID)))
   }
 
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Seq[MessageResponse]] = {
@@ -58,20 +80,11 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     dao.updateJobState(uuid, state, message.getOrElse(s"Updating Job $uuid state to $state"))
   }
 
+
   private def convertAndSetup[T >: ServiceJobOptions](engineJob: EngineJob): Try[(T, FileJobResultsWriter, JobResource)] = {
     Try {
-      val opts = Converters.convertEngineToOptions(engineJob)
-      val output = Paths.get(engineJob.path)
-
-      // This abstraction needs to be fixed. This is for legacy interface
-      val resource = JobResource(engineJob.uuid, output)
-
-      val stderrFw = new FileWriter(output.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
-      val stdoutFw = new FileWriter(output.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
-
-      val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
-      writer.writeLine(s"Starting to run engine job ${engineJob.id} on $host")
-
+      val opts = Converters.convertServiceCoreJobOption(engineJob)
+      val (writer, resource) = setupResources(engineJob)
       (opts, writer, resource)
     }
   }
@@ -109,7 +122,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     def andWrite(msg: String) = Try(writer.writeLine(msg))
 
     val tx = for {
-      results <- opts.toJob.runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
+      results <- opts.toJob().runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
       _ <- andWrite(s"Successfully completed running core job. $results")
       msg <- importer(jobId, results, timeout)
       _ <- andWrite(msg)
@@ -120,15 +133,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
     // This is a little clumsy to get the error message written to the correct place
     // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
-    tx match {
-      case Success(result) => Success(result)
-      case Failure(ex) =>
-        writer.writeLineError(s"Failed to Run and Import $jobIntId. ${ex.getMessage}")
-        val sw = new StringWriter
-        ex.printStackTrace(new PrintWriter(sw))
-        writer.writeLineError(sw.toString)
-        Failure(ex)
-    }
+    tx.recoverWith(writeError(writer, Some(s"Failed to run and import $jobIntId")))
   }
 
   /**
@@ -155,10 +160,10 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
 
   // This should probably have some re-try mechanism
-  private def recoverAndUpdateToFailed(jobId: UUID, timeout: FiniteDuration, toFailed: String => ResultFailed): PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
+  def recoverAndUpdateToFailed(jobId: UUID, timeout: FiniteDuration, toFailed: String => ResultFailed): PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
     case NonFatal(ex) =>
       updateJobStateBlock(jobId, AnalysisJobStates.FAILED, Some(ex.getMessage), timeout)
-          .map(engineJob => Left(toFailed(s"${ex.getMessage}. Successfully update job ${engineJob.id} state to ${engineJob.state}.")))
+          .map(engineJob => Left(toFailed(s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
   }
 
   /**
@@ -194,7 +199,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
       case Success(either) => either
       case Failure(ex) =>
         logger.error(s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}")
-        // this should log the stacktrace
+        // this should log the stacktrace. This needs access to the job writer
         Left(toFailed(ex.getMessage))
     }
   }

@@ -91,7 +91,7 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
 
   override def run(): Future[MessageResponse] = {
     for {
-      jobs <- dao.getJobs(includeInactive = true)
+      jobs <- dao.getEngineCoreJobs(includeInactive = true)
       potentialJobs <- Future.successful(jobs.filter(jobFilter))
       _ <- Future {logger.info(s"Detected ${potentialJobs.length} potentially STUCK jobs.")}
       updatedJobs <- Future.sequence(potentialJobs.map(j => updateJobStateToFail(j)))

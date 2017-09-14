@@ -17,5 +17,5 @@ trait SmrtLinkBaseRouteMicroService extends PacBioService with JobServiceConstan
   implicit val timeout = Timeout(30.seconds)
 
   // Duplicate the Routes here to have backward compatibility
-  override def prefixedRoutes = pathPrefix(ROOT_SERVICE_PREFIX) { super.prefixedRoutes } ~ pathPrefix(ROOT_SL_PREFIX) { super.prefixedRoutes }
+  override def prefixedRoutes = pathPrefix(ROOT_SA_PREFIX) { super.prefixedRoutes } ~ pathPrefix(ROOT_SL_PREFIX) { super.prefixedRoutes }
 }

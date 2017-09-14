@@ -216,20 +216,6 @@ class JobModelsSpec extends Specification  {
       val job4 = job2.copy(state = AnalysisJobStates.SUCCESSFUL)
       job4.isSuccessful must beTrue
     }
-    "Load SMRT Link 4.0 model from JSON" in {
-      val path = getPath("engine_job_03.json")
-      val job = Source.fromFile(path.toFile).getLines.mkString.parseJson.convertTo[EngineJob]
-      job.smrtlinkVersion must beSome("4.0.0.190159")
-      job.id must beEqualTo(3)
-      job.createdBy must beSome("root")
-      job.isActive must beEqualTo(false)
-      job.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-      val s = job.toJson
-      val job2 = s.convertTo[EngineJob]
-      job2.isActive must beEqualTo(false)
-      job2.smrtlinkVersion must beSome("4.0.0.190159")
-      job2.createdAt must beEqualTo(job.createdAt)
-    }
   }
 
   private def getJson(name: String) =

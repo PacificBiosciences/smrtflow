@@ -66,40 +66,40 @@ with JobServiceConstants with TestUtils{
 
   "DataSetService should list" should {
     "Secondary analysis DataSets Types resources" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/dataset-types") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/dataset-types") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Secondary analysis Subread DataSetsType resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/dataset-types/subreads") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/dataset-types/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dst = responseAs[ServiceDataSetMetaType]
         dst.id must be_==("PacBio.DataSet.SubreadSet")
       }
     }
     "Secondary analysis Subread DataSetsType resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Secondary analysis Subread DataSetsType resources by projectId" in {
       val credentials = RawHeader(JWT_HEADER, MOCK_USER_LOGIN)
 
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads?projectId=$getMockProjectId") ~> addHeader(credentials) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads?projectId=$getMockProjectId") ~> addHeader(credentials) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
         subreads.size === 2
         subreads.count(_.projectId == getMockProjectId) === 2
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads?projectId=$GEN_PROJECT_ID") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads?projectId=$GEN_PROJECT_ID") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
         subreads.size === 2
         subreads.count(_.projectId == GEN_PROJECT_ID) === 2
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads") ~> addHeader(credentials) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads") ~> addHeader(credentials) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
         subreads.size === 4
@@ -107,38 +107,38 @@ with JobServiceConstants with TestUtils{
         subreads.count(_.projectId == GEN_PROJECT_ID) === 2
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads?projectId=99999999") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads?projectId=99999999") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
         subreads.size === 0
       }
     }
     "Secondary analysis Subread DataSet resource by id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subread = responseAs[SubreadServiceDataSet]
         subread.jobId === 1
       }
     }
     "Secondary analysis Subread DataSet resource by id" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/subreads/1/details") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads/1/details") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val resp = responseAs[String].parseJson
         resp.asJsObject().fields("MetaType") === JsString("PacBio.DataSet.SubreadSet")
       }
     }
     "Secondary analysis Reference DataSetsType resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/dataset-types/references") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/dataset-types/references") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Secondary analysis Reference DataSetsType resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/dataset-types/alignments") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/dataset-types/alignments") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Secondary analysis Subread Reference resource" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/references") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/references") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         //val dst = responseAs[DataSetType]
         //dst.id must be_==("pacbio.datasets.subread")
@@ -153,7 +153,7 @@ with JobServiceConstants with TestUtils{
 //      }
 //    }
     "Secondary analysis Hdf Subread DataSet resources" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/datasets/hdfsubreads") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/hdfsubreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         //val dst = responseAs[DataSetType]
         //dst.id must be_==("pacbio.datasets.subread")

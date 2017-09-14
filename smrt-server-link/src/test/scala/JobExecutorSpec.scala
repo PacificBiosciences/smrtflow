@@ -64,7 +64,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   ActorSystemProvider with
   ConfigProvider with
   FakeClockProvider with
-  EngineManagerActorProvider with
+  EngineCoreJobManagerActorProvider with
   SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
@@ -84,7 +84,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   // This needs to be manual triggered here because it doesn't have an explicit dependency.
   val engineManagerActor = TestProviders.engineManagerActor()
 
-  def toJobType(x: String) = s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/$x"
+  def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
   def toJobTypeByIdWithRest(x: String, i: IdAble, rest: String) = s"${toJobTypeById(x, i)}/$rest"
 
@@ -130,7 +130,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
     "execute mock-pbsmrtpipe job with project id 1" in {
       val credentials = RawHeader(JWT_HEADER, "jsnow")
       val projectRoutes = TestProviders.projectService().prefixedRoutes
-      Post(s"/$ROOT_SERVICE_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
         status.isSuccess must beTrue
         projectId = responseAs[FullProject].id
       }
@@ -203,7 +203,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       }
       val r2 = DataStoreFileUpdateRequest(true, Some(dsFiles.head.path), None)
       // also check central datastore-files endpoint
-      Put(s"/$ROOT_SERVICE_PREFIX/$DATASTORE_FILES_PREFIX/$uuid", r2) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/$DATASTORE_FILES_PREFIX/$uuid", r2) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
       Get(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "datastore")) ~> totalRoutes ~> check {

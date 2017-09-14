@@ -34,7 +34,7 @@ class PipelineDatastoreViewRulesServiceSpec extends Specification
 
   "Service lists" should {
     "Get all current pipeline view rules" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$rulesPrefix") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val viewRules = responseAs[List[PipelineDataStoreViewRules]]
         viewRules must not be empty
@@ -42,7 +42,7 @@ class PipelineDatastoreViewRulesServiceSpec extends Specification
       }
     }
     "Retrieve unversioned view rules" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$rulesPrefix/$pipelineId") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val viewRule = responseAs[PipelineDataStoreViewRules]
         viewRule.pipelineId must beEqualTo(pipelineId)
@@ -51,20 +51,20 @@ class PipelineDatastoreViewRulesServiceSpec extends Specification
     }
     "Retrieve specific versions" in {
       Seq("4.0", "5.0", "5.1").map { v =>
-        Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId?version=$v") ~> totalRoutes ~> check {
+        Get(s"/$ROOT_SA_PREFIX/$rulesPrefix/$pipelineId?version=$v") ~> totalRoutes ~> check {
           status.isSuccess must beTrue
           val viewRule = responseAs[PipelineDataStoreViewRules]
           viewRule.pipelineId must beEqualTo(pipelineId)
           viewRule.smrtlinkVersion must beEqualTo(v)
         }
       }
-      Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId?version=5.0.0.SNAPSHOT1234") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$rulesPrefix/$pipelineId?version=5.0.0.SNAPSHOT1234") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val viewRule = responseAs[PipelineDataStoreViewRules]
         viewRule.pipelineId must beEqualTo(pipelineId)
         viewRule.smrtlinkVersion must beEqualTo("5.0")
       }
-      Get(s"/$ROOT_SERVICE_PREFIX/$rulesPrefix/$pipelineId?version=0.9") ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/$rulesPrefix/$pipelineId?version=0.9") ~> totalRoutes ~> check {
         status.isSuccess must beFalse
       }
     }

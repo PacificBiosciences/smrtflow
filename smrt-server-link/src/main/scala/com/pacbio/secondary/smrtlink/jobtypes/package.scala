@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink
 import java.io.{PrintWriter, StringWriter}
 import java.net.InetAddress
 
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{InvalidJobOptionError, JobResultWriter, CoreJobModel}
@@ -48,7 +49,9 @@ package object jobtypes {
 
     // Util layer to get the ServiceJobRunner to compose better.
     def runTry(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Try[Out] = {
-      Try {run(resources, resultsWriter, dao, config)} match {
+      Try {
+        run(resources, resultsWriter, dao, config)
+      } match {
         case Success(result) =>
           result match {
             case Right(rx) => Success(rx)
@@ -68,7 +71,9 @@ package object jobtypes {
     }
 
     def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =
-      Try { Await.result(fx, timeOut)}
+      Try {
+        Await.result(fx, timeOut)
+      }
 
   }
 
@@ -83,7 +88,9 @@ package object jobtypes {
     def getProjectId(): Int = projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     // This needs to be defined at the job option level to be a globally unique type.
-    def jobTypeId: JobTypeIds.JobType // This is a def for seralization reasons.
+    def jobTypeId: JobTypeIds.JobType
+
+    // This is a def for seralization reasons.
     def toJob(): ServiceCoreJob
 
     /**
@@ -106,6 +113,7 @@ package object jobtypes {
       * TODO: Does this also need UserRecord passed in?
       *
       * Validate the Options (and make sure they're consistent within the system config if necessary)
+      *
       * @return
       */
     def validate(dao: JobsDao, config: SystemJobConfig): Option[InvalidJobOptionError]
@@ -115,7 +123,7 @@ package object jobtypes {
       * Validation func for resolving a future and translating any errors to
       * the InvalidJobOption error.
       *
-      * @param fx Func to run
+      * @param fx      Func to run
       * @param timeout timeout
       * @tparam T
       * @return
@@ -126,22 +134,23 @@ package object jobtypes {
         case Failure(ex) => Some(InvalidJobOptionError(s"Failed option validation. ${ex.getMessage}"))
       }
     }
+
     /**
       * Common Util for resolving entry points
       *
       * Only DataSet types will be resolved, but the entry point is a general file type
       *
-      * @param e Bound Service Entry Point
+      * @param e   Bound Service Entry Point
       * @param dao db DAO
       * @return
       */
-    def resolveEntry(e: BoundServiceEntryPoint, dao:JobsDao): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
+    def resolveEntry(e: BoundServiceEntryPoint, dao: JobsDao): Future[(EngineJobEntryPointRecord, BoundEntryPoint)] = {
       // Only DataSet types will be resolved, but the entry point is a general file type id
 
       for {
         datasetType <- ValidateServiceDataSetUtils.validateDataSetType(e.fileTypeId)
         d <- ValidateServiceDataSetUtils.resolveDataSet(datasetType, e.datasetId, dao)
-      } yield  (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
+      } yield (EngineJobEntryPointRecord(d.uuid, e.fileTypeId), BoundEntryPoint(e.entryId, d.path))
     }
 
     def resolver(entryPoints: Seq[BoundServiceEntryPoint], dao: JobsDao): Future[Seq[(EngineJobEntryPointRecord, BoundEntryPoint)]] =
@@ -150,7 +159,6 @@ package object jobtypes {
 
     /**
       * This is used to communicate the EntryPoints used for the Job. This is abstract so that the model is explicit.
-      *
       *
       * @param dao JobsDoa
       * @return
@@ -164,8 +172,40 @@ package object jobtypes {
     val jobTypeId = opts.jobTypeId
   }
 
+  // Use to encode a multi job type
+  trait MultiJob
+
+  trait ServiceMultiJobOptions extends ServiceJobOptions with MultiJob {
+    // fighting with the type system here
+    def toMultiJob(): ServiceMultiJobModel
+  }
+
+  abstract class ServiceMultiJob(opts: ServiceMultiJobOptions) extends ServiceCoreJobModel {
+    val jobTypeId = opts.jobTypeId
+  }
+
+
+  trait ServiceMultiJobModel extends ServiceCoreJobModel {
+
+
+    // This needs to be removed, or fixed. This is necessary for multi-jobs and is not used. `runWorkflow` is the method to call
+    override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig) = {
+      throw new Exception("Direct call of Run on MultiJob is not supported")
+    }
+
+    /**
+      * This is the core method that is called to run a Multi-Job. This should be completely self contained
+      * and omnipotent.
+      */
+    def runWorkflow(engineJob: EngineJob, resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Future[MessageResponse]
+  }
+
 
   trait Converters {
+
+    import SmrtLinkJsonProtocols._
+    import ServiceJobTypeJsonProtocols._
+
     /**
       * Load the JSON Settings from an Engine job and create the companion ServiceJobOption
       * instance.
@@ -176,21 +216,18 @@ package object jobtypes {
       * @tparam T ServiceJobOptions
       * @return
       */
-    def convertEngineToOptions[T >: ServiceJobOptions](engineJob: EngineJob): T = {
+    def convertServiceCoreJobOption[T >: ServiceJobOptions](engineJob: EngineJob): T = {
 
       val jx = engineJob.jsonSettings.parseJson
 
       // The EngineJob data model should be using a proper type
-      val jobTypeId:JobTypeIds.JobType = JobTypeIds.fromString(engineJob.jobTypeId)
+      val jobTypeId: JobTypeIds.JobType = JobTypeIds.fromString(engineJob.jobTypeId)
           .getOrElse(throw new IllegalArgumentException(s"Job type '${engineJob.jobTypeId}' is not supported"))
 
-      convertToOption(jobTypeId, jx)
+      convertToOption[T](jobTypeId, jx)
     }
 
-    private def convertToOption[T >: ServiceJobOptions](jobTypeId:JobTypeIds.JobType, jx: JsValue): T = {
-
-      import SmrtLinkJsonProtocols._
-      import ServiceJobTypeJsonProtocols._
+    private def convertToOption[T >: ServiceJobOptions](jobTypeId: JobTypeIds.JobType, jx: JsValue): T = {
 
       jobTypeId match {
         case JobTypeIds.HELLO_WORLD => jx.convertTo[HelloWorldJobOptions]
@@ -209,11 +246,33 @@ package object jobtypes {
         case JobTypeIds.DELETE_JOB => jx.convertTo[DeleteSmrtLinkJobOptions]
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS => jx.convertTo[TsSystemStatusBundleJobOptions]
+        // These really need to be separated out into there own class
+        case JobTypeIds.MJOB_MULTI_ANALYSIS => jx.convertTo[MultiAnalysisJobOptions]
       }
+    }
+
+    private def convertToMultiCoreJobOptions[T >: ServiceMultiJobOptions](jobTypeId: JobTypeIds.JobType, jx: JsValue): T = {
+
+      //FIXME(mpkocher)(9-12-2017) need to fix this at the type level
+      jobTypeId match {
+        case JobTypeIds.MJOB_MULTI_ANALYSIS => jx.convertTo[MultiAnalysisJobOptions]
+        case x => throw new IllegalArgumentException(s"Job Type id '$x' is not a supported MultiJob type")
+      }
+    }
+
+
+    def convertServiceMultiJobOption[T >: ServiceMultiJobOptions](engineJob: EngineJob): T = {
+      val jx = engineJob.jsonSettings.parseJson
+
+      // The EngineJob data model should be using a proper type
+      val jobTypeId: JobTypeIds.JobType = JobTypeIds.fromString(engineJob.jobTypeId)
+          .getOrElse(throw new IllegalArgumentException(s"Job type '${engineJob.jobTypeId}' is not supported"))
+
+      convertToMultiCoreJobOptions[T](jobTypeId, jx)
     }
   }
 
   object Converters extends Converters
 
-
 }
+

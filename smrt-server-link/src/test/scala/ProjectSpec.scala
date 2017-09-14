@@ -109,14 +109,14 @@ with SmrtLinkConstants with TestUtils{
 
   "Project list" should {
     "reject unauthorized users" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(INVALID_CREDENTIALS) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(INVALID_CREDENTIALS) ~> totalRoutes ~> check {
         handled must beFalse
         rejection must beAnInstanceOf[AuthenticationFailedRejection]
       }
     }
 
     "create a new project" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         newProjMembers = proj.members.map(x => ProjectRequestUser(x.login, x.role))
@@ -128,33 +128,33 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "read the new project as the owner" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
 
     "fail to read the new project as a non-member" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }
     }
 
     "fail to delete the new project as a non-member" in {
-      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Delete(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }
     }
 
     "fail to create a project with a conflicting name" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/projects", newProject) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status === StatusCodes.Conflict
       }
     }
 
     "return a list of user 1 projects" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
         projs.map(_.id) must contain(newProjId)
@@ -162,7 +162,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "return a list of user 2 projects" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
         projs.map(_.id) must not contain(newProjId)
@@ -170,7 +170,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "get a specific project" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.id === newProjId
@@ -181,7 +181,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "update a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.name === newProject2.name
@@ -190,7 +190,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "fail to update a project as a non-member" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject2.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }
@@ -213,7 +213,7 @@ with SmrtLinkConstants with TestUtils{
       val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
 
       try {
-        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
           failure(s"Request should have failed but response was $response")
         }
       } catch {
@@ -239,7 +239,7 @@ with SmrtLinkConstants with TestUtils{
       val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
 
       try {
-        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
           failure(s"Request should have failed but response was $response")
         }
       } catch {
@@ -249,7 +249,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "fail to update a project with a no owners" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject2.copy(members = Some(Seq()))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject2.copy(members = Some(Seq()))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status === StatusCodes.Conflict
       }
     }
@@ -257,34 +257,34 @@ with SmrtLinkConstants with TestUtils{
     "fail to update a project with a conflicting name" in {
       var confProjId = 0
 
-      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject3) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/projects", newProject3) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         confProjId = proj.id
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$confProjId", newProject3.copy(name = newProject2.name)) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$confProjId", newProject3.copy(name = newProject2.name)) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status === StatusCodes.Conflict
       }
     }
 
     "add and remove a user to/from a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.id === newProjId
         proj.members.length === 2
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.id === newProjId
@@ -293,22 +293,22 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "add a user and change their role in a project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
         val user = users.filter(_.login == newUser.login).head
         user.role === newUser.role
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser2)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(members = Some(newProjMembers ++ List(newUser2)))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val users = responseAs[FullProject].members
         val user = users.filter(_.login == newUser2.login).head
@@ -317,7 +317,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "return a non-empty list of datasets in a project" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         dsCount = proj.datasets.size
@@ -339,42 +339,42 @@ with SmrtLinkConstants with TestUtils{
         ds <- dao.getSubreadDataSets(projectIds = List(GENERAL_PROJECT_ID))
         dsToMove = ds.head
         entryPoint = EngineJobEntryPointRecord(dsToMove.uuid, dsToMove.datasetType)
-        jobToMove <- dao.createJob2(jobUUID, jobName, jobDescription, jobType, Seq(entryPoint), jsonSettings, None, None, None)
+        jobToMove <- dao.createCoreJob(jobUUID, jobName, jobDescription, jobType, Seq(entryPoint), jsonSettings, None, None, None)
       } yield (jobToMove, dsToMove)
 
       val (jobToMove, dsToMove) = Await.result(jobFut, 30 seconds)
 
       movingDsId = dsToMove.id
 
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val movedJob = responseAs[EngineJob]
         movedJob.projectId === GENERAL_PROJECT_ID
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.datasets.size === 0
       }
 
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.datasets.size === 1
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.datasets.size === (dsCount - 1)
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/job-manager/jobs/${jobType.id}/${jobToMove.id}") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val movedJob = responseAs[EngineJob]
         movedJob.id === jobToMove.id
@@ -383,7 +383,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "get projects available to user" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/user-projects/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/user-projects/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
         results.size must beGreaterThanOrEqualTo(3) // the general project from dbSetup and the two projects from earlier tests
@@ -391,7 +391,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "get projects/datasets available to user" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects-datasets/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects-datasets/$ADMIN_USER_1_LOGIN") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[ProjectDatasetResponse]]
         results.size === dsCount
@@ -399,11 +399,11 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "round trip a project" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
 
-        Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", proj.asRequest) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", proj.asRequest) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
           status.isSuccess must beTrue
           val roundTripProj = responseAs[FullProject]
           proj.name === roundTripProj.name
@@ -417,17 +417,17 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "move datasets back to general project" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List()))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List()))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets must beEmpty
       }
 
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets.size === dsCount
@@ -436,38 +436,38 @@ with SmrtLinkConstants with TestUtils{
 
     "delete a project" in {
       // first move a dataset into the project
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject.copy(datasets = Some(List(RequestId(movingDsId))))) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
       // check that the general project has one fewer dataset
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets.size === (dsCount - 1)
       }
 
       // check that the project list contains the project we're going to delete
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
         projs.map(_.id) must contain(newProjId)
       }
 
       // then delete the project
-      Delete(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Delete(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
       // check that the project list no longer contains that project
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
         projs.map(_.id) must not contain(newProjId)
       }
 
       // check that the general project regained a dataset
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$GENERAL_PROJECT_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val dsets = responseAs[FullProject].datasets
         dsets.size === dsCount
@@ -476,7 +476,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "create a project that grants a role to all users" in {
-      Post(s"/$ROOT_SERVICE_PREFIX/projects", newProject4) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Post(s"/$ROOT_SA_PREFIX/projects", newProject4) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         newProjId = proj.id
@@ -485,7 +485,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "view a project that grants view rights to all users as a non-member" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.id === newProjId
@@ -497,7 +497,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "view a project that grants view rights to all users as a non-member in a list" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val projs = responseAs[Seq[Project]]
         projs.map(_.id) must contain(newProjId)
@@ -505,7 +505,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "fail to update a project that grants view rights to all users as a non-member" in {
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", newProject4) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProject4) ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }
@@ -513,7 +513,7 @@ with SmrtLinkConstants with TestUtils{
 
     "revoke role granted to all users" in {
       val update = newProject4.copy(grantRoleToAll = Some(ProjectRequestRole.NONE), state = None, members = None)
-      Put(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId", update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+      Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val proj = responseAs[FullProject]
         proj.id === newProjId
@@ -522,7 +522,7 @@ with SmrtLinkConstants with TestUtils{
     }
 
     "fail to view a project that revoked view rights fom all users as a non-member" in {
-      Get(s"/$ROOT_SERVICE_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/projects/$newProjId") ~> addHeader(ADMIN_CREDENTIALS_2) ~> totalRoutes ~> check {
         handled must beFalse
         rejection === AuthorizationFailedRejection
       }

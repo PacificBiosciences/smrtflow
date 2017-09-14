@@ -9,11 +9,10 @@ import spray.json._
 
 object AnalysisJobStates {
 
+  // Changing this to a sealed trait creates ambigious implicit errors with spray
   trait JobStates {
     val stateId: Int
   }
-
-  trait Completed
 
   case object CREATED extends JobStates {
     val stateId = 1
@@ -27,15 +26,15 @@ object AnalysisJobStates {
     val stateId = 3
   }
 
-  case object TERMINATED extends JobStates with Completed {
+  case object TERMINATED extends JobStates {
     val stateId = 4
   }
 
-  case object SUCCESSFUL extends JobStates with Completed {
+  case object SUCCESSFUL extends JobStates {
     val stateId = 5
   }
 
-  case object FAILED extends JobStates with Completed {
+  case object FAILED extends JobStates {
     val stateId = 6
   }
 
@@ -50,6 +49,8 @@ object AnalysisJobStates {
   val FAILURE_STATES = Seq(TERMINATED, FAILED)
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
+
+  def notCompleted(state: JobStates): Boolean = !isCompleted(state)
 
   def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
 
@@ -111,6 +112,7 @@ object JobModels {
       val name: String
       val description: String
       def isQuick: Boolean = false
+      def isMultiJob: Boolean = false
     }
 
     case object HELLO_WORLD extends JobType {
@@ -222,12 +224,23 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object MJOB_MULTI_ANALYSIS extends JobType {
+      val id = "multi-analysis"
+      val name = "Run Multi-Analysis Jobs"
+      val description =
+        """General multi-job for wait for the Entry Points for a list of N jobs to resolved,
+          |then create N analysis/pbsmrtpipe jobs and poll for terminal states of each job""".stripMargin
+      override def isMultiJob: Boolean = true
+    }
+
+
     // This really shouldn't be private
     val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
                   CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
                   EXPORT_DATASETS, IMPORT_DATASET, EXPORT_JOBS,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-                  SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP)
+      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP,
+      MJOB_MULTI_ANALYSIS)
 
     def fromString(s: String):Option[JobType] =
       ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
@@ -294,6 +307,28 @@ object JobModels {
       createdAt: JodaDateTime,
       eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
 
+  trait SmrtLinkJob {
+    val id: Int
+    val name: String
+    val comment: String
+    val createdAt: JodaDateTime
+    val updatedAt: JodaDateTime
+    val state: AnalysisJobStates.JobStates
+    val jobTypeId: String
+    val path: String
+    val jsonSettings: String
+    val createdBy: Option[String]
+    val createdByEmail: Option[String]
+    val smrtlinkVersion: Option[String]
+    val isActive: Boolean
+    val errorMessage: Option[String]
+    val projectId: Int
+
+    def isComplete: Boolean = AnalysisJobStates.isCompleted(state)
+    def isSuccessful: Boolean = state == AnalysisJobStates.SUCCESSFUL
+    def isRunning: Boolean = state == AnalysisJobStates.RUNNING
+    def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains(state)
+  }
 
   /**
     * Core "Engine" Job data model
@@ -335,37 +370,53 @@ object JobModels {
       smrtlinkVersion: Option[String],
       isActive: Boolean = true,
       errorMessage: Option[String] = None,
-      projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
+      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+      isMultiJob: Boolean = false,
+      workflow: String = "{}",
+      parentMultiJobId: Option[Int] = None) extends SmrtLinkJob {
 
-      def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
-      def isSuccessful: Boolean = this.state == AnalysisJobStates.SUCCESSFUL
-      def isRunning: Boolean = this.state == AnalysisJobStates.RUNNING
-      def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains(this.state)
-
-      def apply(
-          id: Int,
-          uuid: UUID,
-          name: String,
-          comment: String,
-          createdAt: JodaDateTime,
-          updatedAt: JodaDateTime,
-          stateId: Int,
-          jobTypeId: String,
-          path: String,
-          jsonSettings: String,
-          createdBy: Option[String],
-          createdByEmail: Option[String],
-          smrtlinkVersion: Option[String],
-          isActive: Boolean = true,
-          errorMessage: Option[String] = None,
-          projectId: Int = 1) = {
-
-          // This might not be the best idea.
-          val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
-
-          EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy,  createdByEmail, smrtlinkVersion, isActive, errorMessage, projectId)
-      }
+    def toEngineCoreJob: EngineCoreJob = {
+      EngineCoreJob(
+        id,
+        uuid,
+        name,
+        comment,
+        createdAt,
+        updatedAt,
+        state,
+        jobTypeId,
+        path,
+        jsonSettings,
+        createdBy,
+        createdByEmail,
+        smrtlinkVersion,
+        isActive,
+        errorMessage,
+        projectId,
+        parentMultiJobId)
+    }
   }
+
+  // Trying to keep a clear delineation between the "Core" Engine data model and the
+  // Multi-Job Engine Data Model.
+  case class EngineCoreJob(id: Int,
+                          uuid: UUID,
+                          name: String,
+                          comment: String,
+                          createdAt: JodaDateTime,
+                          updatedAt: JodaDateTime,
+                          state: AnalysisJobStates.JobStates,
+                          jobTypeId: String,
+                          path: String,
+                          jsonSettings: String,
+                          createdBy: Option[String],
+                          createdByEmail: Option[String],
+                          smrtlinkVersion: Option[String],
+                          isActive: Boolean = true,
+                          errorMessage: Option[String] = None,
+                          projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                          parentMultiJobId: Option[Int] = None) extends SmrtLinkJob {}
+
 
   /**
     * A Single Engine Job has many sub-computational units of work. These are a JobTask.
