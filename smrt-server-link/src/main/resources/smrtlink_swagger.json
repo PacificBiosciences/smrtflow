@@ -3123,8 +3123,9 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/status": {
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis": {
       "get": {
+        "description": "Returns a list of EngineMultiJobs for the `multi-analysis` Multi-Job type.",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -3135,7 +3136,74 @@
             "description": "Return value"
           },
           "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "post": {
+        "description": "Create and START a multi-job using one or more deferred jobs",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
             "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Def job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MultiAnalysisJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}": {
+      "get": {
+        "description": "Get a EngineMultiJob for the `multi-analysis` Multi-Job type by job Id",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -6273,6 +6341,150 @@
       "items": {
         "$ref": "#/definitions/AlarmStatus"
       }
+    },
+    "DeferredEntryPoint": {
+      "properties": {
+        "entryId": {
+          "description": "Pipeline Entry Point binding id (Example eid_subread)",
+          "title": "EntryPoint",
+          "type": "string"
+        },
+        "fileTypeId": {
+          "description": "File type id for the binding entry point(Example: PacBio.DataSet.SubreadSet) ",
+          "title": "File Type Id",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "UUID of Entry Point. This does NOT need to be currently resolvable in the system.",
+          "title": "File UUID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DeferredJob": {
+      "description": "A model for creating Deferred jobs that when the entry points all resolvable, the analysis job(s) will be created.",
+      "properties": {
+        "description": {
+          "description": "Description of the Job. This will be used to create the analysis job",
+          "title": "Deferred Analysis Job Description",
+          "type": "string"
+        },
+        "entryPoints": {
+          "description": "List of EntryPoint to",
+          "items": {
+            "$ref": "#/definitions/DeferredEntryPoint"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "Job Name",
+          "title": "Job Name",
+          "type": "string"
+        },
+        "pipelineId": {
+          "description": "Pipeline Id (Example: pbsmrtpipe.pipelines.dev_01_ds)",
+          "title": "Pipeline Id",
+          "type": "string"
+        },
+        "projectId": {
+          "default": 1,
+          "description": "Associate a Multi-Job with a Project",
+          "title": "Project Id",
+          "type": "integer"
+        },
+        "taskOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Task options",
+          "description": "Pipeline-specific task options"
+        },
+        "workflowOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Pipeline Engine options",
+          "description": "Pipeline Engine options (May not be used or supported. The System global settings will be used)"
+        }
+      },
+      "type": "object",
+      "required": [
+        "entryPoints",
+        "pipelineId",
+        "taskOptions",
+        "workflowOptions",
+        "name",
+        "projectId"
+      ],
+      "example": {
+        "description": "A MultiAnalysis Example Job",
+        "name": "An example MultiJob",
+        "projectId": 1,
+        "jobs": [
+          {
+            "entryPoints": [
+              {
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "uuid": "47919a2d-2d6e-4499-863c-67b0433e6a2a",
+                "entryId": "eid_subread"
+              }
+            ],
+            "pipelineId": "pbsmrtpipe.pipelines.dev_01_ds",
+            "taskOptions": [],
+            "workflowOptions": [],
+            "name": "Job 1",
+            "description": "Job 1 description",
+            "projectId": 1
+          },
+          {
+            "entryPoints": [
+              {
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "uuid": "af916621-ab06-46cc-94f2-bc922c48b277",
+                "entryId": "eid_subread"
+              }
+            ],
+            "pipelineId": "pbsmrtpipe.pipelines.dev_01_ds",
+            "taskOptions": [],
+            "workflowOptions": [],
+            "name": "Job 1",
+            "description": "Job 1 description",
+            "projectId": 1
+          }
+        ]
+      }
+    },
+    "MultiAnalysisJobOptions": {
+      "description": "Multi-Analysis Job creation interface. SMRT Link will poll for the entry points to be resolved, then create the analysis jobs and poll for a terminal state.",
+      "properties": {
+        "jobs": {
+          "description": "List of Deferred Job",
+          "items": {
+            "$ref": "#/definitions/DeferredJob"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "Description of the MultiJob",
+          "title": "Description",
+          "type": "string"
+        },
+           "name": {
+          "description": "Job Name",
+          "title": "Job Name",
+          "type": "string"
+        },
+        "projectId": {
+          "default": 1,
+          "description": "Associate a Multi-Job with a Project",
+          "title": "Project Id",
+          "type": "integer"
+        }
+      }
     }
   }
+
 }
