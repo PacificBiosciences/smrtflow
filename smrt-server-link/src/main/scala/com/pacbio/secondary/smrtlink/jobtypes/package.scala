@@ -246,7 +246,6 @@ package object jobtypes {
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS => jx.convertTo[TsSystemStatusBundleJobOptions]
         // These really need to be separated out into there own class
-        case JobTypeIds.MJOB_HELLO_WORLD => jx.convertTo[HelloWorldMultiJobOptions]
         case JobTypeIds.MJOB_MULTI_ANALYSIS => jx.convertTo[MultiAnalysisJobOptions]
       }
     }
@@ -255,7 +254,6 @@ package object jobtypes {
 
       //FIXME(mpkocher)(9-12-2017) need to fix this at the type level
       jobTypeId match {
-        case JobTypeIds.MJOB_HELLO_WORLD => jx.convertTo[HelloWorldMultiJobOptions]
         case JobTypeIds.MJOB_MULTI_ANALYSIS => jx.convertTo[MultiAnalysisJobOptions]
         case x => throw new IllegalArgumentException(s"Job Type id '$x' is not a supported MultiJob type")
       }

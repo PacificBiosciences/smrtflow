@@ -577,17 +577,6 @@ class NakedNoTypeJobsService(override val dao: JobsDao, override val authenticat
 
 }
 
-
-// Multi Jobs
-class MultiHelloWorldJobsService(override val dao: JobsDao,
-                                 override val authenticator: Authenticator,
-                                 override val config: SystemJobConfig)
-                                (implicit val um: Unmarshaller[HelloWorldMultiJobOptions],
-                                 implicit val sm: Marshaller[HelloWorldMultiJobOptions],
-                                 implicit val jwriter: JsonWriter[HelloWorldMultiJobOptions]) extends CommonJobsRoutes[HelloWorldMultiJobOptions] {
-  override def jobTypeId = JobTypeIds.MJOB_HELLO_WORLD
-}
-
 class MultiAnalysisJobService(override val dao: JobsDao,
                                  override val authenticator: Authenticator,
                                  override val config: SystemJobConfig)
@@ -622,7 +611,6 @@ class JobsServiceUtils(dao: JobsDao, authenticator: Authenticator, config: Syste
     "0.1.0", "New Job Service")
 
   def getServiceMultiJobs(): Seq[JobServiceRoutes] = Seq(
-    new MultiHelloWorldJobsService(dao, authenticator, config),
     new MultiAnalysisJobService(dao, authenticator, config)
   )
 

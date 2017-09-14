@@ -37,8 +37,6 @@ trait ServiceJobTypeJsonProtocols extends DefaultJsonProtocol with FamilyFormats
   implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat5(TsSystemStatusBundleJobOptions)
   implicit val techSupportJobBundleJobOptionsFormat = jsonFormat6(TsJobBundleJobOptions)
 
-  implicit val helloWorldMultiJobOptionsFormat = jsonFormat4(HelloWorldMultiJobOptions)
-
   implicit val entryPointDeferredJobFormat = jsonFormat3(DeferredEntryPoint)
   implicit val deferredJobFormat = jsonFormat7(DeferredJob)
   implicit val multiAnalysisJobOptionsFormat = jsonFormat4(MultiAnalysisJobOptions)

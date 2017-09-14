@@ -217,14 +217,6 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
-    // MULTI JOBS
-    case object MJOB_HELLO_WORLD extends JobType {
-      val id = "multi-hello-world"
-      val name = "MultiJob Hello World"
-      val description = "Wait for a SubreadSet to be imported, then write summary in the (multi-job) job directory"
-      override def isMultiJob: Boolean = true
-    }
-
     case object MJOB_MULTI_ANALYSIS extends JobType {
       val id = "multi-analysis"
       val name = "Run Multi-Analysis Jobs"
@@ -241,7 +233,7 @@ object JobModels {
                   EXPORT_DATASETS, IMPORT_DATASET,
                   MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
       SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP,
-      MJOB_HELLO_WORLD, MJOB_MULTI_ANALYSIS)
+      MJOB_MULTI_ANALYSIS)
 
     def fromString(s: String):Option[JobType] =
       ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
