@@ -121,8 +121,17 @@ trait DalComponent extends LazyLogging{
 // Need to find a central home for these util funcs
 trait DaoFutureUtils {
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
-    case Some(value) => Future { value}
+    case Some(value) => Future.successful(value)
     case _ => Future.failed(new ResourceNotFoundError(message))
+  }
+
+
+  def runFuturesSequentially[T, U](items: TraversableOnce[T])(fx: T => Future[U]): Future[List[U]] = {
+    items.foldLeft(Future.successful[List[U]](Nil)) {
+      (f, item) => f.flatMap {
+        x => fx(item).map(_ :: x)
+      }
+    } map (_.reverse)
   }
 }
 
@@ -355,6 +364,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     db.run(action.transactionally)
   }
 
+  def getJobById(ix: IdAble): Future[EngineJob] =
+    db.run(qEngineJobById(ix).result.headOption)
+        .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
+
   def qEngineJobById(id: IdAble) = {
     id match {
       case IntIdAble(i) => engineJobs.filter(_.id === i)
@@ -362,12 +375,19 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     }
   }
 
-  def getJobById(ix: IdAble): Future[EngineJob] =
-    db.run(qEngineJobById(ix).result.headOption)
-        .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
-
   val qEngineMultiJobs = engineJobs.filter(_.isMultiJob === true)
 
+  def qEngineMultiJobById(id: IdAble) = {
+    id match {
+      case IntIdAble(i) => qEngineMultiJobs.filter(_.id === i)
+      case UUIDIdAble(uuid) => qEngineMultiJobs.filter(_.uuid === uuid)
+    }
+  }
+
+
+  def getMultiJobById(ix: IdAble): Future[EngineJob] =
+    db.run(qEngineMultiJobById(ix).result.headOption)
+        .flatMap(failIfNone(s"Failed to find Multi-Job ${ix.toIdString}"))
 
     /**
     * Get next runnable job.
@@ -451,6 +471,26 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils{
     f.onSuccess {case job:EngineJob => sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))}
 
     f
+  }
+
+  /**
+    *
+    * Update the workflow state of the Multi-Job
+    */
+  def updateMultiJobState(jobId: IdAble, state: AnalysisJobStates.JobStates, workflow: JsObject, message: String, errorMessage: Option[String]):Future[EngineJob] = {
+    logger.info(s"Updating multi-job state of job-id ${jobId.toIdString} to $state")
+    val now = JodaDateTime.now()
+    val xs = for {
+      job <- qEngineMultiJobById(jobId).result.head
+      _ <-  DBIO.seq(
+        qEngineMultiJobById(jobId).map(j => (j.state, j.updatedAt, j.workflow, j.errorMessage)).update(state, now, workflow.toString(), errorMessage),
+        jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
+      )
+      updatedJob <- qEngineJobById(jobId).result.headOption
+    } yield updatedJob
+
+    db.run(xs.transactionally).flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
+
   }
 
   private def insertEngineJob(engineJob: EngineJob, entryPoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
