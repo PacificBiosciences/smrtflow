@@ -31,7 +31,7 @@ case class PbsmrtpipeJobOptions(name: Option[String],
 
   override def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
     val fx = resolver(entryPoints, dao).map(_.map(_._1))
-    Await.result(fx, 5.seconds)
+    Await.result(fx, DEFAULT_TIMEOUT)
   }
 
   override def validate(dao: JobsDao, config: SystemJobConfig) = None
@@ -48,6 +48,8 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts) wit
 
   override def run(resources: JobResourceBase, resultsWriter: JobResultWriter, dao: JobsDao, config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
+    val workflowLevelOptions = config.pbSmrtPipeEngineOptions.toPipelineOptions.map(_.asServiceOption)
+
     val rootUpdateURL = new URL(s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
     // These need to be pulled from the System config
@@ -58,9 +60,9 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions) extends ServiceCoreJob(opts) wit
 
     // Resolve Entry Points
     val fx:Future[Seq[BoundEntryPoint]] = opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
-    val entryPoints: Seq[BoundEntryPoint] = Await.result(fx, 5.seconds)
+    val entryPoints: Seq[BoundEntryPoint] = Await.result(fx, opts.DEFAULT_TIMEOUT)
 
-    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, opts.workflowOptions, envPath, serviceURI, None, opts.getProjectId())
+    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId, entryPoints, opts.taskOptions, workflowLevelOptions, envPath, serviceURI, None, opts.getProjectId())
     val job = oldOpts.toJob
     job.run(resources, resultsWriter)
   }
