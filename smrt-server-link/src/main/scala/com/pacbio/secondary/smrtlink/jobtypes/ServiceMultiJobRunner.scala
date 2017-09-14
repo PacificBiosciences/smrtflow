@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.jobs.{FileJobResultsWriter, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobResource, JobResourceBase, ResultSuccess}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -14,6 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Try}
 import scala.util.control.NonFatal
 
@@ -74,9 +75,21 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig) extends JobRu
     * @param engineJob
     */
   def runWorkflow(engineJob: EngineJob): Future[MessageResponse] = {
-    val (opts, writer, resources) = setupAndConvert(engineJob)
-    val job = opts.toMultiJob()
-    job.runWorkflow(engineJob, resources, writer, dao, config)
+
+    val fx = for {
+      (opts, writer, resources) <- Future.fromTry(Try(setupAndConvert(engineJob)))
+      job <- Future.successful(opts.toMultiJob())
+      msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
+    } yield msg
+
+    fx.recoverWith { case ex =>
+      for {
+        msg <- Future.successful(s"MultiJob failure ${ex.getMessage}")
+        //_ <- Future.successful(writeErrorToResults(ex, writer, Some(msg)))
+        _ <- dao.updateJobState(engineJob.id, AnalysisJobStates.FAILED, msg, Some(ex.getMessage))
+        _ <- Future.failed(ex)
+      } yield MessageResponse(msg) // Never get here
+    }
   }
 
 
