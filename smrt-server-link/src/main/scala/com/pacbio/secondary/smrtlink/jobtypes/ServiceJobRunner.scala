@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
   * @param dao Persistence layer for interfacing with the db
   * @param config System Job Config
   */
-class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging {
+class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging with JobRunnerUtils {
   import CommonModelImplicits._
 
   def host = config.host
@@ -58,20 +58,11 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     dao.updateJobState(uuid, state, message.getOrElse(s"Updating Job $uuid state to $state"))
   }
 
+
   private def convertAndSetup[T >: ServiceJobOptions](engineJob: EngineJob): Try[(T, FileJobResultsWriter, JobResource)] = {
     Try {
-      val opts = Converters.convertEngineToOptions(engineJob)
-      val output = Paths.get(engineJob.path)
-
-      // This abstraction needs to be fixed. This is for legacy interface
-      val resource = JobResource(engineJob.uuid, output)
-
-      val stderrFw = new FileWriter(output.resolve("pbscala-job.stderr").toAbsolutePath.toString, true)
-      val stdoutFw = new FileWriter(output.resolve("pbscala-job.stdout").toAbsolutePath.toString, true)
-
-      val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
-      writer.writeLine(s"Starting to run engine job ${engineJob.id} on $host")
-
+      val opts = Converters.convertServiceCoreJobOption(engineJob)
+      val (writer, resource) = setupResources(engineJob)
       (opts, writer, resource)
     }
   }
@@ -109,7 +100,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     def andWrite(msg: String) = Try(writer.writeLine(msg))
 
     val tx = for {
-      results <- opts.toJob.runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
+      results <- opts.toJob().runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
       _ <- andWrite(s"Successfully completed running core job. $results")
       msg <- importer(jobId, results, timeout)
       _ <- andWrite(msg)
@@ -120,15 +111,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
     // This is a little clumsy to get the error message written to the correct place
     // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
-    tx match {
-      case Success(result) => Success(result)
-      case Failure(ex) =>
-        writer.writeLineError(s"Failed to Run and Import $jobIntId. ${ex.getMessage}")
-        val sw = new StringWriter
-        ex.printStackTrace(new PrintWriter(sw))
-        writer.writeLineError(sw.toString)
-        Failure(ex)
-    }
+    tx.recoverWith(writeError(writer, Some(s"Failed to run and import $jobIntId")))
   }
 
   /**
@@ -155,10 +138,10 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
 
 
   // This should probably have some re-try mechanism
-  private def recoverAndUpdateToFailed(jobId: UUID, timeout: FiniteDuration, toFailed: String => ResultFailed): PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
+  def recoverAndUpdateToFailed(jobId: UUID, timeout: FiniteDuration, toFailed: String => ResultFailed): PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
     case NonFatal(ex) =>
       updateJobStateBlock(jobId, AnalysisJobStates.FAILED, Some(ex.getMessage), timeout)
-          .map(engineJob => Left(toFailed(s"${ex.getMessage}. Successfully update job ${engineJob.id} state to ${engineJob.state}.")))
+          .map(engineJob => Left(toFailed(s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
   }
 
   /**
@@ -194,7 +177,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
       case Success(either) => either
       case Failure(ex) =>
         logger.error(s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}")
-        // this should log the stacktrace
+        // this should log the stacktrace. This needs access to the job writer
         Left(toFailed(ex.getMessage))
     }
   }
