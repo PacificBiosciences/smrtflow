@@ -7,8 +7,8 @@ import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType, _}
 import scalaz._
 
 /**
- * Created by mkocher on 4/11/16.
- */
+  * Created by mkocher on 4/11/16.
+  */
 package object validators {
 
   object ImplicitDataSetValidators {
@@ -21,16 +21,20 @@ package object validators {
       def validate(ds: SubreadSet) = ValidateSubreadSet.validator(ds)
     }
 
-    implicit object HdfSubreadSetValidator extends DataSetValidator[HdfSubreadSet] {
+    implicit object HdfSubreadSetValidator
+        extends DataSetValidator[HdfSubreadSet] {
       def validate(ds: HdfSubreadSet) = ValidateHdfSubreadSet.validator(ds)
     }
 
-    implicit object AlignmentSetValidator extends DataSetValidator[AlignmentSet] {
+    implicit object AlignmentSetValidator
+        extends DataSetValidator[AlignmentSet] {
       def validate(ds: AlignmentSet) = ValidateAlignmentSet.validator(ds)
     }
 
-    implicit object ConsensusAlignmentSetValidator extends DataSetValidator[ConsensusAlignmentSet] {
-      def validate(ds: ConsensusAlignmentSet) = ValidateConsensusAlignmentSet.validator(ds)
+    implicit object ConsensusAlignmentSetValidator
+        extends DataSetValidator[ConsensusAlignmentSet] {
+      def validate(ds: ConsensusAlignmentSet) =
+        ValidateConsensusAlignmentSet.validator(ds)
     }
 
     implicit object BarcodeSetValidator extends DataSetValidator[BarcodeSet] {
@@ -41,19 +45,25 @@ package object validators {
       def validate(ds: ContigSet) = ValidateContigSet.validator(ds)
     }
 
-    implicit object ConsensusReadSetValidator extends DataSetValidator[ConsensusReadSet] {
-      def validate(ds: ConsensusReadSet) = ValidateConsensusReadSet.validator(ds)
+    implicit object ConsensusReadSetValidator
+        extends DataSetValidator[ConsensusReadSet] {
+      def validate(ds: ConsensusReadSet) =
+        ValidateConsensusReadSet.validator(ds)
     }
 
-    implicit object ReferenceSetValidator extends DataSetValidator[ReferenceSet] {
+    implicit object ReferenceSetValidator
+        extends DataSetValidator[ReferenceSet] {
       def validate(ds: ReferenceSet) = ValidateReferenceSet.validator(ds)
     }
 
-    implicit object GmapReferenceSetValidator extends DataSetValidator[GmapReferenceSet] {
-      def validate(ds: GmapReferenceSet) = ValidateGmapReferenceSet.validator(ds)
+    implicit object GmapReferenceSetValidator
+        extends DataSetValidator[GmapReferenceSet] {
+      def validate(ds: GmapReferenceSet) =
+        ValidateGmapReferenceSet.validator(ds)
     }
 
-    def validator[T <: XmlDataSetType](ds: T)(implicit vx: DataSetValidator[T]) = {
+    def validator[T <: XmlDataSetType](ds: T)(
+        implicit vx: DataSetValidator[T]) = {
       vx.validate(ds: T)
     }
   }

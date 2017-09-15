@@ -21,7 +21,7 @@ trait UUIDJsonProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait IdAbleJsonProtocol extends DefaultJsonProtocol with FamilyFormats{
+trait IdAbleJsonProtocol extends DefaultJsonProtocol with FamilyFormats {
   import CommonModels._
 
   implicit object IdAbleFormat extends JsonFormat[IdAble] {
@@ -41,7 +41,7 @@ trait IdAbleJsonProtocol extends DefaultJsonProtocol with FamilyFormats{
 }
 
 // These are borrowed from Base SMRT Server
-trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats{
+trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
 
   implicit object JodaDateTimeFormat extends JsonFormat[JodaDateTime] {
     def write(obj: JodaDateTime): JsValue = JsString(obj.toString)
@@ -64,11 +64,12 @@ trait PathProtocols extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-trait UrlProtocol extends DefaultJsonProtocol with FamilyFormats{
+trait UrlProtocol extends DefaultJsonProtocol with FamilyFormats {
   implicit object UrlFormat extends RootJsonFormat[URL] {
     def write(u: URL): JsValue = JsString(u.toString)
     def read(v: JsValue): URL = v match {
-      case JsString(sx) => new URL(sx) // Should this default to file:// if not provided?
+      case JsString(sx) =>
+        new URL(sx) // Should this default to file:// if not provided?
       case _ => deserializationError("Expected URL as JsString")
     }
   }
@@ -99,6 +100,13 @@ trait DurationProtocol extends DefaultJsonProtocol with FamilyFormats {
   }
 }
 
-object CommonJsonProtocols extends UUIDJsonProtocol with IdAbleJsonProtocol with JodaDateTimeProtocol with PathProtocols with UrlProtocol with URIJsonProtocol with DurationProtocol
+object CommonJsonProtocols
+    extends UUIDJsonProtocol
+    with IdAbleJsonProtocol
+    with JodaDateTimeProtocol
+    with PathProtocols
+    with UrlProtocol
+    with URIJsonProtocol
+    with DurationProtocol
 
 object IdAbleJsonProtocol extends IdAbleJsonProtocol

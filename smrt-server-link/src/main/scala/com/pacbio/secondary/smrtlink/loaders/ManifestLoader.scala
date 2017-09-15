@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by mkocher on 8/7/16.
   */
-trait ManifestLoader extends LazyLogging{
+trait ManifestLoader extends LazyLogging {
 
   // Putting these constants here for now
   // application.conf id
@@ -27,8 +27,10 @@ trait ManifestLoader extends LazyLogging{
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   def loadFrom(file: File): Seq[PacBioComponentManifest] =
-    scala.io.Source.fromFile(file)
-      .mkString.parseJson
+    scala.io.Source
+      .fromFile(file)
+      .mkString
+      .parseJson
       .convertTo[Seq[PacBioComponentManifest]]
 
   def loadFromConfig(config: Config): Seq[PacBioComponentManifest] =
@@ -37,11 +39,11 @@ trait ManifestLoader extends LazyLogging{
         logger.info(s"Loaded manifests $m")
         m
       case Failure(ex) =>
-        logger.warn(s"Failed to load pacbio-manifest.json from config key $CONFIG_KEY Error ${ex.getMessage}")
+        logger.warn(
+          s"Failed to load pacbio-manifest.json from config key $CONFIG_KEY Error ${ex.getMessage}")
         Seq.empty[PacBioComponentManifest]
     }
 
 }
 
-object ManifestLoader extends  ManifestLoader
-
+object ManifestLoader extends ManifestLoader

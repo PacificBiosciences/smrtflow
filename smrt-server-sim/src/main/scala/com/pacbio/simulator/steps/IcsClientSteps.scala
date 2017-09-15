@@ -1,6 +1,5 @@
 package com.pacbio.simulator.steps
 
-
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
@@ -19,8 +18,7 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Created by amaster on 2/10/17.
   */
-trait IcsClientSteps {
-  this: Scenario with VarSteps =>
+trait IcsClientSteps { this: Scenario with VarSteps =>
 
   val icsClient: InstrumentControlClient
 
@@ -39,12 +37,17 @@ trait IcsClientSteps {
     override val name = "Post RunDesign to ICS"
 
     def generateIcsRun: Future[ICSRun] = {
-      val runObj = RunObj(runDesign.get.dataModel, runDesign.get.uniqueId, runDesign.get.summary.get)
+      val runObj = RunObj(runDesign.get.dataModel,
+                          runDesign.get.uniqueId,
+                          runDesign.get.summary.get)
 
       //ICSRun(runDesign.get.createdBy.get, runObj)
       runDesign.get.createdBy match {
         case Some(ss) => Future(ICSRun(ss, runObj))
-        case None => Future.failed(throw new Exception("runDesign missing createdBy, this field is needed by ICS"))
+        case None =>
+          Future.failed(
+            throw new Exception(
+              "runDesign missing createdBy, this field is needed by ICS"))
       }
     }
 
@@ -117,8 +120,8 @@ trait IcsClientSteps {
   case class GetRunStatus(runDesign: Var[Run],
                           desiredStates: Seq[ICSState.State],
                           sleepTime: FiniteDuration = 1.second,
-                          retries: Int = 3000) extends Step {
-
+                          retries: Int = 3000)
+      extends Step {
 
     override val name = "GET Run Status"
 
@@ -127,18 +130,25 @@ trait IcsClientSteps {
       val uid = runDesign.get.uniqueId.toString
       println(s"uid : $uid")
 
-      val failureStates: Seq[ICSState.State] = Seq(Aborted, Aborting, Terminated, Unknown, Paused)
+      val failureStates: Seq[ICSState.State] =
+        Seq(Aborted, Aborting, Terminated, Unknown, Paused)
 
-      val desiredStateNames: String = "[" + desiredStates.map(_.name).reduce(_ + "," + _) + "]"
+      val desiredStateNames: String = "[" + desiredStates
+        .map(_.name)
+        .reduce(_ + "," + _) + "]"
 
       /*
       based on the api it appears that ICS will just convey the information of the current run, as opposed to all runs
       in other words, there is no need for filtering out runs based on unique_id
        */
-      def stateFuture: Future[ICSState.State] = icsClient.getInstrumentState.map { rr =>
-        val state = rr.runState
-        ICSState.fromIndex(state).getOrElse(throw new IllegalStateException(s"Unknown state $state encountered."))
-      }
+      def stateFuture: Future[ICSState.State] =
+        icsClient.getInstrumentState.map { rr =>
+          val state = rr.runState
+          ICSState
+            .fromIndex(state)
+            .getOrElse(throw new IllegalStateException(
+              s"Unknown state $state encountered."))
+        }
 
       var retry = 0
 
@@ -173,39 +183,38 @@ trait IcsClientSteps {
 
   // todo : retries must be calculated according to the movieLength
   case class GetRunRqmts(retries: Int = 3000,
-                         sleepTime: FiniteDuration = 1.second) extends Step {
-
+                         sleepTime: FiniteDuration = 1.second)
+      extends Step {
 
     override val name = "GET Run Rqmts"
 
-    override def run : Future[Result] = {
+    override def run: Future[Result] = {
 
       val desiredState = true
       val failureState = false
 
       def stateFuture = icsClient.getRunRqmts.map { rr =>
-        rr.hasSufficientInventory//.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
+        rr.hasSufficientInventory //.getOrElse(throw new IllegalStateException(s"hasSufficientInventory field could not be found"))
       }
 
-      var retry  = 0
+      var retry = 0
 
-      def stateFutureRep : Future[Boolean] = stateFuture.flatMap{
-        state =>
-          if (desiredState==state)
-            Future(state)
-          else if (failureState == state) {
-            Future(state)
-          } else if (retry < retries) {
-            retry += 1
-            Thread.sleep(sleepTime.toMillis)
-            stateFutureRep
-          } else {
-            Future(state)
-          }
+      def stateFutureRep: Future[Boolean] = stateFuture.flatMap { state =>
+        if (desiredState == state)
+          Future(state)
+        else if (failureState == state) {
+          Future(state)
+        } else if (retry < retries) {
+          retry += 1
+          Thread.sleep(sleepTime.toMillis)
+          stateFutureRep
+        } else {
+          Future(state)
+        }
       }
 
       stateFutureRep.map { state =>
-        if (desiredState==state)
+        if (desiredState == state)
           SUCCEEDED
         else if (failureState == state)
           FAILED(s"GET Run Rqmts  : hasSufficientResources : FALSE")

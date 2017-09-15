@@ -8,10 +8,18 @@ import com.pacbio.secondary.smrtlink.auth.Authenticator
 import com.pacbio.secondary.smrtlink.auth.AuthenticatorProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.actors.{RegistryServiceActor, RegistryServiceActorRefProvider}
+import com.pacbio.secondary.smrtlink.actors.{
+  RegistryServiceActor,
+  RegistryServiceActorRefProvider
+}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
-import spray.http.{HttpEntity, HttpHeader, HttpMethod, HttpResponse => SprayHttpResponse}
+import spray.http.{
+  HttpEntity,
+  HttpHeader,
+  HttpMethod,
+  HttpResponse => SprayHttpResponse
+}
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -20,39 +28,41 @@ import scala.language.postfixOps
 import scalaj.http.HttpResponse
 
 class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
-  extends SmrtLinkBaseMicroService with SmrtLinkJsonProtocols {
+    extends SmrtLinkBaseMicroService
+    with SmrtLinkJsonProtocols {
 
   import RegistryServiceActor._
 
   val COMPONENT_ID = toServiceId("registry")
   val COMPONENT_VERSION = "0.1.1"
 
-  val manifest = PacBioComponentManifest(
-    COMPONENT_ID,
-    "Subsystem Resource Registry Service",
-    COMPONENT_VERSION, "Subsystem Resource Registry Service")
+  val manifest = PacBioComponentManifest(COMPONENT_ID,
+                                         "Subsystem Resource Registry Service",
+                                         COMPONENT_VERSION,
+                                         "Subsystem Resource Registry Service")
 
   val routes =
     //authenticate(authenticator.wso2Auth) { user =>
-      pathPrefix("registry-service" / "resources") {
-        pathEnd {
-          get {
-            parameter('resourceId.?) { id =>
-              complete {
-                (registryActor ? GetResources(id)).mapTo[Set[RegistryResource]]
-              }
+    pathPrefix("registry-service" / "resources") {
+      pathEnd {
+        get {
+          parameter('resourceId.?) { id =>
+            complete {
+              (registryActor ? GetResources(id)).mapTo[Set[RegistryResource]]
             }
-          } ~
+          }
+        } ~
           post {
             entity(as[RegistryResourceCreate]) { create =>
               complete {
                 created {
-                  (registryActor ? CreateResource(create)).mapTo[RegistryResource]
+                  (registryActor ? CreateResource(create))
+                    .mapTo[RegistryResource]
                 }
               }
             }
           }
-        } ~
+      } ~
         pathPrefix(JavaUUID) { uuid =>
           pathEnd {
             get {
@@ -62,84 +72,94 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
                 }
               }
             } ~
-            delete {
-              complete {
-                ok {
-                  (registryActor ? DeleteResource(uuid)).mapTo[MessageResponse]
-                }
-              }
-            }
-          } ~
-          path("update-status") {
-            post {
-              complete {
-                ok {
-                  (registryActor ? UpdateResource(uuid, RegistryResourceUpdate(None, None))).mapTo[RegistryResource]
-                }
-              }
-            }
-          } ~
-          path("update") {
-            post {
-              entity(as[RegistryResourceUpdate]) { update =>
+              delete {
                 complete {
                   ok {
-                    (registryActor ? UpdateResource(uuid, update)).mapTo[RegistryResource]
+                    (registryActor ? DeleteResource(uuid))
+                      .mapTo[MessageResponse]
                   }
                 }
               }
-            }
           } ~
-          pathPrefix("proxy") {
-            extract[HttpMethod](_.request.method) { method =>
-              extract[HttpEntity](_.request.entity) { ent =>
-                extract[List[HttpHeader]](_.request.headers) { headers =>
-                  parameterMap { params =>
-                    path(Rest) { path =>
-                      complete {
-                        handleProxy(uuid, path, method, ent, headers, params)
-                      }
-                    } ~
-                    pathEnd {
-                      complete {
-                        handleProxy(uuid, "", method, ent, headers, params)
-                      }
+            path("update-status") {
+              post {
+                complete {
+                  ok {
+                    (registryActor ? UpdateResource(
+                      uuid,
+                      RegistryResourceUpdate(None, None)))
+                      .mapTo[RegistryResource]
+                  }
+                }
+              }
+            } ~
+            path("update") {
+              post {
+                entity(as[RegistryResourceUpdate]) { update =>
+                  complete {
+                    ok {
+                      (registryActor ? UpdateResource(uuid, update))
+                        .mapTo[RegistryResource]
+                    }
+                  }
+                }
+              }
+            } ~
+            pathPrefix("proxy") {
+              extract[HttpMethod](_.request.method) { method =>
+                extract[HttpEntity](_.request.entity) { ent =>
+                  extract[List[HttpHeader]](_.request.headers) { headers =>
+                    parameterMap { params =>
+                      path(Rest) { path =>
+                        complete {
+                          handleProxy(uuid, path, method, ent, headers, params)
+                        }
+                      } ~
+                        pathEnd {
+                          complete {
+                            handleProxy(uuid, "", method, ent, headers, params)
+                          }
+                        }
                     }
                   }
                 }
               }
             }
-          }
         }
-      }
-    //}
+    }
+  //}
 
   // TODO(smcclellan): Do we need to handle cookies?
-  def handleProxy(
-      uuid: UUID,
-      pth: String,
-      meth: HttpMethod,
-      ent: HttpEntity,
-      head: List[HttpHeader],
-      par: Map[String, String]): Future[SprayHttpResponse] = {
+  def handleProxy(uuid: UUID,
+                  pth: String,
+                  meth: HttpMethod,
+                  ent: HttpEntity,
+                  head: List[HttpHeader],
+                  par: Map[String, String]): Future[SprayHttpResponse] = {
     import spray.http.{HttpEntity, StatusCodes}
     import spray.http.HttpHeaders.RawHeader
 
     val path: String = if (pth startsWith "/") pth else "/" + pth
     val method: String = meth.value
     val data: Option[Array[Byte]] = ent.toOption.map(_.data.toByteArray)
-    val headers: Option[Map[String, String]] = if (head isEmpty) None else Some(head.map(h => h.name -> h.value).toMap)
-    val params: Option[Map[String, String]] = if (par isEmpty) None else Some(par)
+    val headers: Option[Map[String, String]] =
+      if (head isEmpty) None else Some(head.map(h => h.name -> h.value).toMap)
+    val params: Option[Map[String, String]] =
+      if (par isEmpty) None else Some(par)
 
     val req = RegistryProxyRequest(path, method, data, headers, params)
 
-    val resp = (registryActor ? ProxyRequest(uuid, req)).mapTo[HttpResponse[Array[Byte]]]
+    val resp = (registryActor ? ProxyRequest(uuid, req))
+      .mapTo[HttpResponse[Array[Byte]]]
 
     resp.map { r =>
       SprayHttpResponse(
         StatusCodes.getForKey(r.code).get,
         HttpEntity.apply(r.body),
-        r.headers.map { case (n, vs) => vs.map(v => RawHeader(n, v)).toList }.toList.flatten
+        r.headers
+          .map { case (n, vs) => vs.map(v => RawHeader(n, v)).toList }
+          .toList
+          .flatten
       )
     }
   }
@@ -151,7 +171,8 @@ trait RegistryServiceProvider {
     with ServiceComposer =>
 
   val registryService: Singleton[RegistryService] =
-    Singleton(() => new RegistryService(registryServiceActorRef(), authenticator()))
+    Singleton(
+      () => new RegistryService(registryServiceActorRef(), authenticator()))
 
   addService(registryService)
 }

@@ -12,7 +12,7 @@ import scala.util.Try
 case class InvalidPacBioFastaError(msg: String) extends Exception(msg)
 case class ContigsMetaData(nrecords: Int, totalLength: Long)
 
-object PacBioFastaValidator extends LazyLogging{
+object PacBioFastaValidator extends LazyLogging {
 
   type RefOrE = Either[InvalidPacBioFastaError, ContigsMetaData]
   type OptionE = Option[InvalidPacBioFastaError]
@@ -29,7 +29,6 @@ object PacBioFastaValidator extends LazyLogging{
   // The raw header can be converted to a "id"
   private def toId(xs: String) = xs.split(" ")(0)
 
-
   private def composeValidation(v1: RE, v2: RE): RE = {
 
     def runner(r: ReferenceSequence): OptionE = {
@@ -43,7 +42,8 @@ object PacBioFastaValidator extends LazyLogging{
   }
 
   def validateDnaByte(x: Byte) = {
-    if (VALID_SEQ_IUPAC_BTYPES contains x) None else Some(InvalidPacBioFastaError(s"Invalid Char '${x.toChar}'"))
+    if (VALID_SEQ_IUPAC_BTYPES contains x) None
+    else Some(InvalidPacBioFastaError(s"Invalid Char '${x.toChar}'"))
   }
 
   def validateDna(r: ReferenceSequence) = {
@@ -52,16 +52,22 @@ object PacBioFastaValidator extends LazyLogging{
   }
 
   def startsWithAsterisk(xs: String) = {
-    if (xs.startsWith("*")) Some(InvalidPacBioFastaError(s"Contig Id must not start with '*'. $xs")) else None
+    if (xs.startsWith("*"))
+      Some(InvalidPacBioFastaError(s"Contig Id must not start with '*'. $xs"))
+    else None
   }
 
   def charInHeader(c: Char, xs: String) = {
-    if (xs contains c) Some(InvalidPacBioFastaError(s"Invalid '$xs' contains '$c'")) else None
+    if (xs contains c)
+      Some(InvalidPacBioFastaError(s"Invalid '$xs' contains '$c'"))
+    else None
   }
 
-  def validateId(xs: String) = INVALID_CONTIG_ID_CHARS.flatMap(x => charInHeader(x, xs)).headOption
+  def validateId(xs: String) =
+    INVALID_CONTIG_ID_CHARS.flatMap(x => charInHeader(x, xs)).headOption
 
-  def validateRawHeader(xs: String) = INVALID_RAW_HEADER_CHARS.flatMap(x => charInHeader(x, xs)).headOption
+  def validateRawHeader(xs: String) =
+    INVALID_RAW_HEADER_CHARS.flatMap(x => charInHeader(x, xs)).headOption
 
   def validateRecord(r: ReferenceSequence) = {
     def vheader(r: ReferenceSequence) = validateRawHeader(r.getName)
@@ -101,36 +107,49 @@ object PacBioFastaValidator extends LazyLogging{
         } else if (haveEmptyLine) {
           Some(InvalidPacBioFastaError(s"FASTA file contains an empty line"))
         } else None
-      } else Some(InvalidPacBioFastaError(s"Emtpy file detected ${path.toAbsolutePath.toString}"))
-    } getOrElse Some(InvalidPacBioFastaError(s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
+      } else
+        Some(
+          InvalidPacBioFastaError(
+            s"Emtpy file detected ${path.toAbsolutePath.toString}"))
+    } getOrElse Some(
+      InvalidPacBioFastaError(
+        s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
   def preValidation(path: Path) = {
-    if (!Files.exists(path)) Some(InvalidPacBioFastaError(s"Unable to find ${path.toAbsolutePath.toString}")) else validateRawFasta(path)
+    if (!Files.exists(path))
+      Some(
+        InvalidPacBioFastaError(
+          s"Unable to find ${path.toAbsolutePath.toString}"))
+    else validateRawFasta(path)
   }
 
   /**
-   * Core Fasta level Validation for the Fasta File
-   *
-   * - Header "id" is unique
-   * - DNA Sequences are IUPAC +
-   * - Header doesn't start with asterisk
-   *
-   * @param path to Fasta File
-   * @return
-   */
+    * Core Fasta level Validation for the Fasta File
+    *
+    * - Header "id" is unique
+    * - DNA Sequences are IUPAC +
+    * - Header doesn't start with asterisk
+    *
+    * @param path to Fasta File
+    * @return
+    */
   def validateFastaFile(path: Path, barcodeMode: Boolean = false): RefOrE = {
     logger.info(s"Validating FASTA file $path")
 
     val headerIds = mutable.Set[String]()
 
     def headerIsUnique(xs: String) = {
-      if (headerIds contains xs) Some(InvalidPacBioFastaError(s"Duplicate header id '$xs'")) else None
+      if (headerIds contains xs)
+        Some(InvalidPacBioFastaError(s"Duplicate header id '$xs'"))
+      else None
     }
 
-    def validateUniqueId(r: ReferenceSequence) =  headerIsUnique(toId(r.getName))
+    def validateUniqueId(r: ReferenceSequence) =
+      headerIsUnique(toId(r.getName))
 
-    val validatePacBioRecord = composeValidation(validateRecord, validateUniqueId)
+    val validatePacBioRecord =
+      composeValidation(validateRecord, validateUniqueId)
 
     // Use the raw value to validate the contig id
     val truncateNamesAtWhitespace = false
@@ -153,10 +172,11 @@ object PacBioFastaValidator extends LazyLogging{
           logger.info(s"Attempting to validate Record $xs")
           validatePacBioRecord(xs) match {
             case Some(ex) =>
-              logger.error(s"Failed to validate fasta record $xs. Error ${ex.msg}")
+              logger.error(
+                s"Failed to validate fasta record $xs. Error ${ex.msg}")
               error = Option(ex)
               toBreak = true
-            case _  =>
+            case _ =>
               val contigId = toId(xs.getName)
               headerIds += contigId
               logger.info(s"successfully validated record $xs")
@@ -170,19 +190,20 @@ object PacBioFastaValidator extends LazyLogging{
       case Some(err) => Left(err)
       case None =>
         if ((barcodeMode) && (allLengths.size > 1)) {
-          Left(InvalidPacBioFastaError(s"All sequences in barcode FASTA files must be the same length; this file contains sequences of lengths $allLengths"))
+          Left(InvalidPacBioFastaError(
+            s"All sequences in barcode FASTA files must be the same length; this file contains sequences of lengths $allLengths"))
         } else Right(ContigsMetaData(nrecords, totalLength))
     }
   }
 
   /**
-   *
-   * Validates the file exists as performs detailed Fasta level validation
-   *
-   *
-   * @param path to Fasta file
-   * @return
-   */
+    *
+    * Validates the file exists as performs detailed Fasta level validation
+    *
+    *
+    * @param path to Fasta file
+    * @return
+    */
   def apply(path: Path, barcodeMode: Boolean = false): RefOrE = {
     preValidation(path) match {
       case Some(x) => Left(x)

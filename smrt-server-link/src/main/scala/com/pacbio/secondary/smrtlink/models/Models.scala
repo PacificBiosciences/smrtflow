@@ -7,7 +7,10 @@ import java.util.UUID
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.semver.SemVersion
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedAcquisitionStates,
+  SupportedRunStates
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
 import spray.json.JsObject
@@ -19,13 +22,13 @@ object Models
 
 object PacBioNamespaces {
 
-  sealed trait PacBioNamespace { val name: String}
+  sealed trait PacBioNamespace { val name: String }
   // Commandline Tools, e.g., blasr
-  case object SMRTTools extends PacBioNamespace { val name = "tools"}
+  case object SMRTTools extends PacBioNamespace { val name = "tools" }
   // Web Services, e.g., smrtlink_analysis
-  case object SMRTServices extends PacBioNamespace {val name = "services"}
+  case object SMRTServices extends PacBioNamespace { val name = "services" }
   // UI Applications, e.g., smrtlink_ui
-  case object SMRTApps extends PacBioNamespace {val name = "apps"}
+  case object SMRTApps extends PacBioNamespace { val name = "apps" }
 
 }
 
@@ -54,19 +57,28 @@ object LogLevels {
 // Subsystem Settings
 case class SubsystemConfig(id: String, name: String, startedAt: JodaDateTime)
 
-case class PacBioComponentManifest(id: String, name: String, version: String, description: String, dependencies: Seq[String] = Nil)
+case class PacBioComponentManifest(id: String,
+                                   name: String,
+                                   version: String,
+                                   description: String,
+                                   dependencies: Seq[String] = Nil)
 
 case class ServiceComponent(id: String, typeId: String, version: String)
 
 // Not sure what this should be. Is this the subsystem config?
 case class ServerConfig(id: String, version: String)
 
-case class ServiceStatus(id: String, message: String, uptime: Long, uuid: UUID, version: String, user: String)
-
+case class ServiceStatus(id: String,
+                         message: String,
+                         uptime: Long,
+                         uuid: UUID,
+                         version: String,
+                         user: String)
 
 // Alarm System
 object AlarmSeverity {
-  sealed class AlarmSeverity(val severity: Int) extends Ordered[AlarmSeverity] {
+  sealed class AlarmSeverity(val severity: Int)
+      extends Ordered[AlarmSeverity] {
     def compare(s2: AlarmSeverity): Int = severity compareTo s2.severity
   }
 
@@ -84,16 +96,22 @@ object AlarmSeverity {
 
 case class Alarm(id: String, name: String, description: String)
 
-case class AlarmUpdate(value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity)
+case class AlarmUpdate(value: Double,
+                       message: Option[String],
+                       severity: AlarmSeverity.AlarmSeverity)
 
-case class AlarmStatus(id: String, value: Double, message: Option[String], severity: AlarmSeverity.AlarmSeverity, updatedAt: JodaDateTime)
-
+case class AlarmStatus(id: String,
+                       value: Double,
+                       message: Option[String],
+                       severity: AlarmSeverity.AlarmSeverity,
+                       updatedAt: JodaDateTime)
 
 // Logging System
 case class LogResourceRecord(description: String, id: String, name: String)
 
-case class LogMessageRecord(message: String, level: LogLevels.LogLevel, sourceId: String)
-
+case class LogMessageRecord(message: String,
+                            level: LogLevels.LogLevel,
+                            sourceId: String)
 
 // Users
 
@@ -126,48 +144,65 @@ case class UserRecord(userId: String,
   }
 }
 
-
 // Files Service
-case class DirectoryResource(fullPath: String, subDirectories: Seq[DirectoryResource], files: Seq[FileResource])
-case class FileResource(fullPath: String, name: String, mimeType: String, sizeInBytes: Long, sizeReadable: String)
-case class DiskSpaceResource(fullPath: String, totalSpace: Long, freeSpace: Long)
+case class DirectoryResource(fullPath: String,
+                             subDirectories: Seq[DirectoryResource],
+                             files: Seq[FileResource])
+case class FileResource(fullPath: String,
+                        name: String,
+                        mimeType: String,
+                        sizeInBytes: Long,
+                        sizeReadable: String)
+case class DiskSpaceResource(fullPath: String,
+                             totalSpace: Long,
+                             freeSpace: Long)
 
 // SubSystem Resources
-case class SubsystemResource(uuid: UUID, name: String, version: String, url: String, apiDocs: String, userDocs:String, createdAt: JodaDateTime, updatedAt: JodaDateTime)
+case class SubsystemResource(uuid: UUID,
+                             name: String,
+                             version: String,
+                             url: String,
+                             apiDocs: String,
+                             userDocs: String,
+                             createdAt: JodaDateTime,
+                             updatedAt: JodaDateTime)
 // Record is what a user would POST
-case class SubsystemResourceRecord(name: String, version: String, url: String, apiDocs: String, userDocs:String)
-
-
+case class SubsystemResourceRecord(name: String,
+                                   version: String,
+                                   url: String,
+                                   apiDocs: String,
+                                   userDocs: String)
 
 // Runs
 
 case class RunCreate(dataModel: String)
 
-case class RunUpdate(dataModel: Option[String] = None, reserved: Option[Boolean] = None)
+case class RunUpdate(dataModel: Option[String] = None,
+                     reserved: Option[Boolean] = None)
 
-case class RunSummary(
-    uniqueId: UUID,
-    name: String,
-    summary: Option[String],
-    createdBy: Option[String],
-    createdAt: Option[JodaDateTime],
-    startedAt: Option[JodaDateTime],
-    transfersCompletedAt: Option[JodaDateTime],
-    completedAt: Option[JodaDateTime],
-    status: SupportedRunStates,
-    totalCells: Int,
-    numCellsCompleted: Int,
-    numCellsFailed: Int,
-    instrumentName: Option[String],
-    instrumentSerialNumber: Option[String],
-    instrumentSwVersion: Option[String],
-    primaryAnalysisSwVersion: Option[String],
-    chemistrySwVersion: Option[String],
-    context: Option[String],
-    terminationInfo: Option[String],
-    reserved: Boolean) {
+case class RunSummary(uniqueId: UUID,
+                      name: String,
+                      summary: Option[String],
+                      createdBy: Option[String],
+                      createdAt: Option[JodaDateTime],
+                      startedAt: Option[JodaDateTime],
+                      transfersCompletedAt: Option[JodaDateTime],
+                      completedAt: Option[JodaDateTime],
+                      status: SupportedRunStates,
+                      totalCells: Int,
+                      numCellsCompleted: Int,
+                      numCellsFailed: Int,
+                      instrumentName: Option[String],
+                      instrumentSerialNumber: Option[String],
+                      instrumentSwVersion: Option[String],
+                      primaryAnalysisSwVersion: Option[String],
+                      chemistrySwVersion: Option[String],
+                      context: Option[String],
+                      terminationInfo: Option[String],
+                      reserved: Boolean) {
 
-  def withDataModel(dataModel: String) = Run(
+  def withDataModel(dataModel: String) =
+    Run(
       dataModel,
       uniqueId,
       name,
@@ -188,33 +223,34 @@ case class RunSummary(
       chemistrySwVersion,
       context,
       terminationInfo,
-      reserved)
+      reserved
+    )
 }
 
-case class Run(
-    dataModel: String,
-    uniqueId: UUID,
-    name: String,
-    summary: Option[String],
-    createdBy: Option[String],
-    createdAt: Option[JodaDateTime],
-    startedAt: Option[JodaDateTime],
-    transfersCompletedAt: Option[JodaDateTime],
-    completedAt: Option[JodaDateTime],
-    status: SupportedRunStates,
-    totalCells: Int,
-    numCellsCompleted: Int,
-    numCellsFailed: Int,
-    instrumentName: Option[String],
-    instrumentSerialNumber: Option[String],
-    instrumentSwVersion: Option[String],
-    primaryAnalysisSwVersion: Option[String],
-    chemistrySwVersion: Option[String],
-    context: Option[String],
-    terminationInfo: Option[String],
-    reserved: Boolean) {
+case class Run(dataModel: String,
+               uniqueId: UUID,
+               name: String,
+               summary: Option[String],
+               createdBy: Option[String],
+               createdAt: Option[JodaDateTime],
+               startedAt: Option[JodaDateTime],
+               transfersCompletedAt: Option[JodaDateTime],
+               completedAt: Option[JodaDateTime],
+               status: SupportedRunStates,
+               totalCells: Int,
+               numCellsCompleted: Int,
+               numCellsFailed: Int,
+               instrumentName: Option[String],
+               instrumentSerialNumber: Option[String],
+               instrumentSwVersion: Option[String],
+               primaryAnalysisSwVersion: Option[String],
+               chemistrySwVersion: Option[String],
+               context: Option[String],
+               terminationInfo: Option[String],
+               reserved: Boolean) {
 
-  def summarize = RunSummary(
+  def summarize =
+    RunSummary(
       uniqueId,
       name,
       summary,
@@ -234,29 +270,33 @@ case class Run(
       chemistrySwVersion,
       context,
       terminationInfo,
-      reserved)
+      reserved
+    )
 }
 
-case class CollectionMetadata(
-    runId: UUID,
-    uniqueId: UUID,
-    well: String,
-    name: String,
-    summary: Option[String],
-    context: Option[String],
-    collectionPathUri: Option[Path],
-    status: SupportedAcquisitionStates,
-    instrumentId: Option[String],
-    instrumentName: Option[String],
-    movieMinutes: Double,
-    createdBy: Option[String],
-    startedAt: Option[JodaDateTime],
-    completedAt: Option[JodaDateTime],
-    terminationInfo: Option[String])
+case class CollectionMetadata(runId: UUID,
+                              uniqueId: UUID,
+                              well: String,
+                              name: String,
+                              summary: Option[String],
+                              context: Option[String],
+                              collectionPathUri: Option[Path],
+                              status: SupportedAcquisitionStates,
+                              instrumentId: Option[String],
+                              instrumentName: Option[String],
+                              movieMinutes: Double,
+                              createdBy: Option[String],
+                              startedAt: Option[JodaDateTime],
+                              completedAt: Option[JodaDateTime],
+                              terminationInfo: Option[String])
 
 // Samples
 
-case class Sample(details: String, uniqueId: UUID, name: String, createdBy: String, createdAt: JodaDateTime)
+case class Sample(details: String,
+                  uniqueId: UUID,
+                  name: String,
+                  createdBy: String,
+                  createdAt: JodaDateTime)
 
 case class SampleCreate(details: String, uniqueId: UUID, name: String)
 
@@ -266,14 +306,22 @@ case class SampleTestExamples(count: Int)
 
 // Registry
 
-case class RegistryResource(createdAt: JodaDateTime, uuid: UUID, host: String, port: Int, resourceId: String, updatedAt: JodaDateTime)
+case class RegistryResource(createdAt: JodaDateTime,
+                            uuid: UUID,
+                            host: String,
+                            port: Int,
+                            resourceId: String,
+                            updatedAt: JodaDateTime)
 
 case class RegistryResourceCreate(host: String, port: Int, resourceId: String)
 
 case class RegistryResourceUpdate(host: Option[String], port: Option[Int])
 
-case class RegistryProxyRequest(path: String, method: String, data: Option[Array[Byte]], headers: Option[Map[String, String]], params: Option[Map[String, String]])
-
+case class RegistryProxyRequest(path: String,
+                                method: String,
+                                data: Option[Array[Byte]],
+                                headers: Option[Map[String, String]],
+                                params: Option[Map[String, String]])
 
 // Jobs
 
@@ -281,15 +329,21 @@ case class RegistryProxyRequest(path: String, method: String, data: Option[Array
 case class SimpleStatus(id: String, msg: String, uptime: Long)
 
 // This is a little wrong to generalize by Job type, each job instance needs to have a isQuick (e.g., Fasta converter).
-case class JobTypeEndPoint(jobTypeId: String, description: String, isQuick: Boolean, isMultiJob: Boolean)
-
+case class JobTypeEndPoint(jobTypeId: String,
+                           description: String,
+                           isQuick: Boolean,
+                           isMultiJob: Boolean)
 
 // Entry point use to create jobs from the Service layer. This will then be translated to a
 // BoundEntryPoint with the resolved path of the DataSet
-case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: IdAble)
+case class BoundServiceEntryPoint(entryId: String,
+                                  fileTypeId: String,
+                                  datasetId: IdAble)
 
 // Entry points that are have dataset types
-case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
+case class EngineJobEntryPoint(jobId: Int,
+                               datasetUUID: UUID,
+                               datasetType: String)
 
 //FIXME(mpkocher)(8-22-2017) The dataset metatype needs to be a proper type
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
@@ -311,7 +365,10 @@ case class CreateJobTaskRecord(uuid: UUID,
                                name: String,
                                createdAt: JodaDateTime)
 
-case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])
+case class UpdateJobTaskRecord(uuid: UUID,
+                               state: String,
+                               message: String,
+                               errorMessage: Option[String])
 
 case class JobCompletedMessage(job: EngineJob)
 
@@ -324,7 +381,6 @@ case class PbSmrtPipeServiceOptions(
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
     projectId: Int = JobConstants.GENERAL_PROJECT_ID)
-
 
 // New DataSet Service Models
 trait UniqueIdAble {
@@ -339,78 +395,123 @@ trait ProjectAble {
   val isActive: Boolean
 }
 
-case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, createdBy: Option[String], jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
+case class DataSetMetaDataSet(id: Int,
+                              uuid: UUID,
+                              name: String,
+                              path: String,
+                              createdAt: JodaDateTime,
+                              updatedAt: JodaDateTime,
+                              numRecords: Long,
+                              totalLength: Long,
+                              tags: String,
+                              version: String,
+                              comments: String,
+                              md5: String,
+                              createdBy: Option[String],
+                              jobId: Int,
+                              projectId: Int,
+                              isActive: Boolean)
+    extends UniqueIdAble
+    with ProjectAble
 
-case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends UniqueIdAble
+case class SubreadServiceSet(id: Int,
+                             uuid: UUID,
+                             cellId: String,
+                             metadataContextId: String,
+                             wellSampleName: String,
+                             wellName: String,
+                             bioSampleName: String,
+                             cellIndex: Int,
+                             instrumentId: String,
+                             instrumentName: String,
+                             runName: String,
+                             instrumentControlVersion: String)
+    extends UniqueIdAble
 
-case class HdfSubreadServiceSet(
-    id: Int,
-    uuid: UUID,
-    cellId: String,
-    metadataContextId: String,
-    wellSampleName: String,
-    wellName: String,
-    bioSampleName: String,
-    cellIndex: Int,
-    instrumentId: String,
-    instrumentName: String,
-    runName: String,
-    instrumentControlVersion: String) extends UniqueIdAble
+case class HdfSubreadServiceSet(id: Int,
+                                uuid: UUID,
+                                cellId: String,
+                                metadataContextId: String,
+                                wellSampleName: String,
+                                wellName: String,
+                                bioSampleName: String,
+                                cellIndex: Int,
+                                instrumentId: String,
+                                instrumentName: String,
+                                runName: String,
+                                instrumentControlVersion: String)
+    extends UniqueIdAble
 
-case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: HdfSubreadServiceSet)
+case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                        dataset: HdfSubreadServiceSet)
 
-case class ReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
+case class ReferenceServiceSet(id: Int,
+                               uuid: UUID,
+                               ploidy: String,
+                               organism: String)
+    extends UniqueIdAble
 
-case class ReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ReferenceServiceSet)
+case class ReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                       dataset: ReferenceServiceSet)
 
 case class AlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-case class AlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: AlignmentServiceSet)
+case class AlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                       dataset: AlignmentServiceSet)
 
 case class BarcodeServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
+case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                     dataset: BarcodeServiceSet)
 
 case class ConsensusReadServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusReadServiceSet)
+case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                           dataset: ConsensusReadServiceSet)
 
-case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
+case class GmapReferenceServiceSet(id: Int,
+                                   uuid: UUID,
+                                   ploidy: String,
+                                   organism: String)
+    extends UniqueIdAble
 
-case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
+case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                           dataset: GmapReferenceServiceSet)
 
-case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
+case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID)
+    extends UniqueIdAble
 
-case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
+case class ConsensusAlignmentServiceMetaDataSet(
+    metadata: DataSetMetaDataSet,
+    dataset: ConsensusAlignmentServiceSet)
 
 case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
+case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                    dataset: ContigServiceSet)
 
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
-case class DataStoreServiceFile(
-    uuid: UUID,
-    fileTypeId: String,
-    sourceId: String,
-    fileSize: Long,
-    createdAt: JodaDateTime,
-    modifiedAt: JodaDateTime,
-    importedAt: JodaDateTime,
-    path: String,
-    jobId: Int,
-    jobUUID: UUID,
-    name: String,
-    description: String,
-    isActive: Boolean = true) {
+case class DataStoreServiceFile(uuid: UUID,
+                                fileTypeId: String,
+                                sourceId: String,
+                                fileSize: Long,
+                                createdAt: JodaDateTime,
+                                modifiedAt: JodaDateTime,
+                                importedAt: JodaDateTime,
+                                path: String,
+                                jobId: Int,
+                                jobUUID: UUID,
+                                name: String,
+                                description: String,
+                                isActive: Boolean = true) {
 
   def fileExists: Boolean = Paths.get(path).toFile.exists
 }
 
 // Files that have Reports
-case class DataStoreReportFile(
-    dataStoreFile: DataStoreServiceFile,
-    reportTypeId: String)
+case class DataStoreReportFile(dataStoreFile: DataStoreServiceFile,
+                               reportTypeId: String)
 
 /**
   * Service DataSet metadata
@@ -424,13 +525,12 @@ case class DataStoreReportFile(
   * @param updatedAt   last updated date in the database
   * @param shortName   short identifier (e.g., "subreads")
   */
-case class ServiceDataSetMetaType(
-    id: String,
-    name: String,
-    description: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    shortName: String)
+case class ServiceDataSetMetaType(id: String,
+                                  name: String,
+                                  description: String,
+                                  createdAt: JodaDateTime,
+                                  updatedAt: JodaDateTime,
+                                  shortName: String)
 
 trait ServiceDataSetMetadata {
   val id: Int
@@ -505,146 +605,143 @@ case class HdfSubreadServiceDataSet(
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
-case class ReferenceServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    ploidy: String,
-    organism: String,
-    datasetType: String = Reference.toString())
+case class ReferenceServiceDataSet(id: Int,
+                                   uuid: UUID,
+                                   name: String,
+                                   path: String,
+                                   createdAt: JodaDateTime,
+                                   updatedAt: JodaDateTime,
+                                   numRecords: Long,
+                                   totalLength: Long,
+                                   version: String,
+                                   comments: String,
+                                   tags: String,
+                                   md5: String,
+                                   createdBy: Option[String],
+                                   jobId: Int,
+                                   projectId: Int,
+                                   ploidy: String,
+                                   organism: String,
+                                   datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
-case class AlignmentServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    datasetType: String = Alignment.toString())
+case class AlignmentServiceDataSet(id: Int,
+                                   uuid: UUID,
+                                   name: String,
+                                   path: String,
+                                   createdAt: JodaDateTime,
+                                   updatedAt: JodaDateTime,
+                                   numRecords: Long,
+                                   totalLength: Long,
+                                   version: String,
+                                   comments: String,
+                                   tags: String,
+                                   md5: String,
+                                   createdBy: Option[String],
+                                   jobId: Int,
+                                   projectId: Int,
+                                   datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
-case class ConsensusReadServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    datasetType: String = CCS.toString())
+case class ConsensusReadServiceDataSet(id: Int,
+                                       uuid: UUID,
+                                       name: String,
+                                       path: String,
+                                       createdAt: JodaDateTime,
+                                       updatedAt: JodaDateTime,
+                                       numRecords: Long,
+                                       totalLength: Long,
+                                       version: String,
+                                       comments: String,
+                                       tags: String,
+                                       md5: String,
+                                       createdBy: Option[String],
+                                       jobId: Int,
+                                       projectId: Int,
+                                       datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
-case class ConsensusAlignmentServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    datasetType: String = AlignmentCCS.toString())
+case class ConsensusAlignmentServiceDataSet(id: Int,
+                                            uuid: UUID,
+                                            name: String,
+                                            path: String,
+                                            createdAt: JodaDateTime,
+                                            updatedAt: JodaDateTime,
+                                            numRecords: Long,
+                                            totalLength: Long,
+                                            version: String,
+                                            comments: String,
+                                            tags: String,
+                                            md5: String,
+                                            createdBy: Option[String],
+                                            jobId: Int,
+                                            projectId: Int,
+                                            datasetType: String =
+                                              AlignmentCCS.toString())
     extends ServiceDataSetMetadata
 
-case class BarcodeServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    datasetType: String = Barcode.toString())
+case class BarcodeServiceDataSet(id: Int,
+                                 uuid: UUID,
+                                 name: String,
+                                 path: String,
+                                 createdAt: JodaDateTime,
+                                 updatedAt: JodaDateTime,
+                                 numRecords: Long,
+                                 totalLength: Long,
+                                 version: String,
+                                 comments: String,
+                                 tags: String,
+                                 md5: String,
+                                 createdBy: Option[String],
+                                 jobId: Int,
+                                 projectId: Int,
+                                 datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
-case class ContigServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    datasetType: String = Contig.toString())
-  extends ServiceDataSetMetadata
+case class ContigServiceDataSet(id: Int,
+                                uuid: UUID,
+                                name: String,
+                                path: String,
+                                createdAt: JodaDateTime,
+                                updatedAt: JodaDateTime,
+                                numRecords: Long,
+                                totalLength: Long,
+                                version: String,
+                                comments: String,
+                                tags: String,
+                                md5: String,
+                                createdBy: Option[String],
+                                jobId: Int,
+                                projectId: Int,
+                                datasetType: String = Contig.toString())
+    extends ServiceDataSetMetadata
 
-case class GmapReferenceServiceDataSet(
-    id: Int,
-    uuid: UUID,
-    name: String,
-    path: String,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    numRecords: Long,
-    totalLength: Long,
-    version: String,
-    comments: String,
-    tags: String,
-    md5: String,
-    createdBy: Option[String],
-    jobId: Int,
-    projectId: Int,
-    ploidy: String,
-    organism: String,
-    datasetType: String = GmapReference.toString())
+case class GmapReferenceServiceDataSet(id: Int,
+                                       uuid: UUID,
+                                       name: String,
+                                       path: String,
+                                       createdAt: JodaDateTime,
+                                       updatedAt: JodaDateTime,
+                                       numRecords: Long,
+                                       totalLength: Long,
+                                       version: String,
+                                       comments: String,
+                                       tags: String,
+                                       md5: String,
+                                       createdBy: Option[String],
+                                       jobId: Int,
+                                       projectId: Int,
+                                       ploidy: String,
+                                       organism: String,
+                                       datasetType: String =
+                                         GmapReference.toString())
     extends ServiceDataSetMetadata
 
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
-case class DataSetMergeServiceOptions(datasetType: String, ids: Seq[Int], name: String)
+case class DataSetMergeServiceOptions(datasetType: String,
+                                      ids: Seq[Int],
+                                      name: String)
 
 // Project models
 
@@ -660,12 +757,14 @@ object ProjectState {
   def fromString(s: String): ProjectState = {
     Seq(CREATED, ACTIVE, UPDATED)
       .find(_.toString == s)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
+      .getOrElse(throw new IllegalArgumentException(
+        s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
   }
 }
 
 object ProjectUserRole {
-  sealed abstract class ProjectUserRole(private val ordinal: Int) extends Ordered[ProjectUserRole] {
+  sealed abstract class ProjectUserRole(private val ordinal: Int)
+      extends Ordered[ProjectUserRole] {
     override def compare(that: ProjectUserRole) = ordinal.compare(that.ordinal)
   }
   case object OWNER extends ProjectUserRole(ordinal = 3)
@@ -675,50 +774,50 @@ object ProjectUserRole {
   def fromString(r: String): ProjectUserRole = {
     Seq(OWNER, CAN_EDIT, CAN_VIEW)
       .find(_.toString == r)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+      .getOrElse(throw new IllegalArgumentException(
+        s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
   }
 }
 
 // We have a simpler (cheaper to query) project case class for the API
 // response that lists many projects,
-case class Project(
-    id: Int,
-    name: String,
-    description: String,
-    state: ProjectState.ProjectState,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    // isActive: false if the project has been deleted, true otherwise
-    isActive: Boolean,
-    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] = None) {
+case class Project(id: Int,
+                   name: String,
+                   description: String,
+                   state: ProjectState.ProjectState,
+                   createdAt: JodaDateTime,
+                   updatedAt: JodaDateTime,
+                   // isActive: false if the project has been deleted, true otherwise
+                   isActive: Boolean,
+                   grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] =
+                     None) {
 
-  def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
-    FullProject(
-      id,
-      name,
-      description,
-      state,
-      createdAt,
-      updatedAt,
-      isActive,
-      grantRoleToAll,
-      datasets,
-      members)
+  def makeFull(datasets: Seq[DataSetMetaDataSet],
+               members: Seq[ProjectRequestUser]): FullProject =
+    FullProject(id,
+                name,
+                description,
+                state,
+                createdAt,
+                updatedAt,
+                isActive,
+                grantRoleToAll,
+                datasets,
+                members)
 }
 
 // and a more detailed case class for the API responses involving
 // individual projects.
-case class FullProject(
-    id: Int,
-    name: String,
-    description: String,
-    state: ProjectState.ProjectState,
-    createdAt: JodaDateTime,
-    updatedAt: JodaDateTime,
-    isActive: Boolean,
-    grantRoleToAll: Option[ProjectUserRole.ProjectUserRole],
-    datasets: Seq[DataSetMetaDataSet],
-    members: Seq[ProjectRequestUser]) {
+case class FullProject(id: Int,
+                       name: String,
+                       description: String,
+                       state: ProjectState.ProjectState,
+                       createdAt: JodaDateTime,
+                       updatedAt: JodaDateTime,
+                       isActive: Boolean,
+                       grantRoleToAll: Option[ProjectUserRole.ProjectUserRole],
+                       datasets: Seq[DataSetMetaDataSet],
+                       members: Seq[ProjectRequestUser]) {
 
   def asRequest: ProjectRequest =
     ProjectRequest(
@@ -727,24 +826,33 @@ case class FullProject(
       Some(state),
       Some(ProjectRequestRole.fromProjectUserRole(grantRoleToAll)),
       Some(datasets.map(ds => RequestId(ds.id))),
-      Some(members.map(u => ProjectRequestUser(u.login, u.role))))
+      Some(members.map(u => ProjectRequestUser(u.login, u.role)))
+    )
 }
 
 object ProjectRequestRole {
-  sealed abstract class ProjectRequestRole(val role: Option[ProjectUserRole.ProjectUserRole])
-  case object CAN_EDIT extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_EDIT))
-  case object CAN_VIEW extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_VIEW))
+  sealed abstract class ProjectRequestRole(
+      val role: Option[ProjectUserRole.ProjectUserRole])
+  case object CAN_EDIT
+      extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_EDIT))
+  case object CAN_VIEW
+      extends ProjectRequestRole(role = Some(ProjectUserRole.CAN_VIEW))
   case object NONE extends ProjectRequestRole(role = None)
 
   private val ALL = Seq(CAN_EDIT, CAN_VIEW, NONE)
 
-  def fromProjectUserRole(r: Option[ProjectUserRole.ProjectUserRole]): ProjectRequestRole = ALL
-    .find(_.role == r)
-    .getOrElse(throw new IllegalArgumentException(s"No corresponding ProjectRequestRole for ProjectUserRole $r"))
+  def fromProjectUserRole(
+      r: Option[ProjectUserRole.ProjectUserRole]): ProjectRequestRole =
+    ALL
+      .find(_.role == r)
+      .getOrElse(throw new IllegalArgumentException(
+        s"No corresponding ProjectRequestRole for ProjectUserRole $r"))
 
-  def fromString(r: String): ProjectRequestRole = ALL
-    .find(_.toString == r)
-    .getOrElse(throw new IllegalArgumentException(s"Unknown project request role $r, acceptable values are $CAN_EDIT, $CAN_VIEW, $NONE"))
+  def fromString(r: String): ProjectRequestRole =
+    ALL
+      .find(_.toString == r)
+      .getOrElse(throw new IllegalArgumentException(
+        s"Unknown project request role $r, acceptable values are $CAN_EDIT, $CAN_VIEW, $NONE"))
 }
 
 // the json structures required in client requests are a subset of the
@@ -762,27 +870,41 @@ case class ProjectRequest(
 
   // this returns a copy!
   def appendDataSet(dsId: Int): ProjectRequest = {
-    val allDatasets = datasets.map(ds => ds ++ Seq(RequestId(dsId))).getOrElse(Seq(RequestId(dsId)))
+    val allDatasets = datasets
+      .map(ds => ds ++ Seq(RequestId(dsId)))
+      .getOrElse(Seq(RequestId(dsId)))
     this.copy(datasets = Some(allDatasets))
   }
 }
 
 case class RequestId(id: Int)
 
-case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
-case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
+case class ProjectRequestUser(login: String,
+                              role: ProjectUserRole.ProjectUserRole)
+case class ProjectUser(projectId: Int,
+                       login: String,
+                       role: ProjectUserRole.ProjectUserRole)
 
-case class UserProjectResponse(role: ProjectUserRole.ProjectUserRole, project: Project)
+case class UserProjectResponse(role: ProjectUserRole.ProjectUserRole,
+                               project: Project)
 
-case class ProjectDatasetResponse(project: Project, dataset: DataSetMetaDataSet, role: ProjectUserRole.ProjectUserRole)
+case class ProjectDatasetResponse(project: Project,
+                                  dataset: DataSetMetaDataSet,
+                                  role: ProjectUserRole.ProjectUserRole)
 
-
-case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
+case class EulaRecord(user: String,
+                      acceptedAt: JodaDateTime,
+                      smrtlinkVersion: String,
+                      osVersion: String,
+                      enableInstallMetrics: Boolean,
+                      enableJobMetrics: Boolean)
 
 case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
 
 case class DataSetUpdateRequest(isActive: Boolean)
-case class DataStoreFileUpdateRequest(isActive: Boolean, path: Option[String] = None, fileSize: Option[Long] = None)
+case class DataStoreFileUpdateRequest(isActive: Boolean,
+                                      path: Option[String] = None,
+                                      fileSize: Option[Long] = None)
 
 // Bundle Related Models
 
@@ -821,7 +943,8 @@ case class PacBioDataBundle(typeId: String,
     val rx = """(\d+).(\d+).(\d+).(\d+)""".r
 
     rawVersion match {
-      case rx(major, minor, patch, extra) => SemVersion.fromString(s"$major.$minor.$patch+$extra")
+      case rx(major, minor, patch, extra) =>
+        SemVersion.fromString(s"$major.$minor.$patch+$extra")
       case _ => SemVersion.fromString(rawVersion)
     }
   }
@@ -832,7 +955,6 @@ object PacBioDataBundle {
   val orderByBundleVersion = Ordering.by((a: PacBioDataBundle) => a.semVersion)
 }
 
-
 /**
   *
   * This is to keep the object model and the IO layer separate.
@@ -841,8 +963,9 @@ object PacBioDataBundle {
   * @param path Path to the unzip, untarred Data Bundle
   * @param bundle MetaData About the bundle
   */
-case class PacBioDataBundleIO(tarGzPath: Path, path: Path, bundle: PacBioDataBundle)
-
+case class PacBioDataBundleIO(tarGzPath: Path,
+                              path: Path,
+                              bundle: PacBioDataBundle)
 
 case class PacBioDataBundleUpgrade(bundle: Option[PacBioDataBundle])
 
@@ -852,7 +975,6 @@ case class PacBioBundleRecord(url: URL)
 
 //MK This is duplicated concept
 case class ExternalServerStatus(msg: String, status: String)
-
 
 // SmrtLink Events/Messages
 
@@ -889,7 +1011,6 @@ case class SmrtLinkSystemEvent(smrtLinkId: UUID,
                                message: JsObject,
                                dnsName: Option[String])
 
-
 // Request to create a System Status bundle
 case class TechSupportSystemStatusRecord(name: String, comment: String)
 
@@ -897,18 +1018,20 @@ case class TechSupportSystemStatusRecord(name: String, comment: String)
 case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
 
 // POST creation of a job event
-case class JobEventRecord(
-                             state: String,
-                             message: String)
+case class JobEventRecord(state: String, message: String)
 
 case class ReportViewRule(id: String, rules: JsObject)
 
-case class DataSetExportServiceOptions(datasetType: String, ids: Seq[Int],
+case class DataSetExportServiceOptions(datasetType: String,
+                                       ids: Seq[Int],
                                        outputPath: String)
-case class DataSetDeleteServiceOptions(datasetType: String, ids: Seq[Int],
+case class DataSetDeleteServiceOptions(datasetType: String,
+                                       ids: Seq[Int],
                                        removeFiles: Boolean = true)
 
-case class TsJobBundleJobServiceOptions(jobId: Int, user: String, comment: String)
+case class TsJobBundleJobServiceOptions(jobId: Int,
+                                        user: String,
+                                        comment: String)
 
 case class TsSystemStatusServiceOptions(user: String, comment: String)
 

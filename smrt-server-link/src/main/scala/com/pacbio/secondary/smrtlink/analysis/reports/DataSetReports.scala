@@ -7,23 +7,32 @@ import collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.io.FileUtils
 
-import scala.util.{Try,Success,Failure}
+import scala.util.{Try, Success, Failure}
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 
-import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, SubreadSet, DataSetType}
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetMetadataType,
+  SubreadSet,
+  DataSetType
+}
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{CallPbReport, PbReport, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  CallPbReport,
+  PbReport,
+  PbReports
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 
-
-object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
+object DataSetReports
+    extends ReportJsonProtocol
+    with SecondaryJobJsonProtocol {
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
@@ -36,14 +45,22 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       val extRes = ds.getExternalResources
       if (extRes == null) false
       else {
-        (extRes.getExternalResource.filter(_ != null).map { x =>
-          val extRes2 = x.getExternalResources
-          if (extRes2 == null) false else {
-            extRes2.getExternalResource.filter(_ != null).map { x2 =>
-              x2.getMetaType == FileTypes.STS_XML.fileTypeId
-            }.exists(_ == true)
-          }
-        }).toList.exists(_ == true)
+        (extRes.getExternalResource
+          .filter(_ != null)
+          .map { x =>
+            val extRes2 = x.getExternalResources
+            if (extRes2 == null) false
+            else {
+              extRes2.getExternalResource
+                .filter(_ != null)
+                .map { x2 =>
+                  x2.getMetaType == FileTypes.STS_XML.fileTypeId
+                }
+                .exists(_ == true)
+            }
+          })
+          .toList
+          .exists(_ == true)
       }
     }
     case _ => false
@@ -53,11 +70,13 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
     val now = JodaDateTime.now()
 
     val (reportId, uuid) = Try { ReportUtils.loadReport(path) }
-        .map(r => (r.id, r.uuid))
-        .getOrElse(("unknown", UUID.randomUUID())) // XXX this is not ideal
+      .map(r => (r.id, r.uuid))
+      .getOrElse(("unknown", UUID.randomUUID())) // XXX this is not ideal
 
     //FIXME(mpkocher)(2016-4-21) Need to store the report type id in the db
-    DataStoreFile(uuid, taskId,
+    DataStoreFile(
+      uuid,
+      taskId,
       FileTypes.REPORT.fileTypeId.toString,
       path.toFile.length(),
       now,
@@ -65,14 +84,14 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       path.toAbsolutePath.toString,
       isChunked = false,
       s"PacBio Report $reportId",
-      s"PacBio DataSet Report for $reportId")
+      s"PacBio DataSet Report for $reportId"
+    )
   }
 
-  def run(
-      srcPath: Path,
-      rpt: CallPbReport,
-      parentDir: Path,
-      log: JobResultWriter): Option[DataStoreFile] = {
+  def run(srcPath: Path,
+          rpt: CallPbReport,
+          parentDir: Path,
+          log: JobResultWriter): Option[DataStoreFile] = {
 
     val reportDir = parentDir.resolve(rpt.reportModule)
     reportDir.toFile.mkdir()
@@ -86,7 +105,8 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
         log.writeLine(failure.msg)
         None
       }
-      case Right(report) => Some(toDataStoreFile(report.outputJson, report.taskId))
+      case Right(report) =>
+        Some(toDataStoreFile(report.outputJson, report.taskId))
     }
   }
 
@@ -104,18 +124,20 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
         Seq.empty[DataStoreFile]
       }
       case Right(result) => {
-        val ds = FileUtils.readFileToString(result.outputJson.toFile, "UTF-8").parseJson.convertTo[PacBioDataStore]
+        val ds = FileUtils
+          .readFileToString(result.outputJson.toFile, "UTF-8")
+          .parseJson
+          .convertTo[PacBioDataStore]
         ds.files
       }
     }
   }
 
-  def runAll(
-      inPath: Path,
-      dst: DataSetMetaTypes.DataSetMetaType,
-      jobPath: Path,
-      jobTypeId: JobTypeIds.JobType,
-      log: JobResultWriter): Seq[DataStoreFile] = {
+  def runAll(inPath: Path,
+             dst: DataSetMetaTypes.DataSetMetaType,
+             jobPath: Path,
+             jobTypeId: JobTypeIds.JobType,
+             log: JobResultWriter): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
@@ -139,19 +161,15 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
     }
   }
 
-  def simpleReport(
-      inPath: Path,
-      dst: DataSetMetaTypes.DataSetMetaType,
-      jobPath: Path,
-      jobTypeId: JobTypeIds.JobType): DataStoreFile = {
-
+  def simpleReport(inPath: Path,
+                   dst: DataSetMetaTypes.DataSetMetaType,
+                   jobPath: Path,
+                   jobTypeId: JobTypeIds.JobType): DataStoreFile = {
 
     def attribs(md: DataSetMetadataType) =
       List(
-        ReportLongAttribute(
-          "total_length", "Total Length", md.getTotalLength),
-        ReportLongAttribute(
-          "num_records", "Num Records", md.getNumRecords)
+        ReportLongAttribute("total_length", "Total Length", md.getTotalLength),
+        ReportLongAttribute("num_records", "Num Records", md.getNumRecords)
       )
 
     // This doesn't work. See comments below
@@ -171,7 +189,8 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
       case DataSetMetaTypes.CCS =>
         attribs(DataSetLoader.loadConsensusReadSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.AlignmentCCS =>
-        attribs(DataSetLoader.loadConsensusAlignmentSet(inPath).getDataSetMetadata)
+        attribs(
+          DataSetLoader.loadConsensusAlignmentSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Contig =>
         attribs(DataSetLoader.loadContigSet(inPath).getDataSetMetadata)
       case DataSetMetaTypes.Barcode =>
@@ -180,8 +199,13 @@ object DataSetReports extends ReportJsonProtocol with SecondaryJobJsonProtocol {
         attribs(DataSetLoader.loadGmapReferenceSet(inPath).getDataSetMetadata)
     }
 
-    val rpt = Report(
-      simple, "Import DataSet Report", Constants.SMRTFLOW_VERSION, reportAttrs, Nil, Nil, UUID.randomUUID())
+    val rpt = Report(simple,
+                     "Import DataSet Report",
+                     Constants.SMRTFLOW_VERSION,
+                     reportAttrs,
+                     Nil,
+                     Nil,
+                     UUID.randomUUID())
 
     val reportPath = jobPath.resolve(simple + ".json")
     ReportUtils.writeReport(rpt, reportPath)

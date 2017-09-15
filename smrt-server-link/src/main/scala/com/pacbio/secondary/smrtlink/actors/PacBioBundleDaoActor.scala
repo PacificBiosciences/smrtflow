@@ -23,7 +23,9 @@ object PacBioBundleDaoActor {
 
 }
 
-class PacBioBundleDaoActor(dao: PacBioBundleDao, rootBundleDir: Path) extends Actor with LazyLogging{
+class PacBioBundleDaoActor(dao: PacBioBundleDao, rootBundleDir: Path)
+    extends Actor
+    with LazyLogging {
 
   import PacBioBundleDaoActor._
 
@@ -56,5 +58,10 @@ trait PacBioBundleDaoActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val pacBioBundleDaoActor: Singleton[ActorRef] =
-    Singleton(() =>  actorRefFactory().actorOf(Props(classOf[PacBioBundleDaoActor], new PacBioBundleDao(pacBioBundles()), pacBioBundleRoot())))
+    Singleton(
+      () =>
+        actorRefFactory().actorOf(
+          Props(classOf[PacBioBundleDaoActor],
+                new PacBioBundleDao(pacBioBundles()),
+                pacBioBundleRoot())))
 }

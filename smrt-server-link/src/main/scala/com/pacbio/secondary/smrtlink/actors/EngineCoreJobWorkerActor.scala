@@ -7,16 +7,21 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Try,Success,Failure}
-
+import scala.util.{Try, Success, Failure}
 
 object EngineCoreJobWorkerActor {
-  def props(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner): Props = Props(new EngineCoreJobWorkerActor(engineManagerActor, serviceRunner))
+  def props(engineManagerActor: ActorRef,
+            serviceRunner: ServiceJobRunner): Props =
+    Props(new EngineCoreJobWorkerActor(engineManagerActor, serviceRunner))
 }
 
-class EngineCoreJobWorkerActor(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner) extends Actor with ActorLogging with timeUtils {
+class EngineCoreJobWorkerActor(engineManagerActor: ActorRef,
+                               serviceRunner: ServiceJobRunner)
+    extends Actor
+    with ActorLogging
+    with timeUtils {
 
-  val WORK_TYPE:WorkerType = StandardWorkType
+  val WORK_TYPE: WorkerType = StandardWorkType
   import CommonModelImplicits._
 
   override def preStart(): Unit = {
@@ -35,7 +40,7 @@ class EngineCoreJobWorkerActor(engineManagerActor: ActorRef, serviceRunner: Serv
       // All functionality should be encapsulated in the service running layer. We shouldn't even really handle the Failure case of the Try a in here
       // Within this runEngineJob, it should handle all updating of state on failure
       log.info(s"Worker $self attempting to run $engineJob")
-      val tx = Try { serviceRunner.run(engineJob)} // this blocks
+      val tx = Try { serviceRunner.run(engineJob) } // this blocks
 
       log.info(s"Worker $self Results from ServiceRunner $tx")
 
@@ -55,9 +60,13 @@ class EngineCoreJobWorkerActor(engineManagerActor: ActorRef, serviceRunner: Serv
 }
 
 object QuickEngineCoreJobWorkerActor {
-  def props(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner): Props = Props(new QuickEngineCoreJobWorkerActor(engineManagerActor, serviceRunner))
+  def props(engineManagerActor: ActorRef,
+            serviceRunner: ServiceJobRunner): Props =
+    Props(new QuickEngineCoreJobWorkerActor(engineManagerActor, serviceRunner))
 }
 
-class QuickEngineCoreJobWorkerActor(engineManagerActor: ActorRef, serviceRunner: ServiceJobRunner) extends EngineCoreJobWorkerActor(engineManagerActor,  serviceRunner){
+class QuickEngineCoreJobWorkerActor(engineManagerActor: ActorRef,
+                                    serviceRunner: ServiceJobRunner)
+    extends EngineCoreJobWorkerActor(engineManagerActor, serviceRunner) {
   override val WORK_TYPE = QuickWorkType
 }

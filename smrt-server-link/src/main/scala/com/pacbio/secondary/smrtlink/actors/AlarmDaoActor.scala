@@ -7,18 +7,18 @@ import com.typesafe.scalalogging.LazyLogging
 
 import collection.mutable
 
-
 object AlarmDaoActor {
   // Message Protocols
   case object GetAllAlarmStatus
   case class GetAlarmStatusById(id: String)
-  case class UpdateAlarmStatus(id: String, status:AlarmStatus)
+  case class UpdateAlarmStatus(id: String, status: AlarmStatus)
 }
 
-class AlarmDaoActor(status:mutable.Map[String, AlarmStatus]) extends Actor with LazyLogging{
+class AlarmDaoActor(status: mutable.Map[String, AlarmStatus])
+    extends Actor
+    with LazyLogging {
 
   import AlarmDaoActor._
-
 
   override def receive: Receive = {
     case GetAllAlarmStatus =>
@@ -36,8 +36,10 @@ class AlarmDaoActor(status:mutable.Map[String, AlarmStatus]) extends Actor with 
 
 }
 
-trait AlarmDaoActorProvider {
-  this: ActorRefFactoryProvider =>
+trait AlarmDaoActorProvider { this: ActorRefFactoryProvider =>
 
-  val alarmDaoActor: Singleton[ActorRef] = Singleton(() => actorRefFactory().actorOf(Props(classOf[AlarmDaoActor], mutable.Map.empty[String, AlarmStatus])))
+  val alarmDaoActor: Singleton[ActorRef] = Singleton(
+    () =>
+      actorRefFactory().actorOf(
+        Props(classOf[AlarmDaoActor], mutable.Map.empty[String, AlarmStatus])))
 }

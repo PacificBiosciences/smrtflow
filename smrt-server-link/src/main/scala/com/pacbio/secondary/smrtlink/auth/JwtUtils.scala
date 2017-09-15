@@ -23,32 +23,34 @@ object JwtUtils {
 }
 
 /**
- * Trait for classes that can create and validate JWTs.
- */
+  * Trait for classes that can create and validate JWTs.
+  */
 trait JwtUtils {
+
   /**
-   * Parses a JWT, returning the user login if possible. DOES NOT VALIDATE THE SIGNATURE.
-   */
+    * Parses a JWT, returning the user login if possible. DOES NOT VALIDATE THE SIGNATURE.
+    */
   def parse(jwt: String): Option[UserRecord]
 }
 
 /**
- * Abstract provider that provides a singleton JwtUtils.
- */
+  * Abstract provider that provides a singleton JwtUtils.
+  */
 trait JwtUtilsProvider {
   val jwtUtils: Singleton[JwtUtils]
 }
 
 /**
- * Concrete implementation of JwtUtils.
- */
+  * Concrete implementation of JwtUtils.
+  */
 class JwtUtilsImpl extends JwtUtils {
 
   import JwtUtils._
 
   private implicit val claimFormats = DefaultFormats
 
-  private def extractUsername(raw: String): String = raw.split("/").last.split("@").head
+  private def extractUsername(raw: String): String =
+    raw.split("/").last.split("@").head
 
   override def parse(jwt: String): Option[UserRecord] = {
     for {
@@ -60,15 +62,17 @@ class JwtUtilsImpl extends JwtUtils {
           cm.get(USER_EMAIL_CLAIM).map(_.asInstanceOf[String]),
           cm.get(FIRST_NAME_CLAIM).map(_.asInstanceOf[String]),
           cm.get(LAST_NAME_CLAIM).map(_.asInstanceOf[String]),
-          cm(ROLES_CLAIM).asInstanceOf[List[String]].toSet)
+          cm(ROLES_CLAIM).asInstanceOf[List[String]].toSet
+        )
       }.toOption
     } yield ur
   }
 }
 
 /**
- * Provides a singleton JwtUtilsImpl. Concrete providers must mixin a ClockProvider.
- */
+  * Provides a singleton JwtUtilsImpl. Concrete providers must mixin a ClockProvider.
+  */
 trait JwtUtilsImplProvider extends JwtUtilsProvider {
-  override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtilsImpl())
+  override final val jwtUtils: Singleton[JwtUtils] = Singleton(
+    () => new JwtUtilsImpl())
 }

@@ -13,24 +13,28 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
 
 /**
- * Loads the pbsmrptipe Pipeline Templates Presets.
- *
- *
- * Because the types of the task-options are encoded in the ToolContracts,
- * or in the ResolvedPipelineTemplates, the types are kept as strings
- *
- * Created by mkocher on 10/21/15.
- */
-trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with SecondaryJobJsonProtocol {
+  * Loads the pbsmrptipe Pipeline Templates Presets.
+  *
+  *
+  * Because the types of the task-options are encoded in the ToolContracts,
+  * or in the ResolvedPipelineTemplates, the types are kept as strings
+  *
+  * Created by mkocher on 10/21/15.
+  */
+trait PipelineTemplatePresetLoader
+    extends Loader[PipelineTemplatePreset]
+    with SecondaryJobJsonProtocol {
 
   val extFilter = Seq("json", "xml")
 
   /**
-   * Parses XML to extract the pbsmrtpipe TaskOptions
-   * @param x XML node
-   * @return
-   */
-  private def parseTaskOptions(x: xml.Elem, optionsTag: String = "task-options"): Seq[ServiceTaskOptionBase] = {
+    * Parses XML to extract the pbsmrtpipe TaskOptions
+    * @param x XML node
+    * @return
+    */
+  private def parseTaskOptions(
+      x: xml.Elem,
+      optionsTag: String = "task-options"): Seq[ServiceTaskOptionBase] = {
     // pbsmrtpipe Task Options don't have the proper type, or other metadata
     // So all options are converted to String opts
     val taskOptions: Seq[ServiceTaskOptionBase] = (x \ optionsTag \ "option")
@@ -40,33 +44,35 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with S
   }
 
   /**
-   * Load 'raw' PipelineTemplate Presets
-   *
-   * Note, the task options parsed from the Preset are converted to
-   * PipelineStrOption with populated metadata
-   * @param path Path to preset.xml
-   * @return
-   */
+    * Load 'raw' PipelineTemplate Presets
+    *
+    * Note, the task options parsed from the Preset are converted to
+    * PipelineStrOption with populated metadata
+    * @param path Path to preset.xml
+    * @return
+    */
   def loadFrom(path: Path): PipelineTemplatePreset = {
-    if (FilenameUtils.getExtension(path.toString) == "xml") parsePresetXml(path)
+    if (FilenameUtils.getExtension(path.toString) == "xml")
+      parsePresetXml(path)
     else parsePresetJson(path)
   }
 
   /**
-   * Parses and converts the pipeline engine level "options"
-   * @param rnode
-   * @return
-   */
-  private def parseEngineOptions(rnode: scala.xml.Elem): Seq[ServiceTaskOptionBase] = {
+    * Parses and converts the pipeline engine level "options"
+    * @param rnode
+    * @return
+    */
+  private def parseEngineOptions(
+      rnode: scala.xml.Elem): Seq[ServiceTaskOptionBase] = {
 
     /**
-     * Cast String to bool. Default to false if can't parse value.
-     *
-     * (False|false) and {True|true) are supported.
-     *
-     * @param sx
-     * @return
-     */
+      * Cast String to bool. Default to false if can't parse value.
+      *
+      * (False|false) and {True|true) are supported.
+      *
+      * @param sx
+      * @return
+      */
     def castInt(sx: String): Boolean = {
       sx.replace("\n", "").replace(" ", "").toLowerCase match {
         case "true" => true
@@ -76,7 +82,8 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with S
     }
 
     // Convert the Raw values and Cast to correct type
-    def toV(optionId: String, optionValue: String): Option[ServiceTaskOptionBase] = {
+    def toV(optionId: String,
+            optionValue: String): Option[ServiceTaskOptionBase] = {
       PbsmrtpipeEngineOptions().getPipelineOptionById(optionId).map {
         case o: PipelineBooleanOption => o.copy(value = castInt(optionValue))
         case o: PipelineIntOption => o.copy(value = optionValue.toInt)
@@ -91,10 +98,10 @@ trait PipelineTemplatePresetLoader extends Loader[PipelineTemplatePreset] with S
   }
 
   /**
-   * Parse the pbsmrtpipe Preset XML
-   * @param path
-   * @return
-   */
+    * Parse the pbsmrtpipe Preset XML
+    * @param path
+    * @return
+    */
   def parsePresetXml(path: Path): PipelineTemplatePreset = {
     val x = scala.xml.XML.loadFile(path.toFile)
     val presetId = (x \ "@id").text

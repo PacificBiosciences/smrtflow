@@ -8,20 +8,20 @@ import scalaz._
 import Scalaz._
 
 /**
- * Created by mkocher on 12/1/15.
- */
-object ValidateAlignmentSet extends ValidateDataSet{
+  * Created by mkocher on 12/1/15.
+  */
+object ValidateAlignmentSet extends ValidateDataSet {
 
   type DsType = AlignmentSet
 
-  val supportedFileTypes:Set[FileType] = Set(FileTypes.BAM_ALN)
+  val supportedFileTypes: Set[FileType] = Set(FileTypes.BAM_ALN)
 
   /**
-   * Custom SubreadSet Validation
-   *
-   * @param ds
-   * @return
-   */
+    * Custom SubreadSet Validation
+    *
+    * @param ds
+    * @return
+    */
   override def validateCustom(ds: AlignmentSet): ValidateDataSetE = {
     ds.successNel
   }

@@ -9,15 +9,15 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.util.{Failure, Success, Try}
 
 /**
- *
- * Core Engine Configuration Loader
- *
- * - Max Workers is the total number of concurrent job types that will be run
- * - Root Job dir is the root directory where the jobs will be run in
- * -
- *
- * Created by mkocher on 10/8/15.
- */
+  *
+  * Core Engine Configuration Loader
+  *
+  * - Max Workers is the total number of concurrent job types that will be run
+  * - Root Job dir is the root directory where the jobs will be run in
+  * -
+  *
+  * Created by mkocher on 10/8/15.
+  */
 trait EngineCoreConfigConstants {
   val MAX_WORKERS = "smrtflow.engine.maxWorkers"
   val PB_TOOLS_ENV = "smrtflow.engine.pb-tools-env"
@@ -34,24 +34,27 @@ trait ConfigLoader {
   lazy val conf = ConfigFactory.load()
 }
 
-trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging{
+trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging {
 
-  private lazy val defaultEngineDebugMode = conf.getBoolean(EngineCoreConfigConstants.DEBUG_MODE)
-  private lazy val defaultEngineMaxWorkers = conf.getInt(EngineCoreConfigConstants.MAX_WORKERS)
-  private lazy val defaultEngineJobsRoot = loadJobRoot(conf.getString(EngineCoreConfigConstants.PB_ROOT_JOB_DIR))
+  private lazy val defaultEngineDebugMode =
+    conf.getBoolean(EngineCoreConfigConstants.DEBUG_MODE)
+  private lazy val defaultEngineMaxWorkers =
+    conf.getInt(EngineCoreConfigConstants.MAX_WORKERS)
+  private lazy val defaultEngineJobsRoot = loadJobRoot(
+    conf.getString(EngineCoreConfigConstants.PB_ROOT_JOB_DIR))
   private lazy val defaultPbToolsEnv = loadPbToolsEnv(conf)
 
-  lazy val defaultEngineConfig = EngineConfig(
-    defaultEngineMaxWorkers,
-    defaultPbToolsEnv,
-    defaultEngineJobsRoot,
-    debugMode = defaultEngineDebugMode)
+  lazy val defaultEngineConfig = EngineConfig(defaultEngineMaxWorkers,
+                                              defaultPbToolsEnv,
+                                              defaultEngineJobsRoot,
+                                              debugMode =
+                                                defaultEngineDebugMode)
 
   /**
-   * Load
-   * @param sx
-   * @return
-   */
+    * Load
+    * @param sx
+    * @return
+    */
   def loadJobRoot(sx: String): Path = {
     val p = Paths.get(sx)
     if (!p.isAbsolute) {
@@ -64,7 +67,11 @@ trait EngineCoreConfigLoader extends ConfigLoader with LazyLogging{
   }
 
   private def loadPbToolsEnv(conf: Config): Option[Path] =
-    Try { Paths.get(conf.getString(EngineCoreConfigConstants.PB_TOOLS_ENV)).toAbsolutePath }.toOption
+    Try {
+      Paths
+        .get(conf.getString(EngineCoreConfigConstants.PB_TOOLS_ENV))
+        .toAbsolutePath
+    }.toOption
 
   def loadFromAppConf: EngineConfig = {
     val c = defaultEngineConfig

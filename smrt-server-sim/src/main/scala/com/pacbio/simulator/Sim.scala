@@ -16,7 +16,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.xml._
 
-object Sim extends App with LazyLogging{
+object Sim extends App with LazyLogging {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   implicit val system: ActorSystem = ActorSystem("sim")
@@ -26,7 +26,7 @@ object Sim extends App with LazyLogging{
 
   // Add new scenario loaders here
   final val LOADERS: Map[String, ScenarioLoader] = Map(
-    "ExampleScenario"   -> ExampleScenarioLoader,
+    "ExampleScenario" -> ExampleScenarioLoader,
     "RunDesignScenario" -> RunDesignScenarioLoader,
     "DataSetScenario" -> DataSetScenarioLoader,
     "ProjectsScenario" -> ProjectsScenarioLoader,
@@ -44,7 +44,9 @@ object Sim extends App with LazyLogging{
     """Runs simulator scenarios.
       |
       |Includes the following scenario loaders:
-    """.stripMargin + "\n" + LOADERS.keys.toSeq.sorted.map(name => s" - $name\n").reduce(_ + _)
+    """.stripMargin + "\n" + LOADERS.keys.toSeq.sorted
+      .map(name => s" - $name\n")
+      .reduce(_ + _)
 
   val parser = new OptionParser[SimArgs](TOOL_ID) {
     head(s"Simulator Scenario Runner v$VERSION")
@@ -56,7 +58,7 @@ object Sim extends App with LazyLogging{
 
     arg[String]("config-file") valueName "<file>" action { (v, c) =>
       c.copy(config = Some(Paths.get(v)))
-    } optional() text "Path to a config file. (E.g.: /etc/pacbio/example.conf) " +
+    } optional () text "Path to a config file. (E.g.: /etc/pacbio/example.conf) " +
       "Optional, but may be required by the scenario loader."
 
     opt[String]('o', "output-xml") valueName "<file>" action { (v, c) =>
@@ -81,7 +83,8 @@ object Sim extends App with LazyLogging{
                 requirements: Seq[String]): Unit = {
     import StepResult._
 
-    def millisToSecs(m: Long): Double = Duration(m, MILLISECONDS).toUnit(SECONDS)
+    def millisToSecs(m: Long): Double =
+      Duration(m, MILLISECONDS).toUnit(SECONDS)
 
     val steps = result.stepResults
     val scenarioName = result.name
@@ -91,7 +94,10 @@ object Sim extends App with LazyLogging{
     val runTimeSecs = millisToSecs(result.runTimeMillis)
     logger.info(s"Ran ${steps.length} Steps.")
 
-    def stepToXml(klassName: String, stepName: String, stepRunTimeSecs: Double, stepResult: StepResult) = {
+    def stepToXml(klassName: String,
+                  stepName: String,
+                  stepRunTimeSecs: Double,
+                  stepResult: StepResult) = {
       <testcase
       name={stepName}
       classname={klassName}
@@ -107,11 +113,12 @@ object Sim extends App with LazyLogging{
     }
 
     def stepsToXml(stepResults: Seq[StepResult]) = {
-      stepResults.zipWithIndex.map { case(stepResult, i) =>
-        val stepName = f"${i+1}%04d-${stepResult.name}"
-        val className = s"Simulator.$scenarioName"
-        val stepRunTimeSecs = millisToSecs(stepResult.runTimeMillis)
-        stepToXml(className, stepName, stepRunTimeSecs, stepResult)
+      stepResults.zipWithIndex.map {
+        case (stepResult, i) =>
+          val stepName = f"${i + 1}%04d-${stepResult.name}"
+          val className = s"Simulator.$scenarioName"
+          val stepRunTimeSecs = millisToSecs(stepResult.runTimeMillis)
+          stepToXml(className, stepName, stepRunTimeSecs, stepResult)
       }
     }
 
@@ -144,7 +151,9 @@ object Sim extends App with LazyLogging{
   var succeeded: Boolean = false
   try {
     // Construct scenario
-    val config = simArgs.config.map{p => ConfigFactory.parseFile(p.toFile).resolve()}
+    val config = simArgs.config.map { p =>
+      ConfigFactory.parseFile(p.toFile).resolve()
+    }
 
     config.foreach { c =>
       import scala.collection.JavaConversions.asScalaSet
@@ -157,7 +166,11 @@ object Sim extends App with LazyLogging{
     scenario = simArgs.loader.load(config)
 
     // run scenario
-    val f = Future { scenario.setUp() }.flatMap { _ => scenario.run() }.andThen { case _ => scenario.tearDown() }
+    val f = Future { scenario.setUp() }
+      .flatMap { _ =>
+        scenario.run()
+      }
+      .andThen { case _ => scenario.tearDown() }
     result = Await.result(f, simArgs.timeout)
     succeeded = result.stepResults.forall(_.result.succeeded)
 

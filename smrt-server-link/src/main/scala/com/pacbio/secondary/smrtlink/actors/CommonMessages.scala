@@ -5,7 +5,11 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.IdAble
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, EngineJob, JobResult}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  DataStoreFile,
+  EngineJob,
+  JobResult
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
 
 object CommonMessages {
@@ -47,15 +51,18 @@ object CommonMessages {
   // Summary of the number of workers
   case object GetEngineManagerStatus
 
-
   case object GetSystemJobSummary
 
   case class GetJobStatusById(i: IdAble)
 
-  case class UpdateJobState(jobId: IdAble, state: AnalysisJobStates.JobStates, message: String, errorMessage: Option[String])
+  case class UpdateJobState(jobId: IdAble,
+                            state: AnalysisJobStates.JobStates,
+                            message: String,
+                            errorMessage: Option[String])
 
   // DataSet Related Messages
-  case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile, jobId: IdAble)
+  case class ImportDataStoreFileByJobId(dataStoreFile: DataStoreFile,
+                                        jobId: IdAble)
   case class DeleteDataStoreFile(uuid: UUID)
 
 }

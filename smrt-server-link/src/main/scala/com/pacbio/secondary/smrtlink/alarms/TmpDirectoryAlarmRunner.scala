@@ -5,11 +5,10 @@ import java.nio.file.Path
 import com.pacbio.secondary.smrtlink.file.FileSystemUtil
 import com.pacbio.secondary.smrtlink.models.Alarm
 
-
-class TmpDirectoryAlarmRunner(tmpDir: Path, fileSystemUtil: FileSystemUtil) extends DirectoryAlarmRunner(tmpDir, fileSystemUtil) {
-  override val alarm = Alarm(
-    "smrtlink.alarms.tmp_dir",
-    "Temp Dir",
-    "Monitors disk space usage in the tmp dir")
+class TmpDirectoryAlarmRunner(tmpDir: Path, fileSystemUtil: FileSystemUtil)
+    extends DirectoryAlarmRunner(tmpDir, fileSystemUtil) {
+  override val alarm = Alarm("smrtlink.alarms.tmp_dir",
+                             "Temp Dir",
+                             "Monitors disk space usage in the tmp dir")
 
 }

@@ -1,6 +1,5 @@
 package com.pacbio.secondary.smrtlink.services
 
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.actor.ActorRef
@@ -10,7 +9,10 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  Authenticator,
+  AuthenticatorProvider
+}
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
@@ -24,38 +26,56 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Future
 
-
-class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao,  authenticator: Authenticator)
-    extends BaseSmrtService with JobServiceConstants with OSUtils {
+class EulaService(smrtLinkSystemVersion: Option[String],
+                  dao: JobsDao,
+                  authenticator: Authenticator)
+    extends BaseSmrtService
+    with JobServiceConstants
+    with OSUtils {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  val manifest = PacBioComponentManifest(
-    toServiceId("eula"),
-    "EULA Service",
-    "0.1.0", "End-User License Agreement Service")
+  val manifest = PacBioComponentManifest(toServiceId("eula"),
+                                         "EULA Service",
+                                         "0.1.0",
+                                         "End-User License Agreement Service")
 
   implicit val timeout = Timeout(30.seconds)
 
-  def toEulaRecord(user: String, enableInstallMetrics: Boolean, systemVersion: String): EulaRecord = {
+  def toEulaRecord(user: String,
+                   enableInstallMetrics: Boolean,
+                   systemVersion: String): EulaRecord = {
     val osVersion = getOsVersion()
     val acceptedAt = JodaDateTime.now()
-    EulaRecord(user, acceptedAt, systemVersion, osVersion, enableInstallMetrics, enableJobMetrics = false)
+    EulaRecord(user,
+               acceptedAt,
+               systemVersion,
+               osVersion,
+               enableInstallMetrics,
+               enableJobMetrics = false)
   }
 
-  def convertToEulaRecord(user: String, enableInstallMetrics: Boolean): Future[EulaRecord] = {
+  def convertToEulaRecord(
+      user: String,
+      enableInstallMetrics: Boolean): Future[EulaRecord] = {
     smrtLinkSystemVersion match {
-      case Some(version) => Future.successful(toEulaRecord(user, enableInstallMetrics, version))
-      case _ => Future.failed(throw new ResourceNotFoundError("System was not configured with SMRT Link System version. Unable to accept Eula"))
+      case Some(version) =>
+        Future.successful(toEulaRecord(user, enableInstallMetrics, version))
+      case _ =>
+        Future.failed(throw new ResourceNotFoundError(
+          "System was not configured with SMRT Link System version. Unable to accept Eula"))
     }
   }
 
   // This is crufty. The error handling is captured in the get by version call
   def deleteEula(version: String): Future[SuccessMessage] = {
-    dao.removeEula(version).map(x =>
-      if (x == 0) SuccessMessage(s"No user agreement for version $version was found")
-      else SuccessMessage(s"Removed user agreement for version $version")
-    )
+    dao
+      .removeEula(version)
+      .map(
+        x =>
+          if (x == 0)
+            SuccessMessage(s"No user agreement for version $version was found")
+          else SuccessMessage(s"Removed user agreement for version $version"))
   }
 
   override val routes =
@@ -68,38 +88,40 @@ class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao,  authenti
             }
           }
         } ~
-        delete {
-          complete {
-            ok {
-              for {
-                _ <- dao.getEulaByVersion(version)
-                msg <- deleteEula(version)
-              } yield msg
-            }
-          }
-        }
-      } ~
-      pathEndOrSingleSlash {
-        post {
-          entity(as[EulaAcceptance]) { sopts =>
+          delete {
             complete {
-              created {
+              ok {
                 for {
-                  eulaRecord <- convertToEulaRecord(sopts.user, sopts.enableInstallMetrics)
-                  acceptedRecord <-  dao.addEulaRecord(eulaRecord)
-                } yield acceptedRecord
+                  _ <- dao.getEulaByVersion(version)
+                  msg <- deleteEula(version)
+                } yield msg
               }
             }
           }
-        } ~
-        get {
-          complete {
-            ok {
-              dao.getEulas
+      } ~
+        pathEndOrSingleSlash {
+          post {
+            entity(as[EulaAcceptance]) { sopts =>
+              complete {
+                created {
+                  for {
+                    eulaRecord <- convertToEulaRecord(
+                      sopts.user,
+                      sopts.enableInstallMetrics)
+                    acceptedRecord <- dao.addEulaRecord(eulaRecord)
+                  } yield acceptedRecord
+                }
+              }
             }
-          }
+          } ~
+            get {
+              complete {
+                ok {
+                  dao.getEulas
+                }
+              }
+            }
         }
-      }
     }
 
 }

@@ -7,8 +7,15 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, EngineManagerStatus, NoAvailableWorkError}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  EngineManagerStatus,
+  NoAvailableWorkError
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobResourceResolver
+}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
@@ -26,19 +33,31 @@ import scala.util.{Failure, Success, Try}
   *
   * Adding some hacks to adhere to the JobsDaoActor interface and get the code to compile
   */
-class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, config:SystemJobConfig) extends Actor with ActorLogging {
+class EngineCoreJobManagerActor(dao: JobsDao,
+                                resolver: JobResourceResolver,
+                                config: SystemJobConfig)
+    extends Actor
+    with ActorLogging {
 
   import CommonModelImplicits._
 
   //MK Probably want to have better model for this
   val checkForWorkInterval = 5.seconds
 
-  val checkForWorkTick = context.system.scheduler.schedule(5.seconds, checkForWorkInterval, self, CheckForRunnableJob)
+  val checkForWorkTick = context.system.scheduler.schedule(
+    5.seconds,
+    checkForWorkInterval,
+    self,
+    CheckForRunnableJob)
 
   // For debugging
   val checkForEngineManagerStatusInterval = 10.minutes
 
-  val checkStatusForWorkTick = context.system.scheduler.schedule(5.seconds, checkForEngineManagerStatusInterval, self, GetEngineManagerStatus)
+  val checkStatusForWorkTick = context.system.scheduler.schedule(
+    5.seconds,
+    checkForEngineManagerStatusInterval,
+    self,
+    GetEngineManagerStatus)
 
   // Keep track of workers
   val workers = mutable.Queue[ActorRef]()
@@ -53,12 +72,12 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     sx
   }
 
-
   private def getManagerStatus() = {
     val n = config.numGeneralWorkers - workers.length
     val m = config.numQuickWorkers - quickWorkers.length
     EngineManagerStatus(config.numGeneralWorkers, n, config.numQuickWorkers, m)
   }
+
   /**
     * Returns a status message
     *
@@ -67,22 +86,31 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     * @param worker worker to send EngineJob to
     * @return
     */
-  def addJobToWorker(engineJob: EngineJob, workerQueue: mutable.Queue[ActorRef], worker: ActorRef): Future[String] = {
+  def addJobToWorker(engineJob: EngineJob,
+                     workerQueue: mutable.Queue[ActorRef],
+                     worker: ActorRef): Future[String] = {
     // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
     // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
     implicit val timeOut = Timeout(5.seconds)
-    val f:Future[String] = for {
-      job <- dao.updateJobState(engineJob.id, AnalysisJobStates.RUNNING, s"Updated to Running from $self")
-      _ <- andLog(s"Updated state of ${job.id} type:${job.jobTypeId} to state:${job.state} from $self")
-      _ <- andLog(s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId}")
+    val f: Future[String] = for {
+      job <- dao.updateJobState(engineJob.id,
+                                AnalysisJobStates.RUNNING,
+                                s"Updated to Running from $self")
+      _ <- andLog(
+        s"Updated state of ${job.id} type:${job.jobTypeId} to state:${job.state} from $self")
+      _ <- andLog(
+        s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId}")
       _ <- worker ? RunEngineJob(engineJob)
-      workerMsg <- andLog(s"Started job id:${engineJob.id} type:${engineJob.jobTypeId} on Engine worker $worker")
+      workerMsg <- andLog(
+        s"Started job id:${engineJob.id} type:${engineJob.jobTypeId} on Engine worker $worker")
     } yield workerMsg
 
     f
   }
 
-  def checkForWorker(workerQueue: mutable.Queue[ActorRef], isQuick: Boolean): Future[Either[NoAvailableWorkError, EngineJob]] = {
+  def checkForWorker(
+      workerQueue: mutable.Queue[ActorRef],
+      isQuick: Boolean): Future[Either[NoAvailableWorkError, EngineJob]] = {
 
     /**
       * Util to sort out the compatibility with the dao engine interface
@@ -90,27 +118,33 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
       * @param et Either results from checking for work
       * @return
       */
-    def workerToFuture(et: Either[NoAvailableWorkError, EngineJob]): Future[Either[NoAvailableWorkError, EngineJob]] = {
+    def workerToFuture(et: Either[NoAvailableWorkError, EngineJob])
+      : Future[Either[NoAvailableWorkError, EngineJob]] = {
       et match {
         case Right(engineJob) => {
 
           val worker = workerQueue.dequeue()
-          log.info(s"Attempting to add job id:${engineJob.id} type:${engineJob.jobTypeId} state:${engineJob.state} to worker $worker")
+          log.info(
+            s"Attempting to add job id:${engineJob.id} type:${engineJob.jobTypeId} state:${engineJob.state} to worker $worker")
 
           // This needs to handle failure case and enqueue the worker
           val f = addJobToWorker(engineJob, workers, worker)
-              .map(_ => Right(engineJob))
-              .recoverWith { case NonFatal(ex) =>
-                val msg = s"Failed to add Job ${engineJob.id} jobtype:${engineJob.jobTypeId} to worker $worker ${ex.getMessage}"
+            .map(_ => Right(engineJob))
+            .recoverWith {
+              case NonFatal(ex) =>
+                val msg =
+                  s"Failed to add Job ${engineJob.id} jobtype:${engineJob.jobTypeId} to worker $worker ${ex.getMessage}"
                 log.error(msg)
                 workerQueue.enqueue(worker)
                 // Not sure exactly what should return from here? This should update the db to make sure the engine job
                 // is marked as failed.
-                Future.successful(Left(NoAvailableWorkError(s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue ${ex.getMessage} ")))
-              }
+                Future.successful(Left(NoAvailableWorkError(
+                  s"WARNING Failed to add worker to worker. Enqueued worker to $workerQueue ${ex.getMessage} ")))
+            }
           f
         }
-        case Left(_) => Future.successful(Left(NoAvailableWorkError("No work found")))
+        case Left(_) =>
+          Future.successful(Left(NoAvailableWorkError("No work found")))
       }
     }
 
@@ -120,7 +154,8 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
         msg <- workerToFuture(engineJobOrNoWork)
       } yield engineJobOrNoWork
     } else {
-      Future.successful(Left(NoAvailableWorkError(s"Worker queue (${workerQueue.length}) is full")))
+      Future.successful(Left(
+        NoAvailableWorkError(s"Worker queue (${workerQueue.length}) is full")))
     }
   }
 
@@ -131,7 +166,8 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     val x1 = Await.result(checkForWorker(quickWorkers, true), timeout)
     val x2 = Await.result(checkForWorker(workers, false), timeout)
 
-    val msg = s"Completed checking for work ${getManagerStatus().prettySummary}"
+    val msg =
+      s"Completed checking for work ${getManagerStatus().prettySummary}"
     //log.debug(msg)
 
     // If either worker found work to run, then send a self check for work message
@@ -146,29 +182,33 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
     log.info(s"Starting engine manager actor $self with $config")
 
     (0 until config.numQuickWorkers).foreach { x =>
-      val worker = context.actorOf(QuickEngineCoreJobWorkerActor.props(self, serviceRunner), s"engine-quick-worker-$x")
+      val worker = context.actorOf(
+        QuickEngineCoreJobWorkerActor.props(self, serviceRunner),
+        s"engine-quick-worker-$x")
       quickWorkers.enqueue(worker)
       log.info(s"Creating Quick worker $worker")
     }
 
     (0 until config.numGeneralWorkers).foreach { x =>
-      val worker = context.actorOf(EngineCoreJobWorkerActor.props(self, serviceRunner), s"engine-worker-$x")
+      val worker =
+        context.actorOf(EngineCoreJobWorkerActor.props(self, serviceRunner),
+                        s"engine-worker-$x")
       workers.enqueue(worker)
       log.info(s"Creating worker $worker")
     }
   }
 
-  override def preRestart(reason:Throwable, message:Option[Any]){
+  override def preRestart(reason: Throwable, message: Option[Any]) {
     super.preRestart(reason, message)
-    log.error(s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
+    log.error(
+      s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
-
 
   override def receive: Receive = {
     case CheckForRunnableJob => {
       Try(checkForWork()) match {
         case Success(msg) =>
-          //log.debug(s"Completed checking for work $msg")
+        //log.debug(s"Completed checking for work $msg")
         case Failure(ex) =>
           val sw = new StringWriter
           ex.printStackTrace(new PrintWriter(sw))
@@ -203,9 +243,16 @@ class EngineCoreJobManagerActor(dao: JobsDao, resolver: JobResourceResolver, con
 }
 
 trait EngineCoreJobManagerActorProvider {
-  this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
+  this: ActorRefFactoryProvider
+    with JobsDaoProvider
+    with SmrtLinkConfigProvider =>
 
   val engineManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[EngineCoreJobManagerActor], jobsDao(), jobResolver(), systemJobConfig()), "EngineCoreJobManagerActor"))
+    Singleton(
+      () =>
+        actorRefFactory().actorOf(Props(classOf[EngineCoreJobManagerActor],
+                                        jobsDao(),
+                                        jobResolver(),
+                                        systemJobConfig()),
+                                  "EngineCoreJobManagerActor"))
 }
-

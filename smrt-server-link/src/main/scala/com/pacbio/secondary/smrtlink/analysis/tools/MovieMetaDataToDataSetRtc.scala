@@ -12,21 +12,26 @@ import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter.
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
-case class MovieMetaDataToDataSetRtcConfig(rtcAvroPath: String) extends LoggerConfig
+case class MovieMetaDataToDataSetRtcConfig(rtcAvroPath: String)
+    extends LoggerConfig
 
-object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaDataToDataSetRtcConfig] {
+object MovieMetaDataToDataSetRtcTool
+    extends CommandLineToolRunner[MovieMetaDataToDataSetRtcConfig] {
 
   val toolId = "pbscala.tasks.rs_movie_to_ds_rtc"
   val VERSION = "0.2.0"
-  val DESCRIPTION = "Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract"
+  val DESCRIPTION =
+    "Convert a MovieMetadata To HdfSubread Dataset XML using Resolved Tool Contract"
   val defaults = MovieMetaDataToDataSetRtcConfig("")
-  defaults.debug = true  // keeping old debug default. most others are false
+  defaults.debug = true // keeping old debug default. most others are false
 
-  val parser = new OptionParser[MovieMetaDataToDataSetRtcConfig]("movie-metadata-to-dataset-rtc") {
+  val parser = new OptionParser[MovieMetaDataToDataSetRtcConfig](
+    "movie-metadata-to-dataset-rtc") {
     head(DESCRIPTION, VERSION)
-    note("Tool to convert a RS movie.metadata.xml to a HdfSubreadSet Dataset XML using Resolved Tool Contract")
+    note(
+      "Tool to convert a RS movie.metadata.xml to a HdfSubreadSet Dataset XML using Resolved Tool Contract")
 
-    arg[String]("resolved-tool-contract") required() action { (x, c) =>
+    arg[String]("resolved-tool-contract") required () action { (x, c) =>
       c.copy(rtcAvroPath = x)
     } text "Path to Resolved Tool Contract"
 
@@ -44,7 +49,8 @@ object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaData
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def run(c: MovieMetaDataToDataSetRtcConfig): Either[ToolFailure, ToolSuccess] = {
+  def run(
+      c: MovieMetaDataToDataSetRtcConfig): Either[ToolFailure, ToolSuccess] = {
     val startedAt = JodaDateTime.now()
 
     val rtcPath = Paths.get(c.rtcAvroPath)
@@ -54,7 +60,8 @@ object MovieMetaDataToDataSetRtcTool extends CommandLineToolRunner[MovieMetaData
     val inputFiles = rtc.getResolvedToolContract.getInputFiles.asScala.toList
     val movieMetaDataXMLPath = inputFiles.head.toString
     // Output Path
-    val dsPath = rtc.getResolvedToolContract.getOutputFiles.asScala.toList.head.toString
+    val dsPath =
+      rtc.getResolvedToolContract.getOutputFiles.asScala.toList.head.toString
 
     val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath)
 

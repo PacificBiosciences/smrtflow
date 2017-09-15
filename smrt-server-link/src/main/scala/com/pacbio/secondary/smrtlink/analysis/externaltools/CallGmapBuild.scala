@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.analysis.converters.IndexCreationError
  * Call gmap_build to generate GMAP database files
  *
  */
-object CallGmapBuild extends ExternalToolsUtils{
+object CallGmapBuild extends ExternalToolsUtils {
 
   val EXE = "gmap_build"
   lazy val CWD = Paths.get(".")
@@ -16,8 +16,12 @@ object CallGmapBuild extends ExternalToolsUtils{
   def apply(fastaPath: Path,
             outputDir: Path = CWD,
             gmapBuildExePath: String = EXE): Option[ExternalCmdFailure] = {
-    val cmd = Seq(gmapBuildExePath, "-D", outputDir.toAbsolutePath.toString,
-                  "-d", "gmap_db", fastaPath.toAbsolutePath.toString)
+    val cmd = Seq(gmapBuildExePath,
+                  "-D",
+                  outputDir.toAbsolutePath.toString,
+                  "-d",
+                  "gmap_db",
+                  fastaPath.toAbsolutePath.toString)
     runSimpleCmd(cmd)
   }
 

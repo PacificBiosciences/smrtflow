@@ -16,20 +16,20 @@ import collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 
-
 object CommandLineUtils extends LazyLogging {
 
   /**
-   * Find the exe in the current path
-   *
-   * @param exe A Commandline executable
-   * @return
-   */
+    * Find the exe in the current path
+    *
+    * @param exe A Commandline executable
+    * @return
+    */
   def which(exe: String): Option[Path] = {
-    System.getenv("PATH").
-      split(":").
-      map(x => Paths.get(x).resolve(exe)).
-      filter(p => Files.exists(p)) match {
+    System
+      .getenv("PATH")
+      .split(":")
+      .map(x => Paths.get(x).resolve(exe))
+      .filter(p => Files.exists(p)) match {
       case Array(x) =>
         Option(x)
       case _ => None
@@ -39,14 +39,13 @@ object CommandLineUtils extends LazyLogging {
 
 trait timeUtils {
 
-
   /**
-   * Compute the time difference in seconds
-   *
-   * @param tf Final time
-   * @param ti Initial time
-   * @return
-   */
+    * Compute the time difference in seconds
+    *
+    * @param tf Final time
+    * @param ti Initial time
+    * @return
+    */
   def computeTimeDelta(tf: JodaDateTime, ti: JodaDateTime): Int = {
     // return delta time in seconds
     // Do this to scope the imports
@@ -68,23 +67,30 @@ trait ToolResult {
 }
 // These should all be deleted
 case class ToolSuccess(toolId: String, runTimeSec: Int) extends ToolResult
-case class ToolFailure(toolId: String, runTimeSec: Int, message: String) extends ToolResult
+case class ToolFailure(toolId: String, runTimeSec: Int, message: String)
+    extends ToolResult
 
 // Delete this when the AmClient and PbService have migrated to the new Subparser interface
 trait CommandLineToolVersion {
   def showToolVersion(toolId: String, version: String): Unit =
-    println(s"Tool $toolId tool version $version (smrtflow ${Constants.SMRTFLOW_VERSION})")
+    println(
+      s"Tool $toolId tool version $version (smrtflow ${Constants.SMRTFLOW_VERSION})")
 }
 
-trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
+trait CommandLineToolBase[T <: LoggerConfig]
+    extends LazyLogging
+    with timeUtils {
+
   /**
     * Tool Id. this should have the form smrtflow.tools.{my_tool}
     */
   val toolId: String
+
   /**
     * Version of the Tool. Should use semver form
     */
   val VERSION: String
+
   /**
     * Description of the Tool
     */
@@ -94,7 +100,8 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
   val defaults: T
 
   def showToolVersion(toolId: String, version: String): Unit =
-    println(s"Tool $toolId tool version $version (smrtflow ${Constants.SMRTFLOW_VERSION})")
+    println(
+      s"Tool $toolId tool version $version (smrtflow ${Constants.SMRTFLOW_VERSION})")
 
   def showVersion: Unit = showToolVersion(toolId, VERSION)
 
@@ -127,9 +134,11 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
 
     val tx = for {
       parsedOpts <- parseAndValidateOptions(parser, defaults, args)
-      _ <- Try { logParsedOptions(parsedOpts)}
+      _ <- Try { logParsedOptions(parsedOpts) }
       result <- runTool(parsedOpts)
-      summary <- Try { successfulSummary(result, computeTimeDeltaFromNow(startedAt))}
+      summary <- Try {
+        successfulSummary(result, computeTimeDeltaFromNow(startedAt))
+      }
     } yield summary
 
     tryToInt(tx, startedAt)
@@ -143,9 +152,9 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
   def runnerWithArgsAndExit(args: Array[String]) =
     sys.exit(runnerWithArgs(args))
 
-
   def successfulSummary(sx: String, runTimeSec: Long): String = {
-    val msg = s"Successfully completed running $toolId $VERSION (smrtflow ${Constants.SMRTFLOW_VERSION}) in $runTimeSec sec."
+    val msg =
+      s"Successfully completed running $toolId $VERSION (smrtflow ${Constants.SMRTFLOW_VERSION}) in $runTimeSec sec."
     println(sx)
     println(msg)
     logger.info(sx)
@@ -157,7 +166,8 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
     // this could pattern match on Throwable and return a specific exit code
     val exitCode = 1
 
-    val msg = s"Failed (exit code $exitCode) running $toolId $VERSION (smrtflow ${Constants.SMRTFLOW_VERSION}) in $runTimeSec sec. ${ex.getMessage}"
+    val msg =
+      s"Failed (exit code $exitCode) running $toolId $VERSION (smrtflow ${Constants.SMRTFLOW_VERSION}) in $runTimeSec sec. ${ex.getMessage}"
 
     System.err.println(msg)
 
@@ -172,20 +182,25 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
     exitCode
   }
 
-  def parseAndValidateOptions(parser: OptionParser[T], defaults: T, args: Array[String]): Try[T] = {
+  def parseAndValidateOptions(parser: OptionParser[T],
+                              defaults: T,
+                              args: Array[String]): Try[T] = {
 
     val prettyArgs = args.toSeq.reduceLeftOption(_ + " " + _).getOrElse("")
 
     // Note, due to global variables, this is where the log gets setup. This should be revisited to use a better pattern.
     val parsedOpts = parser.parse(args, defaults)
 
-    logger.info(s"Starting to run tool $toolId with smrtflow ${Constants.SMRTFLOW_VERSION}")
+    logger.info(
+      s"Starting to run tool $toolId with smrtflow ${Constants.SMRTFLOW_VERSION}")
 
     parsedOpts match {
       case Some(validateOpts) =>
         logger.info(s"Successfully Parsed options $validateOpts")
         Success(validateOpts)
-      case _ => Failure(new ParseException(s"Failed to parse options '$prettyArgs'", 0))
+      case _ =>
+        Failure(
+          new ParseException(s"Failed to parse options '$prettyArgs'", 0))
     }
   }
 
@@ -203,9 +218,10 @@ trait CommandLineToolBase[T <: LoggerConfig] extends LazyLogging with timeUtils{
 
 }
 
-
-trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtils with CommandLineToolBase[T]{
-
+trait CommandLineToolRunner[T <: LoggerConfig]
+    extends LazyLogging
+    with timeUtils
+    with CommandLineToolBase[T] {
 
   /**
     * Util to block and run tool
@@ -216,12 +232,11 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
   def runAndBlock(fx: => Future[String], timeOut: Duration): Try[String] =
     Try { Await.result(fx, timeOut) }
 
-
-
   // It's too much effort to update all of the tools. Adding this hack to create
   // a provide an intermediate model. This should be abstract once runner(args) and and run(config) has been
   // removed from the interface and all the tools have migrated to runTool interface
-  def runTool(opts: T): Try[String] = Failure(new Exception(s"'runTool' Not Supported in $toolId"))
+  def runTool(opts: T): Try[String] =
+    Failure(new Exception(s"'runTool' Not Supported in $toolId"))
 
   /**
     * Deprecated method.
@@ -245,7 +260,8 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
 
       case Some(c) =>
         // TODO Setup logging if c.debug
-        logger.info(s"Starting to run tool $toolId with smrtflow ${Constants.SMRTFLOW_VERSION}")
+        logger.info(
+          s"Starting to run tool $toolId with smrtflow ${Constants.SMRTFLOW_VERSION}")
         logger.debug(s"Config $c")
 
         val result = Try {
@@ -256,10 +272,12 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
           case Success(r) =>
             r match {
               case Right(x) =>
-                println(s"Successfully completed (exit code 0) running $toolId v$VERSION in ${x.runTimeSec} sec.")
+                println(
+                  s"Successfully completed (exit code 0) running $toolId v$VERSION in ${x.runTimeSec} sec.")
                 sys.exit(0)
               case Left(e) =>
-                val msg = s"Failed (exit code 1) running $toolId v$VERSION in ${e.runTimeSec} sec. ${e.message}"
+                val msg =
+                  s"Failed (exit code 1) running $toolId v$VERSION in ${e.runTimeSec} sec. ${e.message}"
                 //logger.error(msg)
                 System.err.println(msg)
                 sys.exit(1)
@@ -267,7 +285,8 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
           case Failure(e) =>
             val rcode = 1
             val runTimeSec = computeTimeDeltaFromNow(startedAt)
-            val msg = s"Failed running $toolId v$VERSION in $runTimeSec sec. Exiting with exit code $rcode"
+            val msg =
+              s"Failed running $toolId v$VERSION in $runTimeSec sec. Exiting with exit code $rcode"
             logger.error(msg)
             val sw = new StringWriter
             e.printStackTrace(new PrintWriter(sw))
@@ -281,7 +300,10 @@ trait CommandLineToolRunner[T <: LoggerConfig] extends LazyLogging with timeUtil
         val errorMessage = s"Failed to parse options for tool $toolId"
         logger.error(errorMessage)
         System.err.println(errorMessage)
-        Left(ToolFailure(s"Tool $toolId failed (exit $rcode)", runTimeSec, errorMessage))
+        Left(
+          ToolFailure(s"Tool $toolId failed (exit $rcode)",
+                      runTimeSec,
+                      errorMessage))
         sys.exit(rcode)
     }
   }
@@ -295,8 +317,8 @@ trait HasMode {
 // This must be bolted on to any SubParser based Options
 trait HasModeAndLoggingConfig extends HasMode with LoggerConfig {}
 
-
 trait SubParserModeRunner[T] {
+
   /**
     * Name of the subparser option
     */
@@ -323,8 +345,10 @@ trait SubParserModeRunner[T] {
   def run(opt: T): Try[String]
 }
 
-
-trait CommandLineSubParserToolRunner[T <: HasModeAndLoggingConfig] extends LazyLogging with timeUtils with CommandLineToolBase[T]{
+trait CommandLineSubParserToolRunner[T <: HasModeAndLoggingConfig]
+    extends LazyLogging
+    with timeUtils
+    with CommandLineToolBase[T] {
 
   // This should really be a set
   val subModes: Seq[SubParserModeRunner[T]]
@@ -332,8 +356,11 @@ trait CommandLineSubParserToolRunner[T <: HasModeAndLoggingConfig] extends LazyL
   // This must be Lazy or def to avoid the NPE from delayed init
   private lazy val subModesMap = subModes.map(m => m.name -> m).toMap
 
-  private def failIfInvalidSubParserMode(modeName: String): Try[SubParserModeRunner[T]] = {
-    val errorMessage = s"Invalid subparser mode '$modeName'. Valid modes: ${subModesMap.keys.toSeq.reduce(_ + "," + _)}"
+  private def failIfInvalidSubParserMode(
+      modeName: String): Try[SubParserModeRunner[T]] = {
+    val errorMessage =
+      s"Invalid subparser mode '$modeName'. Valid modes: ${subModesMap.keys.toSeq
+        .reduce(_ + "," + _)}"
     subModesMap.get(modeName) match {
       case Some(m) => Success(m)
       case _ => Failure(new Exception(errorMessage))

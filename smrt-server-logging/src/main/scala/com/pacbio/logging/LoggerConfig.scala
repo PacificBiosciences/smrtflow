@@ -5,17 +5,21 @@ import ch.qos.logback.classic.{Level, LoggerContext, PatternLayout}
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.ConsoleAppender
-import ch.qos.logback.core.rolling.{RollingFileAppender, SizeAndTimeBasedRollingPolicy, SizeBasedTriggeringPolicy}
+import ch.qos.logback.core.rolling.{
+  RollingFileAppender,
+  SizeAndTimeBasedRollingPolicy,
+  SizeBasedTriggeringPolicy
+}
 import ch.qos.logback.core.util.FileSize
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConversions._
 
 /**
- * Mixin for adding shared logger params to SMRT App classes
- *
- * See Readme.md for details about the shared parameters and examples of use.
- */
+  * Mixin for adding shared logger params to SMRT App classes
+  *
+  * See Readme.md for details about the shared parameters and examples of use.
+  */
 trait LoggerConfig {
 
   // params for logger configuration
@@ -25,23 +29,23 @@ trait LoggerConfig {
   var debug = false
 
   // arbitrary formatting for console and log files
-  val filePattern = "%date{yyyy-MM-dd HH:mm:ss.SSS, UTC}UTC %-5level[%thread] %logger{1} - %msg%n"
+  val filePattern =
+    "%date{yyyy-MM-dd HH:mm:ss.SSS, UTC}UTC %-5level[%thread] %logger{1} - %msg%n"
   val fileRollingPosfix = ".%i.gz"
 
   /**
-   * Lazy updates the logger config.
-   *
-   * @param logbackFile
-   * @param logFile
-   * @param debug
-   * @param logLevel
-   * @return
-   */
-  def configure(
-      logbackFile: String,
-      logFile: String,
-      debug: Boolean,
-      logLevel: String): LoggerConfig = {
+    * Lazy updates the logger config.
+    *
+    * @param logbackFile
+    * @param logFile
+    * @param debug
+    * @param logLevel
+    * @return
+    */
+  def configure(logbackFile: String,
+                logFile: String,
+                debug: Boolean,
+                logLevel: String): LoggerConfig = {
 
     // logback.xml trumps all other config
     if (logbackFile != this.logbackFile)
@@ -64,13 +68,13 @@ trait LoggerConfig {
   }
 
   /**
-   * Parses a logback.xml file and uses that as the SLFJ4 config.
-   *
-   * See http://logback.qos.ch/manual/configuration.html
-   *
-   * @param path File path of the logback.xml file
-   * @return How many params were consumed
-   */
+    * Parses a logback.xml file and uses that as the SLFJ4 config.
+    *
+    * See http://logback.qos.ch/manual/configuration.html
+    *
+    * @param path File path of the logback.xml file
+    * @return How many params were consumed
+    */
   def setLogback(path: String) {
     this.logbackFile = path
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
@@ -83,11 +87,11 @@ trait LoggerConfig {
   }
 
   /**
-   * Sets the logging level for *all* registered loggers.
-   *
-   * @param level @see ch.qos.logback.classic.Level
-   * @return How many params were consumed
-   */
+    * Sets the logging level for *all* registered loggers.
+    *
+    * @param level @see ch.qos.logback.classic.Level
+    * @return How many params were consumed
+    */
   def setLevel(level: String) {
     this.logLevel = level
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
@@ -96,11 +100,11 @@ trait LoggerConfig {
   }
 
   /**
-   * Removes all handlers and directs logs to a file.
-   *
-   * @param file File path to save logging output
-   * @return How many params were consumed
-   */
+    * Removes all handlers and directs logs to a file.
+    *
+    * @param file File path to save logging output
+    * @return How many params were consumed
+    */
   def setFile(file: String) {
     this.logFile = file
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
@@ -138,12 +142,12 @@ trait LoggerConfig {
   }
 
   /**
-   * Sets all loggers to display information on System.out.
-   *
-   * Useful for debugging the code or piping output.
-   *
-   * @return How many params were consumed
-   */
+    * Sets all loggers to display information on System.out.
+    *
+    * Useful for debugging the code or piping output.
+    *
+    * @return How many params were consumed
+    */
   def setDebug(debug: Boolean) {
     this.debug = debug
     if (!debug) return

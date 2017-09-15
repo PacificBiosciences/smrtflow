@@ -5,7 +5,11 @@ import java.nio.file.{Files, Path}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.analysis.configloaders.PbsmrtpipeConfigLoader
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.database.{DatabaseRunDaoProvider, DatabaseSampleDaoProvider, DatabaseUtils}
+import com.pacbio.secondary.smrtlink.database.{
+  DatabaseRunDaoProvider,
+  DatabaseSampleDaoProvider,
+  DatabaseUtils
+}
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.logging.LoggerOptions
@@ -21,54 +25,55 @@ import scala.util.control.NonFatal
 
 object SmrtLinkApp
 
-trait SmrtLinkProviders extends
-  AuthenticatedCoreProviders with
-  SmrtLinkConfigProvider with
-  AlarmDaoActorProvider with
-  AlarmRunnerLoaderProvider with
-  AlarmManagerRunnerProvider with
-  AlarmServiceProvider with
-  SwaggerFileServiceProvider with
-  PbsmrtpipeConfigLoader with
-  PacBioBundleDaoActorProvider with
-  PacBioDataBundlePollExternalActorProvider with
-  PacBioBundleServiceProvider with
-  EventManagerActorProvider with
-  SmrtLinkEventServiceProvider with
-  JobsDaoProvider with
-  SmrtLinkDalProvider with
-  DataIntegrityManagerActorProvider with
-  EulaServiceProvider with
-  ProjectServiceProvider with
-  DataSetServiceProvider with
-  RunServiceProvider with
-  SampleServiceProvider with
-  RegistryServiceProvider with
-  RunServiceActorRefProvider with
-  SampleServiceActorRefProvider with
-  RegistryServiceActorRefProvider with
-  DatabaseRunDaoProvider with
-  DatabaseSampleDaoProvider with
-  InMemoryRegistryDaoProvider with
-  DataModelParserImplProvider with
-  SimpleLogServiceProvider with
-  PipelineDataStoreViewRulesServiceProvider with
-  PipelineTemplateProvider with
-  ResolvedPipelineTemplateServiceProvider with
-  PipelineTemplateViewRulesServiceProvider with
-  ReportViewRulesResourceProvider with
-  ReportViewRulesServiceProvider with
-  JobsServiceProvider with
-  EngineCoreJobManagerActorProvider with
-  EngineMultiJobManagerActorProvider
-{
+trait SmrtLinkProviders
+    extends AuthenticatedCoreProviders
+    with SmrtLinkConfigProvider
+    with AlarmDaoActorProvider
+    with AlarmRunnerLoaderProvider
+    with AlarmManagerRunnerProvider
+    with AlarmServiceProvider
+    with SwaggerFileServiceProvider
+    with PbsmrtpipeConfigLoader
+    with PacBioBundleDaoActorProvider
+    with PacBioDataBundlePollExternalActorProvider
+    with PacBioBundleServiceProvider
+    with EventManagerActorProvider
+    with SmrtLinkEventServiceProvider
+    with JobsDaoProvider
+    with SmrtLinkDalProvider
+    with DataIntegrityManagerActorProvider
+    with EulaServiceProvider
+    with ProjectServiceProvider
+    with DataSetServiceProvider
+    with RunServiceProvider
+    with SampleServiceProvider
+    with RegistryServiceProvider
+    with RunServiceActorRefProvider
+    with SampleServiceActorRefProvider
+    with RegistryServiceActorRefProvider
+    with DatabaseRunDaoProvider
+    with DatabaseSampleDaoProvider
+    with InMemoryRegistryDaoProvider
+    with DataModelParserImplProvider
+    with SimpleLogServiceProvider
+    with PipelineDataStoreViewRulesServiceProvider
+    with PipelineTemplateProvider
+    with ResolvedPipelineTemplateServiceProvider
+    with PipelineTemplateViewRulesServiceProvider
+    with ReportViewRulesResourceProvider
+    with ReportViewRulesServiceProvider
+    with JobsServiceProvider
+    with EngineCoreJobManagerActorProvider
+    with EngineMultiJobManagerActorProvider {
 
-  override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")
+  override val baseServiceId: Singleton[String] = Singleton(
+    "smrtlink_analysis")
   override val actorSystemName = Some("smrtlink-analysis-server")
-  override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+  override val buildPackage: Singleton[Package] = Singleton(
+    getClass.getPackage)
 }
 
-trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
+trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
 
   override val providers = new SmrtLinkProviders {}
 
@@ -95,21 +100,27 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     providers.rootDataBaseBackUpDir() match {
       case Some(rootBackUpDir) =>
-
-        val dbBackupKey = providers.conf.getString("pacBioSystem.dbBackUpSchedule")
+        val dbBackupKey =
+          providers.conf.getString("pacBioSystem.dbBackUpSchedule")
         //val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
         //logger.info(s"Scheduling '$dbBackupKey' db backup $m")
         // scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
 
-        val alarmSchedule = providers.conf.getString("pacBioSystem.alarmSchedule")
+        val alarmSchedule =
+          providers.conf.getString("pacBioSystem.alarmSchedule")
         logger.info(s"Scheduling $alarmSchedule Alarm Manager Runner(s)")
         scheduler.schedule(alarmSchedule, alarmManagerRunnerActor, RunAlarms)
 
-        val dataIntegritySchedule = providers.conf.getString("pacBioSystem.dataIntegritySchedule")
-        logger.info(s"Scheduling $dataIntegritySchedule DataIntegrity Manager Runner")
-        scheduler.schedule(dataIntegritySchedule, dataIntegrityManagerActor, RunIntegrityChecks)
+        val dataIntegritySchedule =
+          providers.conf.getString("pacBioSystem.dataIntegritySchedule")
+        logger.info(
+          s"Scheduling $dataIntegritySchedule DataIntegrity Manager Runner")
+        scheduler.schedule(dataIntegritySchedule,
+                           dataIntegrityManagerActor,
+                           RunIntegrityChecks)
       case _ =>
-        logger.warn("System is not configured with a root database directory. Skipping scheduling Automated backups.")
+        logger.warn(
+          "System is not configured with a root database directory. Skipping scheduling Automated backups.")
     }
 
     def createJobDir(path: Path): Path = {
@@ -122,19 +133,23 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     // Start Up validation
     val startUpValidation = for {
-      connMessage <- Future { TestConnection(dataSource)}
-      migrationMessage <- Future { Migrator(dataSource)}
+      connMessage <- Future { TestConnection(dataSource) }
+      migrationMessage <- Future { Migrator(dataSource) }
       summary <- providers.jobsDao().getSystemSummary("Database Startup Test")
-      jobDir <- Future.successful(createJobDir(providers.engineConfig.pbRootJobDir))
+      jobDir <- Future.successful(
+        createJobDir(providers.engineConfig.pbRootJobDir))
     } yield
       s"""$connMessage
          |$migrationMessage
          |$summary
          |Created Job Root $jobDir
          |Loaded Pbsmrtpipe Workflow Level Options:
-         |${providers.systemJobConfig().pbSmrtPipeEngineOptions.summary()}""".stripMargin
+         |${providers
+           .systemJobConfig()
+           .pbSmrtPipeEngineOptions
+           .summary()}""".stripMargin
 
-    startUpValidation.andThen { case _ => dataSource.close()}
+    startUpValidation.andThen { case _ => dataSource.close() }
 
     startUpValidation.onFailure {
       case NonFatal(e) =>
@@ -145,7 +160,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
     }
 
     startUpValidation.onSuccess {
-      case summary:String =>
+      case summary: String =>
         logger.info(summary)
         println(summary)
     }
@@ -154,12 +169,18 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 
     def getInstallMetrics() =
       providers.smrtLinkVersion() match {
-        case Some(v) => providers.jobsDao().getEulaByVersion(v).map(_.enableInstallMetrics).recover( {case _ => false})
+        case Some(v) =>
+          providers
+            .jobsDao()
+            .getEulaByVersion(v)
+            .map(_.enableInstallMetrics)
+            .recover({ case _ => false })
         case _ => Future.successful(false)
       }
 
-    getInstallMetrics().onSuccess { case installMetrics:Boolean =>
-      providers.eventManagerActor() ! EnableExternalMessages(installMetrics)
+    getInstallMetrics().onSuccess {
+      case installMetrics: Boolean =>
+        providers.eventManagerActor() ! EnableExternalMessages(installMetrics)
     }
   }
 
@@ -167,8 +188,8 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils{
 }
 
 /**
- * This is used for spray-can http server which can be started via 'sbt run'
- */
+  * This is used for spray-can http server which can be started via 'sbt run'
+  */
 object SmrtLinkSmrtServer extends App with BaseServer with SmrtLinkApi {
   override val host = providers.serverHost()
   override val port = providers.serverPort()

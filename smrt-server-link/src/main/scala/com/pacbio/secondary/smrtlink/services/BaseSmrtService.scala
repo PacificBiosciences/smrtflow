@@ -7,10 +7,12 @@ object BaseSmrtService {
 }
 
 /**
- * Base trait for services at the Base SMRT Server level.
- */
+  * Base trait for services at the Base SMRT Server level.
+  */
 trait BaseSmrtService extends PacBioService {
   import BaseSmrtService._
 
-  override def prefixedRoutes = pathPrefix(BASE_PREFIX) { super.prefixedRoutes } ~ pathPrefix(BASE_PREFIX_SL) { super.prefixedRoutes }
+  override def prefixedRoutes =
+    pathPrefix(BASE_PREFIX) { super.prefixedRoutes } ~ pathPrefix(
+      BASE_PREFIX_SL) { super.prefixedRoutes }
 }

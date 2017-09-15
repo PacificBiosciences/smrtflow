@@ -4,7 +4,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineDataStoreVi
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import spray.json._
 
-
 trait PipelineDataStoreViewRulesResourceLoader
     extends BundleResourceLoader[PipelineDataStoreViewRules] {
 
@@ -20,4 +19,5 @@ trait PipelineDataStoreViewRulesResourceLoader
 
 }
 
-object PipelineDataStoreViewRulesResourceLoader extends PipelineDataStoreViewRulesResourceLoader
+object PipelineDataStoreViewRulesResourceLoader
+    extends PipelineDataStoreViewRulesResourceLoader

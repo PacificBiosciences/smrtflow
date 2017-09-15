@@ -4,24 +4,32 @@ import java.nio.file.{Paths, Files}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.PbsmrtpipeConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, AnalysisJobStates}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  PrinterJobResultsWriter,
+  AnalysisJobStates
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  JobResource,
+  BoundEntryPoint
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.IOUtils
 import com.typesafe.scalalogging.LazyLogging
 
 /**
- *
- * Hacky way for testing calling pbsmrtpipe pipelines and running
- * a basic sanity test
- */
+  *
+  * Hacky way for testing calling pbsmrtpipe pipelines and running
+  * a basic sanity test
+  */
 object PbSmrtpipeHackyTest extends App with LazyLogging {
 
   val pipelineId = "pbsmrtpipe.pipelines.dev_01"
   val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
-  val envShellWrapper = Some(Paths.get("/Users/mkocher/.virtualenvs/p4_pbsmrtpipe_test/bin/activate"))
+  val envShellWrapper = Some(
+    Paths.get("/Users/mkocher/.virtualenvs/p4_pbsmrtpipe_test/bin/activate"))
 
-  val f = "/Users/mkocher/gh_projects/pbsmrtpipe_dev/pbsmrtpipe/testkit-data/dev_01/preset.xml"
+  val f =
+    "/Users/mkocher/gh_projects/pbsmrtpipe_dev/pbsmrtpipe/testkit-data/dev_01/preset.xml"
   val cmdTemplate = PbsmrtpipeConfigLoader.loadCmdTemplate
 
   println(s"Command template $cmdTemplate")
@@ -34,11 +42,22 @@ object PbSmrtpipeHackyTest extends App with LazyLogging {
   IOUtils.writeMockBoundEntryPoints(epath)
 
   val serviceUri = None
-  val cmd = IOUtils.toCmd(ePoints, pipelineId, outputDir, taskOpts, workflowOpts, serviceUri)
+  val cmd = IOUtils.toCmd(ePoints,
+                          pipelineId,
+                          outputDir,
+                          taskOpts,
+                          workflowOpts,
+                          serviceUri)
   println(s"Command '$cmd'")
 
   val jobResource = JobResource(UUID.randomUUID, outputDir)
-  val opts = PbSmrtPipeJobOptions(pipelineId, ePoints, taskOpts, workflowOpts, envShellWrapper, serviceUri, cmdTemplate)
+  val opts = PbSmrtPipeJobOptions(pipelineId,
+                                  ePoints,
+                                  taskOpts,
+                                  workflowOpts,
+                                  envShellWrapper,
+                                  serviceUri,
+                                  cmdTemplate)
   val job = opts.toJob
 
   val writer = new PrinterJobResultsWriter
@@ -53,4 +72,3 @@ object PbSmrtpipeHackyTest extends App with LazyLogging {
   println(s"exiting pbsmrtpipe hacky main with exit code $exitCode")
   System.exit(exitCode)
 }
-

@@ -1,4 +1,3 @@
-
 package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
@@ -15,10 +14,11 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Try
 
-
 case class ValidateRunConfig(path: File) extends LoggerConfig
 
-object ValidateRun extends CommandLineToolRunner[ValidateRunConfig] with SmrtLinkJsonProtocols {
+object ValidateRun
+    extends CommandLineToolRunner[ValidateRunConfig]
+    with SmrtLinkJsonProtocols {
 
   val toolId = "pbscala.tools.validate_run"
   val VERSION = "0.1.0"
@@ -28,7 +28,7 @@ object ValidateRun extends CommandLineToolRunner[ValidateRunConfig] with SmrtLin
   lazy val parser = new OptionParser[ValidateRunConfig]("validate-run") {
     head(DESCRIPTION, VERSION)
 
-    arg[File]("run").action { (p,c) =>
+    arg[File]("run").action { (p, c) =>
       c.copy(path = p)
     } text "Path to run JSON or XML"
 
@@ -43,7 +43,6 @@ object ValidateRun extends CommandLineToolRunner[ValidateRunConfig] with SmrtLin
   override def runTool(c: ValidateRunConfig): Try[String] =
     Try { validateRun(c) }
 
-
   def validateRun(c: ValidateRunConfig): String = {
     val contents = Source.fromFile(c.path).getLines.mkString
     val dataModel = if (c.path.toString.endsWith(".json")) {
@@ -56,7 +55,6 @@ object ValidateRun extends CommandLineToolRunner[ValidateRunConfig] with SmrtLin
   // delete me when this is removed from the base interface
   def run(opt: ValidateRunConfig) =
     Left(ToolFailure(toolId, 0, "Not Supported"))
-
 
 }
 

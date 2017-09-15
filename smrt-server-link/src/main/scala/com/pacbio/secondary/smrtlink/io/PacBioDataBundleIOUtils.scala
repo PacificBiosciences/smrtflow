@@ -11,16 +11,21 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableE
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.PacBioDataBundleConstants
 import com.pacbio.secondary.smrtlink.actors.PacBioBundleUtils
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, PacBioDataBundleIO}
+import com.pacbio.secondary.smrtlink.models.{
+  PacBioDataBundle,
+  PacBioDataBundleIO
+}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.joda.time.{DateTime => JodaDateTime}
 
-
 import scala.xml.XML
 
-trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundleUtils with LazyLogging{
+trait PacBioDataBundleIOUtils
+    extends PacBioDataBundleConstants
+    with PacBioBundleUtils
+    with LazyLogging {
 
   /**
     * Parse the Bundle XML and return a PacBioDataBundle.
@@ -38,7 +43,12 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     val author = (xs \ "Author").headOption.map(_.text)
     val description = (xs \ "Description").headOption.map(_.text)
 
-    PacBioDataBundle(bundleTypeId, rawVersion, JodaDateTime.now(), author, isActive = false, description)
+    PacBioDataBundle(bundleTypeId,
+                     rawVersion,
+                     JodaDateTime.now(),
+                     author,
+                     isActive = false,
+                     description)
   }
 
   def parseBundle(rootDir: Path): PacBioDataBundle =
@@ -84,10 +94,11 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
   }
 
   def downloadGit(url: URL, outputDir: Path): Path = {
-    val result = Git.cloneRepository()
-        .setURI(url.toURI.toString)
-        .setDirectory(outputDir.toFile)
-        .call()
+    val result = Git
+      .cloneRepository()
+      .setURI(url.toURI.toString)
+      .setDirectory(outputDir.toFile)
+      .call()
 
     logger.info(s"Downloaded repo $url to $outputDir")
     logger.info(s"Result $result")
@@ -116,11 +127,16 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
 
     val outputBundle = Option(url.getProtocol) match {
       case Some("http") if isGit(url.getFile) => downloadGit(url, bundleTmpDir)
-      case Some("https") if isGit(url.getFile) => downloadGit(url, bundleTmpDir)
+      case Some("https") if isGit(url.getFile) =>
+        downloadGit(url, bundleTmpDir)
       case Some("http") => downloadHttp(url, bundleTmpDir.toFile)
-      case Some("file") if isTarGz(url.getFile) => copyFile(Paths.get(url.toURI).toFile, bundleTmpDir.toFile)
-      case Some(x) => throw new UnprocessableEntityError(s"$errorMessage with protocol $x")
-      case None => throw new UnprocessableEntityError(s"$errorMessage Expected protocols (http,https,file) and extension with .tar.gz or .tgz")
+      case Some("file") if isTarGz(url.getFile) =>
+        copyFile(Paths.get(url.toURI).toFile, bundleTmpDir.toFile)
+      case Some(x) =>
+        throw new UnprocessableEntityError(s"$errorMessage with protocol $x")
+      case None =>
+        throw new UnprocessableEntityError(
+          s"$errorMessage Expected protocols (http,https,file) and extension with .tar.gz or .tgz")
     }
 
     logger.info(s"downloaded bundle to $outputBundle")
@@ -139,7 +155,8 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     * @param outputDir
     * @return
     */
-  def downloadAndParseBundle(url: URL, outputDir: Path): (Path, PacBioDataBundle) = {
+  def downloadAndParseBundle(url: URL,
+                             outputDir: Path): (Path, PacBioDataBundle) = {
     val tmpBundleDir = downloadBundle(url, outputDir)
     val b = parseBundle(tmpBundleDir)
     logger.info(s"Processed bundle $b")
@@ -161,7 +178,9 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     * @param rootDir      root output directory. A subdir will be created with the Data Bundle
     * @return
     */
-  def copyBundleTo(bundleSrcDir: Path, pacBioBundle: PacBioDataBundle, rootDir: Path): PacBioDataBundleIO = {
+  def copyBundleTo(bundleSrcDir: Path,
+                   pacBioBundle: PacBioDataBundle,
+                   rootDir: Path): PacBioDataBundleIO = {
     val name = s"${pacBioBundle.typeId}-${pacBioBundle.version}"
     val tgzName = s"$name.tar.gz"
     val bundleDir = rootDir.resolve(name)
@@ -185,21 +204,22 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     * @param rootBundleDir
     * @return
     */
-  def downloadAndProcessDataBundle(url: URL, rootBundleDir: Path): PacBioDataBundleIO = {
+  def downloadAndProcessDataBundle(url: URL,
+                                   rootBundleDir: Path): PacBioDataBundleIO = {
     val tmpRootBundleDir = Files.createTempDirectory("tmp-bundles")
     val result = downloadAndParseBundle(url, tmpRootBundleDir)
     copyBundleTo(result._1, result._2, rootBundleDir)
   }
 
-  def getManifestXmlFromDir(path: Path):Option[Path] =
+  def getManifestXmlFromDir(path: Path): Option[Path] =
     if (Files.isDirectory(path)) {
-      path.toFile.list()
-          .find(_ == MANIFEST_FILE)
-          .map(x => path.resolve(x))
+      path.toFile
+        .list()
+        .find(_ == MANIFEST_FILE)
+        .map(x => path.resolve(x))
     } else {
       None
     }
-
 
   /**
     * Load bundles from a root directory. Each bundle must adhere to the spec and
@@ -233,7 +253,6 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     def hasCompanionTgz(path: Path): Boolean =
       getCompanionTgz(path).isDefined
 
-
     def getCompanionTgz(path: Path): Option[Path] = {
 
       def getIfExists(px: Path): Option[Path] = {
@@ -241,13 +260,15 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
         else None
       }
 
-      supportedExts.map(ext => Paths.get(path.toString + ext))
-          .flatMap(getIfExists)
-          .headOption
+      supportedExts
+        .map(ext => Paths.get(path.toString + ext))
+        .flatMap(getIfExists)
+        .headOption
     }
 
     def isActive(rootBundlePath: Path, bundleTypeId: String): Boolean = {
-      val px = rootBundlePath.getParent.resolve(s"$bundleTypeId-$ACTIVE_SUFFIX")
+      val px =
+        rootBundlePath.getParent.resolve(s"$bundleTypeId-$ACTIVE_SUFFIX")
       if (Files.exists(px) && Files.isSymbolicLink(px)) {
         px.toRealPath() == rootBundlePath.toRealPath()
       } else
@@ -255,11 +276,17 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     }
 
     // Having trouble composing here. Doing a simple and stupid approach
-    def resolveBundleIO(rootBundlePath: Path, tgz: Option[Path], bundle: Option[PacBioDataBundle]): Option[PacBioDataBundleIO] = {
+    def resolveBundleIO(
+        rootBundlePath: Path,
+        tgz: Option[Path],
+        bundle: Option[PacBioDataBundle]): Option[PacBioDataBundleIO] = {
       (tgz, bundle) match {
         case (Some(x), Some(y)) =>
           val isBundleActive = isActive(rootBundlePath, y.typeId)
-          Some(PacBioDataBundleIO(x, rootBundlePath, y.copy(isActive = isBundleActive)))
+          Some(
+            PacBioDataBundleIO(x,
+                               rootBundlePath,
+                               y.copy(isActive = isBundleActive)))
         case _ => None
       }
     }
@@ -267,20 +294,23 @@ trait PacBioDataBundleIOUtils extends PacBioDataBundleConstants with PacBioBundl
     def getBundleIO(rootBundlePath: Path): Option[PacBioDataBundleIO] = {
       val tgz = getCompanionTgz(rootBundlePath)
       val b = getManifestXmlFromDir(rootBundlePath)
-          .map(px => parseBundleManifestXml(px.toFile))
+        .map(px => parseBundleManifestXml(px.toFile))
       resolveBundleIO(rootBundlePath, tgz, b)
     }
 
     // Look for any subdirectories that have 'manifest.xml' files in them
     // and have a companion tgz directory. See pacbio_bundles.rst and loadBundlesFromRoot for details
     // "Malformed" directories not adhering to the spec will be silently ignored.
-    val bundles = path.toAbsolutePath.toFile.list()
-        .map(p => path.resolve(p))
-        .filter(f => Files.isDirectory(f) & hasCompanionTgz(f))
-        .flatMap(px => getBundleIO(px))
+    val bundles = path.toAbsolutePath.toFile
+      .list()
+      .map(p => path.resolve(p))
+      .filter(f => Files.isDirectory(f) & hasCompanionTgz(f))
+      .flatMap(px => getBundleIO(px))
 
     logger.info(s"Successfully loaded ${bundles.length} PacBio Data Bundles.")
-    bundles.foreach(b => logger.info(s"BundleType:${b.bundle.typeId} version:${b.bundle.version} isActive:${b.bundle.isActive}"))
+    bundles.foreach(b =>
+      logger.info(
+        s"BundleType:${b.bundle.typeId} version:${b.bundle.version} isActive:${b.bundle.isActive}"))
     bundles
   }
 }

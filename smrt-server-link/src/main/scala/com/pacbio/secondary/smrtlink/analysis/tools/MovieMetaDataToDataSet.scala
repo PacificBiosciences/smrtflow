@@ -8,11 +8,12 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetWriter
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
-case class MovieMetaDataToDataSetConfig(
-    movieMetadataXMLPath: String,
-    datasetXMLPath: String) extends LoggerConfig
+case class MovieMetaDataToDataSetConfig(movieMetadataXMLPath: String,
+                                        datasetXMLPath: String)
+    extends LoggerConfig
 
-object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToDataSetConfig] {
+object MovieMetaDataToDataSetTool
+    extends CommandLineToolRunner[MovieMetaDataToDataSetConfig] {
 
   val toolId = "pbscala.tools.rs_movie_to_ds"
   val VERSION = "0.3.0"
@@ -20,11 +21,12 @@ object MovieMetaDataToDataSetTool extends CommandLineToolRunner[MovieMetaDataToD
   val defaults = MovieMetaDataToDataSetConfig("", "")
   defaults.debug = true // keeping old debug default. most others are false
 
-  val parser = new OptionParser[MovieMetaDataToDataSetConfig]("movie-metadata-to-dataset") {
+  val parser = new OptionParser[MovieMetaDataToDataSetConfig](
+    "movie-metadata-to-dataset") {
     head("MovieMetadata To Hdf5 Subread Dataset XML ", VERSION)
     note("Tool to convert a RS movie.metadata.xml to a Hdf5 Dataset XML")
 
-    arg[String]("movie-metadata-xml") required() action { (x, c) =>
+    arg[String]("movie-metadata-xml") required () action { (x, c) =>
       c.copy(movieMetadataXMLPath = x)
     } text "Path to Pacbio RS Movie metadata.xml (or a fofn of RS Movie Metadata.xml files) "
 

@@ -6,12 +6,14 @@ import java.net.URL
 import com.typesafe.config.{ConfigParseOptions, ConfigFactory, Config}
 
 trait ConfigProvider {
-  val parseOptions: Singleton[ConfigParseOptions] = Singleton(ConfigParseOptions.defaults())
+  val parseOptions: Singleton[ConfigParseOptions] = Singleton(
+    ConfigParseOptions.defaults())
   val config: Singleton[Config]
 }
 
 trait DefaultConfigProvider extends ConfigProvider {
-  override val config: Singleton[Config] = Singleton(() => ConfigFactory.load(parseOptions()))
+  override val config: Singleton[Config] = Singleton(
+    () => ConfigFactory.load(parseOptions()))
 }
 
 trait FileConfigProvider extends ConfigProvider {

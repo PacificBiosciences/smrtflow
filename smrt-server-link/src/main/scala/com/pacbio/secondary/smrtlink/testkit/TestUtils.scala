@@ -12,12 +12,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
-
 /**
   * Testing Utils for Creating and dropping resources (e.g., db, job-root)
   *
   */
-trait TestUtils extends DatabaseUtils with LazyLogging{
+trait TestUtils extends DatabaseUtils with LazyLogging {
 
   /**
     * Drop the SMRT Link tables and flyway version_schema table
@@ -33,16 +32,23 @@ trait TestUtils extends DatabaseUtils with LazyLogging{
     for (db <- managed(config.toDatabase); ds <- managed(config.toDataSource)) {
       val defaultTimeOut = 10.seconds
 
-      def ignoreWithMessage(msg: String): PartialFunction[Throwable, Future[String]] = {
+      def ignoreWithMessage(
+          msg: String): PartialFunction[Throwable, Future[String]] = {
         case ex: SQLException => Future { s"$msg ${ex.getMessage}" }
       }
 
       val runner = for {
         m0 <- Future { TestConnection(ds) }
-        m1 <- dropTables(db).recoverWith(ignoreWithMessage("Warning unable to drop smrtlink tables "))
-        m2 <- dropFlywayTable(db).recoverWith(ignoreWithMessage("Warning unable to delete flyway table "))
-        m3 <- Future { Migrator(ds) }.map(n => s"Successfully ran $n migration(s)")
-      } yield Seq(m0, m1, m2, m3).reduce {(acc, v) => s"$acc.\n$v"}
+        m1 <- dropTables(db).recoverWith(
+          ignoreWithMessage("Warning unable to drop smrtlink tables "))
+        m2 <- dropFlywayTable(db).recoverWith(
+          ignoreWithMessage("Warning unable to delete flyway table "))
+        m3 <- Future { Migrator(ds) }.map(n =>
+          s"Successfully ran $n migration(s)")
+      } yield
+        Seq(m0, m1, m2, m3).reduce { (acc, v) =>
+          s"$acc.\n$v"
+        }
 
       val results = Await.result(runner, defaultTimeOut)
       println(results)

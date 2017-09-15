@@ -11,16 +11,16 @@ import scopt.OptionParser
 
 import scala.util.{Failure, Success, Try}
 
+case class FastaToGmapReferenceSetConfig(fastaFile: String,
+                                         outputDir: String,
+                                         name: String,
+                                         organism: String,
+                                         ploidy: String,
+                                         inPlace: Boolean = false)
+    extends LoggerConfig
 
-case class FastaToGmapReferenceSetConfig(
-    fastaFile: String,
-    outputDir: String,
-    name: String,
-    organism: String,
-    ploidy: String,
-    inPlace: Boolean = false) extends LoggerConfig
-
-object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenceSetConfig] {
+object FastaToGmapReferenceSet
+    extends CommandLineToolRunner[FastaToGmapReferenceSetConfig] {
 
   import ExternalToolsUtils._
   val toolId = "pbscala.tools.fasta_to_gmap_reference"
@@ -28,11 +28,13 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
   val DESCRIPTION = "Fasta file to GMAP Reference Dataset XML "
   val defaults = FastaToGmapReferenceSetConfig("", "", "", "", "")
 
-  val parser = new OptionParser[FastaToGmapReferenceSetConfig]("fasta-to-gmap-reference") {
+  val parser = new OptionParser[FastaToGmapReferenceSetConfig](
+    "fasta-to-gmap-reference") {
     head(DESCRIPTION, VERSION)
-    note("Tool to generate GMAP database and convert a fasta to a Dataset XML (requires 'gmap_build' commandline exe in path)")
+    note(
+      "Tool to generate GMAP database and convert a fasta to a Dataset XML (requires 'gmap_build' commandline exe in path)")
 
-    arg[String]("fasta-file") required() action { (x, c) =>
+    arg[String]("fasta-file") required () action { (x, c) =>
       c.copy(fastaFile = x)
     } text "Path to Fasta file"
 
@@ -77,16 +79,32 @@ object FastaToGmapReferenceSet extends CommandLineToolRunner[FastaToGmapReferenc
     val organism = Option(c.organism)
 
     Try {
-      if (! Files.exists(outputDir)) throw new Exception(s"The output directory '${outputDir.toString}' does not exist; please create it or specify an already existing path.")
-      GmapReferenceConverter(c.name, fastaPath, outputDir, organism, ploidy, c.inPlace)
+      if (!Files.exists(outputDir))
+        throw new Exception(
+          s"The output directory '${outputDir.toString}' does not exist; please create it or specify an already existing path.")
+      GmapReferenceConverter(c.name,
+                             fastaPath,
+                             outputDir,
+                             organism,
+                             ploidy,
+                             c.inPlace)
     } match {
-      case Success(x) => x match {
-        case Right(ofn) =>
-          println(s"Wrote dataset to ${ofn}")
-          Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
-        case Left(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
-      }
-      case Failure(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.getMessage))
+      case Success(x) =>
+        x match {
+          case Right(ofn) =>
+            println(s"Wrote dataset to ${ofn}")
+            Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
+          case Left(ex) =>
+            Left(
+              ToolFailure(toolId,
+                          computeTimeDeltaFromNow(startedAt),
+                          ex.getMessage))
+        }
+      case Failure(ex) =>
+        Left(
+          ToolFailure(toolId,
+                      computeTimeDeltaFromNow(startedAt),
+                      ex.getMessage))
     }
   }
 }

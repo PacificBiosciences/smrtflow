@@ -23,13 +23,12 @@ import com.typesafe.scalalogging.LazyLogging
   *
   * Created by mkocher on 6/24/16.
   */
-
 object ExampleToolsConstants {
 
-  sealed trait Mode { val name: String}
-  case object RUN extends Mode { val name = "run"}
-  case object RUN_RTC extends Mode {val name = "run-rtc"}
-  case object EMIT_TC extends Mode {val name = "emit-tc"}
+  sealed trait Mode { val name: String }
+  case object RUN extends Mode { val name = "run" }
+  case object RUN_RTC extends Mode { val name = "run-rtc" }
+  case object EMIT_TC extends Mode { val name = "emit-tc" }
 
   final val TOOL_ID = "smrtflow.tasks.example_tool"
   final val TOOL_NAME = "Example Tool"
@@ -43,7 +42,8 @@ object ExampleToolsConstants {
   final val NUM_RECORDS_DEFAULT = 100
 
   // The input file is a sentinel/dummy file
-  case class ExampleToolOptions(inputTxtFile: Option[Path] = Some(Paths.get("input.txt")),
+  case class ExampleToolOptions(inputTxtFile: Option[Path] = Some(
+                                  Paths.get("input.txt")),
                                 outputFastaFile: Path,
                                 outputToolContract: Path,
                                 numRecords: Int = NUM_RECORDS_DEFAULT,
@@ -59,7 +59,6 @@ object ExampleToolsConstants {
 
 }
 
-
 /**
   * Define Tool Contract Here using Avro classes
   *
@@ -71,54 +70,66 @@ trait ExampleToolEmitToolContract {
   import ExampleToolsConstants._
 
   def inputFileTypes: Seq[ToolInputFile] =
-    Seq(new ToolInputFile("txt", FileTypes.TXT.fileTypeId, "Txt File", "Example Input Txt file description"))
-
+    Seq(
+      new ToolInputFile("txt",
+                        FileTypes.TXT.fileTypeId,
+                        "Txt File",
+                        "Example Input Txt file description"))
 
   def outputFileTypes: Seq[ToolOutputFile] =
-    Seq(new ToolOutputFile("fasta", FileTypes.FASTA.fileTypeId, "Fasta", "file", "Random Fasta File Output"))
+    Seq(
+      new ToolOutputFile("fasta",
+                         FileTypes.FASTA.fileTypeId,
+                         "Fasta",
+                         "file",
+                         "Random Fasta File Output"))
 
   val pbInt: PacBioOptionType = PacBioOptionType.integer
 
-  def taskOptionNumRecords = PacBioOption.newBuilder()
-    .setName("NumRecords")
-    .setDescription("Number of Fasta Record to generate")
-    .setOptionId(NUM_RECORDS_OPT_ID)
-    .setDefault$(50)
-    .setType(PacBioOptionType.integer)
-    .build()
+  def taskOptionNumRecords =
+    PacBioOption
+      .newBuilder()
+      .setName("NumRecords")
+      .setDescription("Number of Fasta Record to generate")
+      .setOptionId(NUM_RECORDS_OPT_ID)
+      .setDefault$(50)
+      .setType(PacBioOptionType.integer)
+      .build()
 
   def taskOptions: PacBioOptions =
-    PacBioOptions.newBuilder()
+    PacBioOptions
+      .newBuilder()
       .setPbOption(taskOptionNumRecords)
       .build()
 
   def toolContractTask: ToolContractTask = {
-    ToolContractTask.newBuilder()
-        .setIsDistributed(false)
-        .setNproc(1)
-        .setToolContractId(TOOL_ID)
-        .setName(TOOL_NAME)
-        .setDescription(DESCRIPTION)
-        .setInputTypes(inputFileTypes)
-        .setOutputTypes(outputFileTypes)
-            .setTaskType("pbsmrtpipe.task_types.standard")
-            .setResourceTypes(Seq.empty[String])
-            .setSchemaOptions(Seq(taskOptions))
-        .build()
+    ToolContractTask
+      .newBuilder()
+      .setIsDistributed(false)
+      .setNproc(1)
+      .setToolContractId(TOOL_ID)
+      .setName(TOOL_NAME)
+      .setDescription(DESCRIPTION)
+      .setInputTypes(inputFileTypes)
+      .setOutputTypes(outputFileTypes)
+      .setTaskType("pbsmrtpipe.task_types.standard")
+      .setResourceTypes(Seq.empty[String])
+      .setSchemaOptions(Seq(taskOptions))
+      .build()
   }
 
   def toolContract: ToolContract = {
-    ToolContract.newBuilder()
-        .setDriver(new ToolDriver("smrtflow-example-tool run-rtc ", "avro"))
-        .setToolContract(toolContractTask)
-        .setVersion(VERSION)
-        .setToolContractId(TOOL_ID) // This is duplicated for unclear reasons
-        .build()
+    ToolContract
+      .newBuilder()
+      .setDriver(new ToolDriver("smrtflow-example-tool run-rtc ", "avro"))
+      .setToolContract(toolContractTask)
+      .setVersion(VERSION)
+      .setToolContractId(TOOL_ID) // This is duplicated for unclear reasons
+      .build()
   }
 }
 
-
-object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
+object ExampleTool extends LazyLogging with ExampleToolEmitToolContract {
 
   import ExampleToolsConstants._
 
@@ -139,20 +150,22 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
   }
 
   def runRtc(rtc: ResolvedToolContract): Int = {
-    logger.info(s"Loaded RTC with ToolContractId ${rtc.getResolvedToolContract.getToolContractId}")
+    logger.info(
+      s"Loaded RTC with ToolContractId ${rtc.getResolvedToolContract.getToolContractId}")
 
     // Not using this because
-    val inputTxt = Paths.get(rtc.getResolvedToolContract.getInputFiles.head.toString)
+    val inputTxt =
+      Paths.get(rtc.getResolvedToolContract.getInputFiles.head.toString)
 
-    val outputFasta = Paths.get(rtc.getResolvedToolContract.getOutputFiles.head.toString)
+    val outputFasta =
+      Paths.get(rtc.getResolvedToolContract.getOutputFiles.head.toString)
 
     // Is there a better way to do this in a type safe manner?
     // In local tests, this will just cast to 0 which is wrong.
     // FIXME(mpkocher)(2016-7-16) Fix this casting issue
-     val numRecords = rtc
-      .getResolvedToolContract
-      .getOptions
-      .get(NUM_RECORDS_OPT_ID).asInstanceOf[Int]
+    val numRecords = rtc.getResolvedToolContract.getOptions
+      .get(NUM_RECORDS_OPT_ID)
+      .asInstanceOf[Int]
 
     run(outputFasta, numRecords)
   }
@@ -162,7 +175,8 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
     println(s"Running RTC with $c")
     logger.info(s"Loading resolved tool contract Avro file from ${c.rtc}")
     val rtc = ContractLoaders.loadResolvedToolContract(c.rtc)
-    logger.info(s"Resolved tool contract Id ${rtc.getResolvedToolContract.getToolContractId}")
+    logger.info(
+      s"Resolved tool contract Id ${rtc.getResolvedToolContract.getToolContractId}")
     runRtc(rtc)
   }
 
@@ -181,7 +195,6 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract{
 
 }
 
-
 trait ExampleToolParser {
 
   import ExampleTool._
@@ -193,40 +206,40 @@ trait ExampleToolParser {
 
     cmd(RUN.name) action { (_, c) =>
       c.copy(command = (c) => runFrom(c), mode = RUN)
-    } children(
-        arg[File]("output-fasta") action { (s, c) =>
-          c.copy(outputFastaFile = s.toPath)
-        } text "Path to output Fasta File",
-        opt[File]('i', "input-txt") action { (s, c) =>
-          c.copy(inputTxtFile = Some(s.toPath))
-        } text "Optional Path to input.txt file",
-        opt[Int]('n', "num-records") action { (s, c) =>
-          c.copy(numRecords = s)
-        } text "Number of Records to write"
-        )
+    } children (
+      arg[File]("output-fasta") action { (s, c) =>
+        c.copy(outputFastaFile = s.toPath)
+      } text "Path to output Fasta File",
+      opt[File]('i', "input-txt") action { (s, c) =>
+        c.copy(inputTxtFile = Some(s.toPath))
+      } text "Optional Path to input.txt file",
+      opt[Int]('n', "num-records") action { (s, c) =>
+        c.copy(numRecords = s)
+      } text "Number of Records to write"
+    )
 
     cmd(RUN_RTC.name) action { (_, c) =>
       c.copy(command = (c) => runRtcFrom(c), mode = RUN_RTC)
     } children (
-        arg[File]("resolved-tool-contract") action { (s, c) =>
-          c.copy(rtc = s.toPath)
-        } text "Path to Resolved Tool Contract"
-        )
+      arg[File]("resolved-tool-contract") action { (s, c) =>
+        c.copy(rtc = s.toPath)
+      } text "Path to Resolved Tool Contract"
+    )
 
     cmd(EMIT_TC.name) action { (_, c) =>
       c.copy(command = (c) => runEmitTc(c), mode = EMIT_TC)
     } children (
-        opt[File]('o', "output-tc") action { (s, c) =>
-          c.copy(outputToolContract = s.toPath)
-        } text "Output path to Tool Contract"
-        )
+      opt[File]('o', "output-tc") action { (s, c) =>
+        c.copy(outputToolContract = s.toPath)
+      } text "Output path to Tool Contract"
+    )
 
     // Not sure this works
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 }
 
-trait ExampleToolRunner extends ExampleToolParser{
+trait ExampleToolRunner extends ExampleToolParser {
 
   import ExampleTool._
   import ExampleToolsConstants._
@@ -246,7 +259,6 @@ trait ExampleToolRunner extends ExampleToolParser{
   }
 }
 
-
-object ExampleToolApp extends App with ExampleToolRunner{
+object ExampleToolApp extends App with ExampleToolRunner {
   runner(args)
 }

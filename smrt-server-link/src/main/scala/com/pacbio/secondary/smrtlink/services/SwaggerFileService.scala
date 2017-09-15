@@ -12,17 +12,18 @@ import spray.httpx.SprayJsonSupport._
 import spray.routing.RoutingSettings
 import spray.routing.directives.FileAndResourceDirectives
 
-
-class SwaggerFileService(swaggerResourceName: String)(implicit actorSystem: ActorSystem) extends SmrtLinkBaseMicroService with FileAndResourceDirectives{
+class SwaggerFileService(swaggerResourceName: String)(
+    implicit actorSystem: ActorSystem)
+    extends SmrtLinkBaseMicroService
+    with FileAndResourceDirectives {
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
 
-  val manifest = PacBioComponentManifest(
-    toServiceId("swagger_file"),
-    "Swagger JSON file Service",
-    "0.1.0",
-    "Swagger Service Endpoints")
+  val manifest = PacBioComponentManifest(toServiceId("swagger_file"),
+                                         "Swagger JSON file Service",
+                                         "0.1.0",
+                                         "Swagger Service Endpoints")
 
   val routes =
     pathPrefix("swagger") {

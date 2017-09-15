@@ -1,12 +1,16 @@
 package com.pacbio.secondary.smrtlink.logging
 
-import com.pacbio.secondary.smrtlink.dependency.{SetBindings, SetBinding, Singleton}
+import com.pacbio.secondary.smrtlink.dependency.{
+  SetBindings,
+  SetBinding,
+  Singleton
+}
 import com.pacbio.secondary.smrtlink.models._
 import org.slf4j.{LoggerFactory => LogbackFactory}
 
 /**
- * Trait designed to simplify interaction with the Log Service.
- */
+  * Trait designed to simplify interaction with the Log Service.
+  */
 trait Logger extends ContextualLogging {
   import LogLevels._
 
@@ -26,7 +30,8 @@ trait Logger extends ContextualLogging {
 
   final def logbackLog(msg: String, level: LogLevel): Unit = {
     // TODO(smcclellan): Logging context should be added at the service level and actor level
-    for(_ <- logContext("Logger.logId" -> logId, "Logger.sourceId" -> sourceId)) {
+    for (_ <- logContext("Logger.logId" -> logId,
+                         "Logger.sourceId" -> sourceId)) {
       levelToLogbackLevel(level)(s"[Source: $sourceId] $msg")
     }
   }
@@ -43,36 +48,36 @@ trait Logger extends ContextualLogging {
 }
 
 /**
- * Trait for producing Loggers
- */
+  * Trait for producing Loggers
+  */
 trait LoggerFactory {
+
   /**
-   * Creates a Logger that will use the given sourceId and send messages to the log resource with the given logId.
-   * Automatically initializes the log resource, if necessary.
-   */
+    * Creates a Logger that will use the given sourceId and send messages to the log resource with the given logId.
+    * Automatically initializes the log resource, if necessary.
+    */
   def getLogger(logId: String, sourceId: String): Logger
 }
 
 /**
- * SetBinding for initial log resources. Providers may contribute a log resource to be initiialized by binding a
- * LogResourceRecord to this.
- */
+  * SetBinding for initial log resources. Providers may contribute a log resource to be initiialized by binding a
+  * LogResourceRecord to this.
+  */
 object LogResources extends SetBinding[LogResourceRecord]
 
 /**
- * Abstract provider that provides a Singleton LoggerFactory
- */
-trait LoggerFactoryProvider {
-  this: SetBindings =>
+  * Abstract provider that provides a Singleton LoggerFactory
+  */
+trait LoggerFactoryProvider { this: SetBindings =>
 
   /**
-   * Provides a singleton LoggerFactory.
-   */
+    * Provides a singleton LoggerFactory.
+    */
   val loggerFactory: Singleton[LoggerFactory]
 
   /**
-   * Defines a set of log resources.
-   */
-  val logResources: Singleton[Set[LogResourceRecord]] = Singleton(() => set(LogResources))
+    * Defines a set of log resources.
+    */
+  val logResources: Singleton[Set[LogResourceRecord]] = Singleton(
+    () => set(LogResources))
 }
-

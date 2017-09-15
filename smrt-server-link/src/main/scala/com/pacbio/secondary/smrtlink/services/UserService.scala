@@ -3,7 +3,10 @@ package com.pacbio.secondary.smrtlink.services
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  Authenticator,
+  AuthenticatorProvider
+}
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -15,10 +18,10 @@ class UserService(authenticator: Authenticator) extends PacBioService {
 
   implicit val timeout = Timeout(10.seconds)
 
-  val manifest = PacBioComponentManifest(
-    toServiceId("user"),
-    "User Service",
-    "0.1.0", "User Service")
+  val manifest = PacBioComponentManifest(toServiceId("user"),
+                                         "User Service",
+                                         "0.1.0",
+                                         "User Service")
 
   val userRoute =
     path("user") {
@@ -33,23 +36,24 @@ class UserService(authenticator: Authenticator) extends PacBioService {
       }
     }
 
-  val routes = userRoute ~ pathPrefix("smrt-link") {userRoute}
+  val routes = userRoute ~ pathPrefix("smrt-link") { userRoute }
 }
 
 /**
- * Provides a singleton UserService, and also binds it to the set of total services. Concrete providers must mixin a
- * {{{StatusServiceActorRefProvider}}}.
- */
-trait UserServiceProvider {
-  this: AuthenticatorProvider =>
+  * Provides a singleton UserService, and also binds it to the set of total services. Concrete providers must mixin a
+  * {{{StatusServiceActorRefProvider}}}.
+  */
+trait UserServiceProvider { this: AuthenticatorProvider =>
 
-  val userService: Singleton[UserService] = Singleton(() => new UserService(authenticator())).bindToSet(AllServices)
+  val userService: Singleton[UserService] =
+    Singleton(() => new UserService(authenticator())).bindToSet(AllServices)
 }
 
 trait UserServiceProviderx {
   this: AuthenticatorProvider with ServiceComposer =>
 
-  val userService: Singleton[UserService] = Singleton(() => new UserService(authenticator()))
+  val userService: Singleton[UserService] = Singleton(
+    () => new UserService(authenticator()))
 
   addService(userService)
 }

@@ -4,7 +4,10 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
+  ResourceNotFoundError,
+  UnprocessableEntityError
+}
 import com.pacbio.secondary.smrtlink.time.{Clock, ClockProvider}
 import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models._
@@ -32,7 +35,9 @@ trait SampleDaoProvider {
 class InMemorySampleDao(clock: Clock) extends SampleDao {
   val samples: mutable.HashMap[UUID, Sample] = new mutable.HashMap
 
-  override final def getSamples(): Future[Set[Sample]] = Future {samples.values.toSet }
+  override final def getSamples(): Future[Set[Sample]] = Future {
+    samples.values.toSet
+  }
 
   override final def getSample(uniqueId: UUID): Future[Sample] = Future {
     if (samples contains uniqueId)
@@ -41,42 +46,48 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
       throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
   }
 
-  override final def createSample(login: String, create: SampleCreate): Future[Sample] = Future {
-    if (samples contains create.uniqueId) {
-      throw new UnprocessableEntityError(s"Unable to create sample with uuid ${create.uniqueId}, already in use.")
+  override final def createSample(login: String,
+                                  create: SampleCreate): Future[Sample] =
+    Future {
+      if (samples contains create.uniqueId) {
+        throw new UnprocessableEntityError(
+          s"Unable to create sample with uuid ${create.uniqueId}, already in use.")
+      }
+
+      val sample = Sample(
+        details = create.details,
+        uniqueId = create.uniqueId,
+        name = create.name,
+        createdBy = login,
+        createdAt = clock.dateNow()
+      )
+      samples(sample.uniqueId) = sample
+      sample
     }
 
-    val sample = Sample (
-      details = create.details,
-      uniqueId = create.uniqueId,
-      name = create.name,
-      createdBy = login,
-      createdAt = clock.dateNow()
-    )
-    samples(sample.uniqueId) = sample
-    sample
-  }
+  override final def updateSample(uniqueId: UUID,
+                                  update: SampleUpdate): Future[Sample] =
+    Future {
+      if (!samples.contains(uniqueId)) {
+        throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
+      }
 
-  override final def updateSample(uniqueId: UUID, update: SampleUpdate): Future[Sample] = Future {
-    if (!samples.contains(uniqueId)) {
-      throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
+      val sample = samples(uniqueId).copy(
+        details = update.details.getOrElse(samples(uniqueId).details),
+        name = update.name.getOrElse(samples(uniqueId).name)
+      )
+      samples(sample.uniqueId) = sample
+      sample
     }
 
-    val sample = samples(uniqueId).copy(
-      details = update.details.getOrElse(samples(uniqueId).details),
-      name = update.name.getOrElse(samples(uniqueId).name)
-    )
-    samples(sample.uniqueId) = sample
-    sample
-  }
-
-  override final def deleteSample(uniqueId: UUID): Future[MessageResponse] = Future {
-    if (samples contains uniqueId) {
-      samples -= uniqueId
-      MessageResponse(s"Successfully deleted sample $uniqueId")
+  override final def deleteSample(uniqueId: UUID): Future[MessageResponse] =
+    Future {
+      if (samples contains uniqueId) {
+        samples -= uniqueId
+        MessageResponse(s"Successfully deleted sample $uniqueId")
+      } else
+        throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
     }
-    else throw new ResourceNotFoundError(s"Unable to find sample $uniqueId")
-  }
 
   @VisibleForTesting
   def clear(): Unit = {
@@ -85,8 +96,8 @@ class InMemorySampleDao(clock: Clock) extends SampleDao {
 }
 
 /**
- * Provides an InMemoryRunDesignDao. Concrete providers must mixin a ClockProvider.
- */
+  * Provides an InMemoryRunDesignDao. Concrete providers must mixin a ClockProvider.
+  */
 trait InMemorySampleDaoProvider extends SampleDaoProvider {
   this: ClockProvider =>
 
