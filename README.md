@@ -42,6 +42,21 @@ fasta-to-reference --help
 
 See the [full docs for details](http://smrtflow.readthedocs.io/) for details and examples of using SL tools, such as `pbservice` or `fasta-to-reference`.
 
+## Style Guide
+
+[scalafmt](http://scalameta.org/scalafmt) with default settings.
+
+To reformat all code (this should be done prior to PR)
+
+```bash
+$> sbt scalafmt
+```
+
+To Test if the code is correctly formatted. This will return a non-zero exit code if the code is not formatted consistently with the scalafmt spec. The CI tests will verify that the code is properly formatted.
+
+```bash
+$> sbt scalafmt::test
+```
 
 ## Runtime dependencies
 
